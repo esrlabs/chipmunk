@@ -151,7 +151,9 @@ describe('Search', function () {
                                             session,
                                             done,
                                             new Error(
-                                                `Fail to grab data due error: ${err.message}`,
+                                                `Fail to grab data due error: ${
+                                                    err instanceof Error ? err.message : err
+                                                }`,
                                             ),
                                         );
                                     });
@@ -164,7 +166,11 @@ describe('Search', function () {
                 finish(
                     undefined,
                     done,
-                    new Error(`Fail to create session due error: ${err.message}`),
+                    new Error(
+                        `Fail to create session due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
                 );
             });
     });
@@ -291,7 +297,11 @@ describe('Search', function () {
                                 finish(
                                     session,
                                     done,
-                                    new Error(`Fail to grab data due error: ${err.message}`),
+                                    new Error(
+                                        `Fail to grab data due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
                                 );
                             });
                     })
@@ -301,7 +311,11 @@ describe('Search', function () {
                 finish(
                     undefined,
                     done,
-                    new Error(`Fail to create session due error: ${err.message}`),
+                    new Error(
+                        `Fail to create session due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
                 );
             });
     });
@@ -351,7 +365,11 @@ describe('Search', function () {
                 finish(
                     undefined,
                     done,
-                    new Error(`Fail to create session due error: ${err.message}`),
+                    new Error(
+                        `Fail to create session due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
                 );
             });
     });
@@ -474,7 +492,9 @@ describe('Search', function () {
                                             session,
                                             done,
                                             new Error(
-                                                `Fail to grab data due error: ${err.message}`,
+                                                `Fail to grab data due error: ${
+                                                    err instanceof Error ? err.message : err
+                                                }`,
                                             ),
                                         );
                                     });
@@ -487,7 +507,11 @@ describe('Search', function () {
                 finish(
                     undefined,
                     done,
-                    new Error(`Fail to create session due error: ${err.message}`),
+                    new Error(
+                        `Fail to create session due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
                 );
             });
     });
@@ -612,7 +636,9 @@ describe('Search', function () {
                                             session,
                                             done,
                                             new Error(
-                                                `Fail to grab data due error: ${err.message}`,
+                                                `Fail to grab data due error: ${
+                                                    err instanceof Error ? err.message : err
+                                                }`,
                                             ),
                                         );
                                     });
@@ -625,7 +651,11 @@ describe('Search', function () {
                 finish(
                     undefined,
                     done,
-                    new Error(`Fail to create session due error: ${err.message}`),
+                    new Error(
+                        `Fail to create session due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
                 );
             });
     });

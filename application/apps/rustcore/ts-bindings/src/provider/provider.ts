@@ -3,10 +3,10 @@
 ///    we should show IDs
 /// 3. Add performance test (grabbing)
 
-import * as Events from '../util/events';
+import { Subject } from '../../../../../platform/env/subscription';
 import * as Logs from '../util/logging';
 
-import { TEventData, TEventEmitter, IEventData } from './provider.general';
+import { TEventData, TEventEmitter, IEventData } from '../provider/provider.general';
 
 export interface IOrderStat {
     type: 'E' | 'O';
@@ -20,8 +20,8 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
     private readonly _uuid: String;
     private readonly _tracking: {
         subjects: {
-            unsupported: Events.Subject<string>;
-            error: Events.Subject<string>;
+            unsupported: Subject<string>;
+            error: Subject<string>;
         };
         stat: {
             alias: string | undefined;
@@ -36,8 +36,8 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         count: boolean;
     } = {
         subjects: {
-            unsupported: new Events.Subject<string>(),
-            error: new Events.Subject<string>(),
+            unsupported: new Subject<string>(),
+            error: new Subject<string>(),
         },
         stat: {
             alias: undefined,
@@ -78,8 +78,8 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
 
     public debug(): {
         getEvents(): {
-            unsupported: Events.Subject<string>;
-            error: Events.Subject<string>;
+            unsupported: Subject<string>;
+            error: Subject<string>;
         };
         isTracking(): boolean;
         isStored(): boolean;
@@ -297,15 +297,21 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                 } else {
                     this.debug().emit.event(event);
                 }
-                const err: Error | undefined = Events.Subject.validate(
+                const err: Error | undefined = Subject.validate(
                     (this.getEventsInterfaces() as any)[event],
                     data,
                 );
                 if (err instanceof Error) {
                     this.debug().emit.error(
-                        `Error: ${err.message}. Input: ${JSON.stringify(data)}`,
+                        `Error: ${
+                            err instanceof Error ? err.message : err
+                        }. Input: ${JSON.stringify(data)}`,
                     );
-                    this.logger.error(`Failed to parse event "${event}" due error: ${err.message}`);
+                    this.logger.error(
+                        `Failed to parse event "${event}" due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    );
                 } else {
                     (this.getEvents() as any)[event].emit(data);
                 }

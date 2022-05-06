@@ -50,7 +50,11 @@ describe('Cancel', function () {
                 finish(
                     undefined,
                     done,
-                    new Error(`Fail to create session due error: ${err.message}`),
+                    new Error(
+                        `Fail to create session due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
                 );
             });
     });
@@ -80,7 +84,11 @@ describe('Cancel', function () {
                 finish(
                     undefined,
                     done,
-                    new Error(`Fail to create session due error: ${err.message}`),
+                    new Error(
+                        `Fail to create session due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
                 );
             });
     });

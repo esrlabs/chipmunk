@@ -1,6 +1,6 @@
 import { TExecutor, Logger, CancelablePromise, VoidExecutor } from './executor';
-import { RustSession } from '../native/index';
-import { EventProvider } from './session.provider';
+import { RustSession } from '../../native/index';
+import { EventProvider } from '../../api/session.provider';
 
 export interface IExportOptions {
     from: number;
@@ -20,9 +20,9 @@ export const executor: TExecutor<void, IExportOptions> = (
         provider,
         logger,
         options,
-        function(session: RustSession, options: IExportOptions): string | Error {
+        function (session: RustSession, options: IExportOptions): string | Error {
             return session.export(options);
         },
-        "export",
+        'export',
     );
 };

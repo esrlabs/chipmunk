@@ -1,7 +1,7 @@
 import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './executor';
-import { RustSession } from '../native/index';
-import { EventProvider } from './session.provider';
-import { IFilter, ISearchMap } from '../interfaces/index';
+import { RustSession } from '../../native/index';
+import { EventProvider } from '../../api/session.provider';
+import { IFilter, ISearchMap } from '../../interfaces/index';
 
 export interface IOptions {
     datasetLength: number;

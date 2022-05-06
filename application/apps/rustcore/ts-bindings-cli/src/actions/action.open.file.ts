@@ -150,7 +150,9 @@ export class OpenFile extends Action {
                                     .catch((err: Error) => {
                                         fail(
                                             new Error(
-                                                `Fail to grab data due error: ${err.message}`,
+                                                `Fail to grab data due error: ${
+                                                    err instanceof Error ? err.message : err
+                                                }`,
                                             ),
                                         );
                                     });

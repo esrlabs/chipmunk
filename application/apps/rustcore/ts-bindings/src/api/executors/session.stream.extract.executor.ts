@@ -1,6 +1,6 @@
 import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './executor';
-import { RustSession } from '../native/index';
-import { EventProvider } from './session.provider';
+import { RustSession } from '../../native/index';
+import { EventProvider } from '../../api/session.provider';
 import {
     IFilter,
     TExtractedValuesSrc,
@@ -8,7 +8,7 @@ import {
     TExtractedValues,
     IExtractedMatch,
     IExtractedValue,
-} from '../interfaces/index';
+} from '../../interfaces/index';
 
 export const executor: TExecutor<TExtractedValues, IFilter[]> = (
     session: RustSession,

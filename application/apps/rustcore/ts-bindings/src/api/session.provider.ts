@@ -1,5 +1,4 @@
-import * as Events from '../util/events';
-
+import { Subject } from '../../../../../platform/env/subscription';
 import { Computation } from '../provider/provider';
 import { EErrorKind, EErrorSeverity } from '../provider/provider.errors';
 import { IMapEntity, IMatchEntity } from '../interfaces/index';
@@ -39,16 +38,16 @@ export interface IEventMatchesUpdated {
 }
 
 export interface ISessionEvents {
-    StreamUpdated: Events.Subject<number>;
-    FileRead: Events.Subject<void>;
-    SearchUpdated: Events.Subject<number>;
-    MapUpdated: Events.Subject<IEventMapUpdated>;
-    MatchesUpdated: Events.Subject<IEventMatchesUpdated>;
-    Progress: Events.Subject<IProgressEvent>;
-    SessionError: Events.Subject<IError>;
-    OperationError: Events.Subject<IErrorEvent>;
-    SessionDestroyed: Events.Subject<void>;
-    OperationDone: Events.Subject<IOperationDoneEvent>;
+    StreamUpdated: Subject<number>;
+    FileRead: Subject<void>;
+    SearchUpdated: Subject<number>;
+    MapUpdated: Subject<IEventMapUpdated>;
+    MatchesUpdated: Subject<IEventMatchesUpdated>;
+    Progress: Subject<IProgressEvent>;
+    SessionError: Subject<IError>;
+    OperationError: Subject<IErrorEvent>;
+    SessionDestroyed: Subject<void>;
+    OperationDone: Subject<IOperationDoneEvent>;
 }
 
 interface ISessionEventsSignatures {
@@ -131,16 +130,16 @@ export class EventProvider extends Computation<
     ISessionEventsInterfaces
 > {
     private readonly _events: ISessionEvents = {
-        StreamUpdated: new Events.Subject<number>(),
-        FileRead: new Events.Subject<void>(),
-        SearchUpdated: new Events.Subject<number>(),
-        MapUpdated: new Events.Subject<IEventMapUpdated>(), // dummy
-        MatchesUpdated: new Events.Subject<IEventMatchesUpdated>(), // dummy
-        Progress: new Events.Subject<IProgressEvent>(),
-        SessionError: new Events.Subject<IError>(),
-        OperationError: new Events.Subject<IErrorEvent>(),
-        SessionDestroyed: new Events.Subject<void>(),
-        OperationDone: new Events.Subject<IOperationDoneEvent>(),
+        StreamUpdated: new Subject<number>(),
+        FileRead: new Subject<void>(),
+        SearchUpdated: new Subject<number>(),
+        MapUpdated: new Subject<IEventMapUpdated>(), // dummy
+        MatchesUpdated: new Subject<IEventMatchesUpdated>(), // dummy
+        Progress: new Subject<IProgressEvent>(),
+        SessionError: new Subject<IError>(),
+        OperationError: new Subject<IErrorEvent>(),
+        SessionDestroyed: new Subject<void>(),
+        OperationDone: new Subject<IOperationDoneEvent>(),
     };
 
     constructor(uuid: string) {

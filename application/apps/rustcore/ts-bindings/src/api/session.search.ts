@@ -2,7 +2,7 @@ import * as Logs from '../util/logging';
 
 import { RustSession } from '../native/index';
 import { CancelablePromise } from '../util/promise';
-import { EventProvider } from './session.provider';
+import { EventProvider } from '../api/session.provider';
 import {
     IFilter,
     IGrabbedElement,
@@ -11,7 +11,7 @@ import {
     TExtractedValues,
     INearest,
 } from '../interfaces/index';
-import { Executors } from './session.stream.executors';
+import { Executors } from './executors/session.stream.executors';
 import { NativeError } from '../interfaces/errors';
 
 export class SessionSearch {
@@ -35,7 +35,7 @@ export class SessionSearch {
         //         .destroy()
         //         .then(resolve)
         //         .catch((err: Error) => {
-        //             this._logger.error(`Fail to destroy provider due error: ${err.message}`);
+        //             this._logger.error(`Fail to destroy provider due error: ${err instanceof Error ? err.message : err}`);
         //             reject(err);
         //         });
         // });
@@ -92,6 +92,10 @@ export class SessionSearch {
         // TODO: field "filters" of IResultSearchElement cannot be empty, at least 1 filter
         // should be present there always. This is a right place for check of it
         return Executors.search(this._session, this._provider, this._logger, filters);
+    }
+
+    public drop(): Promise<boolean> {
+        return this._session.dropSearch();
     }
 
     public extract(filters: IFilter[]): CancelablePromise<TExtractedValues> {

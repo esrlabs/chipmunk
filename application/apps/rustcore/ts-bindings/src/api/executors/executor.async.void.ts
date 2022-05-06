@@ -1,10 +1,10 @@
-import { Logger } from '../util/logging';
-import { CancelablePromise } from '../util/promise';
-import { RustSession } from '../native/native.session';
-import { EventProvider, IErrorEvent, IOperationDoneEvent } from './session.provider';
-import { Subscription } from '../util/events.subscription';
+import { Logger } from '../../util/logging';
+import { CancelablePromise } from '../../util/promise';
+import { RustSession } from '../../native/native.session';
+import { EventProvider, IErrorEvent, IOperationDoneEvent } from '../../api/session.provider';
+import { Subscription } from '../../../../../../platform/env/subscription';
 import { v4 as uuidv4 } from 'uuid';
-import { NativeError } from '../interfaces/errors';
+import { NativeError } from '../../interfaces/errors';
 
 export type TOperationRunner<TOptions> = (
     session: RustSession,
@@ -12,23 +12,16 @@ export type TOperationRunner<TOptions> = (
     operationUuid: string,
 ) => Promise<void>;
 
-export type TOperationResultReader<TResult> = (
-    result: any,
-    resolve: (res: TResult) => void,
-    reject: (err: Error) => void,
-) => void;
-
 // TODO: should be implemented timeout to prevent memory leaking
-export function AsyncResultsExecutor<TResult, TOptions>(
+export function AsyncVoidExecutor<TOptions>(
     session: RustSession,
     provider: EventProvider,
     logger: Logger,
     options: TOptions,
     runner: TOperationRunner<TOptions>,
-    reader: TOperationResultReader<TResult>,
     name: string,
-): CancelablePromise<TResult> {
-    return new CancelablePromise<TResult>((resolve, reject, cancel, refCancelCB, self) => {
+): CancelablePromise<void> {
+    return new CancelablePromise<void>((resolve, reject, cancel, refCancelCB, self) => {
         let error: Error | undefined;
         // Setup subscriptions
         const lifecircle: {
@@ -59,7 +52,7 @@ export function AsyncResultsExecutor<TResult, TOptions>(
                 } else if (event.uuid === lifecircle.abortOperationId) {
                     cancel();
                 } else {
-                    reader(event.result, resolve, reject);
+                    resolve(undefined);
                 }
             }),
             unsunscribe(): void {
@@ -94,7 +87,7 @@ export function AsyncResultsExecutor<TResult, TOptions>(
                 }
             },
         };
-        logger.debug('Async result operation is started');
+        logger.debug('Async void operation is started');
         // Add cancel callback
         refCancelCB(() => {
             // Cancelation is started, but not canceled
@@ -103,14 +96,19 @@ export function AsyncResultsExecutor<TResult, TOptions>(
         });
         // Handle finale of promise
         self.finally(() => {
-            logger.debug('Async result operation promise is closed as well');
+            logger.debug('Async void operation promise is closed as well');
             lifecircle.unsunscribe();
         });
-        // Call operation
         const opUuid: string = uuidv4();
         runner(session, options, opUuid).catch((err: Error) => {
             if (self.isProcessing()) {
-                reject(new Error(`Fail to run "${name}" operation due error: ${err.message}`));
+                reject(
+                    new Error(
+                        `Fail to run "${name}" operation due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
+                );
             }
         });
     });

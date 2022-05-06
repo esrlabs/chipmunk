@@ -1,7 +1,7 @@
 import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './executor';
-import { RustSession } from '../native/index';
-import { EventProvider } from './session.provider';
-import { IFileMergeOptions } from '../interfaces';
+import { RustSession } from '../../native/index';
+import { EventProvider } from '../../api/session.provider';
+import { IFileMergeOptions } from '../../interfaces/index';
 
 export interface IExecuteMergeOptions {
     files: IFileMergeOptions[];

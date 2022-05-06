@@ -1,8 +1,6 @@
 import * as Logs from '../util/logging';
 
-import ServiceProduction from '../services/service.production';
-
-import { RustSessionRequiered } from './native.session.required';
+import { RustSessionRequiered } from '../native/native.session.required';
 import { TEventEmitter } from '../provider/provider.general';
 import { Computation } from '../provider/provider';
 import {
@@ -15,12 +13,13 @@ import {
     IFileMergeOptions,
     Observe,
 } from '../interfaces/index';
-import { getNativeModule } from './native';
-import { EFileOptionsRequirements } from '../api/session.stream.observe.executor';
-import { IDetectOptions } from '../api/session.stream.timeformat.detect.executor';
-import { IExportOptions } from '../api/session.stream.export.executor';
+import { getNativeModule } from '../native/native';
+import { EFileOptionsRequirements } from '../api/executors/session.stream.observe.executor';
+import { IDetectOptions } from '../api/executors/session.stream.timeformat.detect.executor';
+import { IExportOptions } from '../api/executors/session.stream.export.executor';
 import { Type, Source, NativeError } from '../interfaces/errors';
 import { v4 as uuidv4 } from 'uuid';
+import { getValidNum } from '../util/numbers';
 
 export type RustSessionConstructorImpl<T> = new (
     uuid: string,
@@ -35,7 +34,7 @@ export abstract class RustSession extends RustSessionRequiered {
         super();
     }
 
-    public abstract destroy(): Promise<void>;
+    public abstract override destroy(): Promise<void>;
 
     /**
      * Returns chunk of stream/session file.
@@ -181,6 +180,8 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract search(filters: IFilter[], operationUuid: string): Promise<void>;
 
+    public abstract dropSearch(): Promise<boolean>;
+
     public abstract extractMatchesValues(filters: IFilter[], operationUuid: string): Promise<void>;
 
     public abstract getMap(
@@ -247,6 +248,8 @@ export abstract class RustSessionNative {
         }>,
         operationUuid: string,
     ): Promise<void>;
+
+    public abstract dropSearch(): Promise<boolean>;
 
     public abstract extractMatches(
         filters: Array<{
@@ -324,7 +327,9 @@ export class RustSessionWrapper extends RustSession {
                 cb(undefined);
             })
             .catch((err: Error) => {
-                this._logger.error(`Fail to init session: ${err.message}`);
+                this._logger.error(
+                    `Fail to init session: ${err instanceof Error ? err.message : err}`,
+                );
                 cb(err);
             });
     }
@@ -344,7 +349,11 @@ export class RustSessionWrapper extends RustSession {
                     resolve();
                 })
                 .catch((err: Error) => {
-                    this._logger.error(`Fail to close session due error: ${err.message}`);
+                    this._logger.error(
+                        `Fail to close session due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    );
                     reject(err);
                 })
                 .finally(() => {
@@ -364,18 +373,33 @@ export class RustSessionWrapper extends RustSession {
                 .grab(start, len)
                 .then((grabbed: string) => {
                     try {
-                        const result: IGrabbedContent = JSON.parse(grabbed);
+                        const result: {
+                            grabbed_elements: Array<{
+                                c: string;
+                                id: string;
+                                r: unknown;
+                                p: unknown;
+                            }>;
+                        } = JSON.parse(grabbed);
                         resolve(
-                            result.grabbed_elements.map((item: IGrabbedElement) => {
-                                return {
-                                    content:
-                                        item.content === undefined ? (item as any).c : item.content,
-                                    source_id:
-                                        item.source_id === undefined
-                                            ? (item as any).id
-                                            : item.source_id,
-                                };
-                            }),
+                            result.grabbed_elements.map(
+                                (
+                                    item: {
+                                        c: string;
+                                        id: string;
+                                        r: unknown;
+                                        p: unknown;
+                                    },
+                                    i: number,
+                                ) => {
+                                    return {
+                                        content: item.c,
+                                        source_id: item.id,
+                                        row: getValidNum(item.r, start + i),
+                                        position: getValidNum(item.p, start + i),
+                                    };
+                                },
+                            ),
                         );
                     } catch (err) {
                         reject(
@@ -412,23 +436,33 @@ export class RustSessionWrapper extends RustSession {
                 .grabSearch(start, len)
                 .then((grabbed: string) => {
                     try {
-                        const result: IGrabbedContent = JSON.parse(grabbed);
+                        const result: {
+                            grabbed_elements: Array<{
+                                c: string;
+                                id: string;
+                                r: unknown;
+                                p: unknown;
+                            }>;
+                        } = JSON.parse(grabbed);
                         resolve(
-                            result.grabbed_elements.map((item: IGrabbedElement) => {
-                                return {
-                                    content:
-                                        item.content === undefined ? (item as any).c : item.content,
-                                    source_id:
-                                        item.source_id === undefined
-                                            ? (item as any).id
-                                            : item.source_id,
-                                    position:
-                                        item.position === undefined
-                                            ? (item as any).p
-                                            : item.position,
-                                    row: item.row === undefined ? (item as any).r : item.row,
-                                };
-                            }),
+                            result.grabbed_elements.map(
+                                (
+                                    item: {
+                                        c: string;
+                                        id: string;
+                                        r: unknown;
+                                        p: unknown;
+                                    },
+                                    i: number,
+                                ) => {
+                                    return {
+                                        content: item.c,
+                                        source_id: item.id,
+                                        row: getValidNum(item.r, start + i),
+                                        position: getValidNum(item.p, start + i),
+                                    };
+                                },
+                            ),
                         );
                     } catch (err) {
                         reject(
@@ -599,6 +633,10 @@ export class RustSessionWrapper extends RustSession {
                 return reject(new NativeError(NativeError.from(err), Type.Other, Source.Search));
             }
         });
+    }
+
+    public dropSearch(): Promise<boolean> {
+        return this._native.dropSearch();
     }
 
     public extractMatchesValues(filters: IFilter[], operationUuid: string): Promise<void> {

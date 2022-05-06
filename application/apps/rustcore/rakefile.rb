@@ -79,10 +79,10 @@ namespace :build do
     Dir.mkdir(dir_tests) unless File.exists?(dir_tests)
     sh "cp #{RS}/dist/index.node #{TS}/native/index.node"
     # Copy native to CLI
-    dir_cli = "#{TS_BUILD_CLI}/native"
-    FileUtils.rm_rf(dir_cli) unless !File.exists?(dir_cli)
-    Dir.mkdir(dir_cli) unless File.exists?(dir_cli)
-    sh "cp #{RS}/dist/index.node #{dir_cli}/index.node"
+    # dir_cli = "#{TS_BUILD_CLI}/native"
+    # FileUtils.rm_rf(dir_cli) unless !File.exists?(dir_cli)
+    # Dir.mkdir(dir_cli) unless File.exists?(dir_cli)
+    # sh "cp #{RS}/dist/index.node #{dir_cli}/index.node"
   end
 
   desc 'Build TS-CLI'
@@ -105,10 +105,10 @@ namespace :build do
   end
 
   desc 'build all'
-  task :all do
-    puts "do nothing in grabber branch"
-  end
-  # task :all => ['build:rs', 'build:ts', 'build:delivery']
+  # task :all do
+  #   puts "do nothing in grabber branch"
+  # end
+  task :all => ['build:rs', 'build:ts', 'build:delivery']
 end
 
 test_runner = './ts-bindings/node_modules/.bin/electron ./ts-bindings/node_modules/jasmine-ts/lib/index.js'

@@ -1,13 +1,3 @@
-class Greeter {
-    greeting: string;
-    constructor(message: string) {
-        this.greeting = message;
-    }
-    greet() {
-        return "Hello, " + this.greeting;
-    }
-}
-
 export class TimeUnit {
     nanoseconds: number;
     constructor(inNs: number) {
@@ -50,15 +40,14 @@ export class TimeUnit {
     }
 
     inNanoseconds(): number {
-        return this.nanoseconds
+        return this.nanoseconds;
     }
 
     inMilliseconds(): number {
-        return this.nanoseconds / 1000.0
+        return this.nanoseconds / 1000.0;
     }
 
     inSeconds(): number {
-        return this.nanoseconds / 1000.0 / 1000.0
+        return this.nanoseconds / 1000.0 / 1000.0;
     }
-
 }

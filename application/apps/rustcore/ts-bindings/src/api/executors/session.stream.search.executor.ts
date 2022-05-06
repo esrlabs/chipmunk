@@ -1,7 +1,7 @@
 import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './executor';
-import { RustSession } from '../native/index';
-import { EventProvider } from './session.provider';
-import { IFilter, ISearchResults } from '../interfaces/index';
+import { RustSession } from '../../native/index';
+import { EventProvider } from '../../api/session.provider';
+import { IFilter, ISearchResults } from '../../interfaces/index';
 
 export const executor: TExecutor<ISearchResults, IFilter[]> = (
     session: RustSession,

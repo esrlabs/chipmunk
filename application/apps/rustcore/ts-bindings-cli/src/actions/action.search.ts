@@ -145,7 +145,11 @@ export class SearchInFile extends Action {
                                 })
                                 .catch((err: Error) => {
                                     reject(
-                                        new Error(`Fail to grab data due error: ${err.message}`),
+                                        new Error(
+                                            `Fail to grab data due error: ${
+                                                err instanceof Error ? err.message : err
+                                            }`,
+                                        ),
                                     );
                                 });
                         })

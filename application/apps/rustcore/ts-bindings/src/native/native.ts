@@ -3,18 +3,15 @@ import * as Logs from '../util/logging';
 
 export interface IRustModuleExports {
     RustSession: any;
+    Dlt: any;
 }
 
 export function getNativeModule(): IRustModuleExports {
-    Logs.getLogger('Native module getter').debug(`Target: ${path.resolve(module.path, '../../native/index.node')}`);
-    const target = path.resolve(module.path, '../../native/index.node');
-    return require(target);
+    const modulePath = path.resolve(module.path, '../../native/index.node');
+    Logs.getLogger('Native module getter').debug(`Target: ${modulePath}`);
+    return require(modulePath);
 }
 
-const {
-    RustSession: RustSessionNoType,
-} = getNativeModule();
+const { RustSession: RustSessionNoType, Dlt: RustDltTools } = getNativeModule();
 
-export {
-    RustSessionNoType,
-};
+export { RustSessionNoType, RustDltTools };

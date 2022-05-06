@@ -1,10 +1,8 @@
 import { TExecutor, Logger, CancelablePromise, ResultsExecutor } from './executor';
-import { RustSession } from '../native/index';
-import { EventProvider } from './session.provider';
+import { RustSession } from '../../native/index';
+import { EventProvider } from '../../api/session.provider';
 
-export interface IDetectOptions {
-
-}
+export interface IDetectOptions {}
 
 export interface IDetectDTFormatResult {
     format: string;
@@ -22,16 +20,20 @@ export const executor: TExecutor<IDetectDTFormatResult, IDetectOptions> = (
         provider,
         logger,
         options,
-        function(session: RustSession, options: IDetectOptions): string | Error {
+        function (session: RustSession, options: IDetectOptions): string | Error {
             return session.detect(options);
         },
-        function(result: any, resolve: (res: IDetectDTFormatResult) => void, reject: (err: Error) => void) {
+        function (
+            result: any,
+            resolve: (res: IDetectDTFormatResult) => void,
+            reject: (err: Error) => void,
+        ) {
             // TODO: implement result checks/convert
             resolve({
                 format: '',
                 reg: '',
-            })
+            });
         },
-        "detect",
+        'detect',
     );
 };

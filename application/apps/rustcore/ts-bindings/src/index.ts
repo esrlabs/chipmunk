@@ -1,6 +1,6 @@
 import * as Units from './util/units';
-import * as Events from './util/events';
 import * as Interfaces from './interfaces/index';
+import * as Events from '../../../../platform/env/subscription';
 
 export { CancelablePromise } from './util/promise';
 export { PromiseExecutor } from './util/promise.executor';
@@ -8,9 +8,10 @@ export {
     TFileOptions,
     IFileOptionsDLT,
     EFileOptionsRequirements,
-} from './api/session.stream.observe.executor';
+} from './api/executors/session.stream.observe.executor';
 export {
     Session,
+    Observe,
     SessionSearch,
     SessionStream,
     ISessionEvents,
@@ -34,5 +35,7 @@ export {
     IFilterFlags,
     IGrabbedContent,
 } from './interfaces/index';
+
+export * as dlt from './native/native.dlt';
 
 export { Units, Events, Interfaces };

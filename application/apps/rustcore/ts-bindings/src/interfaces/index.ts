@@ -18,6 +18,11 @@ export {
     IConcatFile,
     IFileMergeOptions,
     INearest,
-} from '../../../../../common/interfaces/interface.rust.api.general';
-export { Dlt, Pcap, Someip, Observe } from '../../../../../common/interfaces/index';
-export { OperationStat } from './debug';
+} from '../../../../../platform/interfaces/interface.rust.api.general';
+export {
+    Logger,
+    TLogFunc,
+    IChipmunkNodeGlobal,
+} from '../../../../../platform/interfaces/interface.node.global';
+export { Someip, Observe } from '../../../../../platform/interfaces/index';
+export { OperationStat } from '../interfaces/debug';

@@ -11,7 +11,6 @@ type TResolver = () => void;
 type TRejector = (err: Error) => void;
 
 class Executor {
-    
     static Actions: Action[] = [Help, Output, OpenFile, SearchInFile];
 
     public run(): Promise<void> {
@@ -26,17 +25,22 @@ class Executor {
             return done();
         }
         const action: Action = Executor.Actions[index];
-        action.proceed(args).then((output: string[]) => {
-            this._next(output, done, fail, index);
-        }).catch((err: Error) => fail(err));
+        action
+            .proceed(args)
+            .then((output: string[]) => {
+                this._next(output, done, fail, index);
+            })
+            .catch((err: Error) => fail(err));
     }
-
 }
 
 const executor: Executor = new Executor();
 
-executor.run().then(() => {
-    console.log(`All done`);
-}).catch((err: Error) => {
-    console.log(`Fail with: ${err.message}`)
-});
+executor
+    .run()
+    .then(() => {
+        console.log(`All done`);
+    })
+    .catch((err: Error) => {
+        console.log(`Fail with: ${err instanceof Error ? err.message : err}`);
+    });
