@@ -1,0 +1,109 @@
+{
+    "name": "chipmunk",
+    "version": "3.0.0",
+    "chipmunk": {
+        "versions": {}
+    },
+    "description": "LogViewer Tool",
+    "author": {
+        "name": "Oliver Mueller",
+        "email": "oliver.mueller@esrlabs.com",
+        "url": "https://www.esrlabs.com/"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/esrlabs/chipmunk.git"
+    },
+    "contributors": [
+        {
+            "name": "Dmitry Astafyev",
+            "email": "dmitry.astafyev@esrlabs.com",
+            "url": "https://www.esrlabs.com/"
+        }
+    ],
+    "main": "./dist/holder/src/app.js",
+    "copyright": "Copyright © 2022 year ESR Labs",
+    "build": {
+        "asar": true,
+        "appId": "com.esrlabs.chipmunk",
+        "productName": "chipmunk",
+        "copyright": "Copyright © 2022 year ESR Labs",
+        "files": [
+            "./dist/**",
+            "./resources/**"
+        ],
+        "directories": {
+            "output": "release",
+            "buildResources": "resources"
+        },
+        "asarUnpack": [
+            "resources"
+        ],
+        "npmRebuild": true,
+        "mac": {
+            "category": "public.app-category.developer-tools",
+            "icon": "resources/mac/chipmunk.icns",
+            "target": [],
+            "binaries": [],
+            "extendInfo": {
+                "NSCameraUsageDescription": "",
+                "NSMicrophoneUsageDescription": ""
+            },
+            "hardenedRuntime": true,
+            "gatekeeperAssess": false,
+            "entitlements": "./resources/mac/entitlements.mac.plist",
+            "entitlementsInherit": "./resources/mac/entitlements.mac.plist"
+        },
+        "linux": {
+            "icon": "resources/icons/png/64.png",
+            "executableName": "chipmunk",
+            "desktop": "resources/linux/chipmunk.desktop",
+            "target": []
+        },
+        "win": {
+            "icon": "resources/win/chipmunk.ico",
+            "target": [],
+            "publisherName": "ESR Labs"
+        }
+    },
+    "dependencies": {
+        "http-proxy-agent": "^5.0.0",
+        "https-proxy-agent": "^5.0.1",
+        "module-alias": "^2.2.2",
+        "moment-timezone": "^0.5.34",
+        "rustcore": "file:../apps/rustcore/ts-bindings",
+        "semver": "^7.3.7",
+        "sudo-prompt": "^9.2.1",
+        "tslib": "^2.3.1",
+        "uuid": "^8.3.2"
+    },
+    "devDependencies": {
+        "@types/module-alias": "^2.0.1",
+        "@types/node": "^17.0.24",
+        "@types/request": "^2.48.8",
+        "@types/semver": "^7.3.9",
+        "@types/uuid": "^8.3.4",
+        "@typescript-eslint/eslint-plugin": "^5.19.0",
+        "@typescript-eslint/parser": "^5.19.0",
+        "electron": "^18.0.4",
+        "electron-builder": "^23.0.3",
+        "electron-notarize": "^1.2.1",
+        "eslint": "^8.13.0",
+        "eslint-plugin-import": "^2.26.0",
+        "eslint-plugin-node": "^11.1.0",
+        "eslint-plugin-promise": "^6.0.0",
+        "typescript": "^4.6.3"
+    },
+    "scripts": {
+        "electron": "npm run build && ./node_modules/.bin/electron --inspect ./dist/holder/src/app.js",
+        "electron-win": "./node_modules/.bin/electron --inspect ./dist/holder/src/app.js",
+        "build": "./node_modules/.bin/tsc -p ./tsconfig.json",
+        "build-scripts-ts": "./node_modules/.bin/tsc -p ./scripts/tsconfig.json",
+        "start": "npm run build-ts && npm run electron",
+        "postinstall": "electron-builder install-app-deps",
+        "build-mac": "npm run build-scripts-ts && npm run build-ts && ./node_modules/.bin/electron-builder --mac --dir",
+        "build-linux": "npm run build-scripts-ts && npm run build-ts && ./node_modules/.bin/electron-builder --linux --dir",
+        "build-win": "npm run build-scripts-ts && npm run build-ts && node_modules/.bin/electron-builder --win --dir",
+        "lint": "./node_modules/.bin/eslint . --ext .ts"
+    }
+}

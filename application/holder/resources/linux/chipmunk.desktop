@@ -1,0 +1,15 @@
+[Desktop Entry]
+Name=Chipmunk
+Comment=Log viewer tool
+GenericName=Log viewer tool
+Exec=chipmunk %f
+Icon=chipmunk.png
+Type=Application
+Categories=Utility;Tools;
+Actions=new-empty-window;
+Keywords=chipmunk;
+
+[Desktop Action new-empty-window]
+Name=New Empty Window
+Exec=chipmunk %f
+Icon=chipmunk.png

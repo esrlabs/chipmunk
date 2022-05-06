@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "./dist/",
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "inlineSourceMap": true,
+    "declaration": true,
+    "downlevelIteration": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "moduleResolution": "Node",
+    "importHelpers": true,
+    "noImplicitAny": true,
+    "target": "ESNext",
+    "module": "CommonJS",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "lib": [
+      "ESNext"
+    ],
+    "types": ["node"],
+    "paths": {
+      "@platform/*": ["../platform/*"],
+      "@register/*": ["src/register/*"],
+      "@env/*": ["src/env/*"],
+      "@log/*": ["src/env/logs/*"],
+      "@controller/*": ["src/controller/*"],
+      "@loader/*": ["src/loaders/*"],
+      "@module/*": ["src/modules/*"],
+      "@service/*": ["src/service/*"],
+      "*": [
+          "node_modules/*"
+      ]
+    }
+  },
+  "files": [
+    "./src/app.ts",
+    "./src/preload/preload.ts"
+  ]
+}
