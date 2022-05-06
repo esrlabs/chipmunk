@@ -69,7 +69,6 @@ pub enum OperationAlias {
     Map,
     Concat,
     Merge,
-    DropSearch,
     GetNearestPosition,
     Sleep,
     Cancel,
@@ -89,7 +88,6 @@ impl std::fmt::Display for OperationAlias {
                 OperationAlias::Map => "Map",
                 OperationAlias::Concat => "Concat",
                 OperationAlias::Merge => "Merge",
-                OperationAlias::DropSearch => "DropSearch",
                 OperationAlias::GetNearestPosition => "GetNearestPosition",
                 OperationAlias::Sleep => "Sleep",
                 OperationAlias::Cancel => "Cancel",
@@ -124,7 +122,6 @@ pub enum Operation {
         append: bool,
         source_id: String,
     },
-    DropSearch(cc::Sender<()>),
     GetNearestPosition(u64),
     Cancel {
         target: Uuid,
@@ -161,7 +158,6 @@ impl std::fmt::Display for Operation {
                 } => "Merge",
                 Operation::Sleep(_) => "Sleep",
                 Operation::Cancel { target: _ } => "Cancel",
-                Operation::DropSearch(_) => "DropSearch",
                 Operation::GetNearestPosition(_) => "GetNearestPosition",
                 Operation::End => "End",
             }
@@ -303,15 +299,8 @@ impl OperationAPI {
                     .await;
                 }
                 Operation::Search { filters } => {
-                    let session_file = match state.get_session_file().await {
-                        Ok(session_file) => session_file,
-                        Err(err) => {
-                            warn!("Fail to call Operation::Search; error: {:?}", err);
-                            return;
-                        }
-                    };
                     api.finish(
-                        handlers::search::handle(&api, session_file, filters, state).await,
+                        handlers::search::handle(&api, filters, state).await,
                         OperationAlias::Search,
                     )
                     .await;
@@ -411,18 +400,6 @@ impl OperationAPI {
                         .await;
                     }
                 },
-                Operation::DropSearch(tx_response) => {
-                    if let Err(err) = state.set_matches(None).await {
-                        api.finish::<OperationResult<()>>(Err(err), OperationAlias::DropSearch)
-                            .await;
-                    } else {
-                        if let Err(err) = tx_response.send(()) {
-                            error!("fail to responce to Operation::DropSearch; error: {}", err);
-                        }
-                        api.finish::<OperationResult<()>>(Ok(None), OperationAlias::DropSearch)
-                            .await;
-                    }
-                }
                 Operation::GetNearestPosition(position) => match state.get_search_map().await {
                     Ok(map) => {
                         api.finish(

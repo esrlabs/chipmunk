@@ -54,7 +54,7 @@ pub fn create_metadata_for_source(
     match get_supported_file_type(file_path)? {
         SupportedFileType::Text => {
             let mut source = TextFileSource::new(file_path, &source_id);
-            source.from_file(Some(cancellation_token))
+            source.from_file(None, Some(cancellation_token))
         }
     }
 }

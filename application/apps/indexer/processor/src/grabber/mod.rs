@@ -166,18 +166,6 @@ impl Grabber {
         self.metadata.as_ref()
     }
 
-    pub fn merge_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError> {
-        self.metadata = if let Some(md) = self.metadata.take() {
-            Some(GrabMetadata {
-                slots: [md.slots, metadata.slots].concat(),
-                line_count: metadata.line_count,
-            })
-        } else {
-            Some(metadata)
-        };
-        Ok(())
-    }
-
     pub fn drop_metadata(&mut self) {
         self.metadata = None;
     }
@@ -189,8 +177,16 @@ impl Grabber {
     pub fn update_from_file(
         &mut self,
         shutdown_token: Option<CancellationToken>,
-    ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
-        self.source.from_file(shutdown_token)
+    ) -> Result<(), GrabError> {
+        match self.source.from_file(self.metadata.take(), shutdown_token) {
+            Ok(result) => {
+                if let ComputationResult::Item(metadata) = result {
+                    self.metadata = Some(metadata)
+                }
+                Ok(())
+            }
+            Err(err) => Err(err),
+        }
     }
 }
 
@@ -213,7 +209,7 @@ impl Grabber {
         shutdown_token: Option<CancellationToken>,
     ) -> Result<(), GrabError> {
         if self.metadata.is_none() {
-            if let ComputationResult::Item(md) = self.source.from_file(shutdown_token)? {
+            if let ComputationResult::Item(md) = self.source.from_file(None, shutdown_token)? {
                 self.metadata = Some(md)
             }
         }
@@ -232,7 +228,7 @@ impl Grabber {
             return Err(GrabError::Config("Cannot grab empty file".to_string()));
         }
 
-        let metadata = match source.from_file(None)? {
+        let metadata = match source.from_file(None, None)? {
             ComputationResult::Item(md) => Ok(Some(md)),
             ComputationResult::Stopped => Err(GrabError::Interrupted),
         }?;

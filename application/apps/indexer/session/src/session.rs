@@ -137,6 +137,13 @@ impl Session {
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
+    pub async fn drop_search(&self) -> Result<bool, ComputationError> {
+        self.state
+            .drop_search()
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
     pub fn extract_matches(
         &self,
         operation_id: Uuid,
