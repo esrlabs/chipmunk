@@ -1,0 +1,6 @@
+<div class="signature" [ngStyle]="ngGetSignatureWidth()">
+    <span class="source-alias"></span>
+    <span class="number"><span class="filler">{{ngGetRankFiller(row.position.stream)}}</span>{{row.position.stream}}</span>
+</div>
+<app-scrollarea-row-standard *ngIf="render === 1" [row]="row"></app-scrollarea-row-standard>
+<app-scrollarea-row-columns *ngIf="render === 2" [row]="row"></app-scrollarea-row-columns>

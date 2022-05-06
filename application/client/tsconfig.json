@@ -1,0 +1,53 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "baseUrl": "./",
+    "outDir": "./dist/out-tsc",
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "sourceMap": true,
+    "declaration": false,
+    "downlevelIteration": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "node",
+    "importHelpers": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
+    "paths": {
+      "@platform/*": ["../platform/*"],
+      "@loader/*": ["src/app/loader/*"],
+      "@module/*": ["src/app/module/*"],
+      "@register/*": ["src/app/register/*"],
+      "@service/*": ["src/app/service/*"],
+      "@controller/*": ["src/app/controller/*"],
+      "@schema/*": ["src/app/schema/*"],
+      "@env/*": ["src/app/env/*"],
+      "@log/*": ["src/app/env/logs/*"],
+      "@ui/*": ["src/app/ui/*"],
+      "@styles/*": ["src/app/ui/styles/*"],
+      "@directives/*": ["src/app/ui/env/directives/*"],
+      "@dialogs/*": ["src/app/ui/dialogs/*"],
+      "@elements/*": ["src/app/ui/elements/*"],
+      "@layout/*": ["src/app/ui/layout/*"],
+      "@views/*": ["src/app/ui/views/*"],
+      "@tabs/*": ["src/app/ui/tabs/*"],
+      "@statusbar/*": ["src/app/ui/statusbar/*"],
+      "@sidebar/*": ["src/app/ui/sidebar/*"],
+      "tslib": ["node_modules/tslib"],
+    }
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
+  }
+}

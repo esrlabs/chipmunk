@@ -1,0 +1,221 @@
+@import '../styles/variables.less';
+
+:host {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    & div.wrapper {
+        position: absolute;
+        display: block;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        & div.main {
+            position: absolute;
+            display: block;
+            top: 0;
+            left: 0;
+            width: 100%;
+            bottom: @status-bar-height;
+            & div.workspace {
+                position: absolute;
+                display: block;
+                top: 0;
+                left: 0;
+                right: @tabs-list-height;
+                &.full {
+                    right: 0;
+                    bottom: 0;
+                }
+            }
+            & div.toolbar {
+                position: absolute;
+                display: block;
+                left: 0;
+                bottom: 0;
+                right: @tabs-list-height;
+                background: @scheme-color-5;
+                & element-tabs {
+                    top: 0;
+                    left: 0;
+                    bottom: 0;
+                    right: 0;
+                    position: absolute;
+                    display: block;
+                    overflow: hidden;
+                }
+            }
+            & div.sidebar {
+                position: absolute;
+                display: block;
+                top: 0;
+                bottom: 0;
+                right: 0;
+                width: @tabs-list-height;
+                z-index: 1;
+                & div.sidebar-caption {
+                    position: absolute;
+                    display: block;
+                    top: 0;
+                    left: 0;
+                    height: @tabs-list-height;
+                    right: 0;
+                    overflow: hidden;
+                    background: lighten(@scheme-color-5, 10%);
+                    box-sizing: border-box;
+                    border-bottom: 1px solid @scheme-color-5;
+                    & div.switcher {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        height: @tabs-list-height;
+                        width: @tabs-list-height;
+                        & span.small-icon-button {
+                            transition: transform 350ms ease-in-out;
+                            color: @scheme-color-1;
+                        }
+                    }
+                    & div.injections {
+                        position: absolute;
+                        display: none;
+                        top: 0;
+                        left: @tabs-list-height;
+                        height: @tabs-list-height;
+                        right: @tabs-list-height;
+                        overflow: hidden;
+                    }
+                    & div.location {
+                        position: absolute;
+                        display: none;
+                        top: 0;
+                        right: 0;
+                        height: @tabs-list-height;
+                        width: @tabs-list-height;
+                        & span.small-icon-button {
+                            transition: transform 350ms ease-in-out;
+                            color: @scheme-color-1;
+                        }
+                    }
+                }
+                & app-layout-sidebar {
+                    top: @tabs-list-height;
+                    left: 0;
+                    bottom: 0;
+                    right: 0;
+                    position: absolute;
+                    display: block;
+                    overflow: hidden;
+                }
+                & div.sidebar-resizer {
+                    position: absolute;
+                    display: block;
+                    top: 0;
+                    left: -3px;
+                    width: 6px;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.001);
+                    cursor: col-resize;
+                    z-index: 1;
+                }
+            }
+            & div.toolbar-resizer {
+                position: absolute;
+                display: block;
+                left: 0;
+                bottom: -3px;
+                height: 6px;
+                right: 0;
+                background: rgba(0, 0, 0, 0.001);
+                cursor: row-resize;
+                z-index: 1;
+            }
+        }
+        & app-layout-statusbar {
+            position: absolute;
+            display: block;
+            overflow: hidden;
+            bottom: 0;
+            height: @status-bar-height;
+            left: 0;
+            right: 0;
+        }
+        &.fb-minimized {
+        }
+        &.fb-maximized {
+            & div.main {
+                & div.sidebar {
+                    & div.sidebar-caption {
+                        & div.switcher {
+                            & span.small-icon-button {
+                                transform: rotate(180deg);
+                            }
+                        }
+                        & div.injections {
+                            display: block;
+                        }
+                        & div.location {
+                            display: block;
+                        }
+                    }
+                }
+            }
+        }
+        &.fb-maximized.func-left {
+            & div.main {
+                & div.sidebar {
+                    & div.sidebar-caption {
+                        & div.switcher {
+                            & span.small-icon-button {
+                                transform: rotate(0deg);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        &.func-left {
+            & div.main {
+                & div.workspace {
+                    position: absolute;
+                    display: block;
+                    top: 0;
+                    right: 0;
+                    bottom: 0;
+                    left: @tabs-list-height;
+                }
+                & div.sidebar {
+                    position: absolute;
+                    display: block;
+                    top: 0;
+                    bottom: 0;
+                    left: 0;
+                    width: @tabs-list-height;
+                    & div.sidebar-caption {
+                        & div.location {
+                            left: 0;
+                            right: unset !important;
+                            & span.small-icon-button {
+                                transform: rotate(180deg);
+                            }
+                        }
+                        & div.switcher {
+                            right: 0;
+                            left: unset !important;
+                            & span.small-icon-button {
+                                transform: rotate(180deg);
+                            }
+                        }
+                    }
+                }
+                & div.sidebar-resizer {
+                    right: -3px;
+                    left: unset !important;
+                }
+            }
+        }
+    }
+}

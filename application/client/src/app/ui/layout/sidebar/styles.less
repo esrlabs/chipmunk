@@ -1,0 +1,17 @@
+@import '../../styles/variables.less';
+@import '../../styles/support.less';
+
+:host {
+    position: relative;
+    display: block;
+    box-sizing: border-box;
+    .gradient(linear; lighten(@scheme-color-5, 2%), darken(@scheme-color-5, 2%); 90deg);
+    border-left: darken(@scheme-color-5, 5%) thin solid;
+    border-right: lighten(@scheme-color-5, 5%) thin solid;
+    & element-tabs {
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+    }
+}

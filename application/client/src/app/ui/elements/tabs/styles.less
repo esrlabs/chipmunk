@@ -1,0 +1,63 @@
+@import '../../styles/variables.less';
+
+:host {
+    position: absolute;
+    display: block;
+    background: @scheme-color-4;
+    & element-tabs-list {
+        position: absolute;
+        overflow: hidden;
+        &.top {
+            left: 0;
+            right: 0;
+            top: 0;
+            height: @tabs-list-height;
+        }
+        &.bottom {
+            left: 0;
+            right: 0;
+            top: 0;
+            width: @tabs-list-height;
+        }
+        &.left {
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: @tabs-list-height;
+        }
+        &.right {
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: @tabs-list-height;
+        }
+    }
+    & lib-complex-tab-content {
+        position: absolute;
+        overflow: hidden;
+        &.top {
+            left: 0;
+            right: 0;
+            top: @tabs-list-height;
+            bottom: 0;
+        }
+        &.bottom {
+            left: 0;
+            right: 0;
+            bottom: @tabs-list-height;
+            top: 0;
+        }
+        &.left {
+            top: 0;
+            right: 0;
+            left: @tabs-list-height;
+            bottom: 0;
+        }
+        &.right {
+            top: 0;
+            left: 0;
+            right: @tabs-list-height;
+            bottom: 0;
+        }
+    }
+}

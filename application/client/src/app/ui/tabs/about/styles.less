@@ -1,0 +1,64 @@
+@import '../../../theme/variables.less';
+
+
+:host {
+    position: absolute;
+    display: block;
+    padding: 0;
+    margin: 0;
+    top: 1rem;
+    left:1rem;
+    bottom: 1rem;
+    right: 1rem;
+    overflow: auto;
+    & span.slitter{
+        position: relative;
+        display: block;
+        height: 8px;
+    }
+    & .general{
+        position: relative;
+        display: block;
+        min-height: 5rem;
+        margin-bottom: 1rem;
+        & .icon{
+            position: absolute;
+            left:0;
+            top: 0;
+            width: 5rem;
+            height: 5rem;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: contain;
+            overflow: hidden;
+        }
+        & .info{
+            position: relative;
+            margin: 0 0 0 6rem;
+        }
+    }
+    & .summury{
+        position: relative;
+    }
+    & table {
+        position: relative;
+        border-collapse: collapse;
+        border: none;
+        & tr {
+            padding: 4px 0;
+            & td {
+                padding: 0 8px;
+                vertical-align: top;
+                &.padding{
+                    padding: 1rem 0;
+                }
+            }
+        }
+    }
+    & button {
+        margin-right: 8px;
+        & mat-spinner{
+            display: inline-block;
+        }
+    }
+}

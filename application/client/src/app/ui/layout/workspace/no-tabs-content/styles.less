@@ -1,0 +1,53 @@
+@import '../../../styles/variables.less';
+
+:host {
+    position: absolute;
+    display: block;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    & * {
+        color: @scheme-color-0;
+    }
+    mat-card {
+        margin: 12px 6px 12px 12px;
+        & mat-card-title {
+            color: @scheme-color-1;
+        }
+        & mat-card-subtitle {
+            color: @scheme-color-3;
+        }
+        &.no-left-margin {
+            margin-left: 6px;
+        }
+    }
+    h1 {
+        font-size: 14px;
+    }
+    button {
+        position: relative;
+        display: block;
+        margin: 6px 0;
+        width: 100%;
+    }
+    & div.left {
+        position: absolute;
+        width: 20rem;
+        top:0;
+        bottom: 0;
+        left: 0;
+    }
+    & div.right {
+        position: absolute;
+        left: 20rem;
+        right: 0;
+        bottom: 0;
+        top: 0;
+    }
+    & div.feature {
+        margin: 6px 0;
+        padding: 6px 0 0px 0;
+    }
+}

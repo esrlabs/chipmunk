@@ -1,0 +1,41 @@
+@import '../../../styles/variables.less';
+
+:host {
+    display: flex;
+    flex-direction: row;
+    position: relative;
+    font-family: 'console', monospace;
+    font-size: 13.5px;
+    font-variant-numeric: tabular-nums;
+    padding: 0;
+    margin: 0;
+    line-height: 16px;
+    height: 16px;
+    max-height: 16px;
+    color: @scheme-color-0;
+    font-weight: 500;
+    user-select: text;
+    cursor: text;
+	span.header {
+        display: block;
+        position: relative;
+        overflow: hidden;
+		padding: 0 12px;
+		border-left: thin solid @scheme-color-3;
+	}
+    & span:nth-child(2) {
+        border-left: none;
+    }
+    span.offset {
+        display: block;
+    }
+    span.resizer {
+        position: absolute;
+        display: block;
+        width: 4px;
+        right: 0px;
+        top: 0;
+        height: 100%;
+        cursor: e-resize;
+    }
+}

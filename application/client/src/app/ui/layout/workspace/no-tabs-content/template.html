@@ -1,0 +1,42 @@
+<div class="left">
+  <mat-card>
+    <mat-card-title>Quick Actions</mat-card-title>
+    <mat-card-subtitle>Select and open data source</mat-card-subtitle>
+    <mat-card-content>
+      <button mat-stroked-button (click)="ngOpenFile(FileType.Any)">Open File(s)</button>
+      <button mat-stroked-button (click)="ngOpenFile(FileType.Dlt)">Open Dlt File</button>
+      <button mat-stroked-button (click)="ngOpenFile(FileType.Pcap)">Open Pcap File</button>
+      <button mat-stroked-button>Open Folder</button>
+      <button mat-stroked-button>Connect to DLT domain</button>
+      <button mat-stroked-button>Connect to Serial Port</button>
+      <button mat-stroked-button>Run shell command</button>
+    </mat-card-content>
+  </mat-card>
+  <mat-card>
+    <mat-card-title>Features</mat-card-title>
+    <mat-card-content>
+      <div class="feature">
+        <h1>No limits, quick access</h1>
+        <p>Open any size files with same loading performance</p>  
+      </div>
+      <mat-divider></mat-divider>
+      <div class="feature">
+        <h1>DLT format</h1>
+        <p>Open DLT files</p>  
+      </div>
+      <mat-divider></mat-divider>
+      <div class="feature">
+        <h1>WireShark traces</h1>
+        <p>Open pcap and ngpcap files</p>  
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
+<div class="right">
+  <mat-card class="no-left-margin">
+    <mat-card-title>Recently Opened</mat-card-title>
+    <mat-card-subtitle>List of recently opened source</mat-card-subtitle>
+    <mat-card-content>
+    </mat-card-content>
+  </mat-card>
+</div>

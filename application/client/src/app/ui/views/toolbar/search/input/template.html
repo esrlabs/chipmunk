@@ -1,0 +1,66 @@
+<div class="input">
+    <mat-form-field class="outline" appearance="outline">
+        <span class="active" *ngIf="active !== undefined">
+            <span class="t-console t-small filter">{{active.filter.filter}}</span>
+            <button [class]="active.isPossibleToSaveAsChart() ? 'enabled' : ''" [disabled]="!active.isPossibleToSaveAsFilter()">
+                <mat-icon [class]="!active.isPossibleToSaveAsFilter() ? 'disabled' : ''">save</mat-icon>
+            </button>
+            <button [class]="active.isPossibleToSaveAsChart() ? 'enabled' : ''" [disabled]="!active.isPossibleToSaveAsChart()">
+                <mat-icon [class]="!active.isPossibleToSaveAsChart() ? 'disabled' : ''">timeline</mat-icon>
+            </button>
+            <button class="enabled" (click)="onActiveDrop()">
+                <mat-icon>close</mat-icon>
+            </button>
+        </span>
+        <input
+            #searchinput
+            tabindex="1000"
+            type="text"
+            [placeholder]="input.isEmpty() ? 'Type a Search Request' : 'Override the search request'"
+            aria-label="Filter"
+            matInput
+            [formControl]="input.control"
+            [readonly]="input.readonly"
+            [matAutocomplete]="auto"
+            [matAutocompleteDisabled]="!input.recent"
+            (keyup)="ngOnKeyUpSearchInput($event)"
+            (keydown)="ngOnKeyDownSearchInput($event)"
+        />
+        <mat-autocomplete
+            #auto="matAutocomplete"
+            class="regular"
+            (closed)="input.onPanelClosed()"
+            [classList]="'recent-requests'"
+            [disableRipple]="true"
+        >
+            <mat-option
+                class="small"
+                *ngFor="let recent of recent.observer | async"
+                [value]="recent.value"                   
+            >
+                <span class="t-console t-small t-subselection"
+                    [innerHTML]="recent.html()"
+                ></span>
+            </mat-option>
+        </mat-autocomplete>
+    </mat-form-field>
+</div>
+<div class="flags">
+    <span
+        tabindex="11"
+        [attr.class]="'small-icon-button codicon codicon-case-sensitive ' + (input.flags.cases ? 'active' : 'inactive')"
+    ></span>
+    <span
+        tabindex="12"
+        [attr.class]="'small-icon-button codicon codicon-whole-word ' + (input.flags.word ? 'active' : 'inactive')"
+    ></span>
+    <span
+        tabindex="13"
+        [attr.class]="'small-icon-button codicon codicon-regex ' + (input.flags.reg ? 'active' : 'inactive')"
+    ></span>
+</div>
+<div class="summary">
+    <span class="t-small color-scheme-2" *ngIf="progress.visible()">{{progress.summary()}}</span>
+    <mat-spinner *ngIf="progress.working" [diameter]="20"></mat-spinner>
+</div>
+

@@ -1,0 +1,104 @@
+<mat-expansion-panel
+    [disabled]="true"
+    [hideToggle]="true"
+    [expanded]="true">
+    <mat-expansion-panel-header>
+        <mat-panel-title>
+            General
+        </mat-panel-title>
+    </mat-expansion-panel-header>
+    <div class="general">
+        <div class="icon" [ngStyle]="{'backgroundImage': 'url(\'assets/chipmunk.png\')'}"></div>
+        <div class="info">
+            <p class="t-medium color-scheme-0">@{{_ng_version}}</p>
+            <table>
+                <tr>
+                    <td>
+                        <div class="summury">
+                            <table>
+                                <tr *ngFor="let dependency of _ng_dependencies.slice(0,4)">
+                                    <td>
+                                        <p class="t-small color-scheme-1">{{dependency.name}}</p>
+                                        <p class="t-small color-scheme-3">{{dependency.description}}</p>
+                                    </td>
+                                    <td class="t-small color-scheme-1">{{dependency.version}}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="summury">
+                            <table>
+                                <tr *ngFor="let dependency of _ng_dependencies.slice(4,8)">
+                                    <td>
+                                        <p class="t-small color-scheme-1">{{dependency.name}}</p>
+                                        <p class="t-small color-scheme-3">{{dependency.description}}</p>
+                                    </td>
+                                    <td class="t-small color-scheme-1">{{dependency.version}}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="padding">
+                        <button mat-stroked-button color="primary" (click)="_ng_onCopyToClipboard()">
+                            <mat-icon>file_copy</mat-icon>
+                            Copy
+                        </button> 
+                        <button mat-stroked-button color="primary" (click)="_ng_onGetChipmunkLogs()" [disabled]="_ng_logsExtracting">
+                            <mat-icon *ngIf="!_ng_logsExtracting">save_alt</mat-icon>
+                            <mat-spinner *ngIf="_ng_logsExtracting" [diameter]="32" mode="indeterminate"></mat-spinner>
+                            Get Chipmunk's logs
+                        </button>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</mat-expansion-panel>
+
+<span class="slitter"></span>
+
+<mat-expansion-panel
+    [expanded]="true"
+    [expanded]="false">
+    <mat-expansion-panel-header>
+        <mat-panel-title>
+            Home
+        </mat-panel-title>
+    </mat-expansion-panel-header>
+    <p class="t-medium color-scheme-2">
+        <button mat-stroked-button color="primary" (click)="_ng_onGitHubOpen()">
+            <mat-icon>star</mat-icon>
+            Star
+        </button>
+        &nbsp;&nbsp;Chipmunk is open source developed at github
+    </p>
+</mat-expansion-panel>
+
+<span class="slitter"></span>
+
+<mat-expansion-panel
+    [expanded]="true"
+    [expanded]="false">
+    <mat-expansion-panel-header>
+        <mat-panel-title>
+            Issues, bugs and feature requests
+        </mat-panel-title>
+    </mat-expansion-panel-header>
+    <p class="t-medium color-scheme-2">
+        <button mat-stroked-button color="primary" (click)="_ng_onGitHubIssuesOpen()">
+            <mat-icon>error_outline</mat-icon>
+            Issues
+        </button> 
+        &nbsp;&nbsp;Report issues
+    </p>
+
+</mat-expansion-panel>
+
+<span class="slitter"></span>
+
+
+
+

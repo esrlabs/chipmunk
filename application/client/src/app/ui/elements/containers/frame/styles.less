@@ -1,0 +1,61 @@
+@import '../../../styles/variables.less';
+@import '../../../styles/support.less';
+@import '../../../styles/borders.less';
+
+:host {
+    position: relative;
+    display: block;
+    box-sizing: border-box;
+    height: 100%;
+    width: auto;
+    & div.frame-holder {
+        position: relative;
+        display: block;
+        background: @scheme-color-5;
+        overflow: hidden;
+        box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.4);
+        height: 100%;
+        width: auto;
+        border-radius: 3px;
+        .border-based-5;
+        & div.caption-holder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: @status-bar-height;
+            width: 100%;
+            overflow: hidden;
+            .gradient(linear; darken(@scheme-color-5, 2%), lighten(@scheme-color-5, 2%));
+            & p.caption {
+                position: absolute;
+                display: block;
+                height: 100%;
+                top: 0;
+                left: 0;
+                right: @status-bar-height;
+                font-size: 0.75rem;
+                color: @scheme-color-1;
+                padding: 0.15rem 0.5rem;
+            }
+            & span.close-button {
+                position: absolute;
+                display: block;
+                top: 0;
+                right: 0;
+                width: @status-bar-height;
+                height: 100%;
+                cursor: pointer;
+                font-size: 0.75rem;
+                text-align: center;
+                padding-top: 0.3rem;
+            }
+        }
+        & div.content-holder {
+            position: relative;
+            width: auto;
+            height: auto;
+            margin-top: @status-bar-height;
+            overflow: auto;
+        }
+    }
+}

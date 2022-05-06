@@ -1,0 +1,45 @@
+@import '../../styles/variables.less';
+
+:host {
+    position: relative;
+    display: block;
+    & ul {
+        position: relative;
+        padding: 0;
+        margin: 0;
+        list-style: none;
+        & li {
+            position: relative;
+            display: inline-block;
+            padding: 0;
+            margin: 0 3px;
+            width: 16px;
+            list-style: none;
+            height: 16px;
+            line-height: 16px;
+            border: 1px solid rgba(255, 255, 255, 0);
+            transition: color 150ms ease-in-out;
+            &:hover {
+                border: 1px solid @scheme-color-0;
+            }
+            &.selected {
+                border: 1px solid @scheme-color-0;
+                &::after {
+                    position: absolute;
+                    content: '';
+                    top: 0;
+                    left: 0;
+                    width: 0;
+                    height: 0;
+                    border-top: 6px solid @scheme-color-0;
+                    border-right: 6px solid transparent;
+                }
+                &:hover {
+                    &::after {
+                        display: none;
+                    }
+                }
+            }
+        }
+    }
+}

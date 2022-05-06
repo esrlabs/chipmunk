@@ -1,0 +1,77 @@
+@import '../../../theme/variables.less';
+
+
+app-tabs-release-notes {
+    position: absolute;
+    display: block;
+    padding: 0;
+    margin: 0;
+    top: 1rem;
+    left:1rem;
+    bottom: 1rem;
+    right: 1rem;
+    overflow: auto;
+    & markdown {
+        display: block;
+        position: relative;
+        padding: 0 8px;
+        max-width: 50rem;
+        & * {
+            color: @scheme-color-2;
+        }
+        & h1, & h2, & h3, & h4, & h5, & h6 {
+            color: @scheme-color-1;
+        }
+        & h1 {
+            margin: 24px 0 16px 0;
+        }
+        & h2 {
+            margin: 22px 0 16px 0;
+        }
+        & h3 {
+            margin: 20px 0 16px 0;
+        }
+        & h4 {
+            margin: 18px 0 16px 0;
+        }
+        & h5 {
+            margin: 16px 0 16px 0;
+        }
+        & h6 {
+            margin: 16px 0 16px 0;
+        }
+        & p {
+            margin: 16px 0;
+        }
+        & img {
+            max-width: 50rem;
+            margin: 24px 0;
+            width: 100%;
+        }
+        & ul {
+            list-style: circle;
+            padding: 0 0 0 18px;
+        }
+        & pre {
+            background: @scheme-color-6;
+            color: @scheme-color-0;
+            padding: 0.5rem;
+            & code {
+                color: @scheme-color-0;
+                font-family: monospace;
+            }
+        }
+        & blockquote {
+            position: relative;
+            &::after{
+                position: absolute;
+                width: 4px;
+                content: '';
+                top: 0;
+                left: -1em;
+                height: 100%;
+                background: @scheme-color-accent;
+            }
+        }
+    }
+}

@@ -1,0 +1,82 @@
+export class LimittedRange {
+    public from: number;
+    public to: number;
+    public len: number;
+    public max: number;
+    private _alias: string;
+
+    constructor(alias: string, from: number, to: number, len: number, max: number) {
+        if (isNaN(from) || !isFinite(from)) {
+            throw new Error(`[${alias}]: Invalid number from. Fail to change it.`);
+        }
+        if (isNaN(to) || !isFinite(to)) {
+            throw new Error(`[${alias}]: Invalid number value for "to". Fail to change it.`);
+        }
+        if (isNaN(len) || !isFinite(len)) {
+            throw new Error(`[${alias}]: Invalid number value for "len". Fail to change it.`);
+        }
+        if (isNaN(max) || !isFinite(max)) {
+            throw new Error(`[${alias}]: Invalid number value for "max". Fail to change it.`);
+        }
+        this._alias = alias;
+        this.max = max;
+        this.from = from;
+        this.to = to;
+        this.len = len;
+    }
+
+    public $(value: number): {
+        len(): LimittedRange;
+        from(): LimittedRange;
+        to(): LimittedRange;
+        max(): LimittedRange;
+    } {
+        if (isNaN(value) || !isFinite(value)) {
+            throw new Error(`[${this._alias}]: Invalid number. Fail to change it.`);
+        }
+        return {
+            len: (): LimittedRange => {
+                this.len = value < 0 ? 0 : value;
+                this.to = this.from + this.len;
+                return this._normalize();
+            },
+            from: (): LimittedRange => {
+                this.from = value < 0 ? 0 : value;
+                this.to = this.from + this.len;
+                return this._normalize();
+            },
+            to: (): LimittedRange => {
+                this.to = value < 0 ? 0 : value;
+                this.from = this.to - this.len;
+                return this._normalize();
+            },
+            max: (): LimittedRange => {
+                this.max = value < 0 ? 0 : value;
+                this.to = this.from + this.len;
+                return this._normalize();
+            },
+        };
+    }
+
+    public hash(): string {
+        return `${this.from}.${this.to}.${this.len}.${this.max}`;
+    }
+
+    private _normalize(): LimittedRange {
+        if (this.from > this.max) {
+            this.from = this.max - this.len;
+        }
+        if (this.from < 0) {
+            this.from = 0;
+        }
+        if (this.to > this.max) {
+            this.to = this.max;
+            this.from = this.to - this.len;
+        }
+        if (this.from < 0) {
+            this.from = 0;
+            this.to = Math.min(this.len, this.max);
+        }
+        return this;
+    }
+}

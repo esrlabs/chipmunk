@@ -1,0 +1,88 @@
+@import '../../../../styles/variables.less';
+
+:host {
+    display: flex;
+    position: relative;
+    flex-direction: row;
+    height: 36px;
+    width: 100%;
+    background: @scheme-color-5;
+    overflow: hidden;
+    justify-content: center;
+    div.input {
+        display: block;
+        flex:auto;
+    }
+    div.flags {
+        display: flex;
+        padding: 5px 8px 0 8px;
+        & span {
+            display: inline-block;
+            height: 24px;
+            width: 24px;
+            color: @scheme-color-0;
+            text-align: center;
+            padding-top: 4px;
+            box-sizing: border-box;
+            &:hover{
+                background: @scheme-color-4;
+            }
+            &.active{
+                background: @scheme-color-active;
+            }
+        }
+    }
+    div.summary {
+        position: relative;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        padding: 0 6px 0 0;
+        & mat-spinner {
+            margin-left: 6px;
+        }
+    }
+    span.active {
+        position: relative;
+        display: flex;
+        flex-direction: row;
+        border-radius: 4px;
+        background: @scheme-color-active;
+        height: 23px;
+        overflow: hidden;
+        flex: none;
+        box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+        & span.filter {
+            position: relative;
+            display: inline-block;
+            padding: 4px 6px;
+            color: @scheme-color-0;
+            font-weight: 500;
+        }
+        & button {
+            height: 23px;
+            width: 23px;
+            padding: 0;
+            background: none;
+            border:none;
+            &.enabled {
+                &:hover{
+                    background: @scheme-color-4;
+                }
+            }
+            & mat-icon{
+                height: 23px;
+                width: 23px;
+                font-size: 17px;
+                text-align: center;
+                color: @scheme-color-0;
+                padding-top: 3px;
+                &.disabled {
+                    color: @scheme-color-2;
+                }
+            }
+        }
+        
+    }
+    
+}

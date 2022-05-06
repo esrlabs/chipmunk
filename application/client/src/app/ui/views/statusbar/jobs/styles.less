@@ -1,0 +1,57 @@
+@import '../../../styles/variables.less';
+@import '../../../styles/support.less';
+@import '../../../styles/borders.less';
+
+app-statusbar-jobs {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    margin-right: 12px;
+    & div.global,
+    & div.session,
+    & div.pinned {
+        position: relative;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        align-content: center;
+        border-left: 1px solid @scheme-color-4;
+        padding: 0 6px;
+    }
+    & mat-spinner {
+        margin-right: 6px;
+    }
+    & .mat-progress-spinner circle, .mat-spinner circle {
+        stroke: @scheme-color-accent;
+    }
+    & span.pinned-job {
+        position: relative;
+        display: flex;
+        flex-direction: row;
+        margin-left: 6px;
+        align-items: center;
+        &:first-child{
+            margin-left: 0;
+        }
+        & mat-icon {
+            height: 16px;
+            width: 16px;
+            color: @scheme-color-0;
+            font-size: 16px;
+            padding-right: 6px;
+        }
+    }
+    & span.desc{
+        font-size: 10px;
+        color: @scheme-color-2;
+    }
+    & span.indicator {
+        position: relative;
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 4px;
+        background-color: @scheme-color-accent;
+        margin-right: 6px;
+    }
+}

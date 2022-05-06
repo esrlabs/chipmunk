@@ -1,0 +1,29 @@
+@import '../../../../theme/variables.less';
+
+
+app-tabs-settings-element {
+    position: relative;
+    display: block;
+    padding: 0;
+    margin: 0;
+    & mat-form-field.outline-settings {
+        & mat-checkbox{
+            margin-top: -6px;
+            position: relative;
+            display: block;
+            & span.mat-checkbox-label {
+                color: @scheme-color-1;
+            }
+        }
+        & div.mat-form-field-infix {
+            margin-top: -4px;
+        }
+    }
+    & span.span-wrapper{
+        & > span {
+            font-weight: bold;
+            color: @scheme-color-accent;
+            border-radius: 3px;
+        }
+    }
+}
