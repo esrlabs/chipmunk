@@ -69,13 +69,16 @@ export class LimittedRange {
         if (this.from < 0) {
             this.from = 0;
         }
-        if (this.to > this.max) {
-            this.to = this.max;
+        if (this.to >= this.max) {
+            this.to = this.max - 1;
             this.from = this.to - this.len;
         }
         if (this.from < 0) {
             this.from = 0;
-            this.to = Math.min(this.len, this.max);
+            this.to = Math.min(this.len, this.max - 1);
+        }
+        if (this.to < 0) {
+            this.to = 0;
         }
         return this;
     }

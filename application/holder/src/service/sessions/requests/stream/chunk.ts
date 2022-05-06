@@ -20,7 +20,7 @@ export const handler = Requests.InjectLogger<
             }
             stored.session
                 .getStream()
-                .grab(request.from, request.to - request.from)
+                .grab(request.from, request.to - request.from + 1)
                 .then((rows) => {
                     resolve(
                         new Requests.Stream.Chunk.Response({
