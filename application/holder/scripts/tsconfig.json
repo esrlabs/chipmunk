@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "types": ["node"],
+        "outDir": "./dist",
+        "sourceMap": true,
+        "noImplicitAny": true,
+        "module": "commonjs",
+        "target": "es6",
+        "strict": true,
+        "baseUrl": ".",
+        "paths": {
+            "*": ["./node_modules/*"]
+        }
+    },
+    "files": ["afterPackHook.ts", "notarize.ts"]
+}
