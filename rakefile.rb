@@ -43,8 +43,15 @@ namespace :install do
     end
   end
 
+  desc 'Install rustcore'
+  task :rustcore do
+    Dir.chdir(RUSTCORE) do
+      sh 'rake install:all'
+    end
+  end
+
   desc 'install all'
-  task :all => ['install:client', 'install:electron']
+  task :all => ['install:rustcore', 'install:client', 'install:electron']
 
 end
 
@@ -98,7 +105,7 @@ namespace :build do
     if File.exists?("#{ELECTRON}/node_modules/rustcore")
       sh "rm -rf #{ELECTRON}/node_modules/rustcore"
     end
-    sh "mkdir #{ELECTRON}/node_modules/rustcore"
+    Dir.mkdir("#{ELECTRON}/node_modules/rustcore")
     sh "cp -r #{TSBINDINGS}/* #{ELECTRON}/node_modules/rustcore"
     FileUtils.rm_rf("#{ELECTRON}/node_modules/rustcore/native") unless !File.exists?("#{ELECTRON}/node_modules/rustcore/native")
 
