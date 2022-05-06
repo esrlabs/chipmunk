@@ -28,3 +28,4 @@ thiserror = "1.0"
 tokio = { version = "1.5", features = ["full"] }
 tokio-util = "0.6"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
+dlt-core = "0.14"
