@@ -1,7 +1,7 @@
 import { TExecutor, Logger, CancelablePromise, AsyncVoidExecutor } from './executor';
-import { RustSession } from '../native/index';
-import { EventProvider } from './session.provider';
-import { Observe } from '../interfaces/index';
+import { RustSession } from '../../native/index';
+import { EventProvider } from '../../api/session.provider';
+import { Observe } from '../../interfaces/index';
 export interface IFileOptionsDLT {}
 
 export enum EFileOptionsRequirements {

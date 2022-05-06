@@ -1,17 +1,17 @@
-import * as Events from '../util/events';
 import * as Logs from '../util/logging';
 
 import { v4 as uuid } from 'uuid';
 
+import { Subscription } from '../../../../../platform/env/subscription';
 import { RustSession, RustSessionConstructor, rustSessionFactory } from '../native/index';
-import { EventProvider, ISessionEvents, IError } from './session.provider';
-import { SessionStream } from './session.stream';
-import { SessionSearch } from './session.search';
+import { EventProvider, ISessionEvents, IError } from '../api/session.provider';
+import { SessionStream } from '../api/session.stream';
+import { SessionSearch } from '../api/session.search';
 import { IOrderStat } from '../provider/provider';
-import { Executors } from './session.executors';
-import { ISleepResults } from './session.sleep.executor';
+import { Executors } from './executors/session.executors';
+import { ISleepResults } from './executors/session.sleep.executor';
 import { CancelablePromise } from '../util/promise';
-import { OperationStat } from '../interfaces';
+import { OperationStat } from '../interfaces/index';
 
 export {
     ISessionEvents,
@@ -19,8 +19,8 @@ export {
     IProgressState,
     IEventMapUpdated,
     IEventMatchesUpdated,
-} from './session.provider';
-export { Observe } from '../interfaces';
+} from '../api/session.provider';
+export { Observe } from '../interfaces/index';
 export { EventProvider, SessionStream, SessionSearch };
 
 enum ESessionState {
@@ -35,7 +35,7 @@ export class Session {
     private _search: SessionSearch | undefined;
     private readonly _uuid: string = uuid();
     private readonly _logger: Logs.Logger;
-    private readonly _subs: { [key: string]: Events.Subscription } = {};
+    private readonly _subs: Map<string, Subscription> = new Map();
     private _state: ESessionState = ESessionState.available;
     private _debug: {
         native: OperationStat[];
@@ -67,21 +67,25 @@ export class Session {
                 } else {
                     this._stream = new SessionStream(this._provider, this._session, this._uuid);
                     this._search = new SessionSearch(this._provider, this._session, this._uuid);
-                    this._subs.SessionError = this._provider
-                        .getEvents()
-                        .SessionError.subscribe((err: IError) => {
+                    this._subs.set(
+                        'SessionError',
+                        this._provider.getEvents().SessionError.subscribe((err: IError) => {
                             this._logger.error(
-                                `Session "${this._uuid}" would be destroyed because of error: [${err.kind}/${err.severity}]:: ${err.message}`,
+                                `Session "${this._uuid}" would be destroyed because of error: [${
+                                    err.kind
+                                }/${err.severity}]:: ${err instanceof Error ? err.message : err}`,
                             );
-                        });
-                    this._subs.SessionDestroyed = this._provider
-                        .getEvents()
-                        .SessionDestroyed.subscribe(() => {
+                        }),
+                    );
+                    this._subs.set(
+                        'SessionDestroyed',
+                        this._provider.getEvents().SessionDestroyed.subscribe(() => {
                             this._logger.warn(
                                 `Destroy event has been gotten unexpectedly. Force destroy of session.`,
                             );
                             this.destroy(true);
-                        });
+                        }),
+                    );
                     cb(this);
                 }
             },
@@ -95,8 +99,8 @@ export class Session {
                     this._logger.error(err.message);
                 })
                 .finally(() => {
-                    Object.keys(this._subs).forEach((key: string) => {
-                        this._subs[key].destroy();
+                    this._subs.forEach((subscription: Subscription) => {
+                        subscription.destroy();
                     });
                     if (this._state === ESessionState.destroyed) {
                         return reject(new Error(`Session is already destroyed or destroing`));
@@ -106,18 +110,26 @@ export class Session {
                         // Destroy stream controller
                         (this._stream as SessionStream).destroy().catch((err: Error) => {
                             this._logger.error(
-                                `Fail correctly destroy SessionStream due error: ${err.message}`,
+                                `Fail correctly destroy SessionStream due error: ${
+                                    err instanceof Error ? err.message : err
+                                }`,
                             );
                         }),
                         // Destroy search controller
                         (this._search as SessionSearch).destroy().catch((err: Error) => {
                             this._logger.error(
-                                `Fail correctly destroy SessionSearch due error: ${err.message}`,
+                                `Fail correctly destroy SessionSearch due error: ${
+                                    err instanceof Error ? err.message : err
+                                }`,
                             );
                         }),
                     ])
                         .catch((err: Error) => {
-                            this._logger.error(`Error while destroying: ${err.message}`);
+                            this._logger.error(
+                                `Error while destroying: ${
+                                    err instanceof Error ? err.message : err
+                                }`,
+                            );
                         })
                         .finally(() => {
                             if (!unexpectedly) {
@@ -139,23 +151,23 @@ export class Session {
         return this._uuid;
     }
 
-    public getEvents(): ISessionEvents | Error {
+    public getEvents(): ISessionEvents {
         if (this._provider === undefined) {
-            return new Error(`EventProvider wasn't created`);
+            throw new Error(`EventProvider wasn't created`);
         }
         return this._provider.getEvents();
     }
 
-    public getStream(): SessionStream | Error {
+    public getStream(): SessionStream {
         if (this._stream === undefined) {
-            return new Error(`SessionStream wasn't created`);
+            throw new Error(`SessionStream wasn't created`);
         }
         return this._stream;
     }
 
-    public getSearch(): SessionSearch | Error {
+    public getSearch(): SessionSearch {
         if (this._search === undefined) {
-            return new Error(`SessionSearch wasn't created`);
+            throw new Error(`SessionSearch wasn't created`);
         }
         return this._search;
     }
@@ -198,7 +210,9 @@ export class Session {
         this.getNativeSession()
             .setDebug(true)
             .catch((err: Error) => {
-                this._logger.error(`Fail set debug mode on native: ${err.message}`);
+                this._logger.error(
+                    `Fail set debug mode on native: ${err instanceof Error ? err.message : err}`,
+                );
             });
         typeof alias === 'string' && this._provider.debug().setAlias(alias);
     }

@@ -1,13 +1,24 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "outDir": "./dist/",
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
     "sourceMap": true,
     "declaration": true,
-    "noImplicitAny": true,
-    "module": "commonjs",
-    "target": "es6",
-    "strict": true,
-    "baseUrl": ".",
+    "downlevelIteration": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "node",
+    "importHelpers": true,
+    "target": "ESNext",
+    "module": "CommonJS",
+    "lib": [
+      "ESNext"
+    ],
     "paths": {
       "*": [
           "./node_modules/*"

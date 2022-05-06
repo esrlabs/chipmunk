@@ -174,11 +174,11 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
         });
     }
 
-    private _doCancel(reason?: C) {
+    private _doCancel(reason?: C): void {
         this._handlers.clear();
         if (this._resolved || this._rejected || this._canceled) {
             // Doesn't make sence to cancel, because it was resolved or rejected or canceled already
-            return this;
+            return;
         }
         this._canceled = true;
         this._cancelers.forEach((cancler: TCanceler<C>) => {
@@ -187,14 +187,14 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
         this._doFinally();
     }
 
-    private _doCancellation(reason?: C) {
+    private _doCancellation(reason?: C): void {
         this._handlers.clear();
         if (this._cancellation === undefined) {
-            return this;
+            return;
         }
         if (this._resolved || this._rejected || this._canceled || this._canceling) {
             // Doesn't make sence to cancel, because it was resolved or rejected or canceled already
-            return this;
+            return;
         }
         this._canceling = true;
         this._cancellation(reason);

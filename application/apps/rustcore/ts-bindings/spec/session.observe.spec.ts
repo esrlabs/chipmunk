@@ -80,7 +80,11 @@ describe('Observe', function () {
                             finish(
                                 session,
                                 done,
-                                new Error(`Fail to grab data due error: ${err.message}`),
+                                new Error(
+                                    `Fail to grab data due error: ${
+                                        err instanceof Error ? err.message : err
+                                    }`,
+                                ),
                             );
                         });
                 });
@@ -89,7 +93,11 @@ describe('Observe', function () {
                 finish(
                     undefined,
                     done,
-                    new Error(`Fail to create session due error: ${err.message}`),
+                    new Error(
+                        `Fail to create session due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
                 );
             });
     });
@@ -155,7 +163,11 @@ describe('Observe', function () {
                             finish(
                                 session,
                                 done,
-                                new Error(`Fail to grab data due error: ${err.message}`),
+                                new Error(
+                                    `Fail to grab data due error: ${
+                                        err instanceof Error ? err.message : err
+                                    }`,
+                                ),
                             );
                         });
                 });
@@ -164,7 +176,11 @@ describe('Observe', function () {
                 finish(
                     undefined,
                     done,
-                    new Error(`Fail to create session due error: ${err.message}`),
+                    new Error(
+                        `Fail to create session due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
                 );
             });
     });
@@ -228,7 +244,11 @@ describe('Observe', function () {
                             finish(
                                 session,
                                 done,
-                                new Error(`Fail to grab data due error: ${err.message}`),
+                                new Error(
+                                    `Fail to grab data due error: ${
+                                        err instanceof Error ? err.message : err
+                                    }`,
+                                ),
                             );
                         });
                 });
@@ -237,7 +257,11 @@ describe('Observe', function () {
                 finish(
                     undefined,
                     done,
-                    new Error(`Fail to create session due error: ${err.message}`),
+                    new Error(
+                        `Fail to create session due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
                 );
             });
     });
@@ -317,7 +341,11 @@ describe('Observe', function () {
                         finish(
                             undefined,
                             done,
-                            new Error(`Fail to create session due error: ${err.message}`),
+                            new Error(
+                                `Fail to create session due error: ${
+                                    err instanceof Error ? err.message : err
+                                }`,
+                            ),
                         );
                     });
             });

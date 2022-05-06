@@ -1,9 +1,5 @@
-import {
-    Logger,
-    TLogFunc,
-    IChipmunkNodeGlobal,
-} from '../../../../../common/interfaces/interface.node.global';
-
+import { Logger, TLogFunc, IChipmunkNodeGlobal } from '../interfaces';
+export { error } from '../../../../../platform/env/logger';
 export { Logger };
 
 export function log(s: any) {

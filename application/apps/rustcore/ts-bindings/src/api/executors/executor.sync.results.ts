@@ -1,26 +1,33 @@
-import { Logger } from '../util/logging';
-import { CancelablePromise } from '../util/promise';
-import { RustSession } from '../native/native.session';
-import { EventProvider, IErrorEvent, IOperationDoneEvent } from './session.provider';
-import { Subscription } from '../util/events.subscription';
+import { Logger } from '../../util/logging';
+import { CancelablePromise } from '../../util/promise';
+import { RustSession } from '../../native/native.session';
+import { EventProvider, IErrorEvent, IOperationDoneEvent } from '../../api/session.provider';
+import { Subscription } from '../../../../../../platform/env/subscription';
+import { NativeError } from '../../interfaces/errors';
 import { v4 as uuidv4 } from 'uuid';
-import { NativeError } from '../interfaces/errors';
 
 export type TOperationRunner<TOptions> = (
     session: RustSession,
     options: TOptions,
 ) => string | Error;
 
+export type TOperationResultReader<TResult> = (
+    result: any,
+    resolve: (res: TResult) => void,
+    reject: (err: Error) => void,
+) => void;
+
 // TODO: should be implemented timeout to prevent memory leaking
-export function VoidExecutor<TOptions>(
+export function ResultsExecutor<TResult, TOptions>(
     session: RustSession,
     provider: EventProvider,
     logger: Logger,
     options: TOptions,
     runner: TOperationRunner<TOptions>,
+    reader: TOperationResultReader<TResult>,
     name: string,
-): CancelablePromise<void> {
-    return new CancelablePromise<void>((resolve, reject, cancel, refCancelCB, self) => {
+): CancelablePromise<TResult> {
+    return new CancelablePromise<TResult>((resolve, reject, cancel, refCancelCB, self) => {
         let error: Error | undefined;
         // Setup subscriptions
         const lifecircle: {
@@ -51,7 +58,7 @@ export function VoidExecutor<TOptions>(
                 } else if (event.uuid === lifecircle.abortOperationId) {
                     cancel();
                 } else {
-                    resolve(undefined);
+                    reader(event.result, resolve, reject);
                 }
             }),
             unsunscribe(): void {
@@ -86,7 +93,7 @@ export function VoidExecutor<TOptions>(
                 }
             },
         };
-        logger.debug('Sync void operation is started');
+        logger.debug('Sync result operation is started');
         // Add cancel callback
         refCancelCB(() => {
             // Cancelation is started, but not canceled
@@ -95,7 +102,7 @@ export function VoidExecutor<TOptions>(
         });
         // Handle finale of promise
         self.finally(() => {
-            logger.debug('Sync void operation promise is closed as well');
+            logger.debug('Sync result operation promise is closed as well');
             lifecircle.unsunscribe();
         });
         // Call operation

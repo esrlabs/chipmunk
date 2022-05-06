@@ -1,13 +1,19 @@
-import * as Events from '../util/events';
 import * as Logs from '../util/logging';
 
+import { Subject } from '../../../../../platform/env/subscription';
 import { RustSession } from '../native/index';
 import { CancelablePromise } from '../util/promise';
-import { EventProvider } from './session.provider';
-import { IExportOptions } from './session.stream.export.executor';
-import { IDetectDTFormatResult, IDetectOptions } from './session.stream.timeformat.detect.executor';
-import { Executors } from './session.stream.executors';
-import { TFileOptions, EFileOptionsRequirements } from './session.stream.observe.executor';
+import { EventProvider } from '../api/session.provider';
+import { IExportOptions } from './executors/session.stream.export.executor';
+import {
+    IDetectDTFormatResult,
+    IDetectOptions,
+} from './executors/session.stream.timeformat.detect.executor';
+import { Executors } from './executors/session.stream.executors';
+import {
+    TFileOptions,
+    EFileOptionsRequirements,
+} from './executors/session.stream.observe.executor';
 import {
     IGrabbedElement,
     IExtractDTFormatOptions,
@@ -15,9 +21,9 @@ import {
     IConcatFile,
     IFileMergeOptions,
     Observe,
-} from '../interfaces';
-import { IConcatResults } from './session.stream.concat.executor';
-import { IMergeResults } from './session.stream.merge.executor';
+} from '../interfaces/index';
+import { IConcatResults } from './executors/session.stream.concat.executor';
+import { IMergeResults } from './executors/session.stream.merge.executor';
 
 export {
     IFileMergeOptions,
@@ -34,8 +40,8 @@ abstract class Connector<T> {
     public abstract setOptions(options: T): Promise<void>; // To have a way update options in on fly
     public abstract getSubjects(): {
         // Major events
-        disconnected: Events.Subject<void>;
-        connected: Events.Subject<void>;
+        disconnected: Subject<void>;
+        connected: Subject<void>;
     };
 }
 
@@ -60,7 +66,7 @@ export class SessionStream {
         //         .destroy()
         //         .then(resolve)
         //         .catch((err: Error) => {
-        //             this._logger.error(`Fail to destroy provider due error: ${err.message}`);
+        //             this._logger.error(`Fail to destroy provider due error: ${err instanceof Error ? err.message : err}`);
         //             reject(err);
         //         });
         // });

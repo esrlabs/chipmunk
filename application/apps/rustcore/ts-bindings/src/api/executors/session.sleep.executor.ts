@@ -1,6 +1,6 @@
 import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './executor';
-import { RustSession } from '../native/index';
-import { EventProvider } from './session.provider';
+import { RustSession } from '../../native/index';
+import { EventProvider } from '../../api/session.provider';
 
 export interface IExecuteSleepOptions {
     duration: number;

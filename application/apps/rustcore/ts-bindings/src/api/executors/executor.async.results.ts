@@ -1,15 +1,16 @@
-import { Logger } from '../util/logging';
-import { CancelablePromise } from '../util/promise';
-import { RustSession } from '../native/native.session';
-import { EventProvider, IErrorEvent, IOperationDoneEvent } from './session.provider';
-import { Subscription } from '../util/events.subscription';
-import { NativeError } from '../interfaces/errors';
+import { Logger } from '../../util/logging';
+import { CancelablePromise } from '../../util/promise';
+import { RustSession } from '../../native/native.session';
+import { EventProvider, IErrorEvent, IOperationDoneEvent } from '../../api/session.provider';
 import { v4 as uuidv4 } from 'uuid';
+import { NativeError } from '../../interfaces/errors';
+import { Subscription } from '../../../../../../platform/env/subscription';
 
 export type TOperationRunner<TOptions> = (
     session: RustSession,
     options: TOptions,
-) => string | Error;
+    operationUuid: string,
+) => Promise<void>;
 
 export type TOperationResultReader<TResult> = (
     result: any,
@@ -18,7 +19,7 @@ export type TOperationResultReader<TResult> = (
 ) => void;
 
 // TODO: should be implemented timeout to prevent memory leaking
-export function ResultsExecutor<TResult, TOptions>(
+export function AsyncResultsExecutor<TResult, TOptions>(
     session: RustSession,
     provider: EventProvider,
     logger: Logger,
@@ -93,7 +94,7 @@ export function ResultsExecutor<TResult, TOptions>(
                 }
             },
         };
-        logger.debug('Sync result operation is started');
+        logger.debug('Async result operation is started');
         // Add cancel callback
         refCancelCB(() => {
             // Cancelation is started, but not canceled
@@ -102,19 +103,21 @@ export function ResultsExecutor<TResult, TOptions>(
         });
         // Handle finale of promise
         self.finally(() => {
-            logger.debug('Sync result operation promise is closed as well');
+            logger.debug('Async result operation promise is closed as well');
             lifecircle.unsunscribe();
         });
         // Call operation
-        const opUuid: string = (() => {
-            const _: string | Error = runner(session, options);
-            if (_ instanceof Error) {
-                lifecircle.unsunscribe();
-                reject(new Error(`Fail to run "${name}" operation due error: ${_.message}`));
-                return '';
-            } else {
-                return _;
+        const opUuid: string = uuidv4();
+        runner(session, options, opUuid).catch((err: Error) => {
+            if (self.isProcessing()) {
+                reject(
+                    new Error(
+                        `Fail to run "${name}" operation due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
+                );
             }
-        })();
+        });
     });
 }
