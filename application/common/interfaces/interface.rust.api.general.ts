@@ -9,10 +9,16 @@ export interface IMapEntity {
     rows: number[];
 }
 
+// export interface IFilterFlags {
+//     reg: boolean;
+//     word: boolean;
+//     cases: boolean;
+// }
+
 export interface IFilterFlags {
-    reg: boolean;
-    word: boolean;
-    cases: boolean;
+    casesensitive: boolean;
+    wholeword: boolean;
+    regexp: boolean;
 }
 
 export interface IFilter {

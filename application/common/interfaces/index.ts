@@ -7,11 +7,13 @@ import * as Electron from './interface.electron';
 import * as API from './interface.rust.api.general';
 import * as Observe from './interface.rust.api.observe';
 import * as Dlt from './interface.rust.api.dlt';
+import * as DLT from './interface.dlt';
 import * as Pcap from './interface.rust.api.pcap';
 import * as Someip from './interface.rust.api.someip';
 
 export {
     Dlt,
+    DLT,
     Pcap,
     Someip,
     NodeGlobal,

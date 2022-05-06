@@ -1,7 +1,7 @@
 import { IFilePickerFileInfo } from './file.filepicker.response';
 import { EDLTDeamonConnectionType } from './dlt.deamon.connect.request';
 
-export { EDLTDeamonConnectionType }
+export { EDLTDeamonConnectionType };
 
 export interface IDLTDeamonConnectionMulticastOptions {
     address: string;
@@ -15,6 +15,7 @@ export interface IDLTDeamonConnectionOptions {
     multicast: IDLTDeamonConnectionMulticastOptions[];
     fibex: IFilePickerFileInfo[];
     target: EDLTDeamonConnectionType;
+    timezone?: string;
 }
 
 export interface IDLTDeamonRecentResponse {
@@ -22,7 +23,6 @@ export interface IDLTDeamonRecentResponse {
 }
 
 export class DLTDeamonRecentResponse {
-
     public static signature: string = 'DLTDeamonRecentResponse';
     public signature: string = DLTDeamonRecentResponse.signature;
     public recent: IDLTDeamonConnectionOptions[] = [];

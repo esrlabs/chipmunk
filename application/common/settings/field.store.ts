@@ -230,7 +230,7 @@ export class FieldBase<T> extends Entry {
         return this.value as T;
     }
 
-    public write(store: IStorage): Error | IStorage {
+    public override write(store: IStorage): Error | IStorage {
         if (typeof store !== 'object' && store === null) {
             return new Error(`Fail to write, because store isn't an object.`);
         }
@@ -254,14 +254,14 @@ export class FieldBase<T> extends Entry {
     /**
      * Internal usage
      */
-    public getClassSignature(): string {
+    public override getClassSignature(): string {
         return CFieldBaseClassSignature;
     }
 
     /**
      * Internal usage
      */
-    public static isInstance(smth: any): boolean {
+    public static override isInstance(smth: any): boolean {
         if (typeof smth !== 'object' || smth === null) {
             return false;
         }
@@ -277,14 +277,14 @@ const CRemoteFieldClassSignature = 'CRemoteFieldClassSignature';
 
 export class RemoteField<T> extends FieldBase<T> {
     
-    public value: T | undefined;
+    public override value: T | undefined;
     
     constructor(entry: IField<T>) {
         super(entry);
         this.value = entry.value;
     }
 
-    public extract(store: IStorage, defaults?: T): Promise<void> {
+    public override extract(store: IStorage, defaults?: T): Promise<void> {
         return new Promise((resolve, reject) => {
             const ref: IStorage | Error = findRef(store, this.getPath());
             if (ref instanceof Error) {
@@ -307,14 +307,14 @@ export class RemoteField<T> extends FieldBase<T> {
         });
     }
 
-    public get(): T {
+    public override get(): T {
         if (this.value === undefined) {
             throw new Error(`Value of "${this.getFullPath()}" isn't initialized`);
         }
         return this.value;
     }
 
-    public write(store: IStorage): Error | IStorage {
+    public override write(store: IStorage): Error | IStorage {
         if (typeof store !== 'object' && store === null) {
             return new Error(`Fail to write, because store isn't an object.`);
         }
@@ -329,14 +329,14 @@ export class RemoteField<T> extends FieldBase<T> {
     /**
      * Internal usage
      */
-    public getClassSignature(): string {
+    public override getClassSignature(): string {
         return CRemoteFieldClassSignature;
     }
 
     /**
      * Internal usage
      */
-    public static isInstance(smth: any): boolean {
+    public static override isInstance(smth: any): boolean {
         if (typeof smth !== 'object' || smth === null) {
             return false;
         }
@@ -352,13 +352,13 @@ const CFieldClassSignature = 'CFieldClassSignature';
 
 export abstract class Field<T> extends FieldBase<T> {
 
-    public value: T | undefined;
+    public override value: T | undefined;
 
     public abstract validate(value: T): Promise<void>;
     public abstract getDefault(): Promise<T>;
     public abstract getElement(): ElementRefs | undefined;
 
-    public asField(): IField<T> {
+    public override asField(): IField<T> {
         const element: ElementRefs | undefined = this.getElement();
         return Object.assign({
             value: this.value,
@@ -367,7 +367,7 @@ export abstract class Field<T> extends FieldBase<T> {
         }, this.asEntry());
     }
 
-    public extract(store: IStorage): Promise<void> {
+    public override extract(store: IStorage): Promise<void> {
         return new Promise((resolve, reject) => {
             const ref: IStorage | Error = findRef(store, this.getPath());
             if (ref instanceof Error) {
@@ -401,14 +401,14 @@ export abstract class Field<T> extends FieldBase<T> {
         });
     }
 
-    public get(): T {
+    public override get(): T {
         if (this.value === undefined) {
             throw new Error(`Value of "${this.getFullPath()}" isn't initialized`);
         }
         return this.value;
     }
 
-    public write(store: IStorage): Error | IStorage {
+    public override write(store: IStorage): Error | IStorage {
         if (typeof store !== 'object' && store === null) {
             return new Error(`Fail to write, because store isn't an object.`);
         }
@@ -427,14 +427,14 @@ export abstract class Field<T> extends FieldBase<T> {
     /**
      * Internal usage
      */
-    public getClassSignature(): string {
+    public override getClassSignature(): string {
         return CFieldClassSignature;
     }
 
     /**
      * Internal usage
      */
-    public static isInstance(smth: any): boolean {
+    public static override isInstance(smth: any): boolean {
         if (typeof smth !== 'object' || smth === null) {
             return false;
         }

@@ -1,16 +1,20 @@
+export interface IFile {
+    file: string;
+    parser: string | undefined;
+}
+
 export interface IConcatFilesRequest {
     id: string;
-    files: string[];
+    files: IFile[];
     session: string;
 }
 
 export class ConcatFilesRequest {
-
     public static signature: string = 'ConcatFilesRequest';
     public signature: string = ConcatFilesRequest.signature;
     public id: string = '';
     public timezone: string = '';
-    public files: string[] = [];
+    public files: IFile[] = [];
     public session: string = '';
 
     constructor(params: IConcatFilesRequest) {
@@ -24,7 +28,7 @@ export class ConcatFilesRequest {
             throw new Error(`session should be defined.`);
         }
         if (params.files !== undefined && !(params.files instanceof Array)) {
-            throw new Error(`parsers should be defined as Array<string>.`);
+            throw new Error(`parsers should be defined as Array<IFile>.`);
         }
         this.id = params.id;
         this.files = params.files;

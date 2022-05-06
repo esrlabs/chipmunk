@@ -1,3 +1,13 @@
+# Remove previous sources #
+###################
+application/client.core
+application/electron
+application/client.libs
+application/node.libs
+application/client.core/**
+application/electron/**
+application/client.libs/**
+application/node.libs/**
 # Compiled source #
 ###################
 *.com
@@ -35,7 +45,6 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
-
 # Others #
 ##########
 **/node_modules
@@ -46,6 +55,7 @@ Thumbs.db
 **/.DS_store
 **/dist
 **/build
+**/.angular
 application/apps/**/target/*
 application/apps/rustcore/ts-cli
 .vscode
@@ -53,7 +63,6 @@ application/apps/rustcore/ts-cli
 .idea
 application/electron/**/*.js
 application/electron/*.js
-**/platform
 !application/platform
 ./external
 TODO.md
@@ -68,3 +77,4 @@ application/apps/indexer-neon/out/
 application/sandbox/serial/render/lib/views/dialog/port.available
 sandbox
 sandbox.backup
+**/holder/release

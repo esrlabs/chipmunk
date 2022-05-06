@@ -1,9 +1,18 @@
-import { IFilter } from '../../interfaces/interface.rust.api.general';
+export interface ISearchExpressionFlags {
+    casesensitive: boolean;
+    wholeword: boolean;
+    regexp: boolean;
+}
+
+export interface ISearchExpression {
+    request: string;
+    flags: ISearchExpressionFlags;
+}
 
 export interface ISearchRequest {
     session: string;
     id: string;
-    filters: IFilter[];
+    requests: ISearchExpression[];
 }
 
 export class SearchRequest {
@@ -11,7 +20,7 @@ export class SearchRequest {
     public signature: string = SearchRequest.signature;
     public session: string;
     public id: string;
-    public filters: IFilter[];
+    public requests: ISearchExpression[];
 
     constructor(params: ISearchRequest) {
         if (typeof params !== 'object' || params === null) {
@@ -23,11 +32,11 @@ export class SearchRequest {
         if (typeof params.id !== 'string' || params.id.trim() === '') {
             throw new Error(`Field "id" should be defined`);
         }
-        if (!(params.filters instanceof Array)) {
-            throw new Error(`Field "request" should be an instance of IFilter[]`);
+        if (!(params.requests instanceof Array)) {
+            throw new Error(`Field "request" should be an instance of ISearchExpression[]`);
         }
         this.session = params.session;
         this.id = params.id;
-        this.filters = params.filters;
+        this.requests = params.requests;
     }
 }

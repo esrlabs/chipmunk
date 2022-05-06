@@ -1,8 +1,7 @@
-
 export interface IPluginInternalMessage {
     data: any;
     token: string;
-    stream: string;
+    stream: string | undefined;
 }
 
 export class PluginInternalMessage {
@@ -11,7 +10,7 @@ export class PluginInternalMessage {
 
     public data: any;
     public token: string;
-    public stream: string;
+    public stream: string | undefined;
 
     constructor(params: IPluginInternalMessage) {
         if (typeof params !== 'object' || params === null) {
