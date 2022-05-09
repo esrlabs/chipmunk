@@ -31,6 +31,12 @@ export class Session extends ChangesDetector implements AfterViewInit {
             }
             this._update();
         });
+        this.ilc().channel.session.search.updated((event) => {
+            if (this._session !== event.session) {
+                return;
+            }
+            this._update();
+        });
     }
 
     ngAfterViewInit(): void {
@@ -45,10 +51,10 @@ export class Session extends ChangesDetector implements AfterViewInit {
         const active = session.active();
         if (active === undefined) {
             this.state.drop();
-            return;
+        } else {
+            this.state.len = active.stream.len();
+            this.state.found = active.search.len();
         }
-
-        this.state.len = active.stream.len();
         this.detectChanges();
     }
 }
