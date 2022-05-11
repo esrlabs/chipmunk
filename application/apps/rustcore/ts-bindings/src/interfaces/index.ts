@@ -24,5 +24,6 @@ export {
     TLogFunc,
     IChipmunkNodeGlobal,
 } from '../../../../../platform/interfaces/interface.node.global';
-export { Someip, Observe } from '../../../../../platform/interfaces/index';
+export * as Observe from '../../../../../platform/types/observe';
+export * as Someip from '../../../../../platform/types/parsers/someip';
 export { OperationStat } from '../interfaces/debug';

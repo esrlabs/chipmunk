@@ -1,8 +1,18 @@
 use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use async_trait::async_trait;
 use buf_redux::Buffer;
+use indexer_base::config::MulticastInfo;
 use log::trace;
+use std::net::{IpAddr, Ipv4Addr};
 use tokio::net::{ToSocketAddrs, UdpSocket};
+
+#[derive(Debug)]
+pub enum UdpSourceError {
+    Io(std::io::Error),
+    ParseAddr(std::net::AddrParseError),
+    ParseNum(std::num::ParseIntError),
+    Config(indexer_base::config::Error),
+}
 
 pub struct UdpSource {
     buffer: Buffer,
@@ -13,10 +23,48 @@ pub struct UdpSource {
 const MAX_DATAGRAM_SIZE: usize = 65_507;
 
 impl UdpSource {
-    pub async fn new<A: ToSocketAddrs>(addr: A) -> Result<Self, std::io::Error> {
+    pub async fn new<A: ToSocketAddrs>(
+        addr: A,
+        multicast: Vec<MulticastInfo>,
+    ) -> Result<Self, UdpSourceError> {
+        let socket = UdpSocket::bind(addr).await.map_err(UdpSourceError::Io)?;
+        for multicast_info in &multicast {
+            let multi_addr = multicast_info
+                .multicast_addr()
+                .map_err(UdpSourceError::Config)?;
+            match multi_addr {
+                IpAddr::V4(addr) => {
+                    let inter: Ipv4Addr = match multicast_info.interface.as_ref() {
+                        Some(s) => s.parse().map_err(UdpSourceError::ParseAddr)?,
+                        None => Ipv4Addr::new(0, 0, 0, 0),
+                    };
+                    if let Err(e) = socket.join_multicast_v4(addr, inter) {
+                        let msg = format!("error joining multicast group: {}", e);
+                        warn!("{}", msg);
+                        return Err(UdpSourceError::Io(e));
+                    }
+                    debug!(
+                        "Joining UDP multicast group: socket.join_multicast_v4({}, {})",
+                        addr, inter
+                    );
+                }
+                IpAddr::V6(addr) => {
+                    let inter: u32 = match multicast_info.interface.as_ref() {
+                        Some(s) => s.parse::<u32>().map_err(UdpSourceError::ParseNum)?,
+                        None => 0,
+                    };
+                    if let Err(e) = socket.join_multicast_v6(&addr, inter) {
+                        let msg = format!("error joining multicast group: {}", e);
+                        warn!("{}", msg);
+                        return Err(UdpSourceError::Io(e));
+                    }
+                }
+            };
+        }
+
         Ok(Self {
             buffer: Buffer::new(),
-            socket: UdpSocket::bind(addr).await?,
+            socket,
             tmp_buffer: vec![0u8; MAX_DATAGRAM_SIZE],
         })
     }
