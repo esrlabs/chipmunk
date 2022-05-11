@@ -52,37 +52,36 @@ pub async fn handle(
             .await
             {
                 Ok(recv_results) => {
-                    break match recv_results {
-                        Some((search_holder, search_results)) => match search_results {
-                            Ok((file_path, matches, stats)) => {
-                                Ok((file_path, matches.len(), matches, stats, search_holder))
-                            }
-                            Err(err) => Err(NativeError {
-                                severity: Severity::ERROR,
-                                kind: NativeErrorKind::OperationSearch,
-                                message: Some(format!("Fail to execute search. Error: {}", err)),
-                            }),
-                        },
-                        None => Err(NativeError {
+                    break recv_results.map_or(
+                        Err(NativeError {
                             severity: Severity::ERROR,
                             kind: NativeErrorKind::OperationSearch,
                             message: Some("Fail to receive search results".to_string()),
                         }),
-                    };
+                        |(search_holder, search_results)| {
+                            search_results
+                                .map(|(file_path, matches, stats)| {
+                                    (file_path, matches.len(), matches, stats, search_holder)
+                                })
+                                .map_err(|err| NativeError {
+                                    severity: Severity::ERROR,
+                                    kind: NativeErrorKind::OperationSearch,
+                                    message: Some(format!(
+                                        "Fail to execute search. Error: {}",
+                                        err
+                                    )),
+                                })
+                        },
+                    );
                 }
-                Err(_) => {
-                    match state.update_search_result(search_res_file.clone()).await {
-                        Ok(found) => {
-                            operation_api.emit(CallbackEvent::SearchUpdated(found as u64));
-                        }
-                        Err(err) => {
-                            break Err(err);
-                        }
+                Err(_) => match state.update_search_result(search_res_file.clone()).await {
+                    Ok(found) => {
+                        operation_api.emit(CallbackEvent::SearchUpdated(found as u64));
                     }
-                    if let Err(err) = state.update_search_result(search_res_file.clone()).await {
+                    Err(err) => {
                         break Err(err);
                     }
-                }
+                },
             };
         };
         match search_results {

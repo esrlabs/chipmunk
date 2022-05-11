@@ -213,15 +213,10 @@ impl SearchHolder {
     where
         I: Iterator<Item = &'a SearchFilter>,
     {
-        let mut search_filters = vec![];
+        self.search_filters = vec![];
         for filter in filters {
-            search_filters.push(filter.clone());
+            self.search_filters.push(filter.clone());
         }
-        self.search_filters = search_filters;
-    }
-
-    pub fn set_lines_read(&mut self, lines_read: u64) {
-        self.lines_read = lines_read;
     }
 
     /// execute a search for the given input path and filters
