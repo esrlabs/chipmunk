@@ -1,15 +1,14 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TabSourceDltFileModule } from '@tabs/sources/dltfile/module';
-// import { TabAboutModule } from '@tabs/about/module';
-// import { TabSettingsModule } from '@tabs/settings/module';
-// import { TabReleaseNotesModule } from '@tabs/release.notes/module';
+import { TabSourceDltNetModule } from '@tabs/sources/dltnet/module';
+import { TimezoneSelectorModule } from '@ui/elements/timezones/module';
 
 @NgModule({
     entryComponents: [],
-    imports: [CommonModule],
+    imports: [CommonModule, TimezoneSelectorModule],
     declarations: [],
-    exports: [TabSourceDltFileModule],
+    exports: [TabSourceDltFileModule, TabSourceDltNetModule, TimezoneSelectorModule],
 })
 export class TabsModule {
     constructor() {}

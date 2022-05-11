@@ -1,4 +1,4 @@
-import { IDLTOptions } from './dlt';
+import { IDLTOptions } from './parsers/dlt';
 
 export interface File {
     name: string;

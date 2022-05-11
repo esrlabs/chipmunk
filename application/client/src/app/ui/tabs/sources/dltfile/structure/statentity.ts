@@ -1,4 +1,4 @@
-import { LevelDistribution } from '@platform/types/dlt';
+import { LevelDistribution } from '@platform/types/parsers/dlt';
 import { Subject } from '@platform/env/subscription';
 
 import * as regex from '@platform/env/regex';

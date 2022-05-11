@@ -1,5 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { StatisticInfo } from '../../../types/dlt';
+import { StatisticInfo } from '../../../types/parsers/dlt';
 import * as validator from '../../../env/obj';
 
 @Define({ name: 'DltStatRequest' })

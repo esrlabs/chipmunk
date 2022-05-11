@@ -6,7 +6,10 @@ import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { cutUuid } from '@log/index';
 import { TargetFile } from '@platform/types/files';
 import { Render } from '@schema/render';
+import { getRenderFor } from '@schema/render/tools';
 import { components } from '@env/decorators/initial';
+import { SourceDefinition } from '@platform/types/transport';
+import { IDLTOptions } from '@platform/types/parsers/dlt';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -54,6 +57,29 @@ export class Session {
                 })
                 .catch(reject);
         });
+    }
+
+    public connect(source: SourceDefinition): {
+        dlt(options: IDLTOptions): Promise<void>;
+    } {
+        return {
+            dlt: (options: IDLTOptions): Promise<void> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send<Requests.Connect.Dlt.Response>(
+                        Requests.Connect.Dlt.Response,
+                        new Requests.Connect.Dlt.Request({ session: this._uuid, source, options }),
+                    )
+                        .then((response) => {
+                            if (typeof response.error === 'string' && response.error !== '') {
+                                reject(new Error(response.error));
+                            } else {
+                                resolve(undefined);
+                            }
+                        })
+                        .catch(reject);
+                });
+            },
+        };
     }
 
     public destroy(): Promise<void> {

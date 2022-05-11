@@ -5,7 +5,7 @@ import { Subscriber } from '@platform/env/subscription';
 import { Instance as Logger } from '@platform/env/logger';
 import { jobs, aliases, Job } from '@service/jobs';
 import { FileType } from '@platform/types/files';
-import { defaultParserSettings, optionsToParserSettings } from '@platform/types/dlt';
+import { defaultParserSettings, optionsToParserSettings } from '@platform/types/parsers/dlt';
 
 import * as Events from '@platform/ipc/event';
 import * as Requests from '@platform/ipc/request';
@@ -102,7 +102,7 @@ export const handler = Requests.InjectLogger<
                                 // Opening file as text file
                                 session
                                     .getStream()
-                                    .observe(Observe.DataSource.asTextFile(request.file.filename))
+                                    .observe(Observe.DataSource.file(request.file.filename).text())
                                     .catch((err: Error) => {
                                         log.error(`Fail to call observe. Error: ${err.message}`);
                                     })
@@ -125,8 +125,7 @@ export const handler = Requests.InjectLogger<
                                 session
                                     .getStream()
                                     .observe(
-                                        Observe.DataSource.asDltFile(
-                                            request.file.filename,
+                                        Observe.DataSource.file(request.file.filename).dlt(
                                             request.file.options.dlt === undefined
                                                 ? (defaultParserSettings(true) as any)
                                                 : (optionsToParserSettings(

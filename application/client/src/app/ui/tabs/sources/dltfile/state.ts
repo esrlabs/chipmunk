@@ -5,15 +5,13 @@ import {
     LevelDistribution,
     EMTIN,
     IDLTFilters,
-} from '@platform/types/dlt';
+} from '@platform/types/parsers/dlt';
 import { StatEntity, Section } from './structure/statentity';
 import { getTypedProp } from '@platform/env/obj';
 import { Subject } from '@platform/env/subscription';
-import { Filter } from './filter';
+import { Filter } from '@ui/env/entities/filter';
 import { Summary } from './summary';
-import { Timezone } from './timezones/timezone';
-
-import * as moment_timezone from 'moment-timezone';
+import { Timezone } from '@ui/elements/timezones/timezone';
 
 export const ENTITIES = {
     app_ids: 'app_ids',
@@ -44,36 +42,11 @@ export class State {
     public stat: StatisticInfo | undefined;
     public filters: {
         entities: Filter;
-        timezone: Filter;
     } = {
         entities: new Filter(),
-        timezone: new Filter(),
     };
     public summary: Summary = new Summary();
-    public timezones: Timezone[] = [];
     public timezone: Timezone | undefined;
-
-    constructor() {
-        const now = new Date();
-        const utc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth());
-        this.timezones = moment_timezone.tz
-            .names()
-            .map((tzName: string) => {
-                const zone = moment_timezone.tz.zone(tzName);
-                if (zone === null) {
-                    return undefined;
-                } else {
-                    const offset = zone.utcOffset(utc);
-                    return new Timezone(
-                        tzName,
-                        `${offset === 0 ? '' : offset > 0 ? '-' : '+'}${Math.abs(offset) / 60}`,
-                        offset,
-                    );
-                }
-            })
-            .filter((t) => t !== undefined) as Timezone[];
-        this.timezones.unshift(new Timezone('UTC', '', 0));
-    }
 
     public isStatLoaded(): boolean {
         return this.stat !== undefined;
@@ -99,7 +72,6 @@ export class State {
         remove(target: StatEntity): void;
         back(target: StatEntity): void;
         filter(): void;
-        timezones(): void;
         summary(): void;
     } {
         return {
@@ -151,11 +123,6 @@ export class State {
                         entity.filter(this.filters.entities.value()),
                     );
                     structure.update.emit();
-                });
-            },
-            timezones: (): void => {
-                this.timezones.forEach((timezone) => {
-                    timezone.filter(this.filters.timezone.value());
                 });
             },
             summary: (): void => {

@@ -6,40 +6,41 @@ import {
     ViewEncapsulation,
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Subscriber } from '@platform/env/subscription';
-import { State } from '../state';
 import { Timezone } from './timezone';
 import { MAT_BOTTOM_SHEET_DATA, MatBottomSheetRef } from '@angular/material/bottom-sheet';
+import { State } from './state';
 
 @Component({
-    selector: 'app-tabs-source-dltfile-timezone',
+    selector: 'app-elements-timezone-selector',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
 })
 @Ilc()
-export class TabSourceDltFileTimezone extends ChangesDetector {
+export class ElementsTimezoneSelector extends ChangesDetector {
     @HostListener('window:keydown', ['$event'])
     handleKeyDown(event: KeyboardEvent) {
-        if (this.data.state.filters.timezone.keyboard(event)) {
-            this.data.state.struct().timezones();
+        if (this.state.filter.keyboard(event)) {
+            this.state.update();
             this.detectChanges();
         }
     }
 
+    public state: State = new State();
+
     constructor(
-        @Inject(MAT_BOTTOM_SHEET_DATA) public data: { state: State },
+        @Inject(MAT_BOTTOM_SHEET_DATA) public data: { selected: (timezone: Timezone) => void },
         cdRef: ChangeDetectorRef,
-        private _bottomSheetRef: MatBottomSheetRef<TabSourceDltFileTimezone>,
+        private _bottomSheetRef: MatBottomSheetRef<ElementsTimezoneSelector>,
         private _sanitizer: DomSanitizer,
     ) {
         super(cdRef);
     }
 
     public ngOnSelect(timezine: Timezone) {
-        this.data.state.timezone = timezine;
+        this.data.selected(timezine);
         this._bottomSheetRef.dismiss();
     }
 
@@ -48,7 +49,7 @@ export class TabSourceDltFileTimezone extends ChangesDetector {
     }
 
     public timezones(): Timezone[] {
-        return this.data.state.timezones.filter((t) => !t.hidden);
+        return this.state.timezones.filter((t) => !t.hidden);
     }
 }
-export interface TabSourceDltFileTimezone extends IlcInterface {}
+export interface ElementsTimezoneSelector extends IlcInterface {}

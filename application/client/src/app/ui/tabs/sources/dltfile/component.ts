@@ -11,14 +11,15 @@ import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { File } from '@platform/types/files';
-import { IDLTOptions, StatisticInfo, LevelDistribution, EMTIN } from '@platform/types/dlt';
+import { IDLTOptions, StatisticInfo, LevelDistribution, EMTIN } from '@platform/types/parsers/dlt';
 import { bytesToStr, timestampToUTC } from '@env/str';
 import { StatEntity } from './structure/statentity';
 import { TabControls } from '@service/session';
 import { State } from './state';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
-import { TabSourceDltFileTimezone } from './timezones/component';
+import { ElementsTimezoneSelector } from '@ui/elements/timezones/component';
 import { LockToken } from '@platform/env/lock.token';
+import { Timezone } from '@ui/elements/timezones/timezone';
 
 @Component({
     selector: 'app-tabs-source-dltfile',
@@ -140,12 +141,15 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
         if (this.state.filters.entities.drop()) {
             this.state.struct().filter();
         }
-        const bottomSheetRef = this._bottomSheet.open(TabSourceDltFileTimezone, {
-            data: { state: this.state },
+        const bottomSheetRef = this._bottomSheet.open(ElementsTimezoneSelector, {
+            data: {
+                selected: (timezone: Timezone): void => {
+                    this.state.timezone = timezone;
+                },
+            },
         });
         const subscription = bottomSheetRef.afterDismissed().subscribe(() => {
             subscription.unsubscribe();
-            this.state.filters.timezone.drop();
             this._filterLockTocken.unlock();
             this.detectChanges();
         });

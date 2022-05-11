@@ -7,4 +7,4 @@
     </div>
   </mat-list-option>
 </mat-selection-list>
-<div class="filter t-medium" *ngIf="!data.state.filters.timezone.isEmpty()">{{data.state.filters.timezone.value()}}</div>
+<div class="filter t-medium" *ngIf="!state.filter.isEmpty()">{{state.filter.value()}}</div>

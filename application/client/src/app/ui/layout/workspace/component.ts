@@ -7,7 +7,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 // import TabsSessionsService from '../../service/service.sessions.tabs';
 // import RenderStateService from '../../service/service.render.state';
-import { IDLTOptions, StatisticInfo, LevelDistribution, EMTIN } from '@platform/types/dlt';
+import { IDLTOptions, StatisticInfo, LevelDistribution, EMTIN } from '@platform/types/parsers/dlt';
 
 @Component({
     selector: 'app-layout-workspace',

@@ -3,6 +3,8 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { FileType, File } from '@platform/types/files';
 import { components } from '@env/decorators/initial';
 import { getRenderFor } from '@schema/render/tools';
+import { SourceDefinition } from '@platform/types/transport';
+import { IDLTOptions } from '@platform/types/parsers/dlt';
 
 @Component({
     selector: 'app-layout-area-no-tabs-content',
@@ -12,6 +14,52 @@ import { getRenderFor } from '@schema/render/tools';
 @Ilc()
 export class LayoutWorkspaceNoContent {
     public readonly FileType = FileType;
+
+    public ngStream(target: FileType) {
+        switch (target) {
+            case FileType.Dlt:
+                this.ilc()
+                    .services.system.session.add()
+                    .tab({
+                        name: `Connecting to DLT Deamon`,
+                        content: {
+                            factory: components.get('app-tabs-source-dltnet'),
+                            inputs: {
+                                done: (options: {
+                                    source: SourceDefinition;
+                                    options: IDLTOptions;
+                                }) => {
+                                    this.ilc()
+                                        .services.system.session.add()
+                                        .empty(getRenderFor().dlt())
+                                        .then((session) => {
+                                            session
+                                                .connect(options.source)
+                                                .dlt(options.options)
+                                                .then(() => {
+                                                    // console.log(`Connected!`);
+                                                })
+                                                .catch((err: Error) => {
+                                                    this.log().error(
+                                                        `Fail to connect: ${err.message}`,
+                                                    );
+                                                });
+                                        })
+                                        .catch((err: Error) => {
+                                            this.log().error(
+                                                `Fail to create session: ${err.message}`,
+                                            );
+                                        });
+                                },
+                            },
+                        },
+                        active: true,
+                    });
+                break;
+            default:
+                break;
+        }
+    }
 
     public ngOpenFile(target: FileType) {
         const select = this.ilc().services.system.bridge.files().select;
