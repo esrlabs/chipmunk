@@ -1,3 +1,4 @@
+use indexer_base::config::MulticastInfo;
 use parsers::dlt;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -40,10 +41,16 @@ pub struct ProcessTransportConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TCPTransportConfig {}
+pub struct TCPTransportConfig {
+    pub dest_path: PathBuf,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct UDPTransportConfig {}
+pub struct UDPTransportConfig {
+    pub bind_addr: String,
+    pub multicast: Vec<MulticastInfo>,
+    pub dest_path: PathBuf,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Source {
