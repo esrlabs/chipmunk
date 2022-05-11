@@ -16,10 +16,9 @@ import { MatListModule } from '@angular/material/list';
 
 import { TabSourceDltFile } from './component';
 import { TabSourceDltFileStructure } from './structure/component';
-import { TabSourceDltFileTimezone } from './timezones/component';
 
-const entryComponents = [TabSourceDltFile, TabSourceDltFileStructure, TabSourceDltFileTimezone];
-const components = [TabSourceDltFile, TabSourceDltFileStructure, TabSourceDltFileTimezone];
+const entryComponents = [TabSourceDltFile, TabSourceDltFileStructure];
+const components = [TabSourceDltFile, TabSourceDltFileStructure];
 
 @NgModule({
     entryComponents: [...entryComponents],

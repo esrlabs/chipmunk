@@ -1,0 +1,29 @@
+div.preset-container{
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    div.preset-container-content {
+        position: absolute;
+        display: block;
+        top: 0;
+        width: 100%;
+        max-width: 1000px;
+        height: 100%;
+        overflow: hidden;
+        &.w-1200 {
+            max-width: 1200px;
+        }
+        &.w-1400 {
+            max-width: 1400px;
+        }
+        &.w-1600 {
+            max-width: 1600px;
+        }
+    }  
+}

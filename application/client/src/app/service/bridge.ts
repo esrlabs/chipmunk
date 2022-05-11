@@ -1,7 +1,7 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
 import { File, FileType } from '@platform/types/files';
-import { StatisticInfo } from '@platform/types/dlt';
+import { StatisticInfo, IDLTOptions } from '@platform/types/parsers/dlt';
 
 import * as Events from '@platform/ipc/event/index';
 import * as Requests from '@platform/ipc/request/index';

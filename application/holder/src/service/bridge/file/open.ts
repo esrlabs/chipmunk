@@ -41,7 +41,7 @@ export const handler = Requests.InjectLogger<
                     case FileType.Text:
                         stored.session
                             .getStream()
-                            .observe(Observe.DataSource.asTextFile(request.file.filename))
+                            .observe(Observe.DataSource.file(request.file.filename).text())
                             .catch((err: Error) => {
                                 log.error(`Fail to call observe. Error: ${err.message}`);
                             })
@@ -58,7 +58,7 @@ export const handler = Requests.InjectLogger<
                         stored.session
                             .getStream()
                             .observe(
-                                Observe.DataSource.asDltFile(request.file.filename, {
+                                Observe.DataSource.file(request.file.filename).dlt({
                                     fibex_file_paths: undefined,
                                     filter_config: undefined,
                                     with_storage_header: true,

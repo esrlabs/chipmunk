@@ -1,146 +1,150 @@
-<div class="left">
-    <mat-card class="top">
-        <mat-card-title>Structure</mat-card-title>
-        <mat-card-subtitle>Content DLT file data</mat-card-subtitle>
-        <mat-card-content>
-            <div class="section" *ngIf="state.selected.length > 0">
-                <mat-divider></mat-divider>
-                <mat-chip-list aria-label="Filtered">
-                    <mat-chip *ngFor="let entity of state.selected" (removed)="ngOnRemoveSelection(entity)">
-                        {{entity.id}}
-                        <button matChipRemove>
-                          <mat-icon>cancel</mat-icon>
+<div class="preset-container">
+    <div class="preset-container-content w-1400">
+        <div class="left">
+            <mat-card class="top">
+                <mat-card-title>Structure</mat-card-title>
+                <mat-card-subtitle>Content DLT file data</mat-card-subtitle>
+                <mat-card-content>
+                    <div class="section" *ngIf="state.selected.length > 0">
+                        <mat-divider></mat-divider>
+                        <mat-chip-list aria-label="Filtered">
+                            <mat-chip *ngFor="let entity of state.selected" (removed)="ngOnRemoveSelection(entity)">
+                                {{entity.id}}
+                                <button matChipRemove>
+                                  <mat-icon>cancel</mat-icon>
+                                </button>
+                            </mat-chip>
+                        </mat-chip-list>
+                    </div>
+                </mat-card-content>
+            </mat-card>
+            <mat-card class="fill sticky">
+                <mat-card-content>
+                  <div class="progress" *ngIf="!state.isStatLoaded()">
+                      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+                      <p class="t-medium color-scheme-2">Scanning DLT structure...</p>
+                  </div>
+                  <app-tabs-source-dltfile-structure *ngFor="let section of state.structure" 
+                    (select)="ngOnEntitySelect($event)"
+                    [section]="section"></app-tabs-source-dltfile-structure>
+                </mat-card-content>
+                <div class="filter t-medium" *ngIf="!state.filters.entities.isEmpty()">{{state.filters.entities.value()}}</div>
+              </mat-card>
+        </div>
+        <div class="right">
+            <mat-card>
+                <mat-card-title>Info</mat-card-title>
+                <mat-card-subtitle>File info</mat-card-subtitle>
+                <mat-card-content>
+                    <table class="table-fill">
+                        <tr class="info">
+                            <td class="caption t-medium color-scheme-3">Name</td>
+                            <td class="value t-medium color-scheme-2">{{file.name}}</td>
+                        </tr>
+                        <tr class="info">
+                            <td class="caption t-medium color-scheme-3">Size</td>
+                            <td class="value t-medium color-scheme-2">{{size(file.stat.size)}}</td>
+                        </tr>
+                        <tr class="info">
+                            <td class="caption t-medium color-scheme-3">Created</td>
+                            <td class="value t-medium color-scheme-2">{{datetime(file.stat.ctimeMs)}}</td>
+                        </tr>
+                        <tr class="info">
+                            <td class="caption t-medium color-scheme-3">Changed</td>
+                            <td class="value t-medium color-scheme-2">{{datetime(file.stat.mtimeMs)}}</td>
+                        </tr>
+                    </table>
+                </mat-card-content>
+            </mat-card>
+            <mat-card>
+                <mat-card-title>Log level</mat-card-title>
+                <mat-card-content>
+                    <mat-form-field appearance="legacy">
+                        <mat-label>Select required level of logs</mat-label>
+                        <mat-select [(ngModel)]="state.logLevel">
+                          <mat-option *ngFor="let logLevel of logLevels" [value]="logLevel.value">
+                            {{logLevel.caption}}
+                          </mat-option>
+                        </mat-select>
+                    </mat-form-field>
+                    <p class="t-medium color-scheme-2">Summary</p>
+                    <table class="table-fill">
+                        <tr class="info" *ngIf="state.summary.isLoaded()">
+                            <td class="caption t-medium color-scheme-3">Fatal</td>
+                            <td class="value t-medium color-scheme-2">{{state.summary.fatal}}</td>
+                            <td class="caption t-medium color-scheme-3">Error</td>
+                            <td class="value t-medium color-scheme-2">{{state.summary.error}}</td>
+                        </tr>
+                        <tr class="info" *ngIf="state.summary.isLoaded()">
+                            <td class="caption t-medium color-scheme-3">Debug</td>
+                            <td class="value t-medium color-scheme-2">{{state.summary.debug}}</td>
+                            <td class="caption t-medium color-scheme-3">Info</td>
+                            <td class="value t-medium color-scheme-2">{{state.summary.info}}</td>
+                        </tr>
+                        <tr class="info" *ngIf="state.summary.isLoaded()">
+                            <td class="caption t-medium color-scheme-3">Verbose</td>
+                            <td class="value t-medium color-scheme-2">{{state.summary.verbose}}</td>
+                            <td class="caption t-medium color-scheme-3">Invalid</td>
+                            <td class="value t-medium color-scheme-2">{{state.summary.invalid}}</td>
+                        </tr>
+                        <tr class="info" *ngIf="state.summary.isLoaded()">
+                            <td class="caption t-medium color-scheme-3">Total</td>
+                            <td class="value t-medium color-scheme-2" colspan="3">{{state.summary.total}}</td>
+                        </tr>
+                    </table>
+                </mat-card-content>
+            </mat-card>
+            <mat-card>
+                <mat-card-title>Fibex</mat-card-title>
+                <mat-card-subtitle>Attach fibex file (optional)</mat-card-subtitle>
+                <mat-card-content>
+                    <div class="fibex" *ngIf="state.fibex.length > 0">
+                        <mat-chip-list aria-label="Fibex files">
+                            <mat-chip *ngFor="let file of state.fibex" (removed)="ngOnRemoveFibex(file)">
+                                {{file.name}}
+                                <button matChipRemove>
+                                  <mat-icon>cancel</mat-icon>
+                                </button>
+                            </mat-chip>
+                        </mat-chip-list>
+                    </div>    
+                    <mat-divider class="fibex-divider" *ngIf="state.fibex.length > 0"></mat-divider>
+                    <div class="fibex-controlls">
+                        <button mat-stroked-button (click)="ngOnFibexAdd()">
+                            <mat-icon aria-hidden="false" class="mini-button">note_add</mat-icon>
+                            Add
                         </button>
-                    </mat-chip>
-                </mat-chip-list>
-            </div>
-        </mat-card-content>
-    </mat-card>
-    <mat-card class="fill sticky">
-        <mat-card-content>
-          <div class="progress" *ngIf="!state.isStatLoaded()">
-              <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-              <p class="t-medium color-scheme-2">Scanning DLT structure...</p>
-          </div>
-          <app-tabs-source-dltfile-structure *ngFor="let section of state.structure" 
-            (select)="ngOnEntitySelect($event)"
-            [section]="section"></app-tabs-source-dltfile-structure>
-        </mat-card-content>
-        <div class="filter t-medium" *ngIf="!state.filters.entities.isEmpty()">{{state.filters.entities.value()}}</div>
-      </mat-card>
-</div>
-<div class="right">
-    <mat-card>
-        <mat-card-title>Info</mat-card-title>
-        <mat-card-subtitle>File info</mat-card-subtitle>
-        <mat-card-content>
-            <table class="table-fill">
-                <tr class="info">
-                    <td class="caption t-medium color-scheme-3">Name</td>
-                    <td class="value t-medium color-scheme-2">{{file.name}}</td>
-                </tr>
-                <tr class="info">
-                    <td class="caption t-medium color-scheme-3">Size</td>
-                    <td class="value t-medium color-scheme-2">{{size(file.stat.size)}}</td>
-                </tr>
-                <tr class="info">
-                    <td class="caption t-medium color-scheme-3">Created</td>
-                    <td class="value t-medium color-scheme-2">{{datetime(file.stat.ctimeMs)}}</td>
-                </tr>
-                <tr class="info">
-                    <td class="caption t-medium color-scheme-3">Changed</td>
-                    <td class="value t-medium color-scheme-2">{{datetime(file.stat.mtimeMs)}}</td>
-                </tr>
-            </table>
-        </mat-card-content>
-    </mat-card>
-    <mat-card>
-        <mat-card-title>Log level</mat-card-title>
-        <mat-card-content>
-            <mat-form-field appearance="legacy">
-                <mat-label>Select required level of logs</mat-label>
-                <mat-select [(ngModel)]="state.logLevel">
-                  <mat-option *ngFor="let logLevel of logLevels" [value]="logLevel.value">
-                    {{logLevel.caption}}
-                  </mat-option>
-                </mat-select>
-            </mat-form-field>
-            <p class="t-medium color-scheme-2">Summary</p>
-            <table class="table-fill">
-                <tr class="info" *ngIf="state.summary.isLoaded()">
-                    <td class="caption t-medium color-scheme-3">Fatal</td>
-                    <td class="value t-medium color-scheme-2">{{state.summary.fatal}}</td>
-                    <td class="caption t-medium color-scheme-3">Error</td>
-                    <td class="value t-medium color-scheme-2">{{state.summary.error}}</td>
-                </tr>
-                <tr class="info" *ngIf="state.summary.isLoaded()">
-                    <td class="caption t-medium color-scheme-3">Debug</td>
-                    <td class="value t-medium color-scheme-2">{{state.summary.debug}}</td>
-                    <td class="caption t-medium color-scheme-3">Info</td>
-                    <td class="value t-medium color-scheme-2">{{state.summary.info}}</td>
-                </tr>
-                <tr class="info" *ngIf="state.summary.isLoaded()">
-                    <td class="caption t-medium color-scheme-3">Verbose</td>
-                    <td class="value t-medium color-scheme-2">{{state.summary.verbose}}</td>
-                    <td class="caption t-medium color-scheme-3">Invalid</td>
-                    <td class="value t-medium color-scheme-2">{{state.summary.invalid}}</td>
-                </tr>
-                <tr class="info" *ngIf="state.summary.isLoaded()">
-                    <td class="caption t-medium color-scheme-3">Total</td>
-                    <td class="value t-medium color-scheme-2" colspan="3">{{state.summary.total}}</td>
-                </tr>
-            </table>
-        </mat-card-content>
-    </mat-card>
-    <mat-card>
-        <mat-card-title>Fibex</mat-card-title>
-        <mat-card-subtitle>Attach fibex file (optional)</mat-card-subtitle>
-        <mat-card-content>
-            <div class="fibex" *ngIf="state.fibex.length > 0">
-                <mat-chip-list aria-label="Fibex files">
-                    <mat-chip *ngFor="let file of state.fibex" (removed)="ngOnRemoveFibex(file)">
-                        {{file.name}}
-                        <button matChipRemove>
-                          <mat-icon>cancel</mat-icon>
-                        </button>
-                    </mat-chip>
-                </mat-chip-list>
-            </div>    
-            <mat-divider class="fibex-divider" *ngIf="state.fibex.length > 0"></mat-divider>
-            <div class="fibex-controlls">
-                <button mat-stroked-button (click)="ngOnFibexAdd()">
-                    <mat-icon aria-hidden="false" class="mini-button">note_add</mat-icon>
-                    Add
-                </button>
-            </div>
-        </mat-card-content>
-    </mat-card>
-    <mat-card>
-        <mat-card-title>Timezone</mat-card-title>
-        <mat-card-subtitle>Select required timezone (optional). UTC is default</mat-card-subtitle>
-        <mat-card-content>
-            <span *ngIf="state.timezone !== undefined">
-                {{state.timezone.name}} ({{state.timezone.utc}})
-            </span>
-            <div class="controlls">
-                <button mat-stroked-button (click)="ngTimezoneSelect()">Select</button>
-            </div>
-            <!-- <mat-form-field appearance="legacy">
-                <mat-label>Select required timezone</mat-label>
-                <mat-select [(ngModel)]="state.timezone">
-                  <mat-option *ngFor="let timezone of state.timezones" [value]="timezone.name">
-                    {{timezone.fullName}}
-                  </mat-option>
-                </mat-select>
-            </mat-form-field> -->
-        </mat-card-content>
-    </mat-card>
-    <div class="spacer"></div>
-    <mat-card class="controlls">
-        <mat-card-title>Actions</mat-card-title>
-        <mat-card-content>
-          <button mat-stroked-button (click)="ngOnOpen()">Open</button>
-          <button mat-stroked-button (click)="ngOnClose()">Cancel</button>
-        </mat-card-content>
-    </mat-card>
+                    </div>
+                </mat-card-content>
+            </mat-card>
+            <mat-card>
+                <mat-card-title>Timezone</mat-card-title>
+                <mat-card-subtitle>Select required timezone (optional). UTC is default</mat-card-subtitle>
+                <mat-card-content>
+                    <span *ngIf="state.timezone !== undefined">
+                        {{state.timezone.name}} ({{state.timezone.utc}})
+                    </span>
+                    <div class="controlls">
+                        <button mat-stroked-button (click)="ngTimezoneSelect()">Select</button>
+                    </div>
+                    <!-- <mat-form-field appearance="legacy">
+                        <mat-label>Select required timezone</mat-label>
+                        <mat-select [(ngModel)]="state.timezone">
+                          <mat-option *ngFor="let timezone of state.timezones" [value]="timezone.name">
+                            {{timezone.fullName}}
+                          </mat-option>
+                        </mat-select>
+                    </mat-form-field> -->
+                </mat-card-content>
+            </mat-card>
+            <div class="spacer"></div>
+            <mat-card class="controlls">
+                <mat-card-title>Actions</mat-card-title>
+                <mat-card-content>
+                  <button class="major-button" mat-stroked-button (click)="ngOnOpen()">Open</button>
+                  <button mat-stroked-button (click)="ngOnClose()">Cancel</button>
+                </mat-card-content>
+            </mat-card>
+        </div>
+    </div>
 </div>

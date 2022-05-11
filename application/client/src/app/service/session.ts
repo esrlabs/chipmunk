@@ -55,7 +55,7 @@ export class Service extends Implementation {
     }
 
     public add(): {
-        empty: () => Promise<Session>;
+        empty: (render: Render<unknown>) => Promise<Session>;
         file: (file: TargetFile, render: Render<unknown>) => Promise<Session>;
         tab: (tab: ITab) => void;
     } {
@@ -77,12 +77,12 @@ export class Service extends Implementation {
             this._emitter.session.change(uuid);
         };
         return {
-            empty: (): Promise<Session> => {
+            empty: (render: Render<unknown>): Promise<Session> => {
                 if (this._locker.isLocked()) {
                     return Promise.reject(new Error(`Sessions aren't available yet`));
                 }
                 return new Promise((resolve, reject) => {
-                    const session = new Session(getRenderFor().text());
+                    const session = new Session(render);
                     session
                         .init({})
                         .then((uuid: string) => {
