@@ -80,7 +80,7 @@ pub async fn handle(
                     // });
                 }
             };
-            let mut fibex_metadata = None;
+            let fibex_metadata;
             let parser = match parser_type {
                 ParserType::SomeIP(_) => {
                     return Err(NativeError {
@@ -402,16 +402,12 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                             })?;
                         if !state.is_closing() && last_message.elapsed().as_millis() > NOTIFY_IN_MS
                         {
-                            if !state.update_session().await? {
-                                // If session wasn't update (means grabber didn't detect new
-                                // lines in session file) new data wasn't written on disk yet.
-                                // in this case we just force flashing.
-                                session_writer.flush().map_err(|e| NativeError {
-                                    severity: Severity::ERROR,
-                                    kind: NativeErrorKind::Io,
-                                    message: Some(e.to_string()),
-                                })?;
-                            }
+                            session_writer.flush().map_err(|e| NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::Io,
+                                message: Some(e.to_string()),
+                            })?;
+                            state.update_session().await?;
                             last_message = Instant::now();
                             has_updated_content = false;
                         } else {
