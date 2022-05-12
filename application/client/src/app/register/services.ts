@@ -34,6 +34,10 @@ export const services: { [key: string]: Inputs } = {
         name: 'Bridge',
         uuid: v4(),
     },
+    recent: {
+        name: 'Recent',
+        uuid: v4(),
+    },
 };
 
 export const ui: { [key: string]: Inputs } = {

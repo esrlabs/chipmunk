@@ -52,10 +52,7 @@ export class State {
 
     public asSourceDefinition(): SourceDefinition {
         return {
-            udp:
-                this.udp === undefined
-                    ? undefined
-                    : this.udp.asUDPTransportSettings('/storage/tmp/'),
+            udp: this.udp === undefined ? undefined : this.udp.asUDPTransportSettings(''),
         };
     }
 }
