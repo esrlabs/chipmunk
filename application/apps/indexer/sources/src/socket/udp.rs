@@ -109,11 +109,11 @@ impl ByteSource for UdpSource {
 }
 
 #[tokio::test]
-async fn test_udp_reload() -> Result<(), std::io::Error> {
+async fn test_udp_reload() -> Result<(), UdpSourceError> {
     static SENDER: &str = "127.0.0.1:4000";
     static RECEIVER: &str = "127.0.0.1:5000";
     static MESSAGES: &[&str] = &["one", "two", "three"];
-    let send_socket = UdpSocket::bind(SENDER).await?;
+    let send_socket = UdpSocket::bind(SENDER).await.map_err(UdpSourceError::Io)?;
     let send_handle = tokio::spawn(async move {
         for msg in MESSAGES {
             send_socket
@@ -122,7 +122,7 @@ async fn test_udp_reload() -> Result<(), std::io::Error> {
                 .expect("could not send on socket");
         }
     });
-    let mut udp_source = UdpSource::new(RECEIVER).await?;
+    let mut udp_source = UdpSource::new(RECEIVER, vec![]).await?;
     let receive_handle = tokio::spawn(async move {
         for msg in MESSAGES {
             udp_source.reload(None).await.unwrap();

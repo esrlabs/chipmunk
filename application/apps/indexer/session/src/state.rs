@@ -2,17 +2,17 @@ use crate::{
     events::{CallbackEvent, NativeError, NativeErrorKind},
     operations::OperationStat,
 };
-use indexer_base::progress::{ComputationResult, Severity};
+use indexer_base::progress::Severity;
 use log::{debug, error};
 use processor::{
     grabber::{GrabbedContent, Grabber, LineRange},
     map::{FilterMatch, SearchMap},
-    search::{FilterStats, SearchFilter, SearchHolder, SearchResults},
+    search::SearchHolder,
     text_source::TextFileSource,
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
@@ -31,7 +31,7 @@ pub enum SearchHolderState {
 pub enum Api {
     SetSessionFile((PathBuf, oneshot::Sender<Result<(), NativeError>>)),
     GetSessionFile(oneshot::Sender<Result<PathBuf, NativeError>>),
-    UpdateSession(oneshot::Sender<Result<(), NativeError>>),
+    UpdateSession(oneshot::Sender<Result<bool, NativeError>>),
     FileRead(oneshot::Sender<()>),
     Grab(
         (
@@ -261,10 +261,10 @@ impl SessionStateAPI {
         })?
     }
 
-    pub async fn update_session(&self) -> Result<(), NativeError> {
+    pub async fn update_session(&self) -> Result<bool, NativeError> {
         let (tx_response, rx_response): (
-            oneshot::Sender<Result<(), NativeError>>,
-            oneshot::Receiver<Result<(), NativeError>>,
+            oneshot::Sender<Result<bool, NativeError>>,
+            oneshot::Receiver<Result<bool, NativeError>>,
         ) = oneshot::channel();
         self.tx_api
             .send(Api::UpdateSession(tx_response))
@@ -574,7 +574,7 @@ impl SessionStateAPI {
 
 pub async fn update_search_result(
     state: &mut SessionState,
-    search_result_file: &PathBuf,
+    search_result_file: &Path,
     cancellation_token: CancellationToken,
 ) -> Result<usize, NativeError> {
     let result = if state.search_grabber.is_none() {
@@ -849,8 +849,8 @@ pub async fn task(
                 }
             }
             Api::UpdateSession(tx_response) => {
-                let mut count: u64 = 0;
                 let result = if let Some(ref mut grabber) = state.content_grabber {
+                    let prev = grabber.log_entry_count().unwrap_or(0) as u64;
                     if let Err(err) = grabber.update_from_file(Some(cancellation_token.clone())) {
                         Err(NativeError {
                             severity: Severity::ERROR,
@@ -858,17 +858,21 @@ pub async fn task(
                             message: Some(format!("Fail update metadata: {}", err)),
                         })
                     } else {
-                        count = grabber.log_entry_count().unwrap_or(0) as u64;
-                        if let Err(err) =
-                            tx_callback_events.send(CallbackEvent::StreamUpdated(count))
-                        {
-                            return Err(NativeError {
-                                severity: Severity::ERROR,
-                                kind: NativeErrorKind::ChannelError,
-                                message: Some(format!("callback channel is broken: {}", err)),
-                            });
+                        let current = grabber.log_entry_count().unwrap_or(0) as u64;
+                        if prev != current {
+                            if let Err(err) =
+                                tx_callback_events.send(CallbackEvent::StreamUpdated(current))
+                            {
+                                return Err(NativeError {
+                                    severity: Severity::ERROR,
+                                    kind: NativeErrorKind::ChannelError,
+                                    message: Some(format!("callback channel is broken: {}", err)),
+                                });
+                            }
+                            Ok(true)
+                        } else {
+                            Ok(false)
                         }
-                        Ok(())
                     }
                 } else {
                     Err(NativeError {
@@ -877,49 +881,51 @@ pub async fn task(
                         message: Some(String::from("Grabber isn't inited")),
                     })
                 };
-                if count > 0 {
-                    let mut matches = if let SearchHolderState::Available(mut search_holder) =
-                        state.search_holder
-                    {
-                        let matches = match search_holder.execute_search() {
-                            Ok((file_path, matches, _stats)) => Some((file_path, matches)),
-                            Err(err) => {
-                                error!("Fail to append search: {}", err);
-                                None
-                            }
-                        };
-                        state.search_holder = SearchHolderState::Available(search_holder);
-                        matches
-                    } else {
-                        None
-                    };
-                    if let Some((file_path, mut matches)) = matches.take() {
-                        state.search_map.append(&mut matches);
-                        match update_search_result(
-                            &mut state,
-                            &file_path,
-                            cancellation_token.clone(),
-                        )
-                        .await
+                if let Ok(updated) = result.as_ref() {
+                    if updated == &true {
+                        let mut matches = if let SearchHolderState::Available(mut search_holder) =
+                            state.search_holder
                         {
-                            Ok(found) => {
-                                if let Err(err) = tx_callback_events
-                                    .send(CallbackEvent::SearchUpdated(found as u64))
-                                {
-                                    return Err(NativeError {
-                                        severity: Severity::ERROR,
-                                        kind: NativeErrorKind::ChannelError,
-                                        message: Some(format!(
-                                            "callback channel is broken: {}",
-                                            err
-                                        )),
-                                    });
+                            let matches = match search_holder.execute_search() {
+                                Ok((file_path, matches, _stats)) => Some((file_path, matches)),
+                                Err(err) => {
+                                    error!("Fail to append search: {}", err);
+                                    None
                                 }
-                            }
-                            Err(err) => {
-                                error!("Fail to update search results: {:?}", err);
-                            }
+                            };
+                            state.search_holder = SearchHolderState::Available(search_holder);
+                            matches
+                        } else {
+                            None
                         };
+                        if let Some((file_path, mut matches)) = matches.take() {
+                            state.search_map.append(&mut matches);
+                            match update_search_result(
+                                &mut state,
+                                &file_path,
+                                cancellation_token.clone(),
+                            )
+                            .await
+                            {
+                                Ok(found) => {
+                                    if let Err(err) = tx_callback_events
+                                        .send(CallbackEvent::SearchUpdated(found as u64))
+                                    {
+                                        return Err(NativeError {
+                                            severity: Severity::ERROR,
+                                            kind: NativeErrorKind::ChannelError,
+                                            message: Some(format!(
+                                                "callback channel is broken: {}",
+                                                err
+                                            )),
+                                        });
+                                    }
+                                }
+                                Err(err) => {
+                                    error!("Fail to update search results: {:?}", err);
+                                }
+                            };
+                        }
                     }
                 }
                 if tx_response.send(result.clone()).is_err() {

@@ -4,11 +4,11 @@ use crate::{
     state::SessionStateAPI,
     tail,
 };
-use indexer_base::{config::MulticastInfo, progress::Severity};
+use indexer_base::progress::Severity;
 use log::trace;
 use parsers::{dlt, LogMessage, MessageStreamItem, Parser};
 use sources::{
-    factory::{DltParserSettings, ParserType, Source, Transport, UDPTransportConfig},
+    factory::{ParserType, Source, Transport},
     pcap,
     producer::MessageProducer,
     raw, socket, ByteSource,
@@ -16,7 +16,7 @@ use sources::{
 use std::{
     fs::File,
     io::{BufWriter, Write},
-    path::{Path, PathBuf},
+    path::PathBuf,
     time::Instant,
 };
 use tokio::{
@@ -302,10 +302,8 @@ pub async fn handle(
         }
     };
     trace!("done observing...cleaning up files: {:?}", paths);
-    println!(">>>>>>>>>>>>>>>>>> TO REMOVE: {:?}", paths);
     for path in paths {
         if path.exists() {
-            println!(">>>>>>>>>>>>>>>>>> WOULD BE REMOVE: {:?}", path);
             std::fs::remove_file(path).map_err(|e| NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::Io,
@@ -404,7 +402,16 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                             })?;
                         if !state.is_closing() && last_message.elapsed().as_millis() > NOTIFY_IN_MS
                         {
-                            state.update_session().await?;
+                            if !state.update_session().await? {
+                                // If session wasn't update (means grabber didn't detect new
+                                // lines in session file) new data wasn't written on disk yet.
+                                // in this case we just force flashing.
+                                session_writer.flush().map_err(|e| NativeError {
+                                    severity: Severity::ERROR,
+                                    kind: NativeErrorKind::Io,
+                                    message: Some(e.to_string()),
+                                })?;
+                            }
                             last_message = Instant::now();
                             has_updated_content = false;
                         } else {

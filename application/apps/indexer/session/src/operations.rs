@@ -3,7 +3,6 @@ use crate::{
     handlers,
     state::SessionStateAPI,
 };
-use crossbeam_channel as cc;
 use indexer_base::progress::Severity;
 use log::{debug, error, warn};
 use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
