@@ -14,6 +14,11 @@ use tokio::{
 
 const TRACKING_INTERVAL_MS: u64 = 250;
 
+type SearchResultChannel = (
+    Sender<(SearchHolder, SearchResults)>,
+    Receiver<(SearchHolder, SearchResults)>,
+);
+
 pub async fn handle(
     operation_api: &OperationAPI,
     filters: Vec<SearchFilter>,
@@ -32,10 +37,7 @@ pub async fn handle(
         let mut search_holder = state.get_search_holder().await?;
         search_holder.set_filters(&mut filters.iter());
         let search_res_file = search_holder.out_file_path.clone();
-        let (tx_result, mut rx_result): (
-            Sender<(SearchHolder, SearchResults)>,
-            Receiver<(SearchHolder, SearchResults)>,
-        ) = channel(1);
+        let (tx_result, mut rx_result): SearchResultChannel = channel(1);
         task::spawn(async move {
             let search_results = search_holder.execute_search();
             if tx_result

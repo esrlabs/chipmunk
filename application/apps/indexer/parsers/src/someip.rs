@@ -14,6 +14,12 @@ pub struct SomeipParser<'m> {
     model: Option<&'m FibexModel>,
 }
 
+impl<'m> Default for SomeipParser<'m> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'m> SomeipParser<'m> {
     /// Creates a new parser.
     pub fn new() -> Self {
@@ -240,11 +246,9 @@ fn rpc_message_string(header: &Header, payload: &RpcPayload, model: Option<&Fibe
             false => {
                 let mut som_parser = SOMParser::new(payload);
                 som_type
-                    .and_then(|mut value| {
-                        Some(match value.parse(&mut som_parser) {
-                            Ok(_) => Cow::Owned(format!("{}", value)),
-                            Err(error) => Cow::Owned(format!("{}", error)),
-                        })
+                    .map(|mut value| match value.parse(&mut som_parser) {
+                        Ok(_) => Cow::Owned(format!("{}", value)),
+                        Err(error) => Cow::Owned(format!("{}", error)),
                     })
                     .unwrap_or(Cow::Borrowed("(UnknownType)"))
             }
