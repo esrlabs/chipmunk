@@ -2,9 +2,9 @@ import { CancelablePromise } from '@platform/env/promise';
 import { Observe } from 'rustcore';
 import { sessions } from '@service/sessions';
 import { Instance as Logger } from '@platform/env/logger';
-import { jobs, aliases } from '@service/jobs';
-import { FileType } from '@platform/types/files';
+import { jobs } from '@service/jobs';
 import { optionsToParserSettings } from '@platform/types/parsers/dlt';
+import { paths } from '@service/paths';
 
 import * as Requests from '@platform/ipc/request';
 
@@ -29,6 +29,9 @@ export const handler = Requests.InjectLogger<
                 })
                 .start();
             if (request.source.udp !== undefined) {
+                if (request.source.udp.dest_path.trim() === '') {
+                    request.source.udp.dest_path = paths.getTmp();
+                }
                 stored.session
                     .getStream()
                     .observe(
