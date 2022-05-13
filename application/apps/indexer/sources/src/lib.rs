@@ -12,6 +12,7 @@ pub mod factory;
 pub mod pcap;
 pub mod producer;
 pub mod raw;
+pub mod serial;
 pub mod socket;
 
 #[derive(Debug, Clone, PartialEq)]

@@ -18,6 +18,7 @@ pcap-parser = "0.13"
 pin-project-lite = "0.2"
 thiserror = "1.0"
 tokio = { version = "1.17", features = ["full"] }
+tokio-serial = "5.4.1"
 tokio-stream = "0.1.5"
 tokio-util = "0.7"
 serde = { version = "1.0", features = ["derive"] }
