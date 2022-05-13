@@ -8,6 +8,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
+pub mod command;
 pub mod factory;
 pub mod pcap;
 pub mod producer;
