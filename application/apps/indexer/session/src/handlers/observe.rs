@@ -36,20 +36,6 @@ pub async fn handle(
     state: SessionStateAPI,
     source: Source,
 ) -> OperationResult<()> {
-    // let source = Source::Stream(
-    //     Transport::UDP(UDPTransportConfig {
-    //         bind_addr: String::from("0.0.0.0:8888"),
-    //         multicast: vec![MulticastInfo {
-    //             multiaddr: String::from("234.2.2.2"),
-    //             interface: Some(String::from("0.0.0.0")),
-    //         }],
-    //     }),
-    //     ParserType::Dlt(DltParserSettings {
-    //         filter_config: None,
-    //         fibex_file_paths: None,
-    //         with_storage_header: false,
-    //     }),
-    // );
     let (paths, result): (Vec<PathBuf>, OperationResult<()>) = match source {
         Source::Stream(transport, parser_type) => {
             let (source, dest_path) = match transport {
@@ -96,8 +82,8 @@ pub async fn handle(
                         message: Some(String::from("Text parser above stream not yet supported")),
                     });
                 }
-                ParserType::Pcap(settings) => {
-                    fibex_metadata = if let Some(paths) = settings.dlt.fibex_file_paths {
+                ParserType::PcapDlt(settings) => {
+                    fibex_metadata = if let Some(paths) = settings.0.fibex_file_paths {
                         dlt::gather_fibex_data(dlt::FibexConfig {
                             fibex_file_paths: paths,
                         })
@@ -105,9 +91,9 @@ pub async fn handle(
                         None
                     };
                     dlt::DltParser::new(
-                        settings.dlt.filter_config.map(|f| f.into()),
+                        settings.0.filter_config.map(|f| f.into()),
                         fibex_metadata.as_ref(),
-                        settings.dlt.with_storage_header,
+                        settings.0.with_storage_header,
                     )
                 }
                 ParserType::Dlt(settings) => {
@@ -205,8 +191,8 @@ pub async fn handle(
                         },
                     )
                 }
-                ParserType::Pcap(settings) => {
-                    let fibex_metadata = if let Some(paths) = settings.dlt.fibex_file_paths {
+                ParserType::PcapDlt(settings) => {
+                    let fibex_metadata = if let Some(paths) = settings.0.fibex_file_paths {
                         dlt::gather_fibex_data(dlt::FibexConfig {
                             fibex_file_paths: paths,
                         })
@@ -214,9 +200,9 @@ pub async fn handle(
                         None
                     };
                     let dlt_parser = dlt::DltParser::new(
-                        settings.dlt.filter_config.map(|f| f.into()),
+                        settings.0.filter_config.map(|f| f.into()),
                         fibex_metadata.as_ref(),
-                        settings.dlt.with_storage_header,
+                        settings.0.with_storage_header,
                     );
                     let source =
                         pcap::file::PcapngByteSource::new(File::open(&filename).map_err(|e| {

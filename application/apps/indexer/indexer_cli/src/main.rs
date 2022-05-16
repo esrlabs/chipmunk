@@ -1759,27 +1759,7 @@ async fn count_dlt_messages(input: &Path) -> Result<u64, DltParseError> {
 }
 
 async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
-    use session::factory::{
-        DltParserSettings, ParserType, PcapDltParserSettings, SomeIPParserSettings,
-    };
     if input.exists() {
-        // let dlt_parser_setting = DltParserSettings {
-        //     filter_config: None,
-        //     fibex_file_paths: None,
-        //     with_storage_header: true,
-        // };
-        // let pcap_dlt_parser_setting = PcapDltParserSettings(DltParserSettings {
-        //     filter_config: None,
-        //     fibex_file_paths: None,
-        //     with_storage_header: true,
-        // });
-        // let someip_parser_setting = SomeIPParserSettings {};
-        // let parser_types = vec![
-        //     ParserType::Dlt(dlt_parser_setting),
-        //     ParserType::PcapDlt(pcap_dlt_parser_setting),
-        //     ParserType::SomeIP(someip_parser_setting),
-        //     ParserType::Text,
-        // ];
         {
             println!("try dlt parser");
             let buf_reader = BufReader::new(fs::File::open(&input)?);
@@ -1815,7 +1795,6 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
         {
             println!("try pcap someip parser");
             let some_parser = SomeipParser::new();
-            // let buf_reader = BufReader::new(fs::File::open(&input)?);
             match PcapngByteSource::new(fs::File::open(&input)?) {
                 Ok(source) => {
                     let mut some_msg_producer = MessageProducer::new(some_parser, source);
@@ -1840,8 +1819,8 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                         }
                         if item_count > 10 || err_count > 10 {
                             println!(
-                                "Someip pcap parser, item_count: {}, err_count: {}, consumed: {}",
-                                item_count, err_count, consumed
+                                "Someip pcap parser, item_count: {}, err_count: {}, consumed: {} (skipped: {})",
+                                item_count, err_count, consumed, skipped_count
                             );
                             break;
                         }
@@ -1880,8 +1859,8 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                         }
                         if item_count > 10 || err_count > 10 {
                             println!(
-                                "DLT pcap parser, item_count: {}, err_count: {}, consumed: {}",
-                                item_count, err_count, consumed
+                                "DLT pcap parser, item_count: {}, err_count: {}, consumed: {} (skipped: {})",
+                                item_count, err_count, consumed, skipped_count
                             );
                             break;
                         }
@@ -1907,7 +1886,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
             use std::io::Cursor;
             loop {
                 match msg_stream.next().await {
-                    Some((rest, MessageStreamItem::Item(item))) => {
+                    Some((_rest, MessageStreamItem::Item(item))) => {
                         let mut buff = Cursor::new(vec![0; 100 * 1024]);
                         let cnt = item.to_writer(&mut buff);
                         consumed += cnt.unwrap_or(0);
