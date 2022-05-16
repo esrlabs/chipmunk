@@ -3,12 +3,12 @@ use crate::{Error as SourceError, ReloadInfo, SourceFilter};
 use async_trait::async_trait;
 use buf_redux::Buffer;
 use std::time::Duration;
+use thiserror::Error;
 use tokio::io::AsyncReadExt;
 use tokio_serial::{SerialPortBuilderExt, SerialStream};
 
 const TIMEOUT: u64 = 100;
-
-use thiserror::Error;
+const MAX_BUFFER_SIZE: usize = 500;
 
 #[derive(Error, Debug)]
 pub enum SerialError {
@@ -46,24 +46,32 @@ impl ByteSource for SerialSource {
     ) -> Result<Option<ReloadInfo>, SourceError> {
         let mut copied: usize = 0;
         let mut buffer_error: String = "".to_string();
-        let timeout = tokio::time::timeout(Duration::from_millis(TIMEOUT), async {
-            loop {
-                if let Err(err) = self.port.read_exact(&mut self.read).await {
-                    buffer_error = format!("read from serial stream failed: {}", err);
-                };
-                copied += self.buffer.copy_from_slice(&self.read);
-            }
-        });
-        match timeout.await {
-            Ok(_) => {
-                if buffer_error.is_empty() {
-                    self.amount = copied;
-                    Ok(Some(ReloadInfo::new(self.amount, self.amount, 0, None)))
-                } else {
-                    Err(SourceError::Unrecoverable(buffer_error))
+
+        tokio::select! {
+            _ = async {
+                loop {
+                    if let Err(err) = self.port.read_exact(&mut self.read).await {
+                        buffer_error = format!("read from serial stream failed: {}", err);
+                    };
+                    copied += self.buffer.copy_from_slice(&self.read);
+                    if copied >= MAX_BUFFER_SIZE {
+                        return;
+                    }
                 }
-            }
-            Err(_) => Ok(Some(ReloadInfo::new(0, 0, 0, None))),
+            } => {},
+            _ = tokio::time::sleep(Duration::from_millis(TIMEOUT)) => {}
+        };
+
+        if buffer_error.is_empty() {
+            self.amount = copied;
+            Ok(Some(ReloadInfo::new(
+                self.amount,
+                self.buffer.free_space() - self.buffer.len(),
+                0,
+                None,
+            )))
+        } else {
+            Err(SourceError::Unrecoverable(buffer_error))
         }
     }
 
@@ -91,6 +99,7 @@ async fn test_serial() {
     let mut sender = "";
     let mut receiver = "";
     let baud_rate = 9600;
+    let write_timeout = 50;
     if cfg!(windows) {
         sender = "COM10";
         receiver = "COM11";
@@ -114,15 +123,13 @@ async fn test_serial() {
             for message in messages {
                 sender.writable().await.expect("send message not possible");
                 sender.try_write(format!("{}\n", &message).as_bytes()).expect("send message failed");
-                tokio::time::sleep(Duration::from_millis(TIMEOUT)).await;
+                tokio::time::sleep(Duration::from_millis(write_timeout)).await;
             }
         } => (),
         _ = async {
-            let mut index = 0;
-            while let Some(item) = tokio_stream::StreamExt::next(&mut msg_stream).await {
-                if let (_, parsers::MessageStreamItem::Item(v)) = item {
-                    assert_eq!(messages[index], v.to_string());
-                    index += 1;
+            loop {
+                if let Some((_, parsers::MessageStreamItem::Item(v))) = tokio_stream::StreamExt::next(&mut msg_stream).await {
+                    assert!(messages.contains(&(v.to_string().as_str())));
                 }
             }
         } => (),
