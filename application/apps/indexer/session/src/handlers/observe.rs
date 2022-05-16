@@ -83,10 +83,8 @@ pub async fn handle(
                     });
                 }
                 ParserType::PcapDlt(settings) => {
-                    fibex_metadata = if let Some(paths) = settings.0.fibex_file_paths {
-                        dlt::gather_fibex_data(dlt::FibexConfig {
-                            fibex_file_paths: paths,
-                        })
+                    fibex_metadata = if let Some(fibex_file_paths) = settings.0.fibex_file_paths {
+                        dlt::gather_fibex_data(dlt::FibexConfig { fibex_file_paths })
                     } else {
                         None
                     };
@@ -97,10 +95,8 @@ pub async fn handle(
                     )
                 }
                 ParserType::Dlt(settings) => {
-                    fibex_metadata = if let Some(paths) = settings.fibex_file_paths {
-                        dlt::gather_fibex_data(dlt::FibexConfig {
-                            fibex_file_paths: paths,
-                        })
+                    fibex_metadata = if let Some(fibex_file_paths) = settings.fibex_file_paths {
+                        dlt::gather_fibex_data(dlt::FibexConfig { fibex_file_paths })
                     } else {
                         None
                     };
@@ -192,10 +188,9 @@ pub async fn handle(
                     )
                 }
                 ParserType::PcapDlt(settings) => {
-                    let fibex_metadata = if let Some(paths) = settings.0.fibex_file_paths {
-                        dlt::gather_fibex_data(dlt::FibexConfig {
-                            fibex_file_paths: paths,
-                        })
+                    let fibex_metadata = if let Some(fibex_file_paths) = settings.0.fibex_file_paths
+                    {
+                        dlt::gather_fibex_data(dlt::FibexConfig { fibex_file_paths })
                     } else {
                         None
                     };
@@ -243,10 +238,8 @@ pub async fn handle(
                     listening?
                 }
                 ParserType::Dlt(settings) => {
-                    let fibex_metadata = if let Some(paths) = settings.fibex_file_paths {
-                        dlt::gather_fibex_data(dlt::FibexConfig {
-                            fibex_file_paths: paths,
-                        })
+                    let fibex_metadata = if let Some(fibex_file_paths) = settings.fibex_file_paths {
+                        dlt::gather_fibex_data(dlt::FibexConfig { fibex_file_paths })
                     } else {
                         None
                     };
@@ -302,7 +295,7 @@ pub async fn handle(
 
 enum Next<T: LogMessage> {
     Item(MessageStreamItem<T>),
-    Notify,
+    Timeout,
     Waiting,
 }
 
@@ -364,7 +357,7 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                         Some(Next::Waiting)
                     }
                 },
-                Err(_) => Some(Next::Notify),
+                Err(_) => Some(Next::Timeout),
             }
         } => msg,
         _ = cancel.cancelled() => None,
@@ -424,7 +417,7 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                     }
                 }
             }
-            Next::Notify => {
+            Next::Timeout => {
                 if !state.is_closing() && has_updated_content {
                     state.update_session().await?;
                     has_updated_content = false;
@@ -432,17 +425,13 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
             }
             Next::Waiting => {
                 if let Some(mut rx_tail) = rx_tail.take() {
-                    if select! {
+                    select! {
                         msg = rx_tail.recv() => {
-                            if let Some(result) = msg {
-                                result.is_err()
-                            } else {
-                                true
+                            if let Some(Err(_)) = msg {
+                                break;
                             }
                         },
-                        _ = cancel_on_tail.cancelled() => true,
-                    } {
-                        break;
+                        _ = cancel_on_tail.cancelled() => break,
                     }
                 } else {
                     break;
