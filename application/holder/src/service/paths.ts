@@ -19,6 +19,7 @@ const DOWNLOADS_FOLDER = 'downloads';
 const TMP_FOLDER = 'tmp';
 const APPS_FOLDER = 'apps';
 const SETTINGS_FOLDER = 'settings';
+const STORAGE_FOLDER = 'storage';
 const DEVELOPING_PATH = 'application/holder/node_modules/electron/dist/resources';
 
 export function getHomeFolder(): string {
@@ -41,6 +42,7 @@ export class Service extends Implementation {
     private _tmp = '';
     private _apps = '';
     private _settings = '';
+    private _storage = '';
 
     /**
      * Initialization function
@@ -50,6 +52,7 @@ export class Service extends Implementation {
         return new Promise((resolve, reject) => {
             this._home = getHomeFolder();
             this._settings = path.resolve(this._home, SETTINGS_FOLDER);
+            this._storage = path.resolve(this._home, STORAGE_FOLDER);
             this._downloads = path.resolve(this._home, DOWNLOADS_FOLDER);
             this._tmp = path.resolve(this._home, TMP_FOLDER);
             this._apps = path.resolve(this._home, APPS_FOLDER);
@@ -81,17 +84,23 @@ export class Service extends Implementation {
             this._createHomeFolder()
                 .then(() => {
                     Promise.all(
-                        [this._home, this._settings, this._downloads, this._tmp, this._apps].map(
-                            (folder: string) => {
-                                return this._mkdir(folder);
-                            },
-                        ),
+                        [
+                            this._home,
+                            this._settings,
+                            this._storage,
+                            this._downloads,
+                            this._tmp,
+                            this._apps,
+                        ].map((folder: string) => {
+                            return this._mkdir(folder);
+                        }),
                     )
                         .then(() => {
                             this.log().debug(
                                 `Paths:
 \thome: ${this._home}
 \tsettings: ${this._settings}
+\tstorage: ${this._storage}
 \troot: ${this._root}
 \tapp: ${this._app}
 \texec ${this._exec}
@@ -125,6 +134,10 @@ export class Service extends Implementation {
 
     public getSettings(): string {
         return this._settings;
+    }
+
+    public getStorage(): string {
+        return this._storage;
     }
 
     /**

@@ -1,7 +1,8 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
 import { File, FileType } from '@platform/types/files';
-import { StatisticInfo, IDLTOptions } from '@platform/types/parsers/dlt';
+import { StatisticInfo } from '@platform/types/parsers/dlt';
+import { Entry } from '@platform/types/storage/entry';
 
 import * as Events from '@platform/ipc/event/index';
 import * as Requests from '@platform/ipc/request/index';
@@ -67,6 +68,132 @@ export class Service extends Implementation {
                     )
                         .then((response) => {
                             resolve(response.stat);
+                        })
+                        .catch(reject);
+                });
+            },
+        };
+    }
+
+    public storage(key: string): {
+        write(content: string): Promise<void>;
+        read(): Promise<string>;
+    } {
+        return {
+            write: (content: string): Promise<void> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Storage.Write.Response,
+                        new Requests.Storage.Write.Request({
+                            key,
+                            content,
+                        }),
+                    )
+                        .then(() => {
+                            resolve(undefined);
+                        })
+                        .catch(reject);
+                });
+            },
+            read: (): Promise<string> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Storage.Read.Response,
+                        new Requests.Storage.Read.Request({
+                            key,
+                        }),
+                    )
+                        .then((response) => {
+                            resolve(response.content);
+                        })
+                        .catch(reject);
+                });
+            },
+        };
+    }
+
+    public entries(key: string): {
+        get(): Promise<Entry[]>;
+        /**
+         * Updates existed and inserts new entries
+         * @param entries entries to be updated or inserted. If entry already exist, it will be updated with given
+         * @returns
+         */
+        update(entries: Entry[]): Promise<void>;
+        /**
+         * Inserts new entries without updating existed
+         * @param entries entries to be inserted. If entry already exist, it will be ignored
+         * @returns
+         */
+        append(entries: Entry[]): Promise<void>;
+        /**
+         * Clean storage (remove all existed entries) and set with given entries
+         * @param entries entries to be inserted.
+         * @returns
+         */
+        overwrite(entries: Entry[]): Promise<void>;
+        /**
+         * Removes given entries
+         * @param uuids list of uuids of entries to be removed
+         * @returns
+         */
+        delete(uuids: string[]): Promise<void>;
+    } {
+        const set = (
+            key: string,
+            entries: Entry[],
+            mode: 'overwrite' | 'update' | 'append',
+        ): Promise<undefined> => {
+            return new Promise((resolve, reject) => {
+                Requests.IpcRequest.send(
+                    Requests.Storage.EntriesSet.Response,
+                    new Requests.Storage.EntriesSet.Request({
+                        key,
+                        entries,
+                        mode,
+                    }),
+                )
+                    .then(() => {
+                        resolve(undefined);
+                    })
+                    .catch(reject);
+            });
+        };
+        return {
+            get: (): Promise<Entry[]> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Storage.EntriesGet.Response,
+                        new Requests.Storage.EntriesGet.Request({
+                            key,
+                        }),
+                    )
+                        .then((response) => {
+                            resolve(response.entries);
+                        })
+                        .catch(reject);
+                });
+            },
+            update: (entries: Entry[]): Promise<void> => {
+                return set(key, entries, 'update');
+            },
+            overwrite: (entries: Entry[]): Promise<void> => {
+                return set(key, entries, 'overwrite');
+            },
+            append: (entries: Entry[]): Promise<void> => {
+                return set(key, entries, 'append');
+            },
+            delete: (uuids: string[]): Promise<void> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Storage.EntriesDelete.Response,
+                        new Requests.Storage.EntriesDelete.Request({
+                            key,
+                            uuids,
+                        }),
+                    )
+                        .then(() => {
+                            resolve(undefined);
                         })
                         .catch(reject);
                 });

@@ -37,6 +37,15 @@ export enum DltLogLevel {
     Verbose = 0x6 << 4,
 }
 
+export const DltLogLevelNames = {
+    1: 'Fatal',
+    2: 'Error',
+    3: 'Warn',
+    4: 'Info',
+    5: 'Debug',
+    6: 'Verbose',
+};
+
 export interface LevelDistribution {
     non_log: number;
     log_fatal: number;
@@ -128,4 +137,9 @@ export function defaultParserSettings(with_storage_header: boolean): DltParserSe
         fibex_file_paths: undefined,
         with_storage_header,
     };
+}
+
+export function getLogLevelName(level: number): string {
+    const name = (DltLogLevelNames as any)[level];
+    return name === undefined ? 'unknown' : name;
 }

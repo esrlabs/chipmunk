@@ -143,6 +143,13 @@ export function getAsArray<T>(src: any, key: string): Array<T> {
     return src[key];
 }
 
+export function getAsArrayOrUndefined<T>(src: any, key: string): Array<T> | undefined {
+    if (!(src[key] instanceof Array)) {
+        return undefined;
+    }
+    return src[key];
+}
+
 export function from<T>(src: any, props: string[]): T {
     if (typeof src !== 'object') {
         throw new Error(`Expecting an object`);

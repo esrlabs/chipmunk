@@ -1,4 +1,4 @@
-import { singleDecoratorFactory, DecoratorConstructor } from '../env/decorators';
+import { decoratorFactory, DecoratorConstructor } from '../env/decorators';
 import { scope } from '../env/scope';
 import { Instance as Logger } from '../env/logger';
 
@@ -8,30 +8,31 @@ export interface LoggerInterface {
     log(): Logger;
 }
 
-export const SetupLogger = singleDecoratorFactory((constructor: DecoratorConstructor) => {
-    let alias = 'noname';
-    const logger = scope.getLogger(alias);
-    return class extends constructor {
-        __name: string = alias;
-        __logger: Logger = logger;
-        public getLoggerName(): string {
-            if (this === undefined || this.__name === undefined) {
-                throw new Error(`Entity ${alias} isn't inited`);
+export const SetupLogger = decoratorFactory(
+    (constructor: DecoratorConstructor, defaults?: string | void) => {
+        let alias = defaults === undefined ? 'noname' : defaults;
+        return class extends constructor {
+            __name: string = alias;
+            __logger: Logger = scope.getLogger(alias);
+            public getLoggerName(): string {
+                if (this === undefined || this.__name === undefined) {
+                    throw new Error(`Entity ${alias} isn't inited`);
+                }
+                return this.__name;
             }
-            return this.__name;
-        }
-        public setLoggerName(name: string): void {
-            if (this === undefined || this.__name === undefined) {
-                throw new Error(`Entity ${alias} isn't inited`);
+            public setLoggerName(name: string): void {
+                if (this === undefined || this.__name === undefined) {
+                    throw new Error(`Entity ${alias} isn't inited`);
+                }
+                this.__name = name;
+                this.__logger = scope.getLogger(name);
             }
-            alias = name;
-            this.__logger.rename(name);
-        }
-        public log(): Logger {
-            if (this === undefined || this.__logger === undefined) {
-                throw new Error(`Entity ${alias} isn't inited`);
+            public log(): Logger {
+                if (this === undefined || this.__logger === undefined) {
+                    throw new Error(`Entity ${alias} isn't inited`);
+                }
+                return this.__logger;
             }
-            return this.__logger;
-        }
-    };
-});
+        };
+    },
+);

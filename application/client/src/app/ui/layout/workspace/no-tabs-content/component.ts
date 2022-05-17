@@ -96,6 +96,16 @@ export class LayoutWorkspaceNoContent {
                                     },
                                     getRenderFor().text(),
                                 )
+                                .then(() => {
+                                    this.ilc()
+                                        .services.system.recent.add()
+                                        .file(file, {})
+                                        .catch((err: Error) => {
+                                            this.log().error(
+                                                `Fail to add recent action; error: ${err.message}`,
+                                            );
+                                        });
+                                })
                                 .catch((err: Error) => {
                                     this.log().error(`Fail to create session: ${err.message}`);
                                 });
@@ -123,6 +133,16 @@ export class LayoutWorkspaceNoContent {
                                                         },
                                                         getRenderFor().dlt(),
                                                     )
+                                                    .then(() => {
+                                                        this.ilc()
+                                                            .services.system.recent.add()
+                                                            .file(file, { dlt: options })
+                                                            .catch((err: Error) => {
+                                                                this.log().error(
+                                                                    `Fail to add recent action; error: ${err.message}`,
+                                                                );
+                                                            });
+                                                    })
                                                     .catch((err: Error) => {
                                                         this.log().error(
                                                             `Fail to create session: ${err.message}`,
