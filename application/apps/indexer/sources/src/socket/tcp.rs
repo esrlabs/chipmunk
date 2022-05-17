@@ -1,12 +1,7 @@
 use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use async_trait::async_trait;
 use buf_redux::Buffer;
-use log::trace;
-use std::time::Duration;
-use tokio::{
-    net::{TcpListener, TcpSocket, TcpStream, ToSocketAddrs},
-    time::sleep,
-};
+use tokio::net::{TcpStream, ToSocketAddrs};
 
 pub struct TcpSource {
     buffer: Buffer,
@@ -78,7 +73,8 @@ impl ByteSource for TcpSource {
 
 #[tokio::test]
 async fn test_tcp_reload() -> Result<(), std::io::Error> {
-    use tokio::io::AsyncWriteExt;
+    use std::time::Duration;
+    use tokio::{io::AsyncWriteExt, net::TcpListener, time::sleep};
     static SERVER: &str = "127.0.0.1:4000";
     static MESSAGES: &[&str] = &["one", "two", "three"];
     let listener = TcpListener::bind(&SERVER).await.unwrap();

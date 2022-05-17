@@ -84,7 +84,6 @@ pub struct SessionState {
     pub search_holder: SearchHolderState,
     pub content_grabber: Option<Box<Grabber>>,
     pub search_grabber: Option<Box<Grabber>>,
-    //HashMap<OperationUUID, (cancellation_token, operation_done_token)>
     pub operations: HashMap<Uuid, (CancellationToken, CancellationToken)>,
     pub status: Status,
     // stat is used only in debug = true tp collect some stat-info
@@ -643,7 +642,7 @@ pub async fn task(
         stat: vec![],
         debug: false,
     };
-    let cancellation_token = CancellationToken::new();
+    let task_cancellation_token = CancellationToken::new();
     debug!("task is started");
     while let Some(msg) = rx_api.recv().await {
         match msg {
@@ -851,7 +850,9 @@ pub async fn task(
             Api::UpdateSession(tx_response) => {
                 let result = if let Some(ref mut grabber) = state.content_grabber {
                     let prev = grabber.log_entry_count().unwrap_or(0) as u64;
-                    if let Err(err) = grabber.update_from_file(Some(cancellation_token.clone())) {
+                    if let Err(err) =
+                        grabber.update_from_file(Some(task_cancellation_token.clone()))
+                    {
                         Err(NativeError {
                             severity: Severity::ERROR,
                             kind: NativeErrorKind::Grabber,
@@ -903,7 +904,7 @@ pub async fn task(
                             match update_search_result(
                                 &mut state,
                                 &file_path,
-                                cancellation_token.clone(),
+                                task_cancellation_token.clone(),
                             )
                             .await
                             {
@@ -1015,7 +1016,7 @@ pub async fn task(
                         update_search_result(
                             &mut state,
                             &search_result_file,
-                            cancellation_token.clone(),
+                            task_cancellation_token.clone(),
                         )
                         .await,
                     )
@@ -1187,7 +1188,7 @@ pub async fn task(
                 }
             }
             Api::CloseSession(tx_response) => {
-                cancellation_token.cancel();
+                task_cancellation_token.cancel();
                 state.status = Status::Closed;
                 for (uuid, (operation_cancalation_token, done_token)) in &state.operations {
                     if !done_token.is_cancelled() {
@@ -1236,7 +1237,7 @@ pub async fn task(
                 }
             }
             Api::Shutdown => {
-                cancellation_token.cancel();
+                task_cancellation_token.cancel();
                 debug!("shutdown has been requested");
                 break;
             }

@@ -60,44 +60,21 @@ impl OperationStat {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum OperationAlias {
-    Observe,
-    Search,
-    Extract,
-    Map,
-    Concat,
-    Merge,
-    GetNearestPosition,
-    Sleep,
-    Cancel,
-    End,
+#[derive(Debug)]
+pub struct Operation {
+    kind: OperationKind,
+    id: Uuid,
 }
 
-impl std::fmt::Display for OperationAlias {
-    // This trait requires `fmt` with this exact signature.
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                OperationAlias::Observe => "Observe",
-                OperationAlias::Search => "Search",
-                OperationAlias::Extract => "Extract",
-                OperationAlias::Map => "Map",
-                OperationAlias::Concat => "Concat",
-                OperationAlias::Merge => "Merge",
-                OperationAlias::GetNearestPosition => "GetNearestPosition",
-                OperationAlias::Sleep => "Sleep",
-                OperationAlias::Cancel => "Cancel",
-                OperationAlias::End => "End",
-            }
-        )
+impl Operation {
+    // .send((operation_id, operations::Operation::Observe(source)))
+    pub fn new(id: Uuid, kind: OperationKind) -> Self {
+        Operation { kind, id }
     }
 }
 
 #[derive(Debug)]
-pub enum Operation {
+pub enum OperationKind {
     Observe(Source),
     Search {
         filters: Vec<SearchFilter>,
@@ -129,36 +106,36 @@ pub enum Operation {
     End,
 }
 
-impl std::fmt::Display for Operation {
+impl std::fmt::Display for OperationKind {
     // This trait requires `fmt` with this exact signature.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
             "{}",
             match self {
-                Operation::Observe(_) => "Observe",
-                Operation::Search { filters: _ } => "Search",
-                Operation::Extract { filters: _ } => "Extract",
-                Operation::Map {
+                OperationKind::Observe(_) => "Observe",
+                OperationKind::Search { filters: _ } => "Search",
+                OperationKind::Extract { filters: _ } => "Extract",
+                OperationKind::Map {
                     dataset_len: _,
                     range: _,
                 } => "Map",
-                Operation::Concat {
+                OperationKind::Concat {
                     files: _,
                     out_path: _,
                     append: _,
                     source_id: _,
                 } => "Concat",
-                Operation::Merge {
+                OperationKind::Merge {
                     files: _,
                     out_path: _,
                     append: _,
                     source_id: _,
                 } => "Merge",
-                Operation::Sleep(_) => "Sleep",
-                Operation::Cancel { target: _ } => "Cancel",
-                Operation::GetNearestPosition(_) => "GetNearestPosition",
-                Operation::End => "End",
+                OperationKind::Sleep(_) => "Sleep",
+                OperationKind::Cancel { target: _ } => "Cancel",
+                OperationKind::GetNearestPosition(_) => "GetNearestPosition",
+                OperationKind::End => "End",
             }
         )
     }
@@ -211,7 +188,7 @@ impl OperationAPI {
         }
     }
 
-    pub async fn finish<T>(&self, result: OperationResult<T>, alias: OperationAlias)
+    pub async fn finish<T>(&self, result: OperationResult<T>, alias: &str)
     where
         T: Serialize + std::fmt::Debug,
     {
@@ -274,7 +251,7 @@ impl OperationAPI {
             .state_api
             .add_operation(
                 self.id(),
-                operation.to_string(),
+                operation.kind.to_string(),
                 self.get_cancellation_token(),
                 self.get_done_token(),
             )
@@ -289,22 +266,23 @@ impl OperationAPI {
         let api = self.clone();
         let state = self.state_api.clone();
         spawn(async move {
-            match operation {
-                Operation::Observe(source) => {
+            let operation_str = &format!("{}", operation.kind);
+            match operation.kind {
+                OperationKind::Observe(source) => {
                     api.finish(
                         handlers::observe::handle(api.clone(), state, source).await,
-                        OperationAlias::Observe,
+                        operation_str,
                     )
                     .await;
                 }
-                Operation::Search { filters } => {
+                OperationKind::Search { filters } => {
                     api.finish(
                         handlers::search::handle(&api, filters, state).await,
-                        OperationAlias::Search,
+                        operation_str,
                     )
                     .await;
                 }
-                Operation::Extract { filters } => {
+                OperationKind::Extract { filters } => {
                     let session_file = match state.get_session_file().await {
                         Ok(session_file) => session_file,
                         Err(err) => {
@@ -314,24 +292,21 @@ impl OperationAPI {
                     };
                     api.finish(
                         handlers::extract::handle(&session_file, filters.iter()),
-                        OperationAlias::Extract,
+                        operation_str,
                     )
                     .await;
                 }
-                Operation::Map { dataset_len, range } => match state.get_search_map().await {
+                OperationKind::Map { dataset_len, range } => match state.get_search_map().await {
                     Ok(map) => {
-                        api.finish(
-                            Ok(Some(map.scaled(dataset_len, range))),
-                            OperationAlias::Map,
-                        )
-                        .await;
+                        api.finish(Ok(Some(map.scaled(dataset_len, range))), operation_str)
+                            .await;
                     }
                     Err(err) => {
-                        api.finish::<OperationResult<()>>(Err(err), OperationAlias::Map)
+                        api.finish::<OperationResult<()>>(Err(err), operation_str)
                             .await;
                     }
                 },
-                Operation::Concat {
+                OperationKind::Concat {
                     files,
                     out_path,
                     append,
@@ -340,11 +315,11 @@ impl OperationAPI {
                     api.finish(
                         handlers::concat::handle(&api, files, &out_path, append, source_id, state)
                             .await,
-                        OperationAlias::Concat,
+                        operation_str,
                     )
                     .await;
                 }
-                Operation::Merge {
+                OperationKind::Merge {
                     files,
                     out_path,
                     append,
@@ -353,21 +328,18 @@ impl OperationAPI {
                     api.finish(
                         handlers::merge::handle(&api, files, &out_path, append, source_id, state)
                             .await,
-                        OperationAlias::Merge,
+                        operation_str,
                     )
                     .await;
                 }
-                Operation::Sleep(ms) => {
-                    api.finish(
-                        handlers::sleep::handle(&api, ms).await,
-                        OperationAlias::Sleep,
-                    )
-                    .await;
+                OperationKind::Sleep(ms) => {
+                    api.finish(handlers::sleep::handle(&api, ms).await, operation_str)
+                        .await;
                 }
-                Operation::Cancel { target } => match state.cancel_operation(target).await {
+                OperationKind::Cancel { target } => match state.cancel_operation(target).await {
                     Ok(canceled) => {
                         if canceled {
-                            api.finish::<OperationResult<()>>(Ok(None), OperationAlias::Cancel)
+                            api.finish::<OperationResult<()>>(Ok(None), operation_str)
                                 .await;
                         } else {
                             api.finish::<OperationResult<()>>(
@@ -379,7 +351,7 @@ impl OperationAPI {
                                         target
                                     )),
                                 }),
-                                OperationAlias::Cancel,
+                                operation_str,
                             )
                             .await;
                         }
@@ -394,25 +366,19 @@ impl OperationAPI {
                                     target, err
                                 )),
                             }),
-                            OperationAlias::Cancel,
+                            operation_str,
                         )
                         .await;
                     }
                 },
-                Operation::GetNearestPosition(position) => match state.get_search_map().await {
+                OperationKind::GetNearestPosition(position) => match state.get_search_map().await {
                     Ok(map) => {
-                        api.finish(
-                            Ok(Some(map.nearest_to(position))),
-                            OperationAlias::GetNearestPosition,
-                        )
-                        .await;
+                        api.finish(Ok(Some(map.nearest_to(position))), operation_str)
+                            .await;
                     }
                     Err(err) => {
-                        api.finish::<OperationResult<()>>(
-                            Err(err),
-                            OperationAlias::GetNearestPosition,
-                        )
-                        .await;
+                        api.finish::<OperationResult<()>>(Err(err), operation_str)
+                            .await;
                     }
                 },
                 _ => {
@@ -435,17 +401,17 @@ pub fn uuid_from_str(operation_id: &str) -> Result<Uuid, ComputationError> {
 }
 
 pub async fn task(
-    mut rx_operations: UnboundedReceiver<(Uuid, Operation)>,
+    mut rx_operations: UnboundedReceiver<Operation>,
     state: SessionStateAPI,
     tx_callback_events: UnboundedSender<CallbackEvent>,
 ) -> Result<(), NativeError> {
     debug!("task is started");
-    while let Some((id, operation)) = rx_operations.recv().await {
-        if !matches!(operation, Operation::End) {
+    while let Some(operation) = rx_operations.recv().await {
+        if !matches!(operation.kind, OperationKind::End) {
             let operation_api = OperationAPI::new(
                 state.clone(),
                 tx_callback_events.clone(),
-                id,
+                operation.id,
                 CancellationToken::new(),
             );
             if let Err(err) = operation_api.process(operation).await {

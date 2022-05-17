@@ -21,19 +21,24 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-pub type OperationsChannel = (
-    UnboundedSender<(Uuid, Operation)>,
-    UnboundedReceiver<(Uuid, Operation)>,
-);
+pub type OperationsChannel = (UnboundedSender<Operation>, UnboundedReceiver<Operation>);
 
 pub struct Session {
     uuid: Uuid,
-    tx_operations: UnboundedSender<(Uuid, Operation)>,
+    tx_operations: UnboundedSender<Operation>,
     destroyed: CancellationToken,
     pub state: SessionStateAPI,
 }
 
 impl Session {
+    /// Starts a new chipmunk session
+    ///
+    /// use `uuid` as the handle to refer to this session
+    /// This method will spawn a new task that runs the operations loop and
+    /// the state loop.
+    /// The operations loop is the entry point to pass opartion requests from an outside thread.
+    /// The state loop is responsible for all state manipulations of the session.
+    ///
     pub async fn new(uuid: Uuid) -> (Self, UnboundedReceiver<CallbackEvent>) {
         let (tx_operations, rx_operations): OperationsChannel = unbounded_channel();
         let (state_api, rx_state_api) = SessionStateAPI::new();
@@ -95,13 +100,16 @@ impl Session {
 
     pub fn abort(&self, operation_id: Uuid, target: Uuid) -> Result<(), ComputationError> {
         self.tx_operations
-            .send((operation_id, operations::Operation::Cancel { target }))
+            .send(Operation::new(
+                operation_id,
+                operations::OperationKind::Cancel { target },
+            ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
     pub async fn stop(&self, operation_id: Uuid) -> Result<(), ComputationError> {
         self.tx_operations
-            .send((operation_id, operations::Operation::End))
+            .send(Operation::new(operation_id, operations::OperationKind::End))
             .map_err(|e| ComputationError::Communication(e.to_string()))?;
         self.destroyed.cancelled().await;
         Ok(())
@@ -121,9 +129,13 @@ impl Session {
             .map_err(ComputationError::NativeError)
     }
 
+    /// start observing a source (which can be a file or a stream)
     pub fn observe(&self, operation_id: Uuid, source: Source) -> Result<(), ComputationError> {
         self.tx_operations
-            .send((operation_id, operations::Operation::Observe(source)))
+            .send(Operation::new(
+                operation_id,
+                operations::OperationKind::Observe(source),
+            ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
@@ -133,7 +145,10 @@ impl Session {
         filters: Vec<SearchFilter>,
     ) -> Result<(), ComputationError> {
         self.tx_operations
-            .send((operation_id, operations::Operation::Search { filters }))
+            .send(Operation::new(
+                operation_id,
+                operations::OperationKind::Search { filters },
+            ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
@@ -150,7 +165,10 @@ impl Session {
         filters: Vec<SearchFilter>,
     ) -> Result<(), ComputationError> {
         self.tx_operations
-            .send((operation_id, operations::Operation::Extract { filters }))
+            .send(Operation::new(
+                operation_id,
+                operations::OperationKind::Extract { filters },
+            ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
@@ -161,9 +179,9 @@ impl Session {
         range: Option<(u64, u64)>,
     ) -> Result<(), ComputationError> {
         self.tx_operations
-            .send((
+            .send(Operation::new(
                 operation_id,
-                operations::Operation::Map { dataset_len, range },
+                operations::OperationKind::Map { dataset_len, range },
             ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
@@ -174,9 +192,9 @@ impl Session {
         position_in_stream: u64,
     ) -> Result<(), ComputationError> {
         self.tx_operations
-            .send((
+            .send(Operation::new(
                 operation_id,
-                operations::Operation::GetNearestPosition(position_in_stream),
+                operations::OperationKind::GetNearestPosition(position_in_stream),
             ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
@@ -184,7 +202,10 @@ impl Session {
     /// Used for debug goals
     pub fn sleep(&self, operation_id: Uuid, ms: u64) -> Result<(), ComputationError> {
         self.tx_operations
-            .send((operation_id, operations::Operation::Sleep(ms)))
+            .send(Operation::new(
+                operation_id,
+                operations::OperationKind::Sleep(ms),
+            ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 }
