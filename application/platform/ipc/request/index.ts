@@ -5,3 +5,4 @@ export * as Stream from './stream';
 export * as Dlt from './dlt';
 export * as Search from './search';
 export * as Connect from './connect';
+export * as Storage from './storage';

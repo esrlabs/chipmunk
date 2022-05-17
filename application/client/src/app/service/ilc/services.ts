@@ -9,6 +9,7 @@ import { session, Service as SessionService } from '@service/session';
 import { jobs, Service as JobsService } from '@service/jobs';
 import { state, Service as StateService } from '@service/state';
 import { bridge, Service as BridgeService } from '@service/bridge';
+import { recent, Service as RecentService } from '@service/recent';
 
 import { Instance as Logger } from '@platform/env/logger';
 
@@ -18,6 +19,7 @@ export class Services {
         state: StateService;
         jobs: JobsService;
         bridge: BridgeService;
+        recent: RecentService;
     };
     public readonly ui: {
         popup: UIPopupService;
@@ -40,6 +42,7 @@ export class Services {
             state,
             jobs,
             bridge,
+            recent,
         };
         this.ui = {
             popup,

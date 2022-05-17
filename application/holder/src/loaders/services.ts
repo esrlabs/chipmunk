@@ -9,3 +9,4 @@ import '@service/jobs';
 import '@service/electron';
 import '@service/sessions';
 import '@service/bridge';
+import '@service/storage';

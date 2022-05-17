@@ -30,4 +30,8 @@ export const services: { [key: string]: Inputs } = {
         name: 'Bridge',
         uuid: v4(),
     },
+    storage: {
+        name: 'Storage',
+        uuid: v4(),
+    },
 };

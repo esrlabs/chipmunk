@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ContainersModule } from '@elements/containers/module';
 import { AppDirectiviesModule } from '@directives/module';
 import { ElementsModule } from '@elements/module';
+import { RecentActionsModule } from '@elements/recent/module';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -53,6 +54,7 @@ const entryComponents = [
         MatDividerModule,
         JobsModule,
         SessionModule,
+        RecentActionsModule,
     ],
     declarations: [...entryComponents],
     exports: [...entryComponents, AppDirectiviesModule],
