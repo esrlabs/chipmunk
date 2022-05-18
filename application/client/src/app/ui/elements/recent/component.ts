@@ -36,5 +36,23 @@ export class RecentActions extends ChangesDetector implements AfterContentInit {
                 this.error = error.message;
             });
     }
+
+    public onDefaultAction(action: Action) {
+        action.apply();
+    }
+
+    public onAllActions(event: MouseEvent, action: Action) {
+        const items = [
+            ...action.getActions(),
+            {},
+            { caption: 'Remove recent', handler: () => {} },
+            { caption: 'Clear All', handler: () => {} },
+        ];
+        this.ilc().emitter.ui.contextmenu.open({
+            items,
+            x: event.x,
+            y: event.y,
+        });
+    }
 }
 export interface RecentActions extends IlcInterface {}

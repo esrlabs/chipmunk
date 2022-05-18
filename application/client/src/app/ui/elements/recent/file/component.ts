@@ -22,26 +22,6 @@ export class RecentFile implements AfterContentInit {
     public size!: string;
     public created!: string;
 
-    @HostListener('click', [])
-    onClick() {
-        if (this.text !== undefined) {
-            this.ilc()
-                .services.system.opener.file(this.text.filename)
-                .text()
-                .catch((err: Error) => {
-                    this.log().error(`Fail to open file; error: ${err.message}`);
-                });
-        } else if (this.dlt !== undefined) {
-            this.ilc()
-                .services.system.opener.file(this.dlt.filename)
-                .dlt(this.dlt.options)
-                .catch((err: Error) => {
-                    this.log().error(`Fail to open file; error: ${err.message}`);
-                });
-        } else if (this.pcap !== undefined) {
-        }
-    }
-
     public ngAfterContentInit(): void {
         const base =
             this.text !== undefined

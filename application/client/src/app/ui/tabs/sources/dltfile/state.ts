@@ -4,6 +4,8 @@ import {
     StatisticInfo,
     LevelDistribution,
     EMTIN,
+    LOG_LEVELS,
+    NUM_LOGS_LEVELS,
     IDLTFilters,
 } from '@platform/types/parsers/dlt';
 import { StatEntity, Section } from './structure/statentity';
@@ -12,6 +14,7 @@ import { Subject } from '@platform/env/subscription';
 import { Filter } from '@ui/env/entities/filter';
 import { Summary } from './summary';
 import { Timezone } from '@ui/elements/timezones/timezone';
+import { bridge } from '@service/bridge';
 
 export const ENTITIES = {
     app_ids: 'app_ids',
@@ -23,15 +26,6 @@ export const NAMES: { [key: string]: string } = {
     [ENTITIES.app_ids]: 'Applications',
     [ENTITIES.context_ids]: 'Contexts',
     [ENTITIES.ecu_ids]: 'ECUs',
-};
-
-const CLogLevel: { [key: string]: number } = {
-    [EMTIN.DLT_LOG_FATAL]: 1,
-    [EMTIN.DLT_LOG_ERROR]: 2,
-    [EMTIN.DLT_LOG_WARN]: 3,
-    [EMTIN.DLT_LOG_INFO]: 4,
-    [EMTIN.DLT_LOG_DEBUG]: 5,
-    [EMTIN.DLT_LOG_VERBOSE]: 6,
 };
 
 export class State {
@@ -61,21 +55,38 @@ export class State {
             (filters as { [key: string]: string[] })[entity.parent].push(entity.id);
         });
         return {
-            logLevel: CLogLevel[this.logLevel] === undefined ? 0 : CLogLevel[this.logLevel],
+            logLevel: LOG_LEVELS[this.logLevel] === undefined ? 0 : LOG_LEVELS[this.logLevel],
             filters,
             fibex: this.fibex.map((f) => f.filename),
+            tz: this.timezone === undefined ? undefined : this.timezone.name,
         };
     }
 
+    public fromOptions(options: IDLTOptions) {
+        this.logLevel = NUM_LOGS_LEVELS[options.logLevel] as EMTIN;
+        this.timezone = options.tz !== undefined ? Timezone.from(options.tz) : undefined;
+        if (options.fibex.length > 0) {
+            bridge
+                .files()
+                .getByPath(options.fibex)
+                .then((files: File[]) => {
+                    this.fibex = files;
+                })
+                .catch((err: Error) => {
+                    console.error(`Fail to get files data: ${err.message}`);
+                });
+        }
+    }
+
     public struct(): {
-        build(): void;
+        build(preselection?: IDLTFilters): void;
         remove(target: StatEntity): void;
         back(target: StatEntity): void;
         filter(): void;
         summary(): void;
     } {
         return {
-            build: (): void => {
+            build: (preselection?: IDLTFilters): void => {
                 if (this.stat === undefined) {
                     return;
                 }
@@ -87,7 +98,16 @@ export class State {
                         Array<[string, LevelDistribution]>
                     >(stat, key);
                     const entities: StatEntity[] = content.map((record) => {
-                        return new StatEntity(record[0], key, record[1]);
+                        const entity = new StatEntity(record[0], key, record[1]);
+                        if ((preselection as any)[key] !== undefined) {
+                            if (
+                                ((preselection as any)[key] as string[]).indexOf(record[0]) !== -1
+                            ) {
+                                entity.select();
+                                this.selected.push(entity);
+                            }
+                        }
+                        return entity;
                     });
                     structure.push({
                         key,

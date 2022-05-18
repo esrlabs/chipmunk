@@ -1,13 +1,10 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
-import { ilc, Emitter, Channel, Declarations, Services } from '@service/ilc';
-import { TabsService, ITabAPI, ITab } from '@elements/tabs/service';
+import { ilc, Emitter, Channel, Services } from '@service/ilc';
 import { Session } from './session/session';
-import { LockToken } from '@platform/env/lock.token';
 import { components } from '@env/decorators/initial';
-import { TargetFile } from '@platform/types/files';
 import { TabControls } from './session/tab';
-import { FileType, File } from '@platform/types/files';
+import { File } from '@platform/types/files';
 import { IDLTOptions } from '@platform/types/parsers/dlt';
 import { SourceDefinition } from '@platform/types/transport';
 
@@ -30,10 +27,16 @@ export class Service extends Implementation {
     }
 
     public stream(): {
-        dlt(options?: { source: SourceDefinition; options: IDLTOptions }): Promise<void>;
+        dlt(
+            options?: { source: SourceDefinition; options: IDLTOptions },
+            openPresetSettings?: boolean,
+        ): Promise<void>;
     } {
         return {
-            dlt: (options?: { source: SourceDefinition; options: IDLTOptions }): Promise<void> => {
+            dlt: (
+                options?: { source: SourceDefinition; options: IDLTOptions },
+                openPresetSettings?: boolean,
+            ): Promise<void> => {
                 const open = (opt: {
                     source: SourceDefinition;
                     options: IDLTOptions;
@@ -70,7 +73,7 @@ export class Service extends Implementation {
                     });
                 };
                 return new Promise((resolve, reject) => {
-                    if (options !== undefined) {
+                    if (options !== undefined && openPresetSettings !== true) {
                         open(options).then(resolve).catch(reject);
                     } else {
                         this._services.system.session.add().tab({
@@ -78,6 +81,7 @@ export class Service extends Implementation {
                             content: {
                                 factory: components.get('app-tabs-source-dltnet'),
                                 inputs: {
+                                    options: options,
                                     done: (options: {
                                         source: SourceDefinition;
                                         options: IDLTOptions;

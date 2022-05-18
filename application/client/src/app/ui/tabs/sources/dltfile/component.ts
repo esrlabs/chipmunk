@@ -31,6 +31,7 @@ import { Timezone } from '@ui/elements/timezones/timezone';
 export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, AfterContentInit {
     @Input() done!: (options: IDLTOptions | undefined) => void;
     @Input() file!: File;
+    @Input() options: IDLTOptions | undefined;
     @Input() tab!: TabControls;
 
     @HostListener('window:keydown', ['$event'])
@@ -69,6 +70,9 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
         } else {
             this.tab.storage().set(this.state);
         }
+        if (this.options !== undefined) {
+            this.state.fromOptions(this.options);
+        }
     }
 
     public ngAfterViewInit(): void {
@@ -82,7 +86,9 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
             .then((stat) => {
                 this.tab.setTitle(this.file.name);
                 this.state.stat = stat;
-                this.state.struct().build();
+                this.state
+                    .struct()
+                    .build(this.options !== undefined ? this.options.filters : undefined);
                 this.detectChanges();
             })
             .catch((err: Error) => {

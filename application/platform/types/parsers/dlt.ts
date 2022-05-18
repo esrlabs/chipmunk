@@ -143,3 +143,21 @@ export function getLogLevelName(level: number): string {
     const name = (DltLogLevelNames as any)[level];
     return name === undefined ? 'unknown' : name;
 }
+
+export const LOG_LEVELS: { [key: string]: number } = {
+    [EMTIN.DLT_LOG_FATAL]: 1,
+    [EMTIN.DLT_LOG_ERROR]: 2,
+    [EMTIN.DLT_LOG_WARN]: 3,
+    [EMTIN.DLT_LOG_INFO]: 4,
+    [EMTIN.DLT_LOG_DEBUG]: 5,
+    [EMTIN.DLT_LOG_VERBOSE]: 6,
+};
+
+export const NUM_LOGS_LEVELS: { [key: number]: string } = {
+    [1]: EMTIN.DLT_LOG_FATAL,
+    [2]: EMTIN.DLT_LOG_ERROR,
+    [3]: EMTIN.DLT_LOG_WARN,
+    [4]: EMTIN.DLT_LOG_INFO,
+    [5]: EMTIN.DLT_LOG_DEBUG,
+    [6]: EMTIN.DLT_LOG_VERBOSE,
+};

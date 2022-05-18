@@ -1,3 +1,3 @@
-<div *ngFor="let action of actions">
+<div *ngFor="let action of actions" (click)="onDefaultAction(action)" (contextmenu)="onAllActions($event, action)">
     <lib-containers-dynamic [component]="action.asComponent()"></lib-containers-dynamic>
 </div>

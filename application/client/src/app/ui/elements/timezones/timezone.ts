@@ -1,3 +1,4 @@
+import * as moment_timezone from 'moment-timezone';
 import * as regex from '@platform/env/regex';
 
 export class Timezone {
@@ -12,6 +13,21 @@ export class Timezone {
         this.name = name;
         this.utc = utc;
         this.offset = offset;
+    }
+
+    static from(tz: string): Timezone {
+        const now = new Date();
+        const utc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth());
+        const zone = moment_timezone.tz.zone(tz);
+        if (zone === null) {
+            throw new Error(`Fail to create timezone from "${tz}"`);
+        }
+        const offset = zone.utcOffset(utc);
+        return new Timezone(
+            tz,
+            `${offset === 0 ? '' : offset > 0 ? '-' : '+'}${Math.abs(offset) / 60}`,
+            offset,
+        );
     }
 
     public getNameAsHtml(): string {
@@ -43,9 +59,9 @@ export class Timezone {
     public filter(filter: string) {
         this._filter = filter.trim();
         this.hidden =
-        this._filter === ''
+            this._filter === ''
                 ? false
-                : (this.name.toLowerCase().indexOf(filter) === -1 &&
-                  this.utc.toLowerCase().indexOf(filter) === -1);
+                : this.name.toLowerCase().indexOf(filter) === -1 &&
+                  this.utc.toLowerCase().indexOf(filter) === -1;
     }
 }

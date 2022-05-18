@@ -28,16 +28,5 @@ export class RecentStream {
         dlt?: IDLTOptions;
     };
 
-    @HostListener('click', [])
-    onClick() {
-        if (this.parser.dlt !== undefined) {
-            this.ilc()
-                .services.system.opener.stream()
-                .dlt({ source: this.source, options: this.parser.dlt })
-                .catch((err: Error) => {
-                    this.log().error(`Fail to open stream; error: ${err.message}`);
-                });
-        }
-    }
 }
 export interface RecentStream extends IlcInterface {}
