@@ -15,3 +15,32 @@ export interface SourceDefinition {
     process?: Process.ProcessTransportSettings;
     serial?: Serial.SerialTransportSettings;
 }
+
+export class SourceDefinitionHolder {
+    public source: SourceDefinition;
+    constructor(source: SourceDefinition) {
+        this.source = source;
+        if (
+            this.source.udp === undefined &&
+            this.source.tcp === undefined &&
+            this.source.serial === undefined &&
+            this.source.process === undefined
+        ) {
+            throw new Error(`Type of source isn't defined.`);
+        }
+    }
+    public uuid(): string {
+        if (this.source.udp !== undefined) {
+            return `${this.source.udp.bind_addr}${this.source.udp.multicast
+                .map((m) => m.multiaddr)
+                .join('_')}`;
+        } else if (this.source.tcp !== undefined) {
+            return 'tcp_connection';
+        } else if (this.source.serial !== undefined) {
+            return 'serial_connection';
+        } else if (this.source.process !== undefined) {
+            return 'command_caller';
+        }
+        throw new Error(`Type of source isn't defined.`);
+    }
+}

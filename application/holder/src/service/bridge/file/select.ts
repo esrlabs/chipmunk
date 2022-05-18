@@ -1,13 +1,12 @@
 import { CancelablePromise } from '@platform/env/promise';
-import { Instance as Logger } from '@platform/env/logger';
+import { Instance as Logger, error } from '@platform/env/logger';
 import { electron } from '@service/electron';
 import { File, FileType } from '@platform/types/files';
-import { error } from '@platform/env/logger';
 import { getFileEntity } from '@env/fs';
 
 import * as Requests from '@platform/ipc/request';
 
-function getEntities(files: string[]): File[] | Error {
+export function getEntities(files: string[]): File[] | Error {
     if (files.length === 0) {
         return [];
     } else {

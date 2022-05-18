@@ -10,6 +10,7 @@ import * as Requests from '@platform/ipc/request/index';
 @SetupService(services['bridge'])
 export class Service extends Implementation {
     public files(): {
+        getByPath(filenames: string[]): Promise<File[]>;
         select: {
             any(): Promise<File[]>;
             dlt(): Promise<File[]>;
@@ -34,6 +35,20 @@ export class Service extends Implementation {
             });
         };
         return {
+            getByPath: (filenames: string[]): Promise<File[]> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.File.File.Response,
+                        new Requests.File.File.Request({
+                            filename: filenames,
+                        }),
+                    )
+                        .then((response) => {
+                            resolve(response.files);
+                        })
+                        .catch(reject);
+                });
+            },
             select: {
                 any: (): Promise<File[]> => {
                     return request(FileType.Any);

@@ -38,6 +38,10 @@ export const services: { [key: string]: Inputs } = {
         name: 'Recent',
         uuid: v4(),
     },
+    opener: {
+        name: 'Opener',
+        uuid: v4(),
+    },
 };
 
 export const ui: { [key: string]: Inputs } = {

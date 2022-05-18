@@ -2,15 +2,6 @@ import { Component, AfterContentInit, Input, HostListener } from '@angular/core'
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { bytesToStr, timestampToUTC } from '@env/str';
-import { Recent as RecentFileAction } from '@service/recent/implementations/file/file';
-import {
-    IDLTOptions,
-    StatisticInfo,
-    LevelDistribution,
-    EMTIN,
-    IDLTFilters,
-    getLogLevelName,
-} from '@platform/types/parsers/dlt';
 
 import * as Files from '@service/recent/implementations/file/index';
 
@@ -31,18 +22,25 @@ export class RecentFile implements AfterContentInit {
     public size!: string;
     public created!: string;
 
-    public dlt_filters: {
-        app_ids: string[];
-        context_ids: string[];
-        ecu_ids: string[];
-    } = {
-        app_ids: [],
-        context_ids: [],
-        ecu_ids: [],
-    };
-
     @HostListener('click', [])
-    onClick() {}
+    onClick() {
+        if (this.text !== undefined) {
+            this.ilc()
+                .services.system.opener.file(this.text.filename)
+                .text()
+                .catch((err: Error) => {
+                    this.log().error(`Fail to open file; error: ${err.message}`);
+                });
+        } else if (this.dlt !== undefined) {
+            this.ilc()
+                .services.system.opener.file(this.dlt.filename)
+                .dlt(this.dlt.options)
+                .catch((err: Error) => {
+                    this.log().error(`Fail to open file; error: ${err.message}`);
+                });
+        } else if (this.pcap !== undefined) {
+        }
+    }
 
     public ngAfterContentInit(): void {
         const base =
@@ -60,26 +58,6 @@ export class RecentFile implements AfterContentInit {
         this.path = base.path;
         this.size = bytesToStr(base.size);
         this.created = timestampToUTC(base.created);
-        if (this.dlt !== undefined) {
-            this.dlt_filters = {
-                app_ids:
-                    this.dlt.options.filters.app_ids === undefined
-                        ? []
-                        : this.dlt.options.filters.app_ids,
-                context_ids:
-                    this.dlt.options.filters.context_ids === undefined
-                        ? []
-                        : this.dlt.options.filters.context_ids,
-                ecu_ids:
-                    this.dlt.options.filters.ecu_ids === undefined
-                        ? []
-                        : this.dlt.options.filters.ecu_ids,
-            };
-        }
-    }
-
-    public getLogLevelName(level: number): string {
-        return getLogLevelName(level);
     }
 }
 export interface RecentFile extends IlcInterface {}
