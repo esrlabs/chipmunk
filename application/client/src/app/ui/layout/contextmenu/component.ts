@@ -85,7 +85,7 @@ export class LayoutContextMenu implements OnDestroy, AfterViewInit {
             if (this._top !== menu.y || this._left !== menu.x) {
                 this._cdRef.detectChanges();
             }
-        }, 0);
+        });
     }
 
     private _onWindowKeyDown(event: KeyboardEvent) {

@@ -27,6 +27,13 @@ export class State {
         this.switch(this.source);
     }
 
+    public from(source: SourceDefinition) {
+        if (source.udp !== undefined) {
+            this.udp = this._backup.udp;
+            this.udp.from(source.udp);
+        }
+    }
+
     public switch(source?: Source) {
         this._backup.udp = this.udp === undefined ? this._backup.udp : this.udp;
         this._backup.tcp = this.tcp === undefined ? this._backup.tcp : this.tcp;

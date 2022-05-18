@@ -8,8 +8,8 @@ import { SourceDefinition } from '@platform/types/transport';
 import * as obj from '@platform/env/obj';
 
 export class Recent extends RecentAction {
-    public source: SourceDefinition | undefined;
-    public options: IDLTOptions | undefined;
+    public source!: SourceDefinition;
+    public options!: IDLTOptions;
 
     public asComponent(): IComponentDesc {
         return {

@@ -34,6 +34,7 @@ export class TabSourceDltNet extends ChangesDetector implements AfterViewInit, A
     @Input() done!: (options: { source: SourceDefinition; options: IDLTOptions }) => void;
     @Input() file!: File;
     @Input() tab!: TabControls;
+    @Input() options: { source: SourceDefinition; options: IDLTOptions } | undefined;
 
     public size: (s: number) => string = bytesToStr;
     public datetime: (ts: number) => string = timestampToUTC;
@@ -59,6 +60,9 @@ export class TabSourceDltNet extends ChangesDetector implements AfterViewInit, A
             this.state = state;
         } else {
             this.tab.storage().set(this.state);
+        }
+        if (this.options !== undefined) {
+            this.state.fromOptions(this.options);
         }
     }
 

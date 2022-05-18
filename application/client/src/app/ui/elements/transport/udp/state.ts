@@ -14,6 +14,16 @@ export class State {
     public bindingPort: string = '';
     public multicasts: MulticastInfo[] = [];
 
+    public from(opt: UDPTransportSettings) {
+        const pair = opt.bind_addr.split(':');
+        if (pair.length !== 2) {
+            return;
+        }
+        this.bindingAddress = pair[0];
+        this.bindingPort = pair[1];
+        this.multicasts = opt.multicast;
+    }
+
     public addMulticast() {
         this.multicasts.push({
             multiaddr: MULTICAST_ADDR,

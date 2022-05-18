@@ -5,7 +5,6 @@ import {
     AfterViewInit,
     AfterContentInit,
     Input,
-    ChangeDetectionStrategy,
     Output,
     EventEmitter,
     OnDestroy,
@@ -13,11 +12,7 @@ import {
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
-import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { File } from '@platform/types/files';
-import { IDLTOptions, StatisticInfo } from '@platform/types/parsers/dlt';
-import { bytesToStr, timestampToUTC } from '@env/str';
 import { MatSort, Sort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { StatEntity, Section } from './statentity';

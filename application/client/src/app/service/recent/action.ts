@@ -8,6 +8,10 @@ import { unique } from '@platform/env/sequence';
 import { TargetFileOptions, File } from '@platform/types/files';
 import { IDLTOptions } from '@platform/types/parsers/dlt';
 import { SourceDefinition, SourceDefinitionHolder } from '@platform/types/transport';
+import { opener } from '@service/opener';
+import { bridge } from '@service/bridge';
+import { session } from '@service/session';
+import { components } from '@env/decorators/initial';
 
 import * as obj from '@platform/env/obj';
 
@@ -104,5 +108,142 @@ export class Action {
                 };
             },
         };
+    }
+
+    public getActions(): Array<{ caption?: string; handler?: () => void }> {
+        if (this.file !== undefined) {
+            if (this.file.text !== undefined) {
+                return [
+                    {
+                        caption: 'Reopen file',
+                        handler: this.apply.bind(this),
+                    },
+                ];
+            } else if (this.file.dlt !== undefined) {
+                const filename = this.file.dlt.filename;
+                const options = this.file.dlt.options;
+                return [
+                    {
+                        caption: 'Reopen file',
+                        handler: this.apply.bind(this),
+                    },
+                    {
+                        caption: 'Open another file',
+                        handler: () => {
+                            bridge
+                                .files()
+                                .select.dlt()
+                                .then((file: File[]) => {
+                                    session.add().tab({
+                                        name: `Opening DLT file`,
+                                        content: {
+                                            factory: components.get('app-tabs-source-dltfile'),
+                                            inputs: {
+                                                file,
+                                                options,
+                                                done: (opt: IDLTOptions) => {
+                                                    opener
+                                                        .file(file[0])
+                                                        .dlt(opt)
+                                                        .catch((err: Error) => {
+                                                            console.error(
+                                                                `Fail to open file; error: ${err.message}`,
+                                                            );
+                                                        });
+                                                },
+                                            },
+                                        },
+                                        active: true,
+                                    });
+                                })
+                                .catch((err: Error) => {
+                                    console.error(`Fail to select DLT file: ${err.message}`);
+                                });
+                        },
+                    },
+                    {
+                        caption: 'Open file preset',
+                        handler: () => {
+                            bridge
+                                .files()
+                                .getByPath([filename])
+                                .then((files: File[]) => {
+                                    session.add().tab({
+                                        name: `Opening DLT file`,
+                                        content: {
+                                            factory: components.get('app-tabs-source-dltfile'),
+                                            inputs: {
+                                                file: files[0],
+                                                options,
+                                                done: (opt: IDLTOptions) => {
+                                                    opener
+                                                        .file(files[0])
+                                                        .dlt(opt)
+                                                        .catch((err: Error) => {
+                                                            console.error(
+                                                                `Fail to open file; error: ${err.message}`,
+                                                            );
+                                                        });
+                                                },
+                                            },
+                                        },
+                                        active: true,
+                                    });
+                                })
+                                .catch((err: Error) => {
+                                    console.error(`Fail to select DLT file: ${err.message}`);
+                                });
+                        },
+                    },
+                ];
+            }
+        } else if (this.dlt_stream !== undefined) {
+            const opt = this.dlt_stream;
+            return [
+                {
+                    caption: 'Reconnect',
+                    handler: this.apply.bind(this),
+                },
+                {
+                    caption: 'Open connection preset',
+                    handler: () => {
+                        opener
+                            .stream()
+                            .dlt(opt, true)
+                            .catch((err: Error) => {
+                                console.error(`Fail to open stream; error: ${err.message}`);
+                            });
+                    },
+                },
+            ];
+        }
+        return [];
+    }
+
+    public apply() {
+        if (this.file !== undefined) {
+            if (this.file.text !== undefined) {
+                opener
+                    .file(this.file.text.filename)
+                    .text()
+                    .catch((err: Error) => {
+                        console.error(`Fail to open file; error: ${err.message}`);
+                    });
+            } else if (this.file.dlt !== undefined) {
+                opener
+                    .file(this.file.dlt.filename)
+                    .dlt(this.file.dlt.options)
+                    .catch((err: Error) => {
+                        console.error(`Fail to open file; error: ${err.message}`);
+                    });
+            }
+        } else if (this.dlt_stream !== undefined) {
+            opener
+                .stream()
+                .dlt({ source: this.dlt_stream.source, options: this.dlt_stream.options })
+                .catch((err: Error) => {
+                    console.error(`Fail to open stream; error: ${err.message}`);
+                });
+        }
     }
 }
