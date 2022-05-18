@@ -10,6 +10,8 @@ import { bridge } from '@service/bridge';
 import { Action } from './recent/action';
 import { error } from '@platform/env/logger';
 import { TargetFileOptions, File } from '@platform/types/files';
+import { SourceDefinition } from '@platform/types/transport';
+import { IDLTOptions } from '@platform/types/parsers/dlt';
 
 const STORAGE_KEY = 'user_recent_actions';
 
@@ -57,6 +59,9 @@ export class Service extends Implementation {
 
     public add(): {
         file(file: File, options: TargetFileOptions): Promise<void>;
+        stream(source: SourceDefinition): {
+            dlt(options: IDLTOptions): Promise<void>;
+        };
     } {
         return {
             file: (file: File, options: TargetFileOptions): Promise<void> => {
@@ -66,6 +71,18 @@ export class Service extends Implementation {
                 } catch (err) {
                     return Promise.reject(new Error(error(err)));
                 }
+            },
+            stream: (source: SourceDefinition) => {
+                return {
+                    dlt: (options: IDLTOptions): Promise<void> => {
+                        try {
+                            const action = new Action().from().stream(source).dlt(options);
+                            return this.update([action]);
+                        } catch (err) {
+                            return Promise.reject(new Error(error(err)));
+                        }
+                    },
+                };
             },
         };
     }

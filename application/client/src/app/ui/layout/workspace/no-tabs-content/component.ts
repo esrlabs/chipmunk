@@ -19,41 +19,10 @@ export class LayoutWorkspaceNoContent {
         switch (target) {
             case FileType.Dlt:
                 this.ilc()
-                    .services.system.session.add()
-                    .tab({
-                        name: `Connecting to DLT Deamon`,
-                        content: {
-                            factory: components.get('app-tabs-source-dltnet'),
-                            inputs: {
-                                done: (options: {
-                                    source: SourceDefinition;
-                                    options: IDLTOptions;
-                                }) => {
-                                    this.ilc()
-                                        .services.system.session.add()
-                                        .empty(getRenderFor().dlt())
-                                        .then((session) => {
-                                            session
-                                                .connect(options.source)
-                                                .dlt(options.options)
-                                                .then(() => {
-                                                    // console.log(`Connected!`);
-                                                })
-                                                .catch((err: Error) => {
-                                                    this.log().error(
-                                                        `Fail to connect: ${err.message}`,
-                                                    );
-                                                });
-                                        })
-                                        .catch((err: Error) => {
-                                            this.log().error(
-                                                `Fail to create session: ${err.message}`,
-                                            );
-                                        });
-                                },
-                            },
-                        },
-                        active: true,
+                    .services.system.opener.stream()
+                    .dlt()
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to open DLT stream; error: ${err.message}`);
                     });
                 break;
             default:
@@ -86,72 +55,22 @@ export class LayoutWorkspaceNoContent {
                         case FileType.Any:
                         case FileType.Text:
                             this.ilc()
-                                .services.system.session.add()
-                                .file(
-                                    {
-                                        filename: file.filename,
-                                        name: file.name,
-                                        type: file.type,
-                                        options: {},
-                                    },
-                                    getRenderFor().text(),
-                                )
-                                .then(() => {
-                                    this.ilc()
-                                        .services.system.recent.add()
-                                        .file(file, {})
-                                        .catch((err: Error) => {
-                                            this.log().error(
-                                                `Fail to add recent action; error: ${err.message}`,
-                                            );
-                                        });
-                                })
+                                .services.system.opener.file(file)
+                                .text()
                                 .catch((err: Error) => {
-                                    this.log().error(`Fail to create session: ${err.message}`);
+                                    this.log().error(
+                                        `Fail to open text file; error: ${err.message}`,
+                                    );
                                 });
                             break;
                         case FileType.Dlt:
                             this.ilc()
-                                .services.system.session.add()
-                                .tab({
-                                    name: `Opening DLT file`,
-                                    content: {
-                                        factory: components.get('app-tabs-source-dltfile'),
-                                        inputs: {
-                                            file,
-                                            done: (options: any) => {
-                                                this.ilc()
-                                                    .services.system.session.add()
-                                                    .file(
-                                                        {
-                                                            filename: file.filename,
-                                                            name: file.name,
-                                                            type: file.type,
-                                                            options: {
-                                                                dlt: options,
-                                                            },
-                                                        },
-                                                        getRenderFor().dlt(),
-                                                    )
-                                                    .then(() => {
-                                                        this.ilc()
-                                                            .services.system.recent.add()
-                                                            .file(file, { dlt: options })
-                                                            .catch((err: Error) => {
-                                                                this.log().error(
-                                                                    `Fail to add recent action; error: ${err.message}`,
-                                                                );
-                                                            });
-                                                    })
-                                                    .catch((err: Error) => {
-                                                        this.log().error(
-                                                            `Fail to create session: ${err.message}`,
-                                                        );
-                                                    });
-                                            },
-                                        },
-                                    },
-                                    active: true,
+                                .services.system.opener.file(file)
+                                .dlt()
+                                .catch((err: Error) => {
+                                    this.log().error(
+                                        `Fail to open dlt file; error: ${err.message}`,
+                                    );
                                 });
                             break;
                     }

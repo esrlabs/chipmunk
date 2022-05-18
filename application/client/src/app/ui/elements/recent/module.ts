@@ -1,14 +1,32 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ContainersModule } from '@ui/elements/containers/module';
-import { RecentFile } from './file/component';
-import { RecentActions } from './component';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 
+import { RecentFile } from './file/component';
+import { RecentFileBase } from './file/base/component';
+import { RecentFileDlt } from './file/dlt/component';
+import { RecentActions } from './component';
+import { RecentStream } from './stream/component';
+import { DLTStream } from './stream/parsers/dlt/component';
+import { SourceUdp } from './stream/sources/udp/component';
+
+const components = [
+    RecentStream,
+    DLTStream,
+    SourceUdp,
+    RecentFile,
+    RecentActions,
+    RecentFileDlt,
+    RecentFileBase,
+];
 @NgModule({
-    entryComponents: [RecentFile, RecentActions],
-    imports: [CommonModule, ContainersModule],
-    declarations: [RecentFile, RecentActions],
-    exports: [RecentFile, RecentActions],
+    entryComponents: [...components],
+    imports: [CommonModule, ContainersModule, MatButtonModule, MatIconModule, MatMenuModule],
+    declarations: [...components],
+    exports: [...components],
 })
 export class RecentActionsModule {
     constructor() {}
