@@ -146,17 +146,20 @@ export class Action {
                             bridge
                                 .files()
                                 .select.dlt()
-                                .then((file: File[]) => {
+                                .then((files: File[]) => {
+                                    if (files.length !== 1) {
+                                        return;
+                                    }
                                     session.add().tab({
                                         name: `Opening DLT file`,
                                         content: {
                                             factory: components.get('app-tabs-source-dltfile'),
                                             inputs: {
-                                                file,
+                                                file: files[0],
                                                 options,
                                                 done: (opt: IDLTOptions) => {
                                                     opener
-                                                        .file(file[0])
+                                                        .file(files[0])
                                                         .dlt(opt)
                                                         .catch((err: Error) => {
                                                             console.error(
@@ -181,6 +184,9 @@ export class Action {
                                 .files()
                                 .getByPath([filename])
                                 .then((files: File[]) => {
+                                    if (files.length !== 1) {
+                                        return;
+                                    }
                                     session.add().tab({
                                         name: `Opening DLT file`,
                                         content: {
