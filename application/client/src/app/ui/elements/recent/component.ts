@@ -3,38 +3,54 @@ import {
     AfterContentInit,
     ChangeDetectionStrategy,
     ChangeDetectorRef,
+    HostListener,
+    OnDestroy,
+    ViewEncapsulation,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { Action } from '@service/recent/action';
 import { ChangesDetector } from '@ui/env/extentions/changes';
+import { State } from './state';
+import { Subscriber } from '@platform/env/subscription';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
     selector: 'app-recent-actions',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
+    encapsulation: ViewEncapsulation.None,
 })
 @Initial()
 @Ilc()
-export class RecentActions extends ChangesDetector implements AfterContentInit {
-    public actions!: Action[];
-    public error?: string;
+export class RecentActions extends ChangesDetector implements AfterContentInit, OnDestroy {
+    public readonly state: State = new State();
+    private readonly _subscriber: Subscriber = new Subscriber();
 
-    constructor(cdRef: ChangeDetectorRef) {
+    @HostListener('window:keydown', ['$event'])
+    handleKeyDown(event: KeyboardEvent) {
+        if (this.state.filter.keyboard(event)) {
+            this.state.filtering();
+            this.detectChanges();
+        }
+    }
+
+    constructor(cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
         super(cdRef);
+        this._subscriber.register(
+            this.state.update.subscribe(() => {
+                this.markChangesForCheck();
+            }),
+        );
+    }
+
+    public ngOnDestroy(): void {
+        this._subscriber.unsubscribe();
     }
 
     public ngAfterContentInit(): void {
-        this.ilc()
-            .services.system.recent.get()
-            .then((actions: Action[]) => {
-                this.actions = actions;
-                this.markChangesForCheck();
-            })
-            .catch((error: Error) => {
-                this.error = error.message;
-            });
+        this.markChangesForCheck();
     }
 
     public onDefaultAction(action: Action) {
@@ -53,6 +69,10 @@ export class RecentActions extends ChangesDetector implements AfterContentInit {
             x: event.x,
             y: event.y,
         });
+    }
+
+    public safeHtml(html: string): SafeHtml {
+        return this._sanitizer.bypassSecurityTrustHtml(html);
     }
 }
 export interface RecentActions extends IlcInterface {}

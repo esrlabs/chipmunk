@@ -21,6 +21,19 @@ export class Action {
 
     public uuid: string = unique();
 
+    public description(): {
+        major: string;
+        minor: string;
+    } {
+        if (this.file !== undefined) {
+            return this.file.description();
+        } else if (this.dlt_stream !== undefined) {
+            return this.dlt_stream.description();
+        } else {
+            throw new Error(`Unknonw type of action.`);
+        }
+    }
+
     public asComponent(): IComponentDesc {
         if (this.file !== undefined) {
             return this.file.asComponent();
