@@ -22,12 +22,23 @@ export class Recent extends RecentAction {
         };
     }
     public description(): {
-        short: string;
-        full: string;
+        major: string;
+        minor: string;
     } {
+        const base =
+            this.text !== undefined
+                ? this.text
+                : this.dlt !== undefined
+                ? this.dlt
+                : this.pcap !== undefined
+                ? this.pcap
+                : undefined;
+        if (base === undefined) {
+            throw new Error(`No file data provided`);
+        }
         return {
-            short: '',
-            full: '',
+            major: base.name,
+            minor: base.path,
         };
     }
     public asObj(): { [key: string]: unknown } {

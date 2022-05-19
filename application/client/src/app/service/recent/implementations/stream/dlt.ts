@@ -23,12 +23,28 @@ export class Recent extends RecentAction {
         };
     }
     public description(): {
-        short: string;
-        full: string;
+        major: string;
+        minor: string;
     } {
+        if (this.source.udp !== undefined) {
+            return {
+                major: `DLT on UPD: ${this.source.udp.bind_addr}`,
+                minor:
+                    this.source.udp.multicast.length === 0
+                        ? ''
+                        : `multicast: ${this.source.udp.multicast
+                              .map(
+                                  (m) =>
+                                      `${m.multiaddr}${
+                                          m.interface !== undefined ? `(${m.interface})` : ''
+                                      }`,
+                              )
+                              .join(', ')}`,
+            };
+        }
         return {
-            short: '',
-            full: '',
+            major: '---- not implemented ----',
+            minor: '---- not implemented ----',
         };
     }
     public asObj(): { [key: string]: unknown } {

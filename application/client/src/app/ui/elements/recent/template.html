@@ -1,3 +1,8 @@
-<div *ngFor="let action of actions" (click)="onDefaultAction(action)" (contextmenu)="onAllActions($event, action)">
-    <lib-containers-dynamic [component]="action.asComponent()"></lib-containers-dynamic>
+<div class="action" *ngFor="let action of state.getFilteredActions()" (click)="onDefaultAction(action.action)" (contextmenu)="onAllActions($event, action.action)">
+    <p class="t-medium nowrap description">
+        <span class="major" [innerHTML]="safeHtml(action.description().major)"></span>
+        <span class="color-scheme-2 minor" [innerHTML]="safeHtml(action.description().minor)"></span>
+    </p>
+    <lib-containers-dynamic [component]="action.action.asComponent()"></lib-containers-dynamic>
 </div>
+<div class="filter t-medium" *ngIf="!state.filter.isEmpty()">{{state.filter.value()}}</div>

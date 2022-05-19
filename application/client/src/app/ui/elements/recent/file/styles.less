@@ -6,22 +6,6 @@
     display: block;
     width: 100%;
     padding: 6px 0;
-    border-bottom: thin solid @scheme-color-4;
-    &::before {
-        position: absolute;
-        display: block;
-        width: ~"calc(100% + 30px)";
-        content: '';
-        top:0;
-        left: -15px;
-        height: 100%;
-    }
-    &:hover {
-        background: @scheme-color-hover;
-        &::before {
-            background: @scheme-color-hover;
-        }
-    }
     & div.section {
         position: relative;
     }
