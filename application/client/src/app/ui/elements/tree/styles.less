@@ -1,0 +1,42 @@
+@import '../../styles/variables.less';
+
+:host{
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    & mat-tree-node {
+        position: relative;
+        min-height: 24px;
+        &:hover {
+            background: @scheme-color-hover;
+            &::before {
+                background: @scheme-color-hover;
+            }
+        }
+        &::before {
+            position: absolute;
+            display: block;
+            width: ~"calc(100% + 30px)";
+            content: '';
+            top:0;
+            left: -15px;
+            height: 100%;
+        }
+        & button {
+            line-height: 24px;
+            width: 24px;
+            height: 24px;
+        }
+        & mat-icon {
+            height: 18px;
+            width: 18px;
+            line-height: 18px;
+            font-size: 18px;
+        }
+        & span.name {
+            position: relative;
+            white-space: nowrap;
+        }
+    }
+}

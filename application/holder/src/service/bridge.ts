@@ -62,6 +62,15 @@ export class Service extends Implementation {
                     RequestHandlers.Dlt.Stat.handler,
                 ),
         );
+        this._subscriber.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Os.List.Request,
+                    RequestHandlers.Os.List.handler,
+                ),
+        );
         return Promise.resolve();
     }
 }
