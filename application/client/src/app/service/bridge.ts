@@ -1,6 +1,6 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
-import { File, FileType } from '@platform/types/files';
+import { File, FileType, Entity } from '@platform/types/files';
 import { StatisticInfo } from '@platform/types/parsers/dlt';
 import { Entry } from '@platform/types/storage/entry';
 
@@ -11,6 +11,7 @@ import * as Requests from '@platform/ipc/request/index';
 export class Service extends Implementation {
     public files(): {
         getByPath(filenames: string[]): Promise<File[]>;
+        ls(path: string): Promise<Entity[]>;
         select: {
             any(): Promise<File[]>;
             dlt(): Promise<File[]>;
@@ -45,6 +46,20 @@ export class Service extends Implementation {
                     )
                         .then((response) => {
                             resolve(response.files);
+                        })
+                        .catch(reject);
+                });
+            },
+            ls(path: string): Promise<Entity[]> {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Os.List.Response,
+                        new Requests.Os.List.Request({
+                            path,
+                        }),
+                    )
+                        .then((response) => {
+                            resolve(response.entities);
                         })
                         .catch(reject);
                 });
