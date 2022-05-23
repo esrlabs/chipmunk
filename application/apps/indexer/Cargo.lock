@@ -2005,6 +2005,7 @@ dependencies = [
 name = "session"
 version = "0.1.0"
 dependencies = [
+ "async-stream",
  "crossbeam-channel",
  "futures",
  "indexer_base",

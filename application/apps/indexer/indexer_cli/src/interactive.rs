@@ -5,7 +5,7 @@ use processor::grabber::LineRange;
 use rustyline::{error::ReadlineError, Editor};
 use session::session::Session;
 use sources::{
-    factory::{DltParserSettings, ParserType, Source},
+    factory::{DltParserSettings, ParserType, SourceType},
     producer::MessageProducer,
     socket::udp::UdpSource,
 };
@@ -23,6 +23,7 @@ pub(crate) async fn handle_interactive_session(matches: &clap::ArgMatches) {
     let cancel = CancellationToken::new();
 
     collect_user_input(tx).await;
+    let start = Instant::now();
     loop {
         select! {
             command = rx.recv() => {
@@ -69,7 +70,7 @@ pub(crate) async fn handle_interactive_session(matches: &clap::ArgMatches) {
                         let uuid = Uuid::new_v4();
                         let file_name = matches.value_of("input").expect("input must be present");
                         let file_path = PathBuf::from(file_name);
-                        let source = Source::File(file_path.clone(), ParserType::Text);
+                        let source = SourceType::File(file_path.clone(), ParserType::Text);
                         session.observe(uuid, source).expect("observe failed");
                     }
                     Some(Command::Dlt) => {
@@ -78,9 +79,10 @@ pub(crate) async fn handle_interactive_session(matches: &clap::ArgMatches) {
                         let file_name = matches.value_of("input").expect("input must be present");
                         println!("trying to read {:?}", file_name);
                         let file_path = PathBuf::from(file_name);
-                        let dlt_parser_settings = DltParserSettings { filter_config: None, fibex_file_paths: None, with_storage_header: false};
-                        let source = Source::File(file_path.clone(), ParserType::Dlt(dlt_parser_settings));
+                        let dlt_parser_settings = DltParserSettings { filter_config: None, fibex_file_paths: None, with_storage_header: true};
+                        let source = SourceType::File(file_path.clone(), ParserType::Dlt(dlt_parser_settings));
                         session.observe(uuid, source).expect("observe failed");
+                        println!("dlt session was destroyed");
                     }
                     Some(Command::Grab) => {
                         println!("grab command received");
@@ -106,7 +108,8 @@ pub(crate) async fn handle_interactive_session(matches: &clap::ArgMatches) {
             }
             feedback = receiver.recv() => {
                 if let Some(feedback) = feedback {
-                    println!("got session feedback: {:?}", feedback);
+                    let elapsed = start.elapsed().as_millis();
+                    println!("got session feedback after {} ms: {:?}", elapsed, feedback);
                 } else {
                     println!("no more feedback comming");
                     break;

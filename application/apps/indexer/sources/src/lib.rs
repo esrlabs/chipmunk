@@ -73,10 +73,20 @@ pub enum Error {
 pub(crate) const DEFAULT_READER_CAPACITY: usize = 10 * 1024 * 1024;
 pub(crate) const DEFAULT_MIN_BUFFER_SPACE: usize = 10 * 1024;
 
+/// A `ByteSource` provides a way to read data from some underlying data source. But it does
+/// not provide a simple read interface, rather it allows implementations to filter the data
+/// while reading it from it's underlying source.
+/// A good example is a network trace where complete ethernet frames are described. If we only
+/// want to extract the data part from certain frames, the `relaod` method will load only the relevant
+/// data into an internal buffer.
+/// This data can then be accessed via the `current_slice` method.
 #[async_trait]
 pub trait ByteSource {
+    /// Indicate that we have consumed a certain amount of data from our internal
+    /// buffer and that this part can be discarded
     fn consume(&mut self, offset: usize);
 
+    /// Provide access to the filtered data that is currently loaded
     fn current_slice(&self) -> &[u8];
 
     /// count of currently loaded bytes

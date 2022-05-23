@@ -4,11 +4,12 @@ use crate::{
     state::SessionStateAPI,
     tail,
 };
+use async_stream::stream;
 use indexer_base::progress::Severity;
 use log::trace;
 use parsers::{dlt, LogMessage, MessageStreamItem, Parser};
 use sources::{
-    factory::{ParserType, Source, Transport},
+    factory::{ParserType, SourceType, Transport},
     pcap,
     producer::MessageProducer,
     raw, socket, ByteSource,
@@ -24,7 +25,7 @@ use tokio::{
     sync::mpsc::{channel, Receiver, Sender},
     time::{timeout, Duration},
 };
-use tokio_stream::StreamExt;
+use tokio_stream::{Stream, StreamExt};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -34,10 +35,10 @@ const NOTIFY_IN_MS: u128 = 250;
 pub async fn handle(
     operation_api: OperationAPI,
     state: SessionStateAPI,
-    source: Source,
+    source: SourceType,
 ) -> OperationResult<()> {
     let (paths, result): (Vec<PathBuf>, OperationResult<()>) = match source {
-        Source::Stream(transport, parser_type) => {
+        SourceType::Stream(transport, parser_type) => {
             let (source, dest_path) = match transport {
                 Transport::UDP(config) => {
                     let source = socket::udp::UdpSource::new(&config.bind_addr, config.multicast)
@@ -116,7 +117,7 @@ pub async fn handle(
             )
             .await?
         }
-        Source::File(filename, parser_type) => {
+        SourceType::File(filename, parser_type) => {
             let dest_path = if let Some(dest_path) = filename.parent() {
                 dest_path.to_path_buf()
             } else {
@@ -243,6 +244,7 @@ pub async fn handle(
                     } else {
                         None
                     };
+                    println!("create dlt parser");
                     let dlt_parser = dlt::DltParser::new(
                         settings.filter_config.map(|f| f.into()),
                         fibex_metadata.as_ref(),
@@ -264,6 +266,7 @@ pub async fn handle(
                         Sender<Result<(), tail::Error>>,
                         Receiver<Result<(), tail::Error>>,
                     ) = channel(1);
+                    println!("start tailing");
                     let tail_shutdown = CancellationToken::new();
                     let (_, listening) = join!(
                         tail::track(filename.clone(), tx_tail, tail_shutdown.clone()),
@@ -299,6 +302,24 @@ enum Next<T: LogMessage> {
     Waiting,
 }
 
+// async fn timeout_or(stream: usize, cancel: CancellationToken) {
+//     select! {
+//         msg = async {
+//             match timeout(Duration::from_millis(NOTIFY_IN_MS as u64), stream.next()).await {
+//                 Ok(item) => {
+//                     if let Some((_, item)) = item {
+//                         Some(Next::Item(item))
+//                     } else {
+//                         Some(Next::Waiting)
+//                     }
+//                 },
+//                 Err(_) => Some(Next::Timeout),
+//             }
+//         } => msg,
+//         _ = cancel.cancelled() => None,
+//     }
+// }
+
 async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     dest_path: PathBuf,
     operation_api: OperationAPI,
@@ -306,11 +327,13 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     mut producer: MessageProducer<T, P, S>,
     mut rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> Result<(Vec<PathBuf>, OperationResult<()>), NativeError> {
+    use log::debug;
     let file_name = Uuid::new_v4();
     let session_file_path = dest_path.join(format!("{}.session", file_name));
     let binary_file_path = dest_path.join(format!("{}.bin", file_name));
-    let mut session_writer = BufWriter::new(File::create(session_file_path.clone()).map_err(
-        |e| NativeError {
+    debug!("create writers for {:?}", dest_path);
+    let mut session_writer =
+        BufWriter::new(File::create(&session_file_path).map_err(|e| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Io,
             message: Some(format!(
@@ -318,10 +341,9 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                 session_file_path.to_string_lossy(),
                 e
             )),
-        },
-    )?);
-    let mut binary_writer = BufWriter::new(File::create(binary_file_path.clone()).map_err(
-        |e| NativeError {
+        })?);
+    let mut binary_writer =
+        BufWriter::new(File::create(&binary_file_path).map_err(|e| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Io,
             message: Some(format!(
@@ -329,10 +351,7 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                 session_file_path.to_string_lossy(),
                 e
             )),
-        },
-    )?);
-    // let (tx_event, mut rx_event): (UnboundedSender<Event>, UnboundedReceiver<Event>) =
-    //     unbounded_channel();
+        })?);
     // TODO: producer should return relevate source_id. It should be used
     // instead an internal file alias (file_name.to_string())
     //
@@ -347,16 +366,13 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     let mut last_message = Instant::now();
     let mut has_updated_content = false;
     let cancel_on_tail = cancel.clone();
+    // let mut i = 0usize;
+    // while let Some(next) = timeout_or(stream, cancel_on_tail).await {
     while let Some(next) = select! {
         msg = async {
             match timeout(Duration::from_millis(NOTIFY_IN_MS as u64), stream.next()).await {
-                Ok(item) => {
-                    if let Some((_, item)) = item {
-                        Some(Next::Item(item))
-                    } else {
-                        Some(Next::Waiting)
-                    }
-                },
+                Ok(Some((_, item))) => Some(Next::Item(item)),
+                Ok(None) => Some(Next::Waiting),
                 Err(_) => Some(Next::Timeout),
             }
         } => msg,
@@ -364,6 +380,10 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     } {
         match next {
             Next::Item(item) => {
+                // if i % 10000 == 0 {
+                //     println!("observe: got item {}", i);
+                // }
+                // i += 1;
                 match item {
                     MessageStreamItem::Item(item) => {
                         session_writer
@@ -373,12 +393,12 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                                 kind: NativeErrorKind::Io,
                                 message: Some(e.to_string()),
                             })?;
-                        item.to_writer(&mut binary_writer)
-                            .map_err(|e| NativeError {
-                                severity: Severity::ERROR,
-                                kind: NativeErrorKind::Io,
-                                message: Some(e.to_string()),
-                            })?;
+                        // item.to_writer(&mut binary_writer)
+                        //     .map_err(|e| NativeError {
+                        //         severity: Severity::ERROR,
+                        //         kind: NativeErrorKind::Io,
+                        //         message: Some(e.to_string()),
+                        //     })?;
                         if !state.is_closing() && last_message.elapsed().as_millis() > NOTIFY_IN_MS
                         {
                             session_writer.flush().map_err(|e| NativeError {
@@ -418,12 +438,14 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                 }
             }
             Next::Timeout => {
+                println!("timeout");
                 if !state.is_closing() && has_updated_content {
                     state.update_session().await?;
                     has_updated_content = false;
                 }
             }
             Next::Waiting => {
+                println!("waiting");
                 if let Some(mut rx_tail) = rx_tail.take() {
                     select! {
                         msg = rx_tail.recv() => {
@@ -439,5 +461,9 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
             }
         }
     }
+    println!(
+        "listen done, session_file_path: {:?}, binary_file_path: {:?}",
+        session_file_path, binary_file_path
+    );
     Ok((vec![session_file_path, binary_file_path], Ok(None)))
 }

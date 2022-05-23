@@ -8,7 +8,7 @@ use log::{debug, error, warn};
 use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
 use processor::search::SearchFilter;
 use serde::Serialize;
-use sources::factory::Source;
+use sources::factory::SourceType;
 use std::{
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
@@ -67,7 +67,6 @@ pub struct Operation {
 }
 
 impl Operation {
-    // .send((operation_id, operations::Operation::Observe(source)))
     pub fn new(id: Uuid, kind: OperationKind) -> Self {
         Operation { kind, id }
     }
@@ -75,7 +74,7 @@ impl Operation {
 
 #[derive(Debug)]
 pub enum OperationKind {
-    Observe(Source),
+    Observe(SourceType),
     Search {
         filters: Vec<SearchFilter>,
     },
@@ -414,6 +413,7 @@ pub async fn task(
                 operation.id,
                 CancellationToken::new(),
             );
+            println!("starting operation {:?}", operation);
             if let Err(err) = operation_api.process(operation).await {
                 operation_api.emit(CallbackEvent::OperationError {
                     uuid: operation_api.id(),

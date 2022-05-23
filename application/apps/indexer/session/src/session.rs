@@ -12,7 +12,7 @@ use processor::{
     search::SearchFilter,
 };
 use serde::Serialize;
-use sources::factory::Source;
+use sources::factory::SourceType;
 use tokio::{
     join,
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
@@ -130,11 +130,15 @@ impl Session {
     }
 
     /// start observing a source (which can be a file or a stream)
-    pub fn observe(&self, operation_id: Uuid, source: Source) -> Result<(), ComputationError> {
+    pub fn observe(
+        &self,
+        operation_id: Uuid,
+        source_type: SourceType,
+    ) -> Result<(), ComputationError> {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
-                operations::OperationKind::Observe(source),
+                operations::OperationKind::Observe(source_type),
             ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
