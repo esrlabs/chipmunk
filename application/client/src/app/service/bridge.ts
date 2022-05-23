@@ -12,6 +12,7 @@ export class Service extends Implementation {
     public files(): {
         getByPath(filenames: string[]): Promise<File[]>;
         ls(path: string): Promise<Entity[]>;
+        stat(path: string): Promise<Entity>;
         select: {
             any(): Promise<File[]>;
             dlt(): Promise<File[]>;
@@ -60,6 +61,26 @@ export class Service extends Implementation {
                     )
                         .then((response) => {
                             resolve(response.entities);
+                        })
+                        .catch(reject);
+                });
+            },
+            stat(path: string): Promise<Entity> {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Os.AsFSEntity.Response,
+                        new Requests.Os.AsFSEntity.Request({
+                            path,
+                        }),
+                    )
+                        .then((response) => {
+                            if (response.entity !== undefined) {
+                                resolve(response.entity);
+                            } else if (response.error !== undefined) {
+                                reject(new Error(response.error));
+                            } else {
+                                reject(new Error(`Unknown error`));
+                            }
                         })
                         .catch(reject);
                 });

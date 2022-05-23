@@ -5,14 +5,8 @@ import {
     ChangeDetectorRef,
     ChangeDetectionStrategy,
 } from '@angular/core';
-import { TabsService } from '@elements/tabs/service';
-import { TabsOptions } from '@elements/tabs/options';
-import { IComponentDesc } from '@elements/containers/dynamic/component';
-import { AreaState } from '../state';
-import { Subscription, Subject, Observable } from 'rxjs';
-import { LayoutToolbarControls } from './controls/component';
 import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
-import { Session } from '@service/session';
+import { Base } from '@service/session';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 
 @Component({
@@ -23,7 +17,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 })
 @Ilc()
 export class LayoutToolbar extends ChangesDetector implements AfterViewInit {
-    @Input() public session!: Session;
+    @Input() public session!: Base;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);

@@ -3,11 +3,11 @@
         <div class="workspace" [ngStyle]="ngWorkspaceStyle()">
             <app-layout-workspace></app-layout-workspace>
         </div>
-        <div class="toolbar" *ngIf="session !== undefined" [ngStyle]="ngToolbarStyle()">
+        <div class="toolbar" *ngIf="session !== undefined && session.toolbar() !== undefined" [ngStyle]="ngToolbarStyle()">
             <app-layout-toolbar [session]="session"></app-layout-toolbar>
         </div>
         <div class="toolbar-resizer"
-            *ngIf="session !== undefined"
+            *ngIf="session !== undefined && session.toolbar() !== undefined"
             appResizer
             [min]="toolbar.min"
             [max]="toolbar.max"
@@ -16,13 +16,13 @@
             [corrector]="1"
             [ngStyle]="ngToolbarResizeStyle()"
             (changesize)="ngToolbarResize($event)"></div>
-        <div class="sidebar" *ngIf="session !== undefined" [ngStyle]="ngSidebarStyle()">
+        <div class="sidebar" *ngIf="session !== undefined && session.sidebar() !== undefined" [ngStyle]="ngSidebarStyle()">
             <div class="sidebar-caption">
                 <div class="injections">
                     <app-layout-sidebar-caption></app-layout-sidebar-caption>
                 </div>
             </div>
-            <app-layout-sidebar></app-layout-sidebar>
+            <app-layout-sidebar [session]="session"></app-layout-sidebar>
             <div class="sidebar-resizer"
                 appResizer
                 [min]="sidebar.min"

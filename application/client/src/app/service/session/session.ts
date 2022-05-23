@@ -10,6 +10,7 @@ import { getRenderFor } from '@schema/render/tools';
 import { components } from '@env/decorators/initial';
 import { SourceDefinition } from '@platform/types/transport';
 import { IDLTOptions } from '@platform/types/parsers/dlt';
+import { Base } from './base';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -17,19 +18,20 @@ import * as Events from '@platform/ipc/event';
 export { Stream };
 
 @SetupLogger()
-export class Session {
+export class Session extends Base {
     private _uuid!: string;
     private _tab!: ITabAPI;
     public readonly storage: Storage = new Storage();
     public readonly stream: Stream = new Stream();
     public readonly search: Search = new Search();
     public readonly render: Render<unknown>;
-    public readonly toolbar: TabsService = new TabsService();
-    public readonly sidebar: TabsService = new TabsService();
+    private readonly _toolbar: TabsService = new TabsService();
+    private readonly _sidebar: TabsService = new TabsService();
 
     constructor(render: Render<unknown>) {
+        super();
         this.render = render;
-        this.toolbar.add({
+        this._toolbar.add({
             name: 'Search',
             active: true,
             closable: false,
@@ -95,6 +97,18 @@ export class Session {
 
     public uuid(): string {
         return this._uuid;
+    }
+
+    public sidebar(): TabsService | undefined {
+        return this._sidebar;
+    }
+
+    public toolbar(): TabsService | undefined {
+        return this._toolbar;
+    }
+
+    public isBound(): boolean {
+        return true;
     }
 }
 export interface Session extends LoggerInterface {}
