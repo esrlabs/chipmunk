@@ -393,12 +393,12 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                                 kind: NativeErrorKind::Io,
                                 message: Some(e.to_string()),
                             })?;
-                        // item.to_writer(&mut binary_writer)
-                        //     .map_err(|e| NativeError {
-                        //         severity: Severity::ERROR,
-                        //         kind: NativeErrorKind::Io,
-                        //         message: Some(e.to_string()),
-                        //     })?;
+                        item.to_writer(&mut binary_writer)
+                            .map_err(|e| NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::Io,
+                                message: Some(e.to_string()),
+                            })?;
                         if !state.is_closing() && last_message.elapsed().as_millis() > NOTIFY_IN_MS
                         {
                             session_writer.flush().map_err(|e| NativeError {
