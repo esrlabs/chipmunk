@@ -48,7 +48,7 @@ export class Session extends ChangesDetector implements AfterViewInit {
     }
 
     private _update() {
-        const active = session.active();
+        const active = session.active().session();
         if (active === undefined) {
             this.state.drop();
         } else {

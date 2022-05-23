@@ -4,7 +4,6 @@ import { BehaviorSubject, merge, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Entity } from './entity';
 import { EntityType, Entity as IEntity } from '@platform/types/files';
-import { State } from './state';
 import { Services } from '@service/ilc/services';
 
 export class DynamicFlatNode {
@@ -18,29 +17,38 @@ export class DynamicFlatNode {
 
 export class DynamicDatabase {
     public readonly structure = new Map<string, Entity[]>();
-    public cmd: string;
+    public roots: string[];
     private readonly _services: Services;
 
-    constructor(cmd: string, services: Services) {
+    constructor(roots: string[], services: Services) {
         this._services = services;
-        this.cmd = cmd;
+        this.roots = roots;
     }
 
     public initialData(): DynamicFlatNode[] {
-        return [
-            new DynamicFlatNode(
-                new Entity(
-                    {
-                        name: this.cmd,
-                        type: EntityType.Directory,
-                        details: undefined,
-                    },
-                    '',
+        return this.roots.map(
+            (root: string) =>
+                new DynamicFlatNode(
+                    new Entity(
+                        {
+                            name: root,
+                            type: EntityType.Directory,
+                            details: undefined,
+                        },
+                        '',
+                    ),
+                    0,
+                    true,
                 ),
-                0,
-                true,
-            ),
-        ];
+        );
+    }
+
+    public overwrite(roots: string[]) {
+        this.roots = roots;
+    }
+
+    public addRoot(root: string) {
+        this.roots.push(root);
     }
 
     public getChildren(path: string): Promise<Entity[]> {
@@ -55,7 +63,6 @@ export class DynamicDatabase {
                 .then((entities: IEntity[]) => {
                     const sub = entities.map((entity) => new Entity(entity, path));
                     this.structure.set(path, sub);
-                    this.cmd = path;
                     resolve(sub);
                 })
                 .catch(reject);
@@ -71,7 +78,6 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     public readonly dataChange = new BehaviorSubject<DynamicFlatNode[]>([]);
     private readonly _treeControl: FlatTreeControl<DynamicFlatNode>;
     private readonly _database: DynamicDatabase;
-    private readonly _state: State;
 
     get data(): DynamicFlatNode[] {
         return this.dataChange.value;
@@ -81,14 +87,9 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
         this.dataChange.next(value);
     }
 
-    constructor(
-        treeControl: FlatTreeControl<DynamicFlatNode>,
-        database: DynamicDatabase,
-        state: State,
-    ) {
+    constructor(treeControl: FlatTreeControl<DynamicFlatNode>, database: DynamicDatabase) {
         this._treeControl = treeControl;
         this._database = database;
-        this._state = state;
     }
 
     public connect(collectionViewer: CollectionViewer): Observable<DynamicFlatNode[]> {

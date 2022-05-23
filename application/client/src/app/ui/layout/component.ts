@@ -1,16 +1,9 @@
-import {
-    Component,
-    ChangeDetectorRef,
-    ViewContainerRef,
-    ChangeDetectionStrategy,
-} from '@angular/core';
+import { Component, ChangeDetectorRef, ViewContainerRef, AfterViewInit } from '@angular/core';
 import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
 import { LimittedValue } from '@ui/env/entities/value.limited';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Direction } from '@directives/resizer';
-import { Session } from '@service/session';
-
-import * as ThemeParams from '@styles/sizes';
+import { Base } from '@service/session';
 
 const TOOLBAR_NORMAL_HEIGHT = 250;
 const SIDEBAR_NORMAL_WIDTH = 250;
@@ -19,78 +12,38 @@ const SIDEBAR_MIN_WIDTH = 50;
 const TOOLBAR_MAX_SIZE_RATE = 0.7;
 const SIDEBAR_MAX_SIZE_RATE = 0.7;
 
+function initialToolbarHeight(): LimittedValue {
+    return new LimittedValue('toolbar.height', TOOLBAR_MIN_HEIGHT, -1, TOOLBAR_NORMAL_HEIGHT);
+}
+
+function initialSidebarWidth(): LimittedValue {
+    return new LimittedValue('sidebar.width', SIDEBAR_MIN_WIDTH, -1, SIDEBAR_NORMAL_WIDTH);
+}
+
 @Component({
     selector: 'app-layout',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
 @Ilc()
-export class Layout extends ChangesDetector {
+export class Layout extends ChangesDetector implements AfterViewInit {
     public readonly Direction = Direction;
 
-    public toolbar: LimittedValue = new LimittedValue(
-        'toolbar.height',
-        TOOLBAR_MIN_HEIGHT,
-        -1,
-        TOOLBAR_NORMAL_HEIGHT,
-    );
-    public sidebar: LimittedValue = new LimittedValue(
-        'sidebar.width',
-        SIDEBAR_MIN_WIDTH,
-        -1,
-        SIDEBAR_NORMAL_WIDTH,
-    );
-    public session: Session | undefined;
+    public toolbar: LimittedValue = initialToolbarHeight();
+    public sidebar: LimittedValue = initialSidebarWidth();
+    public session: Base | undefined;
 
     private _layout: DOMRect | undefined;
     private _sessions: Map<string, { toolbar: number; sidebar: number }> = new Map();
 
     constructor(cdRef: ChangeDetectorRef, private _vcRef: ViewContainerRef) {
         super(cdRef);
-        // this._subscriptions.minimizedFunc = this.funcBarState
-        //     .getObservable()
-        //     .minimized.subscribe(this._onFuncMinimized.bind(this));
-        // this._subscriptions.updatedFunc = this.funcBarState
-        //     .getObservable()
-        //     .updated.subscribe(this._onFuncStateUpdated.bind(this));
-        // this._subscriptions.minimizedSecondary = this.secAreaState
-        //     .getObservable()
-        //     .minimized.subscribe(this._onSecAreaMinimized.bind(this));
-        // this._subscriptions.updatedSecondary = this.secAreaState
-        //     .getObservable()
-        //     .updated.subscribe(this._onSecAreaStateUpdated.bind(this));
-        // this._subscriptions.onSidebarMax =
-        //     LayoutStateService.getObservable().onSidebarMax.subscribe(
-        //         this._onSidebarServiceMax.bind(this),
-        //     );
-        // this._subscriptions.onSidebarMin =
-        //     LayoutStateService.getObservable().onSidebarMin.subscribe(
-        //         this._onSidebarServiceMin.bind(this),
-        //     );
-        // this._subscriptions.onToolbarMax =
-        //     LayoutStateService.getObservable().onToolbarMax.subscribe(
-        //         this._onToolbarServiceMax.bind(this),
-        //     );
-        // this._subscriptions.onToolbarMin =
-        //     LayoutStateService.getObservable().onToolbarMin.subscribe(
-        //         this._onToolbarServiceMin.bind(this),
-        //     );
-        // this._subscriptions.onToolbarToggle =
-        //     HotkeysService.getObservable().toolbarToggle.subscribe(
-        //         this._onToolbarToggle.bind(this),
-        //     );
-        // this._subscriptions.onSidebarToggle =
-        //     HotkeysService.getObservable().sidebarToggle.subscribe(
-        //         this._onSidebarToggle.bind(this),
-        //     );
         this.ilc().channel.session.change(this._onSessionChange.bind(this));
         this.ilc().channel.session.close(this._onSessionClosed.bind(this));
-        // LayoutStateService.setSideBarStateGetter(() => {
-        //     return this.funcBarState.minimized;
-        // });
-        // LayoutStateService.setToolBarStateGetter(() => {
-        //     return this.secAreaState.minimized;
-        // });
+    }
+
+    public ngAfterViewInit(): void {
+        this._onSessionChange();
     }
 
     public ngSidebarResize(width: number) {
@@ -108,17 +61,18 @@ export class Layout extends ChangesDetector {
     }
 
     public ngWorkspaceStyle(): { [key: string]: string } {
-        return this.session !== undefined
-            ? {
-                  right: `${this.sidebar.value}px`,
-                  left: `0px`,
-                  bottom: `${this.toolbar.value}px`,
-              }
-            : {
-                  right: '0px',
-                  left: '0px',
-                  bottom: '0px',
-              };
+        if (this.session === undefined) {
+            return {
+                right: '0px',
+                left: '0px',
+                bottom: '0px',
+            };
+        }
+        return {
+            right: `${this.session.sidebar() !== undefined ? this.sidebar.value : 0}px`,
+            left: `0px`,
+            bottom: `${this.session.toolbar() !== undefined ? this.toolbar.value : 0}px`,
+        };
     }
 
     public ngToolbarStyle(): { [key: string]: string } {
@@ -144,6 +98,9 @@ export class Layout extends ChangesDetector {
     }
 
     private _updateSizes(rect?: DOMRect): Layout {
+        if (this.session === undefined) {
+            return this;
+        }
         if (rect !== undefined) {
             this._layout = rect;
         }
@@ -156,25 +113,26 @@ export class Layout extends ChangesDetector {
     }
 
     private _onSessionChange() {
-        this.session = this.ilc().services.system.session.active();
-        this._updateSizes();
+        const session = this.ilc().services.system.session.active().base();
         if (this.session !== undefined) {
+            this._updateSizes();
             this._sessions.set(this.session.uuid(), {
                 toolbar: this.toolbar.value,
                 sidebar: this.sidebar.value,
             });
-            const heights = this._sessions.get(this.session.uuid());
-            if (heights === undefined) {
-                this._sessions.set(this.session.uuid(), {
-                    toolbar: this.toolbar.value,
-                    sidebar: this.sidebar.value,
-                });
-            } else {
+        }
+        if (session !== undefined) {
+            const heights = this._sessions.get(session.uuid());
+            if (heights !== undefined) {
                 this.toolbar.set(heights.toolbar);
                 this.sidebar.set(heights.sidebar);
-                this._updateSizes();
+            } else {
+                this.toolbar = initialToolbarHeight();
+                this.sidebar = initialSidebarWidth();
             }
         }
+        this.session = session;
+        this._updateSizes();
         this.detectChanges();
     }
 

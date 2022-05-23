@@ -71,6 +71,15 @@ export class Service extends Implementation {
                     RequestHandlers.Os.List.handler,
                 ),
         );
+        this._subscriber.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Os.AsFSEntity.Request,
+                    RequestHandlers.Os.AsFSEntity.handler,
+                ),
+        );
         return Promise.resolve();
     }
 }

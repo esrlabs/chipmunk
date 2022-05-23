@@ -1,0 +1,13 @@
+<div class="input">
+    <mat-form-field class="outline" appearance="outline">
+        <input
+            #favouriteinput
+            type="text"
+            placeholder="Add favourite place"
+            matInput
+            [formControl]="input.control"
+            [readonly]="input.readonly"
+            (keyup)="ngOnKeyUpInput($event)"
+        />
+    </mat-form-field>
+</div>
