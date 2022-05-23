@@ -8,6 +8,7 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [build-dependencies]
+# node-bindgen = { version = "5.0", features = ["build"] }
 node-bindgen = {git = "https://github.com/infinyon/node-bindgen.git", branch = "master", features = ["build"] }
 
 [dependencies]
@@ -20,12 +21,13 @@ log4rs = "1.0.0"
 merging = { path = "../../indexer/merging" }
 session = { path = "../../indexer/session" }
 node-bindgen = {git = "https://github.com/infinyon/node-bindgen.git", branch = "master", features = ["serde-json"] }
+# node-bindgen = { version = "5.0", features = ["serde-json"] }
 processor = { path = "../../indexer/processor" }
 sources = { path = "../../indexer/sources" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "1.0"
-tokio = { version = "1.5", features = ["full"] }
-tokio-util = "0.6"
-uuid = { version = "0.8.2", features = ["serde", "v4"] }
+tokio = { version = "1.18", features = ["full"] }
+tokio-util = "0.7"
+uuid = { version = "1.0", features = ["serde", "v4"] }
 dlt-core = "0.14"
