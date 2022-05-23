@@ -1071,14 +1071,16 @@ pub async fn main() -> Result<()> {
             };
             let file_path = path::PathBuf::from(file_name);
             let tag_string = tag.to_string();
-            let mut grabber =
-                match Grabber::lazy(TextFileSource::new(&out_path, &out_path.to_string_lossy())) {
-                    Ok(grabber) => Some(grabber),
-                    Err(err) => {
-                        report_error(format!("could not create grabber {:?}", err));
-                        std::process::exit(2)
-                    }
-                };
+            let mut grabber = match Grabber::lazy(TextFileSource::new(
+                &file_path,
+                &file_path.to_string_lossy(),
+            )) {
+                Ok(grabber) => Some(grabber),
+                Err(err) => {
+                    report_error(format!("could not create grabber {:?}", err));
+                    std::process::exit(2)
+                }
+            };
             let fibex_metadata: Option<FibexMetadata> =
                 if let Some(fibex_path) = matches.value_of("fibex") {
                     gather_fibex_data(FibexConfig {
