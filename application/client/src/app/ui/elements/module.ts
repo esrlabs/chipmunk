@@ -7,11 +7,10 @@ import { TabsModule } from '@elements/tabs/module';
 import { RecentActionsModule } from '@elements/recent/module';
 import { TreeModule } from '@elements/tree/module';
 
-import { ComColorSelectorComponent } from '@elements/color.selector/component';
 import { ComTooltipComponent } from '@elements/tooltip/component';
 
 @NgModule({
-    entryComponents: [ComColorSelectorComponent, ComTooltipComponent],
+    entryComponents: [ComTooltipComponent],
     imports: [
         CommonModule,
         ContainersModule,
@@ -20,7 +19,7 @@ import { ComTooltipComponent } from '@elements/tooltip/component';
         RecentActionsModule,
         TreeModule,
     ],
-    declarations: [ComColorSelectorComponent, ComTooltipComponent],
+    declarations: [ComTooltipComponent],
     exports: [ContainersModule, ScrollAreaModule, TabsModule, RecentActionsModule, TreeModule],
 })
 export class ElementsModule {

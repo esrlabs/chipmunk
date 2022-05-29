@@ -1,0 +1,16 @@
+<mat-form-field>
+    <mat-label>Set color for</mat-label>
+    <mat-select [(ngModel)]="_ng_colorType" (selectionChange)="_ng_onColorTypeChange($event)">
+        <mat-option *ngFor="let option of _ng_colorOptions" [value]="option.value">
+            {{option.title}}
+        </mat-option>
+    </mat-select>
+</mat-form-field>
+
+<span class="slitter"></span>
+
+<app-com-color-selector [colors]="_ng_colors" [color]="_ng_currentColor === undefined ? '' : _ng_currentColor" (change)="_ng_onColorChange($event)"></app-com-color-selector>
+
+<span class="slitter"></span>
+
+<p class="sample" [ngStyle]="{'background': _ng_background, 'color': _ng_color}">{{_ng_request}}</p>

@@ -5,6 +5,8 @@ import { ilc, Emitter, Channel, Declarations, Services } from '@service/ilc';
 import { cutUuid } from '@log/index';
 import { IFilter, ISearchResults } from '@platform/types/filter';
 import { IGrabbedElement } from '@platform/types/content';
+import { FiltersStore } from './search/filters/store';
+import { DisableStore } from './search/disabled/store';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -15,6 +17,10 @@ export class Search {
     private _len: number = 0;
     private _uuid!: string;
     private _emitter!: Emitter;
+    private _store!: {
+        filters: FiltersStore;
+        disabled: DisableStore;
+    };
 
     public init(uuid: string) {
         this.setLoggerName(`Search: ${cutUuid(uuid)}`);
@@ -32,6 +38,10 @@ export class Search {
                 });
             }),
         );
+        this._store = {
+            filters: new FiltersStore(uuid),
+            disabled: new DisableStore(uuid),
+        };
     }
 
     public destroy() {
@@ -102,6 +112,20 @@ export class Search {
                     this.log().error(`Fail to grab content: ${error.message}`);
                 });
         });
+    }
+
+    public store(): {
+        filters(): FiltersStore;
+        disabled(): DisableStore;
+    } {
+        return {
+            filters: (): FiltersStore => {
+                return this._store.filters;
+            },
+            disabled: (): DisableStore => {
+                return this._store.disabled;
+            },
+        };
     }
 }
 export interface Search extends LoggerInterface {}

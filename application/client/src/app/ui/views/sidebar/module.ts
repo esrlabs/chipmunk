@@ -1,11 +1,12 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FiltersModule } from './search/module';
 
 @NgModule({
     entryComponents: [],
-    imports: [CommonModule],
+    imports: [CommonModule, FiltersModule],
     declarations: [],
-    exports: [],
+    exports: [FiltersModule],
 })
 export class SidebarModule {
     constructor() {}
