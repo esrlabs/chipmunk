@@ -2,30 +2,27 @@ use crate::ByteSource;
 use crate::{Error as SourceError, ReloadInfo, SourceFilter};
 use async_trait::async_trait;
 use buf_redux::Buffer;
-use thiserror::Error;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio_serial::{SerialPortBuilderExt, SerialStream};
 
-#[derive(Error, Debug)]
-pub enum SerialError {
-    #[error("Serial setup problem: {0}")]
-    Setup(String),
-    #[error("Unrecoverable serial error: {0}")]
-    Unrecoverable(String),
-}
-
 pub struct SerialSource {
-    stream: SerialStream,
+    buf_reader: BufReader<SerialStream>,
+    string_buffer: String,
     buffer: Buffer,
     amount: usize,
 }
 
 impl SerialSource {
-    pub fn new(path: &str, baud_rate: u32) -> Result<Self, SerialError> {
+    pub fn new(path: &str, baud_rate: u32) -> Result<Self, SourceError> {
         Ok(Self {
-            stream: tokio_serial::new(path, baud_rate)
-                .open_native_async()
-                .map_err(|e| SerialError::Unrecoverable(format!("Could not open port: {}", e)))?,
+            buf_reader: BufReader::new(
+                tokio_serial::new(path, baud_rate)
+                    .open_native_async()
+                    .map_err(|e| {
+                        SourceError::Setup(format!("Failed to open serial port {}: {}", path, e))
+                    })?,
+            ),
+            string_buffer: String::new(),
             buffer: Buffer::new(),
             amount: 0,
         })
@@ -38,16 +35,14 @@ impl ByteSource for SerialSource {
         &mut self,
         _filter: Option<&SourceFilter>,
     ) -> Result<Option<ReloadInfo>, SourceError> {
-        let mut string_buffer = String::new();
-        let mut buf_reader = BufReader::new(&mut self.stream);
-
-        match buf_reader.read_line(&mut string_buffer).await {
+        self.string_buffer.clear();
+        match self.buf_reader.read_line(&mut self.string_buffer).await {
             Ok(amount) => {
                 self.amount = amount;
                 if amount == 0 {
                     return Ok(None);
                 }
-                self.buffer.copy_from_slice(string_buffer.as_bytes());
+                self.buffer.copy_from_slice(self.string_buffer.as_bytes());
             }
             Err(err) => {
                 return Err(SourceError::Unrecoverable(format!(
