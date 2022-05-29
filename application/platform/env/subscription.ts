@@ -14,6 +14,19 @@ export class Subject<T> {
     private _name: string = '';
     private _emitted: boolean = false;
 
+    public static unsubscribe(subjects: unknown): void {
+        if (typeof subjects !== 'object' || subjects === null) {
+            return;
+        }
+        Object.keys(subjects as object).forEach((key: string) => {
+            const target = (subjects as { [key: string]: Subject<unknown> })[key];
+            if (!(target instanceof Subject)) {
+                return;
+            }
+            target.destroy();
+        });
+    }
+
     public static validate(desc: IEventDesc, target: any): Error | undefined {
         const required: string[] = Object.keys(desc).filter((k) => k !== 'self');
         if (desc.self === undefined) {
@@ -156,6 +169,24 @@ export class Subject<T> {
     }
 }
 
+export class Subjects<T> {
+    private readonly _subjects: T & { [key: string]: Subject<any> };
+
+    constructor(subjects: T & { [key: string]: Subject<any> }) {
+        this._subjects = subjects;
+    }
+
+    public destroy(): void {
+        Object.keys(this._subjects).forEach((key: string) => {
+            this._subjects[key].destroy();
+        });
+    }
+
+    public get(): T {
+        return this._subjects;
+    }
+}
+
 export class Subscription {
     private _unsubsribe: THandler | undefined;
     private _event: string;
@@ -209,4 +240,17 @@ export class Subscriber {
             subscription.unsubscribe();
         });
     }
+}
+
+export function unsubscribeAllInHolder(subjects: unknown): void {
+    if (typeof subjects !== 'object' || subjects === null) {
+        return;
+    }
+    Object.keys(subjects as object).forEach((key: string) => {
+        const target = (subjects as { [key: string]: Subject<unknown> })[key];
+        if (!(target instanceof Subject)) {
+            return;
+        }
+        target.destroy();
+    });
 }

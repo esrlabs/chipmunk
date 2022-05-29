@@ -1,0 +1,34 @@
+@import '../../../styles/variables.less';
+
+:host {
+    position: absolute;
+    display: block;
+    padding: 0;
+    margin: 0;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    left: 0.5rem;
+    top: 0.5rem;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    outline: none;
+    & div.holder {
+        overflow-y: auto;
+        height: 100%;
+    }
+    & div.wrapper{
+        position: relative;
+        display: block;
+        margin-top: 8px;
+        &:first-child{
+            margin-top: 0;
+        }
+    }
+    & .controlls{
+        text-align: right;
+    }
+
+    & app-sidebar-app-searchmanager-bin {
+        pointer-events: none;
+    }
+}
