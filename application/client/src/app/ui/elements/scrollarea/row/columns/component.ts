@@ -1,11 +1,9 @@
 import {
     Component,
     Input,
-    OnDestroy,
     ChangeDetectorRef,
     AfterContentInit,
     HostBinding,
-    ChangeDetectionStrategy,
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Row } from '@schema/content/row';
@@ -21,14 +19,13 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
     templateUrl: './template.html',
 })
 @Ilc()
-export class Columns extends ChangesDetector implements AfterContentInit, OnDestroy {
+export class Columns extends ChangesDetector implements AfterContentInit {
     @Input() public row!: Row;
 
     public cells: Cell[] = [];
     public controller!: ColumnsController;
 
     private _sanitizer: DomSanitizer;
-    private _subscriber: Subscriber = new Subscriber();
 
     constructor(cdRef: ChangeDetectorRef, sanitizer: DomSanitizer) {
         super(cdRef);
@@ -41,21 +38,17 @@ export class Columns extends ChangesDetector implements AfterContentInit, OnDest
     // @HostBinding('style.background') background = '';
     // @HostBinding('style.color') color = '';
 
-    public ngOnDestroy(): void {
-        this._subscriber.unsubscribe();
-    }
-
     public ngAfterContentInit(): void {
         this.controller = this.row.session.render.getBoundEntity() as ColumnsController;
         this.cells = this.row.columns().map((s, i) => {
             return new Cell(this._sanitizer, this.controller, s, i);
         });
-        this._subscriber.register(
+        this.env().subscriber.register(
             this.controller.update.subscribe(() => {
                 this.markChangesForCheck();
             }),
         );
-        this._subscriber.register(
+        this.env().subscriber.register(
             this.row.change.subscribe(() => {
                 this.row.columns().map((s, i) => {
                     if (this.cells[i] === undefined) {

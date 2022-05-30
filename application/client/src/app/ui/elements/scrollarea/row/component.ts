@@ -5,14 +5,11 @@ import {
     AfterContentInit,
     AfterViewInit,
     HostListener,
-    OnDestroy,
     ChangeDetectionStrategy,
 } from '@angular/core';
 import { Row } from '@schema/content/row';
 import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Subscriber } from '@platform/env/subscription';
-import { unique } from '@platform/env/sequence';
 
 @Component({
     selector: 'app-scrollarea-row',
@@ -21,15 +18,10 @@ import { unique } from '@platform/env/sequence';
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Ilc()
-export class RowComponent
-    extends ChangesDetector
-    implements AfterContentInit, AfterViewInit, OnDestroy
-{
+export class RowComponent extends ChangesDetector implements AfterContentInit, AfterViewInit {
     @Input() public row!: Row;
 
     public render: number = 1;
-
-    private _subscriber: Subscriber = new Subscriber();
 
     @HostListener('mouseover', ['$event', '$event.target']) onMouseIn(
         _event: MouseEvent,
@@ -50,10 +42,6 @@ export class RowComponent
         super(cdRef);
     }
 
-    public ngOnDestroy(): void {
-        this._subscriber.unsubscribe();
-    }
-
     public ngAfterContentInit(): void {
         this.render = this.row.session.render.delimiter() === undefined ? 1 : 2;
         this.ilc().channel.ui.row.rank((event) => {
@@ -62,7 +50,7 @@ export class RowComponent
             }
             this.markChangesForCheck();
         });
-        this._subscriber.register(
+        this.env().subscriber.register(
             this.row.change.subscribe(() => {
                 this.markChangesForCheck();
             }),
