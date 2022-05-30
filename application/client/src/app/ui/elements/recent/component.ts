@@ -4,7 +4,6 @@ import {
     ChangeDetectionStrategy,
     ChangeDetectorRef,
     HostListener,
-    OnDestroy,
     ViewEncapsulation,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -24,9 +23,8 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 })
 @Initial()
 @Ilc()
-export class RecentActions extends ChangesDetector implements AfterContentInit, OnDestroy {
+export class RecentActions extends ChangesDetector implements AfterContentInit {
     public readonly state: State = new State();
-    private readonly _subscriber: Subscriber = new Subscriber();
 
     @HostListener('window:keydown', ['$event'])
     handleKeyDown(event: KeyboardEvent) {
@@ -38,15 +36,11 @@ export class RecentActions extends ChangesDetector implements AfterContentInit, 
 
     constructor(cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
         super(cdRef);
-        this._subscriber.register(
+        this.env().subscriber.register(
             this.state.update.subscribe(() => {
                 this.markChangesForCheck();
             }),
         );
-    }
-
-    public ngOnDestroy(): void {
-        this._subscriber.unsubscribe();
     }
 
     public ngAfterContentInit(): void {

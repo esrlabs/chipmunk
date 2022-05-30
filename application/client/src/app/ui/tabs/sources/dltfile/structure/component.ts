@@ -40,7 +40,7 @@ export const COLUMNS = {
 @Ilc()
 export class TabSourceDltFileStructure
     extends ChangesDetector
-    implements AfterContentInit, AfterViewInit, OnDestroy
+    implements AfterContentInit, AfterViewInit
 {
     columns: string[] = [
         COLUMNS.id,
@@ -61,19 +61,14 @@ export class TabSourceDltFileStructure
 
     public data!: MatTableDataSource<StatEntity>;
 
-    private _subscriber: Subscriber = new Subscriber();
 
     constructor(cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
         super(cdRef);
     }
 
-    public ngOnDestroy(): void {
-        this._subscriber.unsubscribe();
-    }
-
     public ngAfterContentInit(): void {
         this.data = new MatTableDataSource<StatEntity>(this.section.entities);
-        this._subscriber.register(
+        this.env().subscriber.register(
             this.section.update.subscribe(() => {
                 this.data.data = this.section.entities.filter((e) => !e.selected && !e.hidden);
                 this.table.renderRows();
