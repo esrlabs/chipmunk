@@ -7,10 +7,10 @@
     class="filters">
     <app-sidebar-filters-filter
         (contextmenu)="_ng_onContexMenu($event, entity)"
-        appSidebarSearchManagerItem
+        appSearchItem
         appMatDragDropResetFeature
         cdkDrag
         [provider]="provider"
         [entity]="entity"
-        *ngFor="let entity of _ng_entries;"></app-sidebar-filters-filter>
+        *ngFor="let entity of entries;"></app-sidebar-filters-filter>
 </div>

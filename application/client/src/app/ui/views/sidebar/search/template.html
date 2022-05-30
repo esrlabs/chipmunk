@@ -1,0 +1,54 @@
+<div class="holder" (mouseover)="_ng_onMouseOver()">
+    <!-- <app-sidebar-app-searchmanager-controls></app-sidebar-app-searchmanager-controls> -->
+    <div class="wrapper" *ngFor="let provider of providers">
+        <mat-expansion-panel
+            *ngIf="!provider.isEmpty() || provider.hasContentIfEmpty()"
+            [disabled]="true"
+            [hideToggle]="true"
+            [expanded]="true"
+            [listID]="provider.listID"
+            [draganddrop]="draganddrop"
+            appFiltersList
+            (click)="_ng_onPanelClick()"
+        >
+            <mat-expansion-panel-header>
+                <mat-panel-title>{{provider.getPanelName()}}</mat-panel-title>
+                <mat-panel-description>{{provider.getPanelDesc()}}</mat-panel-description>
+            </mat-expansion-panel-header>
+            <div *ngIf="!provider.isEmpty()">
+                <lib-containers-dynamic
+                    [detectChanges]="false"
+                    [component]="provider.getListComp()"
+                ></lib-containers-dynamic>
+            </div>
+            <lib-containers-dynamic
+                *ngIf="provider.isEmpty() && provider.hasContentIfEmpty()"
+                [detectChanges]="false"
+                [component]="provider.getContentIfEmpty()"
+            ></lib-containers-dynamic>
+        </mat-expansion-panel>
+    </div>
+  
+    <div class="wrapper" *ngIf="selected && selected.hasDetailsComp()">
+        <mat-expansion-panel
+            [disabled]="true"
+            [hideToggle]="true"
+            [expanded]="true"
+            (click)="_ng_onPanelClick()"
+        >
+            <mat-expansion-panel-header>
+                <mat-panel-title>{{selected.getDetailsPanelName()}}</mat-panel-title>
+                <mat-panel-description
+                    >{{selected.getDetailsPanelDesc()}}</mat-panel-description
+                >
+            </mat-expansion-panel-header>
+            <lib-containers-dynamic
+                [detectChanges]="false"
+                [component]="selected.getDetailsComp()"
+            ></lib-containers-dynamic>
+        </mat-expansion-panel>
+    </div>
+  </div>
+  
+  <!-- <app-sidebar-app-searchmanager-bin></app-sidebar-app-searchmanager-bin> -->
+  

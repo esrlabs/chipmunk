@@ -92,7 +92,7 @@ export abstract class Provider<T> {
         last: undefined,
     };
     private _keyboard: KeyboardListener | undefined;
-    private _guid: string = unique();
+    private _uuld: string = unique();
     private _providers: ProvidersGetter | undefined;
 
     constructor(session: Session, draganddrop: DragAndDropService, logger: Logger) {
@@ -107,7 +107,7 @@ export abstract class Provider<T> {
     }
 
     public getGuid(): string {
-        return this._guid;
+        return this._uuld;
     }
 
     public setKeyboardListener(listener: KeyboardListener) {
@@ -367,9 +367,25 @@ export abstract class Provider<T> {
 
     public abstract getDetailsPanelDesc(): string | undefined;
 
-    public abstract getListComp(): IComponentDesc;
+    public getListComp(): IComponentDesc {
+        throw new Error(`Provider ${this._uuld} doesn't have ListComp`);
+    }
 
-    public abstract getDetailsComp(): IComponentDesc | undefined;
+    public getDetailsComp(): IComponentDesc {
+        throw new Error(`Provider ${this._uuld} doesn't have DetailsComp`);
+    }
+
+    public getContentIfEmpty(): IComponentDesc {
+        throw new Error(`Provider ${this._uuld} doesn't have ContentIfEmpty`);
+    }
+
+    public hasDetailsComp(): boolean {
+        return false;
+    }
+
+    public hasContentIfEmpty(): boolean {
+        return false;
+    }
 
     public abstract search(entity: Entity<T>): void;
 
@@ -378,11 +394,6 @@ export abstract class Provider<T> {
     public abstract itemDragged(event: CdkDragDrop<EntityData<DragableRequest>>): void;
 
     public abstract get listID(): ListContent;
-
-    /**
-     * Should return undefined to hide panel in case of empty list
-     */
-    public abstract getContentIfEmpty(): IComponentDesc | undefined;
 
     public abstract getContextMenuItems(
         target: Entity<any>,

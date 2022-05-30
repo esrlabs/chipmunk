@@ -58,7 +58,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
         super.change();
     }
 
-    public getContentIfEmpty(): IComponentDesc {
+    public override getContentIfEmpty(): IComponentDesc {
         return {
             factory: FiltersPlaceholder,
             inputs: {
@@ -92,17 +92,18 @@ export class ProviderFilters extends Provider<FilterRequest> {
         return selection.extract().definition.filter.filter;
     }
 
-    public getListComp(): IComponentDesc {
+    public override getListComp(): IComponentDesc {
         return {
             factory: FiltersList,
             inputs: {
                 provider: this,
                 draganddrop: this.draganddrop,
+                session: this.session,
             },
         };
     }
 
-    public getDetailsComp(): IComponentDesc {
+    public override getDetailsComp(): IComponentDesc {
         return {
             factory: FilterDetails,
             inputs: {
@@ -110,6 +111,14 @@ export class ProviderFilters extends Provider<FilterRequest> {
                 draganddrop: this.draganddrop,
             },
         };
+    }
+
+    public override hasDetailsComp(): boolean {
+        return true;
+    }
+
+    public override hasContentIfEmpty(): boolean {
+        return true;
     }
 
     public getContextMenuItems(target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[] {

@@ -14,9 +14,8 @@ import { EntityData } from '../providers/definitions/entity.data';
 import { Subscriber } from '@platform/env/subscription';
 
 export class ProviderDisabled extends Provider<DisabledRequest> {
-    private _subs: { [key: string]: Subscription } = {};
-    private _entities: Map<string, Entity<DisabledRequest>> = new Map();
-    private _listID: ListContent = ListContent.disabledList;
+    private readonly _entities: Map<string, Entity<DisabledRequest>> = new Map();
+    private readonly _listID: ListContent = ListContent.disabledList;
 
     public init(): void {
         this.subscriber.register(
@@ -60,10 +59,6 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         super.change();
     }
 
-    public getContentIfEmpty(): undefined {
-        return undefined;
-    }
-
     public getPanelName(): string {
         return `Disabled`;
     }
@@ -81,18 +76,15 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         return undefined;
     }
 
-    public getListComp(): IComponentDesc {
+    public override getListComp(): IComponentDesc {
         return {
             factory: DisabledList,
             inputs: {
                 provider: this,
                 draganddrop: this.draganddrop,
+                session: this.session,
             },
         };
-    }
-
-    public getDetailsComp(): IComponentDesc | undefined {
-        return undefined;
     }
 
     public getContextMenuItems(target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[] {

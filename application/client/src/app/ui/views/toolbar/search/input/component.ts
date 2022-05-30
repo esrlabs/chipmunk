@@ -117,5 +117,12 @@ export class ViewSearchInput
                 }
             });
     }
+
+    public onSaveAsFilter(): void {
+        if (this.active === undefined) {
+            return;
+        }
+        this.session.search.store().filters().addFromFilter(this.active.filter);
+    }
 }
 export interface ViewSearchInput extends IlcInterface {}

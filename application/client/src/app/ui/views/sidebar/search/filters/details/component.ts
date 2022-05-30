@@ -35,16 +35,16 @@ export class FilterDetails extends ChangesDetector implements AfterContentInit {
 
     @Input() provider!: ProviderFilters;
 
-    public _ng_request: string | undefined;
-    public _ng_color: string | undefined;
-    public _ng_background: string | undefined;
-    public _ng_colorOptions: IColorOption[] = [
+    public request: string | undefined;
+    public color: string | undefined;
+    public background: string | undefined;
+    public colorOptions: IColorOption[] = [
         { title: 'Background', value: 'background' },
         { title: 'Foreground', value: 'color' },
     ];
-    public _ng_colorType: TColorType = 'background';
-    public _ng_currentColor: string | undefined;
-    public _ng_colors: string[] = [];
+    public colorType: TColorType = 'background';
+    public currentColor: string | undefined;
+    public colors: string[] = [];
 
     private _entity: Entity<FilterRequest> | undefined;
 
@@ -63,13 +63,13 @@ export class FilterDetails extends ChangesDetector implements AfterContentInit {
     }
 
     public _ng_onColorTypeChange(event: MatSelectChange) {
-        this._ng_colorType = event.value;
-        switch (this._ng_colorType) {
+        this.colorType = event.value;
+        switch (this.colorType) {
             case 'color':
-                this._ng_currentColor = this._ng_color;
+                this.currentColor = this.color;
                 break;
             case 'background':
-                this._ng_currentColor = this._ng_background;
+                this.currentColor = this.background;
                 break;
         }
         this._refSelect.close();
@@ -81,54 +81,54 @@ export class FilterDetails extends ChangesDetector implements AfterContentInit {
         if (this._entity === undefined) {
             return;
         }
-        switch (this._ng_colorType) {
+        switch (this.colorType) {
             case 'color':
-                this._ng_color = color;
-                this._ng_background = getContrastColor(color, false);
+                this.color = color;
+                this.background = getContrastColor(color, false);
                 break;
             case 'background':
-                this._ng_background = color;
-                this._ng_color = getContrastColor(color, true);
+                this.background = color;
+                this.color = getContrastColor(color, true);
                 break;
         }
-        this._entity.extract().set().background(this._ng_background);
-        this._entity.extract().set().color(this._ng_color);
-        this._ng_currentColor = color;
+        this._entity.extract().set().background(this.background);
+        this._entity.extract().set().color(this.color);
+        this.currentColor = color;
         this.detectChanges();
     }
 
     private _setColors() {
-        this._ng_colors = CColors.slice();
+        this.colors = CColors.slice();
         let color: string | undefined;
-        switch (this._ng_colorType) {
+        switch (this.colorType) {
             case 'color':
-                color = this._ng_color;
+                color = this.color;
                 break;
             case 'background':
-                color = this._ng_background;
+                color = this.background;
                 break;
         }
-        if (color === undefined || this._ng_colors.find((c) => c === color) !== undefined) {
+        if (color === undefined || this.colors.find((c) => c === color) !== undefined) {
             return;
         }
-        this._ng_colors.push(color);
+        this.colors.push(color);
         this.detectChanges();
     }
 
     private _init() {
         this._entity = this.provider.select().single();
         if (this._entity === undefined) {
-            this._ng_request = undefined;
-            this._ng_color = undefined;
-            this._ng_background = undefined;
-            this._ng_currentColor = undefined;
+            this.request = undefined;
+            this.color = undefined;
+            this.background = undefined;
+            this.currentColor = undefined;
         } else {
             const def = this._entity.extract().definition;
-            this._ng_request = def.filter.filter;
-            this._ng_color = def.colors.color;
-            this._ng_background = def.colors.background;
-            this._ng_currentColor = def.colors.background;
-            this._ng_colorType = 'background';
+            this.request = def.filter.filter;
+            this.color = def.colors.color;
+            this.background = def.colors.background;
+            this.currentColor = def.colors.background;
+            this.colorType = 'background';
             this._setColors();
         }
         this._onChange();
@@ -138,7 +138,7 @@ export class FilterDetails extends ChangesDetector implements AfterContentInit {
         if (this._entity === undefined) {
             return;
         }
-        this._ng_request = this._entity.extract().definition.filter.filter;
+        this.request = this._entity.extract().definition.filter.filter;
         this.detectChanges();
     }
 }

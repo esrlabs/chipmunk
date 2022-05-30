@@ -31,11 +31,11 @@ import { ProviderDisabled } from './disabled/provider';
 export class Filters extends ChangesDetector implements OnDestroy, AfterContentInit, AfterViewInit {
     @Input() session!: Session;
 
-    public _ng_providers: Provider<any>[] = [];
-    public _ng_selected: Provider<any> | undefined;
+    public providers: Provider<any>[] = [];
+    public selected: Provider<any> | undefined;
+    public draganddrop!: DragAndDropService;
 
     private _providers!: Providers;
-    private _draganddrop!: DragAndDropService;
     private _focused: boolean = false;
 
     @HostBinding('attr.tabindex') get tabindex() {
@@ -85,20 +85,20 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
     }
 
     public ngAfterContentInit(): void {
-        this._draganddrop = new DragAndDropService();
-        this._providers = new Providers(this.session, this._draganddrop, this.log());
+        this.draganddrop = new DragAndDropService();
+        this._providers = new Providers(this.session, this.draganddrop, this.log());
         this._providers.add(ProviderData.filters, ProviderFilters);
         this._providers.add(ProviderData.disabled, ProviderDisabled);
-        this._ng_providers = this._providers.list();
+        this.providers = this._providers.list();
         this.env().subscriber.register(
             this._providers.subjects.select.subscribe((event: ISelectEvent | undefined) => {
-                if (event === undefined && this._ng_selected === undefined) {
+                if (event === undefined && this.selected === undefined) {
                     return;
                 }
                 if (event === undefined) {
-                    this._ng_selected = undefined;
+                    this.selected = undefined;
                 } else {
-                    this._ng_selected = event.provider;
+                    this.selected = event.provider;
                 }
                 this.detectChanges();
             }),
@@ -129,7 +129,7 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
     }
 
     public _ng_onMouseOver() {
-        this._draganddrop.onMouseOverGlobal();
+        this.draganddrop.onMouseOverGlobal();
     }
 
     private _onGlobalKeyUp(event: KeyboardEvent) {

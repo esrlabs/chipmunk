@@ -19,18 +19,13 @@ import { Session } from '@service/session/session';
 @Directive({
     selector: '[appSearchItem]',
 })
-export class SidebarAppSearchManagerItemDirective
-    extends ChangesDetector
-    implements OnInit, OnDestroy
-{
+export class FilterItemDirective extends ChangesDetector implements OnInit, OnDestroy {
     @Input() provider!: Provider<any>;
     @Input() entity!: Entity<any>;
-    @Input() draganddrop!: DragAndDropService;
-    @Input() session!: Session;
 
-    public _ng_edit: boolean = false;
-    public _ng_selected: boolean = false;
-    public _ng_dragging: boolean = false;
+    public edit: boolean = false;
+    public selected: boolean = false;
+    public dragging: boolean = false;
 
     private _subscriber: Subscriber = new Subscriber();
     private _ignore: boolean = false;
@@ -39,10 +34,10 @@ export class SidebarAppSearchManagerItemDirective
     private _overBin: boolean | undefined;
 
     @HostBinding('class.selected') get cssClassSelected() {
-        return this._ng_selected;
+        return this.selected;
     }
     @HostBinding('class.edited') get cssClassEdited() {
-        return this._ng_edit;
+        return this.edit;
     }
     @HostListener('cdkDragReleased', ['$event']) _cdkDragReleased(event: CdkDragRelease) {
         if (this._resetFeatureAccessorRef === undefined) {
@@ -58,14 +53,14 @@ export class SidebarAppSearchManagerItemDirective
             this._ignore = false;
             return;
         }
-        if (this._ng_edit) {
+        if (this.edit) {
             return;
         }
         this.provider !== undefined && this.provider.select().set({ guid: this.entity.uuid() });
         this.detectChanges();
     }
     @HostListener('cdkDragStarted', ['entity']) DragStarted(entity: Entity<any>) {
-        this.draganddrop.onDragStart(true, entity);
+        this.provider.draganddrop.onDragStart(true, entity);
     }
 
     constructor(cdRef: ChangeDetectorRef) {
@@ -78,34 +73,34 @@ export class SidebarAppSearchManagerItemDirective
 
     public ngOnInit() {
         this._subscriber.register(
-            this.draganddrop.subjects.mouseOverBin.subscribe((status: boolean) => {
+            this.provider.draganddrop.subjects.mouseOverBin.subscribe((status: boolean) => {
                 this._overBin = status;
             }),
         );
         this._subscriber.register(
-            this.draganddrop.subjects.remove.subscribe(() => {
-                this._dragging = this.draganddrop.dragging;
+            this.provider.draganddrop.subjects.remove.subscribe(() => {
+                this._dragging = this.provider.draganddrop.dragging;
                 if (this._dragging) {
-                    this.session.search.store().disabled().delete([this._dragging.uuid()]);
+                    this.provider.session.search.store().disabled().delete([this._dragging.uuid()]);
                 }
             }),
         );
         this._subscriber.register(
             this.provider.subjects.edit.subscribe((guid: string | undefined) => {
-                this._ng_edit = this.entity.uuid() === guid;
+                this.edit = this.entity.uuid() === guid;
                 this.detectChanges();
             }),
         );
         this._subscriber.register(
             this.provider.subjects.selection.subscribe((event: ISelectEvent) => {
-                this._ng_selected = event.guids.indexOf(this.entity.uuid()) !== -1;
-                if (!this._ng_selected) {
-                    this._ng_edit = false;
+                this.selected = event.guids.indexOf(this.entity.uuid()) !== -1;
+                if (!this.selected) {
+                    this.edit = false;
                 }
                 this.detectChanges();
             }),
         );
-        this._ng_selected = this.provider.select().get().indexOf(this.entity.uuid()) !== -1;
+        this.selected = this.provider.select().get().indexOf(this.entity.uuid()) !== -1;
     }
 
     public ignoreMouseClick(event: MouseEvent) {

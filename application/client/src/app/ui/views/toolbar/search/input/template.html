@@ -2,7 +2,7 @@
     <mat-form-field class="outline" appearance="outline">
         <span class="active" *ngIf="active !== undefined">
             <span class="t-console t-small filter">{{active.filter.filter}}</span>
-            <button [class]="active.isPossibleToSaveAsChart() ? 'enabled' : ''" [disabled]="!active.isPossibleToSaveAsFilter()">
+            <button [class]="active.isPossibleToSaveAsFilter() ? 'enabled' : ''" [disabled]="!active.isPossibleToSaveAsFilter()" (click)="onSaveAsFilter()">
                 <mat-icon [class]="!active.isPossibleToSaveAsFilter() ? 'disabled' : ''">save</mat-icon>
             </button>
             <button [class]="active.isPossibleToSaveAsChart() ? 'enabled' : ''" [disabled]="!active.isPossibleToSaveAsChart()">

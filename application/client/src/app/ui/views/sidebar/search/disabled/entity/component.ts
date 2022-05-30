@@ -7,7 +7,7 @@ import {
     ViewChild,
 } from '@angular/core';
 import { MatInput } from '@angular/material/input';
-import { SidebarAppSearchManagerItemDirective } from '../../directives/item.directive';
+import { FilterItemDirective } from '../../directives/item.directive';
 import { MatDragDropResetFeatureDirective } from '@ui/env/directives/material.dragdrop';
 import { DisabledRequest } from '@service/session/dependencies/search/disabled/request';
 import { ProviderDisabled } from '../provider';
@@ -33,11 +33,11 @@ export class Disabled extends ChangesDetector implements AfterContentInit {
 
     public _ng_display_name: string | undefined;
     public _ng_icon: string | undefined;
-    public _ng_directive: SidebarAppSearchManagerItemDirective;
+    public _ng_directive: FilterItemDirective;
 
     constructor(
         cdRef: ChangeDetectorRef,
-        private _directive: SidebarAppSearchManagerItemDirective,
+        private _directive: FilterItemDirective,
         private _accessor: MatDragDropResetFeatureDirective,
     ) {
         super(cdRef);

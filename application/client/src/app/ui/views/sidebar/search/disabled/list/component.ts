@@ -15,6 +15,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Entity } from '../../providers/definitions/entity';
 import { EntityData } from '../../providers/definitions/entity.data';
 import { DragAndDropService } from '../../draganddrop/service';
+import { Session } from '@service/session/session';
 
 @Component({
     selector: 'app-sidebar-disabled-list',
@@ -25,27 +26,26 @@ import { DragAndDropService } from '../../draganddrop/service';
 @Ilc()
 export class DisabledList extends ChangesDetector implements AfterContentInit {
     @Input() provider!: ProviderDisabled;
-    @Input() draganddrop!: DragAndDropService;
 
-    public _ng_entries: Array<Entity<DisabledRequest>> = [];
+    public entries: Array<Entity<DisabledRequest>> = [];
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
 
     public ngAfterContentInit() {
-        this._ng_entries = this.provider.get();
+        this.entries = this.provider.get();
         this.env().subscriber.register(
             this.provider.subjects.change.subscribe(() => {
-                this._ng_entries = this.provider.get();
+                this.entries = this.provider.get();
                 this.detectChanges();
             }),
         );
     }
 
     public _ng_onItemDragged(event: CdkDragDrop<any>) {
-        this.draganddrop.onDragStart(false);
-        if (this.draganddrop.droppedOut) {
+        this.provider.draganddrop.onDragStart(false);
+        if (this.provider.draganddrop.droppedOut) {
             return;
         }
         this.provider.itemDragged(event);
@@ -60,7 +60,7 @@ export class DisabledList extends ChangesDetector implements AfterContentInit {
     }
 
     public _ng_getDragAndDropData(): EntityData<DisabledRequest> | undefined {
-        return new EntityData({ disabled: this._ng_entries });
+        return new EntityData({ disabled: this.entries });
     }
 }
 export interface DisabledList extends IlcInterface {}

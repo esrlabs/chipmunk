@@ -5,6 +5,8 @@ import { ControllerSessionsHistroy } from './controller.histroy';
 import { unique } from '@platform/env/sequence';
 import { setProp, getProp } from '@platform/env/obj';
 
+export { ETabsListDirection, TabsOptions } from './options';
+
 export interface ITabSubjects {
     onTitleContextMenu: Subject<MouseEvent>;
     onBeforeTabRemove: Subject<void>;
