@@ -170,6 +170,8 @@ pub enum ComputationError {
     NativeError(NativeError),
     #[error("Grabbing content not possible: {0:?}")]
     Grabbing(#[from] GrabError),
+    #[error("Error during matching search: {0}")]
+    Matcher(String),
 }
 
 pub type SyncChannel<T> = (cc::Sender<T>, cc::Receiver<T>);

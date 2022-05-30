@@ -17,6 +17,7 @@ dirs = "4.0"
 indexer_base = { path = "../../indexer/indexer_base" }
 log = "0.4"
 log4rs = "1.0.0"
+matcher = { path = "../../indexer/matcher" }
 merging = { path = "../../indexer/merging" }
 session = { path = "../../indexer/session" }
 node-bindgen = {git = "https://github.com/infinyon/node-bindgen.git", branch = "master", features = ["serde-json"] }

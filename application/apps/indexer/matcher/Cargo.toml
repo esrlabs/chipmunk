@@ -1,0 +1,8 @@
+[package]
+name = "matcher"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+fuzzy-matcher = "*"
+session = { path = "../session" }
