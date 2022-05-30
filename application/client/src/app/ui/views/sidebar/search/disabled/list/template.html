@@ -7,10 +7,10 @@
     <app-sidebar-disabled
         (contextmenu)="_ng_onContexMenu($event, entity)"
         (dblclick)="_ng_onDoubleClick($event, entity)"
-        appSidebarSearchManagerItem
+        appSearchItem
         appMatDragDropResetFeature
         cdkDrag
         [provider]="provider"
         [entity]="entity"
-        *ngFor="let entity of _ng_entries;"></app-sidebar-disabled>
+        *ngFor="let entity of entries;"></app-sidebar-disabled>
 </div>

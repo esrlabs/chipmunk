@@ -1,4 +1,4 @@
-import { TabsService, ITabAPI } from '@elements/tabs/service';
+import { TabsService, ITabAPI, ETabsListDirection, TabsOptions } from '@elements/tabs/service';
 import { Storage } from '@env/storage';
 import { Stream } from './dependencies/stream';
 import { Search } from './dependencies/search';
@@ -26,7 +26,9 @@ export class Session extends Base {
     public readonly search: Search = new Search();
     public readonly render: Render<unknown>;
     private readonly _toolbar: TabsService = new TabsService();
-    private readonly _sidebar: TabsService = new TabsService();
+    private readonly _sidebar: TabsService = new TabsService({
+        options: new TabsOptions({ direction: ETabsListDirection.left }),
+    });
 
     constructor(render: Render<unknown>) {
         super();
@@ -37,6 +39,17 @@ export class Session extends Base {
             closable: false,
             content: {
                 factory: components.get('app-views-search'),
+                inputs: {
+                    session: this,
+                },
+            },
+        });
+        this._sidebar.add({
+            name: 'Filters',
+            active: true,
+            closable: false,
+            content: {
+                factory: components.get('app-views-filters'),
                 inputs: {
                     session: this,
                 },

@@ -8,7 +8,7 @@ export class ActiveSearch {
     }
 
     public isPossibleToSaveAsFilter(): boolean {
-        return false;
+        return true;
     }
 
     public isPossibleToSaveAsChart(): boolean {
