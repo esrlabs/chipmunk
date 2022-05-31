@@ -28,18 +28,6 @@
             min-height: 24px;
             &:hover {
                 background: @scheme-color-hover;
-                &::before {
-                    background: @scheme-color-hover;
-                }
-            }
-            &::before {
-                position: absolute;
-                display: block;
-                width: ~"calc(100% + 30px)";
-                content: '';
-                top:0;
-                left: -15px;
-                height: 100%;
             }
             & button {
                 line-height: 24px;
@@ -55,6 +43,15 @@
             & span.name {
                 position: relative;
                 white-space: nowrap;
+                display: flex;
+                &.no-icon {
+                    padding-left: 21px;
+                    color: @scheme-color-2;
+                }
+                & mat-icon {
+                    margin-right: 4px;
+                    color: @scheme-color-2;
+                }
             }
         }
     }
