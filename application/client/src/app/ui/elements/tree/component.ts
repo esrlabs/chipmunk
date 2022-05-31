@@ -3,7 +3,6 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
-import { FlatTreeControl } from '@angular/cdk/tree';
 import { Initial } from '@env/decorators/initial';
 
 import * as Scheme from './scheme';
@@ -39,6 +38,31 @@ export class ElementsTreeSelector extends ChangesDetector implements AfterConten
 
     public hasChild(_: number, _nodeData: Scheme.DynamicFlatNode): boolean {
         return _nodeData.expandable;
+    }
+
+    public ngItemContextMenu(event: MouseEvent, entity: Scheme.Entity) {
+        if (entity.isFolder()) {
+            return;
+        }
+        this.ilc().emitter.ui.contextmenu.open({
+            items: [
+                {
+                    caption: 'Open as text',
+                    handler: () => {
+                        this.ilc()
+                            .services.system.opener.file(entity.getPath())
+                            .text()
+                            .catch((err: Error) => {
+                                this.log().error(`Fail to open text file; error: ${err.message}`);
+                            });
+                    },
+                },
+                { caption: 'Open as DLT', handler: () => {} },
+                { caption: 'Open as PCAP', handler: () => {} },
+            ],
+            x: event.x,
+            y: event.y,
+        });
     }
 }
 export interface ElementsTreeSelector extends IlcInterface {}

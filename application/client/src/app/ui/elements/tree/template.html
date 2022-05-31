@@ -3,9 +3,12 @@
 </div>
 <div class="tree">
   <mat-tree [dataSource]="state.scheme.source" [treeControl]="state.scheme.tree" >
-    <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding [matTreeNodePaddingIndent]="20">
+    <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding [matTreeNodePaddingIndent]="20" (contextmenu)="ngItemContextMenu($event, node.item)">
       <button mat-icon-button disabled></button>
-      <span class="name">{{node.item.getName()}}</span>
+      <span [attr.class]="'name ' + (node.item.icon === undefined ? 'no-icon' : '')">
+        <mat-icon *ngIf="node.item.icon !== undefined" class="item-icon">{{node.item.icon}}</mat-icon>
+        {{node.item.getName()}}
+      </span>
     </mat-tree-node>
     <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding [matTreeNodePaddingIndent]="20">
       <button mat-icon-button

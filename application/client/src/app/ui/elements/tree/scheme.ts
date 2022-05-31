@@ -6,6 +6,8 @@ import { Entity } from './entity';
 import { EntityType, Entity as IEntity } from '@platform/types/files';
 import { Services } from '@service/ilc/services';
 
+export { Entity };
+
 export class DynamicFlatNode {
     constructor(
         public item: Entity,
@@ -62,6 +64,9 @@ export class DynamicDatabase {
                 .ls(path)
                 .then((entities: IEntity[]) => {
                     const sub = entities.map((entity) => new Entity(entity, path));
+                    sub.sort((a, b) => {
+                        return a.isFolder() ? -1 : 1;
+                    });
                     this.structure.set(path, sub);
                     resolve(sub);
                 })
