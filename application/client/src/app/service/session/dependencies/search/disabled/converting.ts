@@ -1,13 +1,11 @@
-export enum EntityTypeRef {
-    chart = 'chart',
-    filter = 'filter',
-    range = 'range',
-}
+import { Recognizable } from '../recognizable';
+import { EntryConvertable } from '@platform/types/storage/entry';
+import { Key } from '../store';
 
-export interface DisableConvertable {
+export interface DisableConvertable extends Recognizable, EntryConvertable {
     disabled(): {
         displayName(): string;
-        typeRef(): EntityTypeRef;
+        typeRef(): Key;
         icon(): string;
     };
 }

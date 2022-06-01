@@ -100,7 +100,7 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
                 } else {
                     this.selected = event.provider;
                 }
-                this.detectChanges();
+                // this.detectChanges();
             }),
         );
         this.env().subscriber.register(
@@ -116,7 +116,7 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
         );
         this.env().subscriber.register(
             this._providers.subjects.change.subscribe(() => {
-                this.detectChanges();
+                // this.detectChanges();
             }),
         );
         window.addEventListener('keyup', this._onGlobalKeyUp);
@@ -125,7 +125,7 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
     public ngAfterViewInit() {}
 
     public _ng_onPanelClick() {
-        this.detectChanges();
+        // this.detectChanges();
     }
 
     public _ng_onMouseOver() {

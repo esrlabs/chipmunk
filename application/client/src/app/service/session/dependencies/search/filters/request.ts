@@ -1,11 +1,12 @@
 import { Subject } from '@platform/env/subscription';
 import { getContrastColor, scheme_color_accent } from '@styles/colors';
-import { DisableConvertable, EntityTypeRef } from '../disabled/converting';
+import { DisableConvertable } from '../disabled/converting';
 import { IFilter, IFilterFlags } from '@platform/types/filter';
 import { EntryConvertable, Entry } from '@platform/types/storage/entry';
 import { unique } from '@platform/env/sequence';
 import { error } from '@platform/env/logger';
 import { Recognizable } from '../recognizable';
+import { Key } from '../store';
 
 import * as regexFilters from '@platform/env/filters';
 import * as regex from '@platform/env/regex';
@@ -46,13 +47,34 @@ export interface UpdateRequest {
 export interface UpdateEvent {
     filter: FilterRequest;
     updated: {
-        request: boolean;
+        filter: boolean;
         state: boolean;
         colors: boolean;
     };
 }
 
 export class FilterRequest implements Recognizable, DisableConvertable, EntryConvertable {
+    public static KEY: Key = Key.filters;
+    public static from(input: Entry | string): FilterRequest | Error {
+        let entry: Entry | Error;
+        if (typeof input === 'string') {
+            entry = EntryConvertable.from(input);
+        } else {
+            entry = input;
+        }
+        if (entry instanceof Error) {
+            return entry;
+        }
+        const request = new FilterRequest({
+            filter: { filter: '', flags: { cases: true, word: false, reg: false } },
+        });
+        const error = request.entry().from(entry);
+        if (error instanceof Error) {
+            return error;
+        }
+        return request;
+    }
+
     public readonly definition: Definition;
     public readonly subjects: {
         updated: Subject<UpdateEvent>;
@@ -180,17 +202,17 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
             from: (desc: UpdateRequest): boolean => {
                 const event: UpdateEvent = {
                     updated: {
-                        request: false,
+                        filter: false,
                         colors: false,
                         state: false,
                     },
                     filter: this,
                 };
                 if (typeof desc.filter === 'string' && this.set(true).filter(desc.filter)) {
-                    event.updated.request = true;
+                    event.updated.filter = true;
                 }
                 if (typeof desc.flags === 'string' && this.set(true).flags(desc.flags)) {
-                    event.updated.request = true;
+                    event.updated.filter = true;
                 }
                 if (typeof desc.active === 'boolean' && this.set(true).state(desc.active)) {
                     event.updated.state = true;
@@ -205,7 +227,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
                     event.updated.colors = true;
                 }
                 const hasToBeEmitted: boolean =
-                    event.updated.request || event.updated.state || event.updated.colors;
+                    event.updated.filter || event.updated.state || event.updated.colors;
                 if (hasToBeEmitted) {
                     this.subjects.updated.emit(event);
                 }
@@ -219,7 +241,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
                 if (!silence) {
                     this.subjects.updated.emit({
                         updated: {
-                            request: false,
+                            filter: false,
                             colors: true,
                             state: false,
                         },
@@ -236,7 +258,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
                 if (!silence) {
                     this.subjects.updated.emit({
                         updated: {
-                            request: false,
+                            filter: false,
                             colors: true,
                             state: false,
                         },
@@ -253,7 +275,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
                 if (!silence) {
                     this.subjects.updated.emit({
                         updated: {
-                            request: false,
+                            filter: false,
                             colors: false,
                             state: true,
                         },
@@ -270,7 +292,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
                 if (!silence) {
                     this.subjects.updated.emit({
                         updated: {
-                            request: true,
+                            filter: true,
                             colors: false,
                             state: false,
                         },
@@ -287,7 +309,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
                 if (!silence) {
                     this.subjects.updated.emit({
                         updated: {
-                            request: true,
+                            filter: true,
                             colors: false,
                             state: false,
                         },
@@ -301,15 +323,15 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
 
     public disabled(): {
         displayName(): string;
-        typeRef(): EntityTypeRef;
+        typeRef(): Key;
         icon(): string;
     } {
         return {
             displayName: (): string => {
                 return this.definition.filter.filter;
             },
-            typeRef: (): EntityTypeRef => {
-                return EntityTypeRef.filter;
+            typeRef: (): Key => {
+                return Key.filters;
             },
             icon: (): string => {
                 return 'search';

@@ -27,11 +27,11 @@ export class FiltersList extends ChangesDetector implements AfterContentInit {
     }
 
     public ngAfterContentInit() {
-        this.entries = this.provider.get();
+        this.entries = this.provider.entities();
         this.env().subscriber.register(
             this.provider.subjects.change.subscribe(() => {
-                this.entries = this.provider.get();
-                this.detectChanges();
+                this.entries = this.provider.entities();
+                // this.detectChanges();
             }),
         );
     }

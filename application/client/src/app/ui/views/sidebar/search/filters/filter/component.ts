@@ -7,9 +7,7 @@ import {
     ViewChild,
     ChangeDetectionStrategy,
 } from '@angular/core';
-import { FilterRequest, UpdateEvent } from '@service/session/dependencies/search/filters/request';
-import { IFilterFlags } from '@platform/types/filter';
-
+import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatInput } from '@angular/material/input';
 import { MatCheckbox } from '@angular/material/checkbox';
@@ -17,9 +15,10 @@ import { FilterItemDirective } from '../../directives/item.directive';
 import { ProviderFilters } from '../provider';
 import { Entity } from '../../providers/definitions/entity';
 import { MatDragDropResetFeatureDirective } from '@ui/env/directives/material.dragdrop';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
+import { State } from './state';
 
 @Component({
     selector: 'app-sidebar-filters-filter',
@@ -31,7 +30,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 @Ilc()
 export class Filter extends ChangesDetector implements AfterContentInit {
     @HostBinding('class.notvalid') get cssClassNotValid() {
-        return !FilterRequest.isValid(this.request);
+        return !FilterRequest.isValid(this.state.filter.filter);
     }
 
     @ViewChild(MatInput) _inputRefCom!: MatInput;
@@ -40,33 +39,24 @@ export class Filter extends ChangesDetector implements AfterContentInit {
     @Input() entity!: Entity<FilterRequest>;
     @Input() provider!: ProviderFilters;
 
-    public flags: IFilterFlags = {
-        cases: false,
-        word: false,
-        reg: true,
-    };
-    public request: string | undefined;
-    public color: string | undefined;
-    public background: string | undefined;
-    public state: boolean = false;
+    public state!: State;
     public directive: FilterItemDirective;
 
     constructor(
         cdRef: ChangeDetectorRef,
         directive: FilterItemDirective,
-        private _accessor: MatDragDropResetFeatureDirective,
+        accessor: MatDragDropResetFeatureDirective,
     ) {
         super(cdRef);
         this.directive = directive;
-        this.directive.setResetFeatureAccessorRef(_accessor);
+        this.directive.setResetFeatureAccessorRef(accessor);
     }
 
     public ngAfterContentInit() {
         this.env().subscriber.register(
             this.provider.subjects.edit.subscribe((guid: string | undefined) => {
                 if (this.entity.uuid() === guid) {
-                    this.detectChanges();
-                    ChangesDetector.detectChanges(this._stateRefCom);
+                    this.update();
                     if (this._inputRefCom !== undefined) {
                         this._inputRefCom.focus();
                     }
@@ -75,20 +65,22 @@ export class Filter extends ChangesDetector implements AfterContentInit {
         );
         this.env().subscriber.register(
             this.entity.extract().subjects.updated.subscribe((event) => {
-                this.entity.set(event.filter);
-                this._init();
-                this.detectChanges();
-                ChangesDetector.detectChanges(this._stateRefCom);
+                if (event.updated.filter) {
+                    this.state.update().filter();
+                } else if (event.updated.colors) {
+                    this.state.update().colors();
+                } else if (event.updated.state) {
+                    this.state.update().state();
+                }
+                this.update();
             }),
         );
-        this._init();
+        this.state = new State(this.entity, this.provider);
     }
 
     public _ng_onStateChange(event: MatCheckboxChange) {
-        this.state = event.checked;
-        this.entity.extract().set().state(event.checked);
-        this.detectChanges();
-        ChangesDetector.detectChanges(this._stateRefCom);
+        this.state.setState(event.checked);
+        this.update();
     }
 
     public _ng_onStateClick(event: MouseEvent) {
@@ -96,8 +88,7 @@ export class Filter extends ChangesDetector implements AfterContentInit {
     }
 
     public _ng_flagsToggle(event: MouseEvent, flag: 'cases' | 'word' | 'reg') {
-        this.flags[flag] = !this.flags[flag];
-        this.entity.extract().set().flags(this.flags);
+        this.state.toggleFilter(flag);
         event.preventDefault();
         event.stopImmediatePropagation();
     }
@@ -106,47 +97,35 @@ export class Filter extends ChangesDetector implements AfterContentInit {
         if (this.provider === undefined) {
             return;
         }
+        if (['Escape', 'Enter'].indexOf(event.code) === -1) {
+            return;
+        }
         switch (event.code) {
             case 'Escape':
-                this.request = this.entity.extract().definition.filter.filter;
-                this.provider.edit().out();
-                this.detectChanges();
-                ChangesDetector.detectChanges(this._stateRefCom);
+                this.state.edit().drop();
                 break;
             case 'Enter':
-                if (this.request !== undefined && FilterRequest.isValid(this.request)) {
-                    this.entity.extract().set().filter(this.request);
-                } else {
-                    this.request = this.entity.extract().definition.filter.filter;
-                }
-                this.provider.edit().out();
-                this.detectChanges();
-                ChangesDetector.detectChanges(this._stateRefCom);
+                this.state.edit().accept();
                 break;
         }
+        this.update();
     }
 
     public _ng_onRequestInputBlur() {
         if (this.provider === undefined) {
             return;
         }
-        this.request = this.entity.extract().definition.filter.filter;
-        this.provider.edit().out();
-        this.detectChanges();
-        ChangesDetector.detectChanges(this._stateRefCom);
+        this.state.edit().drop();
+        this.update();
     }
 
     public _ng_onDoubleClick(event: MouseEvent) {
         this.provider !== undefined && this.provider.select().doubleclick(event, this.entity);
     }
 
-    private _init() {
-        const def = this.entity.extract().definition;
-        this.flags = def.filter.flags;
-        this.request = def.filter.filter;
-        this.color = def.colors.color;
-        this.background = def.colors.background;
-        this.state = def.active;
+    public update() {
+        this.detectChanges();
+        ChangesDetector.detectChanges(this._stateRefCom);
     }
 }
 export interface Filter extends IlcInterface {}
