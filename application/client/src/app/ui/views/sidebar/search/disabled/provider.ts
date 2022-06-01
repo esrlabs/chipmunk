@@ -3,7 +3,6 @@ import { Provider } from '../providers/definitions/provider';
 import { DisabledRequest } from '@service/session/dependencies/search/disabled/store';
 import { IComponentDesc } from '@ui/elements/containers/dynamic/component';
 import { Session } from '@service/session/session';
-import { Subscription } from 'rxjs';
 import { DisabledList } from './list/component';
 import { IMenuItem } from '@ui/service/contextmenu';
 import { DisableConvertable } from '@service/session/dependencies/search/disabled/converting';
@@ -17,7 +16,8 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
     private readonly _entities: Map<string, Entity<DisabledRequest>> = new Map();
     private readonly _listID: ListContent = ListContent.disabledList;
 
-    public init(): void {
+    public override init(): void {
+        super.init();
         this.subscriber.register(
             this.session.search
                 .store()
@@ -29,7 +29,7 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         );
     }
 
-    public get(): Array<Entity<DisabledRequest>> {
+    public entities(): Array<Entity<DisabledRequest>> {
         const guids: string[] = [];
         const entities = this.session.search
             .store()
@@ -59,30 +59,82 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         super.change();
     }
 
-    public getPanelName(): string {
-        return `Disabled`;
-    }
-
-    public getPanelDesc(): string {
-        const count = this.get().length;
-        return `${count} ${count > 1 ? 'entities' : 'entity'}`;
-    }
-
-    public getDetailsPanelName(): string | undefined {
-        return undefined;
-    }
-
-    public getDetailsPanelDesc(): string | undefined {
-        return undefined;
-    }
-
-    public override getListComp(): IComponentDesc {
+    public getPanels(): {
+        list(): {
+            name(): string;
+            desc(): string;
+            comp(): IComponentDesc;
+        };
+        details(): {
+            name(): string | undefined;
+            desc(): string | undefined;
+            comp(): IComponentDesc | undefined;
+        };
+        nocontent(): {
+            name(): string | undefined;
+            desc(): string | undefined;
+            comp(): IComponentDesc | undefined;
+        };
+    } {
         return {
-            factory: DisabledList,
-            inputs: {
-                provider: this,
-                draganddrop: this.draganddrop,
-                session: this.session,
+            list: (): {
+                name(): string;
+                desc(): string;
+                comp(): IComponentDesc;
+            } => {
+                return {
+                    name: (): string => {
+                        return `Disabled`;
+                    },
+                    desc: (): string => {
+                        const count = this.entities().length;
+                        return `${count} ${count > 1 ? 'entities' : 'entity'}`;
+                    },
+                    comp: (): IComponentDesc => {
+                        return {
+                            factory: DisabledList,
+                            inputs: {
+                                provider: this,
+                                draganddrop: this.draganddrop,
+                                session: this.session,
+                            },
+                        };
+                    },
+                };
+            },
+            details: (): {
+                name(): string | undefined;
+                desc(): string | undefined;
+                comp(): IComponentDesc | undefined;
+            } => {
+                return {
+                    name: (): string | undefined => {
+                        return undefined;
+                    },
+                    desc: (): string | undefined => {
+                        return undefined;
+                    },
+                    comp: (): IComponentDesc | undefined => {
+                        return undefined;
+                    },
+                };
+            },
+            nocontent: (): {
+                name(): string | undefined;
+                desc(): string | undefined;
+                comp(): IComponentDesc | undefined;
+            } => {
+                return {
+                    name: (): string | undefined => {
+                        return undefined;
+                    },
+                    desc: (): string | undefined => {
+                        return undefined;
+                    },
+                    comp: (): IComponentDesc | undefined => {
+                        return undefined;
+                    },
+                };
             },
         };
     }
@@ -106,33 +158,40 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         //     return entity.entity().matches !== undefined;
         // });
         const items: IMenuItem[] = [];
-        // if (entities.length > 0 && disableds.length === 0) {
-        //     items.push({
-        //         caption: `Disable`,
-        //         handler: () => {
-        //             this.session.search
-        //                 .store()
-        //                 .disabled()
-        //                 .add(
-        //                     entities.map((entity: DisableConvertable) => {
-        //                         entity.remove(session);
-        //                         return new DisabledRequest(entity);
-        //                     }),
-        //                 );
-        //         },
-        //     });
-        // }
-        // if (entities.length === 0 && disableds.length > 0) {
-        //     items.push({
-        //         caption: `Enable`,
-        //         handler: () => {
-        //             disableds.forEach((disabled: DisabledRequest) => {
-        //                 disabled.entity().restore(session);
-        //                 this.session.search.store().disabled().delete([disabled.uuid()]);
-        //             });
-        //         },
-        //     });
-        // }
+        if (entities.length > 0 && disableds.length === 0) {
+            items.push({
+                caption: `Disable`,
+                handler: () => {
+                    this.session.search.store().disabled().addFromEntity(entities);
+                    this.session.search
+                        .store()
+                        .filters()
+                        .delete(entities.map((en) => en.uuid()));
+                },
+            });
+        }
+        if (entities.length === 0 && disableds.length > 0) {
+            items.push({
+                caption: `Enable`,
+                handler: () => {
+                    disableds.forEach((disabled: DisabledRequest) => {
+                        let restored = false;
+                        !restored &&
+                            (restored = this.session.search
+                                .store()
+                                .filters()
+                                .tryRestore(disabled.entity()));
+                        // !restored &&
+                        //     (restored = this.session.search
+                        //         .store()
+                        //         .charts()
+                        //         .tryRestore(disabled.entity()));
+                        restored &&
+                            this.session.search.store().disabled().delete([disabled.uuid()]);
+                    });
+                },
+            });
+        }
         // if (match !== undefined) {
         //     const entry = match.entity();
         //     items.push({

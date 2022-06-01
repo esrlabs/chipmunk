@@ -2,7 +2,7 @@
     <!-- <app-sidebar-app-searchmanager-controls></app-sidebar-app-searchmanager-controls> -->
     <div class="wrapper" *ngFor="let provider of providers">
         <mat-expansion-panel
-            *ngIf="!provider.isEmpty() || provider.hasContentIfEmpty()"
+            *ngIf="!provider.isEmpty() || provider.panels.nocontent.comp !== undefined"
             [disabled]="true"
             [hideToggle]="true"
             [expanded]="true"
@@ -12,24 +12,22 @@
             (click)="_ng_onPanelClick()"
         >
             <mat-expansion-panel-header>
-                <mat-panel-title>{{provider.getPanelName()}}</mat-panel-title>
-                <mat-panel-description>{{provider.getPanelDesc()}}</mat-panel-description>
+                <mat-panel-title>{{provider.panels.list.name}}</mat-panel-title>
+                <mat-panel-description>{{provider.panels.list.desc}}</mat-panel-description>
             </mat-expansion-panel-header>
             <div *ngIf="!provider.isEmpty()">
                 <lib-containers-dynamic
-                    [detectChanges]="false"
-                    [component]="provider.getListComp()"
+                    [component]="provider.panels.list.comp"
                 ></lib-containers-dynamic>
             </div>
             <lib-containers-dynamic
-                *ngIf="provider.isEmpty() && provider.hasContentIfEmpty()"
-                [detectChanges]="false"
-                [component]="provider.getContentIfEmpty()"
+                *ngIf="provider.isEmpty() && provider.panels.nocontent.comp !== undefined"
+                [component]="provider.panels.nocontent.comp"
             ></lib-containers-dynamic>
         </mat-expansion-panel>
     </div>
   
-    <div class="wrapper" *ngIf="selected && selected.hasDetailsComp()">
+    <div class="wrapper" *ngIf="selected && selected.panels.details.comp !== undefined">
         <mat-expansion-panel
             [disabled]="true"
             [hideToggle]="true"
@@ -37,14 +35,13 @@
             (click)="_ng_onPanelClick()"
         >
             <mat-expansion-panel-header>
-                <mat-panel-title>{{selected.getDetailsPanelName()}}</mat-panel-title>
+                <mat-panel-title>{{selected.panels.details.name}}</mat-panel-title>
                 <mat-panel-description
-                    >{{selected.getDetailsPanelDesc()}}</mat-panel-description
+                    >{{selected.panels.details.desc}}</mat-panel-description
                 >
             </mat-expansion-panel-header>
             <lib-containers-dynamic
-                [detectChanges]="false"
-                [component]="selected.getDetailsComp()"
+                [component]="selected.panels.details.comp"
             ></lib-containers-dynamic>
         </mat-expansion-panel>
     </div>

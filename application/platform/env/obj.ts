@@ -1,5 +1,41 @@
 export type AnyObj = { [key: string]: unknown };
 
+function is(smth: any): boolean {
+    if (typeof smth !== 'object' || smth === null) {
+        return false;
+    } else if (smth instanceof Array) {
+        return false;
+    } else if (
+        typeof smth.constructor === 'function' &&
+        typeof smth.constructor.name === 'string' &&
+        smth.constructor.name.toLowerCase() !== 'object'
+    ) {
+        return false;
+    }
+    return true;
+}
+
+export function clone<T>(obj: T, deep: number = 10): T {
+    deep -= 1;
+    if (deep < 0) {
+        throw new Error(`Fail to clone obj. Deep limit has been reached.`);
+    }
+    if (obj instanceof Array) {
+        return obj.map((item: any) => clone(item, deep)) as unknown as T;
+    } else if (!is(obj)) {
+        return obj as unknown as T;
+    }
+    const _obj: any = Object.assign({}, obj);
+    Object.keys(_obj).forEach((prop: string) => {
+        if (_obj[prop] instanceof Array) {
+            _obj[prop] = _obj[prop].map((item: any) => clone(item, deep));
+        } else if (is(obj)) {
+            _obj[prop] = clone(_obj[prop], deep);
+        }
+    });
+    return _obj;
+}
+
 export function asAnyObj<T>(smth: T): AnyObj {
     return smth as unknown as AnyObj;
 }

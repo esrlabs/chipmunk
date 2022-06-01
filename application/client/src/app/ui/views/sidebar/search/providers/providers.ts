@@ -75,6 +75,7 @@ export class Providers {
         provider.subjects.doubleclick.subscribe(this._onDoubleclickEvent.bind(this));
         provider.subjects.change.subscribe(this._onChange.bind(this));
         provider.subjects.reload.subscribe(this._onReload.bind(this));
+        provider.init();
         this._providers.set(name, provider);
         return true;
     }
@@ -82,7 +83,7 @@ export class Providers {
     public all(): any[] {
         let entries: any[] = [];
         this.list().forEach((provider: Provider<any>) => {
-            entries = entries.concat(provider.get());
+            entries = entries.concat(provider.entities());
         });
         return entries;
     }
@@ -186,12 +187,12 @@ export class Providers {
                         if (provider.select().single() !== undefined) {
                             providers.push(provider);
                             for (let k = i + 1; k <= all.length - 1; k += 1) {
-                                if (next === undefined && all[k].get().length > 0) {
+                                if (next === undefined && all[k].entities().length > 0) {
                                     next = all[k];
                                 }
                             }
                             for (let k = i - 1; k >= 0; k -= 1) {
-                                if (prev === undefined && all[k].get().length > 0) {
+                                if (prev === undefined && all[k].entities().length > 0) {
                                     prev = all[k];
                                 }
                             }
@@ -296,7 +297,7 @@ export class Providers {
                     target.select().drop(self.SENDER);
                     target.select().apply(self.SENDER, stored);
                     if (stored.length === 1) {
-                        const entity = target.get().find((e) => e.uuid() === stored[0]);
+                        const entity = target.entities().find((e) => e.uuid() === stored[0]);
                         entity !== undefined &&
                             this.subjects.select.emit({
                                 entity: entity,
@@ -462,7 +463,7 @@ export class Providers {
                 caption: 'Activate All',
                 handler: () => {
                     providers.forEach((provider: Provider<any>) => {
-                        const actions = provider.actions(event.entity, provider.get());
+                        const actions = provider.actions(event.entity, provider.entities());
                         actions.activate !== undefined && actions.activate();
                     });
                 },
@@ -472,7 +473,7 @@ export class Providers {
                 caption: 'Deactivate All',
                 handler: () => {
                     providers.forEach((provider: Provider<any>) => {
-                        const actions = provider.actions(event.entity, provider.get());
+                        const actions = provider.actions(event.entity, provider.entities());
                         actions.deactivate !== undefined && actions.deactivate();
                     });
                 },
@@ -482,7 +483,7 @@ export class Providers {
                 caption: 'Remove All',
                 handler: () => {
                     providers.forEach((provider: Provider<any>) => {
-                        const actions = provider.actions(event.entity, provider.get());
+                        const actions = provider.actions(event.entity, provider.entities());
                         actions.remove !== undefined && actions.remove();
                     });
                 },

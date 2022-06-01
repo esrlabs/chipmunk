@@ -86,6 +86,23 @@ export abstract class Provider<T> {
     public readonly logger: Logger;
     public readonly draganddrop: DragAndDropService;
     public readonly subscriber: Subscriber = new Subscriber();
+    public panels!: {
+        list: {
+            name: string;
+            desc: string;
+            comp: IComponentDesc;
+        };
+        details: {
+            name: string | undefined;
+            desc: string | undefined;
+            comp: IComponentDesc | undefined;
+        };
+        nocontent: {
+            name: string | undefined;
+            desc: string | undefined;
+            comp: IComponentDesc | undefined;
+        };
+    };
 
     private _selection: IStoredSelection = {
         current: [],
@@ -145,7 +162,7 @@ export abstract class Provider<T> {
             if (this._keyboard !== undefined && this._keyboard.ctrl()) {
                 if (index === -1) {
                     this._selection.current.push(selection.guid);
-                    entity = this.get().find((e) => e.uuid() === selection.guid);
+                    entity = this.entities().find((e) => e.uuid() === selection.guid);
                 }
             } else if (
                 this._keyboard !== undefined &&
@@ -155,7 +172,7 @@ export abstract class Provider<T> {
             ) {
                 let guids: string[] = ([] as string[]).concat.apply(
                     [],
-                    this._providers().map((p) => p.get().map((e) => e.uuid())),
+                    this._providers().map((p) => p.entities().map((e) => e.uuid())),
                 );
                 const from: number = guids.findIndex((g) => g === this._selection.last?.uuid());
                 const to: number = guids.findIndex((g) => g === selection.guid);
@@ -169,7 +186,7 @@ export abstract class Provider<T> {
             } else {
                 if (index === -1) {
                     this._selection.current = [selection.guid];
-                    entity = this.get().find((e) => e.uuid() === selection.guid);
+                    entity = this.entities().find((e) => e.uuid() === selection.guid);
                 } else {
                     if (selection.toggle !== false) {
                         this._selection.current = [];
@@ -185,7 +202,7 @@ export abstract class Provider<T> {
         };
         return {
             first: () => {
-                const entities = this.get();
+                const entities = this.entities();
                 if (entities.length === 0) {
                     return;
                 }
@@ -195,7 +212,7 @@ export abstract class Provider<T> {
                 });
             },
             last: () => {
-                const entities = this.get();
+                const entities = this.entities();
                 if (entities.length === 0) {
                     return;
                 }
@@ -208,7 +225,7 @@ export abstract class Provider<T> {
                 if (this._selection.current.length !== 1) {
                     return false;
                 }
-                const entities = this.get();
+                const entities = this.entities();
                 let index: number = -1;
                 entities.forEach((entity, i) => {
                     if (entity.uuid() === this._selection.current[0]) {
@@ -231,7 +248,7 @@ export abstract class Provider<T> {
                 if (this._selection.current.length !== 1) {
                     return false;
                 }
-                const entities = this.get();
+                const entities = this.entities();
                 let index: number = -1;
                 entities.forEach((entity, i) => {
                     if (entity.uuid() === this._selection.current[0]) {
@@ -263,7 +280,7 @@ export abstract class Provider<T> {
                 });
             },
             apply: (sender: string, guids: string[]) => {
-                const own: string[] = this.get().map((e) => e.uuid());
+                const own: string[] = this.entities().map((e) => e.uuid());
                 this._selection.current = guids.filter((g) => own.indexOf(g) !== -1);
                 this.subjects.selection.emit({
                     provider: this,
@@ -277,7 +294,7 @@ export abstract class Provider<T> {
             },
             getEntities: () => {
                 const entities: Entity<any>[] = [];
-                this.get().forEach((entity: Entity<T>) => {
+                this.entities().forEach((entity: Entity<T>) => {
                     if (this._selection.current.indexOf(entity.uuid()) === -1) {
                         return;
                     }
@@ -290,7 +307,7 @@ export abstract class Provider<T> {
                 if (this._selection.current.length !== 1) {
                     return undefined;
                 }
-                return this.get().find((entity: Entity<T>) => {
+                return this.entities().find((entity: Entity<T>) => {
                     return entity.uuid() === this._selection.current[0];
                 });
             },
@@ -326,7 +343,7 @@ export abstract class Provider<T> {
                     return;
                 }
                 const guid: string = this._selection.current[0];
-                this.get().forEach((entity: Entity<any>) => {
+                this.entities().forEach((entity: Entity<any>) => {
                     if (entity.uuid() === guid) {
                         entity.getEditState().in();
                     } else {
@@ -336,7 +353,7 @@ export abstract class Provider<T> {
                 this.subjects.edit.emit(guid);
             },
             out: () => {
-                this.get().forEach((entity: Entity<any>) => {
+                this.entities().forEach((entity: Entity<any>) => {
                     entity.getEditState().out();
                 });
                 this.subjects.edit.emit(undefined);
@@ -350,42 +367,50 @@ export abstract class Provider<T> {
     }
 
     public isEmpty(): boolean {
-        return this.get().length === 0;
+        return this.entities().length === 0;
     }
 
-    public abstract init(): void;
+    public init(): void {
+        this.panels = {
+            list: {
+                name: this.getPanels().list().name(),
+                desc: this.getPanels().list().desc(),
+                comp: this.getPanels().list().comp(),
+            },
+            details: {
+                name: this.getPanels().details().name(),
+                desc: this.getPanels().details().desc(),
+                comp: this.getPanels().details().comp(),
+            },
+            nocontent: {
+                name: this.getPanels().nocontent().name(),
+                desc: this.getPanels().nocontent().desc(),
+                comp: this.getPanels().nocontent().comp(),
+            },
+        };
+    }
 
-    public abstract get(): Entity<T>[];
+    public abstract entities(): Entity<T>[];
 
     public abstract reorder(params: { prev: number; curt: number }): void;
 
-    public abstract getPanelName(): string;
-
-    public abstract getPanelDesc(): string;
-
-    public abstract getDetailsPanelName(): string | undefined;
-
-    public abstract getDetailsPanelDesc(): string | undefined;
-
-    public getListComp(): IComponentDesc {
-        throw new Error(`Provider ${this._uuld} doesn't have ListComp`);
-    }
-
-    public getDetailsComp(): IComponentDesc {
-        throw new Error(`Provider ${this._uuld} doesn't have DetailsComp`);
-    }
-
-    public getContentIfEmpty(): IComponentDesc {
-        throw new Error(`Provider ${this._uuld} doesn't have ContentIfEmpty`);
-    }
-
-    public hasDetailsComp(): boolean {
-        return false;
-    }
-
-    public hasContentIfEmpty(): boolean {
-        return false;
-    }
+    public abstract getPanels(): {
+        list(): {
+            name(): string;
+            desc(): string;
+            comp(): IComponentDesc;
+        };
+        details(): {
+            name(): string | undefined;
+            desc(): string | undefined;
+            comp(): IComponentDesc | undefined;
+        };
+        nocontent(): {
+            name(): string | undefined;
+            desc(): string | undefined;
+            comp(): IComponentDesc | undefined;
+        };
+    };
 
     public abstract search(entity: Entity<T>): void;
 

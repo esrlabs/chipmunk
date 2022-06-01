@@ -12,6 +12,7 @@
     overflow: hidden;
     height: 20px;
     cursor: default;
+    align-items: center;
     &.selected{
         background: fadeout(@scheme-color-accent, 50%);
     }
@@ -20,9 +21,12 @@
         padding-right: 22px;
         transition: padding-right 150ms ease-in-out;
         overflow: hidden;
+        margin-top: -2px;
     }
     div.doubleclick {
-        display: contents;
+        display: flex;
+        flex: auto;
+        align-items: center;
     }
     span.color {
         flex: 0;

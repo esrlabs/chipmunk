@@ -10,13 +10,13 @@ import { IMenuItem } from '@ui/service/contextmenu';
 import { DragAndDropService, DragableRequest, ListContent } from '../draganddrop/service';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { EntityData } from '../providers/definitions/entity.data';
-import { Subscriber } from '@platform/env/subscription';
 
 export class ProviderFilters extends Provider<FilterRequest> {
     private _entities: Map<string, Entity<FilterRequest>> = new Map();
     private _listID: ListContent = ListContent.filtersList;
 
-    public init(): void {
+    public override init(): void {
+        super.init();
         this.subscriber.register(
             this.session.search
                 .store()
@@ -28,7 +28,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
         );
     }
 
-    public get(): Array<Entity<FilterRequest>> {
+    public entities(): Array<Entity<FilterRequest>> {
         const guids: string[] = [];
         const entities = this.session.search
             .store()
@@ -58,67 +58,103 @@ export class ProviderFilters extends Provider<FilterRequest> {
         super.change();
     }
 
-    public override getContentIfEmpty(): IComponentDesc {
+    public getPanels(): {
+        list(): {
+            name(): string;
+            desc(): string;
+            comp(): IComponentDesc;
+        };
+        details(): {
+            name(): string | undefined;
+            desc(): string | undefined;
+            comp(): IComponentDesc | undefined;
+        };
+        nocontent(): {
+            name(): string | undefined;
+            desc(): string | undefined;
+            comp(): IComponentDesc | undefined;
+        };
+    } {
         return {
-            factory: FiltersPlaceholder,
-            inputs: {
-                provider: this,
-                draganddrop: this.draganddrop,
+            list: (): {
+                name(): string;
+                desc(): string;
+                comp(): IComponentDesc;
+            } => {
+                return {
+                    name: (): string => {
+                        return `Filters`;
+                    },
+                    desc: (): string => {
+                        const count = this.entities().length;
+                        return `${count} filter${count > 1 ? 's' : ''}`;
+                    },
+                    comp: (): IComponentDesc => {
+                        return {
+                            factory: FiltersList,
+                            inputs: {
+                                provider: this,
+                                draganddrop: this.draganddrop,
+                                session: this.session,
+                            },
+                        };
+                    },
+                };
+            },
+            details: (): {
+                name(): string | undefined;
+                desc(): string | undefined;
+                comp(): IComponentDesc | undefined;
+            } => {
+                return {
+                    name: (): string | undefined => {
+                        return `Filter Details`;
+                    },
+                    desc: (): string | undefined => {
+                        if (this.select().get().length !== 1) {
+                            return '';
+                        }
+                        const selection = this._entities.get(this.select().get()[0]);
+                        if (selection === undefined) {
+                            return '';
+                        }
+                        return selection.extract().definition.filter.filter;
+                    },
+                    comp: (): IComponentDesc | undefined => {
+                        return {
+                            factory: FilterDetails,
+                            inputs: {
+                                provider: this,
+                                draganddrop: this.draganddrop,
+                            },
+                        };
+                    },
+                };
+            },
+            nocontent: (): {
+                name(): string | undefined;
+                desc(): string | undefined;
+                comp(): IComponentDesc | undefined;
+            } => {
+                return {
+                    name: (): string | undefined => {
+                        return `Filters`;
+                    },
+                    desc: (): string | undefined => {
+                        return undefined;
+                    },
+                    comp: (): IComponentDesc | undefined => {
+                        return {
+                            factory: FiltersPlaceholder,
+                            inputs: {
+                                provider: this,
+                                draganddrop: this.draganddrop,
+                            },
+                        };
+                    },
+                };
             },
         };
-    }
-
-    public getPanelName(): string {
-        return `Filters`;
-    }
-
-    public getPanelDesc(): string {
-        const count = this.get().length;
-        return `${count} filter${count > 1 ? 's' : ''}`;
-    }
-
-    public getDetailsPanelName(): string {
-        return `Filter Details`;
-    }
-
-    public getDetailsPanelDesc(): string {
-        if (this.select().get().length !== 1) {
-            return '';
-        }
-        const selection = this._entities.get(this.select().get()[0]);
-        if (selection === undefined) {
-            return '';
-        }
-        return selection.extract().definition.filter.filter;
-    }
-
-    public override getListComp(): IComponentDesc {
-        return {
-            factory: FiltersList,
-            inputs: {
-                provider: this,
-                draganddrop: this.draganddrop,
-                session: this.session,
-            },
-        };
-    }
-
-    public override getDetailsComp(): IComponentDesc {
-        return {
-            factory: FilterDetails,
-            inputs: {
-                provider: this,
-                draganddrop: this.draganddrop,
-            },
-        };
-    }
-
-    public override hasDetailsComp(): boolean {
-        return true;
-    }
-
-    public override hasContentIfEmpty(): boolean {
-        return true;
     }
 
     public getContextMenuItems(target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[] {
@@ -196,7 +232,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
         actions.remove =
             entities.length !== 0
                 ? () => {
-                      if (entities.length === self.get().length) {
+                      if (entities.length === self.entities().length) {
                           this.session.search
                               .store()
                               .filters()
@@ -242,18 +278,13 @@ export class ProviderFilters extends Provider<FilterRequest> {
                     data.disabled[event.previousIndex] !== undefined
                         ? data.disabled[index]
                         : undefined;
-                if (
-                    outside !== undefined &&
-                    typeof outside.extract().entity === 'function' &&
-                    outside.extract().entity() instanceof FilterRequest
-                ) {
-                    this.session.search.store().disabled().delete([outside.extract().uuid()]);
-                    // this.session.search
-                    //     .store()
-                    //     .filters()
-                    //     .add(outside.extract().extract() as FilterRequest, event.currentIndex);
+                if (outside === undefined) {
+                    return;
                 }
-                // } else if (data.entries !== undefined) {
+                const disabled: DisabledRequest = outside.extract();
+                this.session.search.store().disabled().delete([disabled.uuid()]);
+                this.session.search.store().filters().tryRestore(disabled.entity());
+                // if (data.entries !== undefined) {
                 //     const outside: Entity<ChartRequest> | undefined =
                 //         data.entries[event.previousIndex] !== undefined
                 //             ? (data.entries[index] as Entity<ChartRequest>)
