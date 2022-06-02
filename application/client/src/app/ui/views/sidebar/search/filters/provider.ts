@@ -267,7 +267,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
         return false;
     }
 
-    public itemDragged(event: CdkDragDrop<EntityData<DragableRequest>>) {
+    public dropped(event: CdkDragDrop<EntityData<DragableRequest>>) {
         if (event.previousContainer === event.container) {
             this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
         } else {

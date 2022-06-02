@@ -29,6 +29,8 @@ import { FiltersPlaceholder } from './filters/placeholder/component';
 import { Disabled } from './disabled/entity/component';
 import { DisabledList } from './disabled/list/component';
 
+import { Bin } from './bin/component';
+
 const entryComponents = [
     Filters,
     FilterDetails,
@@ -38,6 +40,7 @@ const entryComponents = [
     Disabled,
     DisabledList,
     ComColorSelectorComponent,
+    Bin,
 ];
 const components = [...entryComponents];
 

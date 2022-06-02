@@ -48,7 +48,7 @@ export class DisabledList extends ChangesDetector implements AfterContentInit {
         if (this.provider.draganddrop.droppedOut) {
             return;
         }
-        this.provider.itemDragged(event);
+        this.provider.dropped(event);
     }
 
     public _ng_onContexMenu(event: MouseEvent, entity: Entity<DisabledRequest>) {

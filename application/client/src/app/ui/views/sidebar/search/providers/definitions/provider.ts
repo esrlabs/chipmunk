@@ -416,7 +416,7 @@ export abstract class Provider<T> {
 
     public abstract isViable(): boolean;
 
-    public abstract itemDragged(event: CdkDragDrop<EntityData<DragableRequest>>): void;
+    public abstract dropped(event: CdkDragDrop<EntityData<DragableRequest>>): void;
 
     public abstract get listID(): ListContent;
 

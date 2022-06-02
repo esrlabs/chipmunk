@@ -262,29 +262,27 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         return true;
     }
 
-    public itemDragged(event: CdkDragDrop<EntityData<DragableRequest>>) {
+    public dropped(event: CdkDragDrop<EntityData<DragableRequest>>) {
         if (event.previousContainer === event.container) {
             this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
         } else {
             const index: number = event.previousIndex;
             const data: EntityData<DragableRequest> = event.previousContainer.data;
             if (data.entries !== undefined) {
-                // const outside: Entity<DragableRequest> | undefined =
-                //     data.entries[event.previousIndex] !== undefined
-                //         ? data.entries[index]
-                //         : undefined;
-                // if (outside !== undefined) {
-                //     this.session.search
-                //         .store()
-                //         .disabled()
-                //         .add(
-                //             new DisabledRequest(
-                //                 outside.getEntity() as unknown as DisableConvertable,
-                //             ),
-                //             event.currentIndex,
-                //         );
-                //     outside.extract().remove(session);
-                // }
+                const outside: Entity<DragableRequest> | undefined =
+                    data.entries[event.previousIndex] !== undefined
+                        ? data.entries[index]
+                        : undefined;
+                if (outside === undefined) {
+                    return;
+                }
+                const extracted = outside.extract();
+                if (extracted instanceof DisabledRequest) {
+                    return;
+                }
+                this.session.search.store().disabled().addFromEntity([extracted]);
+                extracted instanceof FilterRequest &&
+                    this.session.search.store().filters().delete([extracted.uuid()]);
             }
         }
     }

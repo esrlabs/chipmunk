@@ -15,6 +15,8 @@ import { DragAndDropService, DragableRequest } from '../draganddrop/service';
 import { Subscriber } from '@platform/env/subscription';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Session } from '@service/session/session';
+import { FilterRequest } from '@service/session/dependencies/search/filters/request';
+import { DisabledRequest } from '@service/session/dependencies/search/disabled/request';
 
 @Directive({
     selector: '[appSearchItem]',
@@ -29,7 +31,6 @@ export class FilterItemDirective extends ChangesDetector implements OnInit, OnDe
 
     private _subscriber: Subscriber = new Subscriber();
     private _ignore: boolean = false;
-    private _dragging: Entity<DragableRequest> | undefined;
     private _resetFeatureAccessorRef: MatDragDropResetFeatureDirective | undefined;
     private _overBin: boolean | undefined;
 
@@ -79,9 +80,17 @@ export class FilterItemDirective extends ChangesDetector implements OnInit, OnDe
         );
         this._subscriber.register(
             this.provider.draganddrop.subjects.remove.subscribe(() => {
-                this._dragging = this.provider.draganddrop.dragging;
-                if (this._dragging) {
-                    this.provider.session.search.store().disabled().delete([this._dragging.uuid()]);
+                const dragging =
+                    this.provider.draganddrop.dragging !== undefined
+                        ? this.provider.draganddrop.dragging.extract()
+                        : undefined;
+                if (dragging === undefined) {
+                    return;
+                }
+                if (dragging instanceof FilterRequest) {
+                    this.provider.session.search.store().filters().delete([dragging.uuid()]);
+                } else if (dragging instanceof DisabledRequest) {
+                    this.provider.session.search.store().disabled().delete([dragging.uuid()]);
                 }
             }),
         );
