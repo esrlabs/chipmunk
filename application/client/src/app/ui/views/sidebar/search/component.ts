@@ -1,7 +1,7 @@
 import {
     Component,
     OnDestroy,
-    ViewChild,
+    ViewEncapsulation,
     Input,
     AfterContentInit,
     ChangeDetectorRef,
@@ -25,6 +25,7 @@ import { ProviderDisabled } from './disabled/provider';
     selector: 'app-views-filters',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    encapsulation: ViewEncapsulation.None,
 })
 @Initial()
 @Ilc()

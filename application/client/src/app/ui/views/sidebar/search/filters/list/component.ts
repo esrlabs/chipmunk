@@ -31,7 +31,6 @@ export class FiltersList extends ChangesDetector implements AfterContentInit {
         this.env().subscriber.register(
             this.provider.subjects.change.subscribe(() => {
                 this.entries = this.provider.entities();
-                // this.detectChanges();
             }),
         );
     }
@@ -41,7 +40,7 @@ export class FiltersList extends ChangesDetector implements AfterContentInit {
         if (this.provider.draganddrop.droppedOut) {
             return;
         }
-        this.provider.itemDragged(event);
+        this.provider.dropped(event);
     }
 
     public _ng_onContexMenu(event: MouseEvent, entity: Entity<FilterRequest>) {

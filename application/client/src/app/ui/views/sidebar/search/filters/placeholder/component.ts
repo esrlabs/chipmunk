@@ -33,7 +33,7 @@ export class FiltersPlaceholder implements OnDestroy {
         if (this.draganddrop.droppedOut) {
             return;
         }
-        this.provider.itemDragged(event);
+        this.provider.dropped(event);
     }
 }
 export interface FiltersPlaceholder extends IlcInterface {}

@@ -5,14 +5,14 @@
     display: flex;
     position: relative;
     flex-flow: row;
-    background: @scheme-color-5;
-    padding: 3px 0 5px 6px;
-    margin-bottom: 3px;
-    border-radius: 3px;
+    padding: 3px 12px 5px 24px;
     overflow: hidden;
     height: 20px;
     cursor: default;
     align-items: center;
+    &:hover{
+        background: @scheme-color-5;
+    }
     &.selected{
         background: fadeout(@scheme-color-accent, 50%);
     }

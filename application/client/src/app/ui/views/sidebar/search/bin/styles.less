@@ -1,0 +1,27 @@
+@import '../../../../styles/variables.less';
+
+& mat-expansion-panel {
+    width: 48px;
+    height: 48px;
+    margin: auto;
+    position: sticky;
+    bottom: 0px;
+}
+
+& div {
+    transform: translateY(-100%);
+}
+
+& div:hover {
+    & mat-icon {
+        color: @scheme-color-error;
+    }
+}
+
+& mat-icon {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: @scheme-color-accent;
+}

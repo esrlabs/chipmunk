@@ -26,7 +26,6 @@ import { State } from './state';
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-@Initial()
 @Ilc()
 export class Filter extends ChangesDetector implements AfterContentInit {
     @HostBinding('class.notvalid') get cssClassNotValid() {
