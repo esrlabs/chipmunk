@@ -29,15 +29,17 @@ export class Standard extends ChangesDetector implements AfterContentInit {
     }
 
     @HostBinding('class') classes = 'row noreset';
-    // @HostBinding('style.background') background = '';
-    // @HostBinding('style.color') color = '';
+    @HostBinding('style.background') background = '';
+    @HostBinding('style.color') color = '';
     @HostBinding('innerHTML') html: SafeHtml | string = '';
 
     public ngAfterContentInit() {
-        this.html = this._sanitizer.bypassSecurityTrustHtml(this.row.content);
+        this.html = this._sanitizer.bypassSecurityTrustHtml(this.row.html);
         this.env().subscriber.register(
             this.row.change.subscribe(() => {
-                this.html = this._sanitizer.bypassSecurityTrustHtml(this.row.content);
+                this.html = this._sanitizer.bypassSecurityTrustHtml(this.row.html);
+                this.background = this.row.background === undefined ? '' : this.row.background;
+                this.color = this.row.color === undefined ? '' : this.row.color;
                 this.markChangesForCheck();
             }),
         );

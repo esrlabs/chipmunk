@@ -1,6 +1,6 @@
 import { FilterRequest } from '../filters/request';
 import { DisableConvertable } from './converting';
-import { Recognizable } from '../recognizable';
+import { Recognizable } from '../declarations/recognizable';
 import { EntryConvertable, Entry } from '@platform/types/storage/entry';
 import { Key } from '../store';
 import { error } from '@platform/env/logger';
@@ -46,6 +46,7 @@ export class DisabledRequest implements Recognizable, EntryConvertable {
         from(entry: Entry): Error | undefined;
         hash(): string;
         uuid(): string;
+        updated(): undefined;
     } {
         return {
             to: (): Entry => {
@@ -81,6 +82,9 @@ export class DisabledRequest implements Recognizable, EntryConvertable {
             },
             uuid: (): string => {
                 return this._entity.uuid();
+            },
+            updated: (): undefined => {
+                return undefined;
             },
         };
     }

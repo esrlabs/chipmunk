@@ -152,6 +152,10 @@ export class Subject<T> {
         return this._emitted;
     }
 
+    public to<C>(): Subject<C> {
+        return this as unknown as Subject<C>;
+    }
+
     private _unsubscribe(id: string) {
         let index: number = -1;
         this._handlers.forEach((handle: any, i: number) => {

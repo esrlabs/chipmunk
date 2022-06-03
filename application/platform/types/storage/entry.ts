@@ -1,3 +1,4 @@
+import { Subject } from '../../env/subscription';
 import { error } from '../../env/logger';
 import * as obj from '../../env/obj';
 
@@ -23,5 +24,6 @@ export abstract class EntryConvertable {
         from(entry: Entry): Error | undefined;
         hash(): string;
         uuid(): string;
+        updated(): Subject<void> | undefined;
     };
 }

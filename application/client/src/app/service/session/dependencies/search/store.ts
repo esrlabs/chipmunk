@@ -1,5 +1,5 @@
 import { EntryConvertable, Entry } from '@platform/types/storage/entry';
-import { Subject } from '@platform/env/subscription';
+import { Subject, Subscriber } from '@platform/env/subscription';
 
 export enum Key {
     filters = 'filters',
@@ -8,7 +8,7 @@ export enum Key {
     disabled = 'disabled',
 }
 
-export abstract class Store<T> {
+export abstract class Store<T> extends Subscriber {
     public subjects: {
         update: Subject<Array<T & EntryConvertable>>;
     } = {
@@ -20,7 +20,12 @@ export abstract class Store<T> {
     private _uuid: string;
 
     constructor(uuid: string) {
+        super();
         this._uuid = uuid;
+    }
+
+    public destroy() {
+        this.unsubscribe();
     }
 
     public overwrite(items: Array<T & EntryConvertable>): void {
@@ -83,5 +88,20 @@ export abstract class Store<T> {
         if (prev !== this._hash) {
             this.subjects.update.emit(Array.from(this._entities.values()));
         }
+        this.unsubscribe();
+        this._entities.forEach((entity) => {
+            const updated = entity.entry().updated();
+            const hash = entity.entry().hash();
+            if (updated === undefined) {
+                return;
+            }
+            this.register(
+                updated.subscribe(() => {
+                    if (hash !== entity.entry().hash()) {
+                        this.subjects.update.emit(Array.from(this._entities.values()));
+                    }
+                }),
+            );
+        });
     }
 }

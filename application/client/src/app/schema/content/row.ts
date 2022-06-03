@@ -1,6 +1,6 @@
 import { Session } from '@service/session/session';
 import { serializeHtml } from '@platform/env/str';
-import { Subject } from '@platform/env/subscription';
+import { Subject, Subscriber } from '@platform/env/subscription';
 
 export interface Position {
     stream: number;
@@ -22,7 +22,7 @@ export interface RowInputs {
 
 const MAX_ROW_LENGTH_LIMIT = 10000;
 
-export class Row {
+export class Row extends Subscriber {
     public content: string;
     public position: Position;
     public owner: Owner;
@@ -30,8 +30,12 @@ export class Row {
     public session: Session;
     public cropped: boolean;
     public change: Subject<void> = new Subject();
+    public html!: string;
+    public color: string | undefined;
+    public background: string | undefined;
 
     constructor(inputs: RowInputs) {
+        super();
         this.session = inputs.session;
         this.cropped = inputs.content.length > MAX_ROW_LENGTH_LIMIT;
         this.content =
@@ -42,14 +46,28 @@ export class Row {
         this.position = inputs.position;
         this.owner = inputs.owner;
         this.source = inputs.source;
+        this._update();
+        this.register(
+            this.session.search
+                .highlights()
+                .subjects.get()
+                .update.subscribe(() => {
+                    this._update();
+                    this.change.emit();
+                }),
+        );
     }
 
     public destroy() {
         this.change.destroy();
+        this.unsubscribe();
     }
 
     public from(row: Row) {
-        this.content !== row.content && (this.content = row.content);
+        if (this.content !== row.content) {
+            this.content = row.content;
+            this._update();
+        }
         this.position !== row.position && (this.position = row.position);
         this.owner !== row.owner && (this.owner = row.owner);
         this.source !== row.source && (this.source = row.source);
@@ -74,5 +92,12 @@ export class Row {
             }
             return columns;
         }
+    }
+
+    private _update() {
+        const parsed = this.session.search.highlights().parse(this.content, this.owner, false);
+        this.html = parsed.html;
+        this.color = parsed.color;
+        this.background = parsed.background;
     }
 }
