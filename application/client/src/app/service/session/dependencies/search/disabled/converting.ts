@@ -1,4 +1,4 @@
-import { Recognizable } from '../recognizable';
+import { Recognizable } from '../declarations/recognizable';
 import { EntryConvertable } from '@platform/types/storage/entry';
 import { Key } from '../store';
 

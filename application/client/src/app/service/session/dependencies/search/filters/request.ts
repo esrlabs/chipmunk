@@ -5,7 +5,7 @@ import { IFilter, IFilterFlags } from '@platform/types/filter';
 import { EntryConvertable, Entry } from '@platform/types/storage/entry';
 import { unique } from '@platform/env/sequence';
 import { error } from '@platform/env/logger';
-import { Recognizable } from '../recognizable';
+import { Recognizable } from '../declarations/recognizable';
 import { Key } from '../store';
 
 import * as regexFilters from '@platform/env/filters';
@@ -134,6 +134,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
         from(entry: Entry): Error | undefined;
         hash(): string;
         uuid(): string;
+        updated(): Subject<void>;
     } {
         return {
             to: (): Entry => {
@@ -169,6 +170,9 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
             },
             uuid: (): string => {
                 return this.definition.uuid;
+            },
+            updated: (): Subject<void> => {
+                return this.subjects.updated.to<void>();
             },
         };
     }

@@ -2,7 +2,7 @@ import { Key, Store } from '../store';
 import { DisabledRequest } from './request';
 import { DisableConvertable } from './converting';
 import { EntryConvertable } from '@platform/types/storage/entry';
-import { Recognizable } from '../recognizable';
+import { Recognizable } from '../declarations/recognizable';
 
 export { DisabledRequest } from './request';
 

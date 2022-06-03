@@ -1,5 +1,5 @@
 import { EntityEditState } from './entity.state.edit';
-import { Recognizable } from '@service/session/dependencies/search/recognizable';
+import { Recognizable } from '@service/session/dependencies/search/declarations/recognizable';
 
 export class Entity<T> {
     private _entity: T & Recognizable;

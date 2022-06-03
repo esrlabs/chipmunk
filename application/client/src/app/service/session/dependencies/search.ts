@@ -7,6 +7,7 @@ import { IFilter, ISearchResults } from '@platform/types/filter';
 import { IGrabbedElement } from '@platform/types/content';
 import { FiltersStore } from './search/filters/store';
 import { DisableStore } from './search/disabled/store';
+import { Highlights } from './search/highlights';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -21,6 +22,7 @@ export class Search {
         filters: FiltersStore;
         disabled: DisableStore;
     };
+    private _highlights!: Highlights;
 
     public init(uuid: string) {
         this.setLoggerName(`Search: ${cutUuid(uuid)}`);
@@ -42,10 +44,14 @@ export class Search {
             filters: new FiltersStore(uuid),
             disabled: new DisableStore(uuid),
         };
+        this._highlights = new Highlights(this._store.filters);
     }
 
     public destroy() {
         this._subscriber.unsubscribe();
+        this._store.filters.destroy();
+        this._store.disabled.destroy();
+        this._highlights.destroy();
     }
 
     public len(): number {
@@ -126,6 +132,10 @@ export class Search {
                 return this._store.disabled;
             },
         };
+    }
+
+    public highlights(): Highlights {
+        return this._highlights;
     }
 }
 export interface Search extends LoggerInterface {}
