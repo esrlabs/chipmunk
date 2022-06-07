@@ -104,7 +104,9 @@ fn init_logging() {
 
 #[tokio::main]
 pub async fn main() -> Result<()> {
+    println!("start of main");
     init_logging();
+    println!("after init logging of main");
     let start = Instant::now();
     let matches = App::new("chip")
         .version(crate_version!())

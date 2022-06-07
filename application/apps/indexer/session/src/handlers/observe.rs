@@ -4,7 +4,6 @@ use crate::{
     state::SessionStateAPI,
     tail,
 };
-use async_stream::stream;
 use indexer_base::progress::Severity;
 use log::trace;
 use parsers::{dlt, LogMessage, MessageStreamItem, Parser};
@@ -25,7 +24,7 @@ use tokio::{
     sync::mpsc::{channel, Receiver, Sender},
     time::{timeout, Duration},
 };
-use tokio_stream::{Stream, StreamExt};
+use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -36,6 +35,7 @@ pub async fn handle(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     source: SourceType,
+    cancel_token: CancellationToken,
 ) -> OperationResult<()> {
     let (paths, result): (Vec<PathBuf>, OperationResult<()>) = match source {
         SourceType::Stream(transport, parser_type) => {
@@ -147,31 +147,27 @@ pub async fn handle(
                     state.file_read().await?;
                     // Switching to tail
                     let cancel = operation_api.get_cancellation_token();
-                    let tail_shutdown = CancellationToken::new();
-                    let tail_shutdown_caller = tail_shutdown.clone();
+                    let cancel_clone = cancel.clone();
                     let (result, tracker) = join!(
                         async {
                             let result = select! {
                                 res = async move {
-                                    while let Some(upd) = rx_tail.recv().await {
-                                        if let Err(err) = upd {
-                                            return Err(NativeError {
-                                                severity: Severity::ERROR,
-                                                kind: NativeErrorKind::Interrupted,
-                                                message: Some(err.to_string()),
-                                            });
-                                        } else {
-                                            state.update_session().await?;
-                                        }
+                                    while let Some(update) = rx_tail.recv().await {
+                                        update.map_err(|err| NativeError {
+                                            severity: Severity::ERROR,
+                                            kind: NativeErrorKind::Interrupted,
+                                            message: Some(err.to_string()),
+                                        })?;
+                                        state.update_session().await?;
                                     }
                                     Ok(())
                                 } => res,
                                 _ = cancel.cancelled() => Ok(())
                             };
-                            tail_shutdown_caller.cancel();
+                            cancel.cancel();
                             result
                         },
-                        tail::track(filename.clone(), tx_tail, tail_shutdown),
+                        tail::track(filename.clone(), tx_tail, cancel_clone),
                     );
                     (
                         vec![],
@@ -225,9 +221,8 @@ pub async fn handle(
                         Sender<Result<(), tail::Error>>,
                         Receiver<Result<(), tail::Error>>,
                     ) = channel(1);
-                    let tail_shutdown = CancellationToken::new();
                     let (_, listening) = join!(
-                        tail::track(filename.clone(), tx_tail, tail_shutdown.clone()),
+                        tail::track(filename.clone(), tx_tail, cancel_token),
                         listen(
                             dest_path,
                             operation_api,
@@ -267,9 +262,8 @@ pub async fn handle(
                         Receiver<Result<(), tail::Error>>,
                     ) = channel(1);
                     println!("start tailing");
-                    let tail_shutdown = CancellationToken::new();
                     let (_, listening) = join!(
-                        tail::track(filename.clone(), tx_tail, tail_shutdown.clone()),
+                        tail::track(filename.clone(), tx_tail, cancel_token),
                         listen(
                             dest_path,
                             operation_api,
@@ -283,7 +277,7 @@ pub async fn handle(
             }
         }
     };
-    trace!("done observing...cleaning up files: {:?}", paths);
+    println!("done observing...cleaning up files: {:?}", paths);
     for path in paths {
         if path.exists() {
             std::fs::remove_file(path).map_err(|e| NativeError {

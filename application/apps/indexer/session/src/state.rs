@@ -192,13 +192,13 @@ impl SessionStateAPI {
                     e,
                 )),
             })?;
-        Ok(rx_response.await.map_err(|_| NativeError {
+        rx_response.await.map_err(|_| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ChannelError,
             message: Some(String::from(
                 "fail to get response from Api::GetSearchResultLen",
             )),
-        })?)
+        })
     }
 
     pub async fn get_search_map(&self) -> Result<SearchMap, NativeError> {
@@ -211,11 +211,11 @@ impl SessionStateAPI {
                 kind: NativeErrorKind::ChannelError,
                 message: Some(format!("fail to send to Api::GetSearchMap; error: {}", e,)),
             })?;
-        Ok(rx_response.await.map_err(|_| NativeError {
+        rx_response.await.map_err(|_| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ChannelError,
             message: Some(String::from("fail to get response from Api::GetSearchMap")),
-        })?)
+        })
     }
 
     pub async fn set_session_file(&self, session_file: PathBuf) -> Result<(), NativeError> {
@@ -509,11 +509,11 @@ impl SessionStateAPI {
                 kind: NativeErrorKind::ChannelError,
                 message: Some(format!("fail to send to Api::CloseSession; error: {}", e,)),
             })?;
-        Ok(rx_response.await.map_err(|_| NativeError {
+        rx_response.await.map_err(|_| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ChannelError,
             message: Some(String::from("fail to get response from Api::CloseSession")),
-        })?)
+        })
     }
 
     pub async fn set_debug(&self, debug: bool) -> Result<(), NativeError> {

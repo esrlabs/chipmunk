@@ -245,7 +245,11 @@ impl OperationAPI {
         self.cancellation_token.child_token()
     }
 
-    pub async fn process(&self, operation: Operation) -> Result<(), NativeError> {
+    pub async fn process(
+        &self,
+        operation: Operation,
+        cancel: CancellationToken,
+    ) -> Result<(), NativeError> {
         let added = self
             .state_api
             .add_operation(
@@ -269,7 +273,7 @@ impl OperationAPI {
             match operation.kind {
                 OperationKind::Observe(source) => {
                     api.finish(
-                        handlers::observe::handle(api.clone(), state, source).await,
+                        handlers::observe::handle(api.clone(), state, source, cancel).await,
                         operation_str,
                     )
                     .await;
@@ -403,6 +407,7 @@ pub async fn task(
     mut rx_operations: UnboundedReceiver<Operation>,
     state: SessionStateAPI,
     tx_callback_events: UnboundedSender<CallbackEvent>,
+    cancel: CancellationToken,
 ) -> Result<(), NativeError> {
     debug!("task is started");
     while let Some(operation) = rx_operations.recv().await {
@@ -414,7 +419,7 @@ pub async fn task(
                 CancellationToken::new(),
             );
             println!("starting operation {:?}", operation);
-            if let Err(err) = operation_api.process(operation).await {
+            if let Err(err) = operation_api.process(operation, cancel.clone()).await {
                 operation_api.emit(CallbackEvent::OperationError {
                     uuid: operation_api.id(),
                     error: err,

@@ -62,6 +62,7 @@ impl Session {
                         rx_operations,
                         state_api.clone(),
                         tx_callback_events.clone(),
+                        destroyed.clone(),
                     )
                     .await;
                     if let Err(err) = state_api.shutdown() {
@@ -111,7 +112,7 @@ impl Session {
         self.tx_operations
             .send(Operation::new(operation_id, operations::OperationKind::End))
             .map_err(|e| ComputationError::Communication(e.to_string()))?;
-        self.destroyed.cancelled().await;
+        self.destroyed.cancel();
         Ok(())
     }
 

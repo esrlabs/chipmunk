@@ -140,7 +140,7 @@ def build_the_release
     os_ext = 'windows'
     release_folder = 'target/x86_64-pc-windows-gnu/release'
   end
-  cd release_folder.to_s, verbose: false do
+  cd release_folder.to_s, verbose: true do
     cp CLI_EXE_NAME.to_s, EXE_NAME.to_s
     cp EXE_NAME.to_s, "#{HOME}/bin/#{EXE_NAME}"
     sh "tar -cvzf indexing@#{current_version}-#{os_ext}.tgz #{EXE_NAME}"

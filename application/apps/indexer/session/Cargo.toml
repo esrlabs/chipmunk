@@ -5,7 +5,6 @@ authors = ["esrlabs.com"]
 edition = "2021"
 
 [dependencies]
-async-stream = "0.3"
 crossbeam-channel = "0.5"
 futures = "0.3"
 indexer_base = { path = "../indexer_base" }

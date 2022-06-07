@@ -23,7 +23,7 @@ pub(crate) async fn handle_interactive_session(matches: &clap::ArgMatches) {
     let cancel = CancellationToken::new();
 
     collect_user_input(tx).await;
-    let start = Instant::now();
+    let mut start = Instant::now();
     loop {
         select! {
             command = rx.recv() => {
@@ -38,6 +38,7 @@ pub(crate) async fn handle_interactive_session(matches: &clap::ArgMatches) {
                     }
                     Some(Command::Udp) => {
                         println!("udp command received");
+                        start = Instant::now();
                         let cancel = cancel.clone();
                         let _ = tokio::spawn(async move {
                         static RECEIVER: &str = "127.0.0.1:5000";
@@ -67,6 +68,7 @@ pub(crate) async fn handle_interactive_session(matches: &clap::ArgMatches) {
                     }
                     Some(Command::Observe) => {
                         println!("observe command received");
+                        start = Instant::now();
                         let uuid = Uuid::new_v4();
                         let file_name = matches.value_of("input").expect("input must be present");
                         let file_path = PathBuf::from(file_name);
@@ -75,6 +77,7 @@ pub(crate) async fn handle_interactive_session(matches: &clap::ArgMatches) {
                     }
                     Some(Command::Dlt) => {
                         println!("dlt command received");
+                        start = Instant::now();
                         let uuid = Uuid::new_v4();
                         let file_name = matches.value_of("input").expect("input must be present");
                         println!("trying to read {:?}", file_name);
@@ -86,6 +89,7 @@ pub(crate) async fn handle_interactive_session(matches: &clap::ArgMatches) {
                     }
                     Some(Command::Grab) => {
                         println!("grab command received");
+                        start = Instant::now();
                         let start_op = Instant::now();
                         let content = session.grab(LineRange::from(0u64..=1000)).await.expect("grab failed");
                         let len = content.grabbed_elements.len();
@@ -97,6 +101,7 @@ pub(crate) async fn handle_interactive_session(matches: &clap::ArgMatches) {
                     }
                     Some(Command::Stop) => {
                         println!("stop command received");
+                        start = Instant::now();
                         cancel.cancel();
                         session.stop(uuid).await.unwrap();
                     }
