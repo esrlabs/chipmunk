@@ -3,7 +3,7 @@
 members = [
     "indexer_base",
     "indexer_cli",
-    "matcher",
+    "matching",
     "merging",
     "parsers",
     "processor",

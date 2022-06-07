@@ -1,5 +1,5 @@
 use crate::js::session::events::ComputationErrorWrapper;
-pub use matcher::matcher::{Matcher, Sorted};
+pub use matching::matcher::{Matcher, SkimMatcherV2, Sorted};
 use node_bindgen::derive::node_bindgen;
 
 struct RustMatcher {
@@ -23,11 +23,20 @@ impl RustMatcher {
     #[node_bindgen]
     fn search(
         &mut self,
-        query: &str,
+        query: String,
         keep_zero_score: bool,
-        tag: Option<&str>,
+        tag: Option<String>,
     ) -> Result<Sorted, ComputationErrorWrapper> {
-        match self.matcher.search(query, keep_zero_score, tag) {
+        let origin: String = tag.unwrap_or_else(|| "".to_string());
+        match self.matcher.search(
+            query.as_ref(),
+            keep_zero_score,
+            if origin.is_empty() {
+                None
+            } else {
+                Some(origin.as_ref())
+            },
+        ) {
             Ok(matched) => Ok(matched),
             Err(err) => Err(ComputationErrorWrapper(err)),
         }

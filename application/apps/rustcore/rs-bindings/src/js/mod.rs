@@ -1,4 +1,4 @@
 pub mod converting;
-pub mod matcher;
+pub mod matching;
 pub mod mods;
 pub mod session;

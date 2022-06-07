@@ -1,4 +1,4 @@
-use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
+pub use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use session::events::ComputationError;
 use std::str::from_utf8;
 
@@ -132,8 +132,11 @@ mod test {
     use crate::matcher::{Matcher, Sorted};
 
     fn tester(matched: Sorted, result: Sorted) {
+        assert_eq!(matched.len(), result.len());
         for (m, r) in matched.into_iter().zip(result) {
+            assert_eq!(m.len(), r.len());
             for (m_hashmap, r_hashmap) in m.iter().zip(&r) {
+                assert_eq!(m_hashmap.len(), r_hashmap.len());
                 for (m_component, r_component) in m_hashmap.iter().zip(r_hashmap) {
                     assert_eq!(m_component, r_component);
                 }
@@ -145,15 +148,15 @@ mod test {
     fn test_empty_query() {
         let mut matcher = Matcher::new();
         let query = "";
-
-        matcher.set_items(Vec::from([
+        let items = Vec::from([
             Vec::from([Vec::from(["name".to_string(), "Chipmunk".to_string()])]),
             Vec::from([Vec::from([
                 "caption".to_string(),
                 "example.dlt".to_string(),
             ])]),
             Vec::from([Vec::from(["filter".to_string(), "Error".to_string()])]),
-        ]));
+        ]);
+        matcher.set_items(items);
         assert!(matcher
             .search(query, false, None)
             .expect("Sorting matches failed")
@@ -164,9 +167,8 @@ mod test {
     fn test_empty_items() {
         let mut matcher = Matcher::new();
         let query = "ee";
-
-        matcher.set_items(Vec::new());
-
+        let items = Vec::new();
+        matcher.set_items(items);
         assert!(matcher
             .search(query, false, None)
             .expect("Sorting matches failed")
@@ -177,21 +179,20 @@ mod test {
     fn test_full_match() {
         let mut matcher = Matcher::new();
         let query = "error";
-
-        matcher.set_items(Vec::from([Vec::from([Vec::from([
-            "type".to_string(),
-            "Error".to_string(),
-        ])])]));
-
+        let items = Vec::from([
+            Vec::from([Vec::from(["type".to_string(), "Error".to_string()])]),
+            Vec::from([Vec::from(["type".to_string(), "Warning".to_string()])]),
+            Vec::from([Vec::from(["type".to_string(), "Info".to_string()])]),
+        ]);
         let result = Vec::from([
             Vec::from([Vec::from(["type".to_string(), "<p>Error</p>".to_string()])]),
             Vec::from([Vec::from(["type".to_string(), "Warning".to_string()])]),
             Vec::from([Vec::from(["type".to_string(), "Info".to_string()])]),
         ]);
+        matcher.set_items(items);
         let matched = matcher
             .search(query, true, Some("p"))
             .expect("Sorting matches failed");
-
         tester(matched, result);
     }
 
@@ -199,8 +200,7 @@ mod test {
     fn test_scattered_match() {
         let mut matcher = Matcher::new();
         let query = "eee";
-
-        matcher.set_items(Vec::from([
+        let items = Vec::from([
             Vec::from([
                 Vec::from(["level".to_string(), "Severe".to_string()]),
                 Vec::from(["name".to_string(), "Very bad error occurred".to_string()]),
@@ -209,8 +209,7 @@ mod test {
                 Vec::from(["level".to_string(), "Critical".to_string()]),
                 Vec::from(["name".to_string(), "Not so bad".to_string()]),
             ]),
-        ]));
-
+        ]);
         let result = Vec::from([
             (Vec::from([
                 Vec::from([
@@ -227,6 +226,7 @@ mod test {
                 Vec::from(["name".to_string(), "Not so bad".to_string()]),
             ]),
         ]);
+        matcher.set_items(items);
         let matched = matcher
             .search(query, true, None)
             .expect("Sorting matches failed");
