@@ -154,6 +154,11 @@ namespace :test do
     sh "#{test_runner} ts-bindings/spec/utils.spec.ts"
   end
 
+  desc 'run matcher tests'
+  task :matcher do
+    sh "#{test_runner} ts-bindings/spec/matcher.spec.ts"
+  end
+
   desc 'run all test'
   task :all do
     puts 'No integration tests on grabber branch'

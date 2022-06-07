@@ -4,6 +4,7 @@ import * as Logs from '../util/logging';
 export interface IRustModuleExports {
     RustSession: any;
     Dlt: any;
+    RustMatcher: any;
 }
 
 export function getNativeModule(): IRustModuleExports {
@@ -12,6 +13,10 @@ export function getNativeModule(): IRustModuleExports {
     return require(modulePath);
 }
 
-const { RustSession: RustSessionNoType, Dlt: RustDltTools } = getNativeModule();
+const {
+    RustSession: RustSessionNoType,
+    Dlt: RustDltTools,
+    RustMatcher: RustMatcherNoType,
+} = getNativeModule();
 
-export { RustSessionNoType, RustDltTools };
+export { RustSessionNoType, RustDltTools, RustMatcherNoType };

@@ -23,6 +23,8 @@ export {
 
 export { IExportOptions, IDetectDTFormatResult, IDetectOptions } from './api/session.stream';
 
+export { Matcher } from './api/matcher';
+
 export {
     IGrabbedElement,
     IExtractDTFormatOptions,
