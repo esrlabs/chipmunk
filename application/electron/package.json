@@ -96,7 +96,7 @@
         "@types/node": "^14.14.6",
         "@types/uuid": "^8.3.0",
         "dmg-builder": "22.9.1",
-        "electron": "10.2.0",
+        "electron": "15.5.5",
         "electron-builder": "^22.9.1",
         "electron-notarize": "^1.0.0",
         "tslint": "^6.1.3",
