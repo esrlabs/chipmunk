@@ -2,6 +2,7 @@ use crate::{
     events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone},
     handlers,
     state::SessionStateAPI,
+    tracker::OperationTrackerAPI,
 };
 use indexer_base::progress::Severity;
 use log::{debug, error, warn};
@@ -174,6 +175,7 @@ pub struct OperationAPI {
     tx_callback_events: UnboundedSender<CallbackEvent>,
     operation_id: Uuid,
     state_api: SessionStateAPI,
+    tracker_api: OperationTrackerAPI,
     // Used to force cancalation
     cancellation_token: CancellationToken,
     // Uses to confirm cancaltion / done state of operation
@@ -183,6 +185,7 @@ pub struct OperationAPI {
 impl OperationAPI {
     pub fn new(
         state_api: SessionStateAPI,
+        tracker_api: OperationTrackerAPI,
         tx_callback_events: UnboundedSender<CallbackEvent>,
         operation_id: Uuid,
         cancellation_token: CancellationToken,
@@ -193,6 +196,7 @@ impl OperationAPI {
             cancellation_token,
             done_token: CancellationToken::new(),
             state_api,
+            tracker_api,
         }
     }
 
@@ -251,7 +255,7 @@ impl OperationAPI {
             }
         };
         if !self.state_api.is_closing() && !self.get_cancellation_token().is_cancelled() {
-            if let Err(err) = self.state_api.remove_operation(self.id()).await {
+            if let Err(err) = self.tracker_api.remove_operation(self.id()).await {
                 error!("Fail to remove operation; error: {:?}", err);
             }
         }
@@ -271,7 +275,7 @@ impl OperationAPI {
 
     pub async fn process(&self, operation: Operation) -> Result<(), NativeError> {
         let added = self
-            .state_api
+            .tracker_api
             .add_operation(
                 self.id(),
                 operation.to_string(),
@@ -288,6 +292,7 @@ impl OperationAPI {
         }
         let api = self.clone();
         let state = self.state_api.clone();
+        let tracker = self.tracker_api.clone();
         spawn(async move {
             match operation {
                 Operation::Observe(source) => {
@@ -364,7 +369,7 @@ impl OperationAPI {
                     )
                     .await;
                 }
-                Operation::Cancel { target } => match state.cancel_operation(target).await {
+                Operation::Cancel { target } => match tracker.cancel_operation(target).await {
                     Ok(canceled) => {
                         if canceled {
                             api.finish::<OperationResult<()>>(Ok(None), OperationAlias::Cancel)
@@ -437,6 +442,7 @@ pub fn uuid_from_str(operation_id: &str) -> Result<Uuid, ComputationError> {
 pub async fn task(
     mut rx_operations: UnboundedReceiver<(Uuid, Operation)>,
     state: SessionStateAPI,
+    tracker: OperationTrackerAPI,
     tx_callback_events: UnboundedSender<CallbackEvent>,
 ) -> Result<(), NativeError> {
     debug!("task is started");
@@ -444,6 +450,7 @@ pub async fn task(
         if !matches!(operation, Operation::End) {
             let operation_api = OperationAPI::new(
                 state.clone(),
+                tracker.clone(),
                 tx_callback_events.clone(),
                 id,
                 CancellationToken::new(),
@@ -457,6 +464,9 @@ pub async fn task(
         } else {
             debug!("session closing is requested");
             state.close_session().await?;
+            if let Err(err) = tracker.shutdown() {
+                error!("Fail to shutdown tracker: {:?}", err);
+            }
             break;
         }
     }

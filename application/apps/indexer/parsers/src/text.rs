@@ -4,7 +4,7 @@ use std::{fmt, io::Write};
 
 pub struct StringTokenizer;
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct StringMessage {
     content: String,
 }

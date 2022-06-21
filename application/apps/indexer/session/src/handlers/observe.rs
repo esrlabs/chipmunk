@@ -243,9 +243,12 @@ pub async fn handle(
                         Sender<Result<(), tail::Error>>,
                         Receiver<Result<(), tail::Error>>,
                     ) = channel(1);
-                    let tail_shutdown = CancellationToken::new();
                     let (_, listening) = join!(
-                        tail::track(filename.clone(), tx_tail, tail_shutdown.clone()),
+                        tail::track(
+                            filename.clone(),
+                            tx_tail,
+                            operation_api.get_cancellation_token()
+                        ),
                         listen(
                             dest_path,
                             operation_api,
@@ -285,9 +288,12 @@ pub async fn handle(
                         Sender<Result<(), tail::Error>>,
                         Receiver<Result<(), tail::Error>>,
                     ) = channel(1);
-                    let tail_shutdown = CancellationToken::new();
                     let (_, listening) = join!(
-                        tail::track(filename.clone(), tx_tail, tail_shutdown.clone()),
+                        tail::track(
+                            filename.clone(),
+                            tx_tail,
+                            operation_api.get_cancellation_token()
+                        ),
                         listen(
                             dest_path,
                             operation_api,

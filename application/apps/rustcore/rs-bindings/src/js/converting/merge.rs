@@ -11,11 +11,11 @@ use serde::Serialize;
 #[derive(Serialize, Debug, Clone)]
 pub struct WrappedFileMergeOptions(FileMergeOptions);
 
-impl WrappedFileMergeOptions {
-    pub fn as_file_merge_options(&self) -> FileMergeOptions {
-        self.0.clone()
-    }
-}
+// impl WrappedFileMergeOptions {
+//     pub fn as_file_merge_options(&self) -> FileMergeOptions {
+//         self.0.clone()
+//     }
+// }
 
 impl JSValue<'_> for WrappedFileMergeOptions {
     fn convert_to_rust(env: &JsEnv, n_value: napi_value) -> Result<Self, NjError> {

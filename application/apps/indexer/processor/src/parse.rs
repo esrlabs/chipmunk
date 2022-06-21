@@ -655,7 +655,7 @@ fn parse_from_month(mmm: &str) -> Result<u32, DateParseError> {
     }
 }
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(Serialize, Debug, PartialEq, Eq)]
 pub enum FormatCheckResult {
     FormatRegex(String),
     FormatInvalid(String),
@@ -862,11 +862,12 @@ pub fn extract_posix_timestamp(
     }
 }
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(Serialize, Debug, PartialEq, Eq)]
 pub enum TimestampByFormatResult {
     Timestamp(i64),
     Error(String),
 }
+
 /// return the timestamp and wether the year was missing using format string only
 pub fn extract_posix_timestamp_by_format(
     line: &str,

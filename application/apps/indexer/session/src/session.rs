@@ -4,6 +4,8 @@ use crate::{
     operations::Operation,
     state,
     state::SessionStateAPI,
+    tracker,
+    tracker::OperationTrackerAPI,
 };
 use indexer_base::progress::Severity;
 use log::{debug, error};
@@ -31,12 +33,14 @@ pub struct Session {
     tx_operations: UnboundedSender<(Uuid, Operation)>,
     destroyed: CancellationToken,
     pub state: SessionStateAPI,
+    pub tracker: OperationTrackerAPI,
 }
 
 impl Session {
     pub async fn new(uuid: Uuid) -> (Self, UnboundedReceiver<CallbackEvent>) {
         let (tx_operations, rx_operations): OperationsChannel = unbounded_channel();
-        let (state_api, rx_state_api) = SessionStateAPI::new();
+        let (tracker_api, rx_tracker_api) = OperationTrackerAPI::new();
+        let (state_api, rx_state_api) = SessionStateAPI::new(tracker_api.clone());
         let (tx_callback_events, rx_callback_events): (
             UnboundedSender<CallbackEvent>,
             UnboundedReceiver<CallbackEvent>,
@@ -46,16 +50,18 @@ impl Session {
             tx_operations,
             destroyed: CancellationToken::new(),
             state: state_api.clone(),
+            tracker: tracker_api.clone(),
         };
         let destroyed = session.destroyed.clone();
         task::spawn(async move {
             debug!("Session is started");
             let tx_callback_events_state = tx_callback_events.clone();
-            let (_, _) = join!(
+            let (_, _, _) = join!(
                 async {
                     let result = operations::task(
                         rx_operations,
                         state_api.clone(),
+                        tracker_api.clone(),
                         tx_callback_events.clone(),
                     )
                     .await;
@@ -65,6 +71,7 @@ impl Session {
                     result
                 },
                 state::task(rx_state_api, tx_callback_events_state),
+                tracker::task(state_api.clone(), rx_tracker_api),
             );
             destroyed.cancel();
             debug!("Session is finished");
@@ -189,7 +196,7 @@ impl Session {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct GeneralError {
     severity: Severity,
     message: String,

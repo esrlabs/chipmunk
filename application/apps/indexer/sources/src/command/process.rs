@@ -73,11 +73,11 @@ impl ByteSource for ProcessSource {
                         match reader.read_line(&mut stdout_buffer).await {
                             Ok(_) => Ok(stdout_buffer),
                             Err(err) => {
-                                return Err(SourceError::Unrecoverable(format!(
-                                "Reading line from stdout failed: {}",
-                                err
-                            )));
-                        }
+                                Err(SourceError::Unrecoverable(format!(
+                                    "Reading line from stdout failed: {}",
+                                    err
+                                )))
+                            }
                         }
                     },
                     None => Err(SourceError::Unrecoverable(
@@ -98,7 +98,7 @@ impl ByteSource for ProcessSource {
                         match reader.read_line(&mut stderr_buffer).await {
                             Ok(_) => Ok(stderr_buffer),
                             Err(err) => {
-                                return Err(SourceError::Unrecoverable(format!(
+                                Err(SourceError::Unrecoverable(format!(
                                     "Reading line from stderr failed: {}",
                                     err
                                 )))

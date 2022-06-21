@@ -1,9 +1,9 @@
 use crate::{
     events::{CallbackEvent, NativeError, NativeErrorKind},
-    operations::OperationStat,
+    tracker::OperationTrackerAPI,
 };
 use indexer_base::progress::Severity;
-use log::{debug, error};
+use log::{debug, error, warn};
 use processor::{
     grabber::{GrabbedContent, Grabber, LineRange},
     map::{FilterMatch, SearchMap},
@@ -11,7 +11,7 @@ use processor::{
     text_source::TextFileSource,
 };
 use std::{
-    collections::{hash_map::Entry, HashMap},
+    collections::HashMap,
     path::{Path, PathBuf},
 };
 use tokio::sync::{
@@ -42,9 +42,15 @@ pub enum Api {
     SetStreamLen((u64, oneshot::Sender<()>)),
     GetStreamLen(oneshot::Sender<Result<usize, NativeError>>),
     GetSearchResultLen(oneshot::Sender<usize>),
-    UpdateSearchResult((PathBuf, oneshot::Sender<Result<usize, NativeError>>)),
-    GetSearchHolder(oneshot::Sender<Result<SearchHolder, NativeError>>),
-    SetSearchHolder((SearchHolder, oneshot::Sender<Result<(), NativeError>>)),
+    UpdateSearchResult((Uuid, PathBuf, oneshot::Sender<Result<usize, NativeError>>)),
+    GetSearchHolder((Uuid, oneshot::Sender<Result<SearchHolder, NativeError>>)),
+    SetSearchHolder(
+        (
+            Option<SearchHolder>,
+            Uuid,
+            oneshot::Sender<Result<(), NativeError>>,
+        ),
+    ),
     DropSearch(oneshot::Sender<bool>),
     GrabSearch(
         (
@@ -54,20 +60,10 @@ pub enum Api {
     ),
     GetSearchMap(oneshot::Sender<SearchMap>),
     SetMatches((Option<Vec<FilterMatch>>, oneshot::Sender<()>)),
-    AddOperation(
-        (
-            Uuid,
-            String,
-            CancellationToken,
-            CancellationToken,
-            oneshot::Sender<bool>,
-        ),
-    ),
-    RemoveOperation((Uuid, oneshot::Sender<bool>)),
-    CancelOperation((Uuid, oneshot::Sender<bool>)),
     CloseSession(oneshot::Sender<()>),
     SetDebugMode((bool, oneshot::Sender<()>)),
-    GetOperationsStat(oneshot::Sender<Result<String, NativeError>>),
+    NotifyCancelingOperation(Uuid),
+    NotifyCanceledOperation(Uuid),
     Shutdown,
 }
 
@@ -84,28 +80,27 @@ pub struct SessionState {
     pub search_holder: SearchHolderState,
     pub content_grabber: Option<Box<Grabber>>,
     pub search_grabber: Option<Box<Grabber>>,
-    //HashMap<OperationUUID, (cancellation_token, operation_done_token)>
-    pub operations: HashMap<Uuid, (CancellationToken, CancellationToken)>,
+    pub cancelling_operations: HashMap<Uuid, bool>,
     pub status: Status,
-    // stat is used only in debug = true tp collect some stat-info
-    pub stat: Vec<OperationStat>,
     pub debug: bool,
 }
 
 #[derive(Clone, Debug)]
 pub struct SessionStateAPI {
     tx_api: UnboundedSender<Api>,
+    tracker: OperationTrackerAPI,
     closing_token: CancellationToken,
 }
 
 #[allow(clippy::type_complexity)]
 impl SessionStateAPI {
-    pub fn new() -> (Self, UnboundedReceiver<Api>) {
+    pub fn new(tracker: OperationTrackerAPI) -> (Self, UnboundedReceiver<Api>) {
         let (tx_api, rx_api): (UnboundedSender<Api>, UnboundedReceiver<Api>) = unbounded_channel();
         (
             SessionStateAPI {
                 tx_api,
                 closing_token: CancellationToken::new(),
+                tracker,
             },
             rx_api,
         )
@@ -193,13 +188,13 @@ impl SessionStateAPI {
                     e,
                 )),
             })?;
-        Ok(rx_response.await.map_err(|_| NativeError {
+        rx_response.await.map_err(|_| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ChannelError,
             message: Some(String::from(
                 "fail to get response from Api::GetSearchResultLen",
             )),
-        })?)
+        })
     }
 
     pub async fn get_search_map(&self) -> Result<SearchMap, NativeError> {
@@ -212,11 +207,11 @@ impl SessionStateAPI {
                 kind: NativeErrorKind::ChannelError,
                 message: Some(format!("fail to send to Api::GetSearchMap; error: {}", e,)),
             })?;
-        Ok(rx_response.await.map_err(|_| NativeError {
+        rx_response.await.map_err(|_| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ChannelError,
             message: Some(String::from("fail to get response from Api::GetSearchMap")),
-        })?)
+        })
     }
 
     pub async fn set_session_file(&self, session_file: PathBuf) -> Result<(), NativeError> {
@@ -318,6 +313,7 @@ impl SessionStateAPI {
 
     pub async fn update_search_result(
         &self,
+        uuid: Uuid,
         search_result_file: PathBuf,
     ) -> Result<usize, NativeError> {
         let (tx_response, rx_response): (
@@ -325,7 +321,11 @@ impl SessionStateAPI {
             oneshot::Receiver<Result<usize, NativeError>>,
         ) = oneshot::channel();
         self.tx_api
-            .send(Api::UpdateSearchResult((search_result_file, tx_response)))
+            .send(Api::UpdateSearchResult((
+                uuid,
+                search_result_file,
+                tx_response,
+            )))
             .map_err(|e| NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::ChannelError,
@@ -343,13 +343,13 @@ impl SessionStateAPI {
         })?
     }
 
-    pub async fn get_search_holder(&self) -> Result<SearchHolder, NativeError> {
+    pub async fn get_search_holder(&self, uuid: Uuid) -> Result<SearchHolder, NativeError> {
         let (tx_response, rx_response): (
             oneshot::Sender<Result<SearchHolder, NativeError>>,
             oneshot::Receiver<Result<SearchHolder, NativeError>>,
         ) = oneshot::channel();
         self.tx_api
-            .send(Api::GetSearchHolder(tx_response))
+            .send(Api::GetSearchHolder((uuid, tx_response)))
             .map_err(|e| NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::ChannelError,
@@ -370,13 +370,17 @@ impl SessionStateAPI {
         }
     }
 
-    pub async fn set_search_holder(&self, holder: SearchHolder) -> Result<(), NativeError> {
+    pub async fn set_search_holder(
+        &self,
+        holder: Option<SearchHolder>,
+        uuid: Uuid,
+    ) -> Result<(), NativeError> {
         let (tx_response, rx_response): (
             oneshot::Sender<Result<(), NativeError>>,
             oneshot::Receiver<Result<(), NativeError>>,
         ) = oneshot::channel();
         self.tx_api
-            .send(Api::SetSearchHolder((holder, tx_response)))
+            .send(Api::SetSearchHolder((holder, uuid, tx_response)))
             .map_err(|e| NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::ChannelError,
@@ -432,75 +436,35 @@ impl SessionStateAPI {
         Ok(())
     }
 
-    pub async fn add_operation(
-        &self,
-        uuid: Uuid,
-        name: String,
-        canceler: CancellationToken,
-        done: CancellationToken,
-    ) -> Result<bool, NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<bool>, oneshot::Receiver<bool>) =
-            oneshot::channel();
+    pub async fn canceling_operation(&self, uuid: Uuid) -> Result<(), NativeError> {
         self.tx_api
-            .send(Api::AddOperation((uuid, name, canceler, done, tx_response)))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::AddOperation; error: {}", e,)),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from("fail to get response from Api::AddOperation")),
-        })
-    }
-
-    pub async fn remove_operation(&self, uuid: Uuid) -> Result<bool, NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<bool>, oneshot::Receiver<bool>) =
-            oneshot::channel();
-        self.tx_api
-            .send(Api::RemoveOperation((uuid, tx_response)))
+            .send(Api::NotifyCancelingOperation(uuid))
             .map_err(|e| NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::ChannelError,
                 message: Some(format!(
-                    "fail to send to Api::RemoveOperation; error: {}",
+                    "fail to send to Api::NotifyCancelingOperation; error: {}",
                     e,
                 )),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from(
-                "fail to get response from Api::RemoveOperation",
-            )),
-        })
+            })
     }
 
-    pub async fn cancel_operation(&self, uuid: Uuid) -> Result<bool, NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<bool>, oneshot::Receiver<bool>) =
-            oneshot::channel();
+    pub async fn canceled_operation(&self, uuid: Uuid) -> Result<(), NativeError> {
         self.tx_api
-            .send(Api::CancelOperation((uuid, tx_response)))
+            .send(Api::NotifyCanceledOperation(uuid))
             .map_err(|e| NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::ChannelError,
                 message: Some(format!(
-                    "fail to send to Api::CancelOperation; error: {}",
+                    "fail to send to Api::NotifyCanceledOperation; error: {}",
                     e,
                 )),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from(
-                "fail to get response from Api::CancelOperation",
-            )),
-        })
+            })
     }
 
     pub async fn close_session(&self) -> Result<(), NativeError> {
         self.closing_token.cancel();
+        self.tracker.cancel_all().await?;
         let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
             oneshot::channel();
         self.tx_api
@@ -510,11 +474,11 @@ impl SessionStateAPI {
                 kind: NativeErrorKind::ChannelError,
                 message: Some(format!("fail to send to Api::CloseSession; error: {}", e,)),
             })?;
-        Ok(rx_response.await.map_err(|_| NativeError {
+        rx_response.await.map_err(|_| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ChannelError,
             message: Some(String::from("fail to get response from Api::CloseSession")),
-        })?)
+        })
     }
 
     pub async fn set_debug(&self, debug: bool) -> Result<(), NativeError> {
@@ -535,30 +499,6 @@ impl SessionStateAPI {
         Ok(())
     }
 
-    pub async fn get_operations_stat(&self) -> Result<String, NativeError> {
-        let (tx_response, rx_response) = oneshot::channel();
-        self.tx_api
-            .send(Api::GetOperationsStat(tx_response))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!(
-                    "fail to send to Api::GetOperationsStat; error: {}",
-                    e,
-                )),
-            })?;
-        match rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from(
-                "fail to get response from Api::GetOperationsStat",
-            )),
-        }) {
-            Ok(result) => result,
-            Err(err) => Err(err),
-        }
-    }
-
     pub fn shutdown(&self) -> Result<(), NativeError> {
         self.tx_api.send(Api::Shutdown).map_err(|e| NativeError {
             severity: Severity::ERROR,
@@ -577,6 +517,14 @@ pub async fn update_search_result(
     search_result_file: &Path,
     cancellation_token: CancellationToken,
 ) -> Result<usize, NativeError> {
+    // TODO: we should check: related operation isn't canceled
+    if !search_result_file.exists() {
+        warn!(
+            "search result file {} doesn't exist",
+            search_result_file.to_string_lossy()
+        );
+        return Ok(0);
+    }
     let result = if state.search_grabber.is_none() {
         match Grabber::lazy(TextFileSource::new(
             search_result_file,
@@ -638,9 +586,8 @@ pub async fn task(
         search_holder: SearchHolderState::NotInited,
         content_grabber: None,
         search_grabber: None,
-        operations: HashMap::new(),
         status: Status::Open,
-        stat: vec![],
+        cancelling_operations: HashMap::new(),
         debug: false,
     };
     let cancellation_token = CancellationToken::new();
@@ -886,13 +833,14 @@ pub async fn task(
                         let mut matches = if let SearchHolderState::Available(mut search_holder) =
                             state.search_holder
                         {
-                            let matches = match search_holder.execute_search() {
-                                Ok((file_path, matches, _stats)) => Some((file_path, matches)),
-                                Err(err) => {
-                                    error!("Fail to append search: {}", err);
-                                    None
-                                }
-                            };
+                            let matches =
+                                match search_holder.execute_search(CancellationToken::new()) {
+                                    Ok((file_path, matches, _stats)) => Some((file_path, matches)),
+                                    Err(err) => {
+                                        error!("Fail to append search: {}", err);
+                                        None
+                                    }
+                                };
                             state.search_holder = SearchHolderState::Available(search_holder);
                             matches
                         } else {
@@ -1009,16 +957,20 @@ pub async fn task(
                     });
                 }
             }
-            Api::UpdateSearchResult((search_result_file, tx_response)) => {
+            Api::UpdateSearchResult((uuid, search_result_file, tx_response)) => {
                 if tx_response
-                    .send(
+                    .send(if state.cancelling_operations.get(&uuid).is_some() {
+                        // Operation is in canceling state. We should not update search and just ignore
+                        // this request.
+                        Ok(0)
+                    } else {
                         update_search_result(
                             &mut state,
                             &search_result_file,
                             cancellation_token.clone(),
                         )
-                        .await,
-                    )
+                        .await
+                    })
                     .is_err()
                 {
                     return Err(NativeError {
@@ -1028,7 +980,7 @@ pub async fn task(
                     });
                 }
             }
-            Api::GetSearchHolder(tx_response) => {
+            Api::GetSearchHolder((uuid, tx_response)) => {
                 let result = match state.search_holder {
                     SearchHolderState::Available(holder) => {
                         state.search_holder = SearchHolderState::InUse;
@@ -1042,7 +994,7 @@ pub async fn task(
                     SearchHolderState::NotInited => {
                         if let Some(session_file) = state.session_file.as_ref() {
                             state.search_holder = SearchHolderState::InUse;
-                            Ok(SearchHolder::new(session_file, vec![].iter()))
+                            Ok(SearchHolder::new(session_file, vec![].iter(), uuid))
                         } else {
                             Err(NativeError {
                                 severity: Severity::ERROR,
@@ -1062,9 +1014,13 @@ pub async fn task(
                     });
                 }
             }
-            Api::SetSearchHolder((search_holder, tx_response)) => {
+            Api::SetSearchHolder((mut search_holder, _uuid_for_debug, tx_response)) => {
                 let result = if matches!(state.search_holder, SearchHolderState::InUse) {
-                    state.search_holder = SearchHolderState::Available(search_holder);
+                    if let Some(search_holder) = search_holder.take() {
+                        state.search_holder = SearchHolderState::Available(search_holder);
+                    } else {
+                        state.search_holder = SearchHolderState::NotInited;
+                    }
                     Ok(())
                 } else {
                     Err(NativeError {
@@ -1120,84 +1076,11 @@ pub async fn task(
                     });
                 }
             }
-            Api::AddOperation((uuid, name, cancalation_token, done_token, tx_response)) => {
-                if state.debug {
-                    state.stat.push(OperationStat::new(uuid.to_string(), name));
-                }
-                if tx_response
-                    .send(match state.operations.entry(uuid) {
-                        Entry::Vacant(entry) => {
-                            entry.insert((cancalation_token, done_token));
-                            true
-                        }
-                        _ => false,
-                    })
-                    .is_err()
-                {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::AddOperation")),
-                    });
-                }
-            }
-            Api::RemoveOperation((uuid, tx_response)) => {
-                if state.debug {
-                    let str_uuid = uuid.to_string();
-                    if let Some(index) = state.stat.iter().position(|op| op.uuid == str_uuid) {
-                        state.stat[index].done();
-                    } else {
-                        error!("fail to find operation in stat: {}", str_uuid);
-                    }
-                }
-                if tx_response
-                    .send(state.operations.remove(&uuid).is_some())
-                    .is_err()
-                {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::RemoveOperation")),
-                    });
-                }
-            }
-            Api::CancelOperation((uuid, tx_response)) => {
-                if tx_response
-                    .send(
-                        if let Some((operation_cancalation_token, done_token)) =
-                            state.operations.remove(&uuid)
-                        {
-                            if !done_token.is_cancelled() {
-                                operation_cancalation_token.cancel();
-                                debug!("waiting for operation {} would confirm done-state", uuid);
-                                done_token.cancelled().await;
-                            }
-                            true
-                        } else {
-                            false
-                        },
-                    )
-                    .is_err()
-                {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::CancelOperation")),
-                    });
-                }
-            }
             Api::CloseSession(tx_response) => {
                 cancellation_token.cancel();
                 state.status = Status::Closed;
-                for (uuid, (operation_cancalation_token, done_token)) in &state.operations {
-                    if !done_token.is_cancelled() {
-                        operation_cancalation_token.cancel();
-                        debug!("waiting for operation {} would confirm done-state", uuid);
-                        // TODO: add timeout to preven situation with waiting forever. 2-3 sec.
-                        done_token.cancelled().await;
-                    }
-                }
-                state.operations.clear();
+                // Note: all operations would be canceled in close_session of API. We cannot do it here,
+                // because we would lock this loop if some operation needs access to state during cancellation.
                 if tx_response.send(()).is_err() {
                     return Err(NativeError {
                         severity: Severity::ERROR,
@@ -1216,24 +1099,11 @@ pub async fn task(
                     });
                 }
             }
-            Api::GetOperationsStat(tx_response) => {
-                if tx_response
-                    .send(match serde_json::to_string(&state.stat) {
-                        Ok(serialized) => Ok(serialized),
-                        Err(err) => Err(NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::ComputationFailed,
-                            message: Some(format!("{}", err)),
-                        }),
-                    })
-                    .is_err()
-                {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::GetOperationsStat")),
-                    });
-                }
+            Api::NotifyCancelingOperation(uuid) => {
+                state.cancelling_operations.insert(uuid, true);
+            }
+            Api::NotifyCanceledOperation(uuid) => {
+                state.cancelling_operations.remove(&uuid);
             }
             Api::Shutdown => {
                 cancellation_token.cancel();
