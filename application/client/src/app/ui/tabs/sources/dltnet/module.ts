@@ -44,5 +44,4 @@ import { TabSourceDltNet } from './component';
     exports: [TabSourceDltNet],
 })
 export class TabSourceDltNetModule {
-    constructor() {}
 }

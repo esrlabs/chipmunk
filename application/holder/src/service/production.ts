@@ -4,10 +4,10 @@ import {
     Implementation,
     DependOn,
     register,
-} from '@platform/entity/service';
+} from 'platform/entity/service';
 import { environment } from '@service/environment';
 import { settings } from '@env/logs/settings';
-import { Level, isValidLevel, strToLogLevel } from '@platform/env/logger';
+import { Level, isValidLevel, strToLogLevel } from 'platform/env/logger';
 
 import { services } from '@register/services';
 

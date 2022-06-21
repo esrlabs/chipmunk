@@ -414,7 +414,7 @@ export abstract class Provider<T> {
 
     public abstract search(entity: Entity<T>): void;
 
-    public abstract isViable(): boolean;
+    public abstract isVisable(): boolean;
 
     public abstract dropped(event: CdkDragDrop<EntityData<DragableRequest>>): void;
 

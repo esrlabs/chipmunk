@@ -1,15 +1,3 @@
-import * as Logs from '../util/logging';
-
-import {
-    IFilter,
-    IGrabbedContent,
-    IGrabbedElement,
-    IExtractDTFormatResult,
-    IExtractDTFormatOptions,
-    IConcatFile,
-    IFileMergeOptions,
-    Observe,
-} from '../interfaces/index';
 import { getNativeModule } from './native';
 import { error } from '../util/logging';
 import { Types } from '../interfaces/dlt';

@@ -63,7 +63,7 @@ export class Service extends Implementation {
     }
 
     public session(session: string): Job[] {
-        let jobs = this._jobs.get(session);
+        const jobs = this._jobs.get(session);
         if (jobs === undefined) {
             return [];
         } else {
@@ -72,7 +72,7 @@ export class Service extends Implementation {
     }
 
     public globals(): Job[] {
-        let jobs = this._jobs.get(Job.GLOBAL_JOBS);
+        const jobs = this._jobs.get(Job.GLOBAL_JOBS);
         if (jobs === undefined) {
             return [];
         } else {

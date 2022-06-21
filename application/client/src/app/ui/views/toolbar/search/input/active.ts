@@ -1,4 +1,4 @@
-import { IFilter, IFilterFlags } from '@platform/types/filter';
+import { IFilter } from '@platform/types/filter';
 
 export class ActiveSearch {
     public filter: IFilter;

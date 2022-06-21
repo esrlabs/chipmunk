@@ -46,9 +46,13 @@ export class Service extends Implementation {
         return Promise.resolve();
     }
 
-    public add(notification: INotification) {}
+    public add(notification: INotification) {
+        console.log(notification);
+    }
 
-    public clear() {}
+    public clear() {
+        console.log(`... not implemented`);
+    }
 }
 export interface Service extends Interface {}
 export const notifications = register(new Service());

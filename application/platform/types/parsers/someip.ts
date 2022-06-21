@@ -1,1 +1,3 @@
-export interface SomeIPParserSettings {}
+export interface SomeIPParserSettings {
+    dummy: string;
+}

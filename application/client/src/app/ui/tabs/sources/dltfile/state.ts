@@ -15,6 +15,7 @@ import { Filter } from '@ui/env/entities/filter';
 import { Summary } from './summary';
 import { Timezone } from '@ui/elements/timezones/timezone';
 import { bridge } from '@service/bridge';
+import { InternalAPI } from '@service/ilc';
 
 export const ENTITIES = {
     app_ids: 'app_ids',
@@ -36,11 +37,15 @@ export class State {
     public stat: StatisticInfo | undefined;
     public filters: {
         entities: Filter;
-    } = {
-        entities: new Filter(),
     };
     public summary: Summary = new Summary();
     public timezone: Timezone | undefined;
+
+    constructor(ilc: InternalAPI) {
+        this.filters = {
+            entities: new Filter(ilc),
+        };
+    }
 
     public isStatLoaded(): boolean {
         return this.stat !== undefined;
@@ -99,7 +104,10 @@ export class State {
                     >(stat, key);
                     const entities: StatEntity[] = content.map((record) => {
                         const entity = new StatEntity(record[0], key, record[1]);
-                        if ((preselection as any)[key] !== undefined) {
+                        if (
+                            preselection !== undefined &&
+                            (preselection as any)[key] !== undefined
+                        ) {
                             if (
                                 ((preselection as any)[key] as string[]).indexOf(record[0]) !== -1
                             ) {

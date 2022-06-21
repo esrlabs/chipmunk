@@ -4,7 +4,7 @@ import {
     Implementation,
     DependOn,
     register,
-} from '@platform/entity/service';
+} from 'platform/entity/service';
 import { environment } from '@service/environment';
 import { production } from '@service/production';
 import { app } from 'electron';
@@ -153,7 +153,7 @@ export class Service extends Implementation {
     }
 
     public getPreload(): string {
-        return path.resolve(this.getRoot(), 'holder/src/preload');
+        return path.resolve(this.getRoot(), 'preload');
     }
 
     /**
@@ -311,7 +311,7 @@ export class Service extends Implementation {
             typeof require.main.filename === 'string' &&
             require.main.filename.trim() !== ''
         ) {
-            return path.resolve(path.dirname(require.main.filename), '../..');
+            return path.resolve(path.dirname(require.main.filename));
         }
         if (
             typeof require.resolve('../main') === 'string' &&

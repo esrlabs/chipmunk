@@ -1,5 +1,5 @@
 import { Component, ChangeDetectorRef, ElementRef, AfterViewInit, ViewChild } from '@angular/core';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 
 @Component({
     selector: 'app-layout-focus',

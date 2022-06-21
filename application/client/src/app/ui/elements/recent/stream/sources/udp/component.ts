@@ -1,4 +1,4 @@
-import { Component, AfterContentInit, Input, HostListener } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { UDPTransportSettings } from '@platform/types/transport/udp';

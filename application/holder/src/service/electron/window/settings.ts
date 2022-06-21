@@ -1,4 +1,4 @@
-import * as obj from '@platform/env/obj';
+import * as obj from 'platform/env/obj';
 import { Implementation } from '@controller/settings';
 
 export interface Window {

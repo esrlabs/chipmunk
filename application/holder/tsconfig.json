@@ -25,7 +25,6 @@
     ],
     "types": ["node"],
     "paths": {
-      "@platform/*": ["../platform/*"],
       "@register/*": ["src/register/*"],
       "@env/*": ["src/env/*"],
       "@log/*": ["src/env/logs/*"],

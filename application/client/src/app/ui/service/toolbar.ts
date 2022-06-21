@@ -138,6 +138,7 @@ export class Service extends Implementation {
     }
 
     private _onHotKey(event: Declarations.HotkeyEvent) {
+        console.log(`Not implemented: ${event}`);
         // if (this._active === undefined) {
         //     return;
         // }

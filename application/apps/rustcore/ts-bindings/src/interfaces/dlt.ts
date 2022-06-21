@@ -1,1 +1,1 @@
-export * as Types from '../../../../../platform/types/parsers/dlt';
+export * as Types from 'platform/types/parsers/dlt';

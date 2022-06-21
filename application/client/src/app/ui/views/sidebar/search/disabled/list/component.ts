@@ -1,21 +1,12 @@
-import {
-    Component,
-    OnDestroy,
-    ChangeDetectorRef,
-    AfterContentInit,
-    Input,
-    ViewChild,
-} from '@angular/core';
+import { Component, ChangeDetectorRef, AfterContentInit, Input } from '@angular/core';
 import { DisabledRequest } from '@service/session/dependencies/search/disabled/request';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ProviderDisabled } from '../provider';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Entity } from '../../providers/definitions/entity';
 import { EntityData } from '../../providers/definitions/entity.data';
-import { DragAndDropService } from '../../draganddrop/service';
-import { Session } from '@service/session/session';
 
 @Component({
     selector: 'app-sidebar-disabled-list',

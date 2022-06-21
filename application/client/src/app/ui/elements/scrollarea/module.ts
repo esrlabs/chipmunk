@@ -17,5 +17,4 @@ const components = [...entryComponents];
     exports: [...components],
 })
 export class ScrollAreaModule {
-    constructor() {}
 }

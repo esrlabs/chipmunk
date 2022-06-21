@@ -1,5 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { IGrabbedElement } from '@platform/types/content';
+import { IGrabbedElement } from '../../../types/content';
 
 import * as validator from '../../../env/obj';
 

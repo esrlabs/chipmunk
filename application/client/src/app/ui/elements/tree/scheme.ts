@@ -64,7 +64,7 @@ export class DynamicDatabase {
                 .ls(path)
                 .then((entities: IEntity[]) => {
                     const sub = entities.map((entity) => new Entity(entity, path));
-                    sub.sort((a, b) => {
+                    sub.sort((a) => {
                         return a.isFolder() ? -1 : 1;
                     });
                     this.structure.set(path, sub);
@@ -109,7 +109,9 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
         return merge(collectionViewer.viewChange, this.dataChange).pipe(map(() => this.data));
     }
 
-    public disconnect(collectionViewer: CollectionViewer): void {}
+    public disconnect(collectionViewer: CollectionViewer): void {
+        console.log(`Not implemented: ${collectionViewer}`);
+    }
 
     public handleTreeControl(change: SelectionChange<DynamicFlatNode>) {
         if (change.added) {
@@ -144,14 +146,18 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
                         let i = index + 1;
                         i < this.data.length && this.data[i].level > node.level;
                         i++, count++
-                    ) {}
+                    ) {
+                        // Counting
+                    }
                     this.data.splice(index + 1, count);
                 }
 
                 // notify the change
                 this.dataChange.next(this.data);
             })
-            .catch((err: Error) => {})
+            .catch((err: Error) => {
+                console.log(`Unexpected error: ${err.message}`);
+            })
             .finally(() => {
                 node.isLoading = false;
             });

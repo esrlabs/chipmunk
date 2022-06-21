@@ -11,7 +11,7 @@ import { MatSelectChange, MatSelect } from '@angular/material/select';
 import { ProviderFilters } from '../provider';
 import { Entity } from '../../providers/definitions/entity';
 import { getContrastColor, CColors } from '@styles/colors';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 

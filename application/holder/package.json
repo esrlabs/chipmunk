@@ -21,7 +21,7 @@
             "url": "https://www.esrlabs.com/"
         }
     ],
-    "main": "./dist/holder/src/app.js",
+    "main": "./dist/app.js",
     "copyright": "Copyright © 2022 year ESR Labs",
     "build": {
         "asar": true,
@@ -75,7 +75,8 @@
         "semver": "^7.3.7",
         "sudo-prompt": "^9.2.1",
         "tslib": "^2.3.1",
-        "uuid": "^8.3.2"
+        "uuid": "^8.3.2",
+        "platform": "file:../platform"
     },
     "devDependencies": {
         "@types/module-alias": "^2.0.1",
@@ -95,8 +96,8 @@
         "typescript": "^4.6.3"
     },
     "scripts": {
-        "electron": "npm run build && ./node_modules/.bin/electron --inspect ./dist/holder/src/app.js",
-        "electron-win": "./node_modules/.bin/electron --inspect ./dist/holder/src/app.js",
+        "electron": "npm run build && ./node_modules/.bin/electron --inspect ./dist/app.js",
+        "electron-win": "./node_modules/.bin/electron --inspect ./dist/app.js",
         "build": "./node_modules/.bin/tsc -p ./tsconfig.json",
         "build-scripts-ts": "./node_modules/.bin/tsc -p ./scripts/tsconfig.json",
         "start": "npm run build-ts && npm run electron",
@@ -104,6 +105,6 @@
         "build-mac": "npm run build-scripts-ts && npm run build-ts && ./node_modules/.bin/electron-builder --mac --dir",
         "build-linux": "npm run build-scripts-ts && npm run build-ts && ./node_modules/.bin/electron-builder --linux --dir",
         "build-win": "npm run build-scripts-ts && npm run build-ts && node_modules/.bin/electron-builder --win --dir",
-        "lint": "./node_modules/.bin/eslint . --ext .ts"
+        "lint": "./node_modules/.bin/eslint . --ext .ts --max-warnings=0"
     }
 }

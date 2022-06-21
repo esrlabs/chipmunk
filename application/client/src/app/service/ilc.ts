@@ -21,8 +21,26 @@ import { layout } from '@ui/service/layout';
 import { toolbar } from '@ui/service/toolbar';
 import { sidebar } from '@ui/service/sidebar';
 import { bridge } from '@service/bridge';
+import { Subscriber } from '@platform/env/subscription';
 
 export { Channel, Emitter, Declarations, Services };
+
+export interface InternalAPI {
+    channel: Channel;
+    emitter: Emitter;
+    services: Services;
+    logger: Logger;
+}
+
+export interface Env {
+    subscriber: Subscriber;
+}
+
+export interface IlcInterface {
+    log(): Logger;
+    ilc(): InternalAPI;
+    env(): Env;
+}
 
 // System services
 @DependOn(session)

@@ -31,6 +31,4 @@ import { TransportUdpMulticast } from './multicast/component';
     declarations: [TransportUdp, TransportUdpMulticast],
     exports: [TransportUdp, TransportUdpMulticast],
 })
-export class TransportUdpModule {
-    constructor() {}
-}
+export class TransportUdpModule {}

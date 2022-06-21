@@ -1,4 +1,4 @@
-import { Frame, ChangesInitiator, PositionEvent } from './frame';
+import { Frame, ChangesInitiator } from './frame';
 import { Subject, Subscription } from '@platform/env/subscription';
 import {
     ROW_INDEX_ATTR,
@@ -8,7 +8,6 @@ import {
     getAnchorNodeInfo,
 } from './selection.nodeinfo';
 import { SelectionNode } from './selection.node';
-import { IRange, Range as SafeRange } from '@platform/types/range';
 
 export enum SelectionDirection {
     Top = 'Top',
@@ -41,14 +40,14 @@ export class Selecting {
         this._onSelectionEnded = this._onSelectionEnded.bind(this);
         this._onSelectionChange = this._onSelectionChange.bind(this);
         this._onMouseDown = this._onMouseDown.bind(this);
-        this._holder.addEventListener('selectfrom', this._onSelectionStarted);
+        this._holder.addEventListener('selectstart', this._onSelectionStarted);
         document.addEventListener('selectionchange', this._onSelectionChange);
         window.addEventListener('mousedown', this._onMouseDown);
         window.addEventListener('mouseup', this._onSelectionEnded);
     }
 
     public destroy() {
-        this._holder.removeEventListener('selectfrom', this._onSelectionStarted);
+        this._holder.removeEventListener('selectstart', this._onSelectionStarted);
         document.removeEventListener('selectionchange', this._onSelectionChange);
         window.removeEventListener('mouseup', this._onSelectionEnded);
         window.removeEventListener('mousedown', this._onMouseDown);
@@ -71,13 +70,17 @@ export class Selecting {
         const frame = this._frame.get();
         const focus: RestorableNodeInfo | undefined = this._selection.focus.get();
         const anchor: RestorableNodeInfo | undefined = this._selection.anchor.get();
+        const selection: Selection | null = document.getSelection();
         if (!focus || !anchor) {
             return;
         }
-        if (focus.row < frame.from && anchor.row < frame.from) {
-            return;
-        }
-        if (focus.row > frame.to && anchor.row > frame.to) {
+        if (
+            (focus.row < frame.from && anchor.row < frame.from) ||
+            (focus.row > frame.to && anchor.row > frame.to)
+        ) {
+            if (selection !== null) {
+                selection.removeAllRanges();
+            }
             return;
         }
         let anchorOffset: number = -1;
@@ -105,7 +108,6 @@ export class Selecting {
             focusPath =
                 focus.row < frame.from ? `li[${ROW_INDEX_ATTR}="${frame.from}"]` : focus.path;
         }
-        const selection: Selection | null = document.getSelection();
         if (selection === null) {
             return;
         }
@@ -122,12 +124,7 @@ export class Selecting {
             focusOffset = getMaxOffset(focusNode);
         }
         try {
-            console.log(`A (${anchorOffset}): ${anchorPath} / F (${focusOffset}): ${focusPath}`);
-            if (focus.row >= anchor.row) {
-                selection.setBaseAndExtent(anchorNode, anchorOffset, focusNode, focusOffset);
-            } else {
-                selection.setBaseAndExtent(focusNode, focusOffset, anchorNode, anchorOffset);
-            }
+            selection.setBaseAndExtent(anchorNode, anchorOffset, focusNode, focusOffset);
         } catch (e) {
             let details: string = 'Error with restoring selection:';
             details += `\n\t-\tanchorPath: ${anchorPath}`;

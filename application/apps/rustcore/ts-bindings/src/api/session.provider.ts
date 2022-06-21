@@ -1,4 +1,4 @@
-import { Subject } from '../../../../../platform/env/subscription';
+import { Subject } from 'platform/env/subscription';
 import { Computation } from '../provider/provider';
 import { EErrorKind, EErrorSeverity } from '../provider/provider.errors';
 import { IMapEntity, IMatchEntity } from '../interfaces/index';

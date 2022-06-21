@@ -1,4 +1,4 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterViewInit, Input } from '@angular/core';
+import { Component, ChangeDetectorRef, AfterViewInit, Input } from '@angular/core';
 import { IComponentDesc } from '../dynamic/component';
 
 export interface IFrameOptions {

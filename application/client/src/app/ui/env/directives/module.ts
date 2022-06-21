@@ -8,6 +8,4 @@ import { MatDragDropResetFeatureDirective } from './material.dragdrop';
     exports: [ResizerDirective, ResizeObserverDirective, MatDragDropResetFeatureDirective],
     imports: [],
 })
-export class AppDirectiviesModule {
-    constructor() {}
-}
+export class AppDirectiviesModule {}

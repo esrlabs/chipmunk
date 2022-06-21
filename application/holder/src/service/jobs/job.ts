@@ -1,6 +1,6 @@
-import { unique } from '../../../../platform/env/sequence';
-import * as validator from '../../../../platform/env/obj';
-import * as Events from '../../../../platform/ipc/event';
+import { unique } from 'platform/env/sequence';
+import * as validator from 'platform/env/obj';
+import * as Events from 'platform/ipc/event';
 
 const GLOBAL_JOBS = `___global_jobs___`;
 

@@ -8,7 +8,6 @@ import { File } from '@platform/types/files';
 import { IDLTOptions } from '@platform/types/parsers/dlt';
 import { SourceDefinition } from '@platform/types/transport';
 
-import { Render } from '@schema/render';
 import { getRenderFor } from '@schema/render/tools';
 
 export { Session, TabControls };

@@ -1,5 +1,9 @@
-declare interface MessagePort {}
-declare interface Event {}
+declare interface MessagePort {
+    dummy: string;
+}
+declare interface Event {
+    dummy: string;
+}
 
 export interface IpcRenderer {
     invoke(channel: string, ...args: any[]): Promise<any>;

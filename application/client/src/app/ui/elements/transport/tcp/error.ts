@@ -1,5 +1,5 @@
 import { ErrorStateMatcher } from '@angular/material/core';
-import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
+import { FormControl } from '@angular/forms';
 import { isValidIPv4, isValidIPv6 } from '@platform/env/ipaddr';
 
 const U32 = [0, 4294967295];
@@ -38,7 +38,7 @@ export class ErrorState implements ErrorStateMatcher {
 
     public isErrorState(
         control: FormControl | null,
-        form: FormGroupDirective | NgForm | null,
+        // form: FormGroupDirective | NgForm | null,
     ): boolean {
         if (control === null) {
             return false;
@@ -63,12 +63,15 @@ export class ErrorState implements ErrorStateMatcher {
                 return isValidIPv4(value) || isValidIPv6(value);
             case Field.multicastInterface:
                 return isValidIPv4(value) || isValidU32(value);
-            case Field.bindingPort:
+            case Field.bindingPort: {
                 if (value.trim().search(/^\d{1,}$/gi) === -1) {
                     return false;
                 }
                 const bindingPort = parseInt(value.trim(), 10);
                 return isNaN(bindingPort) ? false : !isFinite(bindingPort) ? false : true;
+            }
+            default:
+                throw new Error(`Unexpected Field value: ${this._alias}`);
         }
     }
 

@@ -18,7 +18,7 @@ import { Instance as Logger } from '@platform/env/logger';
 
 type TSelectedEntities = string[];
 
-const PROVIDERS_SCOPE_KEY: string = 'SEARCH_MANAGER_PROVIDERS_SCOPE_KEY';
+// const PROVIDERS_SCOPE_KEY: string = 'SEARCH_MANAGER_PROVIDERS_SCOPE_KEY';
 
 export class Providers {
     public readonly subjects: {
@@ -281,6 +281,7 @@ export class Providers {
                 // return stored === undefined ? [] : stored.slice();
             },
             save: (entities: TSelectedEntities) => {
+                console.log(`Not implemented: ${entities}`);
                 // if (self._session === undefined) {
                 //     return;
                 // }

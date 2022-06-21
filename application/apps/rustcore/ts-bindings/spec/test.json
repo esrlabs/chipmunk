@@ -19,7 +19,7 @@
             },
             "performance": {
                 /* In false will prevent running performance tests */
-                "run": false,
+                "run": true,
                 "tests": {
                     "text": {
                         /* Supported formats: text, dlt, pcap*/
@@ -27,7 +27,7 @@
                         /* In true will ignore current test*/
                         "ignore": false,
                         /* Expectation time in ms */
-                        "expectation_ms": 1000,
+                        "expectation_ms": 20000,
                         /* Name of test for logs*/
                         "alias": "Text file",
                         /* Target file for testing */
@@ -35,15 +35,15 @@
                     },
                     "dlt": {
                         "open_as": "dlt",
-                        "ignore": true,
-                        "expectation_ms": 1000,
+                        "ignore": false,
+                        "expectation_ms": 25000,
                         "alias": "DLT file", 
                         "file": "/storage/projects/esrlabs/logs-examples/FzgProg_SPss.dlt"
                     },
                     "pcapng": {
                         "open_as": "pcap",
-                        "ignore": true,
-                        "expectation_ms": 1000,
+                        "ignore": false,
+                        "expectation_ms": 2000,
                         "alias": "PCAPNG file", 
                         "file": "/storage/projects/esrlabs/logs-examples/test.pcapng"
                     }
@@ -67,8 +67,22 @@
                 "execute_only": [],
                 "list": {
                     "1": "Test 1. Cancel operation before done",
-                    "2": "Test 2. Cancel operation after done"
+                    "2": "Test 2. Cancel operation after done",
+                    /* Required text file*/
+                    "3": "Test 3. Multiple search"
+                },
+                "files": {
+                    "text": "/storage/projects/esrlabs/logs-examples/indexing_access_huge.log"
+                },
+                "spec": {
+                    /* Specification for test #3*/
+                    "3": {
+                        "terms": ["a", "b", "c", "d", "e", "f", "g", "r", "h", "t"],
+                        "interval_ms": 250,
+                        "timeout_last_search_ms": 10000
+                    }
                 }
+                
             }
         }
     }

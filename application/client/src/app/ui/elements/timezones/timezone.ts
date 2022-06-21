@@ -38,7 +38,7 @@ export class Timezone {
         if (reg instanceof Error) {
             return this.name;
         }
-        return this.name.replace(reg, (match, _p1, _p2, _p3, _offset, _string): string => {
+        return this.name.replace(reg, (match): string => {
             return `<span>${match}</span>`;
         });
     }
@@ -51,7 +51,7 @@ export class Timezone {
         if (reg instanceof Error) {
             return this.utc;
         }
-        return this.utc.replace(reg, (match, _p1, _p2, _p3, _offset, _string): string => {
+        return this.utc.replace(reg, (match): string => {
             return `<span>${match}</span>`;
         });
     }

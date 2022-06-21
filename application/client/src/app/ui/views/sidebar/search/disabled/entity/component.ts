@@ -1,17 +1,10 @@
-import {
-    Component,
-    Input,
-    OnDestroy,
-    ChangeDetectorRef,
-    AfterContentInit,
-    ViewChild,
-} from '@angular/core';
+import { Component, Input, ChangeDetectorRef, AfterContentInit, ViewChild } from '@angular/core';
 import { MatInput } from '@angular/material/input';
 import { FilterItemDirective } from '../../directives/item.directive';
 import { MatDragDropResetFeatureDirective } from '@ui/env/directives/material.dragdrop';
 import { DisabledRequest } from '@service/session/dependencies/search/disabled/request';
 import { ProviderDisabled } from '../provider';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Entity } from '../../providers/definitions/entity';
 import { DragAndDropService } from '../../draganddrop/service';

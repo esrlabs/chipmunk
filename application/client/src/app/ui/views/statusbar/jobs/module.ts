@@ -11,6 +11,4 @@ import { Jobs } from './component';
     declarations: [Jobs],
     exports: [Jobs],
 })
-export class JobsModule {
-    constructor() {}
-}
+export class JobsModule {}

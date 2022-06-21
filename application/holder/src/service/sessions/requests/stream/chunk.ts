@@ -1,9 +1,8 @@
-import { CancelablePromise } from '@platform/env/promise';
+import { CancelablePromise } from 'platform/env/promise';
 import { sessions } from '@service/sessions';
-import { Instance as Logger } from '@platform/env/logger';
+import { Instance as Logger } from 'platform/env/logger';
 
-import * as Events from '@platform/ipc/event';
-import * as Requests from '@platform/ipc/request';
+import * as Requests from 'platform/ipc/request';
 
 export const handler = Requests.InjectLogger<
     Requests.Stream.Chunk.Request,

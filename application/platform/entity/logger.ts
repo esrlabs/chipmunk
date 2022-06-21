@@ -10,7 +10,7 @@ export interface LoggerInterface {
 
 export const SetupLogger = decoratorFactory(
     (constructor: DecoratorConstructor, defaults?: string | void) => {
-        let alias = defaults === undefined ? 'noname' : defaults;
+        const alias = defaults === undefined ? 'noname' : defaults;
         return class extends constructor {
             __name: string = alias;
             __logger: Logger = scope.getLogger(alias);

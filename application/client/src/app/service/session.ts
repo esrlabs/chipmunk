@@ -1,7 +1,7 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
 import { ilc, Emitter, Channel, Declarations, Services } from '@service/ilc';
-import { TabsService, ITabAPI, ITab } from '@elements/tabs/service';
+import { TabsService, ITab } from '@elements/tabs/service';
 import { Base } from './session/base';
 import { Session } from './session/session';
 import { UnboundTab } from './session/unbound';
@@ -59,6 +59,7 @@ export class Service extends Implementation {
     }
 
     private _onHotKey(event: Declarations.HotkeyEvent) {
+        console.log(`Not implemented: ${event}`);
         // if (this._active === undefined) {
         //     return;
         // }

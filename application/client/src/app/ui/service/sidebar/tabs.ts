@@ -33,7 +33,7 @@ export class Tabs {
 
     public visible(uuid: string): boolean {
         let result: boolean = false;
-        DEFAULTS.forEach((defaultView, i) => {
+        DEFAULTS.forEach((defaultView) => {
             if (result) {
                 return;
             }

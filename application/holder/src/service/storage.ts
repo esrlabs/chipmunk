@@ -4,17 +4,17 @@ import {
     Implementation,
     register,
     DependOn,
-} from '@platform/entity/service';
+} from 'platform/entity/service';
 import { services } from '@register/services';
 import { paths } from '@service/paths';
 import { electron } from '@service/electron';
-import { Subscriber } from '@platform/env/subscription';
+import { Subscriber } from 'platform/env/subscription';
 import { FileController } from '@env/fs/accessor';
-import { CancelablePromise } from '@platform/env/promise';
+import { CancelablePromise } from 'platform/env/promise';
 import { Entries } from './storage/entries';
 
 import * as path from 'path';
-import * as Requests from '@platform/ipc/request';
+import * as Requests from 'platform/ipc/request';
 
 @DependOn(paths)
 @DependOn(electron)

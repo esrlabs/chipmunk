@@ -4,7 +4,7 @@ export class RustNativeError {
     static PROP_NAME = 'NativeError';
     public static from(str: string): RustNativeError | undefined {
         try {
-            const smth: { [key: string]: {} } = JSON.parse(str);
+            const smth: { [key: string]: Record<string, unknown> } = JSON.parse(str);
             if (smth[RustNativeError.PROP_NAME] === undefined) {
                 return undefined;
             }

@@ -8,7 +8,7 @@
             <button [class]="active.isPossibleToSaveAsChart() ? 'enabled' : ''" [disabled]="!active.isPossibleToSaveAsChart()">
                 <mat-icon [class]="!active.isPossibleToSaveAsChart() ? 'disabled' : ''">timeline</mat-icon>
             </button>
-            <button class="enabled" (click)="onActiveDrop()">
+            <button class="enabled" (click)="drop()">
                 <mat-icon>close</mat-icon>
             </button>
         </span>
@@ -24,7 +24,7 @@
             [matAutocomplete]="auto"
             [matAutocompleteDisabled]="!input.recent"
             (keyup)="ngOnKeyUpSearchInput($event)"
-            (keydown)="ngOnKeyDownSearchInput($event)"
+            (keydown)="ngOnKeyDownSearchInput()"
         />
         <mat-autocomplete
             #auto="matAutocomplete"

@@ -1,14 +1,7 @@
-import {
-    Component,
-    Input,
-    ChangeDetectorRef,
-    AfterContentInit,
-    HostBinding,
-} from '@angular/core';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { Component, Input, ChangeDetectorRef, AfterContentInit, HostBinding } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
 import { Row } from '@schema/content/row';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
-import { Subscriber } from '@platform/env/subscription';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Columns as ColumnsController } from '@schema/render/columns';
 import { Cell } from './cell';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -61,7 +54,6 @@ export class Columns extends ChangesDetector implements AfterContentInit {
             }),
         );
     }
-
 
     public visible(): Cell[] {
         return this.cells.filter((c) => c.visible());

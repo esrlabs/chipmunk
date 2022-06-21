@@ -53,7 +53,7 @@ export class SearchInput {
         };
     }
 
-    public keydown(event: KeyboardEvent) {
+    public keydown() {
         this._prev = this.control.value;
     }
 

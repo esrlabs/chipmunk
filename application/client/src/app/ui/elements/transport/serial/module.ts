@@ -31,5 +31,4 @@ import { TransportSerial } from './component';
     exports: [TransportSerial],
 })
 export class TransportSerialModule {
-    constructor() {}
 }

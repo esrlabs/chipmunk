@@ -24,7 +24,7 @@ export class MatDragDropResetFeatureDirective implements OnDestroy {
         placeholder.parentElement.insertBefore(this._anchor, placeholder);
     }
 
-    @HostListener('cdkDragReleased', ['$event']) _cdkDragReleased(event: CdkDragRelease) {
+    @HostListener('cdkDragReleased', ['$event']) _cdkDragReleased() {
         this._timer = setTimeout(this._dropAnchor.bind(this), 250);
     }
 

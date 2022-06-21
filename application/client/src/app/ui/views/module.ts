@@ -20,6 +20,4 @@ import { ContainersModule } from '@elements/containers/module';
     declarations: [],
     exports: [ScrollAreaModule, WorkspaceModule, ToolbarModule, SidebarModule],
 })
-export class ViewsModule {
-    constructor() {}
-}
+export class ViewsModule {}

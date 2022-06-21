@@ -7,10 +7,9 @@ import {
     ChangeDetectionStrategy,
 } from '@angular/core';
 import { Session } from '@service/session';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
-import { ScrollAreaComponent, IScrollBoxSelection } from '@elements/scrollarea/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
+import { ScrollAreaComponent } from '@elements/scrollarea/component';
 import { Service } from '@elements/scrollarea/controllers/service';
-import { Subscriber } from '@platform/env/subscription';
 import { Columns } from '@schema/render/columns';
 import { getScrollAreaService, setScrollAreaService } from './backing';
 

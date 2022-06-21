@@ -59,6 +59,4 @@ const entryComponents = [
     declarations: [...entryComponents],
     exports: [...entryComponents, AppDirectiviesModule],
 })
-export class LayoutModule {
-    constructor() {}
-}
+export class LayoutModule {}

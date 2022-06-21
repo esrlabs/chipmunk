@@ -1,8 +1,8 @@
-import { CancelablePromise } from '@platform/env/promise';
-import { sessions } from '@service/sessions';
-import { Instance as Logger } from '@platform/env/logger';
+import { CancelablePromise } from 'platform/env/promise';
+import { sessions, Jobs } from '@service/sessions';
+import { Instance as Logger } from 'platform/env/logger';
 
-import * as Requests from '@platform/ipc/request';
+import * as Requests from 'platform/ipc/request';
 
 export const handler = Requests.InjectLogger<
     Requests.Search.Drop.Request,
@@ -17,18 +17,29 @@ export const handler = Requests.InjectLogger<
             if (stored === undefined) {
                 return reject(new Error(`Session doesn't exist`));
             }
-            stored.session
-                .getSearch()
-                .drop()
-                .then(() => {
-                    resolve(
-                        new Requests.Search.Drop.Response({
-                            session: request.session,
-                        }),
-                    );
+            if (stored.isShutdowning()) {
+                return reject(new Error(`Session is closing`));
+            }
+            stored
+                .register(Jobs.search)
+                .abort('aborting')
+                .catch((err: Error) => {
+                    log.error(`Fail to cancel search operations; error: ${err.message}`);
                 })
-                .catch((error: Error) => {
-                    reject(error);
+                .finally(() => {
+                    stored.session
+                        .getSearch()
+                        .drop()
+                        .then(() => {
+                            resolve(
+                                new Requests.Search.Drop.Response({
+                                    session: request.session,
+                                }),
+                            );
+                        })
+                        .catch((error: Error) => {
+                            reject(error);
+                        });
                 });
         });
     },

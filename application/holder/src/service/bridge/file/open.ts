@@ -1,11 +1,11 @@
-import { CancelablePromise } from '@platform/env/promise';
+import { CancelablePromise } from 'platform/env/promise';
 import { Observe } from 'rustcore';
 import { sessions } from '@service/sessions';
-import { Instance as Logger } from '@platform/env/logger';
+import { Instance as Logger } from 'platform/env/logger';
 import { jobs, aliases } from '@service/jobs';
-import { FileType } from '@platform/types/files';
+import { FileType } from 'platform/types/files';
 
-import * as Requests from '@platform/ipc/request';
+import * as Requests from 'platform/ipc/request';
 
 export const handler = Requests.InjectLogger<
     Requests.File.Open.Request,

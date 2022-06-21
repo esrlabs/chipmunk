@@ -1,14 +1,14 @@
-import { CancelablePromise } from '@platform/env/promise';
+import { CancelablePromise } from 'platform/env/promise';
 import { Session, Observe } from 'rustcore';
 import { sessions } from '@service/sessions';
-import { Subscriber } from '@platform/env/subscription';
-import { Instance as Logger } from '@platform/env/logger';
-import { jobs, aliases, Job } from '@service/jobs';
-import { FileType } from '@platform/types/files';
-import { defaultParserSettings, optionsToParserSettings } from '@platform/types/parsers/dlt';
+import { Subscriber } from 'platform/env/subscription';
+import { Instance as Logger } from 'platform/env/logger';
+import { jobs, aliases } from '@service/jobs';
+import { FileType } from 'platform/types/files';
+import { defaultParserSettings, optionsToParserSettings } from 'platform/types/parsers/dlt';
 
-import * as Events from '@platform/ipc/event';
-import * as Requests from '@platform/ipc/request';
+import * as Events from 'platform/ipc/event';
+import * as Requests from 'platform/ipc/request';
 
 export const handler = Requests.InjectLogger<
     Requests.Session.Create.Request,
@@ -112,28 +112,28 @@ export const handler = Requests.InjectLogger<
                                 break;
                             case FileType.Dlt:
                                 // Opening file as DLT file
-                                console.log(
-                                    request.file.options.dlt === undefined
-                                        ? (defaultParserSettings(true) as any)
-                                        : (optionsToParserSettings(
-                                              request.file.options.dlt,
-                                              true,
-                                              0,
-                                              0,
-                                          ) as any),
-                                );
+                                // console.log(
+                                //     request.file.options.dlt === undefined
+                                //         ? (defaultParserSettings(true) as any)
+                                //         : (optionsToParserSettings(
+                                //               request.file.options.dlt,
+                                //               true,
+                                //               0,
+                                //               0,
+                                //           ) as any),
+                                // );
                                 session
                                     .getStream()
                                     .observe(
                                         Observe.DataSource.file(request.file.filename).dlt(
                                             request.file.options.dlt === undefined
-                                                ? (defaultParserSettings(true) as any)
-                                                : (optionsToParserSettings(
+                                                ? defaultParserSettings(true)
+                                                : optionsToParserSettings(
                                                       request.file.options.dlt,
                                                       true,
                                                       0,
                                                       0,
-                                                  ) as any),
+                                                  ),
                                         ),
                                     )
                                     .catch((err: Error) => {

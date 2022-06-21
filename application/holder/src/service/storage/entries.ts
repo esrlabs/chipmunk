@@ -1,6 +1,6 @@
-import { Entry } from '@platform/types/storage/entry';
-import { error } from '@platform/env/logger';
-import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
+import { Entry } from 'platform/types/storage/entry';
+import { error } from 'platform/env/logger';
+import { SetupLogger, LoggerInterface } from 'platform/entity/logger';
 
 export type Writer = (key: string, content: string) => Error | undefined;
 export type Reader = (key: string) => Promise<string>;

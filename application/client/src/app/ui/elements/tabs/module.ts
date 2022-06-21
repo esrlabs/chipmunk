@@ -17,6 +17,4 @@ const components = [TabsComponent, ...entryComponents];
     declarations: [...components],
     exports: [...components],
 })
-export class TabsModule {
-    constructor() {}
-}
+export class TabsModule {}

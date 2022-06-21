@@ -1,9 +1,9 @@
-import { CancelablePromise } from '@platform/env/promise';
+import { CancelablePromise } from 'platform/env/promise';
 import { dlt } from 'rustcore';
-import { Instance as Logger } from '@platform/env/logger';
+import { Instance as Logger } from 'platform/env/logger';
 import { jobs } from '@service/jobs';
 
-import * as Requests from '@platform/ipc/request';
+import * as Requests from 'platform/ipc/request';
 
 export const handler = Requests.InjectLogger<
     Requests.Dlt.Stat.Request,
@@ -21,7 +21,7 @@ export const handler = Requests.InjectLogger<
                 })
                 .start();
             dlt.stats(request.filename)
-                .then((stat) => {
+                .then((stat: dlt.Types.StatisticInfo) => {
                     resolve(
                         new Requests.Dlt.Stat.Response({
                             stat,

@@ -57,7 +57,7 @@ describe('Search', function () {
                         }`,
                 );
                 stream
-                    .observe(Observe.DataSource.asTextFile(tmpobj.name))
+                    .observe(Observe.DataSource.file(tmpobj.name).text())
                     .catch(finish.bind(null, session, done));
                 let searchStreamUpdated = false;
                 events.SearchUpdated.subscribe((found: number) => {
@@ -209,7 +209,7 @@ describe('Search', function () {
                         }`,
                 );
                 stream
-                    .observe(Observe.DataSource.asTextFile(tmpobj.name))
+                    .observe(Observe.DataSource.file(tmpobj.name).text())
                     .catch(finish.bind(null, session, done));
                 search
                     .search([
@@ -346,7 +346,7 @@ describe('Search', function () {
                     (i: number) => `[${i}]:: some line data\n`,
                 );
                 stream
-                    .observe(Observe.DataSource.asTextFile(tmpobj.name))
+                    .observe(Observe.DataSource.file(tmpobj.name).text())
                     .catch(finish.bind(null, session, done));
                 search
                     .search([
@@ -403,7 +403,7 @@ describe('Search', function () {
                         }`,
                 );
                 stream
-                    .observe(Observe.DataSource.asTextFile(tmpobj.name))
+                    .observe(Observe.DataSource.file(tmpobj.name).text())
                     .catch(finish.bind(null, session, done));
                 search
                     .search([
@@ -547,7 +547,7 @@ describe('Search', function () {
                         }`,
                 );
                 stream
-                    .observe(Observe.DataSource.asTextFile(tmpobj.name))
+                    .observe(Observe.DataSource.file(tmpobj.name).text())
                     .catch(finish.bind(null, session, done));
                 search
                     .search([

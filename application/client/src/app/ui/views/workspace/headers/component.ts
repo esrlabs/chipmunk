@@ -5,7 +5,7 @@ import {
     ChangeDetectorRef,
     AfterContentInit,
 } from '@angular/core';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Columns, Header } from '@schema/render/columns';
 import { Session } from '@service/session';
 import { LimittedValue } from '@ui/env/entities/value.limited';

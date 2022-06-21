@@ -1,8 +1,8 @@
-import { CancelablePromise } from '@platform/env/promise';
-import { Instance as Logger } from '@platform/env/logger';
-import { Entity, EntityType } from '@platform/types/files';
+import { CancelablePromise } from 'platform/env/promise';
+import { Instance as Logger } from 'platform/env/logger';
+import { Entity, EntityType } from 'platform/types/files';
 
-import * as Requests from '@platform/ipc/request';
+import * as Requests from 'platform/ipc/request';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -14,7 +14,7 @@ export const handler = Requests.InjectLogger<
         log: Logger,
         request: Requests.Os.AsFSEntity.Request,
     ): CancelablePromise<Requests.Os.AsFSEntity.Response> => {
-        return new CancelablePromise((resolve, _reject) => {
+        return new CancelablePromise((resolve) => {
             fs.promises
                 .stat(request.path)
                 .then((stats: fs.Stats) => {

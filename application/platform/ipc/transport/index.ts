@@ -1,4 +1,4 @@
-import { CancelablePromise } from '../../env/promise';
+import { ICancelablePromise } from '../../env/promise';
 import { error } from '../../env/logger';
 import { Subject, Subscription } from '../../env/subscription';
 
@@ -31,7 +31,7 @@ export type EntityConstructor<Entity> = new (...args: any[]) => Entity;
 
 export type Respond<Request, Entity> = (
     request: Request & ISignatureRequirement,
-) => CancelablePromise<Entity & ISignatureRequirement>;
+) => ICancelablePromise<Entity & ISignatureRequirement>;
 
 export abstract class Transport {
     public abstract request<Request, Response>(

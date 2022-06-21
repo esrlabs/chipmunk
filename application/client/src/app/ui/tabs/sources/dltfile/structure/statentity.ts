@@ -47,7 +47,7 @@ export class StatEntity {
         if (reg instanceof Error) {
             return this.id;
         }
-        return this.id.replace(reg, (match, _p1, _p2, _p3, _offset, _string): string => {
+        return this.id.replace(reg, (match): string => {
             return `<span>${match}</span>`;
         });
     }

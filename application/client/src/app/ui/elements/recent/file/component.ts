@@ -1,4 +1,4 @@
-import { Component, AfterContentInit, Input, HostListener } from '@angular/core';
+import { Component, AfterContentInit, Input } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { bytesToStr, timestampToUTC } from '@env/str';

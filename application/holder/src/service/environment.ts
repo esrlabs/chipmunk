@@ -1,6 +1,6 @@
-import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
+import { SetupService, Interface, Implementation, register } from 'platform/entity/service';
 import { getEnvVar, getElectronAppShellEnvVars } from '@env/os';
-import { setProp, getProp } from '@platform/env/obj';
+import { setProp, getProp } from 'platform/env/obj';
 import { services } from '@register/services';
 
 export enum EChipmunkEnvVars {

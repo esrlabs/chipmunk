@@ -1,15 +1,5 @@
-import {
-    Component,
-    OnDestroy,
-    ChangeDetectorRef,
-    Input,
-    AfterContentInit,
-    AfterViewInit,
-} from '@angular/core';
-import { Subscription } from 'rxjs';
-import { Session } from '@service/session';
-import { INotification } from '@ui/service/notifications';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Component } from '@angular/core';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 
 @Component({
     selector: 'app-views-content-map',

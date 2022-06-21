@@ -39,6 +39,4 @@ const components = [ViewSearch, ...entryComponents];
     declarations: [...components],
     exports: [...components, ScrollAreaModule],
 })
-export class SearchModule {
-    constructor() {}
-}
+export class SearchModule {}

@@ -1,5 +1,5 @@
 import { TExecutor, Logger, CancelablePromise, VoidExecutor } from './executor';
-import { RustSession } from '../../native/index';
+import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../../api/session.provider';
 
 export interface IExportOptions {

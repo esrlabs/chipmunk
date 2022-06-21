@@ -4,7 +4,7 @@
  */
 import './services';
 import './controllers';
-import { system } from '@platform/modules/system';
+import { system } from 'platform/modules/system';
 
 system.init().then(() => {
     // system.destroy().then(() => {

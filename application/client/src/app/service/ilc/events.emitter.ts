@@ -61,6 +61,10 @@ export class Emitter {
             hover: Handler<Row | undefined>;
             rank: Handler<Declarations.UI.Rank>;
         };
+        input: {
+            focused: Handler<void>;
+            blur: Handler<void>;
+        };
     };
     private readonly _events: Events;
     private readonly _owner: string;
@@ -126,6 +130,10 @@ export class Emitter {
             row: {
                 hover: this._add<Row | undefined>(this._events.ui.row.hover),
                 rank: this._add<Declarations.UI.Rank>(this._events.ui.row.rank),
+            },
+            input: {
+                focused: this._add<void>(this._events.ui.input.focused),
+                blur: this._add<void>(this._events.ui.input.blur),
             },
         };
     }

@@ -26,6 +26,4 @@ const components = [RowComponent, Standard, Columns];
     declarations: [...components],
     exports: [...components],
 })
-export class RowModule {
-    constructor() {}
-}
+export class RowModule {}

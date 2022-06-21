@@ -1,8 +1,7 @@
 import * as Logs from '../util/logging';
 
-import { Subject } from '../../../../../platform/env/subscription';
-import { RustSession } from '../native/index';
-import { CancelablePromise } from '../util/promise';
+import { RustSession } from '../native/native.session';
+import { ICancelablePromise } from 'platform/env/promise';
 import { EventProvider } from '../api/session.provider';
 import { IExportOptions } from './executors/session.stream.export.executor';
 import {
@@ -10,10 +9,7 @@ import {
     IDetectOptions,
 } from './executors/session.stream.timeformat.detect.executor';
 import { Executors } from './executors/session.stream.executors';
-import {
-    TFileOptions,
-    EFileOptionsRequirements,
-} from './executors/session.stream.observe.executor';
+import { EFileOptionsRequirements } from './executors/session.stream.observe.executor';
 import {
     IGrabbedElement,
     IExtractDTFormatOptions,
@@ -35,15 +31,15 @@ export {
     Observe,
 };
 
-abstract class Connector<T> {
-    public abstract disconnect(): Promise<void>; // Equal to destroy
-    public abstract setOptions(options: T): Promise<void>; // To have a way update options in on fly
-    public abstract getSubjects(): {
-        // Major events
-        disconnected: Subject<void>;
-        connected: Subject<void>;
-    };
-}
+// abstract class Connector<T> {
+//     public abstract disconnect(): Promise<void>; // Equal to destroy
+//     public abstract setOptions(options: T): Promise<void>; // To have a way update options in on fly
+//     public abstract getSubjects(): {
+//         // Major events
+//         disconnected: Subject<void>;
+//         connected: Subject<void>;
+//     };
+// }
 
 export class SessionStream {
     private readonly _provider: EventProvider;
@@ -80,24 +76,24 @@ export class SessionStream {
         return this._session.getFileOptionsRequirements(filename);
     }
 
-    public observe(source: Observe.DataSource): CancelablePromise<void> {
+    public observe(source: Observe.DataSource): ICancelablePromise<void> {
         // TODO create grabber
         return Executors.observe(this._session, this._provider, this._logger, source);
     }
 
-    public concat(files: IConcatFile[], append: boolean): CancelablePromise<IConcatResults> {
+    public concat(files: IConcatFile[], append: boolean): ICancelablePromise<IConcatResults> {
         return Executors.concat(this._session, this._provider, this._logger, { files, append });
     }
 
-    public merge(files: IFileMergeOptions[], append: boolean): CancelablePromise<IMergeResults> {
+    public merge(files: IFileMergeOptions[], append: boolean): ICancelablePromise<IMergeResults> {
         return Executors.merge(this._session, this._provider, this._logger, { files, append });
     }
 
-    public export(options: IExportOptions): CancelablePromise<void> {
+    public export(options: IExportOptions): ICancelablePromise<void> {
         return Executors.export(this._session, this._provider, this._logger, options);
     }
 
-    public detectTimeformat(options: IDetectOptions): CancelablePromise<IDetectDTFormatResult> {
+    public detectTimeformat(options: IDetectOptions): ICancelablePromise<IDetectDTFormatResult> {
         return Executors.timeformatDetect(this._session, this._provider, this._logger, options);
     }
 

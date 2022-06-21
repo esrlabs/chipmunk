@@ -5,7 +5,7 @@ import {
     ChangeDetectorRef,
     ChangeDetectionStrategy,
 } from '@angular/core';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Base } from '@service/session';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 

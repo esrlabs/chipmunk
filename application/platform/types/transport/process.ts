@@ -1,1 +1,3 @@
-export interface ProcessTransportSettings {}
+export interface ProcessTransportSettings {
+    dummy: string;
+}

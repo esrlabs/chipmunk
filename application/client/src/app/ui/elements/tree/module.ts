@@ -13,8 +13,12 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ElementsTreeSelector } from './component';
 import { ElementsTreeSelectorInput } from './input/component';
 
+import { InputListenerDirective } from '@ui/env/directives/input';
+
+const components = [ElementsTreeSelector, ElementsTreeSelectorInput, InputListenerDirective];
+
 @NgModule({
-    entryComponents: [ElementsTreeSelector, ElementsTreeSelectorInput],
+    entryComponents: [...components],
     imports: [
         CommonModule,
         MatTreeModule,
@@ -28,9 +32,7 @@ import { ElementsTreeSelectorInput } from './input/component';
         FormsModule,
         ReactiveFormsModule,
     ],
-    declarations: [ElementsTreeSelector, ElementsTreeSelectorInput],
-    exports: [ElementsTreeSelector, ElementsTreeSelectorInput],
+    declarations: [...components],
+    exports: [...components],
 })
-export class TreeModule {
-    constructor() {}
-}
+export class TreeModule {}

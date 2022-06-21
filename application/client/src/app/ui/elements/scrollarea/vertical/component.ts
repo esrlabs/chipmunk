@@ -14,7 +14,6 @@ import { Service } from '../controllers/service';
 import { Holder } from '../controllers/holder';
 import { ChangesInitiator, Frame, PositionEvent } from '../controllers/frame';
 import { LockToken } from '@ui/env/lock.token';
-import { Selecting } from '../controllers/selection';
 
 const MAX_SCROLL_THUMB_HEIGHT: number = 20;
 
@@ -55,10 +54,12 @@ export class ScrollAreaVerticalComponent implements AfterContentInit, AfterViewI
     }
 
     @HostListener('mousedown', ['$event']) onMouseDown(event: MouseEvent) {
+        console.log(event);
         this._scrollEventLockToken.unlock();
     }
 
     @HostListener('window:mouseup', ['$event']) onWindowMouseUp(event: MouseEvent) {
+        console.log(event);
         this._scrollEventLockToken.lock();
     }
 

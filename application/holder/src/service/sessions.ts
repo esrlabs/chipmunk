@@ -4,29 +4,26 @@ import {
     Implementation,
     DependOn,
     register,
-} from '@platform/entity/service';
+} from 'platform/entity/service';
 import { electron } from '@service/electron';
 import { jobs } from '@service/jobs';
 import { services } from '@register/services';
-import { Subscriber } from '@platform/env/subscription';
+import { Subscriber } from 'platform/env/subscription';
 import { Session } from 'rustcore';
 import { Active } from './sessions/active';
+import { Holder } from './sessions/holder';
 
 import * as RequestHandlers from './sessions/requests';
-import * as Requests from '@platform/ipc/request';
+import * as Requests from 'platform/ipc/request';
+
+export { Jobs } from './sessions/holder';
 
 @DependOn(jobs)
 @DependOn(electron)
 @SetupService(services['sessions'])
 export class Service extends Implementation {
     private _subscriber: Subscriber = new Subscriber();
-    private _sessions: Map<
-        string,
-        {
-            session: Session;
-            subscriber: Subscriber;
-        }
-    > = new Map();
+    private _sessions: Map<string, Holder> = new Map();
     private _active: Active = new Active();
 
     public override ready(): Promise<void> {
@@ -37,6 +34,15 @@ export class Service extends Implementation {
                     this.getName(),
                     Requests.Session.Create.Request,
                     RequestHandlers.Session.Create.handler,
+                ),
+        );
+        this._subscriber.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Session.Destroy.Request,
+                    RequestHandlers.Session.Destroy.handler,
                 ),
         );
         this._subscriber.register(
@@ -84,18 +90,10 @@ export class Service extends Implementation {
     }
 
     public add(session: Session, subscriber: Subscriber) {
-        this._sessions.set(session.getUUID(), {
-            session,
-            subscriber,
-        });
+        this._sessions.set(session.getUUID(), new Holder(session, subscriber));
     }
 
-    public get(uuid: string):
-        | undefined
-        | {
-              session: Session;
-              subscriber: Subscriber;
-          } {
+    public get(uuid: string): Holder | undefined {
         return this._sessions.get(uuid);
     }
 

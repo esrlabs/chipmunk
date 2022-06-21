@@ -1,5 +1,5 @@
 import { Logger, TLogFunc, IChipmunkNodeGlobal } from '../interfaces';
-export { error } from '../../../../../platform/env/logger';
+export { error } from 'platform/env/logger';
 export { Logger };
 
 export function log(s: any) {
@@ -22,8 +22,8 @@ enum ELevel {
     wtf = 'WTF', // 6
 }
 
+const init: number = Date.now();
 let tm: number = Date.now();
-let init: number = Date.now();
 let gLevel: number = 3;
 let locker: string | undefined;
 

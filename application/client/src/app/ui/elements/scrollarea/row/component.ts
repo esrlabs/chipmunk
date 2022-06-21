@@ -8,7 +8,7 @@ import {
     ChangeDetectionStrategy,
 } from '@angular/core';
 import { Row } from '@schema/content/row';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 
 @Component({
@@ -23,10 +23,7 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
 
     public render: number = 1;
 
-    @HostListener('mouseover', ['$event', '$event.target']) onMouseIn(
-        _event: MouseEvent,
-        _target: HTMLElement,
-    ) {
+    @HostListener('mouseover') onMouseIn() {
         this.ilc().emitter.ui.row.hover(this.row);
     }
 

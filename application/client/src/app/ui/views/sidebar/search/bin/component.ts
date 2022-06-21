@@ -59,7 +59,7 @@ export class Bin implements AfterContentInit {
             }),
         );
         this.env().subscriber.register(
-            this.draganddrop.subjects.mouseOverGlobal.subscribe((event) => {
+            this.draganddrop.subjects.mouseOverGlobal.subscribe(() => {
                 if (this.dragging && !this._ignore) {
                     this._droppedOut = true;
                     this.draganddrop.onMouseOverBin(false);

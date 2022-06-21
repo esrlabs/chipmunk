@@ -1,5 +1,5 @@
 import { Component, ChangeDetectorRef, ViewContainerRef, AfterViewInit } from '@angular/core';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { LimittedValue } from '@ui/env/entities/value.limited';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Direction } from '@directives/resizer';

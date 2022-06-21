@@ -42,6 +42,4 @@ const components = [TabSourceDltFile, TabSourceDltFileStructure];
     declarations: [...components],
     exports: [...components],
 })
-export class TabSourceDltFileModule {
-    constructor() {}
-}
+export class TabSourceDltFileModule {}

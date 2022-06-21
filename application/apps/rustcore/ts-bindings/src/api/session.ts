@@ -2,15 +2,15 @@ import * as Logs from '../util/logging';
 
 import { v4 as uuid } from 'uuid';
 
-import { Subscription } from '../../../../../platform/env/subscription';
-import { RustSession, RustSessionConstructor, rustSessionFactory } from '../native/index';
+import { Subscription } from 'platform/env/subscription';
+import { RustSession, RustSessionConstructor } from '../native/native.session';
 import { EventProvider, ISessionEvents, IError } from '../api/session.provider';
 import { SessionStream } from '../api/session.stream';
 import { SessionSearch } from '../api/session.search';
 import { IOrderStat } from '../provider/provider';
 import { Executors } from './executors/session.executors';
 import { ISleepResults } from './executors/session.sleep.executor';
-import { CancelablePromise } from '../util/promise';
+import { ICancelablePromise } from 'platform/env/promise';
 import { OperationStat } from '../interfaces/index';
 
 export {
@@ -194,7 +194,7 @@ export class Session {
      * @param duration - duration in ms
      * @returns
      */
-    public sleep(duration: number): CancelablePromise<ISleepResults> {
+    public sleep(duration: number): ICancelablePromise<ISleepResults> {
         return Executors.sleep(this._session, this._provider, this._logger, { duration });
     }
 
@@ -303,7 +303,7 @@ export class Session {
             output(format(`  - [${op}]: ${stat.operations[op]}`));
         });
         const operations: IOrderStat[] = [];
-        stat.order.forEach((entity: IOrderStat, i: number) => {
+        stat.order.forEach((entity: IOrderStat) => {
             if (entity.type === 'O' && entity.id !== undefined) {
                 operations.push(Object.assign({}, entity));
             }
@@ -327,7 +327,7 @@ export class Session {
             );
         });
         const unboundEvents: IOrderStat[] = stat.order
-            .map((entity: IOrderStat, i: number) => {
+            .map((entity: IOrderStat) => {
                 if (
                     entity.type !== 'E' ||
                     entity.id === undefined ||
@@ -347,7 +347,7 @@ export class Session {
         const jsOperationsScopeValid = jsOperationsScope.filter((op) => op.duration >= 0);
         const merged: Array<{ native: OperationStat; js: IOrderStat }> = [];
         jsOperationsScopeValid.forEach((jsOp) => {
-            let natOp = native.find((op) => op.uuid === jsOp.id);
+            const natOp = native.find((op) => op.uuid === jsOp.id);
             if (natOp !== undefined) {
                 merged.push({
                     native: Object.assign({}, natOp),
@@ -456,7 +456,7 @@ export class Session {
             output(format(`Unsupported events: nothing`));
         } else {
             output(format(`Unsupported events:`));
-            stat.unsupported.forEach((event: string, i: number) => {
+            stat.unsupported.forEach((event: string) => {
                 output(format(`  - ${event}`));
             });
         }
@@ -464,7 +464,7 @@ export class Session {
             output(format(`Errors: no errors`));
         } else {
             output(format(`Errors:`));
-            stat.errors.forEach((event: string, i: number) => {
+            stat.errors.forEach((event: string) => {
                 output(format(`  - ${event}`));
             });
         }

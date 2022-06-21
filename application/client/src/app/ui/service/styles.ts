@@ -1,6 +1,5 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { ui } from '@register/services';
-import { ilc, Emitter } from '@service/ilc';
 
 export type RemoveHandler = () => void;
 

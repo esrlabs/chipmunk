@@ -5,6 +5,7 @@
             type="text"
             placeholder="Add favourite place"
             matInput
+            appInputListener
             [formControl]="input.control"
             [readonly]="input.readonly"
             (keyup)="ngOnKeyUpInput($event)"

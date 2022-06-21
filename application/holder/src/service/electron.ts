@@ -4,13 +4,13 @@ import {
     Implementation,
     DependOn,
     register,
-} from '@platform/entity/service';
+} from 'platform/entity/service';
 import { paths } from '@service/paths';
 import { Window } from '@service/electron/window';
 import { Dialogs } from '@service/electron/dialogs';
 import { services } from '@register/services';
 import { app, session } from 'electron';
-import { Transport } from '@platform/ipc/transport';
+import { Transport } from 'platform/ipc/transport';
 
 @DependOn(paths)
 @SetupService(services['electron'])

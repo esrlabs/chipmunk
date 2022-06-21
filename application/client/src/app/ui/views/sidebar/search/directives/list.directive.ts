@@ -8,7 +8,7 @@ export class FiltersListDirective {
     @Input() listID!: ListContent;
     @Input() draganddrop!: DragAndDropService;
 
-    @HostListener('mouseover', ['$event']) onMouseOver(event: MouseEvent) {
+    @HostListener('mouseover', ['$event']) onMouseOver() {
         this.draganddrop.onMouseOver(this.listID);
     }
 }

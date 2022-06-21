@@ -1,13 +1,17 @@
 require 'fileutils'
 
+puts "#{'=' * 50}"
+puts 'This rakefile is DEPRICATED! Please, use root rakefile'
+puts "#{'=' * 50}"
+
 # TODO:
 # notify user if npm install is required
 
-TS = "./ts-bindings"
-TS_BUILD = "./ts-bindings/dist/apps/rustcore/ts-bindings"
-TS_BUILD_CLI = "./ts-bindings-cli/dist/apps/rustcore/ts-bindings"
-TS_CLI = "./ts-bindings-cli"
-RS = "./rs-bindings"
+TS = './ts-bindings'
+TS_BUILD = './ts-bindings/dist'
+TS_BUILD_CLI = './ts-bindings-cli/dist/apps/rustcore/ts-bindings'
+TS_CLI = './ts-bindings-cli'
+RS = './rs-bindings'
 BUILD_ENV = "#{TS}/node_modules/.bin/electron-build-env"
 TSC = "#{TS}/node_modules/.bin/tsc"
 TSC_CLI = "#{TS_CLI}/node_modules/.bin/tsc"
@@ -29,7 +33,6 @@ module OS
   def self.linux?
     OS.unix? && !OS.mac?
   end
-
 end
 
 namespace :install do
@@ -48,14 +51,13 @@ namespace :install do
   end
 
   desc 'install all'
-  task :all => ['install:ts', 'install:ts_cli']
-
+  task all: ['install:ts', 'install:ts_cli']
 end
 
 namespace :build do
-
   desc 'Build TS'
   task :ts do
+    FileUtils.rm_rf(TS_BUILD) if File.exist?(TS_BUILD)
     sh "#{TSC} -p #{TS}/tsconfig.json"
   end
 
@@ -69,15 +71,15 @@ namespace :build do
   desc 'Delivery native'
   task :delivery do
     # Copy native for production
-    dir_prod = "#{TS_BUILD}/native"
-    FileUtils.rm_rf(dir_prod) unless !File.exists?(dir_prod)
-    Dir.mkdir(dir_prod) unless File.exists?(dir_prod)
+    # dir_prod = "#{TS_BUILD}/native"
+    # FileUtils.rm_rf(dir_prod) unless !File.exists?(dir_prod)
+    # Dir.mkdir(dir_prod) unless File.exists?(dir_prod)
     sh "cp #{RS}/dist/index.node #{TS_BUILD}/native/index.node"
     # Copy native for tests (jasmine usage)
-    dir_tests = "#{TS}/native"
-    FileUtils.rm_rf(dir_tests) unless !File.exists?(dir_tests)
-    Dir.mkdir(dir_tests) unless File.exists?(dir_tests)
-    sh "cp #{RS}/dist/index.node #{TS}/native/index.node"
+    dir_tests = "#{TS}/src/native"
+    mod_file = "#{dir_tests}/index.node"
+    FileUtils.rm(mod_file) if File.exist?(mod_file)
+    sh "cp #{RS}/dist/index.node #{TS}/src/native/index.node"
     # Copy native to CLI
     # dir_cli = "#{TS_BUILD_CLI}/native"
     # FileUtils.rm_rf(dir_cli) unless !File.exists?(dir_cli)
@@ -90,15 +92,13 @@ namespace :build do
     sh "#{TSC_CLI} -p #{TS_CLI}/tsconfig.json"
     file = "#{TS_CLI}/dist/apps/rustcore/ts-bindings-cli/src/index.js"
     if OS.windows?
-      #TODO
+      # TODO
     else
       link = "#{Dir.pwd}/ts-cli"
       content = File.read(file)
-      File.write(file, "#{'#!/usr/bin/env node'}\n#{content}", mode: "w")
+      File.write(file, "#!/usr/bin/env node\n#{content}", mode: 'w')
       sh "chmod +x #{file}"
-      if File.exist?(link)
-        sh "rm #{link}"
-      end
+      sh "rm #{link}" if File.exist?(link)
       sh "ln -s #{file} #{link}"
       sh "chmod +x #{link}"
     end
@@ -108,7 +108,7 @@ namespace :build do
   # task :all do
   #   puts "do nothing in grabber branch"
   # end
-  task :all => ['build:rs', 'build:ts', 'build:delivery']
+  task all: ['build:rs', 'build:ts', 'build:delivery']
 end
 
 test_runner = './ts-bindings/node_modules/.bin/electron ./ts-bindings/node_modules/jasmine-ts/lib/index.js'
@@ -155,12 +155,10 @@ namespace :test do
   end
 
   desc 'run all test'
-  task :all do
-    puts 'No integration tests on grabber branch'
-  end
+  task all: ['test:observe', 'test:search', 'test:cancel']
+
   # task :all => %i[build:all] do
   #   ENV['ELECTRON_RUN_AS_NODE'] = '1'
   #   sh "#{test_runner} ts-bindings/spec/utils.spec.ts ts-bindings/spec/*.ts"
   # end
 end
-

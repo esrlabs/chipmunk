@@ -5,7 +5,7 @@ import {
     ChangeDetectionStrategy,
     ViewEncapsulation,
 } from '@angular/core';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Job } from '@service/jobs';
 

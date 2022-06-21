@@ -2,29 +2,11 @@ import { singleDecoratorFactory, DecoratorConstructor } from '@platform/env/deco
 import { scope } from '@platform/env/scope';
 import { Instance as Logger } from '@platform/env/logger';
 import { getComponentSelector } from '@env/reflect';
-import { ilc, Channel, Emitter, Declarations, Services } from '@service/ilc';
+import { ilc, Channel, Emitter, Declarations, InternalAPI, Env, IlcInterface } from '@service/ilc';
 import { unique } from '@platform/env/sequence';
 import { Subscriber } from '@platform/env/subscription';
-import { DomSanitizer } from '@angular/platform-browser';
 
-export { Channel, Emitter, Declarations };
-
-export interface InternalAPI {
-    channel: Channel;
-    emitter: Emitter;
-    services: Services;
-    logger: Logger;
-}
-
-export interface Env {
-    subscriber: Subscriber;
-}
-
-export interface IlcInterface {
-    log(): Logger;
-    ilc(): InternalAPI;
-    env(): Env;
-}
+export { Channel, Emitter, Declarations, IlcInterface, Env };
 
 const UUID_KEY = '__ilc_uuid_key___';
 const instances: Map<string, { api: InternalAPI; env: Env }> = new Map();
@@ -58,13 +40,12 @@ function removeIlcInstance(entity: any): void {
     if (uuid === undefined) {
         return;
     }
-    let instance = instances.get(uuid);
+    const instance = instances.get(uuid);
     if (instance === undefined) {
         return;
     }
     instance.api.channel.destroy();
     instance.api.emitter.destroy();
-    instance.api.services.destroy();
     instance.env.subscriber.unsubscribe();
     instances.delete(uuid);
 }

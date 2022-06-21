@@ -7,12 +7,12 @@ import {
     Packed,
     Respond,
     Errors,
-} from '@platform/ipc/transport/index';
-import * as events from '@platform/ipc/setup/channels';
-import { Subject, Subscription } from '@platform/env/subscription';
+} from 'platform/ipc/transport';
+import * as events from 'platform/ipc/setup/channels';
+import { Subject, Subscription } from 'platform/env/subscription';
 import { ipcMain, IpcMainEvent, BrowserWindow } from 'electron';
 import { Logger } from '@env/logs/index';
-import { error } from '@platform/env/logger';
+import { error } from 'platform/env/logger';
 
 interface IEventDesc {
     subject: Subject<any>;

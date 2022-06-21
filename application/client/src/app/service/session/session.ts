@@ -6,14 +6,12 @@ import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { cutUuid } from '@log/index';
 import { TargetFile } from '@platform/types/files';
 import { Render } from '@schema/render';
-import { getRenderFor } from '@schema/render/tools';
 import { components } from '@env/decorators/initial';
 import { SourceDefinition } from '@platform/types/transport';
 import { IDLTOptions } from '@platform/types/parsers/dlt';
 import { Base } from './base';
 
 import * as Requests from '@platform/ipc/request';
-import * as Events from '@platform/ipc/event';
 
 export { Stream };
 
@@ -101,7 +99,22 @@ export class Session extends Base {
         this.storage.destroy();
         this.search.destroy();
         this.stream.destroy();
-        return Promise.resolve();
+        return new Promise((resolve) => {
+            Requests.IpcRequest.send<Requests.Session.Destroy.Response>(
+                Requests.Session.Destroy.Response,
+                new Requests.Session.Destroy.Request({ session: this.uuid() }),
+            )
+                .then((response) => {
+                    if (response.error !== undefined) {
+                        this.log().error(`Error on destroying session: ${response.error}`);
+                    }
+                    resolve();
+                })
+                .catch((err: Error) => {
+                    this.log().error(`Error on sending destroy session reques: ${err.message}`);
+                    resolve();
+                });
+        });
     }
 
     public bind(tab: ITabAPI) {

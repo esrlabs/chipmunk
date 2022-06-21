@@ -1,7 +1,7 @@
 import { Component, Input, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { Base } from '@service/session';
 import { TabsOptions, ETabsListDirection } from '@elements/tabs/options';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 
 @Component({

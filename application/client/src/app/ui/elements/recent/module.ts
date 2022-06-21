@@ -28,6 +28,4 @@ const components = [
     declarations: [...components],
     exports: [...components],
 })
-export class RecentActionsModule {
-    constructor() {}
-}
+export class RecentActionsModule {}

@@ -10,6 +10,4 @@ import { TimezoneSelectorModule } from '@ui/elements/timezones/module';
     declarations: [],
     exports: [TabSourceDltFileModule, TabSourceDltNetModule, TimezoneSelectorModule],
 })
-export class TabsModule {
-    constructor() {}
-}
+export class TabsModule {}

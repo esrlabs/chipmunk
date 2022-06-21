@@ -1,10 +1,9 @@
 import { Component, OnDestroy, Input } from '@angular/core';
-import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { Subscription } from 'rxjs';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ProviderFilters } from '../provider';
 import { DragAndDropService } from '../../draganddrop/service';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 
 @Component({

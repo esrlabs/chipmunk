@@ -5,13 +5,12 @@ import {
     Input,
     AfterContentInit,
     ChangeDetectorRef,
-    AfterViewInit,
     HostBinding,
     HostListener,
     ElementRef,
 } from '@angular/core';
 import { Session } from '@service/session';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { Providers } from './providers/providers';
 import { Provider, ProviderData, ISelectEvent } from './providers/definitions/provider';
@@ -29,7 +28,7 @@ import { ProviderDisabled } from './disabled/provider';
 })
 @Initial()
 @Ilc()
-export class Filters extends ChangesDetector implements OnDestroy, AfterContentInit, AfterViewInit {
+export class Filters extends ChangesDetector implements OnDestroy, AfterContentInit {
     @Input() session!: Session;
 
     public providers: Provider<any>[] = [];
@@ -122,8 +121,6 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
         );
         window.addEventListener('keyup', this._onGlobalKeyUp);
     }
-
-    public ngAfterViewInit() {}
 
     public _ng_onPanelClick() {
         // this.detectChanges();

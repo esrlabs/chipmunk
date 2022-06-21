@@ -1,9 +1,11 @@
+import { v4 } from 'uuid';
+import { setUuidGenerator } from 'platform/env/sequence';
+
 import * as Units from './util/units';
 import * as Interfaces from './interfaces/index';
-import * as Events from '../../../../platform/env/subscription';
+import * as Events from 'platform/env/subscription';
 
-export { CancelablePromise } from './util/promise';
-export { PromiseExecutor } from './util/promise.executor';
+export { CancelablePromise, PromiseExecutor, ICancelablePromise } from 'platform/env/promise';
 export {
     TFileOptions,
     IFileOptionsDLT,
@@ -39,3 +41,5 @@ export {
 export * as dlt from './native/native.dlt';
 
 export { Units, Events, Interfaces };
+
+setUuidGenerator(v4);

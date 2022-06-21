@@ -1,16 +1,6 @@
 // tslint:disable: member-ordering
 
-import {
-    Component,
-    OnDestroy,
-    ChangeDetectorRef,
-    Input,
-    AfterContentInit,
-    AfterViewInit,
-    Output,
-    EventEmitter,
-} from '@angular/core';
-import { Subscription, Subject } from 'rxjs';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import * as Errors from '../error';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { MulticastInfo } from '@platform/types/transport/udp';
