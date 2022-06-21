@@ -228,7 +228,7 @@ impl OperationAPI {
         };
         if !self.state_api.is_closing() && !self.get_cancellation_token().is_cancelled() {
             if let Err(err) = self.state_api.remove_operation(self.id()).await {
-                error!("Fail to remove operation; error: {:?}", err);
+                error!("Failed to remove operation; error: {:?}", err);
             }
         }
         debug!("Operation \"{}\" ({}) finished", alias, self.id());
@@ -245,7 +245,7 @@ impl OperationAPI {
         self.cancellation_token.child_token()
     }
 
-    pub async fn process(
+    pub async fn execute(
         &self,
         operation: Operation,
         cancel: CancellationToken,
@@ -403,7 +403,7 @@ pub fn uuid_from_str(operation_id: &str) -> Result<Uuid, ComputationError> {
     }
 }
 
-pub async fn task(
+pub async fn run(
     mut rx_operations: UnboundedReceiver<Operation>,
     state: SessionStateAPI,
     tx_callback_events: UnboundedSender<CallbackEvent>,
@@ -418,8 +418,7 @@ pub async fn task(
                 operation.id,
                 CancellationToken::new(),
             );
-            println!("starting operation {:?}", operation);
-            if let Err(err) = operation_api.process(operation, cancel.clone()).await {
+            if let Err(err) = operation_api.execute(operation, cancel.clone()).await {
                 operation_api.emit(CallbackEvent::OperationError {
                     uuid: operation_api.id(),
                     error: err,

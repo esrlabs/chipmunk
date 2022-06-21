@@ -30,6 +30,11 @@ pub struct Session {
     pub state: SessionStateAPI,
 }
 
+// impl Drop for Session {
+//     fn drop(&mut self) {
+//     }
+// }
+
 impl Session {
     /// Starts a new chipmunk session
     ///
@@ -58,7 +63,7 @@ impl Session {
             let tx_callback_events_state = tx_callback_events.clone();
             let (_, _) = join!(
                 async {
-                    let result = operations::task(
+                    let result = operations::run(
                         rx_operations,
                         state_api.clone(),
                         tx_callback_events.clone(),
@@ -70,7 +75,7 @@ impl Session {
                     }
                     result
                 },
-                state::task(rx_state_api, tx_callback_events_state),
+                state::run(rx_state_api, tx_callback_events_state),
             );
             destroyed.cancel();
             debug!("Session is finished");

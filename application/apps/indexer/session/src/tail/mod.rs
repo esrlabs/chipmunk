@@ -1,8 +1,7 @@
 use log::error;
-use std::path::PathBuf;
+use std::path::Path;
 use thiserror::Error as ThisError;
 use tokio::{
-    fs::File,
     sync::mpsc::Sender,
     time::{timeout, Duration},
 };
@@ -19,18 +18,16 @@ pub enum Error {
 }
 
 pub async fn track(
-    path: PathBuf,
+    path: &Path,
     tx_update: Sender<Result<(), Error>>,
     shutdown: CancellationToken,
 ) -> Result<(), Error> {
-    let file = File::open(path)
+    use tokio::fs;
+
+    let mut size = fs::metadata(path)
         .await
+        .map(|md| md.len())
         .map_err(|e| Error::Io(e.to_string()))?;
-    let metadata = file
-        .metadata()
-        .await
-        .map_err(|e| Error::Io(e.to_string()))?;
-    let mut size = metadata.len();
     loop {
         match timeout(
             Duration::from_millis(TRACKING_INTERVAL_MS as u64),
@@ -40,11 +37,10 @@ pub async fn track(
         {
             Ok(_) => break,
             Err(_) => {
-                let metadata = file
-                    .metadata()
+                let updated = fs::metadata(path)
                     .await
+                    .map(|md| md.len())
                     .map_err(|e| Error::Io(e.to_string()))?;
-                let updated = metadata.len();
                 if updated != size {
                     size = updated;
                     if let Err(err) = tx_update.send(Ok(())).await {

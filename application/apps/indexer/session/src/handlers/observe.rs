@@ -72,14 +72,14 @@ pub async fn handle(
                 ParserType::SomeIP(_) => {
                     return Err(NativeError {
                         severity: Severity::ERROR,
-                        kind: NativeErrorKind::FileNotFound,
+                        kind: NativeErrorKind::UnsupportedFileType,
                         message: Some(String::from("SomeIP parser not yet supported")),
                     });
                 }
                 ParserType::Text => {
                     return Err(NativeError {
                         severity: Severity::ERROR,
-                        kind: NativeErrorKind::FileNotFound,
+                        kind: NativeErrorKind::UnsupportedFileType,
                         message: Some(String::from("Text parser above stream not yet supported")),
                     });
                 }
@@ -167,7 +167,7 @@ pub async fn handle(
                             cancel.cancel();
                             result
                         },
-                        tail::track(filename.clone(), tx_tail, cancel_clone),
+                        tail::track(&filename, tx_tail, cancel_clone),
                     );
                     (
                         vec![],
@@ -222,7 +222,7 @@ pub async fn handle(
                         Receiver<Result<(), tail::Error>>,
                     ) = channel(1);
                     let (_, listening) = join!(
-                        tail::track(filename.clone(), tx_tail, cancel_token),
+                        tail::track(&filename, tx_tail, cancel_token),
                         listen(
                             dest_path,
                             operation_api,
@@ -239,7 +239,6 @@ pub async fn handle(
                     } else {
                         None
                     };
-                    println!("create dlt parser");
                     let dlt_parser = dlt::DltParser::new(
                         settings.filter_config.map(|f| f.into()),
                         fibex_metadata.as_ref(),
@@ -261,9 +260,8 @@ pub async fn handle(
                         Sender<Result<(), tail::Error>>,
                         Receiver<Result<(), tail::Error>>,
                     ) = channel(1);
-                    println!("start tailing");
                     let (_, listening) = join!(
-                        tail::track(filename.clone(), tx_tail, cancel_token),
+                        tail::track(&filename, tx_tail, cancel_token),
                         listen(
                             dest_path,
                             operation_api,
@@ -277,7 +275,6 @@ pub async fn handle(
             }
         }
     };
-    println!("done observing...cleaning up files: {:?}", paths);
     for path in paths {
         if path.exists() {
             std::fs::remove_file(path).map_err(|e| NativeError {
@@ -357,27 +354,21 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     let cancel = operation_api.get_cancellation_token();
     let stream = producer.as_stream();
     futures::pin_mut!(stream);
-    let mut last_message = Instant::now();
+    let mut last_message_timestamp = Instant::now();
     let mut has_updated_content = false;
     let cancel_on_tail = cancel.clone();
-    // let mut i = 0usize;
-    // while let Some(next) = timeout_or(stream, cancel_on_tail).await {
     while let Some(next) = select! {
-        msg = async {
+        next_from_stream = async {
             match timeout(Duration::from_millis(NOTIFY_IN_MS as u64), stream.next()).await {
-                Ok(Some((_, item))) => Some(Next::Item(item)),
-                Ok(None) => Some(Next::Waiting),
-                Err(_) => Some(Next::Timeout),
+                Ok(Some((_, item))) => Next::Item(item),
+                Ok(None) => Next::Waiting,
+                Err(_) => Next::Timeout,
             }
-        } => msg,
+        } => Some(next_from_stream),
         _ = cancel.cancelled() => None,
     } {
         match next {
             Next::Item(item) => {
-                // if i % 10000 == 0 {
-                //     println!("observe: got item {}", i);
-                // }
-                // i += 1;
                 match item {
                     MessageStreamItem::Item(item) => {
                         session_writer
@@ -387,13 +378,9 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                                 kind: NativeErrorKind::Io,
                                 message: Some(e.to_string()),
                             })?;
-                        item.to_writer(&mut binary_writer)
-                            .map_err(|e| NativeError {
-                                severity: Severity::ERROR,
-                                kind: NativeErrorKind::Io,
-                                message: Some(e.to_string()),
-                            })?;
-                        if !state.is_closing() && last_message.elapsed().as_millis() > NOTIFY_IN_MS
+                        item.to_writer(&mut binary_writer)?;
+                        if !state.is_closing()
+                            && last_message_timestamp.elapsed().as_millis() > NOTIFY_IN_MS
                         {
                             session_writer.flush().map_err(|e| NativeError {
                                 severity: Severity::ERROR,
@@ -401,7 +388,7 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                                 message: Some(e.to_string()),
                             })?;
                             state.update_session().await?;
-                            last_message = Instant::now();
+                            last_message_timestamp = Instant::now();
                             has_updated_content = false;
                         } else {
                             has_updated_content = true;
@@ -432,14 +419,13 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                 }
             }
             Next::Timeout => {
-                println!("timeout");
                 if !state.is_closing() && has_updated_content {
+                    // TODO flush session file
                     state.update_session().await?;
                     has_updated_content = false;
                 }
             }
             Next::Waiting => {
-                println!("waiting");
                 if let Some(mut rx_tail) = rx_tail.take() {
                     select! {
                         msg = rx_tail.recv() => {
@@ -455,7 +441,7 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
             }
         }
     }
-    println!(
+    debug!(
         "listen done, session_file_path: {:?}, binary_file_path: {:?}",
         session_file_path, binary_file_path
     );

@@ -76,7 +76,7 @@ pub async fn handle(
                         },
                     );
                 }
-                Err(_) => match state.update_search_result(search_res_file.clone()).await {
+                Err(_) => match state.update_search_result(&search_res_file).await {
                     Ok(found) => {
                         operation_api.emit(CallbackEvent::SearchUpdated(found as u64));
                     }
@@ -94,7 +94,7 @@ pub async fn handle(
                     operation_api.emit(CallbackEvent::SearchUpdated(0));
                     Ok(Some(SearchOperationResult { found, stats }))
                 } else {
-                    state.update_search_result(file_path.clone()).await?;
+                    state.update_search_result(&file_path).await?;
                     operation_api.emit(CallbackEvent::SearchUpdated(found as u64));
                     Ok(Some(SearchOperationResult { found, stats }))
                 }

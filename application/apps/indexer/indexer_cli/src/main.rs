@@ -771,7 +771,7 @@ pub async fn main() -> Result<()> {
             ) = unbounded();
 
             let _h = tokio::spawn(async move {
-                match processor::processor::create_index_and_mapping(
+                if let Err(why) = processor::processor::create_index_and_mapping(
                     IndexingConfig {
                         tag: tag_string,
                         chunk_size,
@@ -787,11 +787,8 @@ pub async fn main() -> Result<()> {
                 )
                 .await
                 {
-                    Err(why) => {
-                        report_error(format!("couldn't process: {}", why));
-                        std::process::exit(2)
-                    }
-                    Ok(()) => (),
+                    report_error(format!("couldn't process: {}", why));
+                    std::process::exit(2)
                 }
             });
             loop {

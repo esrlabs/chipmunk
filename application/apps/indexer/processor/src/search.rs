@@ -1,7 +1,7 @@
 use crate::{grabber::GrabError, map::FilterMatch};
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use grep_regex::RegexMatcher;
-use grep_searcher::{sinks::UTF8, Searcher, Sink, SinkMatch};
+use grep_searcher::{sinks::UTF8, Searcher};
 use itertools::Itertools;
 use log::error;
 use regex::Regex;
@@ -392,22 +392,6 @@ impl MatchesExtractor {
             })?;
 
         Ok(values)
-    }
-}
-
-struct MySink {
-    matches: u64,
-}
-impl Sink for MySink {
-    type Error = std::io::Error;
-
-    fn matched(&mut self, _searcher: &Searcher, _mat: &SinkMatch) -> Result<bool, Self::Error> {
-        self.matches += 1;
-        println!(
-            "MySink matched called {} times (mat = {:?})",
-            self.matches, _mat
-        );
-        Ok(true)
     }
 }
 

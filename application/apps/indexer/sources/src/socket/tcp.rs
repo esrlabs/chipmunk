@@ -29,15 +29,15 @@ impl ByteSource for TcpSource {
     ) -> Result<Option<ReloadInfo>, SourceError> {
         // TODO use filter
         loop {
-            println!("wait for tcp socket to become readable");
+            debug!("Wait for tcp socket to become readable");
             self.socket
                 .readable()
                 .await
                 .map_err(|e| SourceError::Unrecoverable(format!("{}", e)))?;
-            println!("socket ready to read");
+            debug!("Socket ready to read");
             match self.socket.try_read(&mut self.tmp_buffer) {
                 Ok(len) => {
-                    println!("---> Received {} bytes", len);
+                    trace!("---> Received {} bytes", len);
                     if len > 0 {
                         self.buffer.copy_from_slice(&self.tmp_buffer[..len]);
                     }
@@ -81,10 +81,8 @@ async fn test_tcp_reload() -> Result<(), std::io::Error> {
     // process_socket(socket).await;
     // let send_socket = TcpSocket::bind(SENDER).await?;
     let send_handle = tokio::spawn(async move {
-        println!("send_handle");
         let (stream, _) = listener.accept().await.unwrap();
         let (_, mut send) = tokio::io::split(stream);
-        println!("accepted");
         // stream.writable().await.unwrap();
         for msg in MESSAGES {
             send.write_all(msg.as_bytes())
@@ -92,17 +90,12 @@ async fn test_tcp_reload() -> Result<(), std::io::Error> {
                 .expect("could not send on socket");
             send.flush().await.expect("flush message should work");
             sleep(Duration::from_millis(100)).await;
-            println!("wrote {} to socket", msg);
         }
     });
-    println!("1");
     let mut udp_source = TcpSource::new(SERVER).await?;
-    println!("2");
     let receive_handle = tokio::spawn(async move {
-        println!("try to receive");
         for msg in MESSAGES {
             let res = udp_source.reload(None).await;
-            println!("res: {:?}", res);
             println!(
                 "receive: {:02X?}",
                 std::str::from_utf8(udp_source.current_slice())
@@ -112,7 +105,7 @@ async fn test_tcp_reload() -> Result<(), std::io::Error> {
         }
     });
 
-    println!("starting send and receive");
+    println!("TCP: Starting send and receive");
     let (_, rec_res) = tokio::join!(send_handle, receive_handle,);
 
     assert!(rec_res.is_ok());

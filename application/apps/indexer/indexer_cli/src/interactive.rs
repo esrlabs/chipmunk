@@ -123,6 +123,9 @@ pub(crate) async fn handle_interactive_session(matches: &clap::ArgMatches) {
         }
     }
     println!("end of handle_interactive_session()");
+
+    let stop_uuid = Uuid::new_v4();
+    session.stop(stop_uuid).await.unwrap();
 }
 
 #[derive(Debug)]
