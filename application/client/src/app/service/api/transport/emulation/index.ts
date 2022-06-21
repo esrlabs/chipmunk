@@ -33,7 +33,6 @@ function getSubscriptionUuid(callback: (...args: any[]) => void): string {
 
 export class Emulation {
     private _subscriptions: Map<string, Array<(...args: any[]) => void>> = new Map();
-    constructor() {}
 
     public send(channel: string, msg: Packed): void {
         switch (channel) {
@@ -47,8 +46,8 @@ export class Emulation {
                 return;
             case events.HOST_EVENT_NAME:
             case events.HOST_REQUEST_NAME:
-            case events.HOST_RESPONSE_NAME:
-                let handlers = this._subscriptions.get(channel);
+            case events.HOST_RESPONSE_NAME: {
+                const handlers = this._subscriptions.get(channel);
                 if (handlers === undefined) {
                     return;
                 }
@@ -56,6 +55,7 @@ export class Emulation {
                     handler({}, msg);
                 });
                 return;
+            }
         }
         throw new Error(
             `Not expected channel name for sending: ${channel}. Expecting:\n${[
@@ -100,7 +100,7 @@ export class Emulation {
 
     public emit(channel: string, ...args: any[]) {
         verifySubscriptionChannelValid(channel);
-        let handlers = this._subscriptions.get(channel);
+        const handlers = this._subscriptions.get(channel);
         if (handlers === undefined) {
             return;
         }

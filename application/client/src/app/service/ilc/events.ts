@@ -57,6 +57,10 @@ export class Events {
             hover: Subject<Row | undefined>;
             rank: Subject<Declarations.UI.Rank>;
         };
+        input: {
+            focused: Subject<void>;
+            blur: Subject<void>;
+        };
     };
 
     private _subjects: Subject<unknown>[] = [];
@@ -118,6 +122,10 @@ export class Events {
             },
             layout: {
                 resize: this._add<void>(new Subject<void>()),
+            },
+            input: {
+                focused: this._add<void>(new Subject<void>()),
+                blur: this._add<void>(new Subject<void>()),
             },
             row: {
                 hover: this._add<Row | undefined>(new Subject<Row | undefined>()),

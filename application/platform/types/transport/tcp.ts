@@ -1,1 +1,3 @@
-export interface TCPTransportSettings {}
+export interface TCPTransportSettings {
+    dummy: string;
+}

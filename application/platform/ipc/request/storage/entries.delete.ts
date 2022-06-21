@@ -1,5 +1,4 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { Entry } from '../../../types/storage/entry';
 
 import * as validator from '../../../env/obj';
 

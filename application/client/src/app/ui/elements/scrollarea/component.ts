@@ -5,7 +5,6 @@ import {
     ViewChild,
     Input,
     AfterViewInit,
-    AfterViewChecked,
     ElementRef,
     ChangeDetectionStrategy,
     HostBinding,
@@ -36,10 +35,7 @@ export interface IScrollBoxSelection {
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Ilc()
-export class ScrollAreaComponent
-    extends ChangesDetector
-    implements OnDestroy, AfterViewInit, AfterViewChecked
-{
+export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, AfterViewInit {
     @ViewChild('content_holder', { static: false }) _nodeHolder!: ElementRef<HTMLElement>;
 
     @Input() public service!: Service;
@@ -74,8 +70,6 @@ export class ScrollAreaComponent
             subscription.unsubscribe();
         });
     }
-
-    public ngAfterViewChecked(): void {}
 
     public ngAfterViewInit(): void {
         this.holder.bind(this._nodeHolder);
@@ -133,8 +127,7 @@ export class ScrollAreaComponent
     }
 
     public onWheel(event: WheelEvent) {
-        if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
-        } else {
+        if (Math.abs(event.deltaX) < Math.abs(event.deltaY)) {
             this.frame.offsetTo(event.deltaY, ChangesInitiator.Wheel);
             event.preventDefault();
         }

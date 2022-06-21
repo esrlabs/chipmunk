@@ -1,5 +1,5 @@
 import { Logger } from '../../util/logging';
-import { CancelablePromise } from '../../util/promise';
+import { CancelablePromise } from 'platform/env/promise';
 import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../../api/session.provider';
 export { Logger, CancelablePromise };

@@ -1,5 +1,4 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { IFilter, ISearchResults } from '../../../types/filter';
 
 import * as validator from '../../../env/obj';
 
@@ -7,7 +6,7 @@ import * as validator from '../../../env/obj';
 export class Request extends SignatureRequirement {
     public session: string;
 
-    constructor(input: { session: string; }) {
+    constructor(input: { session: string }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
@@ -20,9 +19,7 @@ export interface Request extends Interface {}
 export class Response extends SignatureRequirement {
     public session: string;
 
-    constructor(input: {
-        session: string;
-    }) {
+    constructor(input: { session: string }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');

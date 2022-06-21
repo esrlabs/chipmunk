@@ -10,6 +10,4 @@ import { Session } from './component';
     declarations: [Session],
     exports: [Session],
 })
-export class SessionModule {
-    constructor() {}
-}
+export class SessionModule {}

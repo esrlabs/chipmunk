@@ -1,9 +1,7 @@
 import {
     Component,
     Input,
-    OnDestroy,
     ChangeDetectorRef,
-    AfterContentInit,
     Output,
     EventEmitter,
 } from '@angular/core';
@@ -13,7 +11,7 @@ import {
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
-export class ComColorSelectorComponent implements OnDestroy, AfterContentInit {
+export class ComColorSelectorComponent {
     @Input() public color!: string;
     @Input() public colors!: string[];
 
@@ -22,10 +20,6 @@ export class ComColorSelectorComponent implements OnDestroy, AfterContentInit {
     private _destroyed: boolean = false;
 
     constructor(private _cdRef: ChangeDetectorRef) {}
-
-    public ngOnDestroy() {}
-
-    public ngAfterContentInit() {}
 
     public _ng_onColorSelect(color: string) {
         this.color = color;

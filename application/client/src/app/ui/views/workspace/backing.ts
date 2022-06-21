@@ -12,7 +12,7 @@ export function getScrollAreaService(session: Session): Service {
             setFrame: (range: Range) => {
                 session.stream.chunk(range).then((rows) => {
                     service.setRows({
-                        rows: rows.map((row, i) => {
+                        rows: rows.map((row) => {
                             return new Row({
                                 position: {
                                     stream: row.position,

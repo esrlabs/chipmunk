@@ -16,7 +16,6 @@ import { ProviderFilters } from '../provider';
 import { Entity } from '../../providers/definitions/entity';
 import { MatDragDropResetFeatureDirective } from '@ui/env/directives/material.dragdrop';
 import { Ilc, IlcInterface } from '@env/decorators/component';
-import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
 
@@ -82,8 +81,8 @@ export class Filter extends ChangesDetector implements AfterContentInit {
         this.update();
     }
 
-    public _ng_onStateClick(event: MouseEvent) {
-        this.directive.ignoreMouseClick(event);
+    public _ng_onStateClick() {
+        this.directive.ignoreMouseClick();
     }
 
     public _ng_flagsToggle(event: MouseEvent, flag: 'cases' | 'word' | 'reg') {

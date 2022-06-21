@@ -1,14 +1,8 @@
-import * as NodeGlobal from './interface.node.global';
-import * as Plugins from './interface.plugins';
-import * as Versions from './interface.versions';
-import * as Detect from './interface.detect';
-import * as TimeRanges from './interface.timerange';
-import * as Electron from './interface.electron';
-import * as API from './interface.rust.api.general';
-import * as Observe from './interface.rust.api.observe';
-import * as Someip from './interface.rust.api.someip';
-
-export { Someip, NodeGlobal, Plugins, Versions, Detect, TimeRanges, API, Electron, Observe };
+export * as global from './interface.node.global';
+export * as detect from './interface.detect';
+export * as timeranges from './interface.timerange';
+export * as electron from './interface.electron';
+export * as api from './interface.rust.api.general';
 
 // describes a section of a file by indicies
 // to identify lines 10-12 (inclusively) => first_line = 10, last_line = 12

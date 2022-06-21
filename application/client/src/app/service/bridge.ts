@@ -4,7 +4,6 @@ import { File, FileType, Entity } from '@platform/types/files';
 import { StatisticInfo } from '@platform/types/parsers/dlt';
 import { Entry } from '@platform/types/storage/entry';
 
-import * as Events from '@platform/ipc/event/index';
 import * as Requests from '@platform/ipc/request/index';
 
 @SetupService(services['bridge'])

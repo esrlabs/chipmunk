@@ -1,1 +1,3 @@
-export interface SerialTransportSettings {}
+export interface SerialTransportSettings {
+    dummy: string;
+}

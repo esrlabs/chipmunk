@@ -11,7 +11,6 @@ import { Initial } from '@env/decorators/initial';
 import { Action } from '@service/recent/action';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
-import { Subscriber } from '@platform/env/subscription';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
@@ -24,7 +23,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 @Initial()
 @Ilc()
 export class RecentActions extends ChangesDetector implements AfterContentInit {
-    public readonly state: State = new State();
+    public readonly state: State;
 
     @HostListener('window:keydown', ['$event'])
     handleKeyDown(event: KeyboardEvent) {
@@ -36,6 +35,7 @@ export class RecentActions extends ChangesDetector implements AfterContentInit {
 
     constructor(cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
         super(cdRef);
+        this.state = new State(this);
         this.env().subscriber.register(
             this.state.update.subscribe(() => {
                 this.markChangesForCheck();
@@ -55,8 +55,12 @@ export class RecentActions extends ChangesDetector implements AfterContentInit {
         const items = [
             ...action.getActions(),
             {},
-            { caption: 'Remove recent', handler: () => {} },
-            { caption: 'Clear All', handler: () => {} },
+            { caption: 'Remove recent', handler: () => {
+                console.log(`Not implemented`);
+            } },
+            { caption: 'Clear All', handler: () => {
+                console.log(`Not implemented`);
+            } },
         ];
         this.ilc().emitter.ui.contextmenu.open({
             items,

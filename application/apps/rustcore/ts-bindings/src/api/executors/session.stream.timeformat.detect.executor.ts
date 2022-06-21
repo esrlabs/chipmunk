@@ -1,5 +1,5 @@
 import { TExecutor, Logger, CancelablePromise, ResultsExecutor } from './executor';
-import { RustSession } from '../../native/index';
+import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../../api/session.provider';
 
 export interface IDetectOptions {}
@@ -26,7 +26,7 @@ export const executor: TExecutor<IDetectDTFormatResult, IDetectOptions> = (
         function (
             result: any,
             resolve: (res: IDetectDTFormatResult) => void,
-            reject: (err: Error) => void,
+            // reject: (err: Error) => void,
         ) {
             // TODO: implement result checks/convert
             resolve({

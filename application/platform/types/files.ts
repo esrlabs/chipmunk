@@ -40,8 +40,8 @@ export enum FileType {
 
 export interface TargetFileOptions {
     dlt?: IDLTOptions;
-    someip?: {};
-    pcap?: {};
+    someip?: Record<string, unknown>;
+    pcap?: Record<string, unknown>;
 }
 
 export interface TargetFile {

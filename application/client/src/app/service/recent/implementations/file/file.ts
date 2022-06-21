@@ -1,10 +1,8 @@
 import { components } from '@env/decorators/initial';
 import { RecentAction } from '../recent';
 import { IComponentDesc } from '@ui/elements/containers/dynamic/component';
-import { unique } from '@platform/env/sequence';
 
 import * as Files from './index';
-import * as obj from '@platform/env/obj';
 
 export class Recent extends RecentAction {
     public text: Files.Text | undefined;

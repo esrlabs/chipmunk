@@ -1,7 +1,6 @@
 import { components } from '@env/decorators/initial';
 import { RecentAction } from '../recent';
 import { IComponentDesc } from '@ui/elements/containers/dynamic/component';
-import { unique } from '@platform/env/sequence';
 import { IDLTOptions } from '@platform/types/parsers/dlt';
 import { SourceDefinition } from '@platform/types/transport';
 

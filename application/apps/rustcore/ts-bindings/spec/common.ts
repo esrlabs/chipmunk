@@ -18,7 +18,7 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 900000;
 
 export function finish(session: Session | undefined, done: () => void, err?: Error): void {
     err !== undefined && fail(err);
-    session !== undefined &&
+    if (session !== undefined) {
         session
             .destroy()
             .catch((error: Error) => {
@@ -27,6 +27,9 @@ export function finish(session: Session | undefined, done: () => void, err?: Err
             .finally(() => {
                 checkSessionDebugger(session, done);
             });
+    } else {
+        done();
+    }
 }
 
 export function checkSessionDebugger(session: Session, done: () => void) {
@@ -90,30 +93,30 @@ export function performanceReport(
         output(format(`File size: ${(stat.size / 1024 / 1024).toFixed(2)}Mb`));
     }
     output(`├${'─'.repeat(LEN)}┤`);
-    const step = expectation / SCALE;
-    let scale = Math.floor(actual / step);
+    const step = Math.max(expectation, actual) / SCALE;
+    const scale_actual = Math.floor(actual / step);
+    const scale_expect = Math.floor(expectation / step);
+    const diff = Math.abs(expectation - actual);
+    const scale_diff = Math.floor(diff / step);
     output(
         format(
             `${fill('Actual', 14)} [${fill(actual.toFixed(2), 8)}ms][${'■'.repeat(
-                scale,
-            )}${'·'.repeat(SCALE - scale)}]`,
+                scale_actual,
+            )}${'·'.repeat(SCALE - scale_actual < 0 ? 0 : SCALE - scale_actual)}]`,
         ),
     );
-    scale = Math.floor(expectation / step);
     output(
         format(
             `${fill('Expectation', 14)} [${fill(expectation.toFixed(2), 8)}ms][${'■'.repeat(
-                scale,
-            )}${'·'.repeat(SCALE - scale)}]`,
+                scale_expect,
+            )}${'·'.repeat(SCALE - scale_expect < 0 ? 0 : SCALE - scale_expect)}]`,
         ),
     );
-    const diff = expectation - actual;
-    scale = Math.floor(diff / step);
     output(
         format(
-            `${fill('Diff', 14)} [${fill(diff.toFixed(2), 8)}ms][${'■'.repeat(scale)}${'·'.repeat(
-                SCALE - scale,
-            )}]`,
+            `${fill('Diff', 14)} [${fill(diff.toFixed(2), 8)}ms][${'■'.repeat(
+                scale_diff,
+            )}${'·'.repeat(SCALE - scale_diff < 0 ? 0 : SCALE - scale_diff)}]`,
         ),
     );
     output(`└${'─'.repeat(LEN)}┘`);

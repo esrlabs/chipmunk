@@ -1,4 +1,4 @@
-import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
+import { SetupService, Interface, Implementation, register } from 'platform/entity/service';
 import { services } from '@register/services';
 import { Job } from './jobs/job';
 

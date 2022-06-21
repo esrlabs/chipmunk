@@ -1,6 +1,6 @@
-import { IFilterFlags, IFilter } from '@platform/types/filter';
+import { IFilter } from '@platform/types/filter';
 import { Entity } from '../../providers/definitions/entity';
-import { FilterRequest, UpdateEvent } from '@service/session/dependencies/search/filters/request';
+import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { ProviderFilters } from '../provider';
 
 import * as obj from '@platform/env/obj';

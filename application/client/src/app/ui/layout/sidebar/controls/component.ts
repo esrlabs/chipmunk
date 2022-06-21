@@ -1,7 +1,5 @@
-import { Component, Input, AfterContentInit, ChangeDetectorRef } from '@angular/core';
-import { IMenuItem } from '@ui/service/contextmenu';
-import { ITab } from '@elements/tabs/service';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Component, ChangeDetectorRef } from '@angular/core';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 
 @Component({
     selector: 'app-layout-sidebar-controls',
@@ -9,12 +7,11 @@ import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
     styleUrls: ['./styles.less'],
 })
 @Ilc()
-export class LayoutSidebarControls implements AfterContentInit {
+export class LayoutSidebarControls {
     constructor(private _cdRef: ChangeDetectorRef) {}
 
-    ngAfterContentInit() {}
-
     public _ng_onAdd(event: MouseEvent) {
+        console.log(event);
         // const tabs: ITab[] | undefined = this.ilc().services.ui.sidebar.getNotOpened();
         // if (tabs === undefined || tabs.length === 0) {
         //     return;

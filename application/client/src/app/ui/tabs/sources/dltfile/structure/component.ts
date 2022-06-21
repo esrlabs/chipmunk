@@ -7,16 +7,14 @@ import {
     Input,
     Output,
     EventEmitter,
-    OnDestroy,
-    ViewEncapsulation
+    ViewEncapsulation,
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { MatSort, Sort } from '@angular/material/sort';
+import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { StatEntity, Section } from './statentity';
-import { Subscriber } from '@platform/env/subscription';
 import { MatTable } from '@angular/material/table';
 
 export const COLUMNS = {
@@ -60,7 +58,6 @@ export class TabSourceDltFileStructure
     @ViewChild(MatTable) table!: MatTable<any>;
 
     public data!: MatTableDataSource<StatEntity>;
-
 
     constructor(cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
         super(cdRef);

@@ -4,12 +4,12 @@ import {
     Implementation,
     register,
     DependOn,
-} from '@platform/entity/service';
+} from 'platform/entity/service';
 import { services } from '@register/services';
 import { electron } from '@service/electron';
-import { Subscriber } from '@platform/env/subscription';
+import { Subscriber } from 'platform/env/subscription';
 
-import * as Requests from '@platform/ipc/request';
+import * as Requests from 'platform/ipc/request';
 import * as RequestHandlers from './bridge/index';
 
 @DependOn(electron)

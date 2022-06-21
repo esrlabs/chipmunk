@@ -10,6 +10,4 @@ import { MatListModule } from '@angular/material/list';
     declarations: [ElementsTimezoneSelector],
     exports: [ElementsTimezoneSelector],
 })
-export class TimezoneSelectorModule {
-    constructor() {}
-}
+export class TimezoneSelectorModule {}

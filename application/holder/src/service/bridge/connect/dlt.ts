@@ -1,12 +1,12 @@
-import { CancelablePromise } from '@platform/env/promise';
+import { CancelablePromise } from 'platform/env/promise';
 import { Observe } from 'rustcore';
 import { sessions } from '@service/sessions';
-import { Instance as Logger } from '@platform/env/logger';
+import { Instance as Logger } from 'platform/env/logger';
 import { jobs } from '@service/jobs';
-import { optionsToParserSettings } from '@platform/types/parsers/dlt';
+import { optionsToParserSettings } from 'platform/types/parsers/dlt';
 import { paths } from '@service/paths';
 
-import * as Requests from '@platform/ipc/request';
+import * as Requests from 'platform/ipc/request';
 
 export const handler = Requests.InjectLogger<
     Requests.Connect.Dlt.Request,
@@ -37,7 +37,7 @@ export const handler = Requests.InjectLogger<
                     .observe(
                         Observe.DataSource.stream()
                             .upd(request.source.udp)
-                            .dlt(optionsToParserSettings(request.options, false, 0, 0) as any),
+                            .dlt(optionsToParserSettings(request.options, false, 0, 0)),
                     )
                     .catch((err: Error) => {
                         log.error(`Fail to call observe. Error: ${err.message}`);

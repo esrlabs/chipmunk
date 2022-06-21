@@ -1,17 +1,16 @@
 import {
     Component,
-    OnDestroy,
     ChangeDetectorRef,
     AfterViewInit,
     Input,
     AfterContentInit,
     HostListener,
 } from '@angular/core';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { File } from '@platform/types/files';
-import { IDLTOptions, StatisticInfo, LevelDistribution, EMTIN } from '@platform/types/parsers/dlt';
+import { IDLTOptions, EMTIN } from '@platform/types/parsers/dlt';
 import { bytesToStr, timestampToUTC } from '@env/str';
 import { StatEntity } from './structure/statentity';
 import { TabControls } from '@service/session';
@@ -47,7 +46,7 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
 
     public size: (s: number) => string = bytesToStr;
     public datetime: (ts: number) => string = timestampToUTC;
-    public state: State = new State();
+    public state: State;
     public logLevels: Array<{ value: string; caption: string }> = [
         { value: EMTIN.DLT_LOG_FATAL, caption: 'Fatal' },
         { value: EMTIN.DLT_LOG_ERROR, caption: 'Error' },
@@ -61,6 +60,7 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
 
     constructor(cdRef: ChangeDetectorRef, private _bottomSheet: MatBottomSheet) {
         super(cdRef);
+        this.state = new State(this.ilc());
     }
 
     public ngAfterContentInit(): void {

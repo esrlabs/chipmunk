@@ -1,13 +1,14 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
-import { Subscriber, Subject } from '@platform/env/subscription';
+import { Subscriber } from '@platform/env/subscription';
 import { Range } from '@platform/types/range';
-import { ilc, Emitter, Channel, Declarations, Services } from '@service/ilc';
+import { ilc, Emitter } from '@service/ilc';
 import { cutUuid } from '@log/index';
 import { IFilter, ISearchResults } from '@platform/types/filter';
 import { IGrabbedElement } from '@platform/types/content';
 import { FiltersStore } from './search/filters/store';
 import { DisableStore } from './search/disabled/store';
 import { Highlights } from './search/highlights';
+import { State } from './search/state';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -23,6 +24,7 @@ export class Search {
         disabled: DisableStore;
     };
     private _highlights!: Highlights;
+    private _state!: State;
 
     public init(uuid: string) {
         this.setLoggerName(`Search: ${cutUuid(uuid)}`);
@@ -44,7 +46,8 @@ export class Search {
             filters: new FiltersStore(uuid),
             disabled: new DisableStore(uuid),
         };
-        this._highlights = new Highlights(this._store.filters);
+        this._state = new State(this);
+        this._highlights = new Highlights(this);
     }
 
     public destroy() {
@@ -52,6 +55,7 @@ export class Search {
         this._store.filters.destroy();
         this._store.disabled.destroy();
         this._highlights.destroy();
+        this._state.destroy();
     }
 
     public len(): number {
@@ -90,7 +94,7 @@ export class Search {
                     session: this._uuid,
                 }),
             )
-                .then((_response) => {
+                .then(() => {
                     resolve(undefined);
                 })
                 .catch(reject);
@@ -132,6 +136,10 @@ export class Search {
                 return this._store.disabled;
             },
         };
+    }
+
+    public state(): State {
+        return this._state;
     }
 
     public highlights(): Highlights {

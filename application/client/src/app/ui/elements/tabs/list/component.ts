@@ -52,7 +52,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
 
     ngAfterViewInit() {
         this._apply();
-        this._onWindowResize(null);
+        this._onWindowResize();
     }
 
     ngOnDestroy() {
@@ -250,6 +250,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
                     : 0
                 : 0;
         const space: number = Math.round(width - tabs - injections);
+        // eslint-disable-next-line no-compare-neg-zero
         this._sizes.space = space === -0 ? 0 : space;
         this._sizes.holder = width;
         this._sizes.tabs = [];
@@ -258,7 +259,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
         });
     }
 
-    private _onWindowResize(event: Event | null) {
+    private _onWindowResize() {
         this._calculateSizes();
         this._forceUpdate();
     }

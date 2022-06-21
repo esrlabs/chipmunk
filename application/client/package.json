@@ -9,7 +9,8 @@
     "build": "./node_modules/.bin/ng build --configuration development",
     "test": "./node_modules/.bin/ng test",
     "e2e": "./node_modules/.bin/ng e2e",
-    "prod": "./node_modules/.bin/ng build --configuration production"
+    "prod": "./node_modules/.bin/ng build --configuration production",
+    "lint": "./node_modules/.bin/eslint . --ext .ts --max-warnings=0"
   },
   "private": true,
   "dependencies": {
@@ -43,8 +44,8 @@
     "@types/jasmine": "^4.0.3",
     "@types/node": "^17.0.24",
     "@types/uuid": "^8.3.4",
-    "@typescript-eslint/eslint-plugin": "^5.19.0",
-    "@typescript-eslint/parser": "^5.19.0",
+    "@typescript-eslint/eslint-plugin": "^5.28.0",
+    "@typescript-eslint/parser": "^5.28.0",
     "eslint": "^8.2.0",
     "jasmine-core": "^4.1.0",
     "karma": "~6.3.0",

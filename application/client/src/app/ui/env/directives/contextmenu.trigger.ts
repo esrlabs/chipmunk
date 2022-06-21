@@ -1,13 +1,4 @@
-import {
-    AfterViewInit,
-    Directive,
-    ElementRef,
-    OnDestroy,
-    HostListener,
-    Input,
-    Output,
-    EventEmitter,
-} from '@angular/core';
+import { AfterViewInit, Directive, OnDestroy, HostListener, Input } from '@angular/core';
 
 @Directive({
     selector: '[appContextMenuTrigger]',
@@ -22,8 +13,7 @@ export class ContextMenuTriggerDirective implements AfterViewInit, OnDestroy {
           }
         | undefined;
 
-    constructor() // private _hostElement: ElementRef
-    {
+    constructor() { // private _hostElement: ElementRef
         this._mouseup = this._mouseup.bind(this);
         window.addEventListener('mouseup', this._mouseup);
     }
@@ -42,5 +32,6 @@ export class ContextMenuTriggerDirective implements AfterViewInit, OnDestroy {
 
     private _mouseup(event: MouseEvent) {
         this._position = undefined;
+        console.log(event);
     }
 }

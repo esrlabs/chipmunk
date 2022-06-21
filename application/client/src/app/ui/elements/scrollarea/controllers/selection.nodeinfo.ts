@@ -173,7 +173,9 @@ export class NodeInfo {
                     throw `found`;
                 }
             });
-        } catch (_) {}
+        } catch (_) {
+            // Exit from forEach;
+        }
         return index;
     }
 
@@ -183,13 +185,15 @@ export class NodeInfo {
         }
         let index: number = -1;
         try {
-            Array.prototype.forEach.call(node.parentNode.childNodes, (child: Node, i: number) => {
+            Array.prototype.forEach.call(node.parentNode.children, (child: Node, i: number) => {
                 if (node === child) {
                     index = i;
                     throw `found`;
                 }
             });
-        } catch (_) {}
+        } catch (_) {
+            // Exit from forEach;
+        }
         return index;
     }
 }

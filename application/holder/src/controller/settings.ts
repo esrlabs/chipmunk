@@ -1,11 +1,11 @@
-import { scope } from '@platform/env/scope';
+import { scope } from 'platform/env/scope';
 import { Logger } from '@env/logs/index';
 import { paths } from '@service/paths';
-import { AsyncLockToken } from '@platform/env/lock.token';
-import { error, getErrorCode } from '@platform/env/logger';
-import { system } from '@platform/modules/system';
+import { AsyncLockToken } from 'platform/env/lock.token';
+import { error, getErrorCode } from 'platform/env/logger';
+import { system } from 'platform/modules/system';
 
-import * as obj from '@platform/env/obj';
+import * as obj from 'platform/env/obj';
 import * as fs from 'fs';
 import * as path from 'path';
 

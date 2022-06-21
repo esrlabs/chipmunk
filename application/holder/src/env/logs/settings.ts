@@ -1,4 +1,4 @@
-import { Level, LOGS_LEVEL_TABLE } from '@platform/env/logger';
+import { Level, LOGS_LEVEL_TABLE } from 'platform/env/logger';
 
 export const DEFAUT_ALLOWED_CONSOLE = {
     DEBUG: true,

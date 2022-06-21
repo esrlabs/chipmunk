@@ -1,8 +1,8 @@
-import { CancelablePromise } from '@platform/env/promise';
-import { Instance as Logger } from '@platform/env/logger';
+import { CancelablePromise } from 'platform/env/promise';
+import { Instance as Logger } from 'platform/env/logger';
 import { getEntities } from './select';
 
-import * as Requests from '@platform/ipc/request';
+import * as Requests from 'platform/ipc/request';
 
 export const handler = Requests.InjectLogger<
     Requests.File.File.Request,

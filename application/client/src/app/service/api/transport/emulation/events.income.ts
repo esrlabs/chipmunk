@@ -1,9 +1,5 @@
-import {
-    Transport,
-    Respond,
-    ISignatureRequirement,
-    Package,
-    Packed,
-} from '@platform/ipc/transport/index';
+import { Packed } from '@platform/ipc/transport/index';
 
-export function receiveEvent(packed: Packed) {}
+export function receiveEvent(packed: Packed) {
+    console.log(`Not implemented: ${packed}`);
+}

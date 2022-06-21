@@ -118,9 +118,9 @@ export function optionsToParserSettings(
 ): DltParserSettings {
     const filter_config: DltFilterConf = {
         min_log_level: options.logLevel,
-        app_ids: (options.filters as any)[FILTER_LEVELS.app_ids],
-        context_ids: (options.filters as any)[FILTER_LEVELS.context_ids],
-        ecu_ids: (options.filters as any)[FILTER_LEVELS.ecu_ids],
+        app_ids: options.filters.app_ids,
+        context_ids: options.filters.context_ids,
+        ecu_ids: options.filters.ecu_ids,
         app_id_count,
         context_id_count,
     };
@@ -140,7 +140,7 @@ export function defaultParserSettings(with_storage_header: boolean): DltParserSe
 }
 
 export function getLogLevelName(level: number): string {
-    const name = (DltLogLevelNames as any)[level];
+    const name = (DltLogLevelNames as Record<string, string>)[level];
     return name === undefined ? 'unknown' : name;
 }
 

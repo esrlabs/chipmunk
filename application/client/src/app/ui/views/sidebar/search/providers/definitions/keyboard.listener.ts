@@ -27,7 +27,7 @@ export class KeyboardListener {
         this._ctrl = false;
     }
 
-    private _keyup(event: KeyboardEvent) {
+    private _keyup() {
         this._ctrl = false;
         this._shift = false;
     }

@@ -1,4 +1,4 @@
-import { Component, Input, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { TabsService } from '@elements/tabs/service';
 import { LayoutWorkspaceNoContent } from './no-tabs-content/component';
 import { Ilc, IlcInterface } from '@env/decorators/component';

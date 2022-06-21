@@ -8,6 +8,4 @@ import { FiltersModule } from './search/module';
     declarations: [],
     exports: [FiltersModule],
 })
-export class SidebarModule {
-    constructor() {}
-}
+export class SidebarModule {}

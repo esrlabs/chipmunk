@@ -92,7 +92,7 @@ export function isObject(src: any) {
         throw new Error(`Expecting an object`);
     }
 }
-export function getObject(src: any): Object {
+export function getObject(src: any): Record<string, unknown> {
     if ((src ?? true) === true || typeof src !== 'object') {
         throw new Error(`Expecting an object`);
     }
@@ -190,7 +190,7 @@ export function from<T>(src: any, props: string[]): T {
     if (typeof src !== 'object') {
         throw new Error(`Expecting an object`);
     }
-    let smth: any = {};
+    const smth: Record<string, unknown> = {};
     props.forEach((prop: string) => {
         if (src[prop] === undefined) {
             throw new Error(`Property "${prop}" doesn't exist on source object`);

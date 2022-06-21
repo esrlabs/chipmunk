@@ -1,17 +1,9 @@
-import {
-    Component,
-    OnDestroy,
-    ChangeDetectorRef,
-    AfterViewInit,
-    Input,
-    AfterContentInit,
-    HostListener,
-} from '@angular/core';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { File } from '@platform/types/files';
-import { IDLTOptions, StatisticInfo, LevelDistribution, EMTIN } from '@platform/types/parsers/dlt';
+import { IDLTOptions, EMTIN } from '@platform/types/parsers/dlt';
 import { bytesToStr, timestampToUTC } from '@env/str';
 import { TabControls } from '@service/session';
 import { State, ConnectionType } from './state';
@@ -28,7 +20,7 @@ import { SourceDefinition } from '@platform/types/transport';
 })
 @Initial()
 @Ilc()
-export class TabSourceDltNet extends ChangesDetector implements AfterViewInit, AfterContentInit {
+export class TabSourceDltNet extends ChangesDetector implements AfterContentInit {
     public readonly ConnectionType = ConnectionType;
 
     @Input() done!: (options: { source: SourceDefinition; options: IDLTOptions }) => void;
@@ -65,8 +57,6 @@ export class TabSourceDltNet extends ChangesDetector implements AfterViewInit, A
             this.state.fromOptions(this.options);
         }
     }
-
-    public ngAfterViewInit(): void {}
 
     public ngOnConnect() {
         this.done(this.state.asOptions());

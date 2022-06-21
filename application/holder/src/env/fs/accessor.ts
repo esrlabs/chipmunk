@@ -1,5 +1,5 @@
-import { Queue } from '@platform/env/queue';
-import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
+import { Queue } from 'platform/env/queue';
+import { SetupLogger, LoggerInterface } from 'platform/entity/logger';
 
 import * as fs from 'fs';
 import * as path from 'path';

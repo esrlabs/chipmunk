@@ -3,13 +3,18 @@ import { WrappedAction } from './action';
 import { Filter } from '@ui/env/entities/filter';
 import { recent } from '@service/recent';
 import { Subject } from '@platform/env/subscription';
+import { IlcInterface } from '@service/ilc';
 
 export class State {
-    public filter: Filter = new Filter();
+    public filter: Filter;
     public actions: WrappedAction[] = [];
     public update: Subject<void> = new Subject<void>();
 
-    constructor() {
+    constructor(ilc: IlcInterface) {
+        this.filter = new Filter(ilc.ilc());
+        ilc.env().subscriber.register(
+            this.filter.subjects.get().drop.subscribe(this.filtering.bind(this)),
+        );
         recent
             .get()
             .then((actions: Action[]) => {

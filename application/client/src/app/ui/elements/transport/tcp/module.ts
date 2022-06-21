@@ -31,5 +31,4 @@ import { TransportTcp } from './component';
     exports: [TransportTcp],
 })
 export class TransportTcpModule {
-    constructor() {}
 }

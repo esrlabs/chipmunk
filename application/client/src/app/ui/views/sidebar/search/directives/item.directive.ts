@@ -11,10 +11,8 @@ import { Entity } from '../providers/definitions/entity';
 import { Provider, ISelectEvent } from '../providers/definitions/provider';
 import { CdkDragRelease } from '@angular/cdk/drag-drop';
 import { MatDragDropResetFeatureDirective } from '@ui/env/directives/material.dragdrop';
-import { DragAndDropService, DragableRequest } from '../draganddrop/service';
 import { Subscriber } from '@platform/env/subscription';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Session } from '@service/session/session';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { DisabledRequest } from '@service/session/dependencies/search/disabled/request';
 
@@ -49,7 +47,7 @@ export class FilterItemDirective extends ChangesDetector implements OnInit, OnDe
         }
         this._resetFeatureAccessorRef.reset(event);
     }
-    @HostListener('click', ['$event']) onClick(event: MouseEvent) {
+    @HostListener('click') onClick() {
         if (this._ignore) {
             this._ignore = false;
             return;
@@ -112,7 +110,7 @@ export class FilterItemDirective extends ChangesDetector implements OnInit, OnDe
         this.selected = this.provider.select().get().indexOf(this.entity.uuid()) !== -1;
     }
 
-    public ignoreMouseClick(event: MouseEvent) {
+    public ignoreMouseClick() {
         this._ignore = true;
     }
 

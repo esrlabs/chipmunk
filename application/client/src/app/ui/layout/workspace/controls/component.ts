@@ -1,4 +1,4 @@
-import { Component, Input, ChangeDetectorRef } from '@angular/core';
+import { Component, Input } from '@angular/core';
 // import { DialogsRecentFilesActionComponent } from '@dialogs/recentfile/component';
 import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
 

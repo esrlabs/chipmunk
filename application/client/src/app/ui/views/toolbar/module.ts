@@ -8,6 +8,4 @@ import { SearchModule } from './search/module';
     declarations: [],
     exports: [SearchModule],
 })
-export class ToolbarModule {
-    constructor() {}
-}
+export class ToolbarModule {}

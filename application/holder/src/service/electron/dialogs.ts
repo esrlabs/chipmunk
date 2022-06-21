@@ -1,7 +1,7 @@
-import { Define, Implementation, Interface } from '@platform/entity/controller';
+import { Define, Implementation, Interface } from 'platform/entity/controller';
 import { services } from '@register/services';
 import { BrowserWindow } from 'electron';
-import { system } from '@platform/modules/system';
+import { system } from 'platform/modules/system';
 import { dialog } from 'electron';
 
 @Define({ name: 'Dialogs', parent: services['electron'], accessor: system.getServicesAccessor() })

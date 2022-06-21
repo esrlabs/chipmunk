@@ -62,6 +62,10 @@ export class Channel {
             hover: (handler: Handler<Row | undefined>) => Subscription;
             rank: (handler: Handler<Declarations.UI.Rank>) => Subscription;
         };
+        input: {
+            focused: (handler: Handler<void>) => Subscription;
+            blur: (handler: Handler<void>) => Subscription;
+        };
     };
     private readonly _events: Events;
     private readonly _owner: string;
@@ -127,6 +131,10 @@ export class Channel {
             row: {
                 hover: this._add<Row | undefined>(this._events.ui.row.hover),
                 rank: this._add<Declarations.UI.Rank>(this._events.ui.row.rank),
+            },
+            input: {
+                focused: this._add<void>(this._events.ui.input.focused),
+                blur: this._add<void>(this._events.ui.input.blur),
             },
         };
     }

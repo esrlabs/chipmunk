@@ -1,7 +1,7 @@
 import * as Logs from '../util/logging';
 
-import { RustSession } from '../native/index';
-import { CancelablePromise } from '../util/promise';
+import { RustSession } from '../native/native.session';
+import { ICancelablePromise, CancelablePromise } from 'platform/env/promise';
 import { EventProvider } from '../api/session.provider';
 import {
     IFilter,
@@ -12,13 +12,23 @@ import {
     INearest,
 } from '../interfaces/index';
 import { Executors } from './executors/session.stream.executors';
-import { NativeError } from '../interfaces/errors';
 
 export class SessionSearch {
     private readonly _provider: EventProvider;
     private readonly _session: RustSession;
     private readonly _uuid: string;
     private readonly _logger: Logs.Logger;
+    private readonly _tasks: {
+        search: {
+            current: ICancelablePromise<ISearchResults> | undefined;
+            pending: { filters: IFilter[]; self: ICancelablePromise<ISearchResults> } | undefined;
+        };
+    } = {
+        search: {
+            current: undefined,
+            pending: undefined,
+        },
+    };
 
     constructor(provider: EventProvider, session: RustSession, uuid: string) {
         this._logger = Logs.getLogger(`SessionSearch: ${uuid}`);
@@ -88,17 +98,58 @@ export class SessionSearch {
         return undefined;
     }
 
-    public search(filters: IFilter[]): CancelablePromise<ISearchResults> {
+    public search(filters: IFilter[]): ICancelablePromise<ISearchResults> {
+        const executor = (self: ICancelablePromise<ISearchResults>, filters: IFilter[]) => {
+            this._tasks.search.current = Executors.search(
+                this._session,
+                this._provider,
+                this._logger,
+                filters,
+            )
+                .finally(() => {
+                    this._tasks.search.current = undefined;
+                    const pending = this._tasks.search.pending;
+                    this._tasks.search.pending = undefined;
+                    if (pending !== undefined) {
+                        executor(pending.self, pending.filters);
+                    }
+                })
+                .bind(self);
+            self.uuid(this._tasks.search.current.uuid());
+        };
         // TODO: field "filters" of IResultSearchElement cannot be empty, at least 1 filter
         // should be present there always. This is a right place for check of it
-        return Executors.search(this._session, this._provider, this._logger, filters);
+        return new CancelablePromise((_resolve, _reject, _cancel, _refCancel, self) => {
+            if (this._tasks.search.current === undefined) {
+                executor(self, filters);
+            } else {
+                this._tasks.search.pending !== undefined && this._tasks.search.pending.self.abort();
+                this._tasks.search.pending = {
+                    self,
+                    filters,
+                };
+                this._tasks.search.current.abort();
+            }
+        });
     }
 
     public drop(): Promise<boolean> {
-        return this._session.dropSearch();
+        return new Promise((resolve, reject) => {
+            this._tasks.search.pending !== undefined && this._tasks.search.pending.self.abort();
+            this._tasks.search.pending = undefined;
+            if (this._tasks.search.current === undefined) {
+                this._session.dropSearch().then(resolve).catch(reject);
+            } else {
+                this._tasks.search.current
+                    .finally(() => {
+                        this._session.dropSearch().then(resolve).catch(reject);
+                    })
+                    .abort();
+            }
+        });
     }
 
-    public extract(filters: IFilter[]): CancelablePromise<TExtractedValues> {
+    public extract(filters: IFilter[]): ICancelablePromise<TExtractedValues> {
         // TODO: field "filters" of IResultSearchElement cannot be empty, at least 1 filter
         // should be present there always. This is a right place for check of it
         return Executors.extract(this._session, this._provider, this._logger, filters);
@@ -108,7 +159,7 @@ export class SessionSearch {
         datasetLength: number,
         from?: number,
         to?: number,
-    ): CancelablePromise<ISearchMap> {
+    ): ICancelablePromise<ISearchMap> {
         return Executors.map(this._session, this._provider, this._logger, {
             datasetLength,
             from,
@@ -116,7 +167,7 @@ export class SessionSearch {
         });
     }
 
-    public getNearest(positionInStream: number): CancelablePromise<INearest> {
+    public getNearest(positionInStream: number): ICancelablePromise<INearest> {
         return Executors.nearest(this._session, this._provider, this._logger, {
             positionInStream,
         });

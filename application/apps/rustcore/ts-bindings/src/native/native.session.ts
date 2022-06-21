@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as Logs from '../util/logging';
 
 import { RustSessionRequiered } from '../native/native.session.required';
@@ -5,7 +6,6 @@ import { TEventEmitter } from '../provider/provider.general';
 import { Computation } from '../provider/provider';
 import {
     IFilter,
-    IGrabbedContent,
     IGrabbedElement,
     IExtractDTFormatResult,
     IExtractDTFormatOptions,
@@ -199,7 +199,7 @@ export abstract class RustSession extends RustSessionRequiered {
     public abstract abort(
         selfOperationUuid: string,
         targetOperationUuid: string,
-    ): boolean | NativeError;
+    ): NativeError | undefined;
 
     public abstract setDebug(debug: boolean): Promise<void>;
 
@@ -276,7 +276,7 @@ export abstract class RustSessionNative {
     public abstract abort(
         selfOperationUuid: string,
         targetOperationUuid: string,
-    ): boolean | NativeError;
+    ): NativeError | undefined;
 
     public abstract setDebug(debug: boolean): Promise<void>;
 
@@ -726,7 +726,7 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
-    public abort(selfOperationUuid: string, targetOperationUuid: string): boolean | NativeError {
+    public abort(selfOperationUuid: string, targetOperationUuid: string): NativeError | undefined {
         try {
             this._provider.debug().emit.operation('abort', selfOperationUuid);
             return this._native.abort(selfOperationUuid, targetOperationUuid);
@@ -793,11 +793,8 @@ export class RustSessionWrapper extends RustSession {
     // }
 }
 
-let RustSessionWrapperConstructor: RustSessionConstructorImpl<RustSessionWrapper> =
+export const RustSessionWrapperConstructor: RustSessionConstructorImpl<RustSessionWrapper> =
     RustSessionWrapper;
 
-let RustSessionConstructor: RustSessionConstructorImpl<RustSession>;
-
-RustSessionConstructor = RustSessionWrapperConstructor;
-
-export { RustSessionConstructor };
+export const RustSessionConstructor: RustSessionConstructorImpl<RustSession> =
+    RustSessionWrapperConstructor;

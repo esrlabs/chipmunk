@@ -67,6 +67,4 @@ const components = [...entryComponents];
     declarations: [...components, FilterItemDirective, FiltersListDirective],
     exports: [...components, FilterItemDirective, FiltersListDirective],
 })
-export class FiltersModule {
-    constructor() {}
-}
+export class FiltersModule {}

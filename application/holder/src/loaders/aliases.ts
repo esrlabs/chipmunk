@@ -1,32 +1,25 @@
 import moduleAlias from 'module-alias';
 import * as path from 'path';
-import * as os from 'os';
 
-// Local root: application/holder/dist
 const MODULES: { [key: string]: string } = {
-    '@platform': 'platform',
-    '@register': 'holder/src/register',
-    '@env': 'holder/src/env',
-    '@module': 'holder/src/modules',
-    '@loader': 'holder/src/loaders',
-    '@log': 'holder/src/env/logs',
-    '@controller': 'holder/src/controller',
-    '@service': 'holder/src/service',
-    '@rc_api': 'node_modules/rustcore/dist/apps/rustcore/ts-bindings/src/api',
-    '@rc_executors': 'node_modules/rustcore/dist/apps/rustcore/ts-bindings/src/api/executors',
-    '@rc_interfaces': 'node_modules/rustcore/dist/apps/rustcore/ts-bindings/src/interfaces',
-    '@rc_native': 'node_modules/rustcore/dist/apps/rustcore/ts-bindings/src/native',
-    '@rc_provider': 'node_modules/rustcore/dist/apps/rustcore/ts-bindings/src/provider',
-    '@rc_services': 'node_modules/rustcore/dist/apps/rustcore/ts-bindings/src/services',
-    '@rc_util': 'node_modules/rustcore/dist/apps/rustcore/ts-bindings/src/util',
+    '@register': 'register',
+    '@env': 'env',
+    '@module': 'modules',
+    '@loader': 'loaders',
+    '@log': 'env/logs',
+    '@controller': 'controller',
+    '@service': 'service',
+    // '@platform': '../node_modules/platform/dist',
+    // '@rc_api': 'node_modules/rustcore/dist/api',
+    // '@rc_executors': 'node_modules/rustcore/dist/api/executors',
+    // '@rc_interfaces': 'node_modules/rustcore/dist/interfaces',
+    // '@rc_native': 'node_modules/rustcore/dist/native',
+    // '@rc_provider': 'node_modules/rustcore/dist/provider',
+    // '@rc_services': 'node_modules/rustcore/dist/services',
+    // '@rc_util': 'node_modules/rustcore/dist/util',
 };
-
 const ROOT_PATH = (function () {
-    if (os.platform() == 'win32') {
-        return __dirname.replace(`\\holder\\src\\loaders`, '');
-    } else {
-        return __dirname.replace(`/holder/src/loaders`, '');
-    }
+    return __dirname.replace(/loaders$/gi, '');
 })();
 
 function getModulePath(str: string): string {

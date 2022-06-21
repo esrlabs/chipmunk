@@ -55,9 +55,13 @@ export class Service implements Destroy {
         this._subjects.len.emit(len);
     }
 
-    public scrollTo(position: number) {}
+    public scrollTo(position: number) {
+        console.log(`Not implemented: ${position}`);
+    }
 
-    public scrollUntil(position: number) {}
+    public scrollUntil(position: number) {
+        console.log(`Not implemented: ${position}`);
+    }
 
     public setRows(rows: IRowsPacket) {
         this._subjects.rows.emit(rows);

@@ -2,7 +2,6 @@ import { Entity } from '../providers/definitions/entity';
 import { Provider } from '../providers/definitions/provider';
 import { DisabledRequest } from '@service/session/dependencies/search/disabled/store';
 import { IComponentDesc } from '@ui/elements/containers/dynamic/component';
-import { Session } from '@service/session/session';
 import { DisabledList } from './list/component';
 import { IMenuItem } from '@ui/service/contextmenu';
 import { DisableConvertable } from '@service/session/dependencies/search/disabled/converting';
@@ -10,7 +9,6 @@ import { FilterRequest } from '@service/session/dependencies/search/filters/requ
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { DragableRequest, ListContent } from '../draganddrop/service';
 import { EntityData } from '../providers/definitions/entity.data';
-import { Subscriber } from '@platform/env/subscription';
 
 export class ProviderDisabled extends Provider<DisabledRequest> {
     private readonly _entities: Map<string, Entity<DisabledRequest>> = new Map();
@@ -22,7 +20,7 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
             this.session.search
                 .store()
                 .disabled()
-                .subjects.update.subscribe((_items) => {
+                .subjects.update.subscribe(() => {
                     super.change();
                     this.select().drop();
                 }),
@@ -205,6 +203,7 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
     }
 
     public search(entity: Entity<any>) {
+        console.log(`Not implemented: ${entity}`);
         // const cEntity = entity.extract().getEntity();
         // if (cEntity instanceof ChartRequest) {
         //     this.session.search.search(
@@ -258,7 +257,7 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
     }
 
     // Method because of abstract class, not used
-    public isViable() {
+    public isVisable() {
         return true;
     }
 

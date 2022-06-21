@@ -103,7 +103,7 @@ export class ModifierProcessor {
             if (same.length === 1) {
                 injections.push(inj);
             } else {
-                same.sort((a: IHTMLInjection, b: IHTMLInjection) => {
+                same.sort((a: IHTMLInjection) => {
                     return a.type === EHTMLInjectionType.close ? 1 : -1;
                 });
                 injections = injections.concat(same);
@@ -116,9 +116,9 @@ export class ModifierProcessor {
                 inj.injection +
                 row.substring(inj.offset, row.length);
         });
-        if (row.search(/[\>\<]/g) !== -1) {
-            row = row.replace(/(^.*?\<)|(\>.*?\<)|(\>.*?$)/gi, (match: string, ...args: any[]) => {
-                let clean: string = match.replace(/[\>\<]/gi, '');
+        if (row.search(/[><]/g) !== -1) {
+            row = row.replace(/(^.*?<)|(>.*?<)|(>.*?$)/gi, (match: string) => {
+                let clean: string = match.replace(/[><]/gi, '');
                 if (clean === '') {
                     return match;
                 }
@@ -165,7 +165,7 @@ export class ModifierProcessor {
     }
 
     private _getInjectionError(injection: string): Error | undefined {
-        const tag = /\<\/?(span|b|i).*?\>/gi;
+        const tag = /<\/?(span|b|i).*?>/gi;
         const match: RegExpMatchArray | null = injection.match(tag);
         if (match === null) {
             return new Error(

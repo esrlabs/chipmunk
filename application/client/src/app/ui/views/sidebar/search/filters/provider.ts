@@ -7,7 +7,7 @@ import { FiltersList } from './list/component';
 import { FiltersPlaceholder } from './placeholder/component';
 import { FilterDetails } from './details/component';
 import { IMenuItem } from '@ui/service/contextmenu';
-import { DragAndDropService, DragableRequest, ListContent } from '../draganddrop/service';
+import { DragableRequest, ListContent } from '../draganddrop/service';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { EntityData } from '../providers/definitions/entity.data';
 
@@ -21,9 +21,15 @@ export class ProviderFilters extends Provider<FilterRequest> {
             this.session.search
                 .store()
                 .filters()
-                .subjects.update.subscribe((_filters) => {
+                .subjects.update.subscribe(() => {
                     super.change();
-                    this.select().drop();
+                    this.session.search
+                        .state()
+                        .filters()
+                        .catch((err: Error) => {
+                            console.log(err);
+                        });
+                    // this.select().drop();
                 }),
         );
     }
@@ -175,9 +181,10 @@ export class ProviderFilters extends Provider<FilterRequest> {
     }
 
     public search(entity: Entity<FilterRequest>) {
-        this.session.search.search([entity.extract().definition.filter]).catch((error: Error) => {
-            this.logger.error(`Fail to make search: ${error.message}`);
-        });
+        console.log(`Not implemented: ${entity}`);
+        // this.session.search.state().active(entity.extract().definition.filter).catch((error: Error) => {
+        //     this.logger.error(`Fail to make search: ${error.message}`);
+        // });
     }
 
     public actions(
@@ -251,7 +258,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
         return actions;
     }
 
-    public isViable(): boolean {
+    public isVisable(): boolean {
         const dragging: Entity<DragableRequest> = this.draganddrop.dragging;
         if (dragging) {
             const request: DragableRequest = dragging.extract();

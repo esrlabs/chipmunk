@@ -5,11 +5,10 @@ import {
     ChangeDetectionStrategy,
     ViewEncapsulation,
 } from '@angular/core';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { session } from '@service/session';
 import { State } from './state';
-import { Subscriber } from '@platform/env/subscription';
 
 @Component({
     selector: 'app-statusbar-session',

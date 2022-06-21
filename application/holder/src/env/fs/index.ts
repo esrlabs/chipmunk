@@ -1,6 +1,6 @@
-import { File, Stat, FileType } from '@platform/types/files';
+import { File, Stat, FileType } from 'platform/types/files';
 
-import * as obj from '@platform/env/obj';
+import * as obj from 'platform/env/obj';
 import * as fs from 'fs';
 import * as path from 'path';
 

@@ -57,8 +57,18 @@ export class ElementsTreeSelector extends ChangesDetector implements AfterConten
                             });
                     },
                 },
-                { caption: 'Open as DLT', handler: () => {} },
-                { caption: 'Open as PCAP', handler: () => {} },
+                {
+                    caption: 'Open as DLT',
+                    handler: () => {
+                        console.log(`Not implemented`);
+                    },
+                },
+                {
+                    caption: 'Open as PCAP',
+                    handler: () => {
+                        console.log(`Not implemented`);
+                    },
+                },
             ],
             x: event.x,
             y: event.y,

@@ -1,10 +1,6 @@
 import { Component } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { FileType, File } from '@platform/types/files';
-import { components } from '@env/decorators/initial';
-import { getRenderFor } from '@schema/render/tools';
-import { SourceDefinition } from '@platform/types/transport';
-import { IDLTOptions } from '@platform/types/parsers/dlt';
 
 @Component({
     selector: 'app-layout-area-no-tabs-content',

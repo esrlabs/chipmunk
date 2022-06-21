@@ -1,5 +1,5 @@
 import { LoggerParameters } from './parameters';
-import { Instance, Level } from '@platform/env/logger';
+import { Instance, Level } from 'platform/env/logger';
 
 const LEFT_SPACE_ON_LOGGER_SIG = 1;
 const RIGHT_SPACE_ON_LOGGER_SIG = 1;

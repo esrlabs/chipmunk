@@ -2,8 +2,7 @@ import { Component, Input, AfterContentInit, OnDestroy, ChangeDetectorRef } from
 import { AreaState } from '../../state';
 import { Observable, Subscription } from 'rxjs';
 import { IComponentDesc } from '@elements/containers/dynamic/component';
-import { ITab } from '@elements/tabs/service';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 
 @Component({
     selector: 'app-layout-toolbar-controls',

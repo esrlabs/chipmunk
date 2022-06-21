@@ -22,6 +22,4 @@ import { ComTooltipComponent } from '@elements/tooltip/component';
     declarations: [ComTooltipComponent],
     exports: [ContainersModule, ScrollAreaModule, TabsModule, RecentActionsModule, TreeModule],
 })
-export class ElementsModule {
-    constructor() {}
-}
+export class ElementsModule {}

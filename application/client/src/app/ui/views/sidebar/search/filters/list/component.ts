@@ -1,14 +1,12 @@
-import { Component, OnDestroy, ChangeDetectorRef, AfterContentInit, Input } from '@angular/core';
+import { Component, ChangeDetectorRef, AfterContentInit, Input } from '@angular/core';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ProviderFilters } from '../provider';
 import { Entity } from '../../providers/definitions/entity';
 import { EntityData } from '../../providers/definitions/entity.data';
-import { DragAndDropService } from '../../draganddrop/service';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Session } from '@service/session/session';
 
 @Component({
     selector: 'app-sidebar-filters-list',
@@ -48,7 +46,7 @@ export class FiltersList extends ChangesDetector implements AfterContentInit {
     }
 
     public _ng_viablePredicate(): () => boolean {
-        return this.provider.isViable.bind(this);
+        return this.provider.isVisable.bind(this);
     }
 
     public _ng_getDragAndDropData(): EntityData<FilterRequest> | undefined {

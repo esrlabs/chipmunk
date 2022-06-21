@@ -5,7 +5,6 @@ import {
     AfterViewInit,
     ChangeDetectorRef,
     OnChanges,
-    SimpleChanges,
 } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { TabsService } from './service';
@@ -36,7 +35,7 @@ export class TabsComponent implements OnDestroy, AfterViewInit, OnChanges {
         this._unsubscribe();
     }
 
-    ngOnChanges(changes: SimpleChanges) {
+    ngOnChanges() {
         this._subscribe();
         this._getDefaultOptions();
         this._forceUpdate();

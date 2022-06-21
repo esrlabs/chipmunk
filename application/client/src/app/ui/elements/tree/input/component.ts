@@ -3,13 +3,11 @@ import {
     OnDestroy,
     ViewChild,
     Input,
-    AfterContentInit,
     AfterViewInit,
-    ChangeDetectionStrategy,
     ChangeDetectorRef,
     ElementRef,
 } from '@angular/core';
-import { Ilc, IlcInterface, Declarations, Channel } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { FavouriteInput } from './input';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from '../state';

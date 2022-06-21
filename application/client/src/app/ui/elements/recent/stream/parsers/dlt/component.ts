@@ -1,19 +1,6 @@
-import { Component, AfterContentInit, Input, HostListener } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
-import { Initial } from '@env/decorators/initial';
-import { bytesToStr, timestampToUTC } from '@env/str';
-import { Recent as RecentFileAction } from '@service/recent/implementations/file/file';
-import {
-    IDLTOptions,
-    StatisticInfo,
-    LevelDistribution,
-    EMTIN,
-    IDLTFilters,
-    getLogLevelName,
-} from '@platform/types/parsers/dlt';
-import { SourceDefinition } from '@platform/types/transport';
-
-import * as Files from '@service/recent/implementations/file/index';
+import { IDLTOptions, getLogLevelName } from '@platform/types/parsers/dlt';
 
 @Component({
     selector: 'app-recent-stream-dlt',

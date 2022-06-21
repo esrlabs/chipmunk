@@ -16,6 +16,4 @@ const components = [ViewWorkspace, ...entryComponents];
     declarations: [...components],
     exports: [...components, ScrollAreaModule],
 })
-export class WorkspaceModule {
-    constructor() {}
-}
+export class WorkspaceModule {}

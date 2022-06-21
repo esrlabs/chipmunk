@@ -57,6 +57,4 @@ export class Services {
             styles,
         };
     }
-
-    public destroy() {}
 }

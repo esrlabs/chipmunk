@@ -1,9 +1,7 @@
 import {
-    Transport,
-    Respond,
-    ISignatureRequirement,
-    Package,
     Packed,
 } from '@platform/ipc/transport/index';
 
-export function sendResponse(packed: Packed) {}
+export function sendResponse(packed: Packed) {
+    console.log(`Not implemented: ${packed}`);
+}

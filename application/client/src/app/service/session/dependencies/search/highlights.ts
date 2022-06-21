@@ -1,7 +1,9 @@
-import { FiltersStore } from './filters/store';
+import { FilterRequest } from './filters/request';
+
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { ModifierProcessor } from './highlights/processor';
 import { Owner } from '@schema/content/row';
+import { Search } from '../search';
 
 import * as Modifiers from './highlights/modifiers/index';
 
@@ -12,19 +14,26 @@ export class Highlights extends Subscriber {
         update: new Subject(),
     });
 
-    private readonly _stores: {
-        filters: FiltersStore;
-    };
+    private readonly _session: Search;
 
-    constructor(filters: FiltersStore) {
+    constructor(session: Search) {
         super();
-        this._stores = {
-            filters,
-        };
+        this._session = session;
         this.register(
-            this._stores.filters.subjects.update.subscribe(() => {
-                this.subjects.get().update.emit();
-            }),
+            this._session
+                .store()
+                .filters()
+                .subjects.update.subscribe(() => {
+                    this.subjects.get().update.emit();
+                }),
+        );
+        this.register(
+            this._session
+                .state()
+                .subjects.get()
+                .active.subscribe(() => {
+                    this.subjects.get().update.emit();
+                }),
         );
     }
 
@@ -42,8 +51,16 @@ export class Highlights extends Subscriber {
         color: string | undefined;
         background: string | undefined;
     } {
-        const highlights = new Modifiers.HighlightsModifier(this._stores.filters.get(), row);
-        const processor = new ModifierProcessor([highlights]);
+        const highlights = new Modifiers.HighlightsModifier(
+            this._session.store().filters().get(),
+            row,
+        );
+        const active = this._session.state().getActive();
+        const filters =
+            active !== undefined
+                ? [new Modifiers.ActiveFilterModifier([new FilterRequest({ filter: active })], row)]
+                : [];
+        const processor = new ModifierProcessor([highlights, ...filters]);
         const matched = highlights.matched();
         return {
             html: processor.parse(row, parent, hasOwnStyles),

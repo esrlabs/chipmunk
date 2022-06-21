@@ -28,7 +28,7 @@ export class ElementsTimezoneSelector extends ChangesDetector {
         }
     }
 
-    public state: State = new State();
+    public state: State;
 
     constructor(
         @Inject(MAT_BOTTOM_SHEET_DATA) public data: { selected: (timezone: Timezone) => void },
@@ -37,6 +37,7 @@ export class ElementsTimezoneSelector extends ChangesDetector {
         private _sanitizer: DomSanitizer,
     ) {
         super(cdRef);
+        this.state = new State(this.ilc());
     }
 
     public ngOnSelect(timezine: Timezone) {

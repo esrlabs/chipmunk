@@ -1,4 +1,4 @@
-import { EntryConvertable, Entry } from '@platform/types/storage/entry';
+import { EntryConvertable } from '@platform/types/storage/entry';
 import { Subject, Subscriber } from '@platform/env/subscription';
 
 export enum Key {
@@ -82,6 +82,12 @@ export abstract class Store<T> extends Subscriber {
 
     public abstract key(): Key;
 
+    public hash(): string {
+        return Array.from(this._entities.values())
+            .map((entry) => entry.entry().hash())
+            .join('_');
+    }
+
     private _update(): void {
         const prev = this._hash;
         this._hash = Array.from(this._entities.keys()).join('_');
@@ -91,13 +97,15 @@ export abstract class Store<T> extends Subscriber {
         this.unsubscribe();
         this._entities.forEach((entity) => {
             const updated = entity.entry().updated();
-            const hash = entity.entry().hash();
+            let hash = entity.entry().hash();
             if (updated === undefined) {
                 return;
             }
             this.register(
                 updated.subscribe(() => {
-                    if (hash !== entity.entry().hash()) {
+                    const updated_hash = entity.entry().hash();
+                    if (hash !== updated_hash) {
+                        hash = updated_hash;
                         this.subjects.update.emit(Array.from(this._entities.values()));
                     }
                 }),

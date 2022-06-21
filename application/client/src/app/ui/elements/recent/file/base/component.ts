@@ -1,6 +1,5 @@
-import { Component, AfterContentInit, Input, HostListener } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
-import { Initial } from '@env/decorators/initial';
 
 @Component({
     selector: 'app-recent-file-base',

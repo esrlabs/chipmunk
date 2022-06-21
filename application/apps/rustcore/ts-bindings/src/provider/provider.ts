@@ -3,7 +3,7 @@
 ///    we should show IDs
 /// 3. Add performance test (grabbing)
 
-import { Subject } from '../../../../../platform/env/subscription';
+import { Subject } from 'platform/env/subscription';
 import * as Logs from '../util/logging';
 
 import { TEventData, TEventEmitter, IEventData } from '../provider/provider.general';
@@ -17,7 +17,7 @@ export interface IOrderStat {
 }
 export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces> {
     private _destroyed: boolean = false;
-    private readonly _uuid: String;
+    private readonly _uuid: string;
     private readonly _tracking: {
         subjects: {
             unsupported: Subject<string>;

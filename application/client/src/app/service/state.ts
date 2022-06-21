@@ -1,22 +1,28 @@
-import {
-    SetupService,
-    Interface,
-    Implementation,
-    register,
-    DependOn,
-} from '@platform/entity/service';
+import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
-import { ilc, Emitter, Services, Declarations } from '@service/ilc';
+import { ilc, Emitter, Declarations } from '@service/ilc';
 import { Subscriber } from '@platform/env/subscription';
 import * as Events from '@platform/ipc/event/index';
+
+export interface States {
+    ui: {
+        input: boolean;
+    };
+}
 
 @SetupService(services['state'])
 export class Service extends Implementation {
     private _emitter!: Emitter;
     private _subscriber: Subscriber = new Subscriber();
+    private _states: States = {
+        ui: {
+            input: false,
+        },
+    };
 
     public override ready(): Promise<void> {
         this._emitter = ilc.emitter(this.getName(), this.log());
+        const channel = ilc.channel(this.getName(), this.log());
         this._subscriber.register(
             Events.IpcEvent.subscribe<Events.State.Backend.Event>(
                 Events.State.Backend.Event,
@@ -37,6 +43,12 @@ export class Service extends Implementation {
                 },
             ),
         );
+        channel.ui.input.focused(() => {
+            this._states.ui.input = true;
+        });
+        channel.ui.input.blur(() => {
+            this._states.ui.input = false;
+        });
         return Promise.resolve();
     }
 
@@ -51,6 +63,10 @@ export class Service extends Implementation {
                 state: Events.State.Client.State.Ready,
             }),
         );
+    }
+
+    public states(): States {
+        return this._states;
     }
 }
 export interface Service extends Interface {}

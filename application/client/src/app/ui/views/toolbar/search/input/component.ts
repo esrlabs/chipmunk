@@ -5,13 +5,12 @@ import {
     Input,
     AfterContentInit,
     AfterViewInit,
-    ChangeDetectionStrategy,
     ChangeDetectorRef,
     ElementRef,
 } from '@angular/core';
 import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { Session } from '@service/session';
-import { Ilc, IlcInterface, Declarations, Channel } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { SearchInput } from './input';
 import { RecentList } from './recent';
 import { Progress } from './progress';
@@ -51,42 +50,56 @@ export class ViewSearchInput
 
     public ngAfterContentInit(): void {
         this.progress = new Progress(this.session, this.ilc().channel);
-        this.progress.updated.subscribe(() => {
-            this.detectChanges();
-        });
+        this.env().subscriber.register(
+            this.progress.updated.subscribe(() => {
+                this.detectChanges();
+            }),
+        );
+        this.env().subscriber.register(
+            this.session.search
+                .state()
+                .subjects.get()
+                .start.subscribe(() => {
+                    this.progress.start();
+                }),
+        );
+        this.env().subscriber.register(
+            this.session.search
+                .state()
+                .subjects.get()
+                .finish.subscribe((results: ISearchResults | undefined) => {
+                    if (results !== undefined) {
+                        this.progress.setFound(results.found);
+                    }
+                    this.progress.stop();
+                }),
+        );
     }
 
     public ngAfterViewInit(): void {
         this.input.bind(this.searchInputRef.nativeElement, this.recentPanelRef);
-        this.input.actions.accept.subscribe((filter: string) => {
-            this.onActiveDrop(() => {
-                this.progress.start();
-                this.session.search
-                    .search([this.input.asFilter()])
-                    .then((results: ISearchResults) => {
-                        this.active = new ActiveSearch(this.input.asFilter());
-                        this.input.drop();
-                        this.progress.setFound(results.found);
-                    })
-                    .catch((err: Error) => {
-                        this.log().error(`Fail to make search: ${err.message}`);
-                    })
-                    .finally(() => {
-                        this.progress.stop();
-                        this.markChangesForCheck();
-                    });
-                this.markChangesForCheck();
-            });
+        this.input.actions.accept.subscribe(() => {
+            const filter = this.input.asFilter();
+            this.session.search
+                .state()
+                .setActive(filter)
+                .then(() => {
+                    this.active = new ActiveSearch(filter);
+                    this.input.drop();
+                })
+                .finally(() => {
+                    this.markChangesForCheck();
+                });
         });
         this.input.actions.drop.subscribe(() => {
-            this.onActiveDrop();
+            this.drop();
         });
         this.input.actions.edit.subscribe(() => {
             if (this.active === undefined) {
                 return;
             }
             this.input.set(this.active.filter.filter);
-            this.onActiveDrop();
+            this.drop();
             this.markChangesForCheck();
         });
         this.input.actions.recent.subscribe(() => {
@@ -98,23 +111,21 @@ export class ViewSearchInput
         this.input.keyup(event);
     }
 
-    public ngOnKeyDownSearchInput(event: KeyboardEvent) {
-        this.input.keydown(event);
+    public ngOnKeyDownSearchInput() {
+        this.input.keydown();
     }
 
-    public onActiveDrop(cb?: () => void) {
+    public drop() {
         this.active = undefined;
         this.progress.hide();
         this.session.search
-            .drop()
+            .state()
+            .reset()
             .catch((err: Error) => {
                 this.log().error(`Fail to drop a search: ${err.message}`);
             })
             .finally(() => {
                 this.markChangesForCheck();
-                if (cb !== undefined) {
-                    cb();
-                }
             });
     }
 
@@ -123,6 +134,7 @@ export class ViewSearchInput
             return;
         }
         this.session.search.store().filters().addFromFilter(this.active.filter);
+        this.drop();
     }
 }
 export interface ViewSearchInput extends IlcInterface {}

@@ -28,6 +28,4 @@ import { Transport } from './component';
     declarations: [Transport],
     exports: [Transport, TransportUdpModule, TransportTcpModule, TransportSerialModule],
 })
-export class TransportModule {
-    constructor() {}
-}
+export class TransportModule {}

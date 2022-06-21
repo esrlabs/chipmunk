@@ -77,7 +77,7 @@ export class TabContentComponent implements OnDestroy, AfterViewInit, OnChanges 
         this._forceUpdate();
     }
 
-    private async onRemoveTab(uuid: string) {
+    private async onRemoveTab() {
         if (this.service.getTabs().size !== 0) {
             return;
         }

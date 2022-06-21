@@ -1,4 +1,6 @@
 import * as fs from 'fs';
+import * as path from 'path';
+
 export interface IPerformanceTest {
     open_as: 'text' | 'dlt' | 'pcap';
     ignore: boolean;
@@ -6,10 +8,16 @@ export interface IPerformanceTest {
     expectation_ms: number;
     file: string;
 }
+export interface ICancelTestSpec {
+    terms: string[];
+    interval_ms: number;
+    timeout_last_search_ms: number;
+}
 export interface IRegularTests {
     execute_only: number[];
     list: { [key: string]: string };
     files: { [key: string]: string };
+    spec?: { [key: string]: ICancelTestSpec };
 }
 export interface IConfiguration {
     log_level: number;
@@ -32,11 +40,14 @@ export interface IConfiguration {
 
 export function readConfigurationFile(): Config {
     const config = (() => {
-        const filename = (process.env as any)['JASMIN_TEST_CONFIGURATION'];
-        if (typeof filename !== 'string' || filename.trim() === '') {
+        const defaults = path.resolve(path.dirname(module.filename), 'defaults.json');
+        let filename = (process.env as any)['JASMIN_TEST_CONFIGURATION'];
+        if ((typeof filename !== 'string' || filename.trim() === '') && !fs.existsSync(defaults)) {
             return new Error(
                 `To run test you should define a path to configuration file with JASMIN_TEST_CONFIGURATION=path_to_config_json_file`,
             );
+        } else if (typeof filename !== 'string' || filename.trim() === '') {
+            filename = defaults;
         }
         if (!fs.existsSync(filename)) {
             return new Error(`Configuration file ${filename} doesn't exist`);

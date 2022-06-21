@@ -1,18 +1,10 @@
-import {
-    Component,
-    OnDestroy,
-    ViewChild,
-    Input,
-    AfterContentInit,
-    ChangeDetectionStrategy,
-} from '@angular/core';
+import { Component, OnDestroy, ViewChild, Input, AfterContentInit } from '@angular/core';
 import { Session } from '@service/session';
-import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
-import { ScrollAreaComponent, IScrollBoxSelection } from '@elements/scrollarea/component';
+import { ScrollAreaComponent } from '@elements/scrollarea/component';
 import { Service } from '@elements/scrollarea/controllers/service';
 import { getScrollAreaService, setScrollAreaService } from './backing';
-import { Subscriber } from '@platform/env/subscription';
 import { Columns } from '@schema/render/columns';
 
 @Component({

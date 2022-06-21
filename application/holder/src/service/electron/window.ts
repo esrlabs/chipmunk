@@ -1,17 +1,17 @@
-import { Define, Implementation, Interface } from '@platform/entity/controller';
+import { Define, Implementation, Interface } from 'platform/entity/controller';
 import { services } from '@register/services';
 import { paths } from '@service/paths';
 import { BrowserWindow } from 'electron';
 import { Implementation as ElectronIPCTransport } from './transport';
-import { scope } from '@platform/env/scope';
-import { system } from '@platform/modules/system';
-import { Transport } from '@platform/ipc/transport';
+import { scope } from 'platform/env/scope';
+import { system } from 'platform/modules/system';
+import { Transport } from 'platform/ipc/transport';
 import { Settings, Window as WindowSettings } from './window/settings';
 import { SettingsHolder, settingsFactory } from '@controller/settings';
 import { environment } from '@service/environment';
 
 import * as path from 'path';
-import * as Events from '@platform/ipc/event';
+import * as Events from 'platform/ipc/event';
 
 @Define({ name: 'Window', parent: services['electron'], accessor: system.getServicesAccessor() })
 export class Window extends Implementation {
@@ -53,7 +53,7 @@ export class Window extends Implementation {
         scope.setTransport(this._ipc);
         Events.IpcEvent.subscribe(
             Events.State.Client.Event,
-            (_event: Events.State.Client.Event) => {
+            (/*_event: Events.State.Client.Event*/) => {
                 Events.IpcEvent.emit(
                     new Events.State.Backend.Event({
                         state: Events.State.Backend.State.Ready,

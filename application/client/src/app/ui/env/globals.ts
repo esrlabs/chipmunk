@@ -29,7 +29,7 @@ export function wrapMatchesToHtml(matcher: string, str: string, tag: string = 's
     if (reg instanceof Error) {
         return str;
     }
-    return str.replace(reg, (match, _p1, _p2, _p3, _offset, _string): string => {
+    return str.replace(reg, (match): string => {
         return `<${tag}>${match}</${tag}>`;
     });
 }

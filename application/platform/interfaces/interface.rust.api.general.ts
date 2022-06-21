@@ -1,4 +1,4 @@
-import { IFilter, IFilterFlags, ISearchResults } from '../types/filter';
+import { IFilter } from '../types/filter';
 
 export { IFilter, IFilterFlags, ISearchResults } from '../types/filter';
 export { IGrabbedContent, IGrabbedElement } from '../types/content';

@@ -1,5 +1,5 @@
 import { v4 } from 'uuid';
-import { Inputs } from '@platform/entity/service';
+import { Inputs } from 'platform/entity/service';
 
 export const services: { [key: string]: Inputs } = {
     electron: {
