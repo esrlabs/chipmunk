@@ -1,5 +1,9 @@
 use crate::{grabber::GrabError, map::FilterMatch};
-use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
+use buf_redux::{
+    do_read,
+    policy::{DoRead, ReaderPolicy},
+    BufReader as ReduxReader, Buffer,
+};
 use grep_regex::RegexMatcher;
 use grep_searcher::{sinks::UTF8, Searcher, Sink, SinkMatch};
 use itertools::Itertools;
@@ -15,6 +19,42 @@ use std::{
     str::FromStr,
 };
 use thiserror::Error;
+use tokio_util::sync::CancellationToken;
+use uuid::Uuid;
+
+#[derive(Debug)]
+pub struct CancallableMinBuffered(pub (usize, CancellationToken));
+
+impl CancallableMinBuffered {
+    /// Set the number of bytes to ensure are in the buffer.
+    pub fn set_min(&mut self, min: usize) {
+        self.0 .0 = min;
+    }
+}
+
+impl ReaderPolicy for CancallableMinBuffered {
+    fn before_read(&mut self, buffer: &mut Buffer) -> DoRead {
+        // do nothing if we have enough data
+        if buffer.len() >= self.0 .0 {
+            do_read!(false)
+        }
+
+        let cap = buffer.capacity();
+
+        // if there's enough room but some of it's stuck after the head
+        if buffer.usable_space() < self.0 .0 && buffer.free_space() >= self.0 .0 {
+            buffer.make_room();
+        } else if cap < self.0 .0 {
+            buffer.reserve(self.0 .0 - cap);
+        }
+
+        DoRead(true)
+    }
+
+    fn is_paused(&mut self) -> bool {
+        self.0 .1.is_cancelled()
+    }
+}
 
 const REDUX_READER_CAPACITY: usize = 1024 * 1024;
 const REDUX_MIN_BUFFER_SPACE: usize = 10 * 1024;
@@ -36,6 +76,8 @@ pub enum SearchError {
     Input(String),
     #[error("GrabError error ({0})")]
     Grab(#[from] GrabError),
+    #[error("Aborted: ({0})")]
+    Aborted(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,6 +130,7 @@ impl FilterStats {
 pub struct SearchHolder {
     pub file_path: PathBuf,
     pub out_file_path: PathBuf,
+    pub uuid: Uuid,
     search_filters: Vec<SearchFilter>,
     bytes_read: u64,
     lines_read: u64,
@@ -192,7 +235,7 @@ impl Drop for SearchHolder {
 }
 
 impl SearchHolder {
-    pub fn new<'a, I>(path: &Path, filters: I) -> Self
+    pub fn new<'a, I>(path: &Path, filters: I, uuid: Uuid) -> Self
     where
         I: Iterator<Item = &'a SearchFilter>,
     {
@@ -202,7 +245,11 @@ impl SearchHolder {
         }
         Self {
             file_path: PathBuf::from(path),
-            out_file_path: PathBuf::from(format!("{}.out", path.to_string_lossy())),
+            out_file_path: path
+                .parent()
+                .unwrap_or(path)
+                .join(PathBuf::from(format!("{}.out", uuid))),
+            uuid,
             search_filters,
             bytes_read: 0,
             lines_read: 0,
@@ -230,7 +277,7 @@ impl SearchHolder {
     ///
     /// stat information shows how many times a filter matched:
     /// [(index_of_filter, count_of_matches), ...]
-    pub fn execute_search(&mut self) -> SearchResults {
+    pub fn execute_search(&mut self, cancallation: CancellationToken) -> SearchResults {
         if self.search_filters.is_empty() {
             return Err(SearchError::Input(
                 "Cannot search without filters".to_owned(),
@@ -266,8 +313,10 @@ impl SearchHolder {
                 GrabError::IoOperation(format!("Could create file {:?}", &self.out_file_path))
             })?
         };
-        let mut in_file_reader = ReduxReader::with_capacity(REDUX_READER_CAPACITY, in_file)
-            .set_policy(MinBuffered(REDUX_MIN_BUFFER_SPACE));
+        let mut in_file_reader =
+            ReduxReader::with_capacity(REDUX_READER_CAPACITY, in_file).set_policy(
+                CancallableMinBuffered((REDUX_MIN_BUFFER_SPACE, cancallation)),
+            );
         in_file_reader
             .seek(SeekFrom::Start(self.bytes_read + 1))
             .map_err(|_| {
@@ -333,6 +382,18 @@ impl SearchHolder {
                     .collect(),
             ),
         ))
+    }
+
+    pub fn clean(&self) {
+        if self.out_file_path.exists() {
+            if let Err(err) = fs::remove_file(&self.out_file_path) {
+                error!(
+                    "Fail to remove file {}: {}",
+                    self.out_file_path.to_string_lossy(),
+                    err
+                );
+            }
+        }
     }
 }
 
@@ -438,10 +499,11 @@ mod tests {
         let mut tmp_file = tempfile::NamedTempFile::new()?;
         let input_file = tmp_file.as_file_mut();
         input_file.write_all(content.as_bytes())?;
-        let mut search_holder = SearchHolder::new(tmp_file.path(), filters.iter());
-        let (out_path, _indexes, _stats) = search_holder
-            .execute_search()
-            .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {}", e)))?;
+        let mut search_holder = SearchHolder::new(tmp_file.path(), filters.iter(), Uuid::new_v4());
+        let (out_path, _indexes, _stats) =
+            search_holder
+                .execute_search(CancellationToken::new())
+                .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {}", e)))?;
         std::fs::read_to_string(out_path)
     }
 

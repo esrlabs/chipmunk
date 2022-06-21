@@ -490,7 +490,7 @@ impl RustSession {
     async fn get_operations_stat(&self) -> Result<String, ComputationErrorWrapper> {
         if let Some(ref session) = self.session {
             session
-                .state
+                .tracker
                 .get_operations_stat()
                 .await
                 .map_err(|e: NativeError| ComputationError::NativeError(e).into())

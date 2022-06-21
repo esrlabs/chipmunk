@@ -202,7 +202,7 @@ pub fn next_line_nr(path: &std::path::Path) -> Result<usize, Error> {
             )));
         }
     };
-    let size_of_slice = seek_offset.abs() as usize;
+    let size_of_slice = seek_offset.unsigned_abs() as usize;
     let mut buf: Vec<u8> = vec![0; size_of_slice];
     reader.read_exact(&mut buf)?;
     // |tag|#row#\n

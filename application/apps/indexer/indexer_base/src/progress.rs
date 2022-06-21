@@ -2,11 +2,12 @@ use crossbeam_channel as cc;
 use serde::{Deserialize, Serialize};
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum Severity {
     WARNING,
     ERROR,
 }
+
 impl Severity {
     pub fn as_str(&self) -> &str {
         match self {

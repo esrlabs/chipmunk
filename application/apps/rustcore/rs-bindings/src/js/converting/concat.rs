@@ -11,11 +11,11 @@ use serde::Serialize;
 #[derive(Serialize, Debug, Clone)]
 pub struct WrappedConcatenatorInput(ConcatenatorInput);
 
-impl WrappedConcatenatorInput {
-    pub fn as_concatenator_input(&self) -> ConcatenatorInput {
-        self.0.clone()
-    }
-}
+// impl WrappedConcatenatorInput {
+//     pub fn as_concatenator_input(&self) -> ConcatenatorInput {
+//         self.0.clone()
+//     }
+// }
 
 impl JSValue<'_> for WrappedConcatenatorInput {
     fn convert_to_rust(env: &JsEnv, n_value: napi_value) -> Result<Self, NjError> {

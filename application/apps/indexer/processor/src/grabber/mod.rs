@@ -30,7 +30,7 @@ pub enum GrabError {
     Unsupported(String),
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GrabbedElement {
     #[serde(rename = "id")]
     pub source_id: String,
@@ -42,31 +42,33 @@ pub struct GrabbedElement {
     pub pos: Option<usize>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GrabbedContent {
     pub grabbed_elements: Vec<GrabbedElement>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ByteIdentifier;
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LineIdentifier;
 
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
-pub struct GrabRange<T> {
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GrabRange<T: Eq> {
     pub range: RangeInclusive<u64>,
     phantom: std::marker::PhantomData<T>,
 }
+
 pub type ByteRange = GrabRange<ByteIdentifier>;
 pub type LineRange = GrabRange<LineIdentifier>;
 
-impl<T> fmt::Debug for GrabRange<T> {
+impl<T: Eq> fmt::Debug for GrabRange<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self.range)
     }
 }
 
-impl<T> GrabRange<T> {
+impl<T: Eq> GrabRange<T> {
     pub fn from(range: RangeInclusive<u64>) -> Self {
         Self {
             range,
@@ -101,13 +103,13 @@ impl<T> GrabRange<T> {
     }
 }
 
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Slot {
     pub bytes: ByteRange,
     pub lines: LineRange,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GrabMetadata {
     /// mapping that contains the byte offset -> newline count in the section
     /// e.g.    (0,999) -> 233 (233 newlines in [0,999])
@@ -289,7 +291,7 @@ impl Grabber {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FilePart {
     pub offset_in_file: u64,
     pub length: usize, // how many bytes
@@ -297,6 +299,7 @@ pub struct FilePart {
     pub lines_to_skip: usize,
     pub lines_to_drop: usize,
 }
+
 /// given a list of slots that define byte and line ranges, this function will
 /// find the byte range that needs to be read so that all content in lines is captured.
 /// It will also return how many lines are in this byte-range and how many need to be skipped
