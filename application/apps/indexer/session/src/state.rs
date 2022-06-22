@@ -144,7 +144,7 @@ impl SessionState {
     }
 
     fn handle_grab_search(&mut self, range: LineRange) -> Result<GrabbedContent, NativeError> {
-        let result = if let Some(ref mut grabber) = self.search_grabber {
+        if let Some(ref mut grabber) = self.search_grabber {
             let line_numbers: GrabbedContent =
                 grabber.grab_content(&range).map_err(|e| NativeError {
                     severity: Severity::ERROR,
@@ -202,8 +202,7 @@ impl SessionState {
                 kind: NativeErrorKind::Grabber,
                 message: Some(String::from("Search grabber isn't inited")),
             })
-        };
-        result
+        }
     }
 
     fn handle_get_stream_len(&mut self) -> Result<usize, NativeError> {

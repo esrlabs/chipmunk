@@ -45,6 +45,7 @@ class Bindings
     install
     Platform.check(Paths::TS_BINDINGS, false)
     Dir.chdir(Paths::RS_BINDINGS) do
+      Rake.sh 'cargo build --release'
       Rake.sh "./#{@build_env} #{@nj_cli} build --release"
       Reporter.add(Jobs::Building, Owner::Bindings, 'rs bindings', '')
     end
@@ -60,7 +61,7 @@ class Bindings
     Reporter.add(Jobs::Other, Owner::Bindings, 'delivery', '')
   end
 
-  def self.check(consumer, replace)
+  def self.check(consumer, reinstall, replace)
     node_modules = "#{consumer}/node_modules"
     rustcore_dest = "#{node_modules}/rustcore"
     Dir.mkdir(node_modules) unless File.exist?(node_modules)
@@ -70,7 +71,7 @@ class Bindings
     end
     unless File.exist?(rustcore_dest)
       Reporter.add(Jobs::Checks, Owner::Bindings, "#{consumer} doesn't have platform", '')
-      bindings = Bindings.new(replace)
+      bindings = Bindings.new(reinstall)
       bindings.build
       Rake.sh "rm -rf #{node_modules}/rustcore" if File.exist?("#{node_modules}/rustcore")
       Dir.mkdir("#{node_modules}/rustcore")

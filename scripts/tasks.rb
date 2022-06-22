@@ -10,7 +10,7 @@ namespace :install do
 
   desc 'Install holder'
   task :holder do
-    Holder.new(false, false).install
+    Holder.new(HolderSettings.new).install
   end
 
   desc 'Install rustcore'
@@ -45,13 +45,13 @@ namespace :build do
 
   desc 'Build holder (dev)'
   task :dev do
-    Holder.new(false, false).build
+    Holder.new(HolderSettings.new).build
     Reporter.print
   end
 
   desc 'Build holder (prod)'
   task :prod do
-    Holder.new(false, true).build
+    Holder.new(HolderSettings.new.set_client_prod(true)).build
     Reporter.print
   end
 end
@@ -77,14 +77,50 @@ namespace :rebuild do
 
   desc 'Rebuild holder (dev)'
   task :dev do
-    Holder.new(true, false).clean
+    Holder.new(HolderSettings.new.set_bindings_rebuild(true).set_platform_rebuild(true)).clean
     Rake::Task['build:dev'].invoke
   end
 
   desc 'Rebuild holder (prod)'
   task :prod do
-    Holder.new(true, true).clean
+    Holder.new(HolderSettings.new.set_bindings_rebuild(true).set_platform_rebuild(true).set_client_prod(true)).clean
     Rake::Task['build:prod'].invoke
+  end
+end
+
+namespace :developing do
+  desc 'Rebuild client (dev) and delivery'
+  task :client do
+    Rake::Task['build:client_dev'].invoke
+  end
+
+  desc 'Recompile rs-bindings and rebuild ts-bindings'
+  task :bindings do
+    Rake::Task['build:bindings'].invoke
+  end
+
+  desc 'Rebuild holder'
+  task :holder do
+    Holder.new(HolderSettings.new).build
+    Reporter.print
+  end
+
+  desc 'Rebuild holder (+ bindings)'
+  task :holder_bindings do
+    Holder.new(HolderSettings.new.set_bindings_rebuild(true)).build
+    Reporter.print
+  end
+
+  desc 'Rebuild holder (+ platform)'
+  task :holder_platform do
+    Holder.new(HolderSettings.new.set_platform_rebuild(true)).build
+    Reporter.print
+  end
+
+  desc 'Rebuild holder (+ platform + bindings)'
+  task :holder_platform_bindings do
+    Holder.new(HolderSettings.new.set_platform_rebuild(true).set_bindings_rebuild(true)).build
+    Reporter.print
   end
 end
 
@@ -94,6 +130,7 @@ namespace :test do
   desc 'run search tests'
   task :search do
     Bindings.new(false).build
+    Reporter.print
     Dir.chdir(Paths::TS_BINDINGS) do
       sh "#{test_runner} spec/session.search.spec.ts"
     end
@@ -102,6 +139,7 @@ namespace :test do
   desc 'run observe tests'
   task :observe do
     Bindings.new(false).build
+    Reporter.print
     Dir.chdir(Paths::TS_BINDINGS) do
       sh "#{test_runner} spec/session.observe.spec.ts"
     end
@@ -110,6 +148,7 @@ namespace :test do
   desc 'run cancel tests'
   task :cancel do
     Bindings.new(false).build
+    Reporter.print
     Dir.chdir(Paths::TS_BINDINGS) do
       sh "#{test_runner} spec/session.cancel.spec.ts"
     end
@@ -122,7 +161,7 @@ end
 namespace :lint do
   desc 'Lint holder'
   task :holder do
-    Holder.new(false, false).lint
+    Holder.new(HolderSettings.new).lint
   end
 
   desc 'Lint client'

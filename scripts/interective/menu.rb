@@ -4,9 +4,10 @@ module Screens
     choices = [
       { name: 'Build production', value: 1 },
       { name: 'Build developing', value: 2 },
-      { name: 'Checks (tests)', value: 3 },
-      { name: 'Quality (linting & clippy)', value: 4 },
-      { name: 'exit', value: 5 }
+      { name: 'Developing shortcuts', value: 3 },
+      { name: 'Checks (tests)', value: 4 },
+      { name: 'Quality (linting & clippy)', value: 5 },
+      { name: 'exit', value: 6 }
     ]
     case prompt.select('Actions groups', choices)
     when 1
@@ -14,8 +15,10 @@ module Screens
     when 2
       Screens.build_dev(prompt)
     when 3
-      Screens.checks(prompt)
+      Screens.dev_shortcuts(prompt)
     when 4
+      Screens.checks(prompt)
+    when 5
       Screens.quality(prompt)
     else
       puts 'Goodbuy!'
@@ -64,6 +67,39 @@ module Screens
     when 3
       Rake::Task['build:client_dev'].invoke
     when 4
+      Screens.welcome(prompt)
+    else
+      puts 'Goodbuy!'
+    end
+  end
+
+  def self.dev_shortcuts(prompt)
+    clear
+    puts 'Some shortcuts for developing process'
+    choices = [
+      { name: 'Rebuild client (dev) and delivery [rake developing:client]', value: 1 },
+      { name: 'Recompile rs-bindings and rebuild ts-bindings [rake developing:bindings]', value: 2 },
+      { name: 'Rebuild holder [rake developing:holder]', value: 3 },
+      { name: 'Rebuild holder (+ bindings) [rake developing:holder_bindings]', value: 4 },
+      { name: 'Rebuild holder (+ platform) [rake developing:holder_platform]', value: 5 },
+      { name: 'Rebuild holder (+ platform + bindings) [rake developing:holder_platform_bindings]', value: 5 },
+      { name: 'back', value: 6 },
+      { name: 'exit', value: 7 }
+    ]
+    case prompt.select('Actions groups', choices)
+    when 1
+      Rake::Task['developing:client'].invoke
+    when 2
+      Rake::Task['developing:bindings'].invoke
+    when 3
+      Rake::Task['developing:holder'].invoke
+    when 4
+      Rake::Task['developing:holder_bindings'].invoke
+    when 5
+      Rake::Task['developing:holder_platform'].invoke
+    when 6
+      Rake::Task['developing:holder_platform_bindings'].invoke
+    when 7
       Screens.welcome(prompt)
     else
       puts 'Goodbuy!'
