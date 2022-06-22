@@ -18,6 +18,29 @@ pub struct DltParserSettings {
     pub with_storage_header: bool,
 }
 
+impl Default for DltParserSettings {
+    fn default() -> Self {
+        Self {
+            filter_config: None,
+            fibex_file_paths: None,
+            with_storage_header: true,
+        }
+    }
+}
+
+impl DltParserSettings {
+    pub fn new_including_storage_headers(
+        filter_config: Option<dlt::DltFilterConfig>,
+        fibex_file_paths: Option<Vec<String>>,
+    ) -> Self {
+        Self {
+            filter_config,
+            fibex_file_paths,
+            with_storage_header: true,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PcapParserSettings {
     pub dlt: DltParserSettings,
@@ -52,8 +75,9 @@ pub struct UDPTransportConfig {
     pub dest_path: PathBuf,
 }
 
+///
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Source {
+pub enum SourceType {
     File(PathBuf, ParserType),
     Stream(Transport, ParserType),
 }

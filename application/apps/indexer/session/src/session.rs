@@ -14,7 +14,7 @@ use processor::{
     search::SearchFilter,
 };
 use serde::Serialize;
-use sources::factory::Source;
+use sources::factory::SourceType;
 use tokio::{
     join,
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
@@ -23,20 +23,25 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-pub type OperationsChannel = (
-    UnboundedSender<(Uuid, Operation)>,
-    UnboundedReceiver<(Uuid, Operation)>,
-);
+pub type OperationsChannel = (UnboundedSender<Operation>, UnboundedReceiver<Operation>);
 
 pub struct Session {
     uuid: Uuid,
-    tx_operations: UnboundedSender<(Uuid, Operation)>,
+    tx_operations: UnboundedSender<Operation>,
     destroyed: CancellationToken,
     pub state: SessionStateAPI,
     pub tracker: OperationTrackerAPI,
 }
 
 impl Session {
+    /// Starts a new chipmunk session
+    ///
+    /// use `uuid` as the handle to refer to this session
+    /// This method will spawn a new task that runs the operations loop and
+    /// the state loop.
+    /// The operations loop is the entry point to pass opartion requests from an outside thread.
+    /// The state loop is responsible for all state manipulations of the session.
+    ///
     pub async fn new(uuid: Uuid) -> (Self, UnboundedReceiver<CallbackEvent>) {
         let (tx_operations, rx_operations): OperationsChannel = unbounded_channel();
         let (tracker_api, rx_tracker_api) = OperationTrackerAPI::new();
@@ -58,7 +63,7 @@ impl Session {
             let tx_callback_events_state = tx_callback_events.clone();
             let (_, _, _) = join!(
                 async {
-                    let result = operations::task(
+                    let result = operations::run(
                         rx_operations,
                         state_api.clone(),
                         tracker_api.clone(),
@@ -70,8 +75,8 @@ impl Session {
                     }
                     result
                 },
-                state::task(rx_state_api, tx_callback_events_state),
-                tracker::task(state_api.clone(), rx_tracker_api),
+                state::run(rx_state_api, tx_callback_events_state),
+                tracker::run(state_api.clone(), rx_tracker_api),
             );
             destroyed.cancel();
             debug!("Session is finished");
@@ -102,13 +107,16 @@ impl Session {
 
     pub fn abort(&self, operation_id: Uuid, target: Uuid) -> Result<(), ComputationError> {
         self.tx_operations
-            .send((operation_id, operations::Operation::Cancel { target }))
+            .send(Operation::new(
+                operation_id,
+                operations::OperationKind::Cancel { target },
+            ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
     pub async fn stop(&self, operation_id: Uuid) -> Result<(), ComputationError> {
         self.tx_operations
-            .send((operation_id, operations::Operation::End))
+            .send(Operation::new(operation_id, operations::OperationKind::End))
             .map_err(|e| ComputationError::Communication(e.to_string()))?;
         self.destroyed.cancelled().await;
         Ok(())
@@ -128,9 +136,16 @@ impl Session {
             .map_err(ComputationError::NativeError)
     }
 
-    pub fn observe(&self, operation_id: Uuid, source: Source) -> Result<(), ComputationError> {
+    pub fn observe(
+        &self,
+        operation_id: Uuid,
+        source_type: SourceType,
+    ) -> Result<(), ComputationError> {
         self.tx_operations
-            .send((operation_id, operations::Operation::Observe(source)))
+            .send(Operation::new(
+                operation_id,
+                operations::OperationKind::Observe(source_type),
+            ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
@@ -140,7 +155,10 @@ impl Session {
         filters: Vec<SearchFilter>,
     ) -> Result<(), ComputationError> {
         self.tx_operations
-            .send((operation_id, operations::Operation::Search { filters }))
+            .send(Operation::new(
+                operation_id,
+                operations::OperationKind::Search { filters },
+            ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
@@ -157,7 +175,10 @@ impl Session {
         filters: Vec<SearchFilter>,
     ) -> Result<(), ComputationError> {
         self.tx_operations
-            .send((operation_id, operations::Operation::Extract { filters }))
+            .send(Operation::new(
+                operation_id,
+                operations::OperationKind::Extract { filters },
+            ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
@@ -168,9 +189,9 @@ impl Session {
         range: Option<(u64, u64)>,
     ) -> Result<(), ComputationError> {
         self.tx_operations
-            .send((
+            .send(Operation::new(
                 operation_id,
-                operations::Operation::Map { dataset_len, range },
+                operations::OperationKind::Map { dataset_len, range },
             ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
@@ -181,9 +202,9 @@ impl Session {
         position_in_stream: u64,
     ) -> Result<(), ComputationError> {
         self.tx_operations
-            .send((
+            .send(Operation::new(
                 operation_id,
-                operations::Operation::GetNearestPosition(position_in_stream),
+                operations::OperationKind::GetNearestPosition(position_in_stream),
             ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
@@ -191,7 +212,10 @@ impl Session {
     /// Used for debug goals
     pub fn sleep(&self, operation_id: Uuid, ms: u64) -> Result<(), ComputationError> {
         self.tx_operations
-            .send((operation_id, operations::Operation::Sleep(ms)))
+            .send(Operation::new(
+                operation_id,
+                operations::OperationKind::Sleep(ms),
+            ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 }

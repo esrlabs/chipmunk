@@ -180,15 +180,13 @@ impl Grabber {
         &mut self,
         shutdown_token: Option<CancellationToken>,
     ) -> Result<(), GrabError> {
-        match self.source.from_file(self.metadata.take(), shutdown_token) {
-            Ok(result) => {
-                if let ComputationResult::Item(metadata) = result {
-                    self.metadata = Some(metadata)
-                }
-                Ok(())
-            }
-            Err(err) => Err(err),
+        if let ComputationResult::Item(metadata) = self
+            .source
+            .from_file(self.metadata.take(), shutdown_token)?
+        {
+            self.metadata = Some(metadata)
         }
+        Ok(())
     }
 }
 

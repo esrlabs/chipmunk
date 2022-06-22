@@ -16,7 +16,7 @@ pub mod raw;
 pub mod serial;
 pub mod socket;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TransportProtocol {
     TCP,
     UDP,
@@ -40,10 +40,10 @@ pub struct SourceFilter {
 
 #[derive(Debug)]
 pub struct ReloadInfo {
-    newly_loaded_bytes: usize,
-    available_bytes: usize,
-    skipped_bytes: usize,
-    last_known_ts: Option<u64>,
+    pub newly_loaded_bytes: usize,
+    pub available_bytes: usize,
+    pub skipped_bytes: usize,
+    pub last_known_ts: Option<u64>,
 }
 
 impl ReloadInfo {
@@ -73,10 +73,20 @@ pub enum Error {
 pub(crate) const DEFAULT_READER_CAPACITY: usize = 10 * 1024 * 1024;
 pub(crate) const DEFAULT_MIN_BUFFER_SPACE: usize = 10 * 1024;
 
+/// A `ByteSource` provides a way to read data from some underlying data source. But it does
+/// not provide a simple read interface, rather it allows implementations to filter the data
+/// while reading it from it's underlying source.
+/// A good example is a network trace where complete ethernet frames are described. If we only
+/// want to extract the data part from certain frames, the `relaod` method will load only the relevant
+/// data into an internal buffer.
+/// This data can then be accessed via the `current_slice` method.
 #[async_trait]
 pub trait ByteSource {
+    /// Indicate that we have consumed a certain amount of data from our internal
+    /// buffer and that this part can be discarded
     fn consume(&mut self, offset: usize);
 
+    /// Provide access to the filtered data that is currently loaded
     fn current_slice(&self) -> &[u8];
 
     /// count of currently loaded bytes
@@ -100,4 +110,11 @@ pub trait ByteSource {
     /// If the source has access to some timestamp (e.g. timestamp of network package),
     /// this timestamp is passed on additionally (`last_known_ts`)
     async fn reload(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error>;
+
+    /// In case the ByteSource is some kind of connection that does not end,
+    /// cancel can be implemented that will give the ByteSource the chance to perform some
+    /// cleanup before the ByteSource is discarded
+    async fn cancel(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
 }

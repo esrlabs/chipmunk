@@ -6,17 +6,17 @@ edition = "2021"
 
 [dependencies]
 crossbeam-channel = "0.5"
+futures = "0.3"
 indexer_base = { path = "../indexer_base" }
-processor = { path = "../processor" }
-merging = { path = "../merging" }
-sources = { path = "../sources" }
-parsers = { path = "../parsers" }
 log = "0.4"
+merging = { path = "../merging" }
+parsers = { path = "../parsers" }
+processor = { path = "../processor" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sources = { path = "../sources" }
 thiserror = "1.0"
 tokio = { version = "1.17", features = ["full"] }
 tokio-stream = "0.1.5"
 tokio-util = "0.7"
-uuid = { version = "0.8.2", features = ["serde", "v4"] }
-futures = "0.3"
+uuid = { version = "1.0", features = ["serde", "v4"] }

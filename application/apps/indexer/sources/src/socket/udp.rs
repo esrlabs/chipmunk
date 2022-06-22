@@ -131,7 +131,7 @@ async fn test_udp_reload() -> Result<(), UdpSourceError> {
         }
     });
 
-    println!("starting send and receive");
+    println!("UDP: Starting send and receive");
     let (_, rec_res) = tokio::join!(send_handle, receive_handle,);
 
     assert!(rec_res.is_ok());

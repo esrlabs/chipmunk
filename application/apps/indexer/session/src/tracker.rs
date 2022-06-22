@@ -32,6 +32,24 @@ pub enum Api {
     Shutdown,
 }
 
+impl std::fmt::Display for Api {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::AddOperation(_) => "AddOperation",
+                Self::RemoveOperation(_) => "RemoveOperation",
+                Self::CancelOperation(_) => "CancelOperation",
+                Self::SetDebugMode(_) => "SetDebugMode",
+                Self::GetOperationsStat(_) => "GetOperationsStat",
+                Self::CancelAll(_) => "CancelAll",
+                Self::Shutdown => "Shutdown",
+            }
+        )
+    }
+}
+
 #[derive(Debug)]
 pub struct OperationTracker {
     pub operations: HashMap<Uuid, (CancellationToken, CancellationToken)>,
@@ -51,6 +69,20 @@ impl OperationTrackerAPI {
         (OperationTrackerAPI { tx_api }, rx_api)
     }
 
+    async fn exec_operation<T>(
+        &self,
+        api: Api,
+        rx_response: oneshot::Receiver<T>,
+    ) -> Result<T, NativeError> {
+        let api_str = format!("{}", api);
+        self.tx_api.send(api).map_err(|e| {
+            NativeError::channel(&format!("Failed to send to Api::{}; error: {}", api_str, e))
+        })?;
+        rx_response.await.map_err(|_| {
+            NativeError::channel(&format!("Failed to get response from Api::{}", api_str))
+        })
+    }
+
     pub async fn add_operation(
         &self,
         uuid: Uuid,
@@ -58,135 +90,48 @@ impl OperationTrackerAPI {
         canceler: CancellationToken,
         done: CancellationToken,
     ) -> Result<bool, NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<bool>, oneshot::Receiver<bool>) =
-            oneshot::channel();
-        self.tx_api
-            .send(Api::AddOperation((uuid, name, canceler, done, tx_response)))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::AddOperation; error: {}", e,)),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from("fail to get response from Api::AddOperation")),
-        })
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::AddOperation((uuid, name, canceler, done, tx)), rx)
+            .await
     }
 
     pub async fn remove_operation(&self, uuid: Uuid) -> Result<bool, NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<bool>, oneshot::Receiver<bool>) =
-            oneshot::channel();
-        self.tx_api
-            .send(Api::RemoveOperation((uuid, tx_response)))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!(
-                    "fail to send to Api::RemoveOperation; error: {}",
-                    e,
-                )),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from(
-                "fail to get response from Api::RemoveOperation",
-            )),
-        })
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::RemoveOperation((uuid, tx)), rx)
+            .await
     }
 
     pub async fn cancel_operation(&self, uuid: Uuid) -> Result<bool, NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<bool>, oneshot::Receiver<bool>) =
-            oneshot::channel();
-        self.tx_api
-            .send(Api::CancelOperation((uuid, tx_response)))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!(
-                    "fail to send to Api::CancelOperation; error: {}",
-                    e,
-                )),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from(
-                "fail to get response from Api::CancelOperation",
-            )),
-        })
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::CancelOperation((uuid, tx)), rx)
+            .await
     }
 
     pub async fn cancel_all(&self) -> Result<(), NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
-            oneshot::channel();
-        self.tx_api
-            .send(Api::CancelAll(tx_response))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::CancelAll; error: {}", e,)),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from("fail to get response from Api::CancelAll")),
-        })
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::CancelAll(tx), rx).await
     }
 
     pub async fn set_debug(&self, debug: bool) -> Result<(), NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
-            oneshot::channel();
-        self.tx_api
-            .send(Api::SetDebugMode((debug, tx_response)))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::SetDebugMode; error: {}", e,)),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from("fail to get response from Api::SetDebugMode")),
-        })?;
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::SetDebugMode((debug, tx)), rx)
+            .await?;
         Ok(())
     }
 
     pub async fn get_operations_stat(&self) -> Result<String, NativeError> {
-        let (tx_response, rx_response) = oneshot::channel();
-        self.tx_api
-            .send(Api::GetOperationsStat(tx_response))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!(
-                    "fail to send to Api::GetOperationsStat; error: {}",
-                    e,
-                )),
-            })?;
-        match rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from(
-                "fail to get response from Api::GetOperationsStat",
-            )),
-        }) {
-            Ok(result) => result,
-            Err(err) => Err(err),
-        }
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GetOperationsStat(tx), rx).await?
     }
 
     pub fn shutdown(&self) -> Result<(), NativeError> {
-        self.tx_api.send(Api::Shutdown).map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(format!("fail to send to Api::Shutdown; error: {}", e,)),
+        self.tx_api.send(Api::Shutdown).map_err(|e| {
+            NativeError::channel(&format!("fail to send to Api::Shutdown; error: {}", e,))
         })
     }
 }
 
-pub async fn task(
+pub async fn run(
     state: SessionStateAPI,
     mut rx_api: UnboundedReceiver<Api>,
 ) -> Result<(), NativeError> {
@@ -214,11 +159,9 @@ pub async fn task(
                     })
                     .is_err()
                 {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::AddOperation")),
-                    });
+                    return Err(NativeError::channel(
+                        "fail to response to Api::AddOperation",
+                    ));
                 }
             }
             Api::RemoveOperation((uuid, tx_response)) => {
@@ -240,11 +183,9 @@ pub async fn task(
                     .send(tracker.operations.remove(&uuid).is_some())
                     .is_err()
                 {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::RemoveOperation")),
-                    });
+                    return Err(NativeError::channel(
+                        "fail to response to Api::RemoveOperation",
+                    ));
                 }
             }
             Api::CancelOperation((uuid, tx_response)) => {
@@ -277,11 +218,9 @@ pub async fn task(
                     )
                     .is_err()
                 {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::CancelOperation")),
-                    });
+                    return Err(NativeError::channel(
+                        "fail to response to Api::CancelOperation",
+                    ));
                 }
             }
             Api::CancelAll(tx_response) => {
@@ -295,21 +234,17 @@ pub async fn task(
                 }
                 tracker.operations.clear();
                 if tx_response.send(()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::CloseSession")),
-                    });
+                    return Err(NativeError::channel(
+                        "fail to response to Api::CloseSession",
+                    ));
                 }
             }
             Api::SetDebugMode((debug, tx_response)) => {
                 tracker.debug = debug;
                 if tx_response.send(()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::SetDebugMode")),
-                    });
+                    return Err(NativeError::channel(
+                        "fail to response to Api::SetDebugMode",
+                    ));
                 }
             }
             Api::GetOperationsStat(tx_response) => {
@@ -324,11 +259,9 @@ pub async fn task(
                     })
                     .is_err()
                 {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::GetOperationsStat")),
-                    });
+                    return Err(NativeError::channel(
+                        "fail to response to Api::GetOperationsStat",
+                    ));
                 }
             }
             Api::Shutdown => {

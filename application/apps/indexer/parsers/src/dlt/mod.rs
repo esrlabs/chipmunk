@@ -70,7 +70,6 @@ pub struct DltParser<'m> {
 
 #[derive(Default)]
 pub struct DltRangeParser {
-    pub with_storage_header: bool,
     offset: usize,
 }
 
@@ -87,11 +86,8 @@ impl DltRawParser {
 }
 
 impl DltRangeParser {
-    pub fn new(with_storage_header: bool) -> Self {
-        Self {
-            with_storage_header,
-            offset: 0,
-        }
+    pub fn new() -> Self {
+        Self { offset: 0 }
     }
 }
 

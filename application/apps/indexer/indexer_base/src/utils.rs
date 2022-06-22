@@ -202,6 +202,7 @@ pub fn next_line_nr(path: &std::path::Path) -> Result<usize, Error> {
             )));
         }
     };
+    #[allow(clippy::cast_abs_to_unsigned)]
     let size_of_slice = seek_offset.unsigned_abs() as usize;
     let mut buf: Vec<u8> = vec![0; size_of_slice];
     reader.read_exact(&mut buf)?;

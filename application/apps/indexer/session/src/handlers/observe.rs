@@ -8,7 +8,7 @@ use indexer_base::progress::Severity;
 use log::trace;
 use parsers::{dlt, LogMessage, MessageStreamItem, Parser};
 use sources::{
-    factory::{ParserType, Source, Transport},
+    factory::{ParserType, SourceType, Transport},
     pcap,
     producer::MessageProducer,
     raw, socket, ByteSource,
@@ -25,7 +25,6 @@ use tokio::{
     time::{timeout, Duration},
 };
 use tokio_stream::StreamExt;
-use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 const NOTIFY_IN_MS: u128 = 250;
@@ -34,24 +33,10 @@ const NOTIFY_IN_MS: u128 = 250;
 pub async fn handle(
     operation_api: OperationAPI,
     state: SessionStateAPI,
-    source: Source,
+    source: SourceType,
 ) -> OperationResult<()> {
-    // let source = Source::Stream(
-    //     Transport::UDP(UDPTransportConfig {
-    //         bind_addr: String::from("0.0.0.0:8888"),
-    //         multicast: vec![MulticastInfo {
-    //             multiaddr: String::from("234.2.2.2"),
-    //             interface: Some(String::from("0.0.0.0")),
-    //         }],
-    //     }),
-    //     ParserType::Dlt(DltParserSettings {
-    //         filter_config: None,
-    //         fibex_file_paths: None,
-    //         with_storage_header: false,
-    //     }),
-    // );
     let (paths, result): (Vec<PathBuf>, OperationResult<()>) = match source {
-        Source::Stream(transport, parser_type) => {
+        SourceType::Stream(transport, parser_type) => {
             let (source, dest_path) = match transport {
                 Transport::UDP(config) => {
                     let source = socket::udp::UdpSource::new(&config.bind_addr, config.multicast)
@@ -85,22 +70,20 @@ pub async fn handle(
                 ParserType::SomeIP(_) => {
                     return Err(NativeError {
                         severity: Severity::ERROR,
-                        kind: NativeErrorKind::FileNotFound,
+                        kind: NativeErrorKind::UnsupportedFileType,
                         message: Some(String::from("SomeIP parser not yet supported")),
                     });
                 }
                 ParserType::Text => {
                     return Err(NativeError {
                         severity: Severity::ERROR,
-                        kind: NativeErrorKind::FileNotFound,
+                        kind: NativeErrorKind::UnsupportedFileType,
                         message: Some(String::from("Text parser above stream not yet supported")),
                     });
                 }
                 ParserType::Pcap(settings) => {
-                    fibex_metadata = if let Some(paths) = settings.dlt.fibex_file_paths {
-                        dlt::gather_fibex_data(dlt::FibexConfig {
-                            fibex_file_paths: paths,
-                        })
+                    fibex_metadata = if let Some(fibex_file_paths) = settings.dlt.fibex_file_paths {
+                        dlt::gather_fibex_data(dlt::FibexConfig { fibex_file_paths })
                     } else {
                         None
                     };
@@ -134,7 +117,7 @@ pub async fn handle(
             )
             .await?
         }
-        Source::File(filename, parser_type) => {
+        SourceType::File(filename, parser_type) => {
             let dest_path = if let Some(dest_path) = filename.parent() {
                 dest_path.to_path_buf()
             } else {
@@ -164,31 +147,25 @@ pub async fn handle(
                     state.file_read().await?;
                     // Switching to tail
                     let cancel = operation_api.get_cancellation_token();
-                    let tail_shutdown = CancellationToken::new();
-                    let tail_shutdown_caller = tail_shutdown.clone();
                     let (result, tracker) = join!(
                         async {
                             let result = select! {
                                 res = async move {
-                                    while let Some(upd) = rx_tail.recv().await {
-                                        if let Err(err) = upd {
-                                            return Err(NativeError {
-                                                severity: Severity::ERROR,
-                                                kind: NativeErrorKind::Interrupted,
-                                                message: Some(err.to_string()),
-                                            });
-                                        } else {
-                                            state.update_session().await?;
-                                        }
+                                    while let Some(update) = rx_tail.recv().await {
+                                        update.map_err(|err| NativeError {
+                                            severity: Severity::ERROR,
+                                            kind: NativeErrorKind::Interrupted,
+                                            message: Some(err.to_string()),
+                                        })?;
+                                        state.update_session().await?;
                                     }
                                     Ok(())
                                 } => res,
                                 _ = cancel.cancelled() => Ok(())
                             };
-                            tail_shutdown_caller.cancel();
                             result
                         },
-                        tail::track(filename.clone(), tx_tail, tail_shutdown),
+                        tail::track(&filename, tx_tail, operation_api.get_cancellation_token()),
                     );
                     (
                         vec![],
@@ -206,13 +183,12 @@ pub async fn handle(
                     )
                 }
                 ParserType::Pcap(settings) => {
-                    let fibex_metadata = if let Some(paths) = settings.dlt.fibex_file_paths {
-                        dlt::gather_fibex_data(dlt::FibexConfig {
-                            fibex_file_paths: paths,
-                        })
-                    } else {
-                        None
-                    };
+                    let fibex_metadata =
+                        if let Some(fibex_file_paths) = settings.dlt.fibex_file_paths {
+                            dlt::gather_fibex_data(dlt::FibexConfig { fibex_file_paths })
+                        } else {
+                            None
+                        };
                     let dlt_parser = dlt::DltParser::new(
                         settings.dlt.filter_config.map(|f| f.into()),
                         fibex_metadata.as_ref(),
@@ -244,11 +220,7 @@ pub async fn handle(
                         Receiver<Result<(), tail::Error>>,
                     ) = channel(1);
                     let (_, listening) = join!(
-                        tail::track(
-                            filename.clone(),
-                            tx_tail,
-                            operation_api.get_cancellation_token()
-                        ),
+                        tail::track(&filename, tx_tail, operation_api.get_cancellation_token()),
                         listen(
                             dest_path,
                             operation_api,
@@ -260,10 +232,8 @@ pub async fn handle(
                     listening?
                 }
                 ParserType::Dlt(settings) => {
-                    let fibex_metadata = if let Some(paths) = settings.fibex_file_paths {
-                        dlt::gather_fibex_data(dlt::FibexConfig {
-                            fibex_file_paths: paths,
-                        })
+                    let fibex_metadata = if let Some(fibex_file_paths) = settings.fibex_file_paths {
+                        dlt::gather_fibex_data(dlt::FibexConfig { fibex_file_paths })
                     } else {
                         None
                     };
@@ -289,11 +259,7 @@ pub async fn handle(
                         Receiver<Result<(), tail::Error>>,
                     ) = channel(1);
                     let (_, listening) = join!(
-                        tail::track(
-                            filename.clone(),
-                            tx_tail,
-                            operation_api.get_cancellation_token()
-                        ),
+                        tail::track(&filename, tx_tail, operation_api.get_cancellation_token()),
                         listen(
                             dest_path,
                             operation_api,
@@ -322,7 +288,7 @@ pub async fn handle(
 
 enum Next<T: LogMessage> {
     Item(MessageStreamItem<T>),
-    Notify,
+    Timeout,
     Waiting,
 }
 
@@ -333,11 +299,13 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     mut producer: MessageProducer<T, P, S>,
     mut rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> Result<(Vec<PathBuf>, OperationResult<()>), NativeError> {
+    use log::debug;
     let file_name = Uuid::new_v4();
     let session_file_path = dest_path.join(format!("{}.session", file_name));
     let binary_file_path = dest_path.join(format!("{}.bin", file_name));
-    let mut session_writer = BufWriter::new(File::create(session_file_path.clone()).map_err(
-        |e| NativeError {
+    debug!("create writers for {:?}", dest_path);
+    let mut session_writer =
+        BufWriter::new(File::create(&session_file_path).map_err(|e| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Io,
             message: Some(format!(
@@ -345,10 +313,9 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                 session_file_path.to_string_lossy(),
                 e
             )),
-        },
-    )?);
-    let mut binary_writer = BufWriter::new(File::create(binary_file_path.clone()).map_err(
-        |e| NativeError {
+        })?);
+    let mut binary_writer =
+        BufWriter::new(File::create(&binary_file_path).map_err(|e| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Io,
             message: Some(format!(
@@ -356,8 +323,7 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                 session_file_path.to_string_lossy(),
                 e
             )),
-        },
-    )?);
+        })?);
     // let (tx_event, mut rx_event): (UnboundedSender<Event>, UnboundedReceiver<Event>) =
     //     unbounded_channel();
     // TODO: producer should return relevate source_id. It should be used
@@ -371,11 +337,11 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     let cancel = operation_api.get_cancellation_token();
     let stream = producer.as_stream();
     futures::pin_mut!(stream);
-    let mut last_message = Instant::now();
+    let mut last_message_timestamp = Instant::now();
     let mut has_updated_content = false;
     let cancel_on_tail = cancel.clone();
     while let Some(next) = select! {
-        msg = async {
+        next_from_stream = async {
             match timeout(Duration::from_millis(NOTIFY_IN_MS as u64), stream.next()).await {
                 Ok(item) => {
                     if let Some((_, item)) = item {
@@ -384,9 +350,9 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                         Some(Next::Waiting)
                     }
                 },
-                Err(_) => Some(Next::Notify),
+                Err(_) => Some(Next::Timeout),
             }
-        } => msg,
+        } => next_from_stream,
         _ = cancel.cancelled() => None,
     } {
         match next {
@@ -400,13 +366,9 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                                 kind: NativeErrorKind::Io,
                                 message: Some(e.to_string()),
                             })?;
-                        item.to_writer(&mut binary_writer)
-                            .map_err(|e| NativeError {
-                                severity: Severity::ERROR,
-                                kind: NativeErrorKind::Io,
-                                message: Some(e.to_string()),
-                            })?;
-                        if !state.is_closing() && last_message.elapsed().as_millis() > NOTIFY_IN_MS
+                        item.to_writer(&mut binary_writer)?;
+                        if !state.is_closing()
+                            && last_message_timestamp.elapsed().as_millis() > NOTIFY_IN_MS
                         {
                             session_writer.flush().map_err(|e| NativeError {
                                 severity: Severity::ERROR,
@@ -414,7 +376,7 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                                 message: Some(e.to_string()),
                             })?;
                             state.update_session().await?;
-                            last_message = Instant::now();
+                            last_message_timestamp = Instant::now();
                             has_updated_content = false;
                         } else {
                             has_updated_content = true;
@@ -444,7 +406,7 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                     }
                 }
             }
-            Next::Notify => {
+            Next::Timeout => {
                 if !state.is_closing() && has_updated_content {
                     state.update_session().await?;
                     has_updated_content = false;
@@ -453,8 +415,8 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
             Next::Waiting => {
                 if let Some(mut rx_tail) = rx_tail.take() {
                     if select! {
-                        msg = rx_tail.recv() => {
-                            if let Some(result) = msg {
+                        next_from_stream = rx_tail.recv() => {
+                            if let Some(result) = next_from_stream {
                                 result.is_err()
                             } else {
                                 true
@@ -470,5 +432,9 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
             }
         }
     }
+    debug!(
+        "listen done, session_file_path: {:?}, binary_file_path: {:?}",
+        session_file_path, binary_file_path
+    );
     Ok((vec![session_file_path, binary_file_path], Ok(None)))
 }

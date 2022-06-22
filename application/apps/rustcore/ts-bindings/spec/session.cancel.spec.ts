@@ -186,7 +186,7 @@ describe('Cancel', function () {
                         ])
                         .canceled(() => {
                             console.log(
-                                `-> [..🗑..]\tsearch operation #${index} (${task.uuid()}) is `,
+                                `-> [..🗑..]\tsearch operation #${index} (${task.uuid()}) is canceled`,
                             );
                             canceled += 1;
                         })
