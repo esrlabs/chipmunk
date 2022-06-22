@@ -16,20 +16,17 @@ def debug(content)
 end
 
 def green(content)
-  begin
-    require 'colored'
-    content.green.to_s
-  rescue LoadError
-    content
-  end
+  require 'colored'
+  content.green.to_s
+rescue LoadError
+  content
 end
+
 def yellow(content)
-  begin
-    require 'colored'
-    content.yellow.to_s
-  rescue LoadError
-    content
-  end
+  require 'colored'
+  content.yellow.to_s
+rescue LoadError
+  content
 end
 
 def info(content)
@@ -129,6 +126,7 @@ def build_debug
     sh "tar -cvzf indexing@#{current_version}-#{os_ext}.tgz #{EXE_NAME}"
   end
 end
+
 def build_the_release
   sh 'cargo build --release'
   current_version = read_current_version
@@ -140,7 +138,7 @@ def build_the_release
     os_ext = 'windows'
     release_folder = 'target/x86_64-pc-windows-gnu/release'
   end
-  cd release_folder.to_s, verbose: false do
+  cd release_folder.to_s, verbose: true do
     cp CLI_EXE_NAME.to_s, EXE_NAME.to_s
     cp EXE_NAME.to_s, "#{HOME}/bin/#{EXE_NAME}"
     sh "tar -cvzf indexing@#{current_version}-#{os_ext}.tgz #{EXE_NAME}"
@@ -251,7 +249,7 @@ def read_current_version
   cd CLI_EXE_NAME, verbose: false do
     ['Cargo.toml'].each do |file|
       text = File.read(file)
-      match = text.match(/^version\s=\s\"(.*)\"/i)
+      match = text.match(/^version\s=\s"(.*)"/i)
       current_version = match.captures[0] if match
     end
   end
@@ -262,7 +260,7 @@ def update_toml(new_version)
   cd CLI_EXE_NAME, verbose: false do
     ['Cargo.toml'].each do |file|
       text = File.read(file)
-      new_contents = text.gsub(/^version\s=\s\"\d+\.\d+\.\d+\"/, "version = \"#{new_version}\"")
+      new_contents = text.gsub(/^version\s=\s"\d+\.\d+\.\d+"/, "version = \"#{new_version}\"")
       File.open(file, 'w') { |f| f.puts new_contents }
     end
   end
@@ -283,16 +281,16 @@ class Version < Array
     get_major * 1000 * 1000 + get_minor * 1000 + get_patch
   end
 
-  def <(x)
-    (self <=> x) < 0
+  def <(other)
+    (self <=> other) < 0
   end
 
-  def >(x)
-    (self <=> x) > 0
+  def >(other)
+    (self <=> other) > 0
   end
 
-  def ==(x)
-    (self <=> x) == 0
+  def ==(other)
+    (self <=> other) == 0
   end
 
   def patch
@@ -329,4 +327,3 @@ class Version < Array
     join('.')
   end
 end
-

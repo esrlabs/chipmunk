@@ -23,6 +23,8 @@ type SearchResultChannel = (
 pub async fn handle(
     operation_api: &OperationAPI,
     filters: Vec<SearchFilter>,
+    //mut search_grabber,
+    //mut search_holder,
     state: SessionStateAPI,
 ) -> OperationResult<SearchOperationResult> {
     debug!("RUST: Search operation is requested");
@@ -84,7 +86,7 @@ pub async fn handle(
                         }
                         Err(_) => {
                             if !cancel.is_cancelled() {
-                                match state.update_search_result(operation_api.id(), search_res_file.clone()).await {
+                                match state.update_search_result(operation_api.id(), &search_res_file).await {
                                     Ok(found) => {
                                         operation_api.emit(CallbackEvent::SearchUpdated(found as u64));
                                     }
@@ -113,7 +115,7 @@ pub async fn handle(
                         Ok(Some(SearchOperationResult { found, stats }))
                     } else {
                         state
-                            .update_search_result(operation_api.id(), file_path.clone())
+                            .update_search_result(operation_api.id(), &file_path)
                             .await?;
                         operation_api.emit(CallbackEvent::SearchUpdated(found as u64));
                         Ok(Some(SearchOperationResult { found, stats }))

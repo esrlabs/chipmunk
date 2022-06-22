@@ -2,9 +2,7 @@ use crate::{Error, LogMessage, Parser};
 use std::{borrow::Cow, fmt, fmt::Display, io::Write};
 
 use someip_messages::*;
-use someip_payload::fibex::FibexModel;
-use someip_payload::fibex2som::FibexTypes;
-use someip_payload::som::SOMParser;
+use someip_payload::{fibex::FibexModel, fibex2som::FibexTypes, som::SOMParser};
 
 use log::debug;
 use serde::Serialize;
@@ -291,7 +289,7 @@ mod test {
     use stringreader::StringReader;
 
     fn flatten_str(string: &str) -> String {
-        string.replace(" ", "").replace("\n", "")
+        string.replace(' ', "").replace('\n', "")
     }
 
     fn assert_str(expected: &str, actual: &str) {

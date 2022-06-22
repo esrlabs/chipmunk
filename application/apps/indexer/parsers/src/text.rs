@@ -4,7 +4,7 @@ use std::{fmt, io::Write};
 
 pub struct StringTokenizer;
 
-#[derive(Debug, PartialEq, Eq, Serialize)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct StringMessage {
     content: String,
 }
@@ -42,7 +42,7 @@ impl Parser<StringMessage> for StringTokenizer {
             Ok((&input[msg_size + 1..], Some(string_msg)))
         } else {
             Ok((
-                input,
+                &[],
                 Some(StringMessage {
                     content: String::new(),
                 }),

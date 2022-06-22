@@ -7,7 +7,7 @@ use log::{debug, error, warn};
 use processor::{
     grabber::{GrabbedContent, Grabber, LineRange},
     map::{FilterMatch, SearchMap},
-    search::SearchHolder,
+    search::{SearchHolder, SearchResults},
     text_source::TextFileSource,
 };
 use std::{
@@ -26,6 +26,15 @@ pub enum SearchHolderState {
     Available(SearchHolder),
     InUse,
     NotInited,
+}
+
+impl SearchHolderState {
+    pub fn execute_search(&mut self, cancel_token: CancellationToken) -> Option<SearchResults> {
+        match self {
+            Self::Available(h) => Some(h.execute_search(cancel_token)),
+            _ => None,
+        }
+    }
 }
 
 pub enum Api {
@@ -67,6 +76,37 @@ pub enum Api {
     Shutdown,
 }
 
+impl std::fmt::Display for Api {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::SetSessionFile(_) => "SetSessionFile",
+                Self::GetSessionFile(_) => "GetSessionFile",
+                Self::UpdateSession(_) => "UpdateSession",
+                Self::FileRead(_) => "FileRead",
+                Self::Grab(_) => "Grab",
+                Self::SetStreamLen(_) => "SetStreamLen",
+                Self::GetStreamLen(_) => "GetStreamLen",
+                Self::GetSearchResultLen(_) => "GetSearchResultLen",
+                Self::UpdateSearchResult(_) => "UpdateSearchResult",
+                Self::GetSearchHolder(_) => "GetSearchHolder",
+                Self::SetSearchHolder(_) => "SetSearchHolder",
+                Self::DropSearch(_) => "DropSearch",
+                Self::GrabSearch(_) => "GrabSearch",
+                Self::GetSearchMap(_) => "GetSearchMap",
+                Self::SetMatches(_) => "SetMatches",
+                Self::CloseSession(_) => "CloseSession",
+                Self::SetDebugMode(_) => "SetDebugMode",
+                Self::NotifyCancelingOperation(_) => "NotifyCancelingOperation",
+                Self::NotifyCanceledOperation(_) => "NotifyCanceledOperation",
+                Self::Shutdown => "Shutdown",
+            }
+        )
+    }
+}
+
 #[derive(Debug)]
 pub enum Status {
     Open,
@@ -83,6 +123,231 @@ pub struct SessionState {
     pub cancelling_operations: HashMap<Uuid, bool>,
     pub status: Status,
     pub debug: bool,
+}
+
+impl SessionState {
+    fn handle_set_session_file(&mut self, session_file: PathBuf) -> Result<(), NativeError> {
+        if self.content_grabber.is_some() {
+            Err(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Grabber,
+                message: Some(String::from("Grabber has been already inited")),
+            })
+        } else {
+            self.session_file = Some(session_file.clone());
+            Ok(Grabber::lazy(TextFileSource::new(
+                &session_file,
+                &session_file.to_string_lossy(),
+            ))
+            .map(|g| self.content_grabber = Some(Box::new(g)))?)
+        }
+    }
+
+    fn handle_grab_search(&mut self, range: LineRange) -> Result<GrabbedContent, NativeError> {
+        let result = if let Some(ref mut grabber) = self.search_grabber {
+            let line_numbers: GrabbedContent =
+                grabber.grab_content(&range).map_err(|e| NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Grabber,
+                    message: Some(format!("Failed to grab search data. Error: {}", e)),
+                })?;
+            let mut search_grabbed: GrabbedContent = GrabbedContent {
+                grabbed_elements: vec![],
+            };
+            let mut ranges = vec![];
+            let mut from_pos: u64 = 0;
+            let mut to_pos: u64 = 0;
+            for (i, el) in line_numbers.grabbed_elements.iter().enumerate() {
+                let pos = el.content.parse::<u64>().map_err(|err| NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::OperationSearch,
+                    message: Some(format!("Cannot parse line number: {}", err)),
+                })?;
+                if i == 0 {
+                    from_pos = pos;
+                } else if to_pos + 1 != pos {
+                    ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
+                    from_pos = pos;
+                }
+                to_pos = pos;
+            }
+            if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from_pos)
+                || (ranges.is_empty() && !line_numbers.grabbed_elements.is_empty())
+            {
+                ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
+            }
+            let mut row: usize = range.start() as usize;
+            for range in ranges.iter() {
+                let grabber = &mut (self.content_grabber.as_ref().ok_or(NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Grabber,
+                    message: Some(String::from("Grabber isn't inited")),
+                })?);
+                let mut session_grabbed = grabber.grab_content(&LineRange::from(range.clone()))?;
+
+                let start = *range.start() as usize;
+                for (j, element) in session_grabbed.grabbed_elements.iter_mut().enumerate() {
+                    element.pos = Some(start + j);
+                    element.row = Some(row);
+                    row += 1;
+                }
+                search_grabbed
+                    .grabbed_elements
+                    .append(&mut session_grabbed.grabbed_elements);
+            }
+            Ok(search_grabbed)
+        } else {
+            Err(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Grabber,
+                message: Some(String::from("Search grabber isn't inited")),
+            })
+        };
+        result
+    }
+
+    fn handle_get_stream_len(&mut self) -> Result<usize, NativeError> {
+        if let Some(ref grabber) = self.content_grabber {
+            if let Some(md) = grabber.get_metadata() {
+                Ok(md.line_count)
+            } else {
+                Err(NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Grabber,
+                    message: Some(String::from("Metadata isn't inited yet")),
+                })
+            }
+        } else {
+            Err(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Grabber,
+                message: Some(String::from("Grabber isn't inited")),
+            })
+        }
+    }
+
+    async fn handle_update_session(
+        &mut self,
+        state_cancellation_token: CancellationToken,
+        tx_callback_events: UnboundedSender<CallbackEvent>,
+    ) -> Result<bool, NativeError> {
+        if let Some(ref mut grabber) = self.content_grabber {
+            let prev = grabber.log_entry_count().unwrap_or(0) as u64;
+            grabber.update_from_file(Some(state_cancellation_token.clone()))?;
+            let current = grabber.log_entry_count().unwrap_or(0) as u64;
+            if prev != current {
+                tx_callback_events.send(CallbackEvent::StreamUpdated(current))?;
+
+                match self
+                    .search_holder
+                    .execute_search(state_cancellation_token.clone())
+                {
+                    Some(Ok((file_path, mut matches, _stats))) => {
+                        self.search_map.append(&mut matches);
+                        match self
+                            .update_search_result(&file_path, state_cancellation_token.clone())
+                            .await
+                        {
+                            Ok(found) => {
+                                tx_callback_events
+                                    .send(CallbackEvent::SearchUpdated(found as u64))?;
+                            }
+                            Err(err) => {
+                                error!("Fail to update search results: {:?}", err);
+                            }
+                        };
+                    }
+                    Some(Err(err)) => error!("Fail to append search: {}", err),
+                    None => (),
+                }
+                Ok(true)
+            } else {
+                Ok(false)
+            }
+        } else {
+            Err(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Grabber,
+                message: Some(String::from("Grabber isn't inited")),
+            })
+        }
+    }
+
+    fn handle_get_search_holder(&mut self, uuid: Uuid) -> Result<SearchHolder, NativeError> {
+        match self.search_holder {
+            SearchHolderState::Available(_) => {
+                use std::mem;
+                if let SearchHolderState::Available(holder) =
+                    mem::replace(&mut self.search_holder, SearchHolderState::InUse)
+                {
+                    Ok(holder)
+                } else {
+                    Err(NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::Configuration,
+                        message: Some(String::from("Could not replace search holder in state")),
+                    })
+                }
+            }
+            SearchHolderState::InUse => Err(NativeError::channel("Search holder is in use")),
+            SearchHolderState::NotInited => {
+                if let Some(session_file) = self.session_file.as_ref() {
+                    self.search_holder = SearchHolderState::InUse;
+                    Ok(SearchHolder::new(session_file, vec![].iter(), uuid))
+                } else {
+                    Err(NativeError::channel(
+                        "Cannot create search holder without session file.",
+                    ))
+                }
+            }
+        }
+    }
+
+    pub async fn update_search_result(
+        &mut self,
+        search_result_file: &Path,
+        cancellation_token: CancellationToken,
+    ) -> Result<usize, NativeError> {
+        // TODO: we should check: related operation isn't canceled
+        if !search_result_file.exists() {
+            warn!(
+                "search result file {} doesn't exist",
+                search_result_file.to_string_lossy()
+            );
+            return Ok(0);
+        }
+        let grabber: &mut std::boxed::Box<processor::grabber::Grabber> = match self.search_grabber {
+            Some(ref mut grabber) => grabber,
+            None => {
+                let grabber = Grabber::lazy(TextFileSource::new(
+                    search_result_file,
+                    &search_result_file.to_string_lossy(),
+                ))
+                .map_err(|err| NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Grabber,
+                    message: Some(format!(
+                        "Failed to create search result file ({}) grabber. Error: {}",
+                        search_result_file.to_string_lossy(),
+                        err
+                    )),
+                })?;
+                self.search_grabber = Some(Box::new(grabber));
+                self.search_grabber.as_mut().expect("Was just set")
+            }
+        };
+        // To check: probably we need spetial canceler for search to prevent possible issues
+        // on dropping search between searches
+        grabber.update_from_file(Some(cancellation_token))?;
+        grabber
+            .get_metadata()
+            .ok_or(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Grabber,
+                message: Some("Grabber doesn't have metadata".to_string()),
+            })
+            .map(|mt| mt.line_count)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -106,268 +371,90 @@ impl SessionStateAPI {
         )
     }
 
+    async fn exec_operation<T>(
+        &self,
+        api: Api,
+        rx_response: oneshot::Receiver<T>,
+    ) -> Result<T, NativeError> {
+        let api_str = format!("{}", api);
+        self.tx_api.send(api).map_err(|e| {
+            NativeError::channel(&format!("Failed to send to Api::{}; error: {}", api_str, e))
+        })?;
+        rx_response.await.map_err(|_| {
+            NativeError::channel(&format!("Failed to get response from Api::{}", api_str))
+        })
+    }
+
     pub async fn grab(&self, range: LineRange) -> Result<GrabbedContent, NativeError> {
-        let (tx_response, rx_response): (
-            oneshot::Sender<Result<GrabbedContent, NativeError>>,
-            oneshot::Receiver<Result<GrabbedContent, NativeError>>,
-        ) = oneshot::channel();
-        self.tx_api
-            .send(Api::Grab((range.clone(), tx_response)))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::Grab; error: {}", e,)),
-            })?;
-        match rx_response.await {
-            Ok(res) => res,
-            Err(err) => Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!(
-                    "fail to get response from Api::Grab; error: {}",
-                    err
-                )),
-            }),
-        }
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::Grab((range.clone(), tx)), rx)
+            .await?
     }
 
     pub async fn grab_search(&self, range: LineRange) -> Result<GrabbedContent, NativeError> {
-        let (tx_response, rx_response): (
-            oneshot::Sender<Result<GrabbedContent, NativeError>>,
-            oneshot::Receiver<Result<GrabbedContent, NativeError>>,
-        ) = oneshot::channel();
-        self.tx_api
-            .send(Api::GrabSearch((range, tx_response)))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::GrabSearch; error: {}", e,)),
-            })?;
-        match rx_response.await {
-            Ok(res) => res,
-            Err(err) => Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!(
-                    "fail to get response from Api::GrabSearch; error: {}",
-                    err
-                )),
-            }),
-        }
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GrabSearch((range, tx)), rx)
+            .await?
     }
 
     pub async fn get_stream_len(&self) -> Result<usize, NativeError> {
-        let (tx_response, rx_response): (
-            oneshot::Sender<Result<usize, NativeError>>,
-            oneshot::Receiver<Result<usize, NativeError>>,
-        ) = oneshot::channel();
-        self.tx_api
-            .send(Api::GetStreamLen(tx_response))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::GetStreamLen; error: {}", e,)),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from("fail to get response from Api::GetStreamLen")),
-        })?
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GetStreamLen(tx), rx).await?
     }
 
     pub async fn get_search_result_len(&self) -> Result<usize, NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<usize>, oneshot::Receiver<usize>) =
-            oneshot::channel();
-        self.tx_api
-            .send(Api::GetSearchResultLen(tx_response))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!(
-                    "fail to send to Api::GetSearchResultLen; error: {}",
-                    e,
-                )),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from(
-                "fail to get response from Api::GetSearchResultLen",
-            )),
-        })
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GetSearchResultLen(tx), rx).await
     }
 
     pub async fn get_search_map(&self) -> Result<SearchMap, NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<SearchMap>, oneshot::Receiver<SearchMap>) =
-            oneshot::channel();
-        self.tx_api
-            .send(Api::GetSearchMap(tx_response))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::GetSearchMap; error: {}", e,)),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from("fail to get response from Api::GetSearchMap")),
-        })
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GetSearchMap(tx), rx).await
     }
 
     pub async fn set_session_file(&self, session_file: PathBuf) -> Result<(), NativeError> {
-        let (tx_response, rx_response): (
-            oneshot::Sender<Result<(), NativeError>>,
-            oneshot::Receiver<Result<(), NativeError>>,
-        ) = oneshot::channel();
-        self.tx_api
-            .send(Api::SetSessionFile((session_file, tx_response)))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::SetSessionFile; error: {}", e,)),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from(
-                "fail to get response from Api::SetSessionFile",
-            )),
-        })?
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::SetSessionFile((session_file, tx)), rx)
+            .await?
     }
 
     pub async fn get_session_file(&self) -> Result<PathBuf, NativeError> {
-        let (tx_response, rx_response): (
-            oneshot::Sender<Result<PathBuf, NativeError>>,
-            oneshot::Receiver<Result<PathBuf, NativeError>>,
-        ) = oneshot::channel();
-        self.tx_api
-            .send(Api::GetSessionFile(tx_response))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::GetSessionFile; error: {}", e,)),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from(
-                "fail to get response from Api::GetSessionFile",
-            )),
-        })?
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GetSessionFile(tx), rx).await?
     }
 
     pub async fn update_session(&self) -> Result<bool, NativeError> {
-        let (tx_response, rx_response): (
-            oneshot::Sender<Result<bool, NativeError>>,
-            oneshot::Receiver<Result<bool, NativeError>>,
-        ) = oneshot::channel();
-        self.tx_api
-            .send(Api::UpdateSession(tx_response))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::UpdateSession; error: {}", e,)),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from("fail to get response from Api::UpdateSession")),
-        })?
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::UpdateSession(tx), rx).await?
     }
 
     pub async fn file_read(&self) -> Result<(), NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
-            oneshot::channel();
-        self.tx_api
-            .send(Api::FileRead(tx_response))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::FileRead; error: {}", e,)),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from("fail to get response from Api::FileRead")),
-        })?;
-        Ok(())
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::FileRead(tx), rx).await
     }
 
     pub async fn set_stream_len(&self, len: u64) -> Result<(), NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
-            oneshot::channel();
-        self.tx_api
-            .send(Api::SetStreamLen((len, tx_response)))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::SetStreamLen; error: {}", e,)),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from("fail to get response from Api::SetStreamLen")),
-        })?;
-        Ok(())
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::SetStreamLen((len, tx)), rx).await
     }
 
     pub async fn update_search_result(
         &self,
         uuid: Uuid,
-        search_result_file: PathBuf,
+        search_result_file: &Path,
     ) -> Result<usize, NativeError> {
-        let (tx_response, rx_response): (
-            oneshot::Sender<Result<usize, NativeError>>,
-            oneshot::Receiver<Result<usize, NativeError>>,
-        ) = oneshot::channel();
-        self.tx_api
-            .send(Api::UpdateSearchResult((
-                uuid,
-                search_result_file,
-                tx_response,
-            )))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!(
-                    "fail to send to Api::UpdateSearchResult; error: {}",
-                    e,
-                )),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from(
-                "fail to get response from Api::UpdateSearchResult",
-            )),
-        })?
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(
+            Api::UpdateSearchResult((uuid, PathBuf::from(search_result_file), tx)),
+            rx,
+        )
+        .await?
     }
 
     pub async fn get_search_holder(&self, uuid: Uuid) -> Result<SearchHolder, NativeError> {
-        let (tx_response, rx_response): (
-            oneshot::Sender<Result<SearchHolder, NativeError>>,
-            oneshot::Receiver<Result<SearchHolder, NativeError>>,
-        ) = oneshot::channel();
-        self.tx_api
-            .send(Api::GetSearchHolder((uuid, tx_response)))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!(
-                    "fail to send to Api::GetSearchHolder; error: {}",
-                    e,
-                )),
-            })?;
-        match rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from(
-                "fail to get response from Api::GetSearchHolder",
-            )),
-        }) {
-            Ok(res) => res,
-            Err(err) => Err(err),
-        }
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GetSearchHolder((uuid, tx)), rx)
+            .await?
     }
 
     pub async fn set_search_holder(
@@ -375,135 +462,60 @@ impl SessionStateAPI {
         holder: Option<SearchHolder>,
         uuid: Uuid,
     ) -> Result<(), NativeError> {
-        let (tx_response, rx_response): (
-            oneshot::Sender<Result<(), NativeError>>,
-            oneshot::Receiver<Result<(), NativeError>>,
-        ) = oneshot::channel();
-        self.tx_api
-            .send(Api::SetSearchHolder((holder, uuid, tx_response)))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!(
-                    "fail to send to Api::SetSearchHolder; error: {}",
-                    e,
-                )),
-            })?;
-        match rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from(
-                "fail to get response from Api::SetSearchHolder",
-            )),
-        }) {
-            Ok(res) => res,
-            Err(err) => Err(err),
-        }
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::SetSearchHolder((holder, uuid, tx)), rx)
+            .await?
     }
 
     pub async fn drop_search(&self) -> Result<bool, NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<bool>, oneshot::Receiver<bool>) =
-            oneshot::channel();
-        self.tx_api
-            .send(Api::DropSearch(tx_response))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::DropSearch; error: {}", e,)),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from("fail to get response from Api::DropSearch")),
-        })
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::DropSearch(tx), rx).await
     }
 
     pub async fn set_matches(&self, matches: Option<Vec<FilterMatch>>) -> Result<(), NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
-            oneshot::channel();
-        self.tx_api
-            .send(Api::SetMatches((matches, tx_response)))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::SetMatches; error: {}", e,)),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from("fail to get response from Api::SetMatches")),
-        })?;
-        Ok(())
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::SetMatches((matches, tx)), rx)
+            .await
     }
 
     pub async fn canceling_operation(&self, uuid: Uuid) -> Result<(), NativeError> {
         self.tx_api
             .send(Api::NotifyCancelingOperation(uuid))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!(
+            .map_err(|e| {
+                NativeError::channel(&format!(
                     "fail to send to Api::NotifyCancelingOperation; error: {}",
                     e,
-                )),
+                ))
             })
     }
 
     pub async fn canceled_operation(&self, uuid: Uuid) -> Result<(), NativeError> {
         self.tx_api
             .send(Api::NotifyCanceledOperation(uuid))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!(
+            .map_err(|e| {
+                NativeError::channel(&format!(
                     "fail to send to Api::NotifyCanceledOperation; error: {}",
                     e,
-                )),
+                ))
             })
     }
 
     pub async fn close_session(&self) -> Result<(), NativeError> {
         self.closing_token.cancel();
         self.tracker.cancel_all().await?;
-        let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
-            oneshot::channel();
-        self.tx_api
-            .send(Api::CloseSession(tx_response))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::CloseSession; error: {}", e,)),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from("fail to get response from Api::CloseSession")),
-        })
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::CloseSession(tx), rx).await
     }
 
     pub async fn set_debug(&self, debug: bool) -> Result<(), NativeError> {
-        let (tx_response, rx_response): (oneshot::Sender<()>, oneshot::Receiver<()>) =
-            oneshot::channel();
-        self.tx_api
-            .send(Api::SetDebugMode((debug, tx_response)))
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ChannelError,
-                message: Some(format!("fail to send to Api::SetDebugMode; error: {}", e,)),
-            })?;
-        rx_response.await.map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(String::from("fail to get response from Api::SetDebugMode")),
-        })?;
-        Ok(())
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::SetDebugMode((debug, tx)), rx)
+            .await
     }
 
     pub fn shutdown(&self) -> Result<(), NativeError> {
-        self.tx_api.send(Api::Shutdown).map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::ChannelError,
-            message: Some(format!("fail to send to Api::Shutdown; error: {}", e,)),
+        self.tx_api.send(Api::Shutdown).map_err(|e| {
+            NativeError::channel(&format!("fail to send to Api::Shutdown; error: {}", e,))
         })
     }
 
@@ -512,71 +524,7 @@ impl SessionStateAPI {
     }
 }
 
-pub async fn update_search_result(
-    state: &mut SessionState,
-    search_result_file: &Path,
-    cancellation_token: CancellationToken,
-) -> Result<usize, NativeError> {
-    // TODO: we should check: related operation isn't canceled
-    if !search_result_file.exists() {
-        warn!(
-            "search result file {} doesn't exist",
-            search_result_file.to_string_lossy()
-        );
-        return Ok(0);
-    }
-    let result = if state.search_grabber.is_none() {
-        match Grabber::lazy(TextFileSource::new(
-            search_result_file,
-            &search_result_file.to_string_lossy(),
-        )) {
-            Ok(grabber) => {
-                state.search_grabber = Some(Box::new(grabber));
-                Ok(0)
-            }
-            Err(err) => Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
-                message: Some(format!(
-                    "Failed to create search result file ({}) grabber. Error: {}",
-                    search_result_file.to_string_lossy(),
-                    err
-                )),
-            }),
-        }
-    } else {
-        Ok(0)
-    };
-    // To check: probably we need spetial canceler for search to prevent possible issues
-    // on dropping search between searches
-    if result.is_err() {
-        result
-    } else if let Some(ref mut grabber) = state.search_grabber {
-        if let Err(err) = grabber.update_from_file(Some(cancellation_token)) {
-            Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
-                message: Some(format!("Fail update metadata: {}", err)),
-            })
-        } else if let Some(mt) = grabber.get_metadata() {
-            Ok(mt.line_count)
-        } else {
-            Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
-                message: Some("Grabber doesn't have metadata".to_string()),
-            })
-        }
-    } else {
-        Err(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
-            message: Some(String::from("Grabber isn't inited")),
-        })
-    }
-}
-
-pub async fn task(
+pub async fn run(
     mut rx_api: UnboundedReceiver<Api>,
     tx_callback_events: UnboundedSender<CallbackEvent>,
 ) -> Result<(), NativeError> {
@@ -590,57 +538,15 @@ pub async fn task(
         cancelling_operations: HashMap::new(),
         debug: false,
     };
-    let cancellation_token = CancellationToken::new();
+    let state_cancellation_token = CancellationToken::new();
     debug!("task is started");
     while let Some(msg) = rx_api.recv().await {
         match msg {
             Api::SetSessionFile((session_file, tx_response)) => {
-                if state.content_grabber.is_some() {
-                    if tx_response
-                        .send(Err(NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::Grabber,
-                            message: Some(String::from("Grabber has been already inited")),
-                        }))
-                        .is_err()
-                    {
-                        return Err(NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::ChannelError,
-                            message: Some(String::from("fail to response to Api::SetSessionFile")),
-                        });
-                    }
-                    continue;
-                }
-                state.session_file = Some(session_file.clone());
-                let result = match Grabber::lazy(TextFileSource::new(
-                    &session_file,
-                    &session_file.to_string_lossy(),
-                )) {
-                    Ok(grabber) => {
-                        state.content_grabber = Some(Box::new(grabber));
-                        Ok(())
-                    }
-                    Err(err) => Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Grabber,
-                        message: Some(format!(
-                            "Failed to create session file ({}) grabber. Error: {}",
-                            session_file.to_string_lossy(),
-                            err
-                        )),
-                    }),
-                };
-                if tx_response.send(result.clone()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::SetSessionFile")),
-                    });
-                }
-                if let Err(err) = result {
-                    return Err(err);
-                }
+                let res = state.handle_set_session_file(session_file);
+                tx_response.send(res).map_err(|_| {
+                    NativeError::channel("Failed to response to Api::SetSessionFile")
+                })?;
             }
             Api::GetSessionFile(tx_response) => {
                 let res = if let Some(ref session_file) = state.session_file {
@@ -652,21 +558,13 @@ pub async fn task(
                         message: Some(String::from("Session file isn't assigned yet")),
                     })
                 };
-                if tx_response.send(res).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::GetSessionFile")),
-                    });
-                }
+                tx_response.send(res).map_err(|_| {
+                    NativeError::channel("Failed to respond to Api::GetSessionFile")
+                })?;
             }
             Api::Grab((range, tx_response)) => {
                 let result = if let Some(ref mut grabber) = state.content_grabber {
-                    grabber.grab_content(&range).map_err(|e| NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Grabber,
-                        message: Some(format!("Failed to grab data. Error: {}", e)),
-                    })
+                    Ok(grabber.grab_content(&range)?)
                 } else {
                     Err(NativeError {
                         severity: Severity::ERROR,
@@ -674,345 +572,84 @@ pub async fn task(
                         message: Some(String::from("Grabber isn't inited")),
                     })
                 };
-                if tx_response.send(result.clone()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::Grab")),
-                    });
-                }
-                if let Err(err) = result {
-                    return Err(err);
-                }
+                tx_response
+                    .send(result)
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::Grab"))?;
             }
             Api::GrabSearch((range, tx_response)) => {
-                let result = if let Some(ref mut grabber) = state.search_grabber {
-                    let line_numbers: GrabbedContent =
-                        grabber.grab_content(&range).map_err(|e| NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::Grabber,
-                            message: Some(format!("Failed to grab search data. Error: {}", e)),
-                        })?;
-                    let mut search_grabbed: GrabbedContent = GrabbedContent {
-                        grabbed_elements: vec![],
-                    };
-                    let mut ranges = vec![];
-                    let mut from_pos: u64 = 0;
-                    let mut to_pos: u64 = 0;
-                    for (i, el) in line_numbers.grabbed_elements.iter().enumerate() {
-                        match el.content.parse::<u64>() {
-                            Ok(pos) => {
-                                if i == 0 {
-                                    from_pos = pos;
-                                } else if to_pos + 1 != pos {
-                                    ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
-                                    from_pos = pos;
-                                }
-                                to_pos = pos;
-                            }
-                            Err(err) => {
-                                return Err(NativeError {
-                                    severity: Severity::ERROR,
-                                    kind: NativeErrorKind::OperationSearch,
-                                    message: Some(format!("Cannot parse line number: {}", err)),
-                                });
-                            }
-                        }
-                    }
-                    if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from_pos)
-                        || (ranges.is_empty() && !line_numbers.grabbed_elements.is_empty())
-                    {
-                        ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
-                    }
-                    let mut row: usize = range.start() as usize;
-                    for range in ranges.iter() {
-                        if let Some(ref mut grabber) = state.content_grabber {
-                            // let mut session_grabbed = grabber
-                            //     .grab_content(&LineRange::from(range.clone()))
-                            //     .map_err(|e| NativeError {
-                            //         severity: Severity::ERROR,
-                            //         kind: NativeErrorKind::Grabber,
-                            //         message: Some(format!("Failed to grab data. Error: {}", e)),
-                            //     })?;
-                            let mut session_grabbed =
-                                match grabber.grab_content(&LineRange::from(range.clone())) {
-                                    Ok(g) => g,
-                                    Err(err) => {
-                                        return Err(NativeError {
-                                            severity: Severity::ERROR,
-                                            kind: NativeErrorKind::Grabber,
-                                            message: Some(format!(
-                                                "Failed to grab data. Error: {}",
-                                                err
-                                            )),
-                                        });
-                                    }
-                                };
-                            let start = *range.start() as usize;
-                            for (j, element) in
-                                session_grabbed.grabbed_elements.iter_mut().enumerate()
-                            {
-                                element.pos = Some(start + j);
-                                element.row = Some(row);
-                                row += 1;
-                            }
-                            search_grabbed
-                                .grabbed_elements
-                                .append(&mut session_grabbed.grabbed_elements);
-                        } else {
-                            return Err(NativeError {
-                                severity: Severity::ERROR,
-                                kind: NativeErrorKind::Grabber,
-                                message: Some(String::from("Grabber isn't inited")),
-                            });
-                        }
-                    }
-                    Ok(search_grabbed)
-                } else {
-                    Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Grabber,
-                        message: Some(String::from("Search grabber isn't inited")),
-                    })
-                };
-                if tx_response.send(result.clone()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::GrabSearch")),
-                    });
-                }
-                if let Err(err) = result {
-                    return Err(err);
-                }
+                tx_response
+                    .send(state.handle_grab_search(range))
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::GrabbedContent")
+                    })?;
             }
             Api::GetSearchMap(tx_response) => {
-                if tx_response.send(state.search_map.clone()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::GetSearchMap")),
-                    });
-                }
+                tx_response
+                    .send(state.search_map.clone())
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::GetSearchMap"))?;
             }
             Api::UpdateSession(tx_response) => {
-                let result = if let Some(ref mut grabber) = state.content_grabber {
-                    let prev = grabber.log_entry_count().unwrap_or(0) as u64;
-                    if let Err(err) = grabber.update_from_file(Some(cancellation_token.clone())) {
-                        Err(NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::Grabber,
-                            message: Some(format!("Fail update metadata: {}", err)),
-                        })
-                    } else {
-                        let current = grabber.log_entry_count().unwrap_or(0) as u64;
-                        if prev != current {
-                            if let Err(err) =
-                                tx_callback_events.send(CallbackEvent::StreamUpdated(current))
-                            {
-                                return Err(NativeError {
-                                    severity: Severity::ERROR,
-                                    kind: NativeErrorKind::ChannelError,
-                                    message: Some(format!("callback channel is broken: {}", err)),
-                                });
-                            }
-                            Ok(true)
-                        } else {
-                            Ok(false)
-                        }
-                    }
-                } else {
-                    Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Grabber,
-                        message: Some(String::from("Grabber isn't inited")),
-                    })
-                };
-                if let Ok(updated) = result.as_ref() {
-                    if updated == &true {
-                        let mut matches = if let SearchHolderState::Available(mut search_holder) =
-                            state.search_holder
-                        {
-                            let matches =
-                                match search_holder.execute_search(CancellationToken::new()) {
-                                    Ok((file_path, matches, _stats)) => Some((file_path, matches)),
-                                    Err(err) => {
-                                        error!("Fail to append search: {}", err);
-                                        None
-                                    }
-                                };
-                            state.search_holder = SearchHolderState::Available(search_holder);
-                            matches
-                        } else {
-                            None
-                        };
-                        if let Some((file_path, mut matches)) = matches.take() {
-                            state.search_map.append(&mut matches);
-                            match update_search_result(
-                                &mut state,
-                                &file_path,
-                                cancellation_token.clone(),
-                            )
-                            .await
-                            {
-                                Ok(found) => {
-                                    if let Err(err) = tx_callback_events
-                                        .send(CallbackEvent::SearchUpdated(found as u64))
-                                    {
-                                        return Err(NativeError {
-                                            severity: Severity::ERROR,
-                                            kind: NativeErrorKind::ChannelError,
-                                            message: Some(format!(
-                                                "callback channel is broken: {}",
-                                                err
-                                            )),
-                                        });
-                                    }
-                                }
-                                Err(err) => {
-                                    error!("Fail to update search results: {:?}", err);
-                                }
-                            };
-                        }
-                    }
-                }
-                if tx_response.send(result.clone()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::UpdateSession")),
-                    });
-                }
-                if let Err(err) = result {
-                    return Err(err);
-                }
+                let res = state
+                    .handle_update_session(
+                        state_cancellation_token.clone(),
+                        tx_callback_events.clone(),
+                    )
+                    .await;
+                tx_response
+                    .send(res)
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::UpdateSession"))?;
             }
             Api::FileRead(tx_response) => {
-                if let Err(err) = tx_callback_events.send(CallbackEvent::FileRead) {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(format!("callback channel is broken: {}", err)),
-                    });
-                }
-                if tx_response.send(()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::UpdateSession")),
-                    });
-                }
+                tx_callback_events.send(CallbackEvent::FileRead)?;
+                tx_response
+                    .send(())
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::FileRead"))?;
             }
             Api::SetStreamLen((len, tx_response)) => {
                 state.search_map.set_stream_len(len);
-                if tx_response.send(()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::SetStreamLen")),
-                    });
-                }
+                tx_response
+                    .send(())
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::SetStreamLen"))?;
             }
             Api::GetStreamLen(tx_response) => {
-                let len = if let Some(ref grabber) = state.content_grabber {
-                    if let Some(md) = grabber.get_metadata() {
-                        Ok(md.line_count)
-                    } else {
-                        Err(NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::Grabber,
-                            message: Some(String::from("Metadata isn't inited yet")),
-                        })
-                    }
-                } else {
-                    Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Grabber,
-                        message: Some(String::from("Grabber isn't inited")),
-                    })
-                };
-                if tx_response.send(len).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::GetStreamLen")),
-                    });
-                }
+                tx_response
+                    .send(state.handle_get_stream_len())
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::GetStreamLen"))?;
             }
             Api::GetSearchResultLen(tx_response) => {
                 let len = if let Some(ref grabber) = state.search_grabber {
-                    if let Some(md) = grabber.get_metadata() {
-                        md.line_count
-                    } else {
-                        0
-                    }
+                    grabber.get_metadata().map(|md| md.line_count).unwrap_or(0)
                 } else {
                     0
                 };
-                if tx_response.send(len).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::GetSearchResultLen")),
-                    });
-                }
+                tx_response.send(len).map_err(|_| {
+                    NativeError::channel("Failed to respond to Api::GetSearchResultLen")
+                })?;
             }
             Api::UpdateSearchResult((uuid, search_result_file, tx_response)) => {
-                if tx_response
+                tx_response
                     .send(if state.cancelling_operations.get(&uuid).is_some() {
                         // Operation is in canceling state. We should not update search and just ignore
                         // this request.
                         Ok(0)
                     } else {
-                        update_search_result(
-                            &mut state,
-                            &search_result_file,
-                            cancellation_token.clone(),
-                        )
-                        .await
+                        state
+                            .update_search_result(
+                                &search_result_file,
+                                state_cancellation_token.clone(),
+                            )
+                            .await
                     })
-                    .is_err()
-                {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::UpdateSearchResult")),
-                    });
-                }
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::UpdateSearchResult")
+                    })?;
             }
             Api::GetSearchHolder((uuid, tx_response)) => {
-                let result = match state.search_holder {
-                    SearchHolderState::Available(holder) => {
-                        state.search_holder = SearchHolderState::InUse;
-                        Ok(holder)
-                    }
-                    SearchHolderState::InUse => Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("Search holder is in use")),
-                    }),
-                    SearchHolderState::NotInited => {
-                        if let Some(session_file) = state.session_file.as_ref() {
-                            state.search_holder = SearchHolderState::InUse;
-                            Ok(SearchHolder::new(session_file, vec![].iter(), uuid))
-                        } else {
-                            Err(NativeError {
-                                severity: Severity::ERROR,
-                                kind: NativeErrorKind::ChannelError,
-                                message: Some(String::from(
-                                    "Cannot create search holder without session file.",
-                                )),
-                            })
-                        }
-                    }
-                };
-                if tx_response.send(result).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::GetSearchHolder")),
-                    });
-                }
+                tx_response
+                    .send(state.handle_get_search_holder(uuid))
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::GetSearchHolder")
+                    })?;
             }
             Api::SetSearchHolder((mut search_holder, _uuid_for_debug, tx_response)) => {
                 let result = if matches!(state.search_holder, SearchHolderState::InUse) {
@@ -1023,80 +660,51 @@ pub async fn task(
                     }
                     Ok(())
                 } else {
-                    Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("cannot set search holder - it wasn't in use")),
-                    })
+                    Err(NativeError::channel(
+                        "Cannot set search holder - it wasn't in use",
+                    ))
                 };
-                if tx_response.send(result).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::SetSearchHolder")),
-                    });
-                }
+                tx_response.send(result).map_err(|_| {
+                    NativeError::channel("Failed to respond to Api::SetSearchHolder")
+                })?;
             }
             Api::DropSearch(tx_response) => {
-                if matches!(state.search_holder, SearchHolderState::InUse) {
-                    if tx_response.send(false).is_err() {
-                        return Err(NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::ChannelError,
-                            message: Some(String::from("fail to response to Api::DropSearch")),
-                        });
-                    }
+                let result = if matches!(state.search_holder, SearchHolderState::InUse) {
+                    false
                 } else {
                     state.search_grabber = None;
                     state.search_holder = SearchHolderState::NotInited;
                     state.search_map.set(None);
-                    if let Err(err) = tx_callback_events.send(CallbackEvent::SearchUpdated(0)) {
-                        return Err(NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::ChannelError,
-                            message: Some(format!("callback channel is broken: {}", err)),
-                        });
-                    }
-                    if tx_response.send(true).is_err() {
-                        return Err(NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::ChannelError,
-                            message: Some(String::from("fail to response to Api::DropSearch")),
-                        });
-                    }
-                }
+                    tx_callback_events.send(CallbackEvent::SearchUpdated(0))?;
+                    true
+                };
+                tx_response
+                    .send(result)
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::DropSearch"))?;
             }
             Api::SetMatches((matches, tx_response)) => {
                 state.search_map.set(matches);
-                if tx_response.send(()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::SetMatches")),
-                    });
-                }
+                tx_response
+                    .send(())
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::SetMatches"))?;
             }
             Api::CloseSession(tx_response) => {
-                cancellation_token.cancel();
+                state_cancellation_token.cancel();
                 state.status = Status::Closed;
                 // Note: all operations would be canceled in close_session of API. We cannot do it here,
                 // because we would lock this loop if some operation needs access to state during cancellation.
                 if tx_response.send(()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::CloseSession")),
-                    });
+                    return Err(NativeError::channel(
+                        "fail to response to Api::CloseSession",
+                    ));
                 }
             }
             Api::SetDebugMode((debug, tx_response)) => {
                 state.debug = debug;
                 if tx_response.send(()).is_err() {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::ChannelError,
-                        message: Some(String::from("fail to response to Api::SetDebugMode")),
-                    });
+                    return Err(NativeError::channel(
+                        "fail to response to Api::SetDebugMode",
+                    ));
                 }
             }
             Api::NotifyCancelingOperation(uuid) => {
@@ -1106,7 +714,7 @@ pub async fn task(
                 state.cancelling_operations.remove(&uuid);
             }
             Api::Shutdown => {
-                cancellation_token.cancel();
+                state_cancellation_token.cancel();
                 debug!("shutdown has been requested");
                 break;
             }

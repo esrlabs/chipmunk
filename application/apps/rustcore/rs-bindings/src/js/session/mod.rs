@@ -16,7 +16,7 @@ use node_bindgen::derive::node_bindgen;
 use processor::grabber::LineRange;
 use session::{
     events::{CallbackEvent, ComputationError, NativeError},
-    factory::Source,
+    factory::SourceType,
     operations,
     session::Session,
 };
@@ -205,7 +205,7 @@ impl RustSession {
         source: String,
         operation_id: String,
     ) -> Result<(), ComputationErrorWrapper> {
-        let source: Source = serde_json::from_str(&source).map_err(|e| {
+        let source: SourceType = serde_json::from_str(&source).map_err(|e| {
             ComputationError::Process(format!("Cannot parse source settings: {}", e))
         })?;
         if let Some(ref session) = self.session {

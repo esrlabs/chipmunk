@@ -56,6 +56,38 @@ namespace :build do
   end
 end
 
+namespace :rebuild do
+  desc 'Rebuild client (dev)'
+  task :client_dev do
+    Client.new(false, false).clean
+    Rake::Task['build:client_dev'].invoke
+  end
+
+  desc 'Rebuild client (prod)'
+  task :client_prod do
+    Client.new(false, false).clean
+    Rake::Task['build:client_prod'].invoke
+  end
+
+  desc 'Rebuild ts-bindings'
+  task :bindings do
+    Bindings.new(true).clean
+    Rake::Task['build:bindings'].invoke
+  end
+
+  desc 'Rebuild holder (dev)'
+  task :dev do
+    Holder.new(true, false).clean
+    Rake::Task['build:dev'].invoke
+  end
+
+  desc 'Rebuild holder (prod)'
+  task :prod do
+    Holder.new(true, true).clean
+    Rake::Task['build:prod'].invoke
+  end
+end
+
 test_runner = './node_modules/.bin/electron ./node_modules/jasmine-ts/lib/index.js'
 
 namespace :test do

@@ -32,7 +32,7 @@ thiserror = "1.0"
 tokio = { version = "1.17", features = ["full"] }
 tokio-util = {version = "0.7", features = ["codec", "net"] }
 tokio-stream = "0.1.5"
-uuid = "0.8"
+uuid = "1.0"
 # someip-messages = { path = "../../../../../someip"}
 someip-messages = { git = "https://github.com/esrlabs/someip" }
 # someip-payload = { path = "../../../../../someip-payload"}
