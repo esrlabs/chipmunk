@@ -82,9 +82,10 @@ module Screens
       { name: 'Rebuild holder [rake developing:holder]', value: 3 },
       { name: 'Rebuild holder (+ bindings) [rake developing:holder_bindings]', value: 4 },
       { name: 'Rebuild holder (+ platform) [rake developing:holder_platform]', value: 5 },
-      { name: 'Rebuild holder (+ platform + bindings) [rake developing:holder_platform_bindings]', value: 5 },
-      { name: 'back', value: 6 },
-      { name: 'exit', value: 7 }
+      { name: 'Rebuild holder (+ platform + bindings) [rake developing:holder_platform_bindings]', value: 6 },
+      { name: 'Clean & Rebuild everything', value: 7 },
+      { name: 'back', value: 8 },
+      { name: 'exit', value: 9 }
     ]
     case prompt.select('Actions groups', choices)
     when 1
@@ -100,6 +101,8 @@ module Screens
     when 6
       Rake::Task['developing:holder_platform_bindings'].invoke
     when 7
+      Rake::Task['developing:clean_rebuild_all'].invoke
+    when 8
       Screens.welcome(prompt)
     else
       puts 'Goodbuy!'

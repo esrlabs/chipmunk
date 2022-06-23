@@ -122,6 +122,16 @@ namespace :developing do
     Holder.new(HolderSettings.new.set_platform_rebuild(true).set_bindings_rebuild(true)).build
     Reporter.print
   end
+
+  desc 'Clean & rebuild all'
+  task :clean_rebuild_all do
+    Client.new(true, true).clean
+    Bindings.new(true).clean
+    Platform.new(true, true).clean
+    Holder.new(HolderSettings.new).clean
+    Holder.new(HolderSettings.new.set_platform_rebuild(true).set_bindings_rebuild(true)).build
+    Reporter.print
+  end
 end
 
 test_runner = './node_modules/.bin/electron ./node_modules/jasmine-ts/lib/index.js'
