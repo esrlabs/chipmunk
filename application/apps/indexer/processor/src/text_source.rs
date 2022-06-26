@@ -139,10 +139,9 @@ impl TextFileSource {
         })?;
         let mut byte_offset = last.bytes.start();
         let mut log_msg_cnt = last.lines.start();
-
         let mut reader = ReduxReader::with_capacity(REDUX_READER_CAPACITY, f)
             .set_policy(MinBuffered(REDUX_MIN_BUFFER_SPACE));
-
+        let mut pending: Option<Slot> = None;
         loop {
             if let Some(shutdown_token) = &shutdown_token {
                 if shutdown_token.is_cancelled() {
@@ -155,12 +154,12 @@ impl TextFileSource {
                         // everything was processed
                         break;
                     }
-
                     let (nl, offset_last_newline) = count_lines_up_to_last_newline(content);
                     let (slot, consumed, processed_lines) = if nl == 0 {
                         let consumed = content.len() as u64;
-                        // we hit a very long line that exceeds our read buffer, best
-                        // to package everything we read into an entry and start a new one
+                        // we hit a very long line that exceeds our read buffer
+                        // in this case we should wait for next chunk of data or
+                        // end of file
                         let slot = Slot {
                             bytes: ByteRange::from(byte_offset..=(byte_offset + consumed) - 1),
                             lines: LineRange::from(log_msg_cnt..=log_msg_cnt),
@@ -174,10 +173,22 @@ impl TextFileSource {
                         };
                         (slot, consumed, nl)
                     };
+                    let slot = if let Some(pending) = pending.take() {
+                        Slot {
+                            bytes: ByteRange::from(pending.bytes.start()..=slot.bytes.end()),
+                            lines: LineRange::from(pending.lines.start()..=slot.lines.end()),
+                        }
+                    } else {
+                        slot
+                    };
+                    if nl == 0 {
+                        pending = Some(slot);
+                    } else {
+                        slots.push(slot);
+                        log_msg_cnt += processed_lines;
+                    }
                     reader.consume(consumed as usize);
-                    slots.push(slot);
                     byte_offset += consumed;
-                    log_msg_cnt += processed_lines;
                 }
                 Err(e) => {
                     trace!("no more content");
@@ -187,6 +198,11 @@ impl TextFileSource {
                     )));
                 }
             }
+        }
+        if let Some(slot) = pending.take() {
+            // In case if "long" line was last, we add it with the end of file
+            slots.push(slot);
+            log_msg_cnt += 1;
         }
         Ok(ComputationResult::Item(GrabMetadata {
             slots,

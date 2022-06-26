@@ -177,14 +177,13 @@ impl SessionState {
                 ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
             }
             let mut row: usize = range.start() as usize;
+            let grabber = &mut (self.content_grabber.as_ref().ok_or(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Grabber,
+                message: Some(String::from("Grabber isn't inited")),
+            })?);
             for range in ranges.iter() {
-                let grabber = &mut (self.content_grabber.as_ref().ok_or(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Grabber,
-                    message: Some(String::from("Grabber isn't inited")),
-                })?);
                 let mut session_grabbed = grabber.grab_content(&LineRange::from(range.clone()))?;
-
                 let start = *range.start() as usize;
                 for (j, element) in session_grabbed.grabbed_elements.iter_mut().enumerate() {
                     element.pos = Some(start + j);
