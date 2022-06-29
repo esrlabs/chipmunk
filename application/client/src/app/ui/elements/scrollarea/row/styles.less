@@ -12,6 +12,9 @@
     user-select: text;
     cursor: text;
     position: relative;
+    &[data-selected="true"] {
+        background: @scheme-color-4;
+    }
     & span.tooltip {
         position: absolute;
         display: none;
@@ -107,6 +110,21 @@
             cursor: default;
             color: @scheme-color-2;
             user-select: none;
+            &[data-bookmarked="true"] {
+                &::after {
+                    position: absolute;
+                    display: block;
+                    content: '';
+                    top: 0;
+                    bottom: 0;
+                    right: 0;
+                    width: 4px;
+                    background: @scheme-color-accent;
+                }
+                &:hover::after {
+                    background: lighten(@scheme-color-accent, 20%);
+                }
+            }
             & span.filler {
                 color: @scheme-color-4;
                 font-variant-numeric: inherit;

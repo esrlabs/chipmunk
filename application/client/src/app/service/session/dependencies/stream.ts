@@ -1,7 +1,6 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
-import { Subscriber } from '@platform/env/subscription';
+import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { Range } from '@platform/types/range';
-import { ilc, Emitter } from '@service/ilc';
 import { cutUuid } from '@log/index';
 import { Rank } from './rank';
 import { IGrabbedElement } from '@platform/types/content';
@@ -10,40 +9,39 @@ import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
 
 @SetupLogger()
-export class Stream {
-    private readonly _subscriber: Subscriber = new Subscriber();
+export class Stream extends Subscriber {
+    public readonly subjects: Subjects<{
+        updated: Subject<number>;
+        rank: Subject<number>;
+    }> = new Subjects({
+        updated: new Subject<number>(),
+        rank: new Subject<number>(),
+    });
     private _len: number = 0;
     private _uuid!: string;
-    private _emitter!: Emitter;
 
     public rank: Rank = new Rank();
 
     public init(uuid: string) {
         this.setLoggerName(`Stream: ${cutUuid(uuid)}`);
         this._uuid = uuid;
-        this._emitter = ilc.emitter(this.getLoggerName(), this.log());
-        this._subscriber.register(
+        this.register(
             Events.IpcEvent.subscribe(Events.Stream.Updated.Event, (event) => {
                 if (event.session !== this._uuid) {
                     return;
                 }
                 this._len = event.rows;
-                this._emitter.session.stream.updated({
-                    session: this._uuid,
-                    len: this._len,
-                });
+                this.subjects.get().updated.emit(this._len);
                 if (this.rank.set(this._len.toString().length)) {
-                    this._emitter.ui.row.rank({
-                        len: this.rank.len,
-                        session: this._uuid,
-                    });
+                    this.subjects.get().rank.emit(this.rank.len);
                 }
             }),
         );
     }
 
     public destroy() {
-        this._subscriber.unsubscribe();
+        this.unsubscribe();
+        this.subjects.destroy();
     }
 
     public len(): number {

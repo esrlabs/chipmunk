@@ -18,12 +18,6 @@ export class Events {
         close: Subject<string>;
         open: Subject<string>;
         change: Subject<string | undefined>;
-        stream: {
-            updated: Subject<Declarations.Stream.Updated.Event>;
-        };
-        search: {
-            updated: Subject<Declarations.Search.Updated.Event>;
-        };
     };
     public readonly ux: {
         hotkey: Subject<Declarations.HotkeyEvent>;
@@ -83,16 +77,6 @@ export class Events {
             close: this._add<string>(new Subject<string>()),
             open: this._add<string>(new Subject<string>()),
             change: this._add<string | undefined>(new Subject<string | undefined>()),
-            stream: {
-                updated: this._add<Declarations.Stream.Updated.Event>(
-                    new Subject<Declarations.Stream.Updated.Event>(),
-                ),
-            },
-            search: {
-                updated: this._add<Declarations.Search.Updated.Event>(
-                    new Subject<Declarations.Search.Updated.Event>(),
-                ),
-            },
         };
         this.ui = {
             contextmenu: {

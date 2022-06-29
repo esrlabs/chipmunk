@@ -7,6 +7,7 @@ import {
     ChangeDetectionStrategy,
 } from '@angular/core';
 import { Session } from '@service/session';
+import { Owner } from '@schema/content/row';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ScrollAreaComponent } from '@elements/scrollarea/component';
 import { Service } from '@elements/scrollarea/controllers/service';
@@ -33,12 +34,24 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
     }
 
     public ngAfterContentInit(): void {
-        this.ilc().channel.session.search.updated((event) => {
-            if (event.session !== this.session.uuid()) {
-                return;
-            }
-            this.service.setLen(event.len);
-        });
+        this.env().subscriber.register(
+            this.session.search.subjects.get().updated.subscribe((len: number) => {
+                this.service.setLen(len);
+            }),
+        );
+        this.env().subscriber.register(
+            this.session.bookmarks.subjects.get().updated.subscribe(() => {
+                this.service.refresh();
+            }),
+        );
+        this.env().subscriber.register(
+            this.session.cursor.subjects.get().selected.subscribe((event) => {
+                if (event.initiator === Owner.Search) {
+                    return;
+                }
+                console.log(`Isn't implemented yet`);
+            }),
+        );
         this.service = getScrollAreaService(this.session);
         const bound = this.session.render.getBoundEntity();
         this.columns = bound instanceof Columns ? bound : undefined;

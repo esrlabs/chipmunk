@@ -7,12 +7,22 @@
     left: 0;
     right: 0;
     bottom: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: hidden;
     user-select: none;
+    outline: none;
     & * {
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+    }
+    & div.container {
+        position: absolute;
+        display: block;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
     }
     & ul.holder {
         position: absolute;

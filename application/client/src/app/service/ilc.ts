@@ -11,7 +11,7 @@ import { Channel } from '@service/ilc/events.channel';
 import { Emitter } from '@service/ilc/events.emitter';
 import { Services } from '@service/ilc/services';
 import { Instance as Logger } from '@platform/env/logger';
-import { session } from '@service/session';
+import { session, Session, UnboundTab } from '@service/session';
 import { state } from '@service/state';
 import { jobs } from '@service/jobs';
 import { popup } from '@ui/service/pupup';
@@ -36,10 +36,16 @@ export interface Env {
     subscriber: Subscriber;
 }
 
+export interface Accessor {
+    session: (cb: (session: Session) => void) => boolean;
+    unbound: (cb: (session: UnboundTab) => void) => boolean;
+}
+
 export interface IlcInterface {
     log(): Logger;
     ilc(): InternalAPI;
     env(): Env;
+    access(): Accessor;
 }
 
 // System services

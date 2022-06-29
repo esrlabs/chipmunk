@@ -1,7 +1,6 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
-import { Subscriber } from '@platform/env/subscription';
+import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { Range } from '@platform/types/range';
-import { ilc, Emitter } from '@service/ilc';
 import { cutUuid } from '@log/index';
 import { IFilter, ISearchResults } from '@platform/types/filter';
 import { IGrabbedElement } from '@platform/types/content';
@@ -14,11 +13,14 @@ import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
 
 @SetupLogger()
-export class Search {
-    private readonly _subscriber: Subscriber = new Subscriber();
+export class Search extends Subscriber {
+    public readonly subjects: Subjects<{
+        updated: Subject<number>;
+    }> = new Subjects({
+        updated: new Subject<number>(),
+    });
     private _len: number = 0;
     private _uuid!: string;
-    private _emitter!: Emitter;
     private _store!: {
         filters: FiltersStore;
         disabled: DisableStore;
@@ -29,17 +31,13 @@ export class Search {
     public init(uuid: string) {
         this.setLoggerName(`Search: ${cutUuid(uuid)}`);
         this._uuid = uuid;
-        this._emitter = ilc.emitter(this.getLoggerName(), this.log());
-        this._subscriber.register(
+        this.register(
             Events.IpcEvent.subscribe(Events.Search.Updated.Event, (event) => {
                 if (event.session !== this._uuid) {
                     return;
                 }
                 this._len = event.rows;
-                this._emitter.session.search.updated({
-                    session: this._uuid,
-                    len: this._len,
-                });
+                this.subjects.get().updated.emit(this._len);
             }),
         );
         this._store = {
@@ -51,11 +49,12 @@ export class Search {
     }
 
     public destroy() {
-        this._subscriber.unsubscribe();
+        this.unsubscribe();
         this._store.filters.destroy();
         this._store.disabled.destroy();
         this._highlights.destroy();
         this._state.destroy();
+        this.subjects.destroy();
     }
 
     public len(): number {

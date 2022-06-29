@@ -7,6 +7,4 @@ export { AvailableToolbarTabs } from './toolbar';
 export { BackendState, BackendStateEvent } from './backend/state';
 export { JobEvent } from './backend/job';
 
-export * as Stream from './stream';
-export * as Search from './search';
 export * as UI from './ui';

@@ -1,4 +1,4 @@
-import { Subscription, Subject } from '@platform/env/subscription';
+import { Subscription, Subject, Subscriber } from '@platform/env/subscription';
 import { Service, Range, IRowsPacket } from './service';
 import { IRange, Range as SafeRange } from '@platform/types/range';
 import { Holder } from './holder';
@@ -11,6 +11,8 @@ export enum ChangesInitiator {
     Scrolling = 3,
     RowsDelivered = 4,
     Selecting = 5,
+    Keyboard = 6,
+    Other = 7,
 }
 
 export interface PositionEvent {
@@ -18,10 +20,9 @@ export interface PositionEvent {
     initiator: ChangesInitiator;
 }
 
-export class Frame {
+export class Frame extends Subscriber {
     private _service!: Service;
     private _holder!: Holder;
-    private _subscriptions: Map<string, Subscription> = new Map();
     private _frame: Range = new Range();
     private _rows: Row[] = [];
     private readonly _subjects: {
@@ -31,19 +32,19 @@ export class Frame {
         change: new Subject<Row[]>(),
         position: new Subject<PositionEvent>(),
     };
+    private _to: any;
+    private _last: number = Date.now();
 
     public bind(service: Service, holder: Holder) {
         this._service = service;
         this._holder = holder;
-        this._subscriptions.set(
-            'onFrameChange',
+        this.register(
             this._frame.onChange((initiator: ChangesInitiator) => {
                 this._subjects.position.emit({ range: this._frame.get(), initiator });
                 this._service.setFrame(this._frame.get());
             }),
         );
-        this._subscriptions.set(
-            'onHeightChange',
+        this.register(
             this._holder.onHeightChange((height: number) => {
                 this._frame.setLength(
                     Math.floor(height / this._service.getItemHeight()),
@@ -52,8 +53,7 @@ export class Frame {
                 this._service.setFrame(this._frame.get());
             }),
         );
-        this._subscriptions.set(
-            'onRowsDelivered',
+        this.register(
             this._service.onRows((packet: IRowsPacket) => {
                 if (!this._frame.equal(packet.range)) {
                     return;
@@ -62,8 +62,12 @@ export class Frame {
                 this._subjects.change.emit(this._rows);
             }),
         );
-        this._subscriptions.set(
-            'onStorageUpdated',
+        this.register(
+            this._service.onRefresh(() => {
+                this._frame.refresh(ChangesInitiator.Other);
+            }),
+        );
+        this.register(
             this._service.onLen((len: number) => {
                 this._frame.setTotal(len, ChangesInitiator.StorageUpdated);
             }),
@@ -71,9 +75,7 @@ export class Frame {
     }
 
     public destroy(): void {
-        this._subscriptions.forEach((subscription: Subscription) => {
-            subscription.unsubscribe();
-        });
+        this.unsubscribe();
         this._subjects.change.destroy();
         this._subjects.position.destroy();
     }
@@ -97,12 +99,37 @@ export class Frame {
         this._frame.moveTo(start, initiator);
     }
 
+    public move(initiator: ChangesInitiator): {
+        down(): void;
+        up(): void;
+        pgdown(): void;
+        pgup(): void;
+    } {
+        return {
+            down: (): void => {
+                this.offsetToByRows(1, initiator);
+            },
+            up: (): void => {
+                this.offsetToByRows(-1, initiator);
+            },
+            pgdown: (): void => {
+                this.offsetToByRows(this.getFrameLen(), initiator);
+            },
+            pgup: (): void => {
+                this.offsetToByRows(-this.getFrameLen(), initiator);
+            },
+        };
+    }
     public offsetTo(offsetPx: number, initiator: ChangesInitiator) {
         this._frame.offsetTo(Math.round(offsetPx / this._service.getItemHeight()), initiator);
     }
 
     public offsetToByRows(offsetRow: number, initiator: ChangesInitiator) {
         this._frame.offsetTo(offsetRow, initiator);
+    }
+
+    public getFrameLen(): number {
+        return this._frame.getLength();
     }
 
     public onFrameChange(handler: (rows: Row[]) => void): Subscription {

@@ -22,12 +22,6 @@ export class Emitter {
         close: Handler<string>;
         open: Handler<string>;
         change: Handler<string | undefined>;
-        stream: {
-            updated: Handler<Declarations.Stream.Updated.Event>;
-        };
-        search: {
-            updated: Handler<Declarations.Search.Updated.Event>;
-        };
     };
     public readonly ux: {
         hotkey: Handler<Declarations.HotkeyEvent>;
@@ -88,16 +82,6 @@ export class Emitter {
             close: this._add<string>(this._events.session.close),
             open: this._add<string>(this._events.session.open),
             change: this._add<string | undefined>(this._events.session.change),
-            stream: {
-                updated: this._add<Declarations.Stream.Updated.Event>(
-                    this._events.session.stream.updated,
-                ),
-            },
-            search: {
-                updated: this._add<Declarations.Search.Updated.Event>(
-                    this._events.session.search.updated,
-                ),
-            },
         };
         this.ux = {
             hotkey: this._add<Declarations.HotkeyEvent>(this._events.ux.hotkey),

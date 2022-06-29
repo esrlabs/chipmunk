@@ -5,6 +5,7 @@ import {
     AfterContentInit,
     AfterViewInit,
     HostListener,
+    HostBinding,
     ChangeDetectionStrategy,
 } from '@angular/core';
 import { Row } from '@schema/content/row';
@@ -22,7 +23,11 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
     @Input() public row!: Row;
 
     public render: number = 1;
+    public bookmarked: boolean = false;
 
+    @HostBinding('attr.data-selected') get dataSelectedAttr() {
+        return this.row.select().is();
+    }
     @HostListener('mouseover') onMouseIn() {
         this.ilc().emitter.ui.row.hover(this.row);
     }
@@ -35,6 +40,10 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         this.ilc().emitter.ui.row.hover(undefined);
     }
 
+    @HostListener('click') onClick() {
+        this.row.select().toggle();
+    }
+
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
@@ -45,17 +54,20 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
             if (event.session !== this.row.session.uuid()) {
                 return;
             }
-            this.markChangesForCheck();
+            this._update();
         });
+        this.env().subscriber.register(this.row.change.subscribe(this._update.bind(this)));
         this.env().subscriber.register(
-            this.row.change.subscribe(() => {
-                this.markChangesForCheck();
-            }),
+            this.row.session.bookmarks.subjects.get().updated.subscribe(this._update.bind(this)),
         );
+        this.env().subscriber.register(
+            this.row.session.cursor.subjects.get().updated.subscribe(this._update.bind(this)),
+        );
+        this._update();
     }
 
     public ngAfterViewInit(): void {
-        this.markChangesForCheck();
+        this._update();
     }
 
     public ngGetRankFiller(position: number): string {
@@ -66,6 +78,18 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         return {
             width: `${this.row.session.stream.rank.width()}px`,
         };
+    }
+
+    public onNumberClick() {
+        this.row.bookmark().toggle();
+    }
+
+    private _update() {
+        const prev = this.bookmarked;
+        this.bookmarked = this.row.bookmark().is();
+        if (prev !== this.bookmarked) {
+            this.markChangesForCheck();
+        }
     }
 }
 export interface RowComponent extends IlcInterface {}
