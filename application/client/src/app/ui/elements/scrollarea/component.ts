@@ -8,6 +8,7 @@ import {
     ElementRef,
     ChangeDetectionStrategy,
     HostBinding,
+    HostListener,
 } from '@angular/core';
 import { Subscription } from '@platform/env/subscription';
 import { Row } from '@schema/content/row';
@@ -15,6 +16,7 @@ import { Holder } from './controllers/holder';
 import { Service } from './controllers/service';
 import { Frame, ChangesInitiator } from './controllers/frame';
 import { Selecting, SelectionDirection } from './controllers/selection';
+import { Keyboard } from './controllers/keyboard';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { RemoveHandler } from '@ui/service/styles';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -41,8 +43,13 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
     @Input() public service!: Service;
 
     private readonly _subscriptions: Map<string, Subscription> = new Map();
+    private _focused: boolean = false;
     private _cssClass: string = '';
     private _removeGlobalStyleHandler: RemoveHandler | undefined;
+
+    @HostBinding('tabindex') get tabindex() {
+        return 0;
+    }
 
     @HostBinding('class') set cssClass(cssClass: string) {
         this._cssClass = cssClass;
@@ -51,10 +58,27 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
         return this._cssClass;
     }
 
+    @HostListener('window:keydown', ['$event']) onKeyDown(event: KeyboardEvent) {
+        this.keyboard.process(event);
+    }
+
+    @HostListener('window:keyup') onKeyUp() {
+        this.keyboard.stop();
+    }
+
+    @HostListener('focus') onFocus() {
+        this.keyboard.focus();
+    }
+
+    @HostListener('blur') onBlur() {
+        this.keyboard.blur();
+    }
+
     public rows: Row[] = [];
     public readonly holder: Holder = new Holder();
     public readonly frame: Frame = new Frame();
     public readonly selecting: Selecting = new Selecting();
+    public readonly keyboard: Keyboard = new Keyboard();
     public selectionDirection = SelectionDirection;
 
     constructor(changeDetectorRef: ChangeDetectorRef) {
@@ -74,7 +98,9 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
     public ngAfterViewInit(): void {
         this.holder.bind(this._nodeHolder);
         this.frame.bind(this.service, this.holder);
+        this.service.bind(this.frame);
         this.selecting.bind(this._nodeHolder.nativeElement, this.frame);
+        this.keyboard.bind(this.frame);
         this._subscriptions.set(
             'onFrameChange',
             this.frame.onFrameChange((rows: Row[]) => {

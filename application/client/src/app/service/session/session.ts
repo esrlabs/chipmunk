@@ -2,6 +2,7 @@ import { TabsService, ITabAPI, ETabsListDirection, TabsOptions } from '@elements
 import { Storage } from '@env/storage';
 import { Stream } from './dependencies/stream';
 import { Search } from './dependencies/search';
+import { Cursor } from './dependencies/cursor';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { cutUuid } from '@log/index';
 import { TargetFile } from '@platform/types/files';
@@ -10,6 +11,7 @@ import { components } from '@env/decorators/initial';
 import { SourceDefinition } from '@platform/types/transport';
 import { IDLTOptions } from '@platform/types/parsers/dlt';
 import { Base } from './base';
+import { Bookmarks } from './dependencies/bookmarks';
 
 import * as Requests from '@platform/ipc/request';
 
@@ -22,7 +24,10 @@ export class Session extends Base {
     public readonly storage: Storage = new Storage();
     public readonly stream: Stream = new Stream();
     public readonly search: Search = new Search();
+    public readonly bookmarks: Bookmarks = new Bookmarks();
+    public readonly cursor: Cursor = new Cursor();
     public readonly render: Render<unknown>;
+
     private readonly _toolbar: TabsService = new TabsService();
     private readonly _sidebar: TabsService = new TabsService({
         options: new TabsOptions({ direction: ETabsListDirection.left }),
@@ -66,6 +71,8 @@ export class Session extends Base {
                     this._uuid = response.uuid;
                     this.stream.init(this._uuid);
                     this.search.init(this._uuid);
+                    this.bookmarks.init(this._uuid);
+                    this.cursor.init(this._uuid);
                     resolve(this._uuid);
                 })
                 .catch(reject);
@@ -99,6 +106,8 @@ export class Session extends Base {
         this.storage.destroy();
         this.search.destroy();
         this.stream.destroy();
+        this.bookmarks.destroy();
+        this.cursor.destroy();
         return new Promise((resolve) => {
             Requests.IpcRequest.send<Requests.Session.Destroy.Response>(
                 Requests.Session.Destroy.Response,

@@ -53,13 +53,11 @@ export class ScrollAreaVerticalComponent implements AfterContentInit, AfterViewI
         this.scrolling.next(position);
     }
 
-    @HostListener('mousedown', ['$event']) onMouseDown(event: MouseEvent) {
-        console.log(event);
+    @HostListener('mousedown') onMouseDown() {
         this._scrollEventLockToken.unlock();
     }
 
-    @HostListener('window:mouseup', ['$event']) onWindowMouseUp(event: MouseEvent) {
-        console.log(event);
+    @HostListener('window:mouseup') onWindowMouseUp() {
         this._scrollEventLockToken.lock();
     }
 

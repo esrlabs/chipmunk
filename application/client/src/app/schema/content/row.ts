@@ -20,6 +20,12 @@ export interface RowInputs {
     session: Session;
 }
 
+export interface StaticRowInputs {
+    content: string;
+    stream: number;
+    source: number;
+}
+
 const MAX_ROW_LENGTH_LIMIT = 10000;
 
 export class Row extends Subscriber {
@@ -92,6 +98,48 @@ export class Row extends Subscriber {
             }
             return columns;
         }
+    }
+
+    public as(): {
+        inputs(): StaticRowInputs;
+    } {
+        return {
+            inputs: (): StaticRowInputs => {
+                return {
+                    content: this.content,
+                    stream: this.position.stream,
+                    source: this.source,
+                };
+            },
+        };
+    }
+
+    public bookmark(): {
+        is(): boolean;
+        toggle(): void;
+    } {
+        return {
+            is: (): boolean => {
+                return this.session.bookmarks.is(this.position.stream);
+            },
+            toggle: (): void => {
+                this.session.bookmarks.bookmark(this);
+            },
+        };
+    }
+
+    public select(): {
+        is(): boolean;
+        toggle(): void;
+    } {
+        return {
+            is: (): boolean => {
+                return this.session.cursor.isSelected(this.position.stream);
+            },
+            toggle: (): void => {
+                this.session.cursor.select(this.position.stream, this.owner);
+            },
+        };
     }
 
     private _update() {

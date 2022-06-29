@@ -36,6 +36,10 @@ export class Range {
         }
     }
 
+    public getLength(): number {
+        return this.range.len;
+    }
+
     public setTotal(total: number, initiator: ChangesInitiator) {
         const prev = this.range.hash();
         this.range.$(total).max();
@@ -65,6 +69,10 @@ export class Range {
         if (prev !== this.range.hash()) {
             this._subjects.change.emit(initiator);
         }
+    }
+
+    public refresh(initiator: ChangesInitiator) {
+        this._subjects.change.emit(initiator);
     }
 
     public get(): SafeRange {

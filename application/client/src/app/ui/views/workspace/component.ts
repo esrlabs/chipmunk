@@ -6,6 +6,7 @@ import { ScrollAreaComponent } from '@elements/scrollarea/component';
 import { Service } from '@elements/scrollarea/controllers/service';
 import { getScrollAreaService, setScrollAreaService } from './backing';
 import { Columns } from '@schema/render/columns';
+import { Owner } from '@schema/content/row';
 
 @Component({
     selector: 'app-views-workspace',
@@ -27,12 +28,19 @@ export class ViewWorkspace implements AfterContentInit, OnDestroy {
     }
 
     public ngAfterContentInit(): void {
-        this.ilc().channel.session.stream.updated((event) => {
-            if (event.session !== this.session.uuid()) {
-                return;
-            }
-            this.service.setLen(event.len);
-        });
+        this.env().subscriber.register(
+            this.session.stream.subjects.get().updated.subscribe((len: number) => {
+                this.service.setLen(len);
+            }),
+        );
+        this.env().subscriber.register(
+            this.session.cursor.subjects.get().selected.subscribe((event) => {
+                if (event.initiator === Owner.Output) {
+                    return;
+                }
+                this.service.scrollTo(event.row);
+            }),
+        );
         this.service = getScrollAreaService(this.session);
         const bound = this.session.render.getBoundEntity();
         this.columns = bound instanceof Columns ? bound : undefined;

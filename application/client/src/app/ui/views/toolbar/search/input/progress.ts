@@ -1,27 +1,28 @@
 import { Session } from '@service/session';
-import { Channel } from '@env/decorators/component';
-import { Subject } from '@platform/env/subscription';
+import { Subject, Subscriber } from '@platform/env/subscription';
 
 export class Progress {
     public working: boolean = false;
     public found: number = 0;
     public hidden: boolean = true;
     public readonly updated: Subject<void> = new Subject();
-    private _session: Session;
 
-    constructor(session: Session, channel: Channel) {
+    private _session: Session;
+    private _subscriber: Subscriber = new Subscriber();
+
+    constructor(session: Session) {
         this._session = session;
-        channel.session.search.updated((event) => {
-            if (this._session.uuid() !== event.session) {
-                return;
-            }
-            this.found = event.len;
-            this.updated.emit();
-        });
+        this._subscriber.register(
+            this._session.search.subjects.get().updated.subscribe((len: number) => {
+                this.found = len;
+                this.updated.emit();
+            }),
+        );
     }
 
     public destroy() {
         this.updated.destroy();
+        this._subscriber.unsubscribe();
     }
 
     public start() {

@@ -49,7 +49,7 @@ export class ViewSearchInput
     }
 
     public ngAfterContentInit(): void {
-        this.progress = new Progress(this.session, this.ilc().channel);
+        this.progress = new Progress(this.session);
         this.env().subscriber.register(
             this.progress.updated.subscribe(() => {
                 this.detectChanges();

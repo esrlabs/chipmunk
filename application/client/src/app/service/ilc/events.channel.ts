@@ -23,12 +23,6 @@ export class Channel {
         close: (handler: Handler<string>) => Subscription;
         open: (handler: Handler<string>) => Subscription;
         change: (handler: Handler<string | undefined>) => Subscription;
-        stream: {
-            updated: (handler: Handler<Declarations.Stream.Updated.Event>) => Subscription;
-        };
-        search: {
-            updated: (handler: Handler<Declarations.Search.Updated.Event>) => Subscription;
-        };
     };
     public readonly ux: {
         hotkey: (handler: Handler<Declarations.HotkeyEvent>) => Subscription;
@@ -89,16 +83,6 @@ export class Channel {
             close: this._add<string>(this._events.session.close),
             open: this._add<string>(this._events.session.open),
             change: this._add<string | undefined>(this._events.session.change),
-            stream: {
-                updated: this._add<Declarations.Stream.Updated.Event>(
-                    this._events.session.stream.updated,
-                ),
-            },
-            search: {
-                updated: this._add<Declarations.Search.Updated.Event>(
-                    this._events.session.search.updated,
-                ),
-            },
         };
         this.ux = {
             hotkey: this._add<Declarations.HotkeyEvent>(this._events.ux.hotkey),

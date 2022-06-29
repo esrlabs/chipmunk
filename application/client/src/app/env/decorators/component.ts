@@ -2,16 +2,29 @@ import { singleDecoratorFactory, DecoratorConstructor } from '@platform/env/deco
 import { scope } from '@platform/env/scope';
 import { Instance as Logger } from '@platform/env/logger';
 import { getComponentSelector } from '@env/reflect';
-import { ilc, Channel, Emitter, Declarations, InternalAPI, Env, IlcInterface } from '@service/ilc';
+import {
+    ilc,
+    Channel,
+    Emitter,
+    Declarations,
+    InternalAPI,
+    Env,
+    IlcInterface,
+    Accessor,
+} from '@service/ilc';
 import { unique } from '@platform/env/sequence';
 import { Subscriber } from '@platform/env/subscription';
+import { Session, UnboundTab } from '@service/session';
 
 export { Channel, Emitter, Declarations, IlcInterface, Env };
 
 const UUID_KEY = '__ilc_uuid_key___';
-const instances: Map<string, { api: InternalAPI; env: Env }> = new Map();
+const instances: Map<string, { api: InternalAPI; env: Env; access: Accessor }> = new Map();
 
-function getIlcInstance(entity: any, selector: string): { api: InternalAPI; env: Env } {
+function getIlcInstance(
+    entity: any,
+    selector: string,
+): { api: InternalAPI; env: Env; access: Accessor } {
     if (entity[UUID_KEY] === undefined) {
         entity[UUID_KEY] = unique();
     }
@@ -19,15 +32,34 @@ function getIlcInstance(entity: any, selector: string): { api: InternalAPI; env:
     let instance = instances.get(uuid);
     if (instance === undefined) {
         const logger = scope.getLogger(`COM: ${selector}`);
+        const sessions = ilc.services(selector, logger);
         instance = {
             api: {
                 channel: ilc.channel(selector, logger),
                 emitter: ilc.emitter(selector, logger),
-                services: ilc.services(selector, logger),
+                services: sessions,
                 logger,
             },
             env: {
                 subscriber: new Subscriber(),
+            },
+            access: {
+                session: (cb: (session: Session) => void): boolean => {
+                    const inside = sessions.system.session.active().session();
+                    if (inside === undefined) {
+                        return false;
+                    }
+                    cb(inside);
+                    return true;
+                },
+                unbound: (cb: (session: UnboundTab) => void): boolean => {
+                    const inside = sessions.system.session.active().unbound();
+                    if (inside === undefined) {
+                        return false;
+                    }
+                    cb(inside);
+                    return true;
+                },
             },
         };
         instances.set(uuid, instance);
@@ -63,6 +95,9 @@ export const Ilc = singleDecoratorFactory((constructor: DecoratorConstructor) =>
     };
     constructor.prototype.env = function (): Env {
         return getIlcInstance(this, selector).env;
+    };
+    constructor.prototype.access = function (): Accessor {
+        return getIlcInstance(this, selector).access;
     };
     const ngOnDestroy = constructor.prototype.ngOnDestroy;
     if (ngOnDestroy === undefined) {
