@@ -107,33 +107,19 @@ pub enum OperationKind {
 }
 
 impl std::fmt::Display for OperationKind {
-    // This trait requires `fmt` with this exact signature.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
             "{}",
             match self {
                 OperationKind::Observe(_) => "Observe",
-                OperationKind::Search { filters: _ } => "Search",
-                OperationKind::Extract { filters: _ } => "Extract",
-                OperationKind::Map {
-                    dataset_len: _,
-                    range: _,
-                } => "Map",
-                OperationKind::Concat {
-                    files: _,
-                    out_path: _,
-                    append: _,
-                    source_id: _,
-                } => "Concat",
-                OperationKind::Merge {
-                    files: _,
-                    out_path: _,
-                    append: _,
-                    source_id: _,
-                } => "Merge",
+                OperationKind::Search { .. } => "Search",
+                OperationKind::Extract { .. } => "Extract",
+                OperationKind::Map { .. } => "Map",
+                OperationKind::Concat { .. } => "Concat",
+                OperationKind::Merge { .. } => "Merge",
                 OperationKind::Sleep(_) => "Sleep",
-                OperationKind::Cancel { target: _ } => "Cancel",
+                OperationKind::Cancel { .. } => "Cancel",
                 OperationKind::GetNearestPosition(_) => "GetNearestPosition",
                 OperationKind::End => "End",
             }
@@ -152,9 +138,9 @@ pub struct OperationAPI {
     operation_id: Uuid,
     state_api: SessionStateAPI,
     tracker_api: OperationTrackerAPI,
-    // Used to force cancalation
+    // Used to force cancellation
     cancellation_token: CancellationToken,
-    // Uses to confirm cancaltion / done state of operation
+    // Uses to confirm cancellation / done state of operation
     done_token: CancellationToken,
 }
 
@@ -180,7 +166,7 @@ impl OperationAPI {
         self.operation_id
     }
 
-    pub fn get_done_token(&self) -> CancellationToken {
+    pub fn done_token(&self) -> CancellationToken {
         self.done_token.clone()
     }
 
@@ -230,7 +216,7 @@ impl OperationAPI {
                 }
             }
         };
-        if !self.state_api.is_closing() && !self.get_cancellation_token().is_cancelled() {
+        if !self.state_api.is_closing() && !self.cancellation_token().is_cancelled() {
             if let Err(err) = self.tracker_api.remove_operation(self.id()).await {
                 error!("Failed to remove operation; error: {:?}", err);
             }
@@ -241,12 +227,8 @@ impl OperationAPI {
         self.done_token.cancel();
     }
 
-    pub fn get_cancellation_token(&self) -> CancellationToken {
+    pub fn cancellation_token(&self) -> CancellationToken {
         self.cancellation_token.clone()
-    }
-
-    pub fn get_cancellation_token_listener(&self) -> CancellationToken {
-        self.cancellation_token.child_token()
     }
 
     pub async fn execute(&self, operation: Operation) -> Result<(), NativeError> {
@@ -255,8 +237,8 @@ impl OperationAPI {
             .add_operation(
                 self.id(),
                 operation.kind.to_string(),
-                self.get_cancellation_token(),
-                self.get_done_token(),
+                self.cancellation_token(),
+                self.done_token(),
             )
             .await?;
         if !added {
@@ -406,16 +388,16 @@ pub fn uuid_from_str(operation_id: &str) -> Result<Uuid, ComputationError> {
 
 pub async fn run(
     mut rx_operations: UnboundedReceiver<Operation>,
-    state: SessionStateAPI,
-    tracker: OperationTrackerAPI,
+    state_api: SessionStateAPI,
+    tracker_api: OperationTrackerAPI,
     tx_callback_events: UnboundedSender<CallbackEvent>,
 ) -> Result<(), NativeError> {
     debug!("task is started");
     while let Some(operation) = rx_operations.recv().await {
         if !matches!(operation.kind, OperationKind::End) {
             let operation_api = OperationAPI::new(
-                state.clone(),
-                tracker.clone(),
+                state_api.clone(),
+                tracker_api.clone(),
                 tx_callback_events.clone(),
                 operation.id,
                 CancellationToken::new(),
@@ -428,13 +410,13 @@ pub async fn run(
             }
         } else {
             debug!("session closing is requested");
-            state.close_session().await?;
-            if let Err(err) = tracker.shutdown() {
-                error!("Fail to shutdown tracker: {:?}", err);
-            }
             break;
         }
     }
-    debug!("task is finished");
+    state_api.close_session().await?;
+    if let Err(err) = tracker_api.shutdown() {
+        error!("Failed to shutdown tracker: {:?}", err);
+    }
+    debug!("operations task finished");
     Ok(())
 }

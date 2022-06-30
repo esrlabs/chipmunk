@@ -25,6 +25,11 @@ impl From<CallbackEvent> for CallbackEventWrapper {
         CallbackEventWrapper(e)
     }
 }
+impl From<serde_json::Error> for ComputationErrorWrapper {
+    fn from(_: serde_json::Error) -> ComputationErrorWrapper {
+        ComputationErrorWrapper(ComputationError::InvalidData)
+    }
+}
 
 pub(crate) struct ComputationErrorWrapper(pub ComputationError);
 

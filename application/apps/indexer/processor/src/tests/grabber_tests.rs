@@ -138,16 +138,17 @@ mod tests {
 
     #[test]
     fn test_identify_range() -> Result<(), GrabError> {
-        use std::io::Write;
         use tempfile::NamedTempFile;
         // many lines
         {
             let mut file = NamedTempFile::new().expect("could not create tmp file");
             let mut s = String::new();
             for i in 0..80 {
-                s.push_str(&format!("{}", i % 10));
+                use std::fmt::Write;
+                write!(s, "{}", i % 10).expect("could not append to string");
             }
             for _line in 0..1000 {
+                use std::io::Write;
                 writeln!(file, "{}", s).expect("could not write to file");
             }
             let p = file.into_temp_path();
@@ -176,7 +177,8 @@ mod tests {
             let mut file = NamedTempFile::new().expect("could not create tmp file");
             let mut s = String::new();
             for i in 0..10000 {
-                s.push_str(&format!("{}", i % 10));
+                use std::fmt::Write;
+                write!(s, "{}", i % 10).expect("could not append to string");
             }
             for _line in 0..100 {
                 writeln!(file, "{}", s).expect("could not write to file");

@@ -8,7 +8,7 @@ pub struct SleepResult {
 }
 
 pub async fn handle(operation_api: &OperationAPI, ms: u64) -> OperationResult<SleepResult> {
-    let canceler = operation_api.get_cancellation_token();
+    let canceler = operation_api.cancellation_token();
     select! {
         _ = async move {
             time::sleep(time::Duration::from_millis(ms)).await;

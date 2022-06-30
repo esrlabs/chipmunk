@@ -170,7 +170,7 @@ impl RustSession {
                 ))
                 .await
                 .map_err(ComputationErrorWrapper)?;
-            Ok(serde_json::to_string(&grabbed).map_err(|_| ComputationError::InvalidData)?)
+            Ok(serde_json::to_string(&grabbed)?)
         } else {
             Err(ComputationErrorWrapper(
                 ComputationError::SessionUnavailable,
@@ -191,7 +191,7 @@ impl RustSession {
                 ))
                 .await
                 .map_err(ComputationErrorWrapper)?;
-            Ok(serde_json::to_string(&grabbed).map_err(|_| ComputationError::InvalidData)?)
+            Ok(serde_json::to_string(&grabbed)?)
         } else {
             Err(ComputationErrorWrapper(
                 ComputationError::SessionUnavailable,

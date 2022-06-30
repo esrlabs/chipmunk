@@ -24,7 +24,7 @@ pub async fn handle(
         append,
         500,
         tx_progress,
-        Some(operation_api.get_cancellation_token()),
+        Some(operation_api.cancellation_token()),
     )
     .map_err(|err| NativeError {
         severity: Severity::ERROR,

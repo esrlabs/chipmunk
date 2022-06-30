@@ -492,7 +492,7 @@ impl SessionStateAPI {
             .send(Api::NotifyCanceledOperation(uuid))
             .map_err(|e| {
                 NativeError::channel(&format!(
-                    "fail to send to Api::NotifyCanceledOperation; error: {}",
+                    "Failed to send to Api::NotifyCanceledOperation; error: {}",
                     e,
                 ))
             })

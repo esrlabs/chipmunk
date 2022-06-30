@@ -146,7 +146,7 @@ pub async fn handle(
                     // Confirm: main file content has been read
                     state.file_read().await?;
                     // Switching to tail
-                    let cancel = operation_api.get_cancellation_token();
+                    let cancel = operation_api.cancellation_token();
                     let (result, tracker) = join!(
                         async {
                             let result = select! {
@@ -165,7 +165,7 @@ pub async fn handle(
                             };
                             result
                         },
-                        tail::track(&filename, tx_tail, operation_api.get_cancellation_token()),
+                        tail::track(&filename, tx_tail, operation_api.cancellation_token()),
                     );
                     (
                         vec![],
@@ -220,7 +220,7 @@ pub async fn handle(
                         Receiver<Result<(), tail::Error>>,
                     ) = channel(1);
                     let (_, listening) = join!(
-                        tail::track(&filename, tx_tail, operation_api.get_cancellation_token()),
+                        tail::track(&filename, tx_tail, operation_api.cancellation_token()),
                         listen(
                             dest_path,
                             operation_api,
@@ -259,7 +259,7 @@ pub async fn handle(
                         Receiver<Result<(), tail::Error>>,
                     ) = channel(1);
                     let (_, listening) = join!(
-                        tail::track(&filename, tx_tail, operation_api.get_cancellation_token()),
+                        tail::track(&filename, tx_tail, operation_api.cancellation_token()),
                         listen(
                             dest_path,
                             operation_api,
@@ -334,7 +334,7 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     // or
     // TextFileSource::new(&session_file_path, producer.source_id());
     state.set_session_file(session_file_path.clone()).await?;
-    let cancel = operation_api.get_cancellation_token();
+    let cancel = operation_api.cancellation_token();
     let stream = producer.as_stream();
     futures::pin_mut!(stream);
     let mut last_message_timestamp = Instant::now();

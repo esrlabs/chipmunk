@@ -41,8 +41,8 @@ pub async fn handle(
         search_holder.set_filters(&mut filters.iter());
         let search_res_file = search_holder.out_file_path.clone();
         let (tx_result, mut rx_result): SearchResultChannel = channel(1);
-        let cancel = operation_api.get_cancellation_token();
-        let cancel_search = operation_api.get_cancellation_token();
+        let cancel = operation_api.cancellation_token();
+        let cancel_search = operation_api.cancellation_token();
         task::spawn(async move {
             let search_results = search_holder.execute_search(cancel_search.clone());
             if !cancel_search.is_cancelled()

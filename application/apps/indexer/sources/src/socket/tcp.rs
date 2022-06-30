@@ -95,7 +95,7 @@ async fn test_tcp_reload() -> Result<(), std::io::Error> {
     let mut udp_source = TcpSource::new(SERVER).await?;
     let receive_handle = tokio::spawn(async move {
         for msg in MESSAGES {
-            let res = udp_source.reload(None).await;
+            udp_source.reload(None).await.expect("reload failed");
             println!(
                 "receive: {:02X?}",
                 std::str::from_utf8(udp_source.current_slice())

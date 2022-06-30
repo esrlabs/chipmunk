@@ -191,23 +191,23 @@ pub async fn run(
             Api::CancelOperation((uuid, tx_response)) => {
                 if let Err(err) = state.canceling_operation(uuid).await {
                     error!(
-                        "fail to notify state about cancelation operation {}; err: {:?}",
+                        "Failed to notify state about cancelation operation {}; err: {:?}",
                         uuid, err
                     );
                 }
-                if tx_response
+                tx_response
                     .send(
                         if let Some((operation_cancalation_token, done_token)) =
                             tracker.operations.remove(&uuid)
                         {
                             if !done_token.is_cancelled() {
                                 operation_cancalation_token.cancel();
-                                debug!("waiting for operation {} would confirm done-state", uuid);
+                                debug!("Waiting for operation {} would confirm done-state", uuid);
                                 done_token.cancelled().await;
                             }
                             if let Err(err) = state.canceled_operation(uuid).await {
                                 error!(
-                                    "fail to notify state about canceled operation {}; err: {:?}",
+                                    "Failed to notify state about canceled operation {}; err: {:?}",
                                     uuid, err
                                 );
                             }
@@ -216,12 +216,9 @@ pub async fn run(
                             false
                         },
                     )
-                    .is_err()
-                {
-                    return Err(NativeError::channel(
-                        "fail to response to Api::CancelOperation",
-                    ));
-                }
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::CancelOperation")
+                    })?;
             }
             Api::CancelAll(tx_response) => {
                 for (uuid, (operation_cancalation_token, done_token)) in &tracker.operations {
