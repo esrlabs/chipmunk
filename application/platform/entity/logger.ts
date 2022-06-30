@@ -10,7 +10,7 @@ export interface LoggerInterface {
 
 export const SetupLogger = decoratorFactory(
     (constructor: DecoratorConstructor, defaults?: string | void) => {
-        const alias = defaults === undefined ? 'noname' : defaults;
+        let alias = defaults === undefined ? 'noname' : defaults;
         return class extends constructor {
             __name: string = alias;
             __logger: Logger = scope.getLogger(alias);
@@ -21,9 +21,10 @@ export const SetupLogger = decoratorFactory(
                 return this.__name;
             }
             public setLoggerName(name: string): void {
-                if (this === undefined || this.__name === undefined) {
+                if (this === undefined) {
                     throw new Error(`Entity ${alias} isn't inited`);
                 }
+                alias = name;
                 this.__name = name;
                 this.__logger = scope.getLogger(name);
             }
