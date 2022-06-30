@@ -105,6 +105,11 @@ export class ViewSearchInput
         this.input.actions.recent.subscribe(() => {
             this.markChangesForCheck();
         });
+        const active = this.session.search.state().getActive();
+        if (active !== undefined) {
+            this.active = new ActiveSearch(active);
+            this.input.drop();
+        }
     }
 
     public ngOnKeyUpSearchInput(event: KeyboardEvent) {
