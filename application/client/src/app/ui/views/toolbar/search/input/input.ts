@@ -3,6 +3,8 @@ import { Subject } from '@platform/env/subscription';
 import { IFilter, IFilterFlags } from '@platform/types/filter';
 import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
 
+import * as obj from '@platform/env/obj';
+
 export class SearchInput {
     public control: FormControl = new FormControl();
     public ref!: HTMLInputElement;
@@ -93,9 +95,14 @@ export class SearchInput {
         this._prev = '';
     }
 
-    public set(value: string) {
-        this.control.setValue(value);
-        this._prev = value;
+    public set(value: string | IFilter) {
+        if (typeof value === 'string') {
+            this.control.setValue(value);
+            this._prev = value;
+        } else {
+            this.control.setValue(value.filter);
+            this.flags = obj.clone(value.flags);
+        }
     }
 
     public onPanelClosed() {
