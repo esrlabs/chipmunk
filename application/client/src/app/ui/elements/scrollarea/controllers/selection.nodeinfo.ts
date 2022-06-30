@@ -56,7 +56,6 @@ export class NodeInfo {
         }
         const accessor = this._getAccessor(selection);
         if (accessor.node()?.nodeType === Node.COMMENT_NODE) {
-            console.log(`>>>>>> COMMENT NODE`);
             return;
         }
         if (this.node.get() !== accessor.node()) {

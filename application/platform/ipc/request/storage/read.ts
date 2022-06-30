@@ -23,7 +23,7 @@ export class Response extends SignatureRequirement {
         super();
         validator.isObject(input);
         this.key = validator.getAsNotEmptyString(input, 'key');
-        this.content = validator.getAsNotEmptyString(input, 'content');
+        this.content = validator.getAsString(input, 'content');
     }
 }
 
