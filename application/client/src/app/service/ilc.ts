@@ -21,6 +21,8 @@ import { layout } from '@ui/service/layout';
 import { toolbar } from '@ui/service/toolbar';
 import { sidebar } from '@ui/service/sidebar';
 import { bridge } from '@service/bridge';
+import { hotkeys } from '@service/hotkeys';
+
 import { Subscriber } from '@platform/env/subscription';
 
 export { Channel, Emitter, Declarations, Services };
@@ -53,6 +55,7 @@ export interface IlcInterface {
 @DependOn(state)
 @DependOn(jobs)
 @DependOn(bridge)
+@DependOn(hotkeys)
 // UI services
 @DependOn(sidebar)
 @DependOn(toolbar)

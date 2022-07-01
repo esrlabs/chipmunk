@@ -46,6 +46,10 @@ export const services: { [key: string]: Inputs } = {
         name: 'Tabs',
         uuid: v4(),
     },
+    hotkeys: {
+        name: 'Hotkeys',
+        uuid: v4(),
+    },
 };
 
 export const ui: { [key: string]: Inputs } = {
