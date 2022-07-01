@@ -11,6 +11,7 @@ import { state, Service as StateService } from '@service/state';
 import { bridge, Service as BridgeService } from '@service/bridge';
 import { recent, Service as RecentService } from '@service/recent';
 import { opener, Service as OpenerService } from '@service/opener';
+import { hotkeys, Service as HotkeysService } from '@service/hotkeys';
 
 import { Instance as Logger } from '@platform/env/logger';
 
@@ -22,6 +23,7 @@ export class Services {
         bridge: BridgeService;
         recent: RecentService;
         opener: OpenerService;
+        hotkeys: HotkeysService;
     };
     public readonly ui: {
         popup: UIPopupService;
@@ -46,6 +48,7 @@ export class Services {
             bridge,
             recent,
             opener,
+            hotkeys,
         };
         this.ui = {
             popup,
