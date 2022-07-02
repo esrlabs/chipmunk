@@ -46,10 +46,25 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
         );
         this.env().subscriber.register(
             this.session.cursor.subjects.get().selected.subscribe((event) => {
-                if (event.initiator === Owner.Search) {
+                if (this.session.search.len() === 0) {
                     return;
                 }
-                console.log(`Isn't implemented yet`);
+                const single = this.session.cursor.getSingle();
+                if (event.initiator === Owner.Search || single === undefined) {
+                    this.service.refresh();
+                    return;
+                }
+                this.session.search
+                    .nearest(single.position.stream)
+                    .then((location) => {
+                        this.service.scrollTo(
+                            location.position - 2 < 0 ? 0 : location.position - 2,
+                        );
+                        this.service.refresh();
+                    })
+                    .catch((err: Error) => {
+                        console.error(err);
+                    });
             }),
         );
         this.service = getScrollAreaService(this.session);

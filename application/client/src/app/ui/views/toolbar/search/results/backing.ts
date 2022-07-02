@@ -82,8 +82,29 @@ class State {
                     elements.push(...bookmarks.map((b) => b.as().grabbed(0)));
                 }
             });
-            // Correct indexes
             const row = rows[0].row;
+            // Inject single selection if is't present
+            const single = this._session.cursor.getSingle();
+            if (single !== undefined) {
+                if (row === 0 && rows[0].position > single.position.stream) {
+                    elements.push(single.as().grabbed(0));
+                } else {
+                    const from = Math.min(...elements.map((el) => el.position));
+                    const to = Math.max(...elements.map((el) => el.position));
+                    if (
+                        elements.find((el) => el.position === single.position.stream) === undefined
+                    ) {
+                        if (single.position.stream >= from && single.position.stream <= to) {
+                            elements.push(single.as().grabbed(0));
+                            injected += 1;
+                        }
+                    }
+                }
+                elements.sort((a, b) => {
+                    return a.position < b.position ? -1 : 1;
+                });
+            }
+            // Correct indexes
             elements.forEach((el, i) => {
                 el.row = row + i;
             });

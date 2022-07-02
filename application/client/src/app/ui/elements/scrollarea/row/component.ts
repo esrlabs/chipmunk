@@ -7,6 +7,7 @@ import {
     HostListener,
     HostBinding,
     ChangeDetectionStrategy,
+    SkipSelf,
 } from '@angular/core';
 import { Row } from '@schema/content/row';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -24,9 +25,10 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
 
     public render: number = 1;
     public bookmarked: boolean = false;
+    public selected: boolean = false;
 
     @HostBinding('attr.data-selected') get dataSelectedAttr() {
-        return this.row.select().is();
+        return this.selected;
     }
     @HostListener('mouseover') onMouseIn() {
         this.ilc().emitter.ui.row.hover(this.row);
@@ -44,8 +46,8 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         this.row.select().toggle();
     }
 
-    constructor(cdRef: ChangeDetectorRef) {
-        super(cdRef);
+    constructor(@SkipSelf() selfCdRef: ChangeDetectorRef) {
+        super(selfCdRef);
     }
 
     public ngAfterContentInit(): void {
@@ -58,7 +60,9 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         });
         this.env().subscriber.register(this.row.change.subscribe(this._update.bind(this)));
         this.env().subscriber.register(
-            this.row.session.bookmarks.subjects.get().updated.subscribe(this._update.bind(this)),
+            this.row.session.bookmarks.subjects
+                .get()
+                .updated.subscribe(this._update.bind(this, false)),
         );
         this.env().subscriber.register(
             this.row.session.cursor.subjects.get().updated.subscribe(this._update.bind(this)),
@@ -85,10 +89,11 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
     }
 
     private _update() {
-        const prev = this.bookmarked;
+        const prev = `${this.bookmarked}.${this.selected}`;
         this.bookmarked = this.row.bookmark().is();
-        if (prev !== this.bookmarked) {
-            this.markChangesForCheck();
+        this.selected = this.row.select().is();
+        if (prev !== `${this.bookmarked}.${this.selected}`) {
+            this.detectChanges();
         }
     }
 }

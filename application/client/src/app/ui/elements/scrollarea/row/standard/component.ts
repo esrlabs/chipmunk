@@ -5,6 +5,7 @@ import {
     HostBinding,
     ChangeDetectionStrategy,
     ChangeDetectorRef,
+    SkipSelf,
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Row } from '@schema/content/row';
@@ -23,8 +24,8 @@ export class Standard extends ChangesDetector implements AfterContentInit {
 
     private _sanitizer: DomSanitizer;
 
-    constructor(cdRef: ChangeDetectorRef, sanitizer: DomSanitizer) {
-        super(cdRef);
+    constructor(@SkipSelf() selfCdRef: ChangeDetectorRef, sanitizer: DomSanitizer) {
+        super(selfCdRef);
         this._sanitizer = sanitizer;
     }
 
