@@ -1,5 +1,4 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { IFilter, ISearchResults } from '../../../types/filter';
 
 import * as validator from '../../../env/obj';
 
