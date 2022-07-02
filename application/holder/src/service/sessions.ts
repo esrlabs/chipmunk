@@ -81,6 +81,15 @@ export class Service extends Implementation {
                     RequestHandlers.Search.Drop.handler,
                 ),
         );
+        this._subscriber.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Search.Nearest.Request,
+                    RequestHandlers.Search.Nearest.handler,
+                ),
+        );
         return Promise.resolve();
     }
 

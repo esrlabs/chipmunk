@@ -1,6 +1,7 @@
 import { Session } from '@service/session/session';
 import { serializeHtml } from '@platform/env/str';
 import { Subject, Subscriber } from '@platform/env/subscription';
+import { IGrabbedElement } from '@platform/types/content';
 
 export interface Position {
     stream: number;
@@ -102,6 +103,7 @@ export class Row extends Subscriber {
 
     public as(): {
         inputs(): StaticRowInputs;
+        grabbed(row: number): IGrabbedElement;
     } {
         return {
             inputs: (): StaticRowInputs => {
@@ -109,6 +111,14 @@ export class Row extends Subscriber {
                     content: this.content,
                     stream: this.position.stream,
                     source: this.source,
+                };
+            },
+            grabbed: (row: number): IGrabbedElement => {
+                return {
+                    position: this.position.stream,
+                    source_id: this.source.toString(),
+                    content: this.content,
+                    row,
                 };
             },
         };
@@ -137,7 +147,7 @@ export class Row extends Subscriber {
                 return this.session.cursor.isSelected(this.position.stream);
             },
             toggle: (): void => {
-                this.session.cursor.select(this.position.stream, this.owner);
+                this.session.cursor.select(this, this.owner);
             },
         };
     }

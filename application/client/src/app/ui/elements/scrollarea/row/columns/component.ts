@@ -1,4 +1,11 @@
-import { Component, Input, ChangeDetectorRef, AfterContentInit, HostBinding } from '@angular/core';
+import {
+    Component,
+    Input,
+    ChangeDetectorRef,
+    AfterContentInit,
+    HostBinding,
+    SkipSelf,
+} from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Row } from '@schema/content/row';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -20,8 +27,12 @@ export class Columns extends ChangesDetector implements AfterContentInit {
 
     private _sanitizer: DomSanitizer;
 
-    constructor(cdRef: ChangeDetectorRef, sanitizer: DomSanitizer) {
-        super(cdRef);
+    constructor(
+        @SkipSelf() selfCdRef: ChangeDetectorRef,
+        cdRef: ChangeDetectorRef,
+        sanitizer: DomSanitizer,
+    ) {
+        super([cdRef, selfCdRef]);
         this._sanitizer = sanitizer;
     }
 

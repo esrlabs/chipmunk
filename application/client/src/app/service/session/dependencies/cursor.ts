@@ -2,6 +2,7 @@ import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { cutUuid } from '@log/index';
 import { Owner } from '@schema/content/row';
+import { Row } from '@schema/content/row';
 
 export interface SelectEvent {
     row: number;
@@ -25,6 +26,7 @@ export class Cursor extends Subscriber {
     private _selected: number[] = [];
     private _uuid!: string;
     private _hold: HoldKey | undefined;
+    private _last: Row | undefined;
 
     public init(uuid: string) {
         this.setLoggerName(`Cursor: ${cutUuid(uuid)}`);
@@ -42,33 +44,38 @@ export class Cursor extends Subscriber {
         window.removeEventListener('keyup', this._onKeyUp);
     }
 
-    public select(row: number, initiator: Owner) {
+    public select(row: Row, initiator: Owner) {
         if (this._hold === undefined) {
-            this._selected = [row];
+            if (this._selected.length === 1 && this._selected[0] === row.position.stream) {
+                this._selected = [];
+            } else {
+                this._selected = [row.position.stream];
+            }
         } else if (this._hold === HoldKey.shift) {
             if (this._selected.length === 0) {
-                this._selected = [row];
+                this._selected = [row.position.stream];
             } else {
                 const last = this._selected[this._selected.length - 1];
-                if (last === row) {
+                if (last === row.position.stream) {
                     return;
                 }
                 this._selected = this._selected.concat(
-                    [...new Array(Math.abs(row - last))].map((_, i) =>
-                        row < last ? i + row : last + i + 1,
+                    [...new Array(Math.abs(row.position.stream - last))].map((_, i) =>
+                        row.position.stream < last ? i + row.position.stream : last + i + 1,
                     ),
                 );
             }
         } else if (this._hold === HoldKey.ctrl) {
-            const target = this._selected.indexOf(row);
+            const target = this._selected.indexOf(row.position.stream);
             if (target === -1) {
-                this._selected.push(row);
+                this._selected.push(row.position.stream);
             } else {
                 this._selected.splice(target, 1);
             }
         }
+        this._last = row;
         this.subjects.get().selected.emit({
-            row,
+            row: row.position.stream,
             initiator,
         });
         this.subjects.get().updated.emit();
@@ -99,6 +106,10 @@ export class Cursor extends Subscriber {
 
     public get(): number[] {
         return this._selected;
+    }
+
+    public getSingle(): Row | undefined {
+        return this._selected.length === 1 ? this._last : undefined;
     }
 
     private _onKeyDown(event: KeyboardEvent) {

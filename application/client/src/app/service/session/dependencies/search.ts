@@ -123,6 +123,24 @@ export class Search extends Subscriber {
         });
     }
 
+    public nearest(stream: number): Promise<{ stream: number; position: number }> {
+        return new Promise((resolve) => {
+            Requests.IpcRequest.send(
+                Requests.Search.Nearest.Response,
+                new Requests.Search.Nearest.Request({
+                    session: this._uuid,
+                    row: stream,
+                }),
+            )
+                .then((response: Requests.Search.Nearest.Response) => {
+                    resolve({ stream: response.stream, position: response.position });
+                })
+                .catch((error: Error) => {
+                    this.log().error(`Fail to get nearest content: ${error.message}`);
+                });
+        });
+    }
+
     public store(): {
         filters(): FiltersStore;
         disabled(): DisableStore;

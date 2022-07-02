@@ -1,11 +1,12 @@
 import { ChangeDetectorRef } from '@angular/core';
 
 export class ChangesDetector {
-    private _changeDetectorRef: ChangeDetectorRef;
+    private _changeDetectorRef: ChangeDetectorRef[];
     private _detauched: boolean = false;
 
-    constructor(changeDetectorRef: ChangeDetectorRef) {
-        this._changeDetectorRef = changeDetectorRef;
+    constructor(changeDetectorRef: ChangeDetectorRef | ChangeDetectorRef[]) {
+        this._changeDetectorRef =
+            changeDetectorRef instanceof Array ? changeDetectorRef : [changeDetectorRef];
     }
 
     public static detectChanges(comRef: any) {
@@ -29,20 +30,20 @@ export class ChangesDetector {
         if (this._detauched) {
             return;
         }
-        this._changeDetectorRef.detectChanges();
+        this._changeDetectorRef.forEach((cdRef) => cdRef.detectChanges());
     }
 
     public markChangesForCheck() {
         if (this._detauched) {
             return;
         }
-        this._changeDetectorRef.markForCheck();
+        this._changeDetectorRef.forEach((cdRef) => cdRef.markForCheck());
     }
 
     public reattachChangesDetector() {
         if (this._detauched) {
             return;
         }
-        this._changeDetectorRef.reattach();
+        this._changeDetectorRef.forEach((cdRef) => cdRef.reattach());
     }
 }
