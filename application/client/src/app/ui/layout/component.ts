@@ -34,7 +34,7 @@ export class Layout extends ChangesDetector implements AfterViewInit {
     public session: Base | undefined;
 
     private _layout: DOMRect | undefined;
-    private _sessions: Map<string, { toolbar: number; sidebar: number }> = new Map();
+    private readonly _sessions: Map<string, { toolbar: number; sidebar: number }> = new Map();
 
     constructor(cdRef: ChangeDetectorRef, private _vcRef: ViewContainerRef) {
         super(cdRef);

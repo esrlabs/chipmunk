@@ -30,7 +30,7 @@ export class Listener {
         });
     }
 
-    public emit(event: KeyboardEvent) {
+    public emit(event: KeyboardEvent): boolean {
         if (this._iteration.timer === undefined) {
             this._iteration.emitted = [];
             this._iteration.timer = setTimeout(() => {
@@ -55,7 +55,11 @@ export class Listener {
                 postponed = emitter.postponed();
             }
         });
-        !postponed && this._accept();
+        if (!postponed) {
+            return this._accept();
+        } else {
+            return true;
+        }
     }
 
     public requirement(requirement: Requirement): {
@@ -75,14 +79,15 @@ export class Listener {
         };
     }
 
-    private _accept() {
+    private _accept(): boolean {
         const emitted = this._iteration.emitted;
         this._iteration.timer !== undefined && clearTimeout(this._iteration.timer as number);
         this._iteration.timer = undefined;
         this._iteration.emitted = [];
         if (emitted.length === 0) {
-            return;
+            return true;
         }
         this.subject.emit(emitted[emitted.length - 1]);
+        return false;
     }
 }

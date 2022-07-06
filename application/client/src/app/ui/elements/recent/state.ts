@@ -4,16 +4,32 @@ import { Filter } from '@ui/env/entities/filter';
 import { recent } from '@service/recent';
 import { Subject } from '@platform/env/subscription';
 import { IlcInterface } from '@service/ilc';
+import { ChangesDetector } from '@ui/env/extentions/changes';
 
 export class State {
     public filter: Filter;
     public actions: WrappedAction[] = [];
     public update: Subject<void> = new Subject<void>();
 
-    constructor(ilc: IlcInterface) {
+    constructor(ilc: IlcInterface & ChangesDetector) {
         this.filter = new Filter(ilc.ilc());
         ilc.env().subscriber.register(
             this.filter.subjects.get().drop.subscribe(this.filtering.bind(this)),
+        );
+        ilc.env().subscriber.register(
+            ilc
+                .ilc()
+                .services.ui.listener.listen<KeyboardEvent>(
+                    'keyup',
+                    window,
+                    (event: KeyboardEvent) => {
+                        if (this.filter.keyboard(event)) {
+                            this.filtering();
+                            ilc.detectChanges();
+                        }
+                        return true;
+                    },
+                ),
         );
         recent
             .get()

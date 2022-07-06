@@ -85,4 +85,12 @@ export const ui: { [key: string]: Inputs } = {
         name: 'Styles',
         uuid: v4(),
     },
+    bottomsheet: {
+        name: 'BottomSheet',
+        uuid: v4(),
+    },
+    listener: {
+        name: `Listener`,
+        uuid: v4(),
+    },
 };

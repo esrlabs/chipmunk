@@ -3,9 +3,10 @@ import { services } from '@register/services';
 import { Listener } from './hotkeys/listener';
 import { KeysMap, getKeyByUuid, Requirement, getKeyByAlias } from './hotkeys/map';
 import { Subscriber, Subscription } from '@platform/env/subscription';
-import { addEventListener } from '@env/subscribe';
+import { listener } from '@ui/service/listener';
 import { ilc, Services } from '@service/ilc';
 import { unique } from '@platform/env/sequence';
+import { Hotkeys } from '@views/dialogs/hotkeys/component';
 
 @SetupService(services['hotkeys'])
 export class Service extends Implementation {
@@ -37,31 +38,33 @@ export class Service extends Implementation {
             }),
         );
         this._subscriber.register(
-            addEventListener(
+            listener.listen(
                 'keyup',
+                window,
                 (event: KeyboardEvent) => {
-                    this._listener.emit(event);
+                    return this._listener.emit(event);
                 },
-                true,
+                {
+                    priority: 100,
+                },
             ),
         );
         this._subscriber.register(
-            addEventListener(
-                'keydown',
-                () => {
-                    this.check().inputs();
-                },
-                true,
-            ),
+            listener.listen('keydown', window, () => {
+                this.check().inputs();
+                return true;
+            }),
         );
         this._subscriber.register(
-            addEventListener(
-                'mouseup',
-                () => {
-                    this.check().inputs();
-                },
-                true,
-            ),
+            listener.listen('mouseup', window, () => {
+                this.check().inputs();
+                return true;
+            }),
+        );
+        this._subscriber.register(
+            this.register('?', () => {
+                this._services.ui.bottomsheet.show(Hotkeys, {});
+            }),
         );
         this.check().all();
         return Promise.resolve();

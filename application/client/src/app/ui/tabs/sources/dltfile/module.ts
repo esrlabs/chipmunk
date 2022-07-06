@@ -11,7 +11,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
-import { MatBottomSheetModule } from '@angular/material/bottom-sheet';
 import { MatListModule } from '@angular/material/list';
 
 import { TabSourceDltFile } from './component';
@@ -36,7 +35,6 @@ const components = [TabSourceDltFile, TabSourceDltFileStructure];
         MatIconModule,
         MatFormFieldModule,
         MatSelectModule,
-        MatBottomSheetModule,
         MatListModule,
     ],
     declarations: [...components],

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { WorkspaceModule } from './workspace/module';
 import { ToolbarModule } from './toolbar/module';
 import { SidebarModule } from './sidebar/module';
+import { DialogsModule } from './dialogs/module';
 
 import { ScrollAreaModule } from '@elements/scrollarea/module';
 import { ContainersModule } from '@elements/containers/module';
@@ -16,8 +17,9 @@ import { ContainersModule } from '@elements/containers/module';
         WorkspaceModule,
         ToolbarModule,
         SidebarModule,
+        DialogsModule,
     ],
     declarations: [],
-    exports: [ScrollAreaModule, WorkspaceModule, ToolbarModule, SidebarModule],
+    exports: [ScrollAreaModule, WorkspaceModule, ToolbarModule, SidebarModule, DialogsModule],
 })
 export class ViewsModule {}
