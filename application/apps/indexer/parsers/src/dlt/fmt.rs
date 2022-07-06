@@ -604,7 +604,7 @@ pub fn utc_string(time_stamp: &DltTimeStamp) -> String {
 fn message_type(msg: &Message, message_info: Option<&str>) -> Option<MessageType> {
     if let Some(v) = message_info
         .as_ref()
-        .and_then(|mi| try_new_from_fibex_message_info(*mi))
+        .and_then(|mi| try_new_from_fibex_message_info(mi))
     {
         Some(v)
     } else {
