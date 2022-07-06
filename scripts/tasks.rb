@@ -198,8 +198,10 @@ end
 namespace :clippy do
   desc 'Clippy update to nightly'
   task :nightly do
+    config = Config.new
+    sh "rustup install #{config.get_rust_version}"
     sh 'rustup default nightly'
-    sh 'rustup default stable'
+    sh "rustup default #{config.get_rust_version}"
     sh 'rustup component add --toolchain=nightly clippy-preview'
   end
 

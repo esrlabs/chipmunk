@@ -14,4 +14,5 @@ module Paths
   CLIPPY_NIGHTLY = 'cargo +nightly clippy --all --all-features -- -D warnings'
   CLIPPY_STABLE = 'cargo clippy --all --all-features -- -D warnings'
   TSC = "#{ELECTRON}/node_modules/.bin/tsc"
+  CONFIG = 'scripts/config.json'
 end
