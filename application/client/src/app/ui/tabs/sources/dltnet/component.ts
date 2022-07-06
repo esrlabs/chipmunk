@@ -7,7 +7,6 @@ import { IDLTOptions, EMTIN } from '@platform/types/parsers/dlt';
 import { bytesToStr, timestampToUTC } from '@env/str';
 import { TabControls } from '@service/session';
 import { State, ConnectionType } from './state';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { ElementsTimezoneSelector } from '@ui/elements/timezones/component';
 import { LockToken } from '@platform/env/lock.token';
 import { Timezone } from '@ui/elements/timezones/timezone';
@@ -42,7 +41,7 @@ export class TabSourceDltNet extends ChangesDetector implements AfterContentInit
 
     private _filterLockTocken: LockToken = LockToken.simple(false);
 
-    constructor(cdRef: ChangeDetectorRef, private _bottomSheet: MatBottomSheet) {
+    constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
 
@@ -91,18 +90,19 @@ export class TabSourceDltNet extends ChangesDetector implements AfterContentInit
 
     public ngTimezoneSelect() {
         this._filterLockTocken.lock();
-        const bottomSheetRef = this._bottomSheet.open(ElementsTimezoneSelector, {
-            data: {
+        this.ilc().services.ui.bottomsheet.show(
+            ElementsTimezoneSelector,
+            {
                 selected: (timezone: Timezone): void => {
                     this.state.timezone = timezone;
                 },
             },
-        });
-        const subscription = bottomSheetRef.afterDismissed().subscribe(() => {
-            subscription.unsubscribe();
-            this._filterLockTocken.unlock();
-            this.detectChanges();
-        });
+            {
+                closed: () => {
+                    this._filterLockTocken.unlock();
+                },
+            },
+        );
     }
 }
 export interface TabSourceDltNet extends IlcInterface {}

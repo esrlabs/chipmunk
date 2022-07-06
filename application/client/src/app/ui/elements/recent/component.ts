@@ -3,7 +3,6 @@ import {
     AfterContentInit,
     ChangeDetectionStrategy,
     ChangeDetectorRef,
-    HostListener,
     ViewEncapsulation,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -25,13 +24,13 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 export class RecentActions extends ChangesDetector implements AfterContentInit {
     public readonly state: State;
 
-    @HostListener('window:keydown', ['$event'])
-    handleKeyDown(event: KeyboardEvent) {
-        if (this.state.filter.keyboard(event)) {
-            this.state.filtering();
-            this.detectChanges();
-        }
-    }
+    // @HostListener('window:keydown', ['$event'])
+    // handleKeyDown(event: KeyboardEvent) {
+    //     if (this.state.filter.keyboard(event)) {
+    //         this.state.filtering();
+    //         this.detectChanges();
+    //     }
+    // }
 
     constructor(cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
         super(cdRef);
@@ -55,12 +54,18 @@ export class RecentActions extends ChangesDetector implements AfterContentInit {
         const items = [
             ...action.getActions(),
             {},
-            { caption: 'Remove recent', handler: () => {
-                console.log(`Not implemented`);
-            } },
-            { caption: 'Clear All', handler: () => {
-                console.log(`Not implemented`);
-            } },
+            {
+                caption: 'Remove recent',
+                handler: () => {
+                    console.log(`Not implemented`);
+                },
+            },
+            {
+                caption: 'Clear All',
+                handler: () => {
+                    console.log(`Not implemented`);
+                },
+            },
         ];
         this.ilc().emitter.ui.contextmenu.open({
             items,

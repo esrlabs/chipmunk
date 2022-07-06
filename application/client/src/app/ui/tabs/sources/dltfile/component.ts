@@ -15,7 +15,6 @@ import { bytesToStr, timestampToUTC } from '@env/str';
 import { StatEntity } from './structure/statentity';
 import { TabControls } from '@service/session';
 import { State } from './state';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { ElementsTimezoneSelector } from '@ui/elements/timezones/component';
 import { LockToken } from '@platform/env/lock.token';
 import { Timezone } from '@ui/elements/timezones/timezone';
@@ -58,7 +57,7 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
 
     private _filterLockTocken: LockToken = LockToken.simple(false);
 
-    constructor(cdRef: ChangeDetectorRef, private _bottomSheet: MatBottomSheet) {
+    constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
         this.state = new State(this.ilc());
     }
@@ -147,18 +146,19 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
         if (this.state.filters.entities.drop()) {
             this.state.struct().filter();
         }
-        const bottomSheetRef = this._bottomSheet.open(ElementsTimezoneSelector, {
-            data: {
+        this.ilc().services.ui.bottomsheet.show(
+            ElementsTimezoneSelector,
+            {
                 selected: (timezone: Timezone): void => {
                     this.state.timezone = timezone;
                 },
             },
-        });
-        const subscription = bottomSheetRef.afterDismissed().subscribe(() => {
-            subscription.unsubscribe();
-            this._filterLockTocken.unlock();
-            this.detectChanges();
-        });
+            {
+                closed: () => {
+                    this._filterLockTocken.unlock();
+                },
+            },
+        );
     }
 }
 export interface TabSourceDltFile extends IlcInterface {}

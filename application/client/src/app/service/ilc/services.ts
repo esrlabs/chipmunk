@@ -5,6 +5,7 @@ import { layout, Service as UILayoutService } from '@ui/service/layout';
 import { toolbar, Service as UIToolbarService } from '@ui/service/toolbar';
 import { sidebar, Service as UISidebarService } from '@ui/service/sidebar';
 import { styles, Service as UIStylesService } from '@ui/service/styles';
+import { bottomsheet, Service as UIBottomSheetService } from '@ui/service/bottomsheet';
 import { session, Service as SessionService } from '@service/session';
 import { jobs, Service as JobsService } from '@service/jobs';
 import { state, Service as StateService } from '@service/state';
@@ -12,6 +13,7 @@ import { bridge, Service as BridgeService } from '@service/bridge';
 import { recent, Service as RecentService } from '@service/recent';
 import { opener, Service as OpenerService } from '@service/opener';
 import { hotkeys, Service as HotkeysService } from '@service/hotkeys';
+import { listener, Service as ListenerService } from '@ui/service/listener';
 
 import { Instance as Logger } from '@platform/env/logger';
 
@@ -33,6 +35,8 @@ export class Services {
         toolbar: UIToolbarService;
         sidebar: UISidebarService;
         styles: UIStylesService;
+        bottomsheet: UIBottomSheetService;
+        listener: ListenerService;
     };
 
     private readonly _owner: string;
@@ -58,6 +62,8 @@ export class Services {
             toolbar,
             sidebar,
             styles,
+            bottomsheet,
+            listener,
         };
     }
 }

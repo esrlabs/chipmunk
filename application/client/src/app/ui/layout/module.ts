@@ -8,6 +8,7 @@ import { RecentActionsModule } from '@elements/recent/module';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatBottomSheetModule } from '@angular/material/bottom-sheet';
 
 import { Layout } from './component';
 import { LayoutStatusBar } from './statusbar/component';
@@ -21,7 +22,8 @@ import { LayoutWorkspaceControls } from './workspace/controls/component';
 import { LayoutWorkspaceNoContent } from './workspace/no-tabs-content/component';
 import { LayoutToolbar } from './toolbar/component';
 import { LayoutToolbarControls } from './toolbar/controls/component';
-
+import { LayoutBottomSheet } from './bottomsheet/component';
+import { OverlayModule } from '@angular/cdk/overlay';
 import { JobsModule } from '@views/statusbar/jobs/module';
 import { SessionModule } from '@views/statusbar/session/module';
 
@@ -40,6 +42,7 @@ const entryComponents = [
     LayoutWorkspaceNoContent,
     LayoutToolbar,
     LayoutToolbarControls,
+    LayoutBottomSheet,
 ];
 
 @NgModule({
@@ -52,9 +55,11 @@ const entryComponents = [
         MatButtonModule,
         MatCardModule,
         MatDividerModule,
+        MatBottomSheetModule,
         JobsModule,
         SessionModule,
         RecentActionsModule,
+        OverlayModule,
     ],
     declarations: [...entryComponents],
     exports: [...entryComponents, AppDirectiviesModule],
