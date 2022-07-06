@@ -3,13 +3,16 @@ name = "node-bindings"
 version = "0.1.0"
 authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
 edition = "2018"
+# Added becuase: https://github.com/rust-lang/rust/issues/98903
+resolver = "2"
 
 [lib]
 crate-type = ["cdylib"]
 
 [build-dependencies]
 # node-bindgen = { version = "5.0", features = ["build"] }
-node-bindgen = {git = "https://github.com/infinyon/node-bindgen.git", branch = "master", features = ["build"] }
+# Added "default-features = false" becuase: https://github.com/rust-lang/rust/issues/98903
+node-bindgen = {git = "https://github.com/infinyon/node-bindgen.git", branch = "master", default-features = false, features = ["build"] }
 
 [dependencies]
 anyhow = "1.0"
