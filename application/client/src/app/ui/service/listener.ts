@@ -1,7 +1,5 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { ui } from '@register/services';
-import { ilc, Emitter } from '@service/ilc';
-import { Handler } from './listener/handler';
 import { IOptions } from './listener/options';
 import { Target, getTargetUuid, ITarget } from './listener/target';
 import { Subscription } from '@platform/env/subscription';
