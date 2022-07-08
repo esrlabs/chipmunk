@@ -1,9 +1,11 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
-import { Row } from '@schema/content/row';
+import { Owner, Row } from '@schema/content/row';
 import { cutUuid } from '@log/index';
 import { Bookmark } from './bookmark/bookmark';
 import { Range } from '@platform/types/range';
+import { Cursor } from './cursor';
+import { hotkeys } from '@service/hotkeys';
 
 @SetupLogger()
 export class Bookmarks extends Subscriber {
@@ -14,10 +16,22 @@ export class Bookmarks extends Subscriber {
     });
     private _uuid!: string;
     protected bookmarks: Bookmark[] = [];
+    protected cursor!: Cursor;
 
-    public init(uuid: string) {
+    public init(uuid: string, cursor: Cursor) {
         this.setLoggerName(`Bookmarks: ${cutUuid(uuid)}`);
         this._uuid = uuid;
+        this.cursor = cursor;
+        this.register(
+            hotkeys.register('j', () => {
+                this.move().prev();
+            }),
+        );
+        this.register(
+            hotkeys.register('k', () => {
+                this.move().next();
+            }),
+        );
     }
 
     public destroy() {
@@ -52,6 +66,54 @@ export class Bookmarks extends Subscriber {
         } else {
             return this.bookmarks.filter((b) => range.in(b.stream()));
         }
+    }
+
+    protected move(): {
+        next(): void;
+        prev(): void;
+    } {
+        const selected: number | undefined = (() => {
+            if (this.bookmarks.length === 0) {
+                return undefined;
+            }
+            const single = this.cursor.getSingle();
+            if (single === undefined) {
+                this.cursor.select(this.bookmarks[0].as().row(0), Owner.Bookmark);
+                return undefined;
+            }
+            return this.bookmarks.findIndex((b) => b.stream() === single.position.stream);
+        })();
+        return {
+            next: (): void => {
+                if (selected === undefined) {
+                    return;
+                }
+                if (selected === -1) {
+                    this.cursor.select(this.bookmarks[0].as().row(0), Owner.Bookmark);
+                    return;
+                }
+                if (selected === this.bookmarks.length - 1) {
+                    return;
+                }
+                this.cursor.select(this.bookmarks[selected + 1].as().row(0), Owner.Bookmark);
+            },
+            prev: (): void => {
+                if (selected === undefined) {
+                    return;
+                }
+                if (selected === -1) {
+                    this.cursor.select(
+                        this.bookmarks[this.bookmarks.length - 1].as().row(0),
+                        Owner.Bookmark,
+                    );
+                    return;
+                }
+                if (selected === 0) {
+                    return;
+                }
+                this.cursor.select(this.bookmarks[selected - 1].as().row(0), Owner.Bookmark);
+            },
+        };
     }
 }
 export interface Bookmarks extends LoggerInterface {}

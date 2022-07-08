@@ -11,6 +11,7 @@ export interface Position {
 export enum Owner {
     Output = 'Output',
     Search = 'Search',
+    Bookmark = 'Bookmark',
 }
 
 export interface RowInputs {
