@@ -33,11 +33,13 @@ class Client
   def build
     install
     if @prod
+      Matcher.new(false, false).build
       Dir.chdir(Paths::CLIENT) do
         Rake.sh 'npm run prod'
         Reporter.add(Jobs::Building, Owner::Client, 'production mode', '')
       end
     else
+      Matcher.new(true, true).build
       Dir.chdir(Paths::CLIENT) do
         Rake.sh 'npm run build'
         Reporter.add(Jobs::Building, Owner::Client, 'developing mode', '')

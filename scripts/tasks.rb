@@ -54,6 +54,12 @@ namespace :build do
     Holder.new(HolderSettings.new.set_client_prod(true)).build
     Reporter.print
   end
+
+  desc 'Build matcher'
+  task :matcher do
+    Matcher.new(false, false).build
+    Reporter.print
+  end
 end
 
 namespace :rebuild do
@@ -137,35 +143,53 @@ end
 test_runner = './node_modules/.bin/electron ./node_modules/jasmine-ts/lib/index.js'
 
 namespace :test do
-  desc 'run search tests'
-  task :search do
-    Bindings.new(false).build
-    Reporter.print
-    Dir.chdir(Paths::TS_BINDINGS) do
-      sh "#{test_runner} spec/session.search.spec.ts"
+  namespace :binding do
+    desc 'run search tests'
+    task :search do
+      Bindings.new(false).build
+      Reporter.print
+      Dir.chdir(Paths::TS_BINDINGS) do
+        sh "#{test_runner} spec/session.search.spec.ts"
+      end
+    end
+
+    desc 'run observe tests'
+    task :observe do
+      Bindings.new(false).build
+      Reporter.print
+      Dir.chdir(Paths::TS_BINDINGS) do
+        sh "#{test_runner} spec/session.observe.spec.ts"
+      end
+    end
+
+    desc 'run cancel tests'
+    task :cancel do
+      Bindings.new(false).build
+      Reporter.print
+      Dir.chdir(Paths::TS_BINDINGS) do
+        sh "#{test_runner} spec/session.cancel.spec.ts"
+      end
     end
   end
-
-  desc 'run observe tests'
-  task :observe do
-    Bindings.new(false).build
-    Reporter.print
-    Dir.chdir(Paths::TS_BINDINGS) do
-      sh "#{test_runner} spec/session.observe.spec.ts"
+  namespace :matcher do
+    desc 'run karma tests'
+    task :karma do
+      Reporter.print
+      Matcher.new(false, false).install
+      Dir.chdir("#{Paths::MATCHER}/spec") do
+        sh 'npm run test'
+      end
+    end
+    desc 'run rust tests'
+    task :rust do
+      Reporter.print
+      Dir.chdir(Paths::MATCHER) do
+        sh 'wasm-pack test --node'
+      end
     end
   end
-
-  desc 'run cancel tests'
-  task :cancel do
-    Bindings.new(false).build
-    Reporter.print
-    Dir.chdir(Paths::TS_BINDINGS) do
-      sh "#{test_runner} spec/session.cancel.spec.ts"
-    end
-  end
-
   desc 'run all test'
-  task all: ['test:observe', 'test:search', 'test:cancel']
+  task all: ['test:binding:observe', 'test:binding:search', 'test:binding:cancel', 'test:matcher:karma', 'test:matcher:rust']
 end
 
 namespace :lint do
@@ -219,8 +243,15 @@ namespace :clippy do
     end
   end
 
+  desc 'Clippy matcher'
+  task :matcher do
+    Dir.chdir("#{Paths::MATCHER}/src") do
+      sh Paths::CLIPPY_STABLE
+    end
+  end
+
   desc 'Clippy all'
-  task all: ['clippy:nightly', 'clippy:indexer', 'clippy:rs_bindings']
+  task all: ['clippy:nightly', 'clippy:indexer', 'clippy:rs_bindings', 'clippy:matcher']
 end
 
 desc 'Executes all check before pull request'

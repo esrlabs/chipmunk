@@ -83,9 +83,10 @@ module Screens
       { name: 'Rebuild holder (+ bindings) [rake developing:holder_bindings]', value: 4 },
       { name: 'Rebuild holder (+ platform) [rake developing:holder_platform]', value: 5 },
       { name: 'Rebuild holder (+ platform + bindings) [rake developing:holder_platform_bindings]', value: 6 },
-      { name: 'Clean & Rebuild everything', value: 7 },
-      { name: 'back', value: 8 },
-      { name: 'exit', value: 9 }
+      { name: 'Build matcher [rake build:matcher]', value: 7 },
+      { name: 'Clean & Rebuild everything', value: 8 },
+      { name: 'back', value: 9 },
+      { name: 'exit', value: 10 }
     ]
     case prompt.select('Actions groups', choices)
     when 1
@@ -101,8 +102,10 @@ module Screens
     when 6
       Rake::Task['developing:holder_platform_bindings'].invoke
     when 7
-      Rake::Task['developing:clean_rebuild_all'].invoke
+      Rake::Task['build:matcher'].invoke
     when 8
+      Rake::Task['developing:clean_rebuild_all'].invoke
+    when 9
       Screens.welcome(prompt)
     else
       puts 'Goodbuy!'
@@ -134,20 +137,29 @@ module Screens
     clear
     puts 'Checks: testing'
     choices = [
-      { name: 'Test search [rake test:search]', value: 1 },
-      { name: 'Test observe [rake test:observe]', value: 2 },
-      { name: 'Test cancel [rake test:cancel]', value: 3 },
-      { name: 'back', value: 4 },
-      { name: 'exit', value: 5 }
+      { name: 'Test binding search [rake test:binding:search]', value: 1 },
+      { name: 'Test binding observe [rake test:binding:observe]', value: 2 },
+      { name: 'Test binding cancel [rake test:binding:cancel]', value: 3 },
+      { name: 'Test matcher karma [rake test:matcher:karma]', value: 4 },
+      { name: 'Test matcher rust [rake test:matcher:rust', value: 5 },
+      { name: 'Test all [rake test:all', value: 6 },
+      { name: 'back', value: 7 },
+      { name: 'exit', value: 8 }
     ]
     case prompt.select('Actions groups', choices)
     when 1
-      Rake::Task['test:search'].invoke
+      Rake::Task['test:binding:search'].invoke
     when 2
-      Rake::Task['test:observe'].invoke
+      Rake::Task['test:binding:observe'].invoke
     when 3
-      Rake::Task['test:cancel'].invoke
+      Rake::Task['test:binding:cancel'].invoke
     when 4
+      Rake::Task['test:matcher:karma'].invoke
+    when 5
+      Rake::Task['test:matcher:rust'].invoke
+    when 6
+      Rake::Task['test:all'].invoke
+    when 7
       Screens.checks(prompt)
     else
       puts 'Goodbuy!'
