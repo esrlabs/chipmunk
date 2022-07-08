@@ -71,8 +71,8 @@ export class Session extends Base {
                     this._uuid = response.uuid;
                     this.stream.init(this._uuid);
                     this.search.init(this._uuid);
-                    this.bookmarks.init(this._uuid);
                     this.cursor.init(this._uuid);
+                    this.bookmarks.init(this._uuid, this.cursor);
                     resolve(this._uuid);
                 })
                 .catch(reject);

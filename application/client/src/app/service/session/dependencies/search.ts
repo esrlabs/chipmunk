@@ -8,6 +8,7 @@ import { FiltersStore } from './search/filters/store';
 import { DisableStore } from './search/disabled/store';
 import { Highlights } from './search/highlights';
 import { State } from './search/state';
+import { hotkeys } from '@service/hotkeys';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';

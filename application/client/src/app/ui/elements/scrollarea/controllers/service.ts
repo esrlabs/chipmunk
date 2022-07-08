@@ -34,14 +34,17 @@ export class Service implements Destroy {
 
     protected frame!: Frame;
 
+    private _focus: boolean = false;
     private readonly _subjects: {
         rows: Subject<IRowsPacket>;
         refresh: Subject<void>;
         len: Subject<number>;
+        bound: Subject<void>;
     } = {
         rows: new Subject(),
         refresh: new Subject(),
         len: new Subject(),
+        bound: new Subject(),
     };
     private _cursor: number = 0;
 
@@ -74,6 +77,7 @@ export class Service implements Destroy {
 
     public bind(frame: Frame) {
         this.frame = frame;
+        this._subjects.bound.emit();
     }
 
     public getFrame(): Frame {
@@ -84,6 +88,7 @@ export class Service implements Destroy {
         this._subjects.rows.destroy();
         this._subjects.len.destroy();
         this._subjects.refresh.destroy();
+        this._subjects.bound.destroy();
     }
 
     public setLen(len: number) {
@@ -94,8 +99,12 @@ export class Service implements Destroy {
         this.frame.moveTo(position, ChangesInitiator.Selecting);
     }
 
-    public scrollUntil(position: number) {
-        console.log(`Not implemented: ${position}`);
+    public scrollToBottom() {
+        this.frame.moveTo(this.getLen() - 1, ChangesInitiator.Selecting);
+    }
+
+    public scrollToTop() {
+        this.frame.moveTo(0, ChangesInitiator.Selecting);
     }
 
     public setRows(rows: IRowsPacket) {
@@ -104,6 +113,10 @@ export class Service implements Destroy {
 
     public onRows(handler: (rows: IRowsPacket) => void): Subscription {
         return this._subjects.rows.subscribe(handler);
+    }
+
+    public onBound(handler: () => void): Subscription {
+        return this._subjects.bound.subscribe(handler);
     }
 
     public onLen(handler: (len: number) => void): Subscription {
@@ -120,5 +133,29 @@ export class Service implements Destroy {
 
     public refresh(): void {
         this._subjects.refresh.emit();
+    }
+
+    public focus(): {
+        get(): boolean;
+        in(): void;
+        out(): void;
+    } {
+        return {
+            get: (): boolean => {
+                return this._focus;
+            },
+            in: (): void => {
+                if (this._focus) {
+                    return;
+                }
+                this._focus = true;
+            },
+            out: (): void => {
+                if (!this._focus) {
+                    return;
+                }
+                this._focus = false;
+            },
+        };
     }
 }

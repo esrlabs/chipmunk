@@ -132,6 +132,10 @@ export class Frame extends Subscriber {
         return this._frame.getLength();
     }
 
+    public getRows(): Row[] {
+        return this._rows;
+    }
+
     public onFrameChange(handler: (rows: Row[]) => void): Subscription {
         return this._subjects.change.subscribe(handler);
     }

@@ -3,6 +3,7 @@ import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { cutUuid } from '@log/index';
 import { Owner } from '@schema/content/row';
 import { Row } from '@schema/content/row';
+import { hotkeys } from '@service/hotkeys';
 
 export interface SelectEvent {
     row: number;
@@ -33,6 +34,7 @@ export class Cursor extends Subscriber {
         this._uuid = uuid;
         this._onKeyDown = this._onKeyDown.bind(this);
         this._onKeyUp = this._onKeyUp.bind(this);
+        // TODO: use here global listener @ui/services/listener
         window.addEventListener('keydown', this._onKeyDown);
         window.addEventListener('keyup', this._onKeyUp);
     }

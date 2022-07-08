@@ -10,7 +10,7 @@ import {
     HostBinding,
     HostListener,
 } from '@angular/core';
-import { Subscription } from '@platform/env/subscription';
+import { Subscription, Subscriber } from '@platform/env/subscription';
 import { Row } from '@schema/content/row';
 import { Holder } from './controllers/holder';
 import { Service } from './controllers/service';
@@ -42,8 +42,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
 
     @Input() public service!: Service;
 
-    private readonly _subscriptions: Map<string, Subscription> = new Map();
-    private _focused: boolean = false;
+    private readonly _subscriber: Subscriber = new Subscriber();
     private _cssClass: string = '';
     private _removeGlobalStyleHandler: RemoveHandler | undefined;
 
@@ -68,10 +67,12 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
 
     @HostListener('focus') onFocus() {
         this.keyboard.focus();
+        this.service.focus().in();
     }
 
     @HostListener('blur') onBlur() {
         this.keyboard.blur();
+        this.service.focus().out();
     }
 
     public rows: Row[] = [];
@@ -90,9 +91,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
         this.holder.destroy();
         this.frame.destroy();
         this.selecting.destroy();
-        this._subscriptions.forEach((subscription: Subscription) => {
-            subscription.unsubscribe();
-        });
+        this._subscriber.unsubscribe();
     }
 
     public ngAfterViewInit(): void {
@@ -101,8 +100,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
         this.service.bind(this.frame);
         this.selecting.bind(this._nodeHolder.nativeElement, this.frame);
         this.keyboard.bind(this.frame);
-        this._subscriptions.set(
-            'onFrameChange',
+        this._subscriber.register(
             this.frame.onFrameChange((rows: Row[]) => {
                 const exists = this.rows.length;
                 rows.forEach((updated: Row, i: number) => {
@@ -121,8 +119,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
                 this.selecting.restore();
             }),
         );
-        this._subscriptions.set(
-            'onSelectionStart',
+        this._subscriber.register(
             this.selecting.onSelectionStart(() => {
                 this.cssClass = 'selecting';
                 this._removeGlobalStyleHandler = this.ilc().services.ui.styles
@@ -131,8 +128,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
 				}`);
             }),
         );
-        this._subscriptions.set(
-            'onSelectionFinish',
+        this._subscriber.register(
             this.selecting.onSelectionFinish(() => {
                 this.cssClass = '';
                 if (typeof this._removeGlobalStyleHandler === 'function') {
@@ -141,6 +137,23 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
                 }
             }),
         );
+        this._subscriber.register(
+            this.ilc().services.system.hotkeys.register('g', () => {
+                if (!this.service.focus().get()) {
+                    return;
+                }
+                this.service.scrollToTop();
+            }),
+        );
+        this._subscriber.register(
+            this.ilc().services.system.hotkeys.register('gg', () => {
+                if (!this.service.focus().get()) {
+                    return;
+                }
+                this.service.scrollToBottom();
+            }),
+        );
+
         this.frame.init();
     }
 

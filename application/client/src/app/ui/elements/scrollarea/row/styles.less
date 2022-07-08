@@ -31,6 +31,24 @@
             display: block;
         }
     }
+    &[data-selected="true"] {
+        & div.signature {
+            & span.number {
+                &::before {
+                    position: absolute;
+                    display: block;
+                    content: '';
+                    top: 6px;
+                    bottom: 0;
+                    left: -8px;
+                    width: 4px;
+                    height: 4px;
+                    border-radius: 2px;
+                    background: @scheme-color-accent;
+                }
+            }
+        }    
+    }
     & div.signature {
         display: inline-block;
         position: relative;
