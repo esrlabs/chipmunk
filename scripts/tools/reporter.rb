@@ -14,6 +14,7 @@ module Owner
   Indexer = 'Indexer'
   Rustcore = 'Rustcore'
   Bindings = 'Bindings'
+  Matcher = 'Matcher'
 end
 
 class Reporter

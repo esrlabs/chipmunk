@@ -15,4 +15,5 @@ module Paths
   CLIPPY_STABLE = 'cargo clippy --all --all-features -- -D warnings'
   TSC = "#{ELECTRON}/node_modules/.bin/tsc"
   CONFIG = 'scripts/config.json'
+  MATCHER = 'application/apps/webassembly/matcher'
 end
