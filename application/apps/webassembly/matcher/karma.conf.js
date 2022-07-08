@@ -55,7 +55,13 @@ module.exports = function (config) {
             "**/*.ts": ["webpack"]
         },
 
-        browsers: ["Chrome"],
+        browsers: ['ChromeHeadless'],
+        customLaunchers: {
+            ChromeHeadlessCustom: {
+                base: 'ChromeHeadless',
+                flags: ['--no-sandbox', '--disable-gpu']
+            }
+        },
 
         exprContextCritical: false,
 
