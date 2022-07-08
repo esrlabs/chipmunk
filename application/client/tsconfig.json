@@ -41,6 +41,7 @@
       "@tabs/*": ["src/app/ui/tabs/*"],
       "@statusbar/*": ["src/app/ui/statusbar/*"],
       "@sidebar/*": ["src/app/ui/sidebar/*"],
+      "@matcher/*": ["../apps/webassembly/matcher/pkg/*"],
       "tslib": ["node_modules/tslib"],
     }
   },
