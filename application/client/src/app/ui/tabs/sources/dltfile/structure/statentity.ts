@@ -1,7 +1,6 @@
 import { LevelDistribution } from '@platform/types/parsers/dlt';
 import { Subject } from '@platform/env/subscription';
-
-import * as regex from '@platform/env/regex';
+import { Matcher } from '@matcher/matcher';
 
 export interface Section {
     key: string;
@@ -24,7 +23,8 @@ export class StatEntity {
     public log_verbose: number;
     public log_invalid: number;
 
-    private _filter: string = '';
+    private _matcher: Matcher = Matcher.new();
+    private _html_id: string;
 
     constructor(id: string, parent: string, from: LevelDistribution) {
         this.id = id;
@@ -37,19 +37,11 @@ export class StatEntity {
         this.log_debug = from.log_debug;
         this.log_verbose = from.log_verbose;
         this.log_invalid = from.log_invalid;
+        this._html_id = id;
     }
 
-    public getIdAsHtml(): string {
-        if (this._filter === '') {
-            return this.id;
-        }
-        const reg = regex.fromStr(this._filter);
-        if (reg instanceof Error) {
-            return this.id;
-        }
-        return this.id.replace(reg, (match): string => {
-            return `<span>${match}</span>`;
-        });
+    public get html_id(): string {
+        return this._html_id;
     }
 
     public hash(): string {
@@ -69,7 +61,12 @@ export class StatEntity {
     }
 
     public filter(filter: string) {
-        this._filter = filter.trim();
-        this.hidden = this._filter === '' ? false : this.id.toLowerCase().indexOf(filter) === -1;
+        const id = this._matcher.search_single(filter, this.id);
+        if (id === this.id && filter !== '') {
+            this.hidden = true;
+        } else {
+            this.hidden = false;
+            this._html_id = id;
+        }
     }
 }
