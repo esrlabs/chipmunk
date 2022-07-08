@@ -2,38 +2,38 @@ import { SafeHtml } from '@angular/platform-browser';
 import { Observable } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
-import { wrapMatchesToSafeHtml } from '@ui/env/globals';
+import { getDomSanitizer } from '@ui/env/globals';
 import { Entry, EntryConvertable } from '@platform/types/storage/entry';
 import { error } from '@platform/env/logger';
 import { Storage } from '@env/fsstorage';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
+import { Matcher } from '@matcher/matcher';
 
 import * as obj from '@platform/env/obj';
 
 export class Recent implements EntryConvertable {
     public value: string = '';
-    public filter: string = '';
     public used: number = 0;
 
-    private _valueLowerCase: string = '';
-    private _filterLowerCase: string = '';
+    private _htmlValue: string = '';
+    private _matcher: Matcher = Matcher.new();
+    private _filtered: boolean = false;
 
     constructor(value: string) {
         this.value = value;
-        this._valueLowerCase = value.toLowerCase();
     }
 
     public html(): SafeHtml {
-        return wrapMatchesToSafeHtml(this.filter, this.value);
+        return getDomSanitizer().bypassSecurityTrustHtml(this._htmlValue);
     }
 
     public setFilter(filter: string) {
-        this.filter = filter;
-        this._filterLowerCase = filter.toLowerCase();
+        this._htmlValue = this._matcher.search_single(filter, this.value);
+        this._filtered = this._htmlValue !== this.value;
     }
 
-    public filtered(): boolean {
-        return this._valueLowerCase.indexOf(this._filterLowerCase) !== -1;
+    public get filtered(): boolean {
+        return this._filtered;
     }
 
     public entry(): {
@@ -61,7 +61,6 @@ export class Recent implements EntryConvertable {
                     } = JSON.parse(entry.content);
                     this.value = obj.getAsNotEmptyString(def, 'filter');
                     this.used = obj.getAsValidNumber(def, 'used');
-                    this._valueLowerCase = this.value.toLowerCase();
                 } catch (e) {
                     return new Error(error(e));
                 }
@@ -93,7 +92,7 @@ export class RecentList extends Storage implements EntryConvertable {
             startWith(''),
             map((filter: string) => {
                 this.setFilter(filter);
-                return this.items.filter((i) => i.filtered());
+                return this.items.filter((i) => i.filtered);
             }),
         );
         this.setLoggerName(`RecentList`);
@@ -140,8 +139,7 @@ export class RecentList extends Storage implements EntryConvertable {
     }
 
     public setFilter(filter: string) {
-        this.filter = filter.trim() === '' ? '' : filter;
-        this.items.forEach((i) => i.setFilter(this.filter));
+        this.items.forEach((i) => i.setFilter(filter));
     }
 
     public entry(): {
