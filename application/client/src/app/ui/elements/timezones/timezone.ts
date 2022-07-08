@@ -1,5 +1,5 @@
 import * as moment_timezone from 'moment-timezone';
-import * as regex from '@platform/env/regex';
+import { Matcher } from '@matcher/matcher';
 
 export class Timezone {
     public readonly name: string;
@@ -7,11 +7,15 @@ export class Timezone {
     public readonly offset: number;
     public hidden: boolean = false;
 
-    private _filter: string = '';
+    private _matcher: Matcher = Matcher.new();
+    private _html_name: string;
+    private _html_utc: string;
 
     constructor(name: string, utc: string, offset: number) {
         this.name = name;
+        this._html_name = name;
         this.utc = utc;
+        this._html_utc = utc;
         this.offset = offset;
     }
 
@@ -30,38 +34,23 @@ export class Timezone {
         );
     }
 
-    public getNameAsHtml(): string {
-        if (this._filter === '') {
-            return this.name;
-        }
-        const reg = regex.fromStr(this._filter);
-        if (reg instanceof Error) {
-            return this.name;
-        }
-        return this.name.replace(reg, (match): string => {
-            return `<span>${match}</span>`;
-        });
+    public get html_name(): string {
+        return this._html_name;
     }
 
-    public getUtcAsHtml(): string {
-        if (this._filter === '') {
-            return this.utc;
-        }
-        const reg = regex.fromStr(this._filter);
-        if (reg instanceof Error) {
-            return this.utc;
-        }
-        return this.utc.replace(reg, (match): string => {
-            return `<span>${match}</span>`;
-        });
+    public get html_utc(): string {
+        return this._html_utc;
     }
 
     public filter(filter: string) {
-        this._filter = filter.trim();
-        this.hidden =
-            this._filter === ''
-                ? false
-                : this.name.toLowerCase().indexOf(filter) === -1 &&
-                  this.utc.toLowerCase().indexOf(filter) === -1;
+        const name = this._matcher.search_single(filter, this.name);
+        const utc = this._matcher.search_single(filter, this.utc);
+        if (name === this.name && utc === this.utc && filter !== '') {
+            this.hidden = true;
+        } else {
+            this.hidden = false;
+            this._html_name = name;
+            this._html_utc = utc;
+        }
     }
 }
