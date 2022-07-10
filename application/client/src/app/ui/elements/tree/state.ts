@@ -18,21 +18,62 @@ export class State {
         tree: FlatTreeControl<Scheme.DynamicFlatNode>;
         source: Scheme.DynamicDataSource;
     };
+    protected ilc: IlcInterface & ChangesDetector;
     private _services!: Services;
     private _log!: Logger;
 
     constructor(ilc: IlcInterface & ChangesDetector) {
+        this.ilc = ilc;
         this.filter = new Filter(ilc, {
             clearOnEnter: true,
             clearOnEscape: true,
         });
-        this.filter.subjects.get().change.subscribe((value: string) => {
+        this.filter.subjects.get().change.subscribe(() => {
             ilc.detectChanges();
         });
         this.filter.subjects.get().enter.subscribe((path: string) => {
             this.addPlace(path);
             ilc.detectChanges();
         });
+        ilc.env().subscriber.register(
+            ilc
+                .ilc()
+                .services.ui.listener.listen<KeyboardEvent>(
+                    'keydown',
+                    window,
+                    (event: KeyboardEvent) => {
+                        const count = this.scheme.source.data.length;
+                        const selected = this.scheme.source.data.findIndex((d) => d.item.selected);
+                        if (selected === -1) {
+                            if (count > 0) {
+                                this.scheme.source.data[0].item.selecting().select();
+                            }
+                            return true;
+                        }
+                        const selectedRef = this.scheme.source.data[selected];
+                        const nextRef = this.scheme.source.data[selected + 1];
+                        const prevRef = this.scheme.source.data[selected - 1];
+                        if (event.key === 'ArrowDown' && nextRef !== undefined) {
+                            selectedRef.item.selecting().unselect();
+                            nextRef.item.selecting().select();
+                        } else if (event.key === 'ArrowUp' && prevRef !== undefined) {
+                            selectedRef.item.selecting().unselect();
+                            prevRef.item.selecting().select();
+                        } else if (event.key === ' ') {
+                            if (selectedRef.expandable) {
+                                this.scheme.source.toggleNode(selectedRef, true);
+                            }
+                        }
+                        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                            ilc.detectChanges();
+                            this._scrollIntoView();
+                            return false;
+                        }
+                        ilc.detectChanges();
+                        return true;
+                    },
+                ),
+        );
     }
 
     public init(services: Services, log: Logger): void {
@@ -52,10 +93,22 @@ export class State {
                 this.favourites = favourites.slice();
                 this.scheme.db.overwrite(favourites.slice());
                 this.scheme.source.data = this.scheme.db.initialData();
+                if (this.scheme.source.data.length > 0) {
+                    this.scheme.source.data[0].item.selecting().select();
+                }
             })
             .catch((err: Error) => {
                 this._log.error(`Fail to read favourites: ${err.message}`);
             });
+    }
+
+    public select(node: Scheme.DynamicFlatNode) {
+        const selected = this.scheme.source.data.find((d) => d.item.selected);
+        if (selected !== undefined) {
+            selected.item.selecting().unselect();
+        }
+        node.item.selecting().select();
+        this.ilc.detectChanges();
     }
 
     public addPlace(path: string) {
@@ -110,5 +163,19 @@ export class State {
                 );
             },
         };
+    }
+
+    private _scrollIntoView() {
+        const nodes = document.querySelectorAll(`mat-tree-node[data-selected="true"]`);
+        if (nodes.length === 0) {
+            return;
+        }
+        nodes.forEach((node: Element) => {
+            (node as HTMLElement).scrollIntoView({
+                behavior: 'auto',
+                block: 'nearest',
+                inline: 'nearest',
+            });
+        });
     }
 }

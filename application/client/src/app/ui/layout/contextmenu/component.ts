@@ -6,7 +6,6 @@ import {
     AfterViewInit,
     ElementRef,
 } from '@angular/core';
-import { IComponentDesc } from '@ui/elements/containers/dynamic/component';
 import { Ilc, IlcInterface, Declarations } from '@env/decorators/component';
 import { unique } from '@platform/env/sequence';
 

@@ -1,7 +1,6 @@
 import {
     Component,
     ChangeDetectorRef,
-    ViewContainerRef,
     AfterViewInit,
     HostBinding,
     SkipSelf,

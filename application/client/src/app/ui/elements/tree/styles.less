@@ -25,6 +25,19 @@
         & mat-tree-node {
             position: relative;
             min-height: 24px;
+            border: solid thin rgba(0,0,0,0);
+            &[data-selected="true"] {
+                &:after {
+                    position: absolute;
+                    content: '';
+                    display: block;
+                    width: 2px;
+                    height: 100%;
+                    left: 0;
+                    top:0;
+                    background: @scheme-color-3;
+                }
+            }
             &:hover {
                 background: @scheme-color-hover;
             }
@@ -38,6 +51,11 @@
                 width: 18px;
                 line-height: 18px;
                 font-size: 18px;
+            }
+            & mat-progress-bar {
+                position: absolute;
+                height: 2px;
+                bottom: 0;                
             }
             & span.name {
                 position: relative;

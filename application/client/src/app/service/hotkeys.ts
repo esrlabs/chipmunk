@@ -7,7 +7,6 @@ import { listener } from '@ui/service/listener';
 import { ilc, Services } from '@service/ilc';
 import { unique } from '@platform/env/sequence';
 import { components } from '@env/decorators/initial';
-import { RecentActionsMini } from '@ui/elements/recent.mini/component';
 import { Vertical, Horizontal } from '@ui/service/pupup';
 
 @SetupService(services['hotkeys'])

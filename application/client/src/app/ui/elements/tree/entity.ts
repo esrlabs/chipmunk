@@ -12,6 +12,7 @@ export class Entity {
     public readonly entity: IEntity;
     public readonly parent: string;
     public icon: string | undefined;
+    public selected: boolean = false;
 
     constructor(entity: IEntity, parent: string) {
         this.entity = entity;
@@ -45,5 +46,19 @@ export class Entity {
 
     public getName(): string {
         return this.entity.name;
+    }
+
+    public selecting(): {
+        select(): void;
+        unselect(): void;
+    } {
+        return {
+            select: (): void => {
+                this.selected = true;
+            },
+            unselect: (): void => {
+                this.selected = false;
+            },
+        };
     }
 }
