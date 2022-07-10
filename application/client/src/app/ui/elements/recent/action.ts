@@ -25,6 +25,10 @@ export class WrappedAction {
         };
     }
 
+    public hash(): string {
+        return `${this.action.description().major}-${this.action.description().minor}`;
+    }
+
     public filter(filter: string) {
         this._filter = filter.trim();
         this._htmlMajor = getMatcher().search_single(this._filter, this.action.description().major);

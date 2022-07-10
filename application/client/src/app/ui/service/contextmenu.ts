@@ -18,6 +18,7 @@ export interface IMenu {
     id?: string;
     component?: IComponentDesc;
     items?: IMenuItem[];
+    after?: () => void;
     x: number;
     y: number;
 }

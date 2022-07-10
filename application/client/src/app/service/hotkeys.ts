@@ -6,7 +6,9 @@ import { Subscriber, Subscription } from '@platform/env/subscription';
 import { listener } from '@ui/service/listener';
 import { ilc, Services } from '@service/ilc';
 import { unique } from '@platform/env/sequence';
-import { Hotkeys } from '@views/dialogs/hotkeys/component';
+import { components } from '@env/decorators/initial';
+import { RecentActionsMini } from '@ui/elements/recent.mini/component';
+import { Vertical, Horizontal } from '@ui/service/pupup';
 
 @SetupService(services['hotkeys'])
 export class Service extends Implementation {
@@ -63,7 +65,29 @@ export class Service extends Implementation {
         );
         this._subscriber.register(
             this.register('?', () => {
-                this._services.ui.bottomsheet.show(Hotkeys, {});
+                this._services.ui.popup.open({
+                    component: {
+                        factory: components.get('app-dialogs-hotkeys'),
+                        inputs: {},
+                    },
+                    closeOnKey: '*',
+                });
+            }),
+        );
+        this._subscriber.register(
+            this.register('Ctrl + P', () => {
+                this._services.ui.popup.open({
+                    component: {
+                        factory: components.get('app-recent-actions-mini'),
+                        inputs: {},
+                    },
+                    position: {
+                        vertical: Vertical.top,
+                        horizontal: Horizontal.center,
+                    },
+                    closeOnKey: 'Escape',
+                    width: 450,
+                });
             }),
         );
         this.check().all();

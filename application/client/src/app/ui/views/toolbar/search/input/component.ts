@@ -113,14 +113,6 @@ export class ViewSearchInput
         }
     }
 
-    public ngOnKeyUpSearchInput(event: KeyboardEvent) {
-        this.input.keyup(event);
-    }
-
-    public ngOnKeyDownSearchInput() {
-        this.input.keydown();
-    }
-
     public drop() {
         this.active = undefined;
         this.progress.hide();

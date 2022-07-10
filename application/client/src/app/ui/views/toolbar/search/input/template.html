@@ -23,8 +23,8 @@
             [readonly]="input.readonly"
             [matAutocomplete]="auto"
             [matAutocompleteDisabled]="!input.recent"
-            (keyup)="ngOnKeyUpSearchInput($event)"
-            (keydown)="ngOnKeyDownSearchInput()"
+            (keyup)="input.keyup($event)"
+            (keydown)="input.keydown()"
         />
         <mat-autocomplete
             #auto="matAutocomplete"

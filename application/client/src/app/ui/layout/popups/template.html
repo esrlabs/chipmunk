@@ -1,0 +1,2 @@
+<div class="background" (click)="onBGClick()"></div>
+<app-layout-popup *ngFor="let popup of popups | keyvalue" [popup]="popup.value.popup" [close]="popup.value.close"></app-layout-popup>

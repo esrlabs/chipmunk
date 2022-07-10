@@ -1,0 +1,12 @@
+<app-filter-input [filter]="state.filter"></app-filter-input>
+<div class="actions">
+    <div [attr.class]="'action ' + (state.selected === action.hash() ? 'selected' : '')" 
+        *ngFor="let action of state.getFilteredActions();" 
+        (click)="onDefaultAction(action.action)" 
+        (contextmenu)="onAllActions($event, action.action)">
+        <p class="t-medium nowrap description">
+            <span class="color-scheme-1 major" [innerHTML]="safeHtml(action.description().major)"></span>
+            <span class="color-scheme-2 minor" [innerHTML]="safeHtml(action.description().minor)"></span>
+        </p>
+    </div>
+</div>

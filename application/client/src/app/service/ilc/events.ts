@@ -28,8 +28,9 @@ export class Events {
             close: Subject<void>;
         };
         popup: {
-            open: Subject<Declarations.IPopup>;
+            open: Subject<Declarations.Popup>;
             close: Subject<string>;
+            updated: Subject<number>;
         };
         toolbar: {
             min: Subject<void>;
@@ -84,8 +85,9 @@ export class Events {
                 close: this._add<void>(new Subject<void>()),
             },
             popup: {
-                open: this._add<Declarations.IPopup>(new Subject<Declarations.IPopup>()),
+                open: this._add<Declarations.Popup>(new Subject<Declarations.Popup>()),
                 close: this._add<string>(new Subject<string>()),
+                updated: this._add<number>(new Subject<number>()),
             },
             toolbar: {
                 min: this._add<void>(new Subject<void>()),

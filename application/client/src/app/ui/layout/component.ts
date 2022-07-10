@@ -1,4 +1,12 @@
-import { Component, ChangeDetectorRef, ViewContainerRef, AfterViewInit } from '@angular/core';
+import {
+    Component,
+    ChangeDetectorRef,
+    ViewContainerRef,
+    AfterViewInit,
+    HostBinding,
+    SkipSelf,
+    NgZone,
+} from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { LimittedValue } from '@ui/env/entities/value.limited';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -29,6 +37,10 @@ function initialSidebarWidth(): LimittedValue {
 export class Layout extends ChangesDetector implements AfterViewInit {
     public readonly Direction = Direction;
 
+    @HostBinding('class') get cssClass() {
+        return this.ilc().services.ui.popup.getCount() > 0 ? 'blur' : '';
+    }
+
     public toolbar: LimittedValue = initialToolbarHeight();
     public sidebar: LimittedValue = initialSidebarWidth();
     public session: Base | undefined;
@@ -36,7 +48,7 @@ export class Layout extends ChangesDetector implements AfterViewInit {
     private _layout: DOMRect | undefined;
     private readonly _sessions: Map<string, { toolbar: number; sidebar: number }> = new Map();
 
-    constructor(cdRef: ChangeDetectorRef, private _vcRef: ViewContainerRef) {
+    constructor(@SkipSelf() cdRef: ChangeDetectorRef, private ngZone: NgZone) {
         super(cdRef);
         this.ilc().channel.session.change(this._onSessionChange.bind(this));
         this.ilc().channel.session.close(this._onSessionClosed.bind(this));
@@ -44,6 +56,11 @@ export class Layout extends ChangesDetector implements AfterViewInit {
 
     public ngAfterViewInit(): void {
         this._onSessionChange();
+        this.ilc().channel.ui.popup.updated(() => {
+            this.ngZone.run(() => {
+                this.detectChanges();
+            });
+        });
     }
 
     public ngSidebarResize(width: number) {

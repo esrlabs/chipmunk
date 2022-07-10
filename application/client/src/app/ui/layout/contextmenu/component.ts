@@ -17,10 +17,9 @@ import { unique } from '@platform/env/sequence';
 })
 @Ilc()
 export class LayoutContextMenu implements OnDestroy, AfterViewInit {
-    @ViewChild('menu') _ng_menu!: ElementRef;
+    @ViewChild('menu') _ng_menuRef!: ElementRef;
 
-    public _ng_component: IComponentDesc | undefined;
-    public _ng_items: Declarations.IMenuItem[] | undefined;
+    public _ng_menu: Declarations.IMenu | undefined;
     public _ng_guid: string = unique();
 
     private _top: number = 0;
@@ -59,22 +58,24 @@ export class LayoutContextMenu implements OnDestroy, AfterViewInit {
             return;
         }
         item.handler();
+        if (this._ng_menu !== undefined && this._ng_menu.after !== undefined) {
+            this._ng_menu.after();
+        }
         this._remove();
     }
 
     private _open(menu: Declarations.IMenu) {
-        this._ng_component = menu.component;
-        this._ng_items = menu.items;
+        this._ng_menu = menu;
         this._top = menu.y;
         this._left = menu.x;
         this._cdRef.detectChanges();
         // Recheck position
         setTimeout(() => {
-            if (this._ng_menu === undefined || this._ng_menu === null) {
+            if (this._ng_menuRef === undefined || this._ng_menuRef === null) {
                 return;
             }
             const size: ClientRect = (
-                this._ng_menu.nativeElement as HTMLElement
+                this._ng_menuRef.nativeElement as HTMLElement
             ).getBoundingClientRect();
             if (window.innerWidth < size.width + menu.x) {
                 this._left = window.innerWidth - size.width;
@@ -108,8 +109,7 @@ export class LayoutContextMenu implements OnDestroy, AfterViewInit {
     }
 
     private _remove() {
-        this._ng_component = undefined;
-        this._ng_items = undefined;
+        this._ng_menu = undefined;
         this._top = 0;
         this._left = 0;
         this._cdRef.detectChanges();

@@ -32,8 +32,9 @@ export class Emitter {
             close: Handler<void>;
         };
         popup: {
-            open: Handler<Declarations.IPopup>;
+            open: Handler<Declarations.Popup>;
             close: Handler<string>;
+            updated: Handler<number>;
         };
         toolbar: {
             min: Handler<void>;
@@ -92,8 +93,9 @@ export class Emitter {
                 close: this._add<void>(this._events.ui.contextmenu.close),
             },
             popup: {
-                open: this._add<Declarations.IPopup>(this._events.ui.popup.open),
+                open: this._add<Declarations.Popup>(this._events.ui.popup.open),
                 close: this._add<string>(this._events.ui.popup.close),
+                updated: this._add<number>(this._events.ui.popup.updated),
             },
             toolbar: {
                 min: this._add<void>(this._events.ui.toolbar.min),

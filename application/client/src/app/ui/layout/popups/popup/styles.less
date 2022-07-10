@@ -1,0 +1,40 @@
+@import '../../../styles/variables.less';
+:host {
+    position: absolute;
+    display: flex;
+    z-index: 1000;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    flex-direction: column;
+    & .container {
+        background: @scheme-color-5;
+        box-shadow: 3px 3px 4px rgba(0,0,0,0.4);
+        max-width: 70%;
+        max-height: 80%;
+        overflow: auto;
+    }
+    &.v-bottom {
+        justify-content: flex-end;
+    }
+    &.v-top {
+        justify-content:flex-start;
+    }
+    &.v-center {
+        justify-content: center;
+    }
+    &.h-left {
+        align-items:flex-start;
+        align-content:flex-start;
+    }
+    &.h-right {
+        align-items:flex-end;
+        align-content:flex-end;
+    }
+    &.h-center {
+        align-items: center;
+        align-content: center;
+    }
+}

@@ -43,11 +43,16 @@ export interface Accessor {
     unbound: (cb: (session: UnboundTab) => void) => boolean;
 }
 
+export interface Life {
+    destroy: (handler: () => void) => void;
+}
+
 export interface IlcInterface {
     log(): Logger;
     ilc(): InternalAPI;
     env(): Env;
     access(): Accessor;
+    life(): Life;
 }
 
 // System services

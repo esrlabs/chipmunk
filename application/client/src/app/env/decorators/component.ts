@@ -11,6 +11,7 @@ import {
     Env,
     IlcInterface,
     Accessor,
+    Life,
 } from '@service/ilc';
 import { unique } from '@platform/env/sequence';
 import { Subscriber } from '@platform/env/subscription';
@@ -19,12 +20,15 @@ import { Session, UnboundTab } from '@service/session';
 export { Channel, Emitter, Declarations, IlcInterface, Env };
 
 const UUID_KEY = '__ilc_uuid_key___';
-const instances: Map<string, { api: InternalAPI; env: Env; access: Accessor }> = new Map();
+const instances: Map<
+    string,
+    { api: InternalAPI; env: Env; access: Accessor; life: Life; distructors: Array<() => void> }
+> = new Map();
 
 function getIlcInstance(
     entity: any,
     selector: string,
-): { api: InternalAPI; env: Env; access: Accessor } {
+): { api: InternalAPI; env: Env; access: Accessor; life: Life } {
     if (entity[UUID_KEY] === undefined) {
         entity[UUID_KEY] = unique();
     }
@@ -34,6 +38,7 @@ function getIlcInstance(
         const logger = scope.getLogger(`COM: ${selector}`);
         const sessions = ilc.services(selector, logger);
         instance = {
+            distructors: [],
             api: {
                 channel: ilc.channel(selector, logger),
                 emitter: ilc.emitter(selector, logger),
@@ -61,6 +66,15 @@ function getIlcInstance(
                     return true;
                 },
             },
+            life: {
+                destroy: (handler: () => void) => {
+                    const instance = instances.get(uuid);
+                    if (instance === undefined) {
+                        return;
+                    }
+                    instance.distructors.push(handler);
+                },
+            },
         };
         instances.set(uuid, instance);
     }
@@ -76,6 +90,7 @@ function removeIlcInstance(entity: any): void {
     if (instance === undefined) {
         return;
     }
+    instance.distructors.forEach((distructor) => distructor());
     instance.api.channel.destroy();
     instance.api.emitter.destroy();
     instance.env.subscriber.unsubscribe();
@@ -98,6 +113,9 @@ export const Ilc = singleDecoratorFactory((constructor: DecoratorConstructor) =>
     };
     constructor.prototype.access = function (): Accessor {
         return getIlcInstance(this, selector).access;
+    };
+    constructor.prototype.life = function (): Life {
+        return getIlcInstance(this, selector).life;
     };
     const ngOnDestroy = constructor.prototype.ngOnDestroy;
     if (ngOnDestroy === undefined) {

@@ -1,0 +1,14 @@
+<mat-form-field class="outline" appearance="outline">
+    <input
+        #filterinput
+        tabindex="1000"
+        type="text"
+        placeholder="Filter recent actions"
+        aria-label="Filter"
+        matInput
+        [formControl]="input.control"
+        (focus)="input.onFocus()"
+        (blur)="input.onBlur()"
+        (keyup)="input.keyup($event)"
+    />
+</mat-form-field>  

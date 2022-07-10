@@ -1,1 +1,1 @@
-export { IPopup } from '@ui/service/pupup';
+export { Popup } from '@ui/service/pupup';

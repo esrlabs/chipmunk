@@ -15,10 +15,11 @@ import * as Scheme from './scheme';
 @Initial()
 @Ilc()
 export class ElementsTreeSelector extends ChangesDetector implements AfterContentInit {
-    public state: State = new State();
+    public state: State;
 
     constructor(cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
         super(cdRef);
+        this.state = new State(this);
     }
 
     public ngAfterContentInit(): void {
@@ -28,13 +29,6 @@ export class ElementsTreeSelector extends ChangesDetector implements AfterConten
     public safeHtml(html: string): SafeHtml {
         return this._sanitizer.bypassSecurityTrustHtml(html);
     }
-
-    // constructor(database: DynamicDatabase) {
-    //     this.treeControl = new FlatTreeControl<DynamicFlatNode>(this.getLevel, this.isExpandable);
-    //     this.dataSource = new DynamicDataSource(this.treeControl, database);
-
-    //     this.dataSource.data = database.initialData();
-    // }
 
     public hasChild(_: number, _nodeData: Scheme.DynamicFlatNode): boolean {
         return _nodeData.expandable;

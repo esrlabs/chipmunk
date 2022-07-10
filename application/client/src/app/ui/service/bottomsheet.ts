@@ -6,6 +6,7 @@ import { Subject } from '@platform/env/subscription';
 
 export interface Options {
     closed?: () => void;
+    position?: 'top' | 'bottom';
 }
 
 @SetupService(ui['bottomsheet'])
