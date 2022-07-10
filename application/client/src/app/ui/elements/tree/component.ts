@@ -68,5 +68,12 @@ export class ElementsTreeSelector extends ChangesDetector implements AfterConten
             y: event.y,
         });
     }
+
+    public onScrolling(event: Event) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        return false;
+    }
 }
 export interface ElementsTreeSelector extends IlcInterface {}

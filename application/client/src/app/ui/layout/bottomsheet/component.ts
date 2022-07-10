@@ -8,7 +8,6 @@ import {
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { MatBottomSheet, MatBottomSheetRef } from '@angular/material/bottom-sheet';
-import { Direction } from '@angular/cdk/bidi';
 
 @Component({
     selector: 'app-layout-bottomsheet',

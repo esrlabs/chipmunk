@@ -1,16 +1,23 @@
 <div class="controls">
   <app-filter-input [filter]="state.filter"></app-filter-input>
 </div>
-<div class="tree">
+<div class="tree" (scroll)="onScrolling($event)">
   <mat-tree [dataSource]="state.scheme.source" [treeControl]="state.scheme.tree" >
-    <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding [matTreeNodePaddingIndent]="20" (contextmenu)="ngItemContextMenu($event, node.item)">
+    <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding
+      [matTreeNodePaddingIndent]="20"
+      [attr.data-selected]="node.item.selected"
+      (click)="state.select(node)"
+      (contextmenu)="ngItemContextMenu($event, node.item)">
       <button mat-icon-button disabled></button>
       <span [attr.class]="'name ' + (node.item.icon === undefined ? 'no-icon' : '')">
         <mat-icon *ngIf="node.item.icon !== undefined" class="item-icon">{{node.item.icon}}</mat-icon>
         {{node.item.getName()}}
       </span>
     </mat-tree-node>
-    <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding [matTreeNodePaddingIndent]="20">
+    <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding 
+      [matTreeNodePaddingIndent]="20"
+      (click)="state.select(node)"
+      [attr.data-selected]="node.item.selected">
       <button mat-icon-button
               [attr.aria-label]="'Toggle ' + node.item.getName()" matTreeNodeToggle>
         <mat-icon class="mat-icon-rtl-mirror">
@@ -19,8 +26,7 @@
       </button>
       <span class="name">{{node.item.getName()}}</span>
       <mat-progress-bar *ngIf="node.isLoading"
-                        mode="indeterminate"
-                        class="example-tree-progress-bar"></mat-progress-bar>
+                        mode="indeterminate"></mat-progress-bar>
     </mat-tree-node>
   </mat-tree>  
 </div>

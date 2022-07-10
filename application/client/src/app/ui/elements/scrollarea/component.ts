@@ -10,7 +10,7 @@ import {
     HostBinding,
     HostListener,
 } from '@angular/core';
-import { Subscription, Subscriber } from '@platform/env/subscription';
+import { Subscriber } from '@platform/env/subscription';
 import { Row } from '@schema/content/row';
 import { Holder } from './controllers/holder';
 import { Service } from './controllers/service';
