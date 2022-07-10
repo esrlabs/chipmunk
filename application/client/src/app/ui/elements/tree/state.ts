@@ -2,12 +2,16 @@ import { Entity, EntityType } from '@platform/types/files';
 import { FlatTreeControl } from '@angular/cdk/tree';
 import { Services } from '@service/ilc';
 import { Instance as Logger } from '@platform/env/logger';
+import { Filter } from '@elements/filter/filter';
+import { IlcInterface } from '@service/ilc';
+import { ChangesDetector } from '@ui/env/extentions/changes';
 
 import * as Scheme from './scheme';
 
 const STORAGE_KEY = 'user_favourites_places';
 
 export class State {
+    public filter: Filter;
     public favourites: string[] = [];
     public scheme!: {
         db: Scheme.DynamicDatabase;
@@ -16,6 +20,20 @@ export class State {
     };
     private _services!: Services;
     private _log!: Logger;
+
+    constructor(ilc: IlcInterface & ChangesDetector) {
+        this.filter = new Filter(ilc, {
+            clearOnEnter: true,
+            clearOnEscape: true,
+        });
+        this.filter.subjects.get().change.subscribe((value: string) => {
+            ilc.detectChanges();
+        });
+        this.filter.subjects.get().enter.subscribe((path: string) => {
+            this.addPlace(path);
+            ilc.detectChanges();
+        });
+    }
 
     public init(services: Services, log: Logger): void {
         this._services = services;

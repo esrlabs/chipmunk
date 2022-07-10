@@ -1,19 +1,21 @@
 import {
     Component,
+    AfterViewInit,
     AfterContentInit,
     ChangeDetectionStrategy,
     ChangeDetectorRef,
     ViewEncapsulation,
+    Input,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { Action } from '@service/recent/action';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { State } from './state';
+import { State, CloseHandler } from './state';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
-    selector: 'app-recent-actions',
+    selector: 'app-recent-actions-mini',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -21,7 +23,9 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 })
 @Initial()
 @Ilc()
-export class RecentActions extends ChangesDetector implements AfterContentInit {
+export class RecentActionsMini extends ChangesDetector implements AfterViewInit, AfterContentInit {
+    @Input() close: CloseHandler | undefined;
+
     public readonly state: State;
 
     constructor(cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
@@ -29,17 +33,23 @@ export class RecentActions extends ChangesDetector implements AfterContentInit {
         this.state = new State(this);
         this.env().subscriber.register(
             this.state.update.subscribe(() => {
-                this.markChangesForCheck();
+                this.detectChanges();
             }),
         );
     }
 
     public ngAfterContentInit(): void {
-        this.markChangesForCheck();
+        this.close !== undefined && this.state.bind(this.close);
+    }
+
+    public ngAfterViewInit(): void {
+        this.detectChanges();
+        this.state.filter.focus();
     }
 
     public onDefaultAction(action: Action) {
         action.apply();
+        this.close !== undefined && this.close();
     }
 
     public onAllActions(event: MouseEvent, action: Action) {
@@ -63,6 +73,9 @@ export class RecentActions extends ChangesDetector implements AfterContentInit {
             items,
             x: event.x,
             y: event.y,
+            after: () => {
+                this.close !== undefined && this.close();
+            },
         });
     }
 
@@ -70,4 +83,4 @@ export class RecentActions extends ChangesDetector implements AfterContentInit {
         return this._sanitizer.bypassSecurityTrustHtml(html);
     }
 }
-export interface RecentActions extends IlcInterface {}
+export interface RecentActionsMini extends IlcInterface {}

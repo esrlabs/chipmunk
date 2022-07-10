@@ -8,6 +8,7 @@ import {
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { MatBottomSheet, MatBottomSheetRef } from '@angular/material/bottom-sheet';
+import { Direction } from '@angular/cdk/bidi';
 
 @Component({
     selector: 'app-layout-bottomsheet',
@@ -50,6 +51,12 @@ export class LayoutBottomSheet extends ChangesDetector implements AfterContentIn
                     bottomSheetRef.afterOpened().subscribe(() => {
                         this.detectChanges();
                     });
+                    if (comp.options !== undefined) {
+                        if (comp.options.position === 'top') {
+                            (bottomSheetRef as any)._overlayRef._config.positionStrategy.top();
+                            console.log(bottomSheetRef.containerInstance);
+                        }
+                    }
                     this._refs.set(comp.uuid, bottomSheetRef);
                     this.detectChanges();
                 });

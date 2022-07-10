@@ -37,6 +37,8 @@ export class SearchInput {
         this.actions.accept.destroy();
         this.actions.drop.destroy();
         this.actions.recent.destroy();
+        this.actions.edit.destroy();
+        this.actions.clear.destroy();
     }
 
     public bind(ref: HTMLInputElement, panel: MatAutocompleteTrigger) {

@@ -23,6 +23,9 @@ import { LayoutWorkspaceNoContent } from './workspace/no-tabs-content/component'
 import { LayoutToolbar } from './toolbar/component';
 import { LayoutToolbarControls } from './toolbar/controls/component';
 import { LayoutBottomSheet } from './bottomsheet/component';
+import { LayoutPopups } from './popups/component';
+import { LayoutPopup } from './popups/popup/component';
+
 import { OverlayModule } from '@angular/cdk/overlay';
 import { JobsModule } from '@views/statusbar/jobs/module';
 import { SessionModule } from '@views/statusbar/session/module';
@@ -43,6 +46,8 @@ const entryComponents = [
     LayoutToolbar,
     LayoutToolbarControls,
     LayoutBottomSheet,
+    LayoutPopups,
+    LayoutPopup
 ];
 
 @NgModule({

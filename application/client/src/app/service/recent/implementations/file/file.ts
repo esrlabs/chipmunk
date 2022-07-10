@@ -4,6 +4,14 @@ import { IComponentDesc } from '@ui/elements/containers/dynamic/component';
 
 import * as Files from './index';
 
+export interface BaseInfo {
+    filename: string;
+    name: string;
+    path: string;
+    size: number;
+    created: number;
+}
+
 export class Recent extends RecentAction {
     public text: Files.Text | undefined;
     public dlt: Files.Dlt | undefined;
@@ -17,6 +25,27 @@ export class Recent extends RecentAction {
                 dlt: this.dlt,
                 pcap: this.pcap,
             },
+        };
+    }
+
+    public getBaseInfo(): BaseInfo {
+        const base =
+            this.text !== undefined
+                ? this.text
+                : this.dlt !== undefined
+                ? this.dlt
+                : this.pcap !== undefined
+                ? this.pcap
+                : undefined;
+        if (base === undefined) {
+            throw new Error(`No file data provided`);
+        }
+        return {
+            filename: base.filename,
+            name: base.name,
+            path: base.path,
+            size: base.size,
+            created: base.created,
         };
     }
     public description(): {

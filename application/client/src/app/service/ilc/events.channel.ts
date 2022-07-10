@@ -33,8 +33,9 @@ export class Channel {
             close: (handler: Handler<void>) => Subscription;
         };
         popup: {
-            open: (handler: Handler<Declarations.IPopup>) => Subscription;
+            open: (handler: Handler<Declarations.Popup>) => Subscription;
             close: (handler: Handler<string>) => Subscription;
+            updated: (handler: Handler<number>) => Subscription;
         };
         toolbar: {
             min: (handler: Handler<void>) => Subscription;
@@ -93,8 +94,9 @@ export class Channel {
                 close: this._add<void>(this._events.ui.contextmenu.close),
             },
             popup: {
-                open: this._add<Declarations.IPopup>(this._events.ui.popup.open),
+                open: this._add<Declarations.Popup>(this._events.ui.popup.open),
                 close: this._add<string>(this._events.ui.popup.close),
+                updated: this._add<number>(this._events.ui.popup.updated),
             },
             toolbar: {
                 min: this._add<void>(this._events.ui.toolbar.min),

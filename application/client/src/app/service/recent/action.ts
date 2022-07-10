@@ -1,4 +1,4 @@
-import { Recent as RecentFileAction } from './implementations/file/file';
+import { Recent as RecentFileAction, BaseInfo } from './implementations/file/file';
 import { Recent as RecentStreamDltAction } from './implementations/stream/dlt';
 
 import { IComponentDesc } from '@ui/elements/containers/dynamic/component';
@@ -32,6 +32,13 @@ export class Action {
         } else {
             throw new Error(`Unknonw type of action.`);
         }
+    }
+
+    public asFile(): BaseInfo | undefined {
+        if (this.file === undefined) {
+            return undefined;
+        }
+        return this.file.getBaseInfo();
     }
 
     public asComponent(): IComponentDesc {

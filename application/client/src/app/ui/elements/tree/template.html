@@ -1,5 +1,5 @@
 <div class="controls">
-  <app-elements-tree-input [state]="state"></app-elements-tree-input>
+  <app-filter-input [filter]="state.filter"></app-filter-input>
 </div>
 <div class="tree">
   <mat-tree [dataSource]="state.scheme.source" [treeControl]="state.scheme.tree" >

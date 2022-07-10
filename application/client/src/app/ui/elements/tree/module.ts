@@ -5,17 +5,14 @@ import { CdkTreeModule } from '@angular/cdk/tree';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FilterInputModule } from '@elements/filter/module';
 
 import { ElementsTreeSelector } from './component';
-import { ElementsTreeSelectorInput } from './input/component';
 
 import { InputListenerDirective } from '@ui/env/directives/input';
 
-const components = [ElementsTreeSelector, ElementsTreeSelectorInput, InputListenerDirective];
+const components = [ElementsTreeSelector, InputListenerDirective];
 
 @NgModule({
     entryComponents: [...components],
@@ -26,11 +23,8 @@ const components = [ElementsTreeSelector, ElementsTreeSelectorInput, InputListen
         MatProgressBarModule,
         MatButtonModule,
         MatIconModule,
-        MatFormFieldModule,
-        MatInputModule,
+        FilterInputModule,
         MatProgressSpinnerModule,
-        FormsModule,
-        ReactiveFormsModule,
     ],
     declarations: [...components],
     exports: [...components],

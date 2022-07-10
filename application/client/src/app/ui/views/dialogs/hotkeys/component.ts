@@ -2,6 +2,7 @@ import { Component, ChangeDetectorRef, AfterViewChecked, AfterViewInit } from '@
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { KeysMap, KeyDescription } from '@service/hotkeys/map';
 import { ChangesDetector } from '@ui/env/extentions/changes';
+import { Initial } from '@env/decorators/initial';
 
 interface IKey {
     shortkeys: string[];
@@ -18,6 +19,7 @@ interface IGroup {
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
+@Initial()
 @Ilc()
 export class Hotkeys extends ChangesDetector implements AfterViewChecked, AfterViewInit {
     public groups: IGroup[] = [];
