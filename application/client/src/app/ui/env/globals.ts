@@ -48,3 +48,31 @@ export function wrapMatchesToSafeHtml(
 ): SafeHtml {
     return getDomSanitizer().bypassSecurityTrustHtml(wrapMatchesToHtml(matcher, str, tag));
 }
+
+export function hasFocusedInput(): Promise<boolean> {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            if (document.activeElement === null) {
+                return resolve(false);
+            }
+            const tag: string = document.activeElement.tagName.toLowerCase();
+            if (['input', 'textarea'].indexOf(tag) !== -1) {
+                resolve(false);
+            } else {
+                resolve(true);
+            }
+        }, 50);
+    });
+}
+
+export function syncHasFocusedInput(): boolean {
+    if (document.activeElement === null) {
+        return false;
+    }
+    const tag: string = document.activeElement.tagName.toLowerCase();
+    if (['input', 'textarea'].indexOf(tag) !== -1) {
+        return false;
+    } else {
+        return true;
+    }
+}
