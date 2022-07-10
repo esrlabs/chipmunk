@@ -5,6 +5,7 @@ import { recent } from '@service/recent';
 import { Subject } from '@platform/env/subscription';
 import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
+import { syncHasFocusedInput } from '@ui/env/globals';
 
 export class State {
     public filter: Filter;
@@ -23,6 +24,9 @@ export class State {
                     'keyup',
                     window,
                     (event: KeyboardEvent) => {
+                        if (!syncHasFocusedInput()) {
+                            return true;
+                        }
                         if (this.filter.keyboard(event)) {
                             this.filtering();
                             ilc.detectChanges();
