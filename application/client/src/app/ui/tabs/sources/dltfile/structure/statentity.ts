@@ -1,6 +1,6 @@
 import { LevelDistribution } from '@platform/types/parsers/dlt';
 import { Subject } from '@platform/env/subscription';
-import { Matcher } from '@matcher/matcher';
+import { getMatcher } from '@ui/env/globals';
 
 export interface Section {
     key: string;
@@ -23,7 +23,6 @@ export class StatEntity {
     public log_verbose: number;
     public log_invalid: number;
 
-    private _matcher: Matcher = Matcher.new();
     private _html_id: string;
 
     constructor(id: string, parent: string, from: LevelDistribution) {
@@ -61,7 +60,7 @@ export class StatEntity {
     }
 
     public filter(filter: string) {
-        const id = this._matcher.search_single(filter, this.id);
+        const id = getMatcher().search_single(filter, this.id);
         if (id === this.id && filter !== '') {
             this.hidden = true;
         } else {

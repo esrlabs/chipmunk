@@ -2,12 +2,11 @@ import { SafeHtml } from '@angular/platform-browser';
 import { Observable } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
-import { getDomSanitizer } from '@ui/env/globals';
+import { getDomSanitizer, getMatcher } from '@ui/env/globals';
 import { Entry, EntryConvertable } from '@platform/types/storage/entry';
 import { error } from '@platform/env/logger';
 import { Storage } from '@env/fsstorage';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
-import { Matcher } from '@matcher/matcher';
 
 import * as obj from '@platform/env/obj';
 
@@ -16,7 +15,6 @@ export class Recent implements EntryConvertable {
     public used: number = 0;
 
     private _htmlValue: string = '';
-    private _matcher: Matcher = Matcher.new();
     private _filtered: boolean = false;
 
     constructor(value: string) {
@@ -28,7 +26,7 @@ export class Recent implements EntryConvertable {
     }
 
     public setFilter(filter: string) {
-        this._htmlValue = this._matcher.search_single(filter, this.value);
+        this._htmlValue = getMatcher().search_single(filter, this.value);
         this._filtered = this._htmlValue !== this.value;
     }
 

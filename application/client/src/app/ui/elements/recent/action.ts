@@ -1,13 +1,18 @@
 import { Action } from '@service/recent/action';
-import { wrapMatchesToHtml } from '@ui/env/globals';
+import { getMatcher } from '@ui/env/globals';
 
 export class WrappedAction {
     public readonly action: Action;
     public filtered: boolean = true;
+
     private _filter: string = '';
+    private _html_major: string;
+    private _html_minor: string;
 
     constructor(action: Action) {
         this.action = action;
+        this._html_major = this.action.description().major;
+        this._html_minor = this.action.description().minor;
     }
 
     public description(): {
@@ -15,21 +20,25 @@ export class WrappedAction {
         minor: string;
     } {
         return {
-            major:
-                this._filter.length === 0
-                    ? this.action.description().major
-                    : wrapMatchesToHtml(this._filter, this.action.description().major, 'span'),
-            minor:
-                this._filter.length === 0
-                    ? this.action.description().minor
-                    : wrapMatchesToHtml(this._filter, this.action.description().minor, 'span'),
+            major: this._html_major,
+            minor: this._html_minor,
         };
     }
 
     public filter(filter: string) {
-        this._filter = filter.trim().toLowerCase();
+        this._filter = filter.trim();
+        this._html_major = getMatcher().search_single(
+            this._filter,
+            this.action.description().major,
+        );
+        this._html_minor = getMatcher().search_single(
+            this._filter,
+            this.action.description().minor,
+        );
         this.filtered =
-            this.action.description().major.toLowerCase().indexOf(this._filter) !== -1 ||
-            this.action.description().minor.toLowerCase().indexOf(this._filter) !== -1;
+            this._filter === ''
+                ? true
+                : this._html_major !== this.action.description().major ||
+                  this._html_minor !== this.action.description().minor;
     }
 }
