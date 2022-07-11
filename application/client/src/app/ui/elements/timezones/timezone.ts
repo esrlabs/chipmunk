@@ -1,13 +1,11 @@
 import * as moment_timezone from 'moment-timezone';
-import { Matcher } from '@matcher/matcher';
-
+import { getMatcher } from '@ui/env/globals';
 export class Timezone {
     public readonly name: string;
     public readonly utc: string;
     public readonly offset: number;
     public hidden: boolean = false;
 
-    private _matcher: Matcher = Matcher.new();
     private _html_name: string;
     private _html_utc: string;
 
@@ -43,8 +41,8 @@ export class Timezone {
     }
 
     public filter(filter: string) {
-        const name = this._matcher.search_single(filter, this.name);
-        const utc = this._matcher.search_single(filter, this.utc);
+        const name = getMatcher().search_single(filter, this.name);
+        const utc = getMatcher().search_single(filter, this.utc);
         if (name === this.name && utc === this.utc && filter !== '') {
             this.hidden = true;
         } else {
