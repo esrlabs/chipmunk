@@ -6,14 +6,14 @@ export class Timezone {
     public readonly offset: number;
     public hidden: boolean = false;
 
-    private _html_name: string;
-    private _html_utc: string;
+    private _htmlName: string;
+    private _htmlUtc: string;
 
     constructor(name: string, utc: string, offset: number) {
         this.name = name;
-        this._html_name = name;
+        this._htmlName = name;
         this.utc = utc;
-        this._html_utc = utc;
+        this._htmlUtc = utc;
         this.offset = offset;
     }
 
@@ -32,12 +32,12 @@ export class Timezone {
         );
     }
 
-    public get html_name(): string {
-        return this._html_name;
+    public get htmlName(): string {
+        return this._htmlName;
     }
 
-    public get html_utc(): string {
-        return this._html_utc;
+    public get htmlUtc(): string {
+        return this._htmlUtc;
     }
 
     public filter(filter: string) {
@@ -47,8 +47,8 @@ export class Timezone {
             this.hidden = true;
         } else {
             this.hidden = false;
-            this._html_name = name;
-            this._html_utc = utc;
+            this._htmlName = name;
+            this._htmlUtc = utc;
         }
     }
 }

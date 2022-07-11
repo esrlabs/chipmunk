@@ -23,7 +23,7 @@ export class StatEntity {
     public log_verbose: number;
     public log_invalid: number;
 
-    private _html_id: string;
+    private _htmlId: string;
 
     constructor(id: string, parent: string, from: LevelDistribution) {
         this.id = id;
@@ -36,11 +36,11 @@ export class StatEntity {
         this.log_debug = from.log_debug;
         this.log_verbose = from.log_verbose;
         this.log_invalid = from.log_invalid;
-        this._html_id = id;
+        this._htmlId = id;
     }
 
-    public get html_id(): string {
-        return this._html_id;
+    public get htmlId(): string {
+        return this._htmlId;
     }
 
     public hash(): string {
@@ -65,7 +65,7 @@ export class StatEntity {
             this.hidden = true;
         } else {
             this.hidden = false;
-            this._html_id = id;
+            this._htmlId = id;
         }
     }
 }

@@ -6,13 +6,13 @@ export class WrappedAction {
     public filtered: boolean = true;
 
     private _filter: string = '';
-    private _html_major: string;
-    private _html_minor: string;
+    private _htmlMajor: string;
+    private _htmlMinor: string;
 
     constructor(action: Action) {
         this.action = action;
-        this._html_major = this.action.description().major;
-        this._html_minor = this.action.description().minor;
+        this._htmlMajor = this.action.description().major;
+        this._htmlMinor = this.action.description().minor;
     }
 
     public description(): {
@@ -20,25 +20,19 @@ export class WrappedAction {
         minor: string;
     } {
         return {
-            major: this._html_major,
-            minor: this._html_minor,
+            major: this._htmlMajor,
+            minor: this._htmlMinor,
         };
     }
 
     public filter(filter: string) {
         this._filter = filter.trim();
-        this._html_major = getMatcher().search_single(
-            this._filter,
-            this.action.description().major,
-        );
-        this._html_minor = getMatcher().search_single(
-            this._filter,
-            this.action.description().minor,
-        );
+        this._htmlMajor = getMatcher().search_single(this._filter, this.action.description().major);
+        this._htmlMinor = getMatcher().search_single(this._filter, this.action.description().minor);
         this.filtered =
             this._filter === ''
                 ? true
-                : this._html_major !== this.action.description().major ||
-                  this._html_minor !== this.action.description().minor;
+                : this._htmlMajor !== this.action.description().major ||
+                  this._htmlMinor !== this.action.description().minor;
     }
 }

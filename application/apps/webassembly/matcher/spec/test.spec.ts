@@ -9,8 +9,8 @@ describe('test', function () {
         const parsedResult: { [key: string]: string }[] = JSON.parse(result);
         expected.forEach((e_map: { [key: string]: string }, i: number) => {
             let iResult = parsedResult[i];
-            Object.entries(e_map).forEach((key_value) => {
-                expect(iResult[key_value[0]]).toBe(key_value[1]);
+            Object.entries(e_map).forEach((keyValue) => {
+                expect(iResult[keyValue[0]]).toBe(keyValue[1]);
             });
         });
     }
