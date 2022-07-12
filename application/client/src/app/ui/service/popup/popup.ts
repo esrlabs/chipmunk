@@ -25,6 +25,7 @@ export interface Options {
     position?: Position;
     closeOnKey?: string;
     closeOnBGClick?: boolean;
+    closed?: () => void;
     component: IComponentDesc;
 }
 

@@ -54,6 +54,11 @@ export class LayoutPopups extends ChangesDetector implements AfterContentInit {
     }
 
     private _close(uuid: string): void {
+        const stored = this.popups.get(uuid);
+        if (stored === undefined) {
+            return;
+        }
+        stored.popup.options.closed !== undefined && stored.popup.options.closed();
         this.popups.delete(uuid);
         this.popups.size === 0 && (this.visible = false);
         this.ilc().services.ui.popup.setCount(this.popups.size);

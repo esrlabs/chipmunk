@@ -5,7 +5,6 @@ import { layout, Service as UILayoutService } from '@ui/service/layout';
 import { toolbar, Service as UIToolbarService } from '@ui/service/toolbar';
 import { sidebar, Service as UISidebarService } from '@ui/service/sidebar';
 import { styles, Service as UIStylesService } from '@ui/service/styles';
-import { bottomsheet, Service as UIBottomSheetService } from '@ui/service/bottomsheet';
 import { session, Service as SessionService } from '@service/session';
 import { jobs, Service as JobsService } from '@service/jobs';
 import { state, Service as StateService } from '@service/state';
@@ -35,7 +34,6 @@ export class Services {
         toolbar: UIToolbarService;
         sidebar: UISidebarService;
         styles: UIStylesService;
-        bottomsheet: UIBottomSheetService;
         listener: ListenerService;
     };
 
@@ -62,7 +60,6 @@ export class Services {
             toolbar,
             sidebar,
             styles,
-            bottomsheet,
             listener,
         };
     }

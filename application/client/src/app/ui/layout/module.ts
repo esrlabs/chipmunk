@@ -8,7 +8,6 @@ import { RecentActionsModule } from '@elements/recent/module';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatBottomSheetModule } from '@angular/material/bottom-sheet';
 
 import { Layout } from './component';
 import { LayoutStatusBar } from './statusbar/component';
@@ -22,7 +21,6 @@ import { LayoutWorkspaceControls } from './workspace/controls/component';
 import { LayoutWorkspaceNoContent } from './workspace/no-tabs-content/component';
 import { LayoutToolbar } from './toolbar/component';
 import { LayoutToolbarControls } from './toolbar/controls/component';
-import { LayoutBottomSheet } from './bottomsheet/component';
 import { LayoutPopups } from './popups/component';
 import { LayoutPopup } from './popups/popup/component';
 
@@ -45,9 +43,8 @@ const entryComponents = [
     LayoutWorkspaceNoContent,
     LayoutToolbar,
     LayoutToolbarControls,
-    LayoutBottomSheet,
     LayoutPopups,
-    LayoutPopup
+    LayoutPopup,
 ];
 
 @NgModule({
@@ -60,7 +57,6 @@ const entryComponents = [
         MatButtonModule,
         MatCardModule,
         MatDividerModule,
-        MatBottomSheetModule,
         JobsModule,
         SessionModule,
         RecentActionsModule,
