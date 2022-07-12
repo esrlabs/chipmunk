@@ -15,9 +15,9 @@ import { bytesToStr, timestampToUTC } from '@env/str';
 import { StatEntity } from './structure/statentity';
 import { TabControls } from '@service/session';
 import { State } from './state';
-import { ElementsTimezoneSelector } from '@ui/elements/timezones/component';
 import { LockToken } from '@platform/env/lock.token';
 import { Timezone } from '@ui/elements/timezones/timezone';
+import { components } from '@env/decorators/initial';
 
 @Component({
     selector: 'app-tabs-source-dltfile',
@@ -146,19 +146,21 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
         if (this.state.filters.entities.drop()) {
             this.state.struct().filter();
         }
-        this.ilc().services.ui.bottomsheet.show(
-            ElementsTimezoneSelector,
-            {
-                selected: (timezone: Timezone): void => {
-                    this.state.timezone = timezone;
+        this.ilc().services.ui.popup.open({
+            component: {
+                factory: components.get('app-elements-timezone-selector'),
+                inputs: {
+                    selected: (timezone: Timezone): void => {
+                        this.state.timezone = timezone;
+                    }
                 },
             },
-            {
-                closed: () => {
-                    this._filterLockTocken.unlock();
-                },
-            },
-        );
+            closeOnKey: 'Escape',
+            width: 350,
+            closed: () => {
+                this._filterLockTocken.unlock();
+            }
+        });
     }
 }
 export interface TabSourceDltFile extends IlcInterface {}

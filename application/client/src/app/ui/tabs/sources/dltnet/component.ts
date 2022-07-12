@@ -7,7 +7,7 @@ import { IDLTOptions, EMTIN } from '@platform/types/parsers/dlt';
 import { bytesToStr, timestampToUTC } from '@env/str';
 import { TabControls } from '@service/session';
 import { State, ConnectionType } from './state';
-import { ElementsTimezoneSelector } from '@ui/elements/timezones/component';
+import { components } from '@env/decorators/initial';
 import { LockToken } from '@platform/env/lock.token';
 import { Timezone } from '@ui/elements/timezones/timezone';
 import { SourceDefinition } from '@platform/types/transport';
@@ -90,19 +90,21 @@ export class TabSourceDltNet extends ChangesDetector implements AfterContentInit
 
     public ngTimezoneSelect() {
         this._filterLockTocken.lock();
-        this.ilc().services.ui.bottomsheet.show(
-            ElementsTimezoneSelector,
-            {
-                selected: (timezone: Timezone): void => {
-                    this.state.timezone = timezone;
+        this.ilc().services.ui.popup.open({
+            component: {
+                factory: components.get('app-elements-timezone-selector'),
+                inputs: {
+                    selected: (timezone: Timezone): void => {
+                        this.state.timezone = timezone;
+                    },
                 },
             },
-            {
-                closed: () => {
-                    this._filterLockTocken.unlock();
-                },
+            closeOnKey: 'Escape',
+            width: 350,
+            closed: () => {
+                this._filterLockTocken.unlock();
             },
-        );
+        });
     }
 }
 export interface TabSourceDltNet extends IlcInterface {}
