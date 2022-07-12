@@ -58,9 +58,11 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
     }
 
     public ngAfterContentInit(): void {
-        this.ilc().channel.ui.row.rank(() => {
-            this.markChangesForCheck();
-        });
+        this.env().subscriber.register(
+            this.session.stream.subjects.get().rank.subscribe(() => {
+                this.detectChanges();
+            }),
+        );
         this.headers = this.controller.headers
             .filter((h) => h.visible)
             .map((h) => new RenderedHeader(h));

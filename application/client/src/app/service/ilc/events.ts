@@ -50,7 +50,6 @@ export class Events {
         };
         row: {
             hover: Subject<Row | undefined>;
-            rank: Subject<Declarations.UI.Rank>;
         };
         input: {
             focused: Subject<void>;
@@ -115,7 +114,6 @@ export class Events {
             },
             row: {
                 hover: this._add<Row | undefined>(new Subject<Row | undefined>()),
-                rank: this._add<Declarations.UI.Rank>(new Subject<Declarations.UI.Rank>()),
             },
         };
     }

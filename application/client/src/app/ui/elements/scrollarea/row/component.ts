@@ -52,12 +52,11 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
 
     public ngAfterContentInit(): void {
         this.render = this.row.session.render.delimiter() === undefined ? 1 : 2;
-        this.ilc().channel.ui.row.rank((event) => {
-            if (event.session !== this.row.session.uuid()) {
-                return;
-            }
-            this._update();
-        });
+        this.env().subscriber.register(
+            this.row.session.stream.subjects.get().rank.subscribe(() => {
+                this._update();
+            }),
+        );
         this.env().subscriber.register(this.row.change.subscribe(this._update.bind(this)));
         this.env().subscriber.register(
             this.row.session.bookmarks.subjects
