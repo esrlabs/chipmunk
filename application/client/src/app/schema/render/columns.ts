@@ -11,7 +11,7 @@ export interface Header {
 export class Columns {
     public readonly headers: Header[];
     private readonly _uuid: string;
-    private _rank: number = 0;
+    private: number = 0;
 
     constructor(
         uuid: string,
