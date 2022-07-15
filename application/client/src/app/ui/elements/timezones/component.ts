@@ -48,7 +48,7 @@ export class ElementsTimezoneSelector extends ChangesDetector {
     }
 
     public timezones(): Timezone[] {
-        return this.state.timezones.filter((t) => !t.hidden);
+        return this.state.timezones.filter((t) => !t.hidden());
     }
 }
 export interface ElementsTimezoneSelector extends IlcInterface {}

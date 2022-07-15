@@ -1,18 +1,11 @@
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { Matcher } from '@matcher/matcher';
 import * as regex from '@platform/env/regex';
 
 const store: {
     sanitizer: DomSanitizer | undefined;
-    matcher: Matcher;
 } = {
     sanitizer: undefined,
-    matcher: Matcher.new(),
 };
-
-export function getMatcher(): Matcher {
-    return store.matcher;
-}
 
 export function getDomSanitizer(): DomSanitizer {
     if (store.sanitizer === undefined) {

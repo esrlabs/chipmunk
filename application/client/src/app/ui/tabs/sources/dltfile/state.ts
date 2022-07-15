@@ -16,6 +16,7 @@ import { Summary } from './summary';
 import { Timezone } from '@ui/elements/timezones/timezone';
 import { bridge } from '@service/bridge';
 import { InternalAPI } from '@service/ilc';
+import { Holder } from '@module/matcher';
 
 export const ENTITIES = {
     app_ids: 'app_ids',
@@ -29,7 +30,7 @@ export const NAMES: { [key: string]: string } = {
     [ENTITIES.ecu_ids]: 'ECUs',
 };
 
-export class State {
+export class State extends Holder {
     public logLevel: EMTIN = EMTIN.DLT_LOG_VERBOSE;
     public structure: Section[] = [];
     public selected: StatEntity[] = [];
@@ -42,6 +43,7 @@ export class State {
     public timezone: Timezone | undefined;
 
     constructor(ilc: InternalAPI) {
+        super();
         this.filters = {
             entities: new Filter(ilc),
         };
@@ -103,7 +105,7 @@ export class State {
                         Array<[string, LevelDistribution]>
                     >(stat, key);
                     const entities: StatEntity[] = content.map((record) => {
-                        const entity = new StatEntity(record[0], key, record[1]);
+                        const entity = new StatEntity(record[0], key, record[1], this.matcher);
                         if (
                             preselection !== undefined &&
                             (preselection as any)[key] !== undefined
@@ -146,9 +148,10 @@ export class State {
                 this.struct().summary();
             },
             filter: (): void => {
+                this.matcher.search(this.filters.entities.value());
                 this.structure.forEach((structure) => {
-                    structure.entities.forEach((entity) =>
-                        entity.filter(this.filters.entities.value()),
+                    structure.entities.sort(
+                        (a: StatEntity, b: StatEntity) => b.getScore() - a.getScore(),
                     );
                     structure.update.emit();
                 });
