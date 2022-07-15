@@ -1,42 +1,31 @@
+import { Matcher } from '@matcher/matcher';
+import { Matchee } from '@module/matcher';
 import { Action } from '@service/recent/action';
-import { getMatcher } from '@ui/env/globals';
 
-export class WrappedAction {
+export class WrappedAction extends Matchee {
     public readonly action: Action;
-    public filtered: boolean = true;
 
-    private _filter: string = '';
-    private _htmlMajor: string;
-    private _htmlMinor: string;
-
-    constructor(action: Action) {
+    constructor(action: Action, matcher: Matcher) {
+        super(matcher, {
+            major: action.description().major,
+            minor: action.description().minor,
+        });
         this.action = action;
-        this._htmlMajor = this.action.description().major;
-        this._htmlMinor = this.action.description().minor;
     }
 
     public description(): {
         major: string;
         minor: string;
     } {
+        const major: string | undefined = this.getHtmlOf('html_major');
+        const minor: string | undefined = this.getHtmlOf('html_minor');
         return {
-            major: this._htmlMajor,
-            minor: this._htmlMinor,
+            major: major === undefined ? this.action.description().major : major,
+            minor: minor === undefined ? this.action.description().minor : minor,
         };
     }
 
     public hash(): string {
         return `${this.action.description().major}-${this.action.description().minor}`;
-    }
-
-    public filter(filter: string) {
-        this._filter = filter.trim();
-        this._htmlMajor = getMatcher().search_single(this._filter, this.action.description().major);
-        this._htmlMinor = getMatcher().search_single(this._filter, this.action.description().minor);
-        this.filtered =
-            this._filter === ''
-                ? true
-                : this._htmlMajor !== this.action.description().major ||
-                  this._htmlMinor !== this.action.description().minor;
     }
 }

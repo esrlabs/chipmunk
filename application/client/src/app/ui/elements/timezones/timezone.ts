@@ -1,19 +1,19 @@
 import * as moment_timezone from 'moment-timezone';
-import { getMatcher } from '@ui/env/globals';
-export class Timezone {
+import { Matcher } from '@matcher/matcher';
+import { Matchee } from '@module/matcher';
+
+export class Timezone extends Matchee {
     public readonly name: string;
     public readonly utc: string;
     public readonly offset: number;
-    public hidden: boolean = false;
 
-    private _htmlName: string;
-    private _htmlUtc: string;
+    static matcher: Matcher;
 
-    constructor(name: string, utc: string, offset: number) {
+    constructor(name: string, utc: string, offset: number, matcher: Matcher) {
+        super(matcher, { name: name, utc: utc });
+        Timezone.matcher = matcher;
         this.name = name;
-        this._htmlName = name;
         this.utc = utc;
-        this._htmlUtc = utc;
         this.offset = offset;
     }
 
@@ -29,26 +29,23 @@ export class Timezone {
             tz,
             `${offset === 0 ? '' : offset > 0 ? '-' : '+'}${Math.abs(offset) / 60}`,
             offset,
+            Timezone.matcher,
         );
     }
 
-    public get htmlName(): string {
-        return this._htmlName;
+    public hidden(): boolean {
+        return this.getScore() === 0;
     }
 
-    public get htmlUtc(): string {
-        return this._htmlUtc;
-    }
-
-    public filter(filter: string) {
-        const name = getMatcher().search_single(filter, this.name);
-        const utc = getMatcher().search_single(filter, this.utc);
-        if (name === this.name && utc === this.utc && filter !== '') {
-            this.hidden = true;
-        } else {
-            this.hidden = false;
-            this._htmlName = name;
-            this._htmlUtc = utc;
-        }
+    public get html(): {
+        name: string;
+        utc: string;
+    } {
+        const name: string | undefined = this.getHtmlOf('html_name');
+        const utc: string | undefined = this.getHtmlOf('html_utc');
+        return {
+            name: name === undefined ? this.name : name,
+            utc: utc === undefined ? this.utc : utc,
+        };
     }
 }

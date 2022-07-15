@@ -5,10 +5,11 @@ import { recent } from '@service/recent';
 import { Subject } from '@platform/env/subscription';
 import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
+import { Holder } from '@module/matcher/holder';
 
 export type CloseHandler = () => void;
 
-export class State {
+export class State extends Holder {
     public filter: Filter;
     public actions: WrappedAction[] = [];
     public update: Subject<void> = new Subject<void>();
@@ -16,6 +17,7 @@ export class State {
     protected close: CloseHandler | undefined;
 
     constructor(ilc: IlcInterface & ChangesDetector) {
+        super();
         this.filter = new Filter(ilc);
         this.filter.subjects.get().change.subscribe((value: string) => {
             this.filtering(value);
@@ -49,7 +51,7 @@ export class State {
         recent
             .get()
             .then((actions: Action[]) => {
-                this.actions = actions.map((action) => new WrappedAction(action));
+                this.actions = actions.map((action) => new WrappedAction(action, this.matcher));
                 this.actions.length > 0 && (this.selected = this.actions[0].hash());
                 this.update.emit();
             })
@@ -63,15 +65,14 @@ export class State {
     }
 
     public filtering(value: string) {
-        this.actions.forEach((action) => {
-            action.filter(value);
-        });
+        this.matcher.search(value);
+        this.actions.sort((a: WrappedAction, b: WrappedAction) => b.getScore() - a.getScore());
         this.move().update();
         this.update.emit();
     }
 
     public getFilteredActions(): WrappedAction[] {
-        return this.actions.filter((a) => a.filtered);
+        return this.actions.filter((a: WrappedAction) => a.getScore() > 0);
     }
 
     protected move(): {

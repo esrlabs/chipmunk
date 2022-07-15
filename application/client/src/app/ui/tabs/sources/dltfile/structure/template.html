@@ -4,7 +4,7 @@
     <th mat-header-cell *matHeaderCellDef mat-sort-header sortActionDescription="Sort by ID">
       ID
     </th>
-    <td mat-cell *matCellDef="let element"><span class="id" [innerHTML]="safeHtml(element.htmlId)"></span></td>
+    <td mat-cell *matCellDef="let element"><span class="id" [innerHTML]="safeHtml(element.html())"></span></td>
   </ng-container>
 
   <ng-container matColumnDef="log_fatal">

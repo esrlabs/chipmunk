@@ -1,6 +1,7 @@
 import { LevelDistribution } from '@platform/types/parsers/dlt';
 import { Subject } from '@platform/env/subscription';
-import { getMatcher } from '@ui/env/globals';
+import { Matcher } from '@matcher/matcher';
+import { Matchee } from '@module/matcher';
 
 export interface Section {
     key: string;
@@ -9,9 +10,8 @@ export interface Section {
     entities: StatEntity[];
 }
 
-export class StatEntity {
+export class StatEntity extends Matchee {
     public selected: boolean = false;
-    public hidden: boolean = false;
     public id: string;
     public parent: string;
     public non_log: number;
@@ -23,9 +23,8 @@ export class StatEntity {
     public log_verbose: number;
     public log_invalid: number;
 
-    private _htmlId: string;
-
-    constructor(id: string, parent: string, from: LevelDistribution) {
+    constructor(id: string, parent: string, from: LevelDistribution, matcher: Matcher) {
+        super(matcher, { id: id });
         this.id = id;
         this.parent = parent;
         this.non_log = from.non_log;
@@ -36,11 +35,11 @@ export class StatEntity {
         this.log_debug = from.log_debug;
         this.log_verbose = from.log_verbose;
         this.log_invalid = from.log_invalid;
-        this._htmlId = id;
     }
 
-    public get htmlId(): string {
-        return this._htmlId;
+    public html(): string {
+        const html: string | undefined = this.getHtmlOf('html_id');
+        return html === undefined ? this.id : html;
     }
 
     public hash(): string {
@@ -59,13 +58,7 @@ export class StatEntity {
         this.selected = false;
     }
 
-    public filter(filter: string) {
-        const id = getMatcher().search_single(filter, this.id);
-        if (id === this.id && filter !== '') {
-            this.hidden = true;
-        } else {
-            this.hidden = false;
-            this._htmlId = id;
-        }
+    public hidden(): boolean {
+        return this.getScore() === 0;
     }
 }

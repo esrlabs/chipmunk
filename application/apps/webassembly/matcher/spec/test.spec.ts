@@ -1,239 +1,153 @@
 let wasm: typeof import('../pkg');
 
+class Item {
+    private _name: string;
+    private _size: string;
+    private _path: string;
+    private _index!: number;
+
+    constructor(name: string, size: string, path: string) {
+        this._name = name;
+        this._size = size;
+        this._path = path;
+    }
+
+    public set index(i: number) {
+        this._index = i;
+    }
+
+    public get index(): number {
+        return this._index;
+    }
+
+    public get(): { [key: string]: string } {
+        return {
+            name: this._name,
+            size: this._size,
+            path: this._path,
+        };
+    }
+}
+
 describe('test', function () {
     beforeAll(async function () {
         wasm = await import('../pkg');
     });
 
-    function compareMulti(result: string, expected: { [key: string]: string }[]) {
-        const parsedResult: { [key: string]: string }[] = JSON.parse(result);
-        expected.forEach((e_map: { [key: string]: string }, i: number) => {
-            let iResult = parsedResult[i];
-            Object.entries(e_map).forEach((keyValue) => {
-                expect(iResult[keyValue[0]]).toBe(keyValue[1]);
+    function test(expected: { [key: string]: string }[], query: string, tag?: string) {
+        const { Matcher } = wasm;
+        const matcher = Matcher.new();
+        const items: Item[] = [
+            new Item('very_large_file.dlt', '20gb', '/home/user/Desktop/very_large_file.dlt'),
+            new Item('small_file.log', '630kb', '/home/user/Desktop/small_file.log'),
+            new Item('medium_sized_file.txt', '15mb', '/home/user/Desktop/medium_sized_file.txt'),
+        ];
+        items.forEach((item: Item) => {
+            item.index = matcher.set_item(JSON.stringify(item.get()));
+        });
+        matcher.search(query, tag);
+        items.sort((a: Item, b: Item) => {
+            const a_score: number = a.index === undefined ? 0 : Number(matcher.get_score(a.index));
+            const b_score: number = b.index === undefined ? 0 : Number(matcher.get_score(b.index));
+            return b_score - a_score;
+        });
+        items.forEach((item: Item, index: number) => {
+            const keys: string[] = Object.keys(item.get());
+            keys.forEach((key: string) => {
+                expect(matcher.get_html_of(item.index, `html_${key}`)).toBe(
+                    expected[index][`html_${key}`],
+                );
             });
         });
     }
 
-    function matcher() {
-        const { Matcher } = wasm;
-        const matcher = Matcher.new();
-        const items: string = `
-        [
-            {
-                "name": "very_large_file.dlt",
-                "size": "20gb",
-                "path": "/home/user/Desktop/very_large_file.dlt"
-            },
-            {
-                "name": "medium_sized_file.txt",
-                "size": "15mb",
-                "path": "/home/user/Desktop/medium_sized_file.txt"
-            },
-            {
-                "name": "small_file.log",
-                "size": "630kb",
-                "path": "/home/user/Desktop/small_file.log"
-            }
-        ]`;
-        matcher.set_items(items);
-        return matcher;
-    }
-
-    it('should match one in single search', () => {
-        const item: string = 'very_large_file.dlt';
-        const query: string = 'e';
-        const expected: string = 'very_large_fil<span>e</span>.dlt';
-        expect(matcher().search_single(query, item)).toBe(expected);
-    });
-
-    it('should match multiple in single search', () => {
-        const item: string = 'very_large_file.dlt';
-        const query: string = 'efd';
-        const expected: string = 'very_larg<span>e</span>_<span>f</span>ile.<span>d</span>lt';
-        expect(matcher().search_single(query, item)).toBe(expected);
-    });
-
-    it('should match whole word in single search', () => {
-        const expected = 'very_<span>large</span>_file.dlt';
-        const item: string = 'very_large_file.dlt';
-        const query: string = 'large';
-        expect(matcher().search_single(query, item)).toBe(expected);
-    });
-
-    it('should match everything in single search', () => {
-        const expected = '<h1>very_large_file.dlt</h1>';
-        const item: string = 'very_large_file.dlt';
-        const query: string = 'very_large_file.dlt';
-        const tag: string = 'h1';
-        expect(matcher().search_single(query, item, tag)).toBe(expected);
-    });
-
-    it('should not match in single search', () => {
-        const expected = 'very_large_file.dlt';
-        const item: string = 'very_large_file.dlt';
-        const query: string = 'n';
-        expect(matcher().search_single(query, item)).toBe(expected);
-    });
-
-    it('should all match in multi search', () => {
+    it('should all match', () => {
         const expected: { [key: string]: string }[] = [
             {
-                name: 'very_large_file.dlt',
-                size: '20gb',
-                path: '/home/user/Desktop/very_large_file.dlt',
                 html_name: 'very_<span>l</span>arge_file.dlt',
                 html_size: '20gb',
                 html_path: '/home/user/Desktop/very_<span>l</span>arge_file.dlt',
             },
             {
-                name: 'small_file.log',
-                size: '630kb',
-                path: '/home/user/Desktop/small_file.log',
                 html_name: 'small_file.<span>l</span>og',
                 html_size: '630kb',
                 html_path: '/home/user/Desktop/small_file.<span>l</span>og',
             },
             {
-                name: 'medium_sized_file.txt',
-                size: '15mb',
-                path: '/home/user/Desktop/medium_sized_file.txt',
                 html_name: 'medium_sized_fi<span>l</span>e.txt',
                 html_size: '15mb',
                 html_path: '/home/user/Desktop/medium_sized_fi<span>l</span>e.txt',
             },
         ];
         const query: string = 'l';
-        const keep_zero_score: boolean = true;
-        compareMulti(matcher().search_multi(query, keep_zero_score), expected);
+        test(expected, query);
     });
 
-    it('should not match and keep in multi search', () => {
+    it('should not match', () => {
         const expected: { [key: string]: string }[] = [
             {
-                name: 'very_large_file.dlt',
-                size: '20gb',
-                path: '/home/user/Desktop/very_large_file.dlt',
                 html_name: 'very_large_file.dlt',
                 html_size: '20gb',
                 html_path: '/home/user/Desktop/very_large_file.dlt',
             },
             {
-                name: 'medium_sized_file.txt',
-                size: '15mb',
-                path: '/home/user/Desktop/medium_sized_file.txt',
-                html_name: 'medium_sized_file.txt',
-                html_size: '15mb',
-                html_path: '/home/user/Desktop/medium_sized_file.txt',
-            },
-            {
-                name: 'small_file.log',
-                size: '630kb',
-                path: '/home/user/Desktop/small_file.log',
                 html_name: 'small_file.log',
                 html_size: '630kb',
                 html_path: '/home/user/Desktop/small_file.log',
             },
+            {
+                html_name: 'medium_sized_file.txt',
+                html_size: '15mb',
+                html_path: '/home/user/Desktop/medium_sized_file.txt',
+            },
         ];
         const query: string = 'c';
-        const keep_zero_score: boolean = true;
-        compareMulti(matcher().search_multi(query, keep_zero_score), expected);
+        test(expected, query);
     });
 
-    it('should not match and not keep in multi search', () => {
-        const expected: { [key: string]: string }[] = [];
-        const query: string = 'c';
-        const keep_zero_score: boolean = false;
-        compareMulti(matcher().search_multi(query, keep_zero_score), expected);
-    });
-
-    it('should scattered match in multi search', () => {
+    it('should scattered match', () => {
         const expected: { [key: string]: string }[] = [
             {
-                name: 'medium_sized_file.txt',
-                size: '15mb',
-                path: '/home/user/Desktop/medium_sized_file.txt',
                 html_name: '<span>me</span>dium_sized_fi<span>l</span>e.txt',
                 html_size: '15mb',
                 html_path: '/home/user/Desktop/<span>me</span>dium_sized_fi<span>l</span>e.txt',
             },
             {
-                name: 'small_file.log',
-                size: '630kb',
-                path: '/home/user/Desktop/small_file.log',
                 html_name: 's<span>m</span>all_fil<span>e</span>.<span>l</span>og',
                 html_size: '630kb',
                 html_path:
                     '/home/user/Desktop/s<span>m</span>all_fil<span>e</span>.<span>l</span>og',
             },
             {
-                name: 'very_large_file.dlt',
-                size: '20gb',
-                path: '/home/user/Desktop/very_large_file.dlt',
                 html_name: 'very_large_file.dlt',
                 html_size: '20gb',
                 html_path: '/ho<span>me</span>/user/Desktop/very_<span>l</span>arge_file.dlt',
             },
         ];
         const query: string = 'mel';
-        const keep_zero_score: boolean = true;
-        compareMulti(matcher().search_multi(query, keep_zero_score), expected);
+        test(expected, query);
     });
 
-    it('should match few and keep in multi search', () => {
+    it('should match few', () => {
         const expected: { [key: string]: string }[] = [
             {
-                name: 'very_large_file.dlt',
-                size: '20gb',
-                path: '/home/user/Desktop/very_large_file.dlt',
-                html_name: 'very_lar<span>g</span>e_file.dlt',
-                html_size: '20<span>g</span>b',
-                html_path: '/home/user/Desktop/very_lar<span>g</span>e_file.dlt',
+                html_name: 'very_lar<p>g</p>e_file.dlt',
+                html_size: '20<p>g</p>b',
+                html_path: '/home/user/Desktop/very_lar<p>g</p>e_file.dlt',
             },
             {
-                name: 'small_file.log',
-                size: '630kb',
-                path: '/home/user/Desktop/small_file.log',
-                html_name: 'small_file.lo<span>g</span>',
+                html_name: 'small_file.lo<p>g</p>',
                 html_size: '630kb',
-                html_path: '/home/user/Desktop/small_file.lo<span>g</span>',
+                html_path: '/home/user/Desktop/small_file.lo<p>g</p>',
             },
             {
-                name: 'medium_sized_file.txt',
-                size: '15mb',
-                path: '/home/user/Desktop/medium_sized_file.txt',
                 html_name: 'medium_sized_file.txt',
                 html_size: '15mb',
                 html_path: '/home/user/Desktop/medium_sized_file.txt',
             },
         ];
         const query: string = 'g';
-        const keep_zero_score: boolean = true;
-        compareMulti(matcher().search_multi(query, keep_zero_score), expected);
-    });
-
-    it('should match few and not keep in multi search', () => {
-        const expected: { [key: string]: string }[] = [
-            {
-                name: 'very_large_file.dlt',
-                size: '20gb',
-                path: '/home/user/Desktop/very_large_file.dlt',
-                html_name: 'very_lar<p>g</p>e_file.dlt',
-                html_size: '20<p>g</p>b',
-                html_path: '/home/user/Desktop/very_lar<p>g</p>e_file.dlt',
-            },
-            {
-                name: 'small_file.log',
-                size: '630kb',
-                path: '/home/user/Desktop/small_file.log',
-                html_name: 'small_file.lo<p>g</p>',
-                html_size: '630kb',
-                html_path: '/home/user/Desktop/small_file.lo<p>g</p>',
-            },
-        ];
-        const query: string = 'g';
-        const keep_zero_score: boolean = false;
         const tag: string = 'p';
-        compareMulti(matcher().search_multi(query, keep_zero_score, tag), expected);
+        test(expected, query, tag);
     });
 });

@@ -2,22 +2,24 @@ import { SafeHtml } from '@angular/platform-browser';
 import { Observable } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
-import { getDomSanitizer, getMatcher } from '@ui/env/globals';
+import { getDomSanitizer } from '@ui/env/globals';
 import { Entry, EntryConvertable } from '@platform/types/storage/entry';
 import { error } from '@platform/env/logger';
 import { Storage } from '@env/fsstorage';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
+import { Matcher } from '@matcher/matcher';
+import { Matchee } from '@module/matcher';
 
 import * as obj from '@platform/env/obj';
 
-export class Recent implements EntryConvertable {
+export class Recent extends Matchee implements EntryConvertable {
     public value: string = '';
     public used: number = 0;
 
     private _htmlValue: string = '';
-    private _filtered: boolean = false;
 
-    constructor(value: string) {
+    constructor(value: string, matcher: Matcher) {
+        super(matcher, value !== '' ? { value: value } : undefined);
         this.value = value;
     }
 
@@ -25,13 +27,13 @@ export class Recent implements EntryConvertable {
         return getDomSanitizer().bypassSecurityTrustHtml(this._htmlValue);
     }
 
-    public setFilter(filter: string) {
-        this._htmlValue = getMatcher().search_single(filter, this.value);
-        this._filtered = this._htmlValue !== this.value;
+    public setFilter() {
+        const value: string | undefined = this.getHtmlOf('html_value');
+        this._htmlValue = value === undefined ? this.value : value;
     }
 
     public get filtered(): boolean {
-        return this._filtered;
+        return this.getScore() > 0;
     }
 
     public entry(): {
@@ -59,6 +61,7 @@ export class Recent implements EntryConvertable {
                     } = JSON.parse(entry.content);
                     this.value = obj.getAsNotEmptyString(def, 'filter');
                     this.used = obj.getAsValidNumber(def, 'used');
+                    this.setItem({ value: this.value });
                 } catch (e) {
                     return new Error(error(e));
                 }
@@ -83,6 +86,8 @@ export class RecentList extends Storage implements EntryConvertable {
     public items: Recent[] = [];
     public filter: string = '';
     public observer: Observable<Recent[]>;
+
+    private _matcher: Matcher = Matcher.new();
 
     constructor(control: FormControl) {
         super();
@@ -121,14 +126,11 @@ export class RecentList extends Storage implements EntryConvertable {
     public update(recent: string) {
         const item = this.items.find((i) => i.value === recent);
         if (item === undefined) {
-            this.items.push(new Recent(recent));
+            this.items.push(new Recent(recent, this._matcher));
         } else {
             item.used += 1;
         }
         this.setFilter('');
-        this.items.sort((a, b) => {
-            return a.used < b.used ? 1 : -1;
-        });
         this.storage()
             .save()
             .catch((err: Error) => {
@@ -137,7 +139,9 @@ export class RecentList extends Storage implements EntryConvertable {
     }
 
     public setFilter(filter: string) {
-        this.items.forEach((i) => i.setFilter(filter));
+        this._matcher.search(filter);
+        this.items.sort((a: Recent, b: Recent) => b.getScore() - a.getScore());
+        this.items.forEach((i) => i.setFilter());
     }
 
     public entry(): {
@@ -164,14 +168,11 @@ export class RecentList extends Storage implements EntryConvertable {
                     }
                     this.items = recent
                         .map((r) => {
-                            const item = new Recent('');
+                            const item = new Recent('', this._matcher);
                             const error = item.entry().from(r);
                             return error instanceof Error ? error : item;
                         })
                         .filter((r) => r instanceof Recent) as Recent[];
-                    this.items.sort((a, b) => {
-                        return a.used < b.used ? 1 : -1;
-                    });
                 } catch (e) {
                     return new Error(error(e));
                 }

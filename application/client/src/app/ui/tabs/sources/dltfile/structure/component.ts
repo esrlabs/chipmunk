@@ -67,7 +67,7 @@ export class TabSourceDltFileStructure
         this.data = new MatTableDataSource<StatEntity>(this.section.entities);
         this.env().subscriber.register(
             this.section.update.subscribe(() => {
-                this.data.data = this.section.entities.filter((e) => !e.selected && !e.hidden);
+                this.data.data = this.section.entities.filter((e) => !e.selected && !e.hidden());
                 this.table.renderRows();
                 this.detectChanges();
             }),
