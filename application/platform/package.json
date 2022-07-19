@@ -85,11 +85,22 @@
         "./types/parsers/someip": "./dist/types/parsers/someip.js",
         "./types/storage": "./dist/types/storage/index.js",
         "./types/storage/entry": "./dist/types/storage/entry.js",
+        "./types/storage/storage": "./dist/types/storage/storage.js",
+        "./types/storage/storage.record": "./dist/types/storage/storage.record.js",
+        "./types/storage/storage.record.validators": "./dist/types/storage/storage.record.validators.js",
         "./types/transport": "./dist/types/transport/index.js",
         "./types/transport/process": "./dist/types/transport/process.js",
         "./types/transport/serial": "./dist/types/transport/serial.js",
         "./types/transport/tcp": "./dist/types/transport/tcp.js",
         "./types/transport/udp": "./dist/types/transport/udp.js",
+        "./types/io/read": "./dist/types/io/read.js",
+        "./types/io/write": "./dist/types/io/write.js",
+        "./types/settings/element": "./dist/types/settings/element.js",
+        "./types/settings/entry": "./dist/types/settings/entry.js",
+        "./types/settings/entry.description": "./dist/types/settings/entry.description.js",
+        "./types/life/destroyable": "./dist/types/life/destroyable.js",
+        "./types/unity/mutable": "./dist/types/unity/mutable.js",
+        "./types/notification/index": "./dist/types/notification/index.js",
         "./package.json": "./package.json"
     }
 }

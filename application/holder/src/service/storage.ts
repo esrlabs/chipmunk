@@ -8,7 +8,6 @@ import {
 import { services } from '@register/services';
 import { paths } from '@service/paths';
 import { electron } from '@service/electron';
-import { Subscriber } from 'platform/env/subscription';
 import { FileController } from '@env/fs/accessor';
 import { CancelablePromise } from 'platform/env/promise';
 import { Entries } from './storage/entries';
@@ -20,7 +19,6 @@ import * as Requests from 'platform/ipc/request';
 @DependOn(electron)
 @SetupService(services['storage'])
 export class Service extends Implementation {
-    private _subscriber: Subscriber = new Subscriber();
     private _files: Map<string, FileController> = new Map();
     private _entries: Entries;
 
@@ -30,7 +28,7 @@ export class Service extends Implementation {
     }
 
     public override ready(): Promise<void> {
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -54,7 +52,7 @@ export class Service extends Implementation {
                     },
                 ),
         );
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -74,7 +72,7 @@ export class Service extends Implementation {
                     },
                 ),
         );
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -93,7 +91,7 @@ export class Service extends Implementation {
                     },
                 ),
         );
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -118,7 +116,7 @@ export class Service extends Implementation {
                     },
                 ),
         );
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -149,7 +147,7 @@ export class Service extends Implementation {
                     },
                 ),
         );
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -173,6 +171,7 @@ export class Service extends Implementation {
     }
 
     public override destroy(): Promise<void> {
+        this.unsubscribe();
         return Promise.all(Array.from(this._files.values()).map((f) => f.destroy()))
             .then(() => undefined)
             .catch((err: Error) => {

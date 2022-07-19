@@ -7,7 +7,6 @@ import {
 } from 'platform/entity/service';
 import { services } from '@register/services';
 import { electron } from '@service/electron';
-import { Subscriber } from 'platform/env/subscription';
 
 import * as Requests from 'platform/ipc/request';
 import * as RequestHandlers from './bridge/index';
@@ -15,9 +14,8 @@ import * as RequestHandlers from './bridge/index';
 @DependOn(electron)
 @SetupService(services['bridge'])
 export class Service extends Implementation {
-    private _subscriber: Subscriber = new Subscriber();
     public override ready(): Promise<void> {
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -26,7 +24,7 @@ export class Service extends Implementation {
                     RequestHandlers.File.Open.handler,
                 ),
         );
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -35,7 +33,7 @@ export class Service extends Implementation {
                     RequestHandlers.Connect.Dlt.handler,
                 ),
         );
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -44,7 +42,7 @@ export class Service extends Implementation {
                     RequestHandlers.File.Select.handler,
                 ),
         );
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -53,7 +51,7 @@ export class Service extends Implementation {
                     RequestHandlers.File.File.handler,
                 ),
         );
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -62,7 +60,7 @@ export class Service extends Implementation {
                     RequestHandlers.Dlt.Stat.handler,
                 ),
         );
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -71,7 +69,7 @@ export class Service extends Implementation {
                     RequestHandlers.Os.List.handler,
                 ),
         );
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -80,6 +78,11 @@ export class Service extends Implementation {
                     RequestHandlers.Os.AsFSEntity.handler,
                 ),
         );
+        return Promise.resolve();
+    }
+
+    public override destroy(): Promise<void> {
+        this.unsubscribe();
         return Promise.resolve();
     }
 }

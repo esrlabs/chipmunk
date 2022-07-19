@@ -2,7 +2,7 @@ import { SetupService, Interface, Implementation, register } from '@platform/ent
 import { services } from '@register/services';
 import { Listener } from './hotkeys/listener';
 import { KeysMap, getKeyByUuid, Requirement, getKeyByAlias } from './hotkeys/map';
-import { Subscriber, Subscription } from '@platform/env/subscription';
+import { Subscription } from '@platform/env/subscription';
 import { listener } from '@ui/service/listener';
 import { ilc, Services } from '@service/ilc';
 import { unique } from '@platform/env/sequence';
@@ -12,7 +12,6 @@ import { Vertical, Horizontal } from '@ui/service/pupup';
 @SetupService(services['hotkeys'])
 export class Service extends Implementation {
     private _listener!: Listener;
-    private _subscriber: Subscriber = new Subscriber();
     private _services!: Services;
     private _handlers: Map<string, Map<string, () => void>> = new Map();
 
@@ -20,12 +19,12 @@ export class Service extends Implementation {
         const channel = ilc.channel(this.getName(), this.log());
         this._services = ilc.services(this.getName(), this.log());
         this._listener = new Listener(KeysMap);
-        this._subscriber.register(
+        this.register(
             channel.session.change(() => {
                 this.check().session();
             }),
         );
-        this._subscriber.register(
+        this.register(
             this._listener.subject.subscribe((uuid: string) => {
                 const key = getKeyByUuid(uuid);
                 if (key === undefined) {
@@ -38,7 +37,7 @@ export class Service extends Implementation {
                 handlers.forEach((handler) => handler());
             }),
         );
-        this._subscriber.register(
+        this.register(
             listener.listen(
                 'keyup',
                 window,
@@ -50,20 +49,20 @@ export class Service extends Implementation {
                 },
             ),
         );
-        this._subscriber.register(
+        this.register(
             listener.listen('keydown', window, () => {
                 this.check().inputs();
                 return true;
             }),
         );
-        this._subscriber.register(
+        this.register(
             listener.listen('mouseup', window, () => {
                 this.check().inputs();
                 return true;
             }),
         );
-        this._subscriber.register(
-            this.register('?', () => {
+        this.register(
+            this.listen('?', () => {
                 this._services.ui.popup.open({
                     component: {
                         factory: components.get('app-dialogs-hotkeys'),
@@ -73,8 +72,8 @@ export class Service extends Implementation {
                 });
             }),
         );
-        this._subscriber.register(
-            this.register('Ctrl + P', () => {
+        this.register(
+            this.listen('Ctrl + P', () => {
                 this._services.ui.popup.open({
                     component: {
                         factory: components.get('app-recent-actions-mini'),
@@ -94,12 +93,12 @@ export class Service extends Implementation {
     }
 
     public override destroy(): Promise<void> {
-        this._subscriber.unsubscribe();
+        this.unsubscribe();
         this._listener.destroy();
         return Promise.resolve();
     }
 
-    public register(alias: string, handler: () => void): Subscription {
+    public listen(alias: string, handler: () => void): Subscription {
         const key = getKeyByAlias(alias);
         if (key === undefined) {
             throw new Error(`Hotkey ${alias} isn't found`);

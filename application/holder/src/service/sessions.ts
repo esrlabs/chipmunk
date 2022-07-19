@@ -8,10 +8,10 @@ import {
 import { electron } from '@service/electron';
 import { jobs } from '@service/jobs';
 import { services } from '@register/services';
-import { Subscriber } from 'platform/env/subscription';
 import { Session } from 'rustcore';
 import { Active } from './sessions/active';
 import { Holder } from './sessions/holder';
+import { Subscriber } from 'platform/env/subscription';
 
 import * as RequestHandlers from './sessions/requests';
 import * as Requests from 'platform/ipc/request';
@@ -22,12 +22,11 @@ export { Jobs } from './sessions/holder';
 @DependOn(electron)
 @SetupService(services['sessions'])
 export class Service extends Implementation {
-    private _subscriber: Subscriber = new Subscriber();
     private _sessions: Map<string, Holder> = new Map();
     private _active: Active = new Active();
 
     public override ready(): Promise<void> {
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -36,7 +35,7 @@ export class Service extends Implementation {
                     RequestHandlers.Session.Create.handler,
                 ),
         );
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -45,7 +44,7 @@ export class Service extends Implementation {
                     RequestHandlers.Session.Destroy.handler,
                 ),
         );
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -54,7 +53,7 @@ export class Service extends Implementation {
                     RequestHandlers.Stream.Chunk.handler,
                 ),
         );
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -63,7 +62,7 @@ export class Service extends Implementation {
                     RequestHandlers.Search.Chunk.handler,
                 ),
         );
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -72,7 +71,7 @@ export class Service extends Implementation {
                     RequestHandlers.Search.Search.handler,
                 ),
         );
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -81,7 +80,7 @@ export class Service extends Implementation {
                     RequestHandlers.Search.Drop.handler,
                 ),
         );
-        this._subscriber.register(
+        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -94,7 +93,7 @@ export class Service extends Implementation {
     }
 
     public override destroy(): Promise<void> {
-        this._subscriber.unsubscribe();
+        this.unsubscribe();
         return Promise.resolve();
     }
 

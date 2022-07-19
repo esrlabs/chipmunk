@@ -40,6 +40,8 @@
             "resources"
         ],
         "npmRebuild": true,
+        "afterSign": "hooks/afterSign.js",
+        "afterPack": "hooks/afterPack.js",
         "mac": {
             "category": "public.app-category.developer-tools",
             "icon": "resources/mac/chipmunk.icns",
@@ -71,12 +73,12 @@
         "https-proxy-agent": "^5.0.1",
         "module-alias": "^2.2.2",
         "moment-timezone": "^0.5.34",
+        "platform": "file:../platform",
         "rustcore": "file:../apps/rustcore/ts-bindings",
         "semver": "^7.3.7",
         "sudo-prompt": "^9.2.1",
         "tslib": "^2.3.1",
-        "uuid": "^8.3.2",
-        "platform": "file:../platform"
+        "uuid": "^8.3.2"
     },
     "devDependencies": {
         "@types/module-alias": "^2.0.1",
@@ -86,6 +88,7 @@
         "@types/uuid": "^8.3.4",
         "@typescript-eslint/eslint-plugin": "^5.19.0",
         "@typescript-eslint/parser": "^5.19.0",
+        "dotnet": "^1.1.4",
         "electron": "^18.0.4",
         "electron-builder": "^23.0.3",
         "electron-notarize": "^1.2.1",
@@ -99,12 +102,11 @@
         "electron": "npm run build && ./node_modules/.bin/electron --inspect ./dist/app.js",
         "electron-win": "./node_modules/.bin/electron --inspect ./dist/app.js",
         "build": "./node_modules/.bin/tsc -p ./tsconfig.json",
-        "build-scripts-ts": "./node_modules/.bin/tsc -p ./scripts/tsconfig.json",
         "start": "npm run build-ts && npm run electron",
         "postinstall": "electron-builder install-app-deps",
-        "build-mac": "npm run build-scripts-ts && npm run build-ts && ./node_modules/.bin/electron-builder --mac --dir",
-        "build-linux": "npm run build-scripts-ts && npm run build-ts && ./node_modules/.bin/electron-builder --linux --dir",
-        "build-win": "npm run build-scripts-ts && npm run build-ts && node_modules/.bin/electron-builder --win --dir",
+        "build-darwin": "./node_modules/.bin/electron-builder --mac --dir",
+        "build-linux": "./node_modules/.bin/electron-builder --linux --dir",
+        "build-win": "./node_modules/.bin/electron-builder --win --dir",
         "lint": "./node_modules/.bin/eslint . --ext .ts --max-warnings=0"
     }
 }

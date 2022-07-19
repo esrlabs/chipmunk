@@ -1,6 +1,6 @@
 export type AnyObj = { [key: string]: unknown };
 
-function is(smth: any): boolean {
+export function is(smth: any): boolean {
     if (typeof smth !== 'object' || smth === null) {
         return false;
     } else if (smth instanceof Array) {
@@ -78,6 +78,21 @@ export function getPropByPath<T, O>(dest: T, path: string): O | undefined {
     }
 }
 
+export function createPath<T>(dest: T, path: string): void {
+    if ((dest ?? true) === true) {
+        return undefined;
+    }
+    const parts: string[] = path.split('.');
+    if (asAnyObj(dest)[parts[0]] === undefined) {
+        asAnyObj(dest)[parts[0]] = {};
+    }
+    const current = asAnyObj(dest)[parts[0]];
+    parts.splice(0, 1);
+    if (parts.length > 0) {
+        createPath(current, parts.join('.'));
+    }
+}
+
 export function getWithDefaults<T>(obj: any, prop: string, defaults: T): T {
     if (obj === undefined || obj === null) {
         throw new Error(`Target cannot be null or undefined`);
@@ -92,6 +107,7 @@ export function isObject(src: any) {
         throw new Error(`Expecting an object`);
     }
 }
+
 export function getObject(src: any): Record<string, unknown> {
     if ((src ?? true) === true || typeof src !== 'object') {
         throw new Error(`Expecting an object`);

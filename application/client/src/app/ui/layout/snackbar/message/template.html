@@ -1,0 +1,12 @@
+<div class="message">
+    <p>{{data.notification.message()}}</p>
+</div>
+<div class="controlls">
+    <button mat-stroked-button 
+    [attr.title]="action.description" 
+    (click)="ngOnAction(action)" 
+    *ngFor="let action of data.notification.actions()">{{action.name}}</button>
+</div>
+<button data-controll="close" mat-icon-button (click)="ngDismiss()">
+    <mat-icon>close</mat-icon>
+</button>

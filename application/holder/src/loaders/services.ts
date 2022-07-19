@@ -10,3 +10,6 @@ import '@service/electron';
 import '@service/sessions';
 import '@service/bridge';
 import '@service/storage';
+import '@service/settings';
+import '@service/updater';
+import '@service/notifications';

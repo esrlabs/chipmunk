@@ -13,7 +13,6 @@ export interface States {
 @SetupService(services['state'])
 export class Service extends Implementation {
     private _emitter!: Emitter;
-    private _subscriber: Subscriber = new Subscriber();
     private _states: States = {
         ui: {
             input: false,
@@ -23,7 +22,7 @@ export class Service extends Implementation {
     public override ready(): Promise<void> {
         this._emitter = ilc.emitter(this.getName(), this.log());
         const channel = ilc.channel(this.getName(), this.log());
-        this._subscriber.register(
+        this.register(
             Events.IpcEvent.subscribe<Events.State.Backend.Event>(
                 Events.State.Backend.Event,
                 (event) => {
@@ -53,7 +52,7 @@ export class Service extends Implementation {
     }
 
     public override destroy(): Promise<void> {
-        this._subscriber.unsubscribe();
+        this.unsubscribe();
         return Promise.resolve();
     }
 

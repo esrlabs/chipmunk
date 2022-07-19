@@ -138,7 +138,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
             }),
         );
         this._subscriber.register(
-            this.ilc().services.system.hotkeys.register('g', () => {
+            this.ilc().services.system.hotkeys.listen('g', () => {
                 if (!this.service.focus().get()) {
                     return;
                 }
@@ -146,7 +146,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
             }),
         );
         this._subscriber.register(
-            this.ilc().services.system.hotkeys.register('gg', () => {
+            this.ilc().services.system.hotkeys.listen('gg', () => {
                 if (!this.service.focus().get()) {
                     return;
                 }
