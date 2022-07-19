@@ -8,7 +8,7 @@ edition = "2021"
 crossbeam-channel = "0.5"
 futures = "0.3"
 indexer_base = { path = "../indexer_base" }
-log = "0.4"
+log = "0.4.17"
 merging = { path = "../merging" }
 parsers = { path = "../parsers" }
 processor = { path = "../processor" }

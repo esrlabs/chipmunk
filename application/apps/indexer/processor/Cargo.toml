@@ -23,7 +23,7 @@ grep-printer = "0.1.5"
 indexer_base = { path = "../indexer_base" }
 itertools = "0.10.0"
 lazy_static = "1.4"
-log = "0.4"
+log = "0.4.17"
 nom = "7.1"
 parsers = { path = "../parsers" }
 regex = "1"
