@@ -1,5 +1,5 @@
 class HolderSettings
-  attr_accessor :reinstall, :client_prod, :platform_rebuild, :bindings_rebuild, :bindings_reinstall
+  attr_accessor :reinstall, :client_prod, :platform_rebuild, :bindings_rebuild, :bindings_reinstall, :launchers_rebuild
 
   def initialize
     self.reinstall = false
@@ -7,6 +7,7 @@ class HolderSettings
     self.platform_rebuild = false
     self.bindings_rebuild = false
     self.bindings_reinstall = false
+    self.launchers_rebuild = false
   end
 
   def set_reinstall(val)
@@ -31,6 +32,11 @@ class HolderSettings
 
   def set_bindings_reinstall(val)
     self.bindings_reinstall = val
+    self
+  end
+
+  def set_launchers_rebuild(val)
+    self.launchers_rebuild = val
     self
   end
 end
@@ -80,6 +86,8 @@ class Holder
       Rake.sh 'npm run build'
       Reporter.add(Jobs::Building, Owner::Holder, 'built', '')
     end
+    Rake.sh "cp #{Paths::ELECTRON}/package.json #{@dist}/package.json"
+    Launchers.new.check(@settings.launchers_rebuild)
   end
 
   def lint
@@ -90,4 +98,3 @@ class Holder
     end
   end
 end
-

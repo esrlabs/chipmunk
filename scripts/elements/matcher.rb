@@ -43,14 +43,16 @@ class Matcher
   def build
     if File.exist?(@pkg) && File.exist?(@target) && !@rebuild
       Reporter.add(Jobs::Skipped, Owner::Matcher, 'already built', '')
+    else
+      Environment.check
+      FileUtils.remove_dir(@pkg, true)
+      Reporter.add(Jobs::Clearing, Owner::Matcher, @pkg, '')
+      FileUtils.remove_dir(@target, true)
+      Reporter.add(Jobs::Clearing, Owner::Matcher, @target, '')
+      Dir.chdir(Paths::MATCHER) do
+        Rake.sh 'wasm-pack build --target bundler'
+      end
+      Reporter.add(Jobs::Building, Owner::Matcher, @target, '')
     end
-    FileUtils.remove_dir(@pkg, true)
-    Reporter.add(Jobs::Clearing, Owner::Matcher, @pkg, '')
-    FileUtils.remove_dir(@target, true)
-    Reporter.add(Jobs::Clearing, Owner::Matcher, @target, '')
-    Dir.chdir(Paths::MATCHER) do
-      Rake.sh 'wasm-pack build --target bundler'
-    end
-    Reporter.add(Jobs::Building, Owner::Matcher, @target, '')
   end
 end

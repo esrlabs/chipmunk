@@ -55,6 +55,12 @@ namespace :build do
     Reporter.print
   end
 
+  desc 'Build launchers'
+  task :launchers do
+    Launchers.new.build
+    Reporter.print
+  end
+
   desc 'Build matcher'
   task :matcher do
     Matcher.new(false, false).build
@@ -91,6 +97,12 @@ namespace :rebuild do
   task :prod do
     Holder.new(HolderSettings.new.set_bindings_rebuild(true).set_platform_rebuild(true).set_client_prod(true)).clean
     Rake::Task['build:prod'].invoke
+  end
+
+  desc 'Rebuild launchers'
+  task :launchers do
+    Launchers.new.check(true)
+    Reporter.print
   end
 end
 
@@ -129,13 +141,39 @@ namespace :developing do
     Reporter.print
   end
 
-  desc 'Clean & rebuild all'
-  task :clean_rebuild_all do
+  desc 'Clean all'
+  task :clean_all do
+    Launchers.new.clean
     Client.new(true, true).clean
     Bindings.new(true).clean
     Platform.new(true, true).clean
+    Release.new(true, true).clean
+    Holder.new(HolderSettings.new).clean
+    Reporter.print
+  end
+
+  desc 'Clean & rebuild all'
+  task :clean_rebuild_all do
+    Launchers.new.clean
+    Client.new(true, true).clean
+    Bindings.new(true).clean
+    Platform.new(true, true).clean
+    Release.new(true, true).clean
     Holder.new(HolderSettings.new).clean
     Holder.new(HolderSettings.new.set_platform_rebuild(true).set_bindings_rebuild(true)).build
+    Reporter.print
+  end
+end
+
+namespace :release do
+  desc 'Production'
+  task :prod do
+    Release.new(true, true).build
+    Reporter.print
+  end
+  desc 'Developing'
+  task :dev do
+    Release.new(false, false).build
     Reporter.print
   end
 end
@@ -189,7 +227,8 @@ namespace :test do
     end
   end
   desc 'run all test'
-  task all: ['test:binding:observe', 'test:binding:search', 'test:binding:cancel', 'test:matcher:karma', 'test:matcher:rust']
+  task all: ['test:binding:observe', 'test:binding:search', 'test:binding:cancel', 'test:matcher:karma',
+             'test:matcher:rust']
 end
 
 namespace :lint do
@@ -222,10 +261,8 @@ end
 namespace :clippy do
   desc 'Clippy update to nightly'
   task :nightly do
-    config = Config.new
-    sh "rustup install #{config.get_rust_version}"
+    sh 'rustup install nightly'
     sh 'rustup default nightly'
-    sh "rustup default #{config.get_rust_version}"
     sh 'rustup component add --toolchain=nightly clippy-preview'
   end
 
@@ -252,6 +289,15 @@ namespace :clippy do
 
   desc 'Clippy all'
   task all: ['clippy:nightly', 'clippy:indexer', 'clippy:rs_bindings', 'clippy:matcher']
+end
+
+namespace :env do
+  desc 'Install target version of rust'
+  task :rust do
+    config = Config.new
+    sh "rustup install #{config.get_rust_version}"
+    sh "rustup default #{config.get_rust_version}"
+  end
 end
 
 desc 'Executes all check before pull request'

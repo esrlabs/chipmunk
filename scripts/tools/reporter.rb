@@ -4,6 +4,7 @@ module Jobs
   Building = 'building'
   Clearing = 'clearing'
   Checks = 'checks'
+  Release = 'release'
   Other = 'other'
 end
 
@@ -15,6 +16,10 @@ module Owner
   Rustcore = 'Rustcore'
   Bindings = 'Bindings'
   Matcher = 'Matcher'
+  Launchers = 'Launchers'
+  Release = 'Release'
+  Compressor = 'Compressor'
+  Env = 'Env'
 end
 
 class Reporter
@@ -54,8 +59,10 @@ def icon_type(type)
     '🗑'
   when Jobs::Checks
     '🗹'
+  when Jobs::Release
+    '🎉'
   when Jobs::Other
-    '☰'
+    ' '
   else
     '...'
   end
