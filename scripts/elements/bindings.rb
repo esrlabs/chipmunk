@@ -42,6 +42,7 @@ class Bindings
   end
 
   def build
+    Environment.check
     install
     Platform.check(Paths::TS_BINDINGS, false)
     Dir.chdir(Paths::RS_BINDINGS) do

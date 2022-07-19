@@ -1,4 +1,13 @@
 module Paths
+  def self.get_release_build_folder
+    if OS.windows?
+      'win-unpacked'
+    elsif OS.linux?
+      'linux-unpacked'
+    else
+      'mac/chipmunk.app/Contents/MacOS'
+    end
+  end
   TS_BINDINGS = 'application/apps/rustcore/ts-bindings'
   RS_BINDINGS = 'application/apps/rustcore/rs-bindings'
   CLIENT = 'application/client'
@@ -16,4 +25,7 @@ module Paths
   TSC = "#{ELECTRON}/node_modules/.bin/tsc"
   CONFIG = 'scripts/config.json'
   MATCHER = 'application/apps/webassembly/matcher'
+  LAUNCHERS = 'application/apps/launchers'
+  RELEASE = 'application/holder/release'
+  RELEASE_BUILD = "#{RELEASE}/#{Paths.get_release_build_folder}"
 end

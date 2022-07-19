@@ -15,4 +15,23 @@ module OS
   def self.linux?
     OS.unix? && !OS.mac?
   end
+
+  def self.executable(filename)
+    exe = if OS.windows?
+            '.exe'
+          else
+            ''
+          end
+    "#{filename}#{exe}"
+  end
+
+  def self.prefix
+    if OS.windows?
+      'win'
+    elsif OS.linux?
+      'linux'
+    else
+      'darwin'
+    end
+  end
 end

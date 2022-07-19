@@ -7,7 +7,8 @@ module Screens
       { name: 'Developing shortcuts', value: 3 },
       { name: 'Checks (tests)', value: 4 },
       { name: 'Quality (linting & clippy)', value: 5 },
-      { name: 'exit', value: 6 }
+      { name: 'Release', value: 6 },
+      { name: 'exit', value: 7 }
     ]
     case prompt.select('Actions groups', choices)
     when 1
@@ -20,6 +21,8 @@ module Screens
       Screens.checks(prompt)
     when 5
       Screens.quality(prompt)
+    when 6
+      Screens.release(prompt)
     else
       puts 'Goodbuy!'
     end
@@ -43,6 +46,27 @@ module Screens
     when 3
       Rake::Task['build:client_prod'].invoke
     when 4
+      Screens.welcome(prompt)
+    else
+      puts 'Goodbuy!'
+    end
+  end
+
+  def self.release(prompt)
+    clear
+    puts 'Creating a release'
+    choices = [
+      { name: 'Create developing release [rake release:dev]', value: 1 },
+      { name: 'Create production release [rake release:prod]', value: 2 },
+      { name: 'back', value: 3 },
+      { name: 'exit', value: 4 }
+    ]
+    case prompt.select('Actions groups', choices)
+    when 1
+      Rake::Task['release:dev'].invoke
+    when 2
+      Rake::Task['release:prod'].invoke
+    when 3
       Screens.welcome(prompt)
     else
       puts 'Goodbuy!'
@@ -84,9 +108,11 @@ module Screens
       { name: 'Rebuild holder (+ platform) [rake developing:holder_platform]', value: 5 },
       { name: 'Rebuild holder (+ platform + bindings) [rake developing:holder_platform_bindings]', value: 6 },
       { name: 'Build matcher [rake build:matcher]', value: 7 },
-      { name: 'Clean & Rebuild everything', value: 8 },
-      { name: 'back', value: 9 },
-      { name: 'exit', value: 10 }
+      { name: 'Build launchers [rake build:launchers]', value: 8 },
+      { name: 'Clean everything', value: 9 },
+      { name: 'Clean & Rebuild everything', value: 10 },
+      { name: 'back', value: 11 },
+      { name: 'exit', value: 12 }
     ]
     case prompt.select('Actions groups', choices)
     when 1
@@ -104,8 +130,12 @@ module Screens
     when 7
       Rake::Task['build:matcher'].invoke
     when 8
-      Rake::Task['developing:clean_rebuild_all'].invoke
+      Rake::Task['build:launchers'].invoke
     when 9
+      Rake::Task['developing:clean_all'].invoke
+    when 10
+      Rake::Task['developing:clean_rebuild_all'].invoke
+    when 11
       Screens.welcome(prompt)
     else
       puts 'Goodbuy!'
