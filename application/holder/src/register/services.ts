@@ -34,4 +34,16 @@ export const services: { [key: string]: Inputs } = {
         name: 'Storage',
         uuid: v4(),
     },
+    settings: {
+        name: 'Settings',
+        uuid: v4(),
+    },
+    updater: {
+        name: 'Updater',
+        uuid: v4(),
+    },
+    notifications: {
+        name: 'Notifications',
+        uuid: v4(),
+    },
 };

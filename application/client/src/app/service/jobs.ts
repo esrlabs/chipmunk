@@ -2,7 +2,6 @@ import { SetupService, Interface, Implementation, register } from '@platform/ent
 import { Job } from './jobs/job';
 import { services } from '@register/services';
 import { ilc, Emitter } from '@service/ilc';
-import { Subscriber } from '@platform/env/subscription';
 
 import * as Events from '@platform/ipc/event/index';
 
@@ -11,12 +10,11 @@ export { Job };
 @SetupService(services['jobs'])
 export class Service extends Implementation {
     private _emitter!: Emitter;
-    private _subscriber: Subscriber = new Subscriber();
     private _jobs: Map<string, Map<string, Job>> = new Map();
 
     public override ready(): Promise<void> {
         this._emitter = ilc.emitter(this.getName(), this.log());
-        this._subscriber.register(
+        this.register(
             Events.IpcEvent.subscribe<Events.State.Job.Event>(Events.State.Job.Event, (event) => {
                 let job = this.find(event.uuid);
                 if (job === undefined) {
@@ -47,7 +45,7 @@ export class Service extends Implementation {
     }
 
     public override destroy(): Promise<void> {
-        this._subscriber.unsubscribe();
+        this.unsubscribe();
         return Promise.resolve();
     }
 

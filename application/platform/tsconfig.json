@@ -27,5 +27,8 @@
   },
   "files": [
     "./lib.ts",
-  ]
+  ],
+  "include": [
+    "./types/"
+  ],
 }

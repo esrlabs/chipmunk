@@ -28,7 +28,12 @@ export class Service extends Implementation {
         ready: new Subject<void>(),
     };
 
-    public override async init(): Promise<void> {
+    public override async init(hooks?: {
+        // Will be triggered before sending "ready" to each service
+        before?: () => Promise<void>;
+        // Will be triggered after "ready" sent to each service
+        after?: () => Promise<void>;
+    }): Promise<void> {
         const inited = this._inited;
         const register = this._register;
         const logger = this._logger;
@@ -72,6 +77,9 @@ export class Service extends Implementation {
         }
         logger.info(`all services are inited...`);
         this.subjects.inited.emit();
+        if (hooks !== undefined && hooks.before !== undefined) {
+            await hooks.before();
+        }
         return new Promise((resolve, reject) => {
             setTimeout(async () => {
                 for (const service of services) {
@@ -85,6 +93,9 @@ export class Service extends Implementation {
                         );
                         return reject(new Error(error(err)));
                     }
+                }
+                if (hooks !== undefined && hooks.after !== undefined) {
+                    await hooks.after();
                 }
                 resolve();
                 this.subjects.ready.emit();

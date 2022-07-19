@@ -1,0 +1,18 @@
+@import '../../../styles/variables.less';
+
+app-layout-snackbar-message {
+    padding: 0 16px 0 0;
+    position: relative;
+    display: block;
+    & div.controlls {
+        text-align: right;
+        & button {
+            margin-left: 12px;
+        }
+    }
+    & button[data-controll="close"] {
+        position: absolute;
+        right: -18px;
+        top: -18px;
+    }
+}

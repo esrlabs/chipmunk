@@ -7,3 +7,4 @@ export * as Search from './search';
 export * as Connect from './connect';
 export * as Storage from './storage';
 export * as Os from './os';
+export * as Action from './action';

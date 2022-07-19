@@ -1,6 +1,5 @@
 export { Hotkey, HotkeyEvent } from './hotkey';
 export { Popup } from './popup';
-export { INotification, ENotificationType } from './notification';
 export { IMenu, IMenuItem } from './contextmenu';
 export { AvailableSidebarTabs } from './sidebar';
 export { AvailableToolbarTabs } from './toolbar';

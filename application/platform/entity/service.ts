@@ -3,6 +3,7 @@ import { getWithDefaults } from '../env/obj';
 import { scope } from '../env/scope';
 import { Instance as Logger } from '../env/logger';
 import { unique } from '../env/sequence';
+import { Subscriber } from '../env/subscription';
 
 export interface Inputs {
     name: string;
@@ -16,7 +17,7 @@ export interface Interface {
     log(): Logger;
 }
 
-export abstract class Implementation {
+export abstract class Implementation extends Subscriber {
     /**
      * Initialization of service.
      * Service can do some work for initialization
@@ -40,6 +41,7 @@ export abstract class Implementation {
     //     return Promise.resolve();
     // }
     public destroy(): Promise<void> {
+        this.unsubscribe();
         return Promise.resolve();
     }
 }

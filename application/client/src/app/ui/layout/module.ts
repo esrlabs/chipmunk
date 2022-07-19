@@ -8,6 +8,8 @@ import { RecentActionsModule } from '@elements/recent/module';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatIconModule } from '@angular/material/icon';
 
 import { Layout } from './component';
 import { LayoutStatusBar } from './statusbar/component';
@@ -23,6 +25,8 @@ import { LayoutToolbar } from './toolbar/component';
 import { LayoutToolbarControls } from './toolbar/controls/component';
 import { LayoutPopups } from './popups/component';
 import { LayoutPopup } from './popups/popup/component';
+import { LayoutSnackBar } from './snackbar/component';
+import { LayoutSnackBarMessage } from './snackbar/message/component';
 
 import { OverlayModule } from '@angular/cdk/overlay';
 import { JobsModule } from '@views/statusbar/jobs/module';
@@ -45,6 +49,8 @@ const entryComponents = [
     LayoutToolbarControls,
     LayoutPopups,
     LayoutPopup,
+    LayoutSnackBar,
+    LayoutSnackBarMessage,
 ];
 
 @NgModule({
@@ -57,6 +63,8 @@ const entryComponents = [
         MatButtonModule,
         MatCardModule,
         MatDividerModule,
+        MatSnackBarModule,
+        MatIconModule,
         JobsModule,
         SessionModule,
         RecentActionsModule,

@@ -23,12 +23,12 @@ export class Bookmarks extends Subscriber {
         this._uuid = uuid;
         this.cursor = cursor;
         this.register(
-            hotkeys.register('j', () => {
+            hotkeys.listen('j', () => {
                 this.move().prev();
             }),
         );
         this.register(
-            hotkeys.register('k', () => {
+            hotkeys.listen('k', () => {
                 this.move().next();
             }),
         );

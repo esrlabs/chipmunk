@@ -93,12 +93,12 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                     }),
                 );
                 this.env().subscriber.register(
-                    this.ilc().services.system.hotkeys.register(']', () => {
+                    this.ilc().services.system.hotkeys.listen(']', () => {
                         this.move().next();
                     }),
                 );
                 this.env().subscriber.register(
-                    this.ilc().services.system.hotkeys.register('[', () => {
+                    this.ilc().services.system.hotkeys.listen('[', () => {
                         this.move().prev();
                     }),
                 );
