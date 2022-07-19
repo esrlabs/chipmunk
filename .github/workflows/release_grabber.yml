@@ -1,0 +1,88 @@
+name: BuildAndReleaseGrabber
+
+on:
+    push:
+        branches:
+            - grabber # Push events on grabber branch
+        tags:
+            - "*"
+
+jobs:
+    build:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                os: [ubuntu-latest, windows-latest, macOS-latest]
+                rust: [stable]
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v3
+            - name: install ruby
+              uses: ruby/setup-ruby@v1
+              with:
+                  ruby-version: "3.0"
+                  bundler-cache: true
+            - name: install ruby:gem::dotenv
+              run: gem install dotenv
+            - name: install ruby:gem::json
+              run: gem install json
+            - name: install node
+              uses: actions/setup-node@master
+              with:
+                  node-version: "current"
+            - name: install rust
+              uses: hecrj/setup-rust-action@v1
+              with:
+                  rust-version: ${{ matrix.rust }}
+            - name: cargo install nj-cli
+              run: cargo install nj-cli
+            - name: install wasm-pack
+              run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+            - name: setup keychain for signing and notarising
+              if: runner.os == 'macOS'
+              env:
+                  KEYCHAIN_NAME: "build.keychain"
+                  CSC_LINK: ${{ secrets.CSC_LINK }}
+                  CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+                  KEYCHAIN_PWD: ${{ secrets.KEYCHAIN_PWD }}
+              run: |
+                  security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_NAME"
+                  security default-keychain -s "$KEYCHAIN_NAME"
+                  certfile="${HOME}/buildcert.p12"
+                  echo "$CSC_LINK" | base64 -d > "$certfile"
+                  security import \
+                    "$certfile" \
+                    -P "$CSC_KEY_PASSWORD" \
+                    -A \
+                    -k "$KEYCHAIN_NAME"
+                  rm "$certfile"
+                  security set-key-partition-list \
+                    -S 'apple:' \
+                    -s \
+                    -k "$KEYCHAIN_PWD" \
+                    "$KEYCHAIN_NAME"
+            - name: build release
+              working-directory: ./application/holder
+              run: rake release:prod --trace
+              env:
+                  KEYCHAIN_NAME: "build.keychain"
+                  CSC_LINK: ${{ secrets.CSC_LINK }}
+                  CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+                  APPLEID: ${{ secrets.APPLEID }}
+                  APPLEIDPASS: ${{ secrets.APPLEIDPASS }}
+                  SIGNING_ID: ${{ secrets.SIGNING_ID }}
+                  KEYCHAIN_PWD: ${{ secrets.KEYCHAIN_PWD }}
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: list release files
+              working-directory: ./application/holder/release
+              run: ls
+            - name: Release files
+              uses: meatlink/action-gh-release@fix-econnreset
+              if: startsWith(github.ref, 'refs/tags/next-')
+              with:
+                  files: |
+                      *.tgz
+                      *.zip
+                  draft: true
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
