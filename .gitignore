@@ -50,6 +50,7 @@ Thumbs.db
 **/node_modules
 **/*.js
 **/*.js.map
+!application/holder/hooks/*.js
 **/.vscode
 **/vscode
 **/.DS_store
