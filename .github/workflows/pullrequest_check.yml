@@ -9,9 +9,10 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v2
             - name: install ruby
-              uses: actions/setup-ruby@v1
+              uses: ruby/setup-ruby@v1
               with:
-                  ruby-version: "2.x"
+                  ruby-version: "3.0"
+                  bundler-cache: true
             - uses: actions-rs/toolchain@v1
               with:
                   toolchain: stable
@@ -28,9 +29,10 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v2
             - name: install ruby
-              uses: actions/setup-ruby@v1
+              uses: ruby/setup-ruby@v1
               with:
-                  ruby-version: "2.x"
+                  ruby-version: "3.0"
+                  bundler-cache: true
             - uses: actions-rs/toolchain@v1
               with:
                   toolchain: stable
@@ -44,15 +46,14 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v2
             - name: install ruby
-              uses: actions/setup-ruby@v1
+              uses: ruby/setup-ruby@v1
               with:
-                  ruby-version: "2.x"
+                  ruby-version: "3.0"
+                  bundler-cache: true
             - uses: actions-rs/toolchain@v1
               with:
                   toolchain: stable
                   override: true
-            - name: Install the node-bingen tool
-              run: cargo install nj-cli
             - name: Run integration tests
               working-directory: ./application
               env:
