@@ -129,12 +129,12 @@ export class Net extends Module {
                 return reject(new Error(`Not valid url: ${uri}`));
             }
             const protocol = link.protocol.slice(0, -1);
-            const transport = {
+            const transport: { [key: string]: typeof http | typeof https } = {
                 http: http,
                 https: https,
             };
             const opt = this.getRequestOptions(link);
-            (transport as any)[protocol]
+            transport[protocol]
                 .get(uri, opt, (response: http.IncomingMessage) => {
                     if (
                         response.statusCode !== undefined &&
@@ -144,7 +144,7 @@ export class Net extends Module {
                         this.logger.debug(`Successfully requested: ${uri}`);
                         const writer = fs.createWriteStream(filename);
                         writer.on('error', (saveErr: NodeJS.ErrnoException) => {
-                            fs.unlink(filename, (err: NodeJS.ErrnoException | null) => {
+                            fs.unlink(filename, () => {
                                 reject(saveErr);
                             });
                         });
@@ -172,7 +172,7 @@ export class Net extends Module {
                     }
                 })
                 .on('error', (requestErr: NodeJS.ErrnoException) => {
-                    fs.unlink(filename, (err: NodeJS.ErrnoException | null) => {
+                    fs.unlink(filename, () => {
                         reject(requestErr);
                     });
                 });
@@ -191,12 +191,12 @@ export class Net extends Module {
                 return reject(new Error(`Not valid url: ${uri}`));
             }
             const protocol = link.protocol.slice(0, -1);
-            const transport = {
+            const transport: { [key: string]: typeof http | typeof https } = {
                 http: http,
                 https: https,
             };
             const opt = this.getRequestOptions(link, 'GET', headers);
-            (transport as any)[protocol]
+            transport[protocol]
                 .get(uri, opt, (response: http.IncomingMessage) => {
                     if (
                         response.statusCode !== undefined &&
