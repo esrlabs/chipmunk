@@ -55,7 +55,7 @@ export class Service extends Implementation {
                                     );
                                 })
                                 .catch((err: Error) => {
-                                    return resolve(
+                                    resolve(
                                         new Requests.Action.Call.Response({
                                             uuid: request.uuid,
                                             output: undefined,

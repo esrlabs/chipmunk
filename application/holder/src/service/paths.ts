@@ -65,13 +65,13 @@ export class Service extends Implementation {
             if (root instanceof Error) {
                 return reject(root);
             }
-            this._app = root;
             this._root = root;
             const exec = this._getExecPath();
             if (exec === undefined) {
                 return reject(new Error(`Fail to detect exec path`));
             }
             this._exec = exec;
+            this._app = path.dirname(exec);
             this._launcher = path.resolve(
                 path.dirname(this._exec),
                 `chipmunk${os.platform() === 'win32' ? '.exe' : ''}`,
@@ -140,12 +140,12 @@ export class Service extends Implementation {
         return this._storage;
     }
 
-    /**
-     * Returns path to root folder
-     * @returns string
-     */
     public getRoot(): string {
         return this._root;
+    }
+
+    public getApp(): string {
+        return this._app;
     }
 
     public getClient(): string {

@@ -4,6 +4,20 @@ import * as obj from 'platform/env/obj';
 import * as fs from 'fs';
 import * as path from 'path';
 
+export function exists(filename: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+        fs.stat(filename, (err) => {
+            if (err == null) {
+                resolve(true);
+            } else if (err.code === 'ENOENT') {
+                resolve(false);
+            } else {
+                reject(new Error(err.message));
+            }
+        });
+    });
+}
+
 export function getFileEntity(filename: string): File | Error {
     try {
         const stat = fs.statSync(filename);

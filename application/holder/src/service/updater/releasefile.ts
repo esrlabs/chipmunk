@@ -16,13 +16,13 @@ const PATERN = `${HOOKS.name}-next@${HOOKS.version}-${HOOKS.platform}-portable.$
 export class ReleaseFile {
     public readonly filename: string;
 
-    constructor(version: string) {
+    constructor(version: string, prefix = '') {
         const platform: Platform = getPlatform();
         if (platform === Platform.undefined) {
             throw new Error(`Fail to detect supported platform for (${os.platform()}).`);
         }
         this.filename = PATERN.replace(HOOKS.name, NAME)
-            .replace(HOOKS.version, version)
+            .replace(HOOKS.version, version.replace(prefix, ''))
             .replace(HOOKS.platform, platform);
     }
 
