@@ -5,6 +5,15 @@ module Paths
     elsif OS.linux?
       'linux-unpacked'
     else
+      'mac'
+    end
+  end
+  def self.get_release_bin_folder
+    if OS.windows?
+      'win-unpacked'
+    elsif OS.linux?
+      'linux-unpacked'
+    else
       'mac/chipmunk.app/Contents/MacOS'
     end
   end
@@ -27,5 +36,6 @@ module Paths
   MATCHER = 'application/apps/webassembly/matcher'
   LAUNCHERS = 'application/apps/launchers'
   RELEASE = 'application/holder/release'
+  RELEASE_BIN = "#{RELEASE}/#{Paths.get_release_bin_folder}"
   RELEASE_BUILD = "#{RELEASE}/#{Paths.get_release_build_folder}"
 end

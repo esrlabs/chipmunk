@@ -69,12 +69,12 @@ class Release
   def snapshot
     if OS.mac?
       Reporter.add(Jobs::Skipped, Owner::Release, "build for darwin does'n require snapshot", '')
-      exit
+      return
     end
-    snapshot_file = "#{Paths::RELEASE_BUILD}/.release"
+    snapshot_file = "#{Paths::RELEASE_BIN}/.release"
     File.delete(snapshot_file) if File.exist?(snapshot_file)
     lines = ".release\n"
-    Dir.foreach(Paths::RELEASE_BUILD) do |entry|
+    Dir.foreach(Paths::RELEASE_BIN) do |entry|
       lines = "#{lines}#{entry}\n" if entry != '.' && entry != '..'
     end
     File.open(snapshot_file, 'a') do |line|
