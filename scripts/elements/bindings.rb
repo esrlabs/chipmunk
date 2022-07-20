@@ -12,25 +12,25 @@ class Bindings
 
   def clean
     if File.exist?(@dist)
-      FileUtils.remove_dir(@dist, true)
+      FileUtils.rm_rf(@dist)
       Reporter.add(Jobs::Clearing, Owner::Bindings, "removed: #{@dist}", '')
     end
     if File.exist?(@node_modules)
-      FileUtils.remove_dir(@node_modules, true)
+      FileUtils.rm_rf(@node_modules)
       Reporter.add(Jobs::Clearing, Owner::Bindings, "removed: #{@node_modules}", '')
     end
     if File.exist?(@target)
-      FileUtils.remove_dir(@target, true)
+      FileUtils.rm_rf(@target)
       Reporter.add(Jobs::Clearing, Owner::Bindings, "removed: #{@target}", '')
     end
     if File.exist?(@dist_rs)
-      FileUtils.remove_dir(@dist_rs, true)
+      FileUtils.rm_rf(@dist_rs)
       Reporter.add(Jobs::Clearing, Owner::Bindings, "removed: #{@dist_rs}", '')
     end
   end
 
   def install
-    FileUtils.remove_dir(@node_modules, true) if @reinstall && File.exist?(@node_modules)
+    FileUtils.rm_rf(@node_modules) if @reinstall && File.exist?(@node_modules)
     if !@installed || @reinstall
       Dir.chdir(Paths::TS_BINDINGS) do
         Rake.sh 'npm install'
@@ -67,8 +67,7 @@ class Bindings
     rustcore_dest = "#{node_modules}/rustcore"
     Dir.mkdir(node_modules) unless File.exist?(node_modules)
     if (replace && File.exist?(rustcore_dest)) || File.symlink?(rustcore_dest)
-      FileUtils.remove_dir(rustcore_dest,
-                           true)
+      FileUtils.rm_rf(rustcore_dest)
     end
     unless File.exist?(rustcore_dest)
       Reporter.add(Jobs::Checks, Owner::Bindings, "#{consumer} doesn't have platform", '')
@@ -77,8 +76,8 @@ class Bindings
       Rake.sh "rm -rf #{node_modules}/rustcore" if File.exist?("#{node_modules}/rustcore")
       Dir.mkdir("#{node_modules}/rustcore")
       Rake.sh "cp -r #{Paths::TS_BINDINGS}/* #{node_modules}/rustcore"
-      FileUtils.remove_dir("#{node_modules}/rustcore/native", true) if File.exist?("#{node_modules}/rustcore/native")
-      FileUtils.remove_dir("#{node_modules}/rustcore/node_modules", true)
+      FileUtils.rm_rf("#{node_modules}/rustcore/native") if File.exist?("#{node_modules}/rustcore/native")
+      FileUtils.rm_rf("#{node_modules}/rustcore/node_modules")
       dest_module = "#{node_modules}/rustcore"
       Dir.chdir(dest_module) do
         Rake.sh 'npm install --production'

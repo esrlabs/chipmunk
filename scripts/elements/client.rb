@@ -8,7 +8,7 @@ class Client
   end
 
   def install
-    FileUtils.remove_dir(@node_modules, true) if @reinstall && File.exist?(@node_modules)
+    FileUtils.rm_rf(@node_modules) if @reinstall && File.exist?(@node_modules)
     if !@installed || @reinstall
       Dir.chdir(Paths::CLIENT) do
         Rake.sh 'npm install'
@@ -21,11 +21,11 @@ class Client
 
   def clean
     if File.exist?(@dist)
-      FileUtils.remove_dir(@dist, true)
+      FileUtils.rm_rf(@dist)
       Reporter.add(Jobs::Clearing, Owner::Client, "removed: #{@dist}", '')
     end
     if File.exist?(@node_modules)
-      FileUtils.remove_dir(@node_modules, true)
+      FileUtils.rm_rf(@node_modules)
       Reporter.add(Jobs::Clearing, Owner::Client, "removed: #{@node_modules}", '')
     end
   end

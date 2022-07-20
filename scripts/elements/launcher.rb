@@ -1,5 +1,6 @@
 class Launchers
   def initialize
+    @dest = "#{Paths::LAUNCHERS}/target"
     @target = "#{Paths::LAUNCHERS}/target"
     @target_updater = OS.executable("#{Paths::LAUNCHERS}/target/release/updater")
     @target_launcher = OS.executable("#{Paths::LAUNCHERS}/target/release/launcher")
@@ -8,7 +9,7 @@ class Launchers
 
   def clean
     if File.exist?(@target)
-      FileUtils.remove_dir(@target, true)
+      FileUtils.rm_rf(@target)
       Reporter.add(Jobs::Clearing, Owner::Launchers, "removed: #{@target}", '')
     end
   end
@@ -22,9 +23,16 @@ class Launchers
   end
 
   def check(replace)
-    if replace || !File.exist?(@target_cm) || !File.exist?(@target_updater) || !File.exist?(@target_launcher)
-      build
-    end
+    build if replace || !File.exist?(@target_cm) || !File.exist?(@target_updater) || !File.exist?(@target_launcher)
   end
 
+  def delivery
+    check(false)
+    File.rename(OS.executable("#{Paths::RELEASE_BUILD}/chipmunk"), OS.executable("#{Paths::RELEASE_BUILD}/app"))
+    FileUtils.cp(@target_updater, Paths::RELEASE_BUILD)
+    FileUtils.cp(@target_launcher, Paths::RELEASE_BUILD)
+    FileUtils.cp(@target_cm, Paths::RELEASE_BUILD)
+    File.rename(OS.executable("#{Paths::RELEASE_BUILD}/launcher"), OS.executable("#{Paths::RELEASE_BUILD}/chipmunk"))
+    Reporter.add(Jobs::Release, Owner::Launchers, 'deliveried', '')
+  end
 end
