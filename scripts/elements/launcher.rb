@@ -28,11 +28,11 @@ class Launchers
 
   def delivery
     check(false)
-    File.rename(OS.executable("#{Paths::RELEASE_BUILD}/chipmunk"), OS.executable("#{Paths::RELEASE_BUILD}/app"))
-    FileUtils.cp(@target_updater, Paths::RELEASE_BUILD)
-    FileUtils.cp(@target_launcher, Paths::RELEASE_BUILD)
-    FileUtils.cp(@target_cm, Paths::RELEASE_BUILD)
-    File.rename(OS.executable("#{Paths::RELEASE_BUILD}/launcher"), OS.executable("#{Paths::RELEASE_BUILD}/chipmunk"))
+    File.rename(OS.executable("#{Paths::RELEASE_BIN}/chipmunk"), OS.executable("#{Paths::RELEASE_BIN}/app"))
+    FileUtils.cp(@target_updater, Paths::RELEASE_BIN)
+    FileUtils.cp(@target_launcher, Paths::RELEASE_BIN)
+    FileUtils.cp(@target_cm, Paths::RELEASE_BIN)
+    File.rename(OS.executable("#{Paths::RELEASE_BIN}/launcher"), OS.executable("#{Paths::RELEASE_BIN}/chipmunk"))
     Reporter.add(Jobs::Release, Owner::Launchers, 'deliveried', '')
   end
 end
