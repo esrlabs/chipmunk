@@ -46,7 +46,11 @@
             "category": "public.app-category.developer-tools",
             "icon": "resources/mac/chipmunk.icns",
             "target": [],
-            "binaries": [],
+            "binaries": [
+                "release/mac/chipmunk.app/Contents/MacOS/updater",
+                "release/mac/chipmunk.app/Contents/MacOS/chipmunk",
+                "release/mac/chipmunk.app/Contents/MacOS/cm"
+            ],
             "extendInfo": {
                 "NSCameraUsageDescription": "",
                 "NSMicrophoneUsageDescription": ""
