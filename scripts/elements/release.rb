@@ -22,6 +22,7 @@ class Release
     end
     Launchers.new.check(false)
     Dir.chdir(Paths::ELECTRON) do
+      set_envvars
       Rake.sh build_cmd
       Reporter.add(Jobs::Building, Owner::Release, 'building', '')
     end
@@ -38,14 +39,30 @@ class Release
   def build_cmd
     if OS.mac?
       if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS') && !ENV.key?('SKIP_NOTARIZE')
-        'CSC_IDENTITY_AUTO_DISCOVERY=true; ./node_modules/.bin/electron-builder --mac --dir'
+        './node_modules/.bin/electron-builder --mac --dir'
       else
         './node_modules/.bin/electron-builder --mac --dir -c.mac.identity=null'
       end
     elsif OS.linux?
       './node_modules/.bin/electron-builder --linux --dir'
     else
-      'CSC_IDENTITY_AUTO_DISCOVERY=false; ./node_modules/.bin/electron-builder --win --dir'
+      './node_modules/.bin/electron-builder --win --dir'
+    end
+  end
+
+  def set_envvars
+    if ENV.key?('SKIP_NOTARIZE')
+      ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'false'
+      return
+    end
+    if OS.mac?
+      if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS')
+        ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'true'
+      end
+    elsif OS.linux?
+      ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'false'
+    else
+      ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'false'
     end
   end
 
