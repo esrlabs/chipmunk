@@ -8,7 +8,7 @@ class Release
 
   def clean
     if File.exist?(Paths::RELEASE)
-      FileUtils.remove_dir(Paths::RELEASE, true)
+      FileUtils.rm_rf(Paths::RELEASE)
       Reporter.add(Jobs::Clearing, Owner::Release, "removed: #{Paths::RELEASE}", '')
     end
   end
@@ -20,12 +20,14 @@ class Release
     else
       Rake::Task['build:dev'].invoke
     end
-    Launchers.new.check(false)
+    launchers = Launchers.new
+    launchers.check(false)
     Dir.chdir(Paths::ELECTRON) do
       set_envvars
       Rake.sh build_cmd
       Reporter.add(Jobs::Building, Owner::Release, 'building', '')
     end
+    launchers.delivery
     Notarization.check
     snapshot
     Reporter.add(Jobs::Release, Owner::Release, "done: #{Paths::RELEASE_BUILD}", '')
@@ -56,9 +58,7 @@ class Release
       return
     end
     if OS.mac?
-      if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS')
-        ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'true'
-      end
+      ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'true' if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS')
     elsif OS.linux?
       ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'false'
     else

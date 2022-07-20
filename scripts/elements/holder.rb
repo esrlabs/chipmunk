@@ -51,7 +51,7 @@ class Holder
   end
 
   def install
-    FileUtils.remove_dir(@node_modules, true) if @settings.reinstall && File.exist?(@node_modules)
+    FileUtils.rm_rf(@node_modules) if @settings.reinstall && File.exist?(@node_modules)
     if !@installed || @settings.reinstall
       Dir.chdir(Paths::ELECTRON) do
         Rake.sh 'npm install'
@@ -64,15 +64,15 @@ class Holder
 
   def clean
     if File.exist?(@dist)
-      FileUtils.remove_dir(@dist, true)
+      FileUtils.rm_rf(@dist)
       Reporter.add(Jobs::Clearing, Owner::Holder, "removed: #{@dist}", '')
     end
     if File.exist?(@release)
-      FileUtils.remove_dir(@release, true)
+      FileUtils.rm_rf(@release)
       Reporter.add(Jobs::Clearing, Owner::Holder, "removed: #{@release}", '')
     end
     if File.exist?(@node_modules)
-      FileUtils.remove_dir(@node_modules, true)
+      FileUtils.rm_rf(@node_modules)
       Reporter.add(Jobs::Clearing, Owner::Holder, "removed: #{@node_modules}", '')
     end
   end

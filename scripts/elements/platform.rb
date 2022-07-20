@@ -9,17 +9,17 @@ class Platform
 
   def clean
     if File.exist?(@dist)
-      FileUtils.remove_dir(@dist, true)
+      FileUtils.rm_rf(@dist)
       Reporter.add(Jobs::Clearing, Owner::Platform, "removed: #{@dist}", '')
     end
     if File.exist?(@node_modules)
-      FileUtils.remove_dir(@node_modules, true)
+      FileUtils.rm_rf(@node_modules)
       Reporter.add(Jobs::Clearing, Owner::Platform, "removed: #{@node_modules}", '')
     end
   end
 
   def install
-    FileUtils.remove_dir(@node_modules, true) if @reinstall && File.exist?(@node_modules)
+    FileUtils.rm_rf(@node_modules) if @reinstall && File.exist?(@node_modules)
     if !@installed || @reinstall
       Dir.chdir(Paths::PLATFORM) do
         Rake.sh 'npm install'
@@ -33,13 +33,13 @@ class Platform
   def build
     Reporter.add(Jobs::Skipped, Owner::Platform, 'already built', '') if File.exist?(@dist) && !@rebuild
     install
-    FileUtils.remove_dir(@dist, true)
+    FileUtils.rm_rf(@dist)
     Reporter.add(Jobs::Clearing, Owner::Platform, @dist, '')
     Dir.chdir(Paths::PLATFORM) do
       Rake.sh 'npm run build'
       Reporter.add(Jobs::Building, Owner::Platform, 'clearing', '')
     end
-    FileUtils.remove_dir(@node_modules, true)
+    FileUtils.rm_rf(@node_modules)
   end
 
   def self.check(consumer, replace)
@@ -47,8 +47,7 @@ class Platform
     platform_dest = "#{node_modules}/platform"
     Dir.mkdir(node_modules) unless File.exist?(node_modules)
     if (replace && File.exist?(platform_dest)) || File.symlink?(platform_dest)
-      FileUtils.remove_dir(platform_dest,
-                           true)
+      FileUtils.rm_rf(platform_dest)
     end
     unless File.exist?(platform_dest)
       Reporter.add(Jobs::Checks, Owner::Platform, "#{consumer} doesn't have platform", '')

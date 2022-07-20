@@ -11,25 +11,25 @@ class Matcher
 
   def clean
     if File.exist?(@pkg)
-      FileUtils.remove_dir(@pkg, true)
+      FileUtils.rm_rf(@pkg)
       Reporter.add(Jobs::Clearing, Owner::Matcher, "removed: #{@pkg}", '')
     end
     if File.exist?(@target)
-      FileUtils.remove_dir(@target, true)
+      FileUtils.rm_rf(@target)
       Reporter.add(Jobs::Clearing, Owner::Matcher, "removed: #{@target}", '')
     end
     if File.exist?(@node_modules)
-      FileUtils.remove_dir(@node_modules, true)
+      FileUtils.rm_rf(@node_modules)
       Reporter.add(Jobs::Clearing, Owner::Matcher, "removed: #{@node_modules}")
     end
     if File.exist?(@test_output)
-      FileUtils.remove_dir(@test_output, true)
+      FileUtils.rm_rf(@test_output)
       Reporter.add(Jobs::Clearing, Owner::Matcher, "removed: #{@test_output}")
     end
   end
 
   def install
-    FileUtils.remove_dir(@node_modules, true) if @reinstall && File.exist?(@node_modules)
+    FileUtils.rm_rf(@node_modules) if @reinstall && File.exist?(@node_modules)
     if !@installed || @reinstall
       Dir.chdir(Paths::MATCHER) do
         Rake.sh 'npm install'
@@ -45,9 +45,9 @@ class Matcher
       Reporter.add(Jobs::Skipped, Owner::Matcher, 'already built', '')
     else
       Environment.check
-      FileUtils.remove_dir(@pkg, true)
+      FileUtils.rm_rf(@pkg)
       Reporter.add(Jobs::Clearing, Owner::Matcher, @pkg, '')
-      FileUtils.remove_dir(@target, true)
+      FileUtils.rm_rf(@target)
       Reporter.add(Jobs::Clearing, Owner::Matcher, @target, '')
       Dir.chdir(Paths::MATCHER) do
         Rake.sh 'wasm-pack build --target bundler'

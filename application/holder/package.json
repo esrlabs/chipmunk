@@ -41,15 +41,14 @@
         ],
         "npmRebuild": true,
         "afterSign": "hooks/afterSign.js",
-        "afterPack": "hooks/afterPack.js",
         "mac": {
             "category": "public.app-category.developer-tools",
             "icon": "resources/mac/chipmunk.icns",
             "target": [],
             "binaries": [
-                "release/mac/chipmunk.app/Contents/MacOS/updater",
-                "release/mac/chipmunk.app/Contents/MacOS/chipmunk",
-                "release/mac/chipmunk.app/Contents/MacOS/cm"
+                "../apps/launchers/target/release/updater",
+                "../apps/launchers/target/release/launcher",
+                "../apps/launchers/target/release/cm"
             ],
             "extendInfo": {
                 "NSCameraUsageDescription": "",
