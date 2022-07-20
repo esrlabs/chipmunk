@@ -38,14 +38,14 @@ class Release
   def build_cmd
     if OS.mac?
       if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS') && !ENV.key?('SKIP_NOTARIZE')
-        return "CSC_IDENTITY_AUTO_DISCOVERY=true; ./node_modules/.bin/electron-builder --mac --dir"
+        'CSC_IDENTITY_AUTO_DISCOVERY=true; ./node_modules/.bin/electron-builder --mac --dir'
       else
-        return "./node_modules/.bin/electron-builder --mac --dir -c.mac.identity=null"
+        './node_modules/.bin/electron-builder --mac --dir -c.mac.identity=null'
       end
     elsif OS.linux?
-      return "./node_modules/.bin/electron-builder --linux --dir"
+      './node_modules/.bin/electron-builder --linux --dir'
     else
-      return "./node_modules/.bin/electron-builder --win --dir"
+      'CSC_IDENTITY_AUTO_DISCOVERY=false; ./node_modules/.bin/electron-builder --win --dir'
     end
   end
 
