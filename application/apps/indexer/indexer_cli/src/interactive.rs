@@ -16,7 +16,7 @@ use tokio::{select, sync::mpsc, task, task::JoinHandle};
 
 use uuid::Uuid;
 
-pub(crate) async fn handle_interactive_session(matches: &clap::ArgMatches) {
+pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
     let uuid = Uuid::new_v4();
     let (session, mut receiver) = Session::new(uuid).await;
     let (tx, mut rx) = mpsc::unbounded_channel();
@@ -70,8 +70,7 @@ pub(crate) async fn handle_interactive_session(matches: &clap::ArgMatches) {
                         println!("observe command received");
                         start = Instant::now();
                         let uuid = Uuid::new_v4();
-                        let file_name = matches.value_of("input").expect("input must be present");
-                        let file_path = PathBuf::from(file_name);
+                        let file_path = input.clone().expect("input must be present");
                         let source = SourceType::File(file_path.clone(), ParserType::Text);
                         session.observe(uuid, source).expect("observe failed");
                     }
@@ -79,9 +78,7 @@ pub(crate) async fn handle_interactive_session(matches: &clap::ArgMatches) {
                         println!("dlt command received");
                         start = Instant::now();
                         let uuid = Uuid::new_v4();
-                        let file_name = matches.value_of("input").expect("input must be present");
-                        println!("trying to read {:?}", file_name);
-                        let file_path = PathBuf::from(file_name);
+                        let file_path = input.clone().expect("input must be present");
                         let dlt_parser_settings = DltParserSettings { filter_config: None, fibex_file_paths: None, with_storage_header: true};
                         let source = SourceType::File(file_path.clone(), ParserType::Dlt(dlt_parser_settings));
                         session.observe(uuid, source).expect("observe failed");
@@ -140,7 +137,7 @@ enum Command {
 
 async fn collect_user_input(tx: mpsc::UnboundedSender<Command>) -> JoinHandle<()> {
     task::spawn_blocking(move || {
-        let mut rl = Editor::<()>::new();
+        let mut rl = Editor::<()>::new().expect("could not create editor");
         loop {
             let readline = rl.readline(">> ");
             match readline {

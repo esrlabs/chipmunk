@@ -8,6 +8,7 @@ use crossbeam_channel as cc;
 use std::{
     fs,
     io::{BufRead, BufWriter, Write},
+    path::Path,
 };
 
 use std::path::PathBuf;
@@ -24,7 +25,7 @@ pub enum Error {
 /// will save sections of a file that is based on lines (newlines)
 /// and remove session file data if required (if `was_session_file` is true)
 pub fn export_file_line_based(
-    file_path: PathBuf,
+    file_path: &Path,
     destination_path: PathBuf,
     sections: SectionConfig,
     was_session_file: bool,

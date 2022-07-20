@@ -72,7 +72,14 @@ pub fn create_tagged_line_d<T: Display>(
     )) {
         error!("error happened in create_tagged_line_d!!! {}", e);
     }
-    let consumed = out_buffer.buffer().len() - bytes_buffered;
+    let bytes_buffered_after = out_buffer.buffer().len();
+    let consumed = if bytes_buffered_after > bytes_buffered {
+        bytes_buffered_after - bytes_buffered
+    } else {
+        let taken_from_new_buffer = out_buffer.capacity() - bytes_buffered_after;
+        let taken_from_old_buffer = out_buffer.capacity() - bytes_buffered;
+        taken_from_old_buffer + taken_from_new_buffer
+    };
     Ok(consumed)
 }
 
