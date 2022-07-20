@@ -158,6 +158,12 @@ impl RustSession {
     }
 
     #[node_bindgen]
+    async fn details(&self, index: i64) -> Result<String, ComputationErrorWrapper> {
+        todo!("nyi");
+        // Log
+    }
+
+    #[node_bindgen]
     async fn grab(
         &self,
         start_line_index: i64,
