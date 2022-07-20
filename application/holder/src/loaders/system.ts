@@ -105,7 +105,7 @@ class Application implements IApplication {
         await system.destroy().catch((error: Error) => {
             this.logger.warn(`Fail correctly close app due error: ${error.message}`);
         });
-        this.logger.debug(`Application is ready be closed.`);
+        this.logger.debug(`Application is ready be closed with code: ${code}.`);
         this.logger.debug(`On close events stack: ${this.emitters.join(', ')}.`);
         process.exit(code);
     }
