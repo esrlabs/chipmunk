@@ -13,7 +13,7 @@ export enum Platform {
     undefined = 'undefined',
 }
 
-export function getPlatform(win32Only: boolean = false): Platform {
+export function getPlatform(win32Only = false): Platform {
     switch (os.platform()) {
         case Platform.aix:
         case Platform.freebsd:

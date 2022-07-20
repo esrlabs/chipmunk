@@ -169,17 +169,15 @@ pub async fn handle(
                     );
                     (
                         vec![],
-                        if let Err(err) = result {
-                            Err(err)
-                        } else if let Err(err) = tracker.map_err(|e| NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::Interrupted,
-                            message: Some(format!("Tailing error: {}", e)),
-                        }) {
-                            Err(err)
-                        } else {
-                            Ok(None)
-                        },
+                        result
+                            .and_then(|_| {
+                                tracker.map_err(|e| NativeError {
+                                    severity: Severity::ERROR,
+                                    kind: NativeErrorKind::Interrupted,
+                                    message: Some(format!("Tailing error: {}", e)),
+                                })
+                            })
+                            .map(|_| None),
                     )
                 }
                 ParserType::Pcap(settings) => {
