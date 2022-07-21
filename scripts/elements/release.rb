@@ -20,14 +20,13 @@ class Release
     else
       Rake::Task['build:dev'].invoke
     end
-    launchers = Launchers.new
-    launchers.check(false)
+    Launchers.new.check(false)
     Dir.chdir(Paths::ELECTRON) do
       set_envvars
       Rake.sh build_cmd
       Reporter.add(Jobs::Building, Owner::Release, 'building', '')
     end
-    # launchers.delivery
+    Launchers.delivery
     # Notarization.check
     snapshot
     Reporter.add(Jobs::Release, Owner::Release, "done: #{Paths::RELEASE_BUILD}", '')

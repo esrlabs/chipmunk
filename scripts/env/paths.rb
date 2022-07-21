@@ -17,6 +17,15 @@ module Paths
       'mac/chipmunk.app/Contents/MacOS'
     end
   end
+  def self.get_release_resources_folder
+    if OS.windows?
+      'win-unpacked/Resources'
+    elsif OS.linux?
+      'linux-unpacked/Resources'
+    else
+      'mac/chipmunk.app/Contents/Resources'
+    end
+  end
   TS_BINDINGS = 'application/apps/rustcore/ts-bindings'
   RS_BINDINGS = 'application/apps/rustcore/rs-bindings'
   CLIENT = 'application/client'
@@ -37,5 +46,6 @@ module Paths
   LAUNCHERS = 'application/apps/launchers'
   RELEASE = 'application/holder/release'
   RELEASE_BIN = "#{RELEASE}/#{Paths.get_release_bin_folder}"
+  RELEASE_RESOURCES = "#{RELEASE}/#{Paths.get_release_resources_folder}"
   RELEASE_BUILD = "#{RELEASE}/#{Paths.get_release_build_folder}"
 end
