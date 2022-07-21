@@ -40,8 +40,6 @@
             "resources"
         ],
         "npmRebuild": true,
-        "afterPack": "hooks/afterPack.js",
-        "afterSign": "hooks/afterSign.js",
         "mac": {
             "category": "public.app-category.developer-tools",
             "icon": "resources/mac/chipmunk.icns",
