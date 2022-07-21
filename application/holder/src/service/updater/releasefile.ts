@@ -9,9 +9,7 @@ const HOOKS = {
     platform: '<platform>',
 };
 
-const PATERN = `${HOOKS.name}-next@${HOOKS.version}-${HOOKS.platform}-portable.${
-    os.platform() === 'win32' ? 'zip' : 'tgz'
-}`;
+const PATERN = `${HOOKS.name}-next@${HOOKS.version}-${HOOKS.platform}-portable.tgz`;
 
 export class ReleaseFile {
     public readonly filename: string;
