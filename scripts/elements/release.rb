@@ -28,7 +28,7 @@ class Release
       Reporter.add(Jobs::Building, Owner::Release, 'building', '')
     end
     # launchers.delivery
-    Notarization.check
+    # Notarization.check
     snapshot
     Reporter.add(Jobs::Release, Owner::Release, "done: #{Paths::RELEASE_BUILD}", '')
     if @compress
