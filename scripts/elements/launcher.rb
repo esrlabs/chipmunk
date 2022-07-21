@@ -26,13 +26,12 @@ class Launchers
     build if replace || !File.exist?(@target_cm) || !File.exist?(@target_updater) || !File.exist?(@target_launcher)
   end
 
-  def delivery
-    check(false)
+  def self.delivery
     File.rename(OS.executable("#{Paths::RELEASE_BIN}/chipmunk"), OS.executable("#{Paths::RELEASE_BIN}/app"))
-    FileUtils.cp(@target_updater, Paths::RELEASE_BIN)
-    FileUtils.cp(@target_launcher, Paths::RELEASE_BIN)
-    FileUtils.cp(@target_cm, Paths::RELEASE_BIN)
-    File.rename(OS.executable("#{Paths::RELEASE_BIN}/launcher"), OS.executable("#{Paths::RELEASE_BIN}/chipmunk"))
+    File.rename(OS.executable("#{Paths::RELEASE_RESOURCES}/bin/launcher"), OS.executable("#{Paths::RELEASE_RESOURCES}/bin/chipmunk"))
+    FileUtils.mv(OS.executable("#{Paths::RELEASE_RESOURCES}/bin/chipmunk"), OS.executable("#{Paths::RELEASE_BIN}/chipmunk"))
+    FileUtils.mv(OS.executable("#{Paths::RELEASE_RESOURCES}/bin/updater"), OS.executable("#{Paths::RELEASE_BIN}/updater"))
+    FileUtils.mv(OS.executable("#{Paths::RELEASE_RESOURCES}/bin/cm"), OS.executable("#{Paths::RELEASE_BIN}/cm"))
     Reporter.add(Jobs::Release, Owner::Launchers, 'deliveried', '')
   end
 end
