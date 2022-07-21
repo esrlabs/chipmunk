@@ -10,16 +10,9 @@ class Compressor
              else
                '*'
              end
-    if OS.mac? || OS.linux?
-      @archname += '.tgz'
-      Dir.chdir(@location) do
-        Rake.sh "tar -czf ../#{@archname} #{target}"
-      end
-    else
-      @archname += '.zip'
-      Dir.chdir(@location) do
-        Rake.sh "powershell -command \"Compress-Archive * ..\\#{@archname}\""
-      end
+    @archname += '.tgz'
+    Dir.chdir(@location) do
+      Rake.sh "tar -czf ../#{@archname} #{target}"
     end
     Reporter.add(Jobs::Release, Owner::Compressor, "compressed: #{@archname}", '')
   end
