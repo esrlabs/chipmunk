@@ -46,11 +46,6 @@
             "category": "public.app-category.developer-tools",
             "icon": "resources/mac/chipmunk.icns",
             "target": [],
-            "binaries": [
-                "./release/mac/chipmunk.app/Contents/MacOS/updater",
-                "./release/mac/chipmunk.app/Contents/MacOS/chipmunk",
-                "./release/mac/chipmunk.app/Contents/MacOS/cm"
-            ],
             "extendInfo": {
                 "NSCameraUsageDescription": "",
                 "NSMicrophoneUsageDescription": ""
@@ -94,7 +89,7 @@
         "@typescript-eslint/parser": "^5.19.0",
         "dotnet": "^1.1.4",
         "electron": "^18.0.4",
-        "electron-builder": "^23.0.3",
+        "electron-builder": "^23.1.0",
         "electron-notarize": "^1.2.1",
         "eslint": "^8.13.0",
         "eslint-plugin-import": "^2.26.0",
