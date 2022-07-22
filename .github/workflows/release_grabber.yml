@@ -18,7 +18,7 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
-                  draft: true
+                  prerelease: true
                   tag_name: ${{ github.ref }}
                   name: ${{ github.ref }}
     build_release:
@@ -93,11 +93,10 @@ jobs:
             - name: list release files
               working-directory: ./application/holder/release
               run: ls
-            - name: upload release files
-              working-directory: ./application/holder/release
+            - name: upload files
               uses: AButler/upload-release-assets@v2.0
               with:
-                  files: "*.tgz;*.zip"
+                  files: "./application/holder/release/*.tgz;./application/holder/release/*.zip"
                   repo-token: ${{ secrets.GITHUB_TOKEN }}
                   release-tag: ${{ github.ref }}
               env:
