@@ -37,11 +37,10 @@
                 "from": "../apps/launchers/target/release",
                 "to": "Resources/bin",
                 "filter": [
-                    "updater", "updater.exe", "cm", "cm.exe", "launcher", "launcher.exe"
+                    "updater", "updater.exe", "cm", "cm.exe"
                 ]
             }
         ],
-        "afterPack": "hooks/afterPack.js",
         "directories": {
             "output": "release",
             "buildResources": "resources"
@@ -56,7 +55,6 @@
             "target": [],
             "binaries": [
                 "./release/mac/chipmunk.app/Contents/Resources/bin/updater",
-                "./release/mac/chipmunk.app/Contents/Resources/bin/launcher",
                 "./release/mac/chipmunk.app/Contents/Resources/bin/cm"
             ],
             "extendInfo": {
