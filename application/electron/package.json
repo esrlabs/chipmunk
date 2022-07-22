@@ -78,7 +78,7 @@
         "@types/tar": "^4.0.0",
         "chipmunk.shell.env": "0.0.13",
         "dltreader": "latest",
-        "file-type": "^12.2.0",
+        "file-type": "^16.5.4",
         "fswin": "^3.19.908",
         "glob": "^7.1.6",
         "http-proxy-agent": "^4.0.1",
