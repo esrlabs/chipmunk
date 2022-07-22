@@ -13,6 +13,10 @@ jobs:
               with:
                   ruby-version: "3.0"
                   bundler-cache: true
+            - name: install ruby:gem::dotenv
+              run: gem install dotenv
+            - name: install ruby:gem::json
+              run: gem install json
             - uses: actions-rs/toolchain@v1
               with:
                   toolchain: stable
@@ -33,6 +37,10 @@ jobs:
               with:
                   ruby-version: "3.0"
                   bundler-cache: true
+            - name: install ruby:gem::dotenv
+              run: gem install dotenv
+            - name: install ruby:gem::json
+              run: gem install json
             - uses: actions-rs/toolchain@v1
               with:
                   toolchain: stable
@@ -50,6 +58,10 @@ jobs:
               with:
                   ruby-version: "3.0"
                   bundler-cache: true
+            - name: install ruby:gem::dotenv
+              run: gem install dotenv
+            - name: install ruby:gem::json
+              run: gem install json
             - uses: actions-rs/toolchain@v1
               with:
                   toolchain: stable
