@@ -5,7 +5,25 @@ on:
         tags:
             - next-**
 jobs:
-    build:
+    create_release:
+        name: Create release
+        runs-on: ubuntu-latest
+        outputs:
+            upload_url: ${{ steps.create_release.outputs.upload_url }}
+        steps:
+            - name: Release
+              if: startsWith(github.ref, 'refs/tags/')
+              id: create_release
+              uses: softprops/action-gh-release@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  draft: true
+                  tag_name: ${{ github.ref }}
+                  name: ${{ github.ref }}
+    build_release:
+        name: Build release
+        needs: create_release
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
@@ -75,12 +93,12 @@ jobs:
             - name: list release files
               working-directory: ./application/holder/release
               run: ls
-            - name: Release files
-              uses: meatlink/action-gh-release@fix-econnreset
+            - name: upload release files
+              working-directory: ./application/holder/release
+              uses: AButler/upload-release-assets@v2.0
               with:
-                  files: |
-                      *.tgz
-                      *.zip
-                  draft: true
+                  files: "*.tgz;*.zip"
+                  repo-token: ${{ secrets.GITHUB_TOKEN }}
+                  release-tag: ${{ github.ref }}
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
