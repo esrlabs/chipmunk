@@ -4,15 +4,14 @@ on:
     push:
         branches:
             - master # Push events on master branch
-        tags:
-            - "*"
-
+        tags-ignore:
+            - next-**
 jobs:
     build:
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
-                os: [ubuntu-18.04, windows-2016, macOS-latest]
+                os: [ubuntu-18.04, windows-2019, macOS-latest]
                 rust: [stable]
         steps:
             - name: Checkout
@@ -44,8 +43,6 @@ jobs:
               uses: hecrj/setup-rust-action@v1
               with:
                   rust-version: ${{ matrix.rust }}
-            - name: cargo install nj-cli
-              run: cargo install nj-cli
             - name: setup keychain for signing and notarising
               if: runner.os == 'macOS'
               env:
@@ -83,7 +80,7 @@ jobs:
             - run: ls
             - name: Release
               uses: meatlink/action-gh-release@fix-econnreset
-              if: ${{ !startsWith(github.ref, 'refs/tags/next-') }}
+              if: startsWith(github.ref, 'refs/tags/')
               with:
                   files: |
                       *.tgz
