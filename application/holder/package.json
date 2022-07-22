@@ -41,6 +41,7 @@
                 ]
             }
         ],
+        "afterPack": "hooks/afterPack.js",
         "directories": {
             "output": "release",
             "buildResources": "resources"
