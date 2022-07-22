@@ -1,6 +1,6 @@
 {
     "name": "chipmunk",
-    "version": "3.0.0",
+    "version": "3.0.2",
     "chipmunk": {
         "versions": {}
     },
@@ -32,6 +32,15 @@
             "./dist/**",
             "./resources/**"
         ],
+        "extraFiles": [
+            {
+                "from": "../apps/launchers/target/release",
+                "to": "Resources/bin",
+                "filter": [
+                    "updater", "updater.exe", "cm", "cm.exe", "launcher", "launcher.exe"
+                ]
+            }
+        ],
         "directories": {
             "output": "release",
             "buildResources": "resources"
@@ -40,13 +49,15 @@
             "resources"
         ],
         "npmRebuild": true,
-        "afterSign": "hooks/afterSign.js",
-        "afterPack": "hooks/afterPack.js",
         "mac": {
             "category": "public.app-category.developer-tools",
             "icon": "resources/mac/chipmunk.icns",
             "target": [],
-            "binaries": [],
+            "binaries": [
+                "./release/mac/chipmunk.app/Contents/Resources/bin/updater",
+                "./release/mac/chipmunk.app/Contents/Resources/bin/launcher",
+                "./release/mac/chipmunk.app/Contents/Resources/bin/cm"
+            ],
             "extendInfo": {
                 "NSCameraUsageDescription": "",
                 "NSMicrophoneUsageDescription": ""
@@ -90,7 +101,7 @@
         "@typescript-eslint/parser": "^5.19.0",
         "dotnet": "^1.1.4",
         "electron": "^18.0.4",
-        "electron-builder": "^23.0.3",
+        "electron-builder": "^23.1.0",
         "electron-notarize": "^1.2.1",
         "eslint": "^8.13.0",
         "eslint-plugin-import": "^2.26.0",

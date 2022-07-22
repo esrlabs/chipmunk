@@ -1,6 +1,8 @@
 import { unique } from '@platform/env/sequence';
 import { Action } from '@platform/types/notification/index';
 
+import * as Events from '@platform/ipc/event';
+
 export enum ENotificationType {
     info = 'info',
     error = 'error',
@@ -10,11 +12,21 @@ export enum ENotificationType {
 
 export interface INotification {
     message: string;
+    session?: string;
     pinned?: boolean;
     actions: Action[];
 }
 
 export class Notification {
+    static from(event: Events.Notification.Pop.Event): Notification {
+        return new Notification({
+            message: event.message,
+            actions: event.actions,
+            session: event.session,
+            pinned: true,
+        });
+    }
+
     public readonly notification: INotification;
     public readonly uuid: string = unique();
 

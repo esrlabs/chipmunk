@@ -18,6 +18,7 @@ import { error } from 'platform/env/logger';
 import { getExecutable } from '@env/os/platform';
 import { unique } from 'platform/env/sequence';
 import { ChipmunkGlobal } from '@register/global';
+import { exists } from '@env/fs';
 
 import * as path from 'path';
 import * as fs from 'fs';
@@ -55,7 +56,7 @@ export class Service extends Implementation {
         return Promise.resolve();
     }
 
-    public check(force: boolean): Promise<void> {
+    public async check(force: boolean): Promise<void> {
         const auto = settings.get<boolean>(AUTO.path, AUTO.key);
         if (!auto && !force) {
             this.log().debug(`Checking of updates is skipped.`);
@@ -66,128 +67,108 @@ export class Service extends Implementation {
             return Promise.resolve();
         }
         const github = new GitHubClient();
-        return github.getReleases({ repo: REPO }).then((releases: IReleaseData[]) => {
-            const current: Version = new Version(version.getVersion());
-            let candidate: IReleaseData | undefined;
-            releases.forEach((release: IReleaseData) => {
-                if (!release.tag_name.toLowerCase().includes(TARGET_TAG_STARTS)) {
-                    return;
-                }
-                try {
-                    const version = new Version(release.tag_name);
-                    if (current.isGivenGrander(version)) {
-                        candidate = release;
-                    }
-                } catch (err) {
-                    this.log().warn(
-                        `Found release "${release.name} (tag: ${
-                            release.tag_name
-                        })", but version isn't valid: ${error(err)}`,
-                    );
-                }
-            });
-            if (candidate === undefined) {
-                this.log().debug(`No updates has been found.`);
+        const releases: IReleaseData[] = await github.getReleases({ repo: REPO });
+        const current: Version = new Version(version.getVersion());
+        let candidate: IReleaseData | undefined;
+        releases.forEach((release: IReleaseData) => {
+            if (!release.name.toLowerCase().includes(TARGET_TAG_STARTS)) {
                 return;
             }
-            this.log().debug(`New version has been found: ${candidate.tag_name}`);
-            const release: ReleaseFile = new ReleaseFile(candidate.tag_name);
-            this.log().debug(`Looking for: ${release.filename}`);
-            let compressed: string | undefined;
-            candidate.assets.forEach((asset: IReleaseAsset) => {
-                if (release.equal(asset.name)) {
-                    compressed = asset.name;
+            try {
+                const version = new Version(release.name, TARGET_TAG_STARTS);
+                if (current.isGivenGrander(version)) {
+                    candidate = release;
                 }
-            });
-            if (compressed === undefined) {
-                this.log().warn(`Fail to find archive-file with release for current platform. `);
-                return;
-            }
-            const filename: string = path.resolve(paths.getDownloads(), compressed);
-            if (fs.existsSync(filename)) {
-                // File was already downloaded
-                this.log().debug(
-                    `File was already downloaded "${filename}". latest: ${candidate.tag_name}.`,
+            } catch (err) {
+                this.log().warn(
+                    `Found release "${release.name} (tag: ${
+                        release.tag_name
+                    })", but version isn't valid: ${error(err)}`,
                 );
-                this.candidate = {
-                    release: candidate,
-                    filename,
-                };
-            } else {
-                this.log().debug(
-                    `Found new version "${candidate.tag_name}". Starting downloading: ${release.filename}.`,
-                );
-                github
-                    .download(
-                        {
-                            repo: REPO,
-                        },
-                        {
-                            version: candidate.tag_name,
-                            name: release.filename,
-                            dest: paths.getDownloads(),
-                        },
-                    )
-                    .then((filename: string) => {
-                        this.log().debug(
-                            `File ${release.filename} is downloaded into: ${filename}.`,
-                        );
-                        this.candidate = {
-                            release: candidate as IReleaseData,
-                            filename,
-                        };
-                        notifications.send(
-                            'New version (${(candidate as IReleaseData).name}) is available',
-                            [
-                                {
-                                    action: {
-                                        uuid: unique(),
-                                        name: 'Restart & Update',
-                                        description: `Update to ${
-                                            (candidate as IReleaseData).name
-                                        }`,
-                                    },
-                                    handler: () => {
-                                        return this._delivery().then(() => {
-                                            global.application
-                                                .shutdown()
-                                                .update()
-                                                .catch((err: Error) => {
-                                                    this.log().error(
-                                                        `Fail to trigger updating; error: ${err.message}`,
-                                                    );
-                                                });
-                                        });
-                                    },
-                                },
-                                {
-                                    action: {
-                                        uuid: unique(),
-                                        name: 'Cancel',
-                                        description: `Update to ${
-                                            (candidate as IReleaseData).name
-                                        }`,
-                                    },
-                                    handler: () => Promise.resolve(),
-                                },
-                            ],
-                        );
-                    })
-                    .catch((error: Error) => {
-                        this.log().error(
-                            `Fail to download "${release.filename}" due error: ${error.message}`,
-                        );
-                    });
             }
         });
+        if (candidate === undefined) {
+            this.log().debug(`No updates has been found.`);
+            return Promise.resolve();
+        }
+        this.log().debug(`New version has been found: ${candidate.name}`);
+        const release: ReleaseFile = new ReleaseFile(candidate.name, TARGET_TAG_STARTS);
+        this.log().debug(`Looking for: ${release.filename}`);
+        let compressed: string | undefined;
+        candidate.assets.forEach((asset: IReleaseAsset) => {
+            if (release.equal(asset.name)) {
+                compressed = asset.name;
+            }
+        });
+        if (compressed === undefined) {
+            this.log().warn(`Fail to find archive-file with release for current platform. `);
+            return Promise.resolve();
+        }
+        const filename: string = path.resolve(paths.getDownloads(), compressed);
+        if (fs.existsSync(filename)) {
+            // File was already downloaded
+            this.log().debug(
+                `File was already downloaded "${filename}". latest: ${candidate.tag_name}.`,
+            );
+            this.candidate = {
+                release: candidate,
+                filename,
+            };
+        } else {
+            this.log().debug(
+                `Found new version "${candidate.tag_name}". Starting downloading: ${release.filename}.`,
+            );
+            const filename: string = await github.download(
+                {
+                    repo: REPO,
+                },
+                {
+                    version: candidate.name,
+                    name: release.filename,
+                    dest: paths.getDownloads(),
+                },
+            );
+            this.log().debug(`File ${release.filename} is downloaded into: ${filename}.`);
+            this.candidate = {
+                release: candidate as IReleaseData,
+                filename,
+            };
+        }
+        notifications.send(`New version (${this.candidate.release.name}) is available`, [
+            {
+                action: {
+                    uuid: unique(),
+                    name: 'Restart & Update',
+                    description: `Update to ${this.candidate.release.name}`,
+                },
+                handler: () => {
+                    return this._delivery().then(() => {
+                        global.application
+                            .shutdown()
+                            .update()
+                            .catch((err: Error) => {
+                                this.log().error(`Fail to trigger updating; error: ${err.message}`);
+                            });
+                    });
+                },
+            },
+            {
+                action: {
+                    uuid: unique(),
+                    name: 'Cancel',
+                    description: `Update to ${(candidate as IReleaseData).name}`,
+                },
+                handler: () => Promise.resolve(),
+            },
+        ]);
     }
 
     private async _delivery(): Promise<void> {
         const updater = {
-            src: path.resolve(paths.getRoot(), getExecutable(UPDATER)),
+            src: path.resolve(paths.getApp(), getExecutable(UPDATER)),
             dest: path.resolve(paths.getApps(), getExecutable(UPDATER)),
         };
-        if (fs.existsSync(updater.src)) {
+        if (!(await exists(updater.src))) {
             throw new Error(`Fail to find updater: ${updater.src}`);
         }
         if (fs.existsSync(updater.dest)) {
