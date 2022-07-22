@@ -8,7 +8,7 @@ class Release
 
   def clean
     if File.exist?(Paths::RELEASE)
-      FileUtils.remove_dir(Paths::RELEASE, true)
+      FileUtils.rm_rf(Paths::RELEASE)
       Reporter.add(Jobs::Clearing, Owner::Release, "removed: #{Paths::RELEASE}", '')
     end
   end
@@ -22,10 +22,12 @@ class Release
     end
     Launchers.new.check(false)
     Dir.chdir(Paths::ELECTRON) do
+      set_envvars
       Rake.sh build_cmd
       Reporter.add(Jobs::Building, Owner::Release, 'building', '')
     end
-    Notarization.check
+    Launchers.delivery
+    # Notarization.check
     snapshot
     Reporter.add(Jobs::Release, Owner::Release, "done: #{Paths::RELEASE_BUILD}", '')
     if @compress
@@ -38,26 +40,40 @@ class Release
   def build_cmd
     if OS.mac?
       if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS') && !ENV.key?('SKIP_NOTARIZE')
-        return "CSC_IDENTITY_AUTO_DISCOVERY=true; ./node_modules/.bin/electron-builder --mac --dir"
+        './node_modules/.bin/electron-builder --mac --dir'
       else
-        return "./node_modules/.bin/electron-builder --mac --dir -c.mac.identity=null"
+        './node_modules/.bin/electron-builder --mac --dir -c.mac.identity=null'
       end
     elsif OS.linux?
-      return "./node_modules/.bin/electron-builder --linux --dir"
+      './node_modules/.bin/electron-builder --linux --dir'
     else
-      return "./node_modules/.bin/electron-builder --win --dir"
+      './node_modules/.bin/electron-builder --win --dir'
+    end
+  end
+
+  def set_envvars
+    if ENV.key?('SKIP_NOTARIZE')
+      ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'false'
+      return
+    end
+    if OS.mac?
+      ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'true' if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS')
+    elsif OS.linux?
+      ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'false'
+    else
+      ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'false'
     end
   end
 
   def snapshot
     if OS.mac?
       Reporter.add(Jobs::Skipped, Owner::Release, "build for darwin does'n require snapshot", '')
-      exit
+      return
     end
-    snapshot_file = "#{Paths::RELEASE_BUILD}/.release"
+    snapshot_file = "#{Paths::RELEASE_BIN}/.release"
     File.delete(snapshot_file) if File.exist?(snapshot_file)
     lines = ".release\n"
-    Dir.foreach(Paths::RELEASE_BUILD) do |entry|
+    Dir.foreach(Paths::RELEASE_BIN) do |entry|
       lines = "#{lines}#{entry}\n" if entry != '.' && entry != '..'
     end
     File.open(snapshot_file, 'a') do |line|

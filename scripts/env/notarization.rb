@@ -4,6 +4,10 @@ module Notarization
 
   def self.check
     if OS.mac?
+      if ENV.key?('SKIP_NOTARIZE')
+        Reporter.add(Jobs::Skipped, Owner::Release, 'notarization is skipped', '')
+        return
+      end
       target = "#{Paths::RELEASE}/mac/chipmunk.app";
       Notarization.signature(target)
       Notarization.notarization(target)
