@@ -32,6 +32,7 @@ export function getHomeFolder(): string {
 export class Service extends Implementation {
     private _home = '';
     private _app = '';
+    private _bin = '';
     private _root = '';
     private _exec = '';
     private _launcher = '';
@@ -72,6 +73,13 @@ export class Service extends Implementation {
             }
             this._exec = exec;
             this._app = path.dirname(exec);
+            this._bin = (() => {
+                if (os.platform() === 'darwin') {
+                    return path.resolve(this._app, '../Resources/bin');
+                } else {
+                    return path.resolve(this._app, './Resources/bin');
+                }
+            })();
             this._launcher = path.resolve(
                 path.dirname(this._exec),
                 `chipmunk${os.platform() === 'win32' ? '.exe' : ''}`,
@@ -103,6 +111,7 @@ export class Service extends Implementation {
 \tstorage: ${this._storage}
 \troot: ${this._root}
 \tapp: ${this._app}
+\tbin: ${this._bin}
 \texec ${this._exec}
 \tlauncher ${this._launcher}
 \tcli ${this._cli}
@@ -146,6 +155,10 @@ export class Service extends Implementation {
 
     public getApp(): string {
         return this._app;
+    }
+
+    public getBin(): string {
+        return this._bin;
     }
 
     public getClient(): string {

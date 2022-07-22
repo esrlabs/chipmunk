@@ -12,12 +12,11 @@ import { Instance as Logger } from 'platform/env/logger';
 import { app, Event } from 'electron';
 import { LockToken } from 'platform/env/lock.token';
 import { IApplication, ChipmunkGlobal } from '@register/global';
+import { spawn } from 'child_process';
 
-export enum ExitCodes {
-    normal = 0,
-    update = 131,
-    restart = 132,
-}
+import * as cases from './exitcases';
+
+export type ExitCase = cases.Restart | cases.Update | undefined;
 
 class Application implements IApplication {
     protected logger: Logger = scope.getLogger('app');
@@ -78,24 +77,24 @@ class Application implements IApplication {
     }
 
     public shutdown(): {
-        update(): Promise<void>;
-        restart(): Promise<void>;
+        update(upd: cases.Update): Promise<void>;
+        restart(cm: cases.Restart): Promise<void>;
         close(): Promise<void>;
     } {
         return {
-            update: (): Promise<void> => {
-                return this._shutdown(ExitCodes.update);
+            update: (upd: cases.Update): Promise<void> => {
+                return this._shutdown(upd);
             },
-            restart: (): Promise<void> => {
-                return this._shutdown(ExitCodes.restart);
+            restart: (cm: cases.Restart): Promise<void> => {
+                return this._shutdown(cm);
             },
             close: (): Promise<void> => {
-                return this._shutdown(ExitCodes.normal);
+                return this._shutdown(undefined);
             },
         };
     }
 
-    private async _shutdown(code: ExitCodes): Promise<void> {
+    private async _shutdown(exitcase: ExitCase): Promise<void> {
         if (this.lock.isLocked()) {
             return Promise.resolve();
         }
@@ -105,9 +104,29 @@ class Application implements IApplication {
         await system.destroy().catch((error: Error) => {
             this.logger.warn(`Fail correctly close app due error: ${error.message}`);
         });
-        this.logger.debug(`Application is ready be closed with code: ${code}.`);
         this.logger.debug(`On close events stack: ${this.emitters.join(', ')}.`);
-        process.exit(code);
+        if (exitcase instanceof cases.Update) {
+            this.logger.debug(`Application will be closed with UPDATE case. \
+- updater: ${exitcase.updater}\
+- disto: ${exitcase.disto}\
+- PID: ${process.pid}\
+- PPID: ${process.ppid}`);
+            spawn(
+                `sleep 3 && ${exitcase.updater} ${exitcase.disto}`,
+                [exitcase.app, exitcase.disto, process.pid.toString(), process.ppid.toString()],
+                {
+                    shell: true,
+                    detached: true,
+                    stdio: 'ignore',
+                },
+            );
+        } else if (exitcase instanceof cases.Restart) {
+            this.logger.debug(`Application will be closed with RESTART case.`);
+            //
+        } else {
+            this.logger.debug(`Application will be closed with REGULAR case.`);
+        }
+        app.quit();
     }
 }
 

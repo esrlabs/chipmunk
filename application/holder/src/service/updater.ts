@@ -19,6 +19,7 @@ import { getExecutable } from '@env/os/platform';
 import { unique } from 'platform/env/sequence';
 import { ChipmunkGlobal } from '@register/global';
 import { exists } from '@env/fs';
+import { Update } from '@loader/exitcases/update';
 
 import * as path from 'path';
 import * as fs from 'fs';
@@ -142,10 +143,10 @@ export class Service extends Implementation {
                     description: `Update to ${this.candidate.release.name}`,
                 },
                 handler: () => {
-                    return this._delivery().then(() => {
+                    return this._delivery().then((updater: string) => {
                         global.application
                             .shutdown()
-                            .update()
+                            .update(new Update(updater, filename, paths.getApp()))
                             .catch((err: Error) => {
                                 this.log().error(`Fail to trigger updating; error: ${err.message}`);
                             });
@@ -163,10 +164,10 @@ export class Service extends Implementation {
         ]);
     }
 
-    private async _delivery(): Promise<void> {
+    private async _delivery(): Promise<string> {
         const updater = {
-            src: path.resolve(paths.getApp(), getExecutable(UPDATER)),
-            dest: path.resolve(paths.getApps(), getExecutable(UPDATER)),
+            src: path.resolve(paths.getBin(), getExecutable(UPDATER)),
+            dest: path.resolve(paths.getBin(), getExecutable(UPDATER)),
         };
         if (!(await exists(updater.src))) {
             throw new Error(`Fail to find updater: ${updater.src}`);
@@ -175,6 +176,7 @@ export class Service extends Implementation {
             await fs.promises.unlink(updater.dest);
         }
         await fs.promises.copyFile(updater.src, updater.dest);
+        return updater.dest;
     }
 }
 

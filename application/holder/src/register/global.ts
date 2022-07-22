@@ -1,7 +1,9 @@
+import * as cases from '@loader/exitcases';
+
 export interface IApplication {
     shutdown(): {
-        update(): Promise<void>;
-        restart(): Promise<void>;
+        update(upd: cases.Update): Promise<void>;
+        restart(cm: cases.Restart): Promise<void>;
         close(): Promise<void>;
     };
 }
