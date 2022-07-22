@@ -26,7 +26,7 @@ class Release
       Rake.sh build_cmd
       Reporter.add(Jobs::Building, Owner::Release, 'building', '')
     end
-    Launchers.delivery
+    # Launchers.delivery
     # Notarization.check
     snapshot
     Reporter.add(Jobs::Release, Owner::Release, "done: #{Paths::RELEASE_BUILD}", '')
