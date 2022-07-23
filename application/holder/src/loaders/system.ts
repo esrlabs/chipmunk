@@ -12,6 +12,7 @@ import { Instance as Logger } from 'platform/env/logger';
 import { app, Event } from 'electron';
 import { LockToken } from 'platform/env/lock.token';
 import { IApplication, ChipmunkGlobal } from '@register/global';
+import { unbind } from '@env/logs';
 import { spawn } from 'child_process';
 
 import * as cases from './exitcases';
@@ -126,6 +127,7 @@ class Application implements IApplication {
         } else {
             this.logger.debug(`Application will be closed with REGULAR case.`);
         }
+        await unbind();
         process.exit(0);
     }
 }

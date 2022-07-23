@@ -1,9 +1,24 @@
 import { LoggerParameters } from './parameters';
 import { Instance, Level } from 'platform/env/logger';
+import { StreamController } from '../fs/stream';
+import { FileStore } from './filestore';
+
+import * as path from 'path';
 
 const LEFT_SPACE_ON_LOGGER_SIG = 1;
 const RIGHT_SPACE_ON_LOGGER_SIG = 1;
 const LOG_LEVEL_MAX = 7;
+
+const store = new FileStore();
+
+export function setHomePath(home: string) {
+    store.bind(path.resolve(home, `chipmunk.log`));
+}
+
+export function unbind(): Promise<void> {
+    return store.unbind();
+}
+
 
 export function error(err: Error | unknown): string {
     return `${err instanceof Error ? err.message : err}`;
@@ -142,10 +157,11 @@ export class Logger extends Instance {
     private _log(original: string, level: Level) {
         const levelStr = `${level}`;
         const fill = LOG_LEVEL_MAX - levelStr.length;
-        const message = `[${levelStr}${' '.repeat(
+        const message = `[${this._getTime()}][${levelStr}${' '.repeat(
             fill > 0 && isFinite(fill) && !isNaN(fill) ? fill : 0,
         )}][${this._signature}]: ${original}`;
-        this._console(`[${this._getTime()}]${message}`, level);
+        this._console(message, level);
+        store.write(message);
         return original;
     }
 }
