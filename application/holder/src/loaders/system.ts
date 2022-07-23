@@ -112,7 +112,7 @@ class Application implements IApplication {
 - PID: ${process.pid}\
 - PPID: ${process.ppid}`);
             spawn(
-                `sleep 3 && ${exitcase.updater} ${exitcase.disto}`,
+                `sleep 3 && ${exitcase.updater}`,
                 [exitcase.app, exitcase.disto, process.pid.toString(), process.ppid.toString()],
                 {
                     shell: true,
@@ -126,7 +126,7 @@ class Application implements IApplication {
         } else {
             this.logger.debug(`Application will be closed with REGULAR case.`);
         }
-        app.quit();
+        process.exit(0);
     }
 }
 

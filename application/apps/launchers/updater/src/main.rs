@@ -25,8 +25,8 @@ fn extract_validated_paths_from_args() -> Result<(PathBuf, PathBuf)> {
         args.push(arg);
     }
 
-    if args.len() != 2 {
-        Err(anyhow!("Expecting 2 arguments"))
+    if args.len() < 2 {
+        Err(anyhow!("Expecting at least 2 arguments"))
     } else {
         let (path1, path2) = (
             PathBuf::from(args[0].to_string()),
@@ -166,7 +166,6 @@ fn main() {
             .expect("could not get parent-directory of application")
             .to_path_buf()
     };
-
     info!("create backup for current app folder: {:?}", app_folder);
     let tmp_dir_path = chipmunk_home_dir().join("tmp");
     match create_dir_all(&tmp_dir_path) {

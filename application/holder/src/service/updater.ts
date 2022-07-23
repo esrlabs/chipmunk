@@ -146,7 +146,7 @@ export class Service extends Implementation {
                     return this._delivery().then((updater: string) => {
                         global.application
                             .shutdown()
-                            .update(new Update(updater, filename, paths.getApp()))
+                            .update(new Update(updater, filename, paths.getExec()))
                             .catch((err: Error) => {
                                 this.log().error(`Fail to trigger updating; error: ${err.message}`);
                             });
@@ -167,8 +167,9 @@ export class Service extends Implementation {
     private async _delivery(): Promise<string> {
         const updater = {
             src: path.resolve(paths.getBin(), getExecutable(UPDATER)),
-            dest: path.resolve(paths.getBin(), getExecutable(UPDATER)),
+            dest: path.resolve(paths.getApps(), getExecutable(UPDATER)),
         };
+        this.log().debug(`Updater will be copied from ${updater.src} to ${updater.dest}`);
         if (!(await exists(updater.src))) {
             throw new Error(`Fail to find updater: ${updater.src}`);
         }
@@ -176,6 +177,7 @@ export class Service extends Implementation {
             await fs.promises.unlink(updater.dest);
         }
         await fs.promises.copyFile(updater.src, updater.dest);
+        this.log().debug(`Updater has beed copied from ${updater.src} to ${updater.dest}`);
         return updater.dest;
     }
 }
