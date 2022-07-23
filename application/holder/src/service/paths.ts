@@ -9,6 +9,7 @@ import { environment } from '@service/environment';
 import { production } from '@service/production';
 import { app } from 'electron';
 import { services } from '@register/services';
+import { setHomePath } from '@env/logs';
 
 import * as os from 'os';
 import * as path from 'path';
@@ -120,6 +121,7 @@ export class Service extends Implementation {
 \tprealod ${this.getPreload()}
 \tmodules ${this._appModules}`,
                             );
+                            setHomePath(this._home);
                             resolve();
                         })
                         .catch((error: Error) => {
