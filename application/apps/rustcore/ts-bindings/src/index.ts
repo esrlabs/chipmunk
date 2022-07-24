@@ -39,6 +39,7 @@ export {
 } from './interfaces/index';
 
 export * as dlt from './native/native.dlt';
+export * as tools from './native/native.tools';
 
 export { Units, Events, Interfaces };
 
