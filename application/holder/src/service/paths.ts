@@ -205,10 +205,15 @@ export class Service extends Implementation {
 
     /**
      * Returns path to executable file
+     * @holder { boolean } in true returns chipmunk.app, instead chipmunk.app/Contents/MacOS/chipmunk. This argument is actual only for darwin
      * @returns string
      */
-    public getExec(): string {
-        return this._exec;
+    public getExec(holder = false): string {
+        if (os.platform() === 'darwin' && holder) {
+            return path.resolve(path.dirname(this._exec), '../../')
+        } else {
+            return this._exec;
+        }
     }
 
     /**
