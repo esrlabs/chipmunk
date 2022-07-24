@@ -14,6 +14,7 @@ import { LockToken } from 'platform/env/lock.token';
 import { IApplication, ChipmunkGlobal } from '@register/global';
 import { unbind } from '@env/logs';
 import { spawn } from 'child_process';
+import { tools } from 'rustcore';
 
 import * as cases from './exitcases';
 
@@ -107,20 +108,30 @@ class Application implements IApplication {
         });
         this.logger.debug(`On close events stack: ${this.emitters.join(', ')}.`);
         if (exitcase instanceof cases.Update) {
-            this.logger.debug(`Application will be closed with UPDATE case. \
-- updater: ${exitcase.updater}\
-- disto: ${exitcase.disto}\
-- PID: ${process.pid}\
+            tools
+                .execute(exitcase.updater, [
+                    exitcase.app,
+                    exitcase.disto,
+                    process.pid.toString(),
+                    process.ppid.toString(),
+                ])
+                .catch((err: Error) => {
+                    console.log(err.message);
+                });
+            this.logger.debug(`Application will be closed with UPDATE case.\n \
+- updater: ${exitcase.updater}\n\
+- disto: ${exitcase.disto}\n\
+- PID: ${process.pid}\n\
 - PPID: ${process.ppid}`);
-            spawn(
-                `sleep 3 && ${exitcase.updater}`,
-                [exitcase.app, exitcase.disto, process.pid.toString(), process.ppid.toString()],
-                {
-                    shell: true,
-                    detached: true,
-                    stdio: 'ignore',
-                },
-            );
+            // spawn(
+            //     `sleep 3 && ${exitcase.updater}`,
+            //     [exitcase.app, exitcase.disto, process.pid.toString(), process.ppid.toString()],
+            //     {
+            //         shell: true,
+            //         detached: true,
+            //         stdio: 'ignore',
+            //     },
+            // );
         } else if (exitcase instanceof cases.Restart) {
             this.logger.debug(`Application will be closed with RESTART case.`);
             //

@@ -17,7 +17,7 @@ fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
         .map_err(|e| anyhow!("could not spawn {} as a process ({})", exe, e))
 }
 
-fn extract_validated_paths_from_args() -> Result<(PathBuf, PathBuf)> {
+fn extract_validated_paths_from_args() -> Result<(PathBuf, PathBuf, i32)> {
     let mut args = Vec::new();
 
     trace!("Parsing arguments");
@@ -28,9 +28,13 @@ fn extract_validated_paths_from_args() -> Result<(PathBuf, PathBuf)> {
     if args.len() < 2 {
         Err(anyhow!("Expecting at least 2 arguments"))
     } else {
-        let (path1, path2) = (
+        let (path1, path2, pid) = (
             PathBuf::from(args[0].to_string()),
             PathBuf::from(args[1].to_string()),
+            args[2]
+                .to_string()
+                .parse::<i32>()
+                .map_err(|e| anyhow!("{}", e))?,
         );
         // Check paths
         if !path1.exists() {
@@ -41,7 +45,7 @@ fn extract_validated_paths_from_args() -> Result<(PathBuf, PathBuf)> {
             error!("File {:?} doesn't exist", path2);
             std::process::exit(1);
         }
-        Ok((path1, path2))
+        Ok((path1, path2, pid))
     }
 }
 
@@ -145,7 +149,8 @@ fn main() {
     debug!("Started updater");
 
     // on macos the current_app_path will be something like /xyz/chipmunk.app
-    let (current_app_path, compressed_update_path) = match extract_validated_paths_from_args() {
+    let (current_app_path, compressed_update_path, pid) = match extract_validated_paths_from_args()
+    {
         Ok(res) => res,
         Err(e) => {
             error!(
@@ -157,7 +162,6 @@ fn main() {
     };
     debug!("to replace: {:?}", current_app_path);
     debug!("new package: {:?}", compressed_update_path);
-
     let app_folder = if cfg!(target_os = "macos") {
         current_app_path.clone() // is equals to chipmunk.app
     } else {
