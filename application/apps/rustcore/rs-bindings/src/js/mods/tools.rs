@@ -27,5 +27,5 @@ pub fn spawn(exe: &Path, args: Vec<String>) -> Result<Child, String> {
 
 #[node_bindgen]
 async fn execute(exe: String, args: Vec<String>) -> Result<(), String> {
-    spawn(&Path::new(&exe), args).map(|_c| Ok(()))?
+    spawn(Path::new(&exe), args).map(|_c| Ok(()))?
 }

@@ -1,6 +1,5 @@
 import { LoggerParameters } from './parameters';
 import { Instance, Level } from 'platform/env/logger';
-import { StreamController } from '../fs/stream';
 import { FileStore } from './filestore';
 
 import * as path from 'path';
