@@ -1,6 +1,6 @@
 /**
  * @module system
- * @description Module cares abopu loading of application
+ * @description Module cares about loading of application
  */
 import './services';
 import './controllers';
@@ -13,7 +13,6 @@ import { app, Event } from 'electron';
 import { LockToken } from 'platform/env/lock.token';
 import { IApplication, ChipmunkGlobal } from '@register/global';
 import { unbind } from '@env/logs';
-import { spawn } from 'child_process';
 import { tools } from 'rustcore';
 
 import * as cases from './exitcases';
