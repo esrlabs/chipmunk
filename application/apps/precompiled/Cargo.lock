@@ -318,22 +318,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "launcher"
-version = "0.2.0"
-dependencies = [
- "anyhow",
- "base",
- "chrono",
- "crossbeam-channel",
- "ctrlc",
- "dirs 3.0.2",
- "flate2",
- "log",
- "log4rs",
- "regex",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

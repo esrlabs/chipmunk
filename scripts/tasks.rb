@@ -55,9 +55,9 @@ namespace :build do
     Reporter.print
   end
 
-  desc 'Build launchers'
-  task :launchers do
-    Launchers.new.build
+  desc 'Build precompiled'
+  task :precompiled do
+    Precompiled.new.build
     Reporter.print
   end
 
@@ -99,9 +99,9 @@ namespace :rebuild do
     Rake::Task['build:prod'].invoke
   end
 
-  desc 'Rebuild launchers'
-  task :launchers do
-    Launchers.new.check(true)
+  desc 'Rebuild precompiled'
+  task :precompiled do
+    Precompiled.new.check(true)
     Reporter.print
   end
 end
@@ -143,7 +143,7 @@ namespace :developing do
 
   desc 'Clean all'
   task :clean_all do
-    Launchers.new.clean
+    Precompiled.new.clean
     Client.new(true, true).clean
     Bindings.new(true).clean
     Platform.new(true, true).clean
@@ -154,7 +154,7 @@ namespace :developing do
 
   desc 'Clean & rebuild all'
   task :clean_rebuild_all do
-    Launchers.new.clean
+    Precompiled.new.clean
     Client.new(true, true).clean
     Bindings.new(true).clean
     Platform.new(true, true).clean
