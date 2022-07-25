@@ -87,7 +87,7 @@ class Holder
       Reporter.add(Jobs::Building, Owner::Holder, 'built', '')
     end
     Rake.sh "cp #{Paths::ELECTRON}/package.json #{@dist}/package.json"
-    Launchers.new.check(@settings.launchers_rebuild)
+    Precompiled.new.check(@settings.launchers_rebuild)
   end
 
   def lint

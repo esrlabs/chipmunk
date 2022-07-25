@@ -1,7 +1,6 @@
 [workspace]
 
 members = [
-    "launcher",
     "updater",
     "base",
     "miniapp",

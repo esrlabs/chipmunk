@@ -8,6 +8,7 @@ module Paths
       'mac'
     end
   end
+
   def self.get_release_bin_folder
     if OS.windows?
       'win-unpacked'
@@ -17,6 +18,7 @@ module Paths
       'mac/chipmunk.app/Contents/MacOS'
     end
   end
+
   def self.get_release_resources_folder
     if OS.windows?
       'win-unpacked/Resources'
@@ -43,7 +45,7 @@ module Paths
   TSC = "#{ELECTRON}/node_modules/.bin/tsc"
   CONFIG = 'scripts/config.json'
   MATCHER = 'application/apps/webassembly/matcher'
-  LAUNCHERS = 'application/apps/launchers'
+  PRECOMPILED = 'application/apps/precompiled'
   RELEASE = 'application/holder/release'
   RELEASE_BIN = "#{RELEASE}/#{Paths.get_release_bin_folder}"
   RELEASE_RESOURCES = "#{RELEASE}/#{Paths.get_release_resources_folder}"

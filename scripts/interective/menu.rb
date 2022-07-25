@@ -108,7 +108,7 @@ module Screens
       { name: 'Rebuild holder (+ platform) [rake developing:holder_platform]', value: 5 },
       { name: 'Rebuild holder (+ platform + bindings) [rake developing:holder_platform_bindings]', value: 6 },
       { name: 'Build matcher [rake build:matcher]', value: 7 },
-      { name: 'Build launchers [rake build:launchers]', value: 8 },
+      { name: 'Build precompiled [rake build:precompiled]', value: 8 },
       { name: 'Clean everything', value: 9 },
       { name: 'Clean & Rebuild everything', value: 10 },
       { name: 'back', value: 11 },
@@ -130,7 +130,7 @@ module Screens
     when 7
       Rake::Task['build:matcher'].invoke
     when 8
-      Rake::Task['build:launchers'].invoke
+      Rake::Task['build:precompiled'].invoke
     when 9
       Rake::Task['developing:clean_all'].invoke
     when 10
