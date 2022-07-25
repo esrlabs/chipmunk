@@ -1,6 +1,6 @@
 {
     "name": "chipmunk",
-    "version": "3.0.4",
+    "version": "3.0.5",
     "chipmunk": {
         "versions": {}
     },
@@ -37,7 +37,10 @@
                 "from": "../apps/launchers/target/release",
                 "to": "Resources/bin",
                 "filter": [
-                    "updater", "updater.exe", "cm", "cm.exe"
+                    "updater",
+                    "updater.exe",
+                    "cm",
+                    "cm.exe"
                 ]
             }
         ],
@@ -49,6 +52,7 @@
             "resources"
         ],
         "npmRebuild": true,
+        "afterSign": "hooks/afterSign.js",
         "mac": {
             "category": "public.app-category.developer-tools",
             "icon": "resources/mac/chipmunk.icns",
@@ -98,6 +102,7 @@
         "@types/uuid": "^8.3.4",
         "@typescript-eslint/eslint-plugin": "^5.19.0",
         "@typescript-eslint/parser": "^5.19.0",
+        "dotenv": "^16.0.1",
         "dotnet": "^1.1.4",
         "electron": "^18.0.4",
         "electron-builder": "^23.1.0",
