@@ -335,7 +335,7 @@ impl SearchHolder {
         let extra = in_file_reader.by_ref().lines().count() as u64;
         self.lines_read += extra;
         in_file_reader
-            .seek(SeekFrom::Start(self.bytes_read + 1))
+            .seek(SeekFrom::Start(self.bytes_read))
             .map_err(|_| {
                 GrabError::IoOperation(format!(
                     "Could not seek file {:?} to {}",
