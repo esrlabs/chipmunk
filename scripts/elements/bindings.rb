@@ -12,28 +12,28 @@ class Bindings
 
   def clean
     if File.exist?(@dist)
-      FileUtils.rm_rf(@dist)
+      Shell.rm_rf(@dist)
       Reporter.add(Jobs::Clearing, Owner::Bindings, "removed: #{@dist}", '')
     end
     if File.exist?(@node_modules)
-      FileUtils.rm_rf(@node_modules)
+      Shell.rm_rf(@node_modules)
       Reporter.add(Jobs::Clearing, Owner::Bindings, "removed: #{@node_modules}", '')
     end
     if File.exist?(@target)
-      FileUtils.rm_rf(@target)
+      Shell.rm_rf(@target)
       Reporter.add(Jobs::Clearing, Owner::Bindings, "removed: #{@target}", '')
     end
     if File.exist?(@dist_rs)
-      FileUtils.rm_rf(@dist_rs)
+      Shell.rm_rf(@dist_rs)
       Reporter.add(Jobs::Clearing, Owner::Bindings, "removed: #{@dist_rs}", '')
     end
   end
 
   def install
-    FileUtils.rm_rf(@node_modules) if @reinstall && File.exist?(@node_modules)
+    Shell.rm_rf(@node_modules) if @reinstall
     if !@installed || @reinstall
-      Dir.chdir(Paths::TS_BINDINGS) do
-        Rake.sh 'npm install'
+      Shell.chdir(Paths::TS_BINDINGS) do
+        Shell.sh 'npm install'
         Reporter.add(Jobs::Install, Owner::Bindings, 'installing', '')
       end
     else
@@ -45,20 +45,20 @@ class Bindings
     Environment.check
     install
     Platform.check(Paths::TS_BINDINGS, false)
-    Dir.chdir(Paths::RS_BINDINGS) do
-      Rake.sh 'cargo build --release'
-      Rake.sh "./#{@build_env} #{@nj_cli} build --release"
+    Shell.chdir(Paths::RS_BINDINGS) do
+      Shell.sh 'cargo build --release'
+      Shell.sh "./#{@build_env} #{@nj_cli} build --release"
       Reporter.add(Jobs::Building, Owner::Bindings, 'rs bindings', '')
     end
-    Dir.chdir(Paths::TS_BINDINGS) do
-      Rake.sh 'npm run build'
+    Shell.chdir(Paths::TS_BINDINGS) do
+      Shell.sh 'npm run build'
       Reporter.add(Jobs::Building, Owner::Bindings, 'ts bindings', '')
     end
-    Rake.sh "cp #{Paths::RS_BINDINGS}/dist/index.node #{@dist}/native/index.node"
+    Shell.sh "cp #{Paths::RS_BINDINGS}/dist/index.node #{@dist}/native/index.node"
     dir_tests = "#{Paths::TS_BINDINGS}/src/native"
     mod_file = "#{dir_tests}/index.node"
-    FileUtils.rm(mod_file) if File.exist?(mod_file)
-    Rake.sh "cp #{Paths::RS_BINDINGS}/dist/index.node #{Paths::TS_BINDINGS}/src/native/index.node"
+    Shell.rm(mod_file)
+    Shell.sh "cp #{Paths::RS_BINDINGS}/dist/index.node #{Paths::TS_BINDINGS}/src/native/index.node"
     Reporter.add(Jobs::Other, Owner::Bindings, 'delivery', '')
   end
 
@@ -67,20 +67,20 @@ class Bindings
     rustcore_dest = "#{node_modules}/rustcore"
     Dir.mkdir(node_modules) unless File.exist?(node_modules)
     if (replace && File.exist?(rustcore_dest)) || File.symlink?(rustcore_dest)
-      FileUtils.rm_rf(rustcore_dest)
+      Shell.rm_rf(rustcore_dest)
     end
     unless File.exist?(rustcore_dest)
       Reporter.add(Jobs::Checks, Owner::Bindings, "#{consumer} doesn't have platform", '')
       bindings = Bindings.new(reinstall)
       bindings.build
-      Rake.sh "rm -rf #{node_modules}/rustcore" if File.exist?("#{node_modules}/rustcore")
+      Shell.sh "rm -rf #{node_modules}/rustcore" if File.exist?("#{node_modules}/rustcore")
       Dir.mkdir("#{node_modules}/rustcore")
-      Rake.sh "cp -r #{Paths::TS_BINDINGS}/* #{node_modules}/rustcore"
-      FileUtils.rm_rf("#{node_modules}/rustcore/native") if File.exist?("#{node_modules}/rustcore/native")
-      FileUtils.rm_rf("#{node_modules}/rustcore/node_modules")
+      Shell.sh "cp -r #{Paths::TS_BINDINGS}/* #{node_modules}/rustcore"
+      Shell.rm_rf("#{node_modules}/rustcore/native")
+      Shell.rm_rf("#{node_modules}/rustcore/node_modules")
       dest_module = "#{node_modules}/rustcore"
-      Dir.chdir(dest_module) do
-        Rake.sh 'npm install --production'
+      Shell.chdir(dest_module) do
+        Shell.sh 'npm install --production'
       end
       Platform.check(dest_module, false)
       Reporter.add(Jobs::Building, Owner::Bindings, 'reinstalled in production', '')
@@ -90,8 +90,8 @@ class Bindings
 
   def lint
     install
-    Dir.chdir(Paths::TS_BINDINGS) do
-      Rake.sh 'npm run lint'
+    Shell.chdir(Paths::TS_BINDINGS) do
+      Shell.sh 'npm run lint'
       Reporter.add(Jobs::Checks, Owner::Bindings, 'linting', '')
     end
   end

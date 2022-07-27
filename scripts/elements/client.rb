@@ -8,10 +8,10 @@ class Client
   end
 
   def install
-    FileUtils.rm_rf(@node_modules) if @reinstall && File.exist?(@node_modules)
+    Shell.rm_rf(@node_modules) if @reinstall
     if !@installed || @reinstall
-      Dir.chdir(Paths::CLIENT) do
-        Rake.sh 'npm install'
+      Shell.chdir(Paths::CLIENT) do
+        Shell.sh 'npm install'
         Reporter.add(Jobs::Install, Owner::Client, 'installing', '')
       end
     else
@@ -21,11 +21,11 @@ class Client
 
   def clean
     if File.exist?(@dist)
-      FileUtils.rm_rf(@dist)
+      Shell.rm_rf(@dist)
       Reporter.add(Jobs::Clearing, Owner::Client, "removed: #{@dist}", '')
     end
     if File.exist?(@node_modules)
-      FileUtils.rm_rf(@node_modules)
+      Shell.rm_rf(@node_modules)
       Reporter.add(Jobs::Clearing, Owner::Client, "removed: #{@node_modules}", '')
     end
   end
@@ -34,14 +34,14 @@ class Client
     install
     if @prod
       Matcher.new(true, true).build
-      Dir.chdir(Paths::CLIENT) do
-        Rake.sh 'npm run prod'
+      Shell.chdir(Paths::CLIENT) do
+        Shell.sh 'npm run prod'
         Reporter.add(Jobs::Building, Owner::Client, 'production mode', '')
       end
     else
       Matcher.new(false, false).build
-      Dir.chdir(Paths::CLIENT) do
-        Rake.sh 'npm run build'
+      Shell.chdir(Paths::CLIENT) do
+        Shell.sh 'npm run build'
         Reporter.add(Jobs::Building, Owner::Client, 'developing mode', '')
       end
     end
@@ -51,14 +51,14 @@ class Client
     Dir.mkdir(dest) unless File.exist?(dest)
     client = Client.new(false, prod)
     client.build
-    Rake.sh "cp -r #{Paths::CLIENT}/dist/client #{dest}"
+    Shell.sh "cp -r #{Paths::CLIENT}/dist/client #{dest}"
     Reporter.add(Jobs::Other, Owner::Client, "delivery to #{dest}", '')
   end
 
   def lint
     install
-    Dir.chdir(Paths::CLIENT) do
-      Rake.sh 'npm run lint'
+    Shell.chdir(Paths::CLIENT) do
+      Shell.sh 'npm run lint'
       Reporter.add(Jobs::Checks, Owner::Client, 'linting', '')
     end
   end
@@ -73,29 +73,29 @@ namespace :client do
 
   desc 'Install client'
   task :install do
-    Dir.chdir(Paths::CLIENT) do
+    Shell.chdir(Paths::CLIENT) do
       sh 'npm install'
     end
   end
 
   desc 'Build client (dev)'
   task :dev do
-    Dir.chdir(Paths::CLIENT) do
+    Shell.chdir(Paths::CLIENT) do
       sh 'npm run build'
     end
   end
 
   desc 'Build client (prod)'
   task :prod do
-    Dir.chdir(Paths::CLIENT) do
+    Shell.chdir(Paths::CLIENT) do
       sh 'npm run prod'
     end
   end
 
   desc 'Clean'
   task :clean do
-    FileUtils.rm_rf(Paths::CLIENT_DIST) if File.exist?(Paths::CLIENT_DIST)
-    FileUtils.rm_rf(Paths::ELECTRON_CLIENT_DEST) if File.exist?(Paths::ELECTRON_CLIENT_DEST)
+    Shell.rm_rf(Paths::CLIENT_DIST)
+    Shell.rm_rf(Paths::ELECTRON_CLIENT_DEST)
   end
 
   desc 'Delivery client'

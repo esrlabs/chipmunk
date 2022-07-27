@@ -8,7 +8,7 @@ class Release
 
   def clean
     if File.exist?(Paths::RELEASE)
-      FileUtils.rm_rf(Paths::RELEASE)
+      Shell.rm_rf(Paths::RELEASE)
       Reporter.add(Jobs::Clearing, Owner::Release, "removed: #{Paths::RELEASE}", '')
     end
   end
@@ -21,9 +21,9 @@ class Release
       Rake::Task['build:dev'].invoke
     end
     Precompiled.new.check(false)
-    Dir.chdir(Paths::ELECTRON) do
+    Shell.chdir(Paths::ELECTRON) do
       set_envvars
-      Rake.sh build_cmd
+      Shell.sh build_cmd
       Reporter.add(Jobs::Building, Owner::Release, 'building', '')
     end
     snapshot

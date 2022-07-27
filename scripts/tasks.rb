@@ -156,6 +156,7 @@ namespace :developing do
   desc 'Clean & rebuild all'
   task :clean_rebuild_all do
     Precompiled.new.clean
+    Matcher.new(true, true).clean
     Client.new(true, true).clean
     Bindings.new(true).clean
     Platform.new(true, true).clean
@@ -187,7 +188,7 @@ namespace :test do
     task :search do
       Bindings.new(false).build
       Reporter.print
-      Dir.chdir(Paths::TS_BINDINGS) do
+      Shell.chdir(Paths::TS_BINDINGS) do
         sh "#{test_runner} spec/session.search.spec.ts"
       end
     end
@@ -196,7 +197,7 @@ namespace :test do
     task :observe do
       Bindings.new(false).build
       Reporter.print
-      Dir.chdir(Paths::TS_BINDINGS) do
+      Shell.chdir(Paths::TS_BINDINGS) do
         sh "#{test_runner} spec/session.observe.spec.ts"
       end
     end
@@ -205,7 +206,7 @@ namespace :test do
     task :cancel do
       Bindings.new(false).build
       Reporter.print
-      Dir.chdir(Paths::TS_BINDINGS) do
+      Shell.chdir(Paths::TS_BINDINGS) do
         sh "#{test_runner} spec/session.cancel.spec.ts"
       end
     end
@@ -215,14 +216,14 @@ namespace :test do
     task :karma do
       Reporter.print
       Matcher.new(false, false).install
-      Dir.chdir("#{Paths::MATCHER}/spec") do
+      Shell.chdir("#{Paths::MATCHER}/spec") do
         sh 'npm run test'
       end
     end
     desc 'run rust tests'
     task :rust do
       Reporter.print
-      Dir.chdir(Paths::MATCHER) do
+      Shell.chdir(Paths::MATCHER) do
         sh 'wasm-pack test --node'
       end
     end
@@ -269,21 +270,21 @@ namespace :clippy do
 
   desc 'Clippy indexer'
   task :indexer do
-    Dir.chdir(Paths::INDEXER) do
+    Shell.chdir(Paths::INDEXER) do
       sh Paths::CLIPPY_NIGHTLY
     end
   end
 
   desc 'Clippy rs-bindings'
   task :rs_bindings do
-    Dir.chdir(Paths::RS_BINDINGS) do
+    Shell.chdir(Paths::RS_BINDINGS) do
       sh Paths::CLIPPY_STABLE
     end
   end
 
   desc 'Clippy matcher'
   task :matcher do
-    Dir.chdir("#{Paths::MATCHER}/src") do
+    Shell.chdir("#{Paths::MATCHER}/src") do
       sh Paths::CLIPPY_STABLE
     end
   end

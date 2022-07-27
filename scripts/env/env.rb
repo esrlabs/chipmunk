@@ -11,8 +11,8 @@ module Environment
                    "Target version of rust (#{config.get_rust_version}) already installed", '')
       return
     end
-    Rake.sh "rustup install #{config.get_rust_version}"
-    Rake.sh "rustup default #{config.get_rust_version}"
+    Shell.sh "rustup install #{config.get_rust_version}"
+    Shell.sh "rustup default #{config.get_rust_version}"
     Reporter.add(Jobs::Install, Owner::Env, "Installed rust (#{config.get_rust_version})", '')
   end
 
@@ -21,7 +21,7 @@ module Environment
       Reporter.add(Jobs::Skipped, Owner::Env, 'nj-cli is installed already', '')
       return
     end
-    Rake.sh 'cargo install nj-cli'
+    Shell.sh 'cargo install nj-cli'
     Reporter.add(Jobs::Install, Owner::Env, 'nj-cli is installed', '')
   end
 
@@ -30,7 +30,7 @@ module Environment
       Reporter.add(Jobs::Skipped, Owner::Env, 'wasm-pack is installed already', '')
       return
     end
-    Rake.sh 'curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh'
+    Shell.sh 'curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh'
     Reporter.add(Jobs::Install, Owner::Env, 'wasm-pack is installed', '')
   end
 
