@@ -11,12 +11,27 @@ import { Dialogs } from '@service/electron/dialogs';
 import { services } from '@register/services';
 import { app, session } from 'electron';
 import { Transport } from 'platform/ipc/transport';
+import { Subjects, Subject } from 'platform/env/subscription';
 
 @DependOn(paths)
 @SetupService(services['electron'])
 export class Service extends Implementation {
+    public subjects: Subjects<{
+        closing: Subject<void>;
+        closed: Subject<void>;
+    }> = new Subjects({
+        closing: new Subject<void>(),
+        closed: new Subject<void>(),
+    });
     private _window!: Window;
     private _dialogs!: Dialogs;
+    private _state: {
+        closing: boolean;
+        closed: boolean;
+    } = {
+        closing: false,
+        closed: false,
+    };
 
     public override init(): Promise<void> {
         this._window = new Window();
@@ -40,6 +55,19 @@ export class Service extends Implementation {
         });
         await this._window.create();
         this._dialogs.bind(this._window.getWindow());
+        this._window.getWindow().once('close', () => {
+            this._state.closing = true;
+            this.subjects.get().closing.emit();
+        });
+        this._window.getWindow().once('closed', () => {
+            this._state.closed = true;
+            this.subjects.get().closed.emit();
+        });
+        return Promise.resolve();
+    }
+
+    public override destroy(): Promise<void> {
+        this.subjects.destroy();
         return Promise.resolve();
     }
 
@@ -49,6 +77,20 @@ export class Service extends Implementation {
 
     public dialogs(): Dialogs {
         return this._dialogs;
+    }
+
+    public state(): {
+        closing(): boolean;
+        closed(): boolean;
+    } {
+        return {
+            closing: (): boolean => {
+                return this._state.closing;
+            },
+            closed: (): boolean => {
+                return this._state.closed;
+            },
+        };
     }
 }
 export interface Service extends Interface {}

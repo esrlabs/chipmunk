@@ -48,7 +48,7 @@ export function AsyncVoidExecutor<TOptions>(
                     return; // Ignore. This is another operation
                 }
                 if (error instanceof Error) {
-                    reject(error);
+                    reject(new Error(`Operation done error: ${error.message}`));
                 } else if (event.uuid === lifecircle.abortOperationId) {
                     cancel();
                 } else {

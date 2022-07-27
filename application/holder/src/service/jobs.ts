@@ -1,13 +1,30 @@
 import { SetupService, Interface, Implementation, register } from 'platform/entity/service';
 import { services } from '@register/services';
 import { Job } from './jobs/job';
+import { electron } from '@service/electron';
+import { LockToken } from 'platform/env/lock.token';
 
 export { Job };
 export * as aliases from './jobs/aliases';
 
 @SetupService(services['jobs'])
 export class Service extends Implementation {
+    public locked: LockToken = LockToken.simple(false);
+
     private _jobs: Map<string, Map<string, Job>> = new Map();
+
+    public override ready(): Promise<void> {
+        electron.subjects.get().closing.subscribe(() => {
+            this._jobs.forEach((jobs) => jobs.forEach((job) => job.cancel()));
+            this.locked.lock();
+        });
+        return Promise.resolve();
+    }
+
+    public override destroy(): Promise<void> {
+        this._jobs.clear();
+        return Promise.resolve();
+    }
 
     public create(inputs: {
         pinned: boolean;
@@ -28,6 +45,9 @@ export class Service extends Implementation {
                 jobs.delete(job.uuid);
             },
         });
+        if (this.locked.isLocked()) {
+            job.cancel();
+        }
         let jobs = this._jobs.get(job.session);
         if (jobs === undefined) {
             jobs = new Map();

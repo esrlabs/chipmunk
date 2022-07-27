@@ -314,6 +314,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                     );
                 } else {
                     (this.getEvents() as any)[event].emit(data);
+                    this.logger.debug(`Event "${event}" is processed`);
                 }
             }
         }, 0);
