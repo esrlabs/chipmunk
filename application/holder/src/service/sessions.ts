@@ -94,7 +94,23 @@ export class Service extends Implementation {
 
     public override destroy(): Promise<void> {
         this.unsubscribe();
-        return Promise.resolve();
+        return new Promise((resolve) => {
+            Promise.all(
+                Array.from(this._sessions.values()).map((session) => {
+                    return session.destroy().catch((err: Error) => {
+                        this.log().error(
+                            `Fail to destroy session ${session.session.getUUID()}; error: ${
+                                err.message
+                            }`,
+                        );
+                    });
+                }),
+            )
+                .catch((err: Error) => {
+                    this.log().error(`Error during destryoying sessions: ${err.message}`);
+                })
+                .finally(resolve);
+        });
     }
 
     public add(session: Session, subscriber: Subscriber) {

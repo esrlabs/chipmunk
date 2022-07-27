@@ -18,6 +18,8 @@ export class Job {
     public desc?: string;
     public icon?: string;
     public pinned: boolean;
+
+    private _canceled = false;
     private _created: number = Date.now();
     private _done: (job: Job) => void;
 
@@ -45,6 +47,9 @@ export class Job {
     }
 
     public start(): Job {
+        if (this.isCanceled()) {
+            return this;
+        }
         if (this.progress === 100) {
             throw new Error(`Operation ${this.uuid} has been done already. Desc: ${this.desc}`);
         }
@@ -63,6 +68,9 @@ export class Job {
     }
 
     public rise(progress: number, desc?: string): Job {
+        if (this.isCanceled()) {
+            return this;
+        }
         if (this.progress === 100) {
             throw new Error(`Operation ${this.uuid} has been done already. Desc: ${this.desc}`);
         }
@@ -82,6 +90,9 @@ export class Job {
     }
 
     public done(): Job {
+        if (this.isCanceled()) {
+            return this;
+        }
         if (this.progress === 100) {
             throw new Error(`Operation ${this.uuid} has been done already. Desc: ${this.desc}`);
         }
@@ -101,6 +112,9 @@ export class Job {
     }
 
     public doneAndPinStatus(inputs: { desc: string | undefined; icon: string | undefined }): Job {
+        if (this.isCanceled()) {
+            return this;
+        }
         if (this.progress === 100) {
             throw new Error(`Operation ${this.uuid} has been done already. Desc: ${this.desc}`);
         }
@@ -130,5 +144,13 @@ export class Job {
         );
         this._done(this);
         return this;
+    }
+
+    public cancel() {
+        this._canceled = true;
+    }
+
+    public isCanceled(): boolean {
+        return this._canceled;
     }
 }
