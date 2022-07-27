@@ -144,6 +144,7 @@ namespace :developing do
   desc 'Clean all'
   task :clean_all do
     Precompiled.new.clean
+    Matcher.new(true, true).clean
     Client.new(true, true).clean
     Bindings.new(true).clean
     Platform.new(true, true).clean
