@@ -11,8 +11,8 @@ class Compressor
                '*'
              end
     @archname += '.tgz'
-    Dir.chdir(@location) do
-      Rake.sh "tar -czf ../#{@archname} #{target}"
+    Shell.chdir(@location) do
+      Shell.sh "tar -czf ../#{@archname} #{target}"
     end
     Reporter.add(Jobs::Release, Owner::Compressor, "compressed: #{@archname}", '')
   end

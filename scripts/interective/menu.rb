@@ -10,6 +10,11 @@ module Screens
       { name: 'Release', value: 6 },
       { name: 'exit', value: 7 }
     ]
+    puts "=" * 100
+    puts "\e[32mWelcome to Chipmunk builder\e[0m"
+    puts "\e[32mSilence mode: #{ENV['CHIPMUNK_BUILD_SILENCE']}. To manage silence mode use: export CHIPMUNK_BUILD_SILENCE=true/false\e[0m"
+    puts "=" * 100
+    puts ""
     case prompt.select('Actions groups', choices)
     when 1
       Screens.build_prod(prompt)

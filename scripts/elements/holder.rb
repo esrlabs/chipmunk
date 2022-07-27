@@ -51,10 +51,10 @@ class Holder
   end
 
   def install
-    FileUtils.rm_rf(@node_modules) if @settings.reinstall && File.exist?(@node_modules)
+    Shell.rm_rf(@node_modules) if @settings.reinstall
     if !@installed || @settings.reinstall
-      Dir.chdir(Paths::ELECTRON) do
-        Rake.sh 'npm install'
+      Shell.chdir(Paths::ELECTRON) do
+        Shell.sh 'npm install'
         Reporter.add(Jobs::Install, Owner::Holder, 'installing', '')
       end
     else
@@ -64,15 +64,15 @@ class Holder
 
   def clean
     if File.exist?(@dist)
-      FileUtils.rm_rf(@dist)
+      Shell.rm_rf(@dist)
       Reporter.add(Jobs::Clearing, Owner::Holder, "removed: #{@dist}", '')
     end
     if File.exist?(@release)
-      FileUtils.rm_rf(@release)
+      Shell.rm_rf(@release)
       Reporter.add(Jobs::Clearing, Owner::Holder, "removed: #{@release}", '')
     end
     if File.exist?(@node_modules)
-      FileUtils.rm_rf(@node_modules)
+      Shell.rm_rf(@node_modules)
       Reporter.add(Jobs::Clearing, Owner::Holder, "removed: #{@node_modules}", '')
     end
   end
@@ -82,18 +82,18 @@ class Holder
     Platform.check(Paths::ELECTRON, @settings.platform_rebuild)
     Bindings.check(Paths::ELECTRON, @settings.bindings_reinstall, @settings.bindings_rebuild)
     Client.delivery(@dist, @settings.client_prod)
-    Dir.chdir(Paths::ELECTRON) do
-      Rake.sh 'npm run build'
+    Shell.chdir(Paths::ELECTRON) do
+      Shell.sh 'npm run build'
       Reporter.add(Jobs::Building, Owner::Holder, 'built', '')
     end
-    Rake.sh "cp #{Paths::ELECTRON}/package.json #{@dist}/package.json"
+    Shell.sh "cp #{Paths::ELECTRON}/package.json #{@dist}/package.json"
     Precompiled.new.check(@settings.launchers_rebuild)
   end
 
   def lint
     install
-    Dir.chdir(Paths::ELECTRON) do
-      Rake.sh 'npm run lint'
+    Shell.chdir(Paths::ELECTRON) do
+      Shell.sh 'npm run lint'
       Reporter.add(Jobs::Checks, Owner::Holder, 'linting', '')
     end
   end

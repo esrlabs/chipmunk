@@ -8,15 +8,15 @@ class Precompiled
 
   def clean
     if File.exist?(@target)
-      FileUtils.rm_rf(@target)
+      Shell.rm_rf(@target)
       Reporter.add(Jobs::Clearing, Owner::Precompiled, "removed: #{@target}", '')
     end
   end
 
   def build
     Environment.check
-    Dir.chdir(Paths::PRECOMPILED) do
-      Rake.sh 'cargo build --release'
+    Shell.chdir(Paths::PRECOMPILED) do
+      Shell.sh 'cargo build --release'
       Reporter.add(Jobs::Building, Owner::Precompiled, 'building', '')
     end
   end
