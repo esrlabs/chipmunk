@@ -31,8 +31,9 @@ class Reporter
                  'description' => description,
                  'icon' => icon
                })
-    if !Shell.is_silence
-      puts "#{icon_type(type)}\t[#{align(type, 10)}]\t[#{align(owner, 10)}]: #{description}"
+    unless Shell.is_verbose_hidden
+      puts "#{icon_type(type)}\t[#{align(type,
+                                         10)}]\t[#{align(owner, 10)}]: #{description}"
     end
   end
 
