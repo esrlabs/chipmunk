@@ -300,7 +300,6 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     use log::debug;
     let file_name = Uuid::new_v4();
     let session_file_path = dest_path.join(format!("{}.session", file_name));
-    let binary_file_path = dest_path.join(format!("{}.bin", file_name));
     debug!("create writers for {:?}", dest_path);
     let mut session_writer =
         BufWriter::new(File::create(&session_file_path).map_err(|e| NativeError {
@@ -308,16 +307,6 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
             kind: NativeErrorKind::Io,
             message: Some(format!(
                 "Fail to create session writer for {}: {}",
-                session_file_path.to_string_lossy(),
-                e
-            )),
-        })?);
-    let mut binary_writer =
-        BufWriter::new(File::create(&binary_file_path).map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Io,
-            message: Some(format!(
-                "Fail to create binary writer for {}: {}",
                 session_file_path.to_string_lossy(),
                 e
             )),
@@ -364,7 +353,6 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                                 kind: NativeErrorKind::Io,
                                 message: Some(e.to_string()),
                             })?;
-                        item.to_writer(&mut binary_writer)?;
                         if !state.is_closing()
                             && last_message_timestamp.elapsed().as_millis() > NOTIFY_IN_MS
                         {
@@ -430,9 +418,6 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
             }
         }
     }
-    debug!(
-        "listen done, session_file_path: {:?}, binary_file_path: {:?}",
-        session_file_path, binary_file_path
-    );
-    Ok((vec![session_file_path, binary_file_path], Ok(None)))
+    debug!("listen done, session_file_path: {:?}", session_file_path);
+    Ok((vec![session_file_path], Ok(None)))
 }
