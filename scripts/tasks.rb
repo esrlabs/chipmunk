@@ -27,13 +27,13 @@ end
 namespace :build do
   desc 'Build client (dev)'
   task :client_dev do
-    Client.delivery(Paths::ELECTRON_DIST, false)
+    Client.delivery(Paths::ELECTRON_DIST, false, true)
     Reporter.print
   end
 
   desc 'Build client (prod)'
   task :client_prod do
-    Client.delivery(Paths::ELECTRON_DIST, true)
+    Client.delivery(Paths::ELECTRON_DIST, true, true)
     Reporter.print
   end
 
