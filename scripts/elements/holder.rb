@@ -1,9 +1,11 @@
 class HolderSettings
-  attr_accessor :reinstall, :client_prod, :platform_rebuild, :bindings_rebuild, :bindings_reinstall, :launchers_rebuild
+  attr_accessor :reinstall, :replace_client, :client_prod, :platform_rebuild, :bindings_rebuild, :bindings_reinstall,
+                :launchers_rebuild
 
   def initialize
     self.reinstall = false
     self.client_prod = false
+    self.replace_client = true
     self.platform_rebuild = false
     self.bindings_rebuild = false
     self.bindings_reinstall = false
@@ -12,6 +14,11 @@ class HolderSettings
 
   def set_reinstall(val)
     self.reinstall = val
+    self
+  end
+
+  def set_replace_client(val)
+    self.replace_client = val
     self
   end
 
@@ -81,7 +88,7 @@ class Holder
     install
     Platform.check(Paths::ELECTRON, @settings.platform_rebuild)
     Bindings.check(Paths::ELECTRON, @settings.bindings_reinstall, @settings.bindings_rebuild)
-    Client.delivery(@dist, @settings.client_prod)
+    Client.delivery(@dist, @settings.client_prod, @settings.replace_client)
     Shell.chdir(Paths::ELECTRON) do
       Shell.sh 'npm run build'
       Reporter.add(Jobs::Building, Owner::Holder, 'built', '')

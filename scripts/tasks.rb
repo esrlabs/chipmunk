@@ -125,7 +125,7 @@ namespace :developing do
 
   desc 'Rebuild holder (+ bindings)'
   task :holder_bindings do
-    Holder.new(HolderSettings.new.set_bindings_rebuild(true)).build
+    Holder.new(HolderSettings.new.set_bindings_rebuild(true).set_replace_client(false)).build
     Reporter.print
   end
 
