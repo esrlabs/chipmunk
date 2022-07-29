@@ -31,6 +31,8 @@ export class Listener {
     }
 
     public emit(event: KeyboardEvent): boolean {
+        console.log(`Registred key: ${event.key}`);
+        console.log(event);
         if (this._iteration.timer === undefined) {
             this._iteration.emitted = [];
             this._iteration.timer = setTimeout(() => {
