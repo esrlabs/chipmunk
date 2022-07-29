@@ -47,7 +47,11 @@ class Client
     end
   end
 
-  def self.delivery(dest, prod)
+  def self.delivery(dest, prod, replace)
+    if !replace && File.exist?("#{Paths::CLIENT}/dist/client")
+      Reporter.add(Jobs::Skipped, Owner::Client, 'client already exist', '')
+      return
+    end
     Dir.mkdir(dest) unless File.exist?(dest)
     client = Client.new(false, prod)
     client.build

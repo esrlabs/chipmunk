@@ -1,7 +1,7 @@
 use crate::{
     events::{NativeError, NativeErrorKind},
     operations::{OperationAPI, OperationResult},
-    state::SessionStateAPI,
+    state::{SessionFile, SessionStateAPI},
     tail,
 };
 use indexer_base::progress::Severity;
@@ -13,19 +13,13 @@ use sources::{
     producer::MessageProducer,
     raw, socket, ByteSource,
 };
-use std::{
-    fs::File,
-    io::{BufWriter, Write},
-    path::PathBuf,
-    time::Instant,
-};
+use std::{fs::File, path::PathBuf};
 use tokio::{
     join, select,
     sync::mpsc::{channel, Receiver, Sender},
     time::{timeout, Duration},
 };
 use tokio_stream::StreamExt;
-use uuid::Uuid;
 
 const NOTIFY_IN_MS: u128 = 250;
 
@@ -35,7 +29,7 @@ pub async fn handle(
     state: SessionStateAPI,
     source: SourceType,
 ) -> OperationResult<()> {
-    let (paths, result): (Vec<PathBuf>, OperationResult<()>) = match source {
+    let result: OperationResult<()> = match source {
         SourceType::Stream(transport, parser_type) => {
             let (source, dest_path) = match transport {
                 Transport::UDP(config) => {
@@ -115,7 +109,7 @@ pub async fn handle(
                 MessageProducer::new(parser, source),
                 None,
             )
-            .await?
+            .await
         }
         SourceType::File(filename, parser_type) => {
             let dest_path = if let Some(dest_path) = filename.parent() {
@@ -136,7 +130,9 @@ pub async fn handle(
                     });
                 }
                 ParserType::Text => {
-                    state.set_session_file(filename.clone()).await?;
+                    state
+                        .set_session_file(SessionFile::Existed(filename.clone()))
+                        .await?;
                     let (tx_tail, mut rx_tail): (
                         Sender<Result<(), tail::Error>>,
                         Receiver<Result<(), tail::Error>>,
@@ -167,18 +163,15 @@ pub async fn handle(
                         },
                         tail::track(&filename, tx_tail, operation_api.cancellation_token()),
                     );
-                    (
-                        vec![],
-                        result
-                            .and_then(|_| {
-                                tracker.map_err(|e| NativeError {
-                                    severity: Severity::ERROR,
-                                    kind: NativeErrorKind::Interrupted,
-                                    message: Some(format!("Tailing error: {}", e)),
-                                })
+                    result
+                        .and_then(|_| {
+                            tracker.map_err(|e| NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::Interrupted,
+                                message: Some(format!("Tailing error: {}", e)),
                             })
-                            .map(|_| None),
-                    )
+                        })
+                        .map(|_| None)
                 }
                 ParserType::Pcap(settings) => {
                     let fibex_metadata =
@@ -227,7 +220,7 @@ pub async fn handle(
                             Some(rx_tail),
                         )
                     );
-                    listening?
+                    listening
                 }
                 ParserType::Dlt(settings) => {
                     let fibex_metadata = if let Some(fibex_file_paths) = settings.fibex_file_paths {
@@ -266,21 +259,11 @@ pub async fn handle(
                             Some(rx_tail),
                         )
                     );
-                    listening?
+                    listening
                 }
             }
         }
     };
-    trace!("done observing...cleaning up files: {:?}", paths);
-    for path in paths {
-        if path.exists() {
-            std::fs::remove_file(path).map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Io,
-                message: Some(e.to_string()),
-            })?;
-        }
-    }
     result
 }
 
@@ -296,21 +279,8 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     state: SessionStateAPI,
     mut producer: MessageProducer<T, P, S>,
     mut rx_tail: Option<Receiver<Result<(), tail::Error>>>,
-) -> Result<(Vec<PathBuf>, OperationResult<()>), NativeError> {
+) -> OperationResult<()> {
     use log::debug;
-    let file_name = Uuid::new_v4();
-    let session_file_path = dest_path.join(format!("{}.session", file_name));
-    debug!("create writers for {:?}", dest_path);
-    let mut session_writer =
-        BufWriter::new(File::create(&session_file_path).map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Io,
-            message: Some(format!(
-                "Fail to create session writer for {}: {}",
-                session_file_path.to_string_lossy(),
-                e
-            )),
-        })?);
     // let (tx_event, mut rx_event): (UnboundedSender<Event>, UnboundedReceiver<Event>) =
     //     unbounded_channel();
     // TODO: producer should return relevate source_id. It should be used
@@ -320,11 +290,12 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     // TextFileSource::new(&session_file_path, producer.source_alias());
     // or
     // TextFileSource::new(&session_file_path, producer.source_id());
-    state.set_session_file(session_file_path.clone()).await?;
+    state
+        .set_session_file(SessionFile::ToBeCreated(dest_path))
+        .await?;
     let cancel = operation_api.cancellation_token();
     let stream = producer.as_stream();
     futures::pin_mut!(stream);
-    let mut last_message_timestamp = Instant::now();
     let mut has_updated_content = false;
     let cancel_on_tail = cancel.clone();
     while let Some(next) = select! {
@@ -346,36 +317,12 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
             Next::Item(item) => {
                 match item {
                     MessageStreamItem::Item(item) => {
-                        session_writer
-                            .write_fmt(format_args!("{}\n", item))
-                            .map_err(|e| NativeError {
-                                severity: Severity::ERROR,
-                                kind: NativeErrorKind::Io,
-                                message: Some(e.to_string()),
-                            })?;
-                        if !state.is_closing()
-                            && last_message_timestamp.elapsed().as_millis() > NOTIFY_IN_MS
-                        {
-                            session_writer.flush().map_err(|e| NativeError {
-                                severity: Severity::ERROR,
-                                kind: NativeErrorKind::Io,
-                                message: Some(e.to_string()),
-                            })?;
-                            state.update_session().await?;
-                            last_message_timestamp = Instant::now();
-                            has_updated_content = false;
-                        } else {
-                            has_updated_content = true;
-                        }
+                        has_updated_content =
+                            state.write_session_file(format!("{}\n", item)).await?;
                     }
                     MessageStreamItem::Done => {
                         trace!("observe, message stream is done");
-                        session_writer.flush().map_err(|e| NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::Io,
-                            message: Some(e.to_string()),
-                        })?;
-                        state.update_session().await?;
+                        state.flush_session_file().await?;
                         state.file_read().await?;
                     }
                     // MessageStreamItem::FileRead => {
@@ -418,6 +365,6 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
             }
         }
     }
-    debug!("listen done, session_file_path: {:?}", session_file_path);
-    Ok((vec![session_file_path], Ok(None)))
+    debug!("listen done");
+    Ok(None)
 }
