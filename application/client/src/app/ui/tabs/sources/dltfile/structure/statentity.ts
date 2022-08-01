@@ -1,6 +1,6 @@
 import { LevelDistribution } from '@platform/types/parsers/dlt';
 import { Subject } from '@platform/env/subscription';
-import { Matcher } from '@matcher/matcher';
+import { Matcher } from '@matcher/index';
 import { Matchee } from '@module/matcher';
 
 export interface Section {

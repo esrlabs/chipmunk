@@ -1,4 +1,4 @@
-import { Matcher } from '@matcher/matcher';
+import { Matcher } from '@matcher/index';
 import { Matchee } from '@module/matcher';
 import { Action } from '@service/recent/action';
 

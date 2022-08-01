@@ -1,5 +1,5 @@
 import * as moment_timezone from 'moment-timezone';
-import { Matcher } from '@matcher/matcher';
+import { Matcher } from '@matcher/index';
 import { Matchee } from '@module/matcher';
 
 export class Timezone extends Matchee {
