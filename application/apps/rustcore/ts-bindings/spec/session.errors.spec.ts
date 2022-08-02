@@ -141,6 +141,7 @@ describe('Errors', () => {
                 );
             });
     });
+
     it('Test 5. Assign and grab invalid range', (done) => {
         const logger = getLogger('Errors. Test 5');
         Session.create()
@@ -184,6 +185,7 @@ describe('Errors', () => {
                 );
             });
     });
+
     it('Test 6. Assign & single and grab invalid range', (done) => {
         const logger = getLogger('Errors. Test 6');
         Session.create()
@@ -238,6 +240,79 @@ describe('Errors', () => {
                             .catch(finish.bind(null, session, done));
                     })
                     .catch(finish.bind(null, session, done));
+            })
+            .catch((err: Error) => {
+                finish(
+                    undefined,
+                    done,
+                    new Error(
+                        `Fail to create session due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
+                );
+            });
+    });
+
+    it('Test 7. Grab lines with negative length', (done) => {
+        const logger = getLogger('Errors. Test 7');
+        Session.create()
+            .then((session: Session) => {
+                const stream: SessionStream = session.getStream();
+                const tmpobj = createSampleFile(5, logger, (i: number) => `some line data: ${i}\n`);
+                stream
+                    .observe(Observe.DataSource.file(tmpobj.name).text())
+                    .then(() => {
+                        stream
+                            .grab(1, -2)
+                            .then((_) => {
+                                finish(
+                                    session,
+                                    done,
+                                    new Error('Grab from invalid range should not work'),
+                                );
+                            })
+                            .catch((_) => finish(session, done));
+                    })
+                    .catch((err: Error) => {
+                        finish.bind(
+                            session,
+                            done,
+                            new Error(`Failed to observe file: ${err.message}`),
+                        );
+                    });
+            })
+            .catch((err: Error) => {
+                finish(
+                    undefined,
+                    done,
+                    new Error(
+                        `Fail to create session due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
+                );
+            });
+    });
+    it('Test 8. Grab lines with negative start', (done) => {
+        const logger = getLogger('Errors. Test 8');
+        Session.create()
+            .then((session: Session) => {
+                const stream: SessionStream = session.getStream();
+                const tmpobj = createSampleFile(5, logger, (i: number) => `some line data: ${i}\n`);
+                stream
+                    .observe(Observe.DataSource.file(tmpobj.name).text())
+                    .then(() => {
+                        stream
+                            .grab(-1, 2)
+                            .then((_) =>
+                                finish(session, done, new Error('Grab from invalid start worked')),
+                            )
+                            .catch((_) => finish(session, done));
+                    })
+                    .catch((err: Error) =>
+                        finish(session, done, new Error(`Failed to observe file: ${err.message}`)),
+                    );
             })
             .catch((err: Error) => {
                 finish(
