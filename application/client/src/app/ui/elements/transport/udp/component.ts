@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Input } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, OnDestroy } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
@@ -9,11 +9,15 @@ import { State } from './state';
     styleUrls: ['./styles.less'],
 })
 @Ilc()
-export class TransportUdp extends ChangesDetector {
+export class TransportUdp extends ChangesDetector implements OnDestroy {
     @Input() public state!: State;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
+    }
+
+    public ngOnDestroy(): void {
+        this.state.destroy();
     }
 
     public ngAddMulticast() {

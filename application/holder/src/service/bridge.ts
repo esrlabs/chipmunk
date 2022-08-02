@@ -38,6 +38,15 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
+                    Requests.Connect.Text.Request,
+                    RequestHandlers.Connect.Text.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
                     Requests.File.Select.Request,
                     RequestHandlers.File.Select.handler,
                 ),

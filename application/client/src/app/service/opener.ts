@@ -30,6 +30,7 @@ export class Service extends Implementation {
             options?: { source: SourceDefinition; options: IDLTOptions },
             openPresetSettings?: boolean,
         ): Promise<void>;
+        text(options?: { source: SourceDefinition }, openPresetSettings?: boolean): Promise<void>;
     } {
         return {
             dlt: (
@@ -76,15 +77,71 @@ export class Service extends Implementation {
                         open(options).then(resolve).catch(reject);
                     } else {
                         this._services.system.session.add().tab({
-                            name: `Connecting to DLT Deamon`,
+                            name: `DLT content streaming`,
                             content: {
-                                factory: components.get('app-tabs-source-dltnet'),
+                                factory: components.get('app-tabs-source-dltstream'),
                                 inputs: {
                                     options: options,
                                     done: (options: {
                                         source: SourceDefinition;
                                         options: IDLTOptions;
                                     }) => {
+                                        open(options).then(resolve).catch(reject);
+                                    },
+                                },
+                            },
+                            active: true,
+                        });
+                    }
+                });
+            },
+            text: (
+                options?: { source: SourceDefinition },
+                openPresetSettings?: boolean,
+            ): Promise<void> => {
+                const open = (opt: { source: SourceDefinition }): Promise<void> => {
+                    return new Promise((resolve, reject) => {
+                        this._services.system.session
+                            .add()
+                            .empty(getRenderFor().text())
+                            .then((session) => {
+                                session
+                                    .connect(opt.source)
+                                    .text()
+                                    .then(() => {
+                                        // this._services.system.recent
+                                        //     .add()
+                                        //     .stream(opt.source)
+                                        //     .dlt(opt.options)
+                                        //     .catch((err: Error) => {
+                                        //         this.log().error(
+                                        //             `Fail to add recent action; error: ${err.message}`,
+                                        //         );
+                                        //     });
+                                        resolve();
+                                    })
+                                    .catch((err: Error) => {
+                                        this.log().error(`Fail to connect: ${err.message}`);
+                                        reject(err);
+                                    });
+                            })
+                            .catch((err: Error) => {
+                                this.log().error(`Fail to create session: ${err.message}`);
+                                reject(err);
+                            });
+                    });
+                };
+                return new Promise((resolve, reject) => {
+                    if (options !== undefined && openPresetSettings !== true) {
+                        open(options).then(resolve).catch(reject);
+                    } else {
+                        this._services.system.session.add().tab({
+                            name: `Text source streaming`,
+                            content: {
+                                factory: components.get('app-tabs-source-textstream'),
+                                inputs: {
+                                    options: options,
+                                    done: (options: { source: SourceDefinition }) => {
                                         open(options).then(resolve).catch(reject);
                                     },
                                 },

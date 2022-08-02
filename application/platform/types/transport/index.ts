@@ -7,6 +7,7 @@ export enum Source {
     Tcp = 'Tcp',
     Udp = 'Udp',
     Serial = 'Serial',
+    Process = 'Process',
 }
 
 export interface SourceDefinition {

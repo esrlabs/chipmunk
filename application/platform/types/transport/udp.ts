@@ -5,5 +5,4 @@ export interface MulticastInfo {
 export interface UDPTransportSettings {
     bind_addr: string;
     multicast: MulticastInfo[];
-    dest_path: string;
 }

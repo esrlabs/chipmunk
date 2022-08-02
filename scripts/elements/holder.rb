@@ -87,6 +87,7 @@ class Holder
   def build
     install
     Platform.check(Paths::ELECTRON, @settings.platform_rebuild)
+    Platform.check(Paths::TS_BINDINGS, @settings.platform_rebuild) if @settings.platform_rebuild
     Bindings.check(Paths::ELECTRON, @settings.bindings_reinstall, @settings.bindings_rebuild)
     Client.delivery(@dist, @settings.client_prod, @settings.replace_client)
     Shell.chdir(Paths::ELECTRON) do

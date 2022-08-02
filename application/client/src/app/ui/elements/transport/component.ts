@@ -19,6 +19,7 @@ export class Transport extends ChangesDetector {
         { ref: Source.Udp, name: 'UDP Connection' },
         { ref: Source.Tcp, name: 'TCP Connection' },
         { ref: Source.Serial, name: 'Serial Port' },
+        { ref: Source.Process, name: 'Terminal command output' },
     ];
 
     constructor(cdRef: ChangeDetectorRef) {

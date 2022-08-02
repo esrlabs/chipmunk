@@ -1,0 +1,66 @@
+<div class="input">
+    <mat-form-field class="outline" appearance="outline">
+        <input
+            #commandinput
+            tabindex="1"
+            type="text"
+            placeholder="Type a Terminal Command"
+            aria-label="Command"
+            matInput
+            [formControl]="inputs.command.input.control"
+            [matAutocomplete]="commandsrecent"
+            [matAutocompleteDisabled]="!inputs.command.input.recent"
+            (keyup)="inputs.command.input.keyup($event)"
+        />
+        <mat-autocomplete
+            #commandsrecent="matAutocomplete"
+            class="regular"
+            (closed)="inputs.command.input.onPanelClosed()"
+            [classList]="'recent-requests'"
+            [disableRipple]="true"
+        >
+            <mat-option
+                class="small"
+                *ngFor="let recent of inputs.command.recent.observer | async"
+                [value]="recent.value"                   
+            >
+                <span class="t-console t-small t-subselection"
+                    [innerHTML]="recent.html()"
+                ></span>
+            </mat-option>
+        </mat-autocomplete>
+    </mat-form-field>
+</div>
+<div class="input">
+    <mat-form-field class="outline" appearance="outline">
+        <input
+            #cmdinput
+            tabindex="2"
+            type="text"
+            placeholder="Type a default location (cmd)"
+            aria-label="cmd"
+            matInput
+            [formControl]="inputs.cmd.input.control"
+            [matAutocomplete]="cmdrecent"
+            [matAutocompleteDisabled]="!inputs.cmd.input.recent"
+            (keyup)="inputs.cmd.input.keyup($event)"
+        />
+        <mat-autocomplete
+            #cmdrecent="matAutocomplete"
+            class="regular"
+            (closed)="inputs.cmd.input.onPanelClosed()"
+            [classList]="'recent-requests'"
+            [disableRipple]="true"
+        >
+            <mat-option
+                class="small"
+                *ngFor="let recent of inputs.cmd.recent.observer | async"
+                [value]="recent.value"                   
+            >
+                <span class="t-console t-small t-subselection"
+                    [innerHTML]="recent.html()"
+                ></span>
+            </mat-option>
+        </mat-autocomplete>
+    </mat-form-field>
+</div>

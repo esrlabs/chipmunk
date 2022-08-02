@@ -9,7 +9,8 @@
           <button mat-stroked-button (click)="ngOpenFile(FileType.Dlt)">Open Dlt File</button>
           <button mat-stroked-button (click)="ngOpenFile(FileType.Pcap)">Open Pcap File</button>
           <button mat-stroked-button>Open Folder</button>
-          <button mat-stroked-button (click)="ngStream(FileType.Dlt)">Connect to DLT domain</button>
+          <button mat-stroked-button (click)="ngStreaming(FileType.Dlt)">DLT Streaming</button>
+          <button mat-stroked-button (click)="ngStreaming(FileType.Text)">Text Streaming</button>
           <button mat-stroked-button>Connect to Serial Port</button>
           <button mat-stroked-button>Run shell command</button>
         </mat-card-content>

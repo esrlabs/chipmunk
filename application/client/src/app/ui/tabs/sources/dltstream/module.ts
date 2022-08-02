@@ -16,10 +16,10 @@ import { MatInputModule } from '@angular/material/input';
 
 import { TransportModule } from '@ui/elements/transport/module';
 
-import { TabSourceDltNet } from './component';
+import { TabSourceDltStream } from './component';
 
 @NgModule({
-    entryComponents: [TabSourceDltNet],
+    entryComponents: [TabSourceDltStream],
     imports: [
         CommonModule,
         FormsModule,
@@ -38,7 +38,7 @@ import { TabSourceDltNet } from './component';
         MatInputModule,
         TransportModule,
     ],
-    declarations: [TabSourceDltNet],
-    exports: [TabSourceDltNet],
+    declarations: [TabSourceDltStream],
+    exports: [TabSourceDltStream],
 })
-export class TabSourceDltNetModule {}
+export class TabSourceDltStreamModule {}
