@@ -6,14 +6,15 @@ use crate::{
 };
 use indexer_base::progress::Severity;
 use log::trace;
-use parsers::{dlt, LogMessage, MessageStreamItem, Parser};
+use parsers::{dlt, text, LogMessage, MessageStreamItem, Parser};
 use sources::{
+    command,
     factory::{ParserType, SourceType, Transport},
     pcap,
     producer::MessageProducer,
     raw, socket, ByteSource,
 };
-use std::{fs::File, path::PathBuf};
+use std::fs::File;
 use tokio::{
     join, select,
     sync::mpsc::{channel, Receiver, Sender},
@@ -31,36 +32,8 @@ pub async fn handle(
 ) -> OperationResult<()> {
     let result: OperationResult<()> = match source {
         SourceType::Stream(transport, parser_type) => {
-            let (source, dest_path) = match transport {
-                Transport::UDP(config) => {
-                    let source = socket::udp::UdpSource::new(&config.bind_addr, config.multicast)
-                        .await
-                        .map_err(|e| NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::Interrupted,
-                            message: Some(format!("Fail to create socket due error: {:?}", e)),
-                        })?;
-                    (source, config.dest_path)
-                }
-                Transport::TCP(_config) => {
-                    todo!("Transport::Process not implemented");
-                    // return Err(NativeError {
-                    //     severity: Severity::ERROR,
-                    //     kind: NativeErrorKind::Interrupted,
-                    //     message: Some(String::from("Transport::TCP not implemented")),
-                    // });
-                }
-                Transport::Process(_config) => {
-                    todo!("Transport::Process not implemented");
-                    // return Err(NativeError {
-                    //     severity: Severity::ERROR,
-                    //     kind: NativeErrorKind::Interrupted,
-                    //     message: Some(String::from("Transport::Process not implemented")),
-                    // });
-                }
-            };
             let fibex_metadata;
-            let parser = match parser_type {
+            match parser_type {
                 ParserType::SomeIP(_) => {
                     return Err(NativeError {
                         severity: Severity::ERROR,
@@ -69,11 +42,7 @@ pub async fn handle(
                     });
                 }
                 ParserType::Text => {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::UnsupportedFileType,
-                        message: Some(String::from("Text parser above stream not yet supported")),
-                    });
+                    listen_from_source(transport, text::StringTokenizer, operation_api, state).await
                 }
                 ParserType::Pcap(settings) => {
                     fibex_metadata = if let Some(fibex_file_paths) = settings.dlt.fibex_file_paths {
@@ -81,11 +50,17 @@ pub async fn handle(
                     } else {
                         None
                     };
-                    dlt::DltParser::new(
-                        settings.dlt.filter_config.map(|f| f.into()),
-                        fibex_metadata.as_ref(),
-                        settings.dlt.with_storage_header,
+                    listen_from_source(
+                        transport,
+                        dlt::DltParser::new(
+                            settings.dlt.filter_config.map(|f| f.into()),
+                            fibex_metadata.as_ref(),
+                            settings.dlt.with_storage_header,
+                        ),
+                        operation_api,
+                        state,
                     )
+                    .await
                 }
                 ParserType::Dlt(settings) => {
                     fibex_metadata = if let Some(paths) = settings.fibex_file_paths {
@@ -95,32 +70,21 @@ pub async fn handle(
                     } else {
                         None
                     };
-                    dlt::DltParser::new(
-                        settings.filter_config.map(|f| f.into()),
-                        fibex_metadata.as_ref(),
-                        settings.with_storage_header,
+                    listen_from_source(
+                        transport,
+                        dlt::DltParser::new(
+                            settings.filter_config.map(|f| f.into()),
+                            fibex_metadata.as_ref(),
+                            settings.with_storage_header,
+                        ),
+                        operation_api,
+                        state,
                     )
+                    .await
                 }
-            };
-            listen(
-                dest_path,
-                operation_api,
-                state,
-                MessageProducer::new(parser, source),
-                None,
-            )
-            .await
+            }
         }
         SourceType::File(filename, parser_type) => {
-            let dest_path = if let Some(dest_path) = filename.parent() {
-                dest_path.to_path_buf()
-            } else {
-                return Err(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::FileNotFound,
-                    message: Some(String::from("Session destination file isn't defined")),
-                });
-            };
             match parser_type {
                 ParserType::SomeIP(_) => {
                     return Err(NativeError {
@@ -213,7 +177,6 @@ pub async fn handle(
                     let (_, listening) = join!(
                         tail::track(&filename, tx_tail, operation_api.cancellation_token()),
                         listen(
-                            dest_path,
                             operation_api,
                             state,
                             MessageProducer::new(dlt_parser, source),
@@ -252,7 +215,6 @@ pub async fn handle(
                     let (_, listening) = join!(
                         tail::track(&filename, tx_tail, operation_api.cancellation_token()),
                         listen(
-                            dest_path,
                             operation_api,
                             state,
                             MessageProducer::new(dlt_parser, source),
@@ -273,8 +235,59 @@ enum Next<T: LogMessage> {
     Waiting,
 }
 
+async fn listen_from_source<T: LogMessage, P: Parser<T>>(
+    transport: Transport,
+    parser: P,
+    operation_api: OperationAPI,
+    state: SessionStateAPI,
+) -> OperationResult<()> {
+    match transport {
+        Transport::UDP(config) => {
+            listen(
+                operation_api,
+                state,
+                MessageProducer::new(
+                    parser,
+                    socket::udp::UdpSource::new(&config.bind_addr, config.multicast)
+                        .await
+                        .map_err(|e| NativeError {
+                            severity: Severity::ERROR,
+                            kind: NativeErrorKind::Interrupted,
+                            message: Some(format!("Fail to create socket due error: {:?}", e)),
+                        })?,
+                ),
+                None,
+            )
+            .await
+        }
+        Transport::TCP(_config) => {
+            todo!("Transport::Process not implemented");
+        }
+        Transport::Process(config) => {
+            listen(
+                operation_api,
+                state,
+                MessageProducer::new(
+                    parser,
+                    command::process::ProcessSource::new(config.command, config.args, config.envs)
+                        .await
+                        .map_err(|e| NativeError {
+                            severity: Severity::ERROR,
+                            kind: NativeErrorKind::Interrupted,
+                            message: Some(format!(
+                                "Fail to create process source due error: {:?}",
+                                e
+                            )),
+                        })?,
+                ),
+                None,
+            )
+            .await
+        }
+    }
+}
+
 async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
-    dest_path: PathBuf,
     operation_api: OperationAPI,
     state: SessionStateAPI,
     mut producer: MessageProducer<T, P, S>,
@@ -290,9 +303,7 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     // TextFileSource::new(&session_file_path, producer.source_alias());
     // or
     // TextFileSource::new(&session_file_path, producer.source_id());
-    state
-        .set_session_file(SessionFile::ToBeCreated(dest_path))
-        .await?;
+    state.set_session_file(SessionFile::ToBeCreated).await?;
     let cancel = operation_api.cancellation_token();
     let stream = producer.as_stream();
     futures::pin_mut!(stream);

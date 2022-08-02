@@ -2202,6 +2202,7 @@ name = "session"
 version = "0.1.0"
 dependencies = [
  "crossbeam-channel",
+ "dirs",
  "futures 0.3.21",
  "indexer_base",
  "log",

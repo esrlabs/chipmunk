@@ -1,7 +1,7 @@
 use indexer_base::config::MulticastInfo;
 use parsers::dlt;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ParserType {
@@ -61,18 +61,16 @@ pub struct ProcessTransportConfig {
     pub cmd: PathBuf,
     pub command: String,
     pub args: Vec<String>,
+    pub envs: HashMap<String, String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TCPTransportConfig {
-    pub dest_path: PathBuf,
-}
+pub struct TCPTransportConfig {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UDPTransportConfig {
     pub bind_addr: String,
     pub multicast: Vec<MulticastInfo>,
-    pub dest_path: PathBuf,
 }
 
 ///

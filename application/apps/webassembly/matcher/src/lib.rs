@@ -40,7 +40,7 @@ impl Matcher {
                     .map_err(|e| format!("Initializing with empty search failed: {}", e))?;
                 Ok(self.items_initial.len() - 1)
             }
-            Err(err) => return Err(format!("Parsing item into JSON String failed: {}", err)),
+            Err(err) => Err(format!("Parsing item into JSON String failed: {}", err)),
         }
     }
 
