@@ -1,98 +1,25 @@
-import { SafeHtml } from '@angular/platform-browser';
 import { Observable } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
-import { getDomSanitizer } from '@ui/env/globals';
 import { Entry, EntryConvertable } from '@platform/types/storage/entry';
 import { error } from '@platform/env/logger';
 import { Storage } from '@env/fsstorage';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Matcher } from '@matcher/matcher';
-import { Matchee } from '@module/matcher';
-
-import * as obj from '@platform/env/obj';
-
-export class Recent extends Matchee implements EntryConvertable {
-    public value: string = '';
-    public used: number = 0;
-
-    private _htmlValue: string = '';
-
-    constructor(value: string, matcher: Matcher) {
-        super(matcher, value !== '' ? { value: value } : undefined);
-        this.value = value;
-    }
-
-    public html(): SafeHtml {
-        return getDomSanitizer().bypassSecurityTrustHtml(this._htmlValue);
-    }
-
-    public setFilter() {
-        const value: string | undefined = this.getHtmlOf('html_value');
-        this._htmlValue = value === undefined ? this.value : value;
-    }
-
-    public get filtered(): boolean {
-        return this.getScore() > 0;
-    }
-
-    public entry(): {
-        to(): Entry;
-        from(entry: Entry): Error | undefined;
-        hash(): string;
-        uuid(): string;
-        updated(): undefined;
-    } {
-        return {
-            to: (): Entry => {
-                return {
-                    uuid: this.value,
-                    content: JSON.stringify({
-                        filter: this.value,
-                        used: this.used,
-                    }),
-                };
-            },
-            from: (entry: Entry): Error | undefined => {
-                try {
-                    const def: {
-                        filter: string;
-                        used: number;
-                    } = JSON.parse(entry.content);
-                    this.value = obj.getAsNotEmptyString(def, 'filter');
-                    this.used = obj.getAsValidNumber(def, 'used');
-                    this.setItem({ value: this.value });
-                } catch (e) {
-                    return new Error(error(e));
-                }
-                return undefined;
-            },
-            hash: (): string => {
-                return `${this.value}/${this.used}`;
-            },
-            uuid: (): string => {
-                return this.value;
-            },
-            updated: (): undefined => {
-                return undefined;
-            },
-        };
-    }
-}
+import { Recent } from './item';
 
 @SetupLogger()
 export class List extends Storage implements EntryConvertable {
-    static RECENT_ENTRY_UUID = 'recent_terminal_commands';
     public items: Recent[] = [];
     public filter: string = '';
     public observer: Observable<Recent[]>;
 
     private _matcher: Matcher = Matcher.new();
-    private _parent: string;
+    private _filealias: string;
 
-    constructor(control: FormControl, parent: string) {
+    constructor(control: FormControl, name: string, filealias: string) {
         super();
-        this._parent = parent;
+        this._filealias = filealias;
         this.observer = control.valueChanges.pipe(
             startWith(''),
             map((filter: string) => {
@@ -100,7 +27,7 @@ export class List extends Storage implements EntryConvertable {
                 return this.items.filter((i) => i.filtered);
             }),
         );
-        this.setLoggerName(`RecentCommandsList`);
+        this.setLoggerName(name);
         this.storage()
             .load()
             .then((entry: Entry | undefined) => {
@@ -122,7 +49,7 @@ export class List extends Storage implements EntryConvertable {
     }
 
     public getStorageKey(): string {
-        return `${List.RECENT_ENTRY_UUID}_${this._parent}`;
+        return `${this._filealias}`;
     }
 
     public update(recent: string) {
