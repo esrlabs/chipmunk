@@ -29,9 +29,9 @@ pub struct ProcessSource {
 
 impl ProcessSource {
     pub async fn new(
-        command: &str,
-        args: Vec<&str>,
-        envs: HashMap<&str, &str>,
+        command: String,
+        args: Vec<String>,
+        envs: HashMap<String, String>,
     ) -> Result<Self, ProcessError> {
         Ok(Self {
             process: Command::new(command)

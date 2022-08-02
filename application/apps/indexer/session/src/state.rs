@@ -1,5 +1,6 @@
 use crate::{
     events::{CallbackEvent, NativeError, NativeErrorKind},
+    paths,
     tracker::OperationTrackerAPI,
 };
 use indexer_base::progress::Severity;
@@ -37,7 +38,7 @@ pub enum SearchHolderState {
 #[derive(Debug)]
 pub enum SessionFile {
     Existed(PathBuf),
-    ToBeCreated(PathBuf),
+    ToBeCreated,
 }
 
 impl SearchHolderState {
@@ -148,8 +149,9 @@ impl SessionState {
         if self.content_grabber.is_none() {
             let file = match session_file {
                 SessionFile::Existed(session_file) => session_file,
-                SessionFile::ToBeCreated(dest_path) => {
-                    let file = dest_path.join(format!("{}.session", Uuid::new_v4()));
+                SessionFile::ToBeCreated => {
+                    let streams = paths::get_streams_dir()?;
+                    let file = streams.join(format!("{}.session", Uuid::new_v4()));
                     File::create(&file).map_err(|e| NativeError {
                         severity: Severity::ERROR,
                         kind: NativeErrorKind::Io,
@@ -163,10 +165,6 @@ impl SessionState {
                 }
             };
             debug!("Session file setup: {}", file.to_string_lossy());
-            println!(
-                ">>>>>>>>>>>>>>>>>>> Session file setup: {}",
-                file.to_string_lossy()
-            );
             self.session_file = Some(file.clone());
             Ok(
                 Grabber::lazy(TextFileSource::new(&file, &file.to_string_lossy()))
@@ -327,7 +325,6 @@ impl SessionState {
                 kind: NativeErrorKind::Io,
                 message: Some(e.to_string()),
             })?;
-            println!(">>>>>>>>>>>>>>>>>>> flushing...");
             self.last_message_timestamp = Instant::now();
             self.handle_update_session(state_cancellation_token, tx_callback_events)
                 .await?;
@@ -341,7 +338,6 @@ impl SessionState {
         tx_callback_events: UnboundedSender<CallbackEvent>,
     ) -> Result<bool, NativeError> {
         if let Some(ref mut grabber) = self.content_grabber {
-            println!(">>>>>>>>>>>>>>>>>>> updateing...");
             let prev = grabber.log_entry_count().unwrap_or(0) as u64;
             grabber.update_from_file(Some(state_cancellation_token.clone()))?;
             let current = grabber.log_entry_count().unwrap_or(0) as u64;
