@@ -175,11 +175,12 @@ module Screens
       { name: 'Test binding search [rake test:binding:search]', value: 1 },
       { name: 'Test binding observe [rake test:binding:observe]', value: 2 },
       { name: 'Test binding cancel [rake test:binding:cancel]', value: 3 },
-      { name: 'Test matcher karma [rake test:matcher:karma]', value: 4 },
-      { name: 'Test matcher rust [rake test:matcher:rust', value: 5 },
-      { name: 'Test all [rake test:all', value: 6 },
-      { name: 'back', value: 7 },
-      { name: 'exit', value: 8 }
+      { name: 'Test binding errors [rake test:binding:errors]', value: 4 },
+      { name: 'Test matcher karma [rake test:matcher:karma]', value: 5 },
+      { name: 'Test matcher rust [rake test:matcher:rust', value: 6 },
+      { name: 'Test all [rake test:all', value: 7 },
+      { name: 'back', value: 8 },
+      { name: 'exit', value: 9 }
     ]
     case prompt.select('Actions groups', choices)
     when 1
@@ -189,12 +190,14 @@ module Screens
     when 3
       Rake::Task['test:binding:cancel'].invoke
     when 4
-      Rake::Task['test:matcher:karma'].invoke
+      Rake::Task['test:binding:errors'].invoke
     when 5
-      Rake::Task['test:matcher:rust'].invoke
+      Rake::Task['test:matcher:karma'].invoke
     when 6
-      Rake::Task['test:all'].invoke
+      Rake::Task['test:matcher:rust'].invoke
     when 7
+      Rake::Task['test:all'].invoke
+    when 8
       Screens.checks(prompt)
     else
       puts 'Goodbuy!'

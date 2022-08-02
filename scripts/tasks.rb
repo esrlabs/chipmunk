@@ -210,6 +210,15 @@ namespace :test do
         sh "#{test_runner} spec/session.cancel.spec.ts"
       end
     end
+
+    desc 'run errors tests'
+    task :errors do
+      Bindings.new(false).build
+      Reporter.print
+      Shell.chdir(Paths::TS_BINDINGS) do
+        sh "#{test_runner} spec/session.errors.spec.ts"
+      end
+    end
   end
   namespace :matcher do
     desc 'run karma tests'
@@ -229,8 +238,8 @@ namespace :test do
     end
   end
   desc 'run all test'
-  task all: ['test:binding:observe', 'test:binding:search', 'test:binding:cancel', 'test:matcher:karma',
-             'test:matcher:rust']
+  task all: ['test:binding:observe', 'test:binding:search', 'test:binding:cancel', 'test:binding:errors',
+             'test:matcher:karma', 'test:matcher:rust']
 end
 
 namespace :lint do
