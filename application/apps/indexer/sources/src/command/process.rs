@@ -1,9 +1,7 @@
-use crate::ByteSource;
-use crate::{Error as SourceError, ReloadInfo, SourceFilter};
+use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use async_trait::async_trait;
 use buf_redux::Buffer;
-use std::collections::HashMap;
-use std::process::Stdio;
+use std::{collections::HashMap, process::Stdio};
 use thiserror::Error;
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
@@ -150,7 +148,7 @@ async fn test_process() -> Result<(), ProcessError> {
     }
     let envs = HashMap::new();
     let args = Vec::new();
-    match ProcessSource::new(command, args, envs).await {
+    match ProcessSource::new(command.to_string(), args, envs).await {
         Ok(mut process_source) => {
             while process_source
                 .reload(None)
