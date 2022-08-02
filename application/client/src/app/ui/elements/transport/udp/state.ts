@@ -1,11 +1,13 @@
-import * as Errors from './error';
 import { MulticastInfo } from '@platform/types/transport/udp';
 import { UDPTransportSettings } from '@platform/types/transport/udp';
+import { Base } from '../common/state';
+
+import * as Errors from './error';
 
 const MULTICAST_ADDR = '255.255.255.255';
 const MULTUCAST_INTERFACE = '0.0.0.0';
 
-export class State {
+export class State extends Base<UDPTransportSettings> {
     public errors = {
         bindingAddress: new Errors.ErrorState(Errors.Field.bindingAddress),
         bindingPort: new Errors.ErrorState(Errors.Field.bindingPort),
@@ -44,11 +46,10 @@ export class State {
         });
     }
 
-    public asUDPTransportSettings(dest_path: string): UDPTransportSettings {
+    public asSourceDefinition(): UDPTransportSettings {
         return {
             bind_addr: `${this.bindingAddress}:${this.bindingPort}`,
             multicast: this.multicasts,
-            dest_path,
         };
     }
 }

@@ -11,7 +11,7 @@ import { FileType, File } from '@platform/types/files';
 export class LayoutWorkspaceNoContent {
     public readonly FileType = FileType;
 
-    public ngStream(target: FileType) {
+    public ngStreaming(target: FileType) {
         switch (target) {
             case FileType.Dlt:
                 this.ilc()
@@ -19,6 +19,14 @@ export class LayoutWorkspaceNoContent {
                     .dlt()
                     .catch((err: Error) => {
                         this.log().error(`Fail to open DLT stream; error: ${err.message}`);
+                    });
+                break;
+            case FileType.Text:
+                this.ilc()
+                    .services.system.opener.stream()
+                    .text()
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to open text stream; error: ${err.message}`);
                     });
                 break;
             default:

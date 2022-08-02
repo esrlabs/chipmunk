@@ -13,13 +13,13 @@ import { Timezone } from '@ui/elements/timezones/timezone';
 import { SourceDefinition } from '@platform/types/transport';
 
 @Component({
-    selector: 'app-tabs-source-dltnet',
+    selector: 'app-tabs-source-dltstream',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
 @Initial()
 @Ilc()
-export class TabSourceDltNet extends ChangesDetector implements AfterContentInit {
+export class TabSourceDltStream extends ChangesDetector implements AfterContentInit {
     public readonly ConnectionType = ConnectionType;
 
     @Input() done!: (options: { source: SourceDefinition; options: IDLTOptions }) => void;
@@ -107,4 +107,4 @@ export class TabSourceDltNet extends ChangesDetector implements AfterContentInit
         });
     }
 }
-export interface TabSourceDltNet extends IlcInterface {}
+export interface TabSourceDltStream extends IlcInterface {}

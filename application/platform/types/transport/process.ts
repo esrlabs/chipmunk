@@ -1,3 +1,6 @@
 export interface ProcessTransportSettings {
-    dummy: string;
+    command: string;
+    cmd: string;
+    args: string[];
+    envs: { [key: string]: string };
 }

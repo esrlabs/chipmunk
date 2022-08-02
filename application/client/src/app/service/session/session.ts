@@ -81,6 +81,7 @@ export class Session extends Base {
 
     public connect(source: SourceDefinition): {
         dlt(options: IDLTOptions): Promise<void>;
+        text(): Promise<void>;
     } {
         return {
             dlt: (options: IDLTOptions): Promise<void> => {
@@ -88,6 +89,22 @@ export class Session extends Base {
                     Requests.IpcRequest.send<Requests.Connect.Dlt.Response>(
                         Requests.Connect.Dlt.Response,
                         new Requests.Connect.Dlt.Request({ session: this._uuid, source, options }),
+                    )
+                        .then((response) => {
+                            if (typeof response.error === 'string' && response.error !== '') {
+                                reject(new Error(response.error));
+                            } else {
+                                resolve(undefined);
+                            }
+                        })
+                        .catch(reject);
+                });
+            },
+            text: (): Promise<void> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send<Requests.Connect.Text.Response>(
+                        Requests.Connect.Text.Response,
+                        new Requests.Connect.Text.Request({ session: this._uuid, source }),
                     )
                         .then((response) => {
                             if (typeof response.error === 'string' && response.error !== '') {

@@ -8,6 +8,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { TransportUdpModule } from './udp/module';
 import { TransportTcpModule } from './tcp/module';
 import { TransportSerialModule } from './serial/module';
+import { TransportProcessModule } from './process/module';
 
 import { Transport } from './component';
 
@@ -24,8 +25,15 @@ import { Transport } from './component';
         TransportUdpModule,
         TransportTcpModule,
         TransportSerialModule,
+        TransportProcessModule,
     ],
     declarations: [Transport],
-    exports: [Transport, TransportUdpModule, TransportTcpModule, TransportSerialModule],
+    exports: [
+        Transport,
+        TransportUdpModule,
+        TransportTcpModule,
+        TransportSerialModule,
+        TransportProcessModule,
+    ],
 })
 export class TransportModule {}
