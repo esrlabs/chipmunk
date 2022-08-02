@@ -12,7 +12,7 @@ import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { SearchInput } from './input';
-import { RecentList } from './recent';
+import { List } from '@env/storages/recent/list';
 import { Progress } from './progress';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { ISearchResults } from '@platform/types/filter';
@@ -34,13 +34,13 @@ export class ViewSearchInput
     @ViewChild(MatAutocompleteTrigger) recentPanelRef!: MatAutocompleteTrigger;
 
     public readonly input = new SearchInput();
-    public readonly recent: RecentList;
+    public readonly recent: List;
     public active: ActiveSearch | undefined;
     public progress!: Progress;
 
     constructor(chRef: ChangeDetectorRef) {
         super(chRef);
-        this.recent = new RecentList(this.input.control);
+        this.recent = new List(this.input.control, 'RecentFilters', 'recent_filters');
     }
 
     public ngOnDestroy(): void {

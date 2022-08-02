@@ -12,7 +12,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
 import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { Controll } from './input';
-import { List } from './recent';
+import { List } from '@env/storages/recent/list';
 
 @Component({
     selector: 'app-transport-process',
@@ -46,11 +46,15 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
         this.inputs = {
             command: {
                 input: command,
-                recent: new List(command.control, 'commands'),
+                recent: new List(
+                    command.control,
+                    'CommandsRecentList',
+                    'processes_commands_recent',
+                ),
             },
             cmd: {
                 input: cmd,
-                recent: new List(cmd.control, 'cmd'),
+                recent: new List(cmd.control, 'CmdRecentList', 'processes_cmd_recent'),
             },
         };
     }
