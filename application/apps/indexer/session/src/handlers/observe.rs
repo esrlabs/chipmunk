@@ -18,11 +18,8 @@ use std::fs::File;
 use tokio::{
     join, select,
     sync::mpsc::{channel, Receiver, Sender},
-    time::{timeout, Duration},
 };
 use tokio_stream::StreamExt;
-
-const NOTIFY_IN_MS: u128 = 250;
 
 #[allow(clippy::type_complexity)]
 pub async fn handle(
@@ -231,7 +228,6 @@ pub async fn handle(
 
 enum Next<T: LogMessage> {
     Item(MessageStreamItem<T>),
-    Timeout,
     Waiting,
 }
 
@@ -307,19 +303,13 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     let cancel = operation_api.cancellation_token();
     let stream = producer.as_stream();
     futures::pin_mut!(stream);
-    let mut has_updated_content = false;
     let cancel_on_tail = cancel.clone();
     while let Some(next) = select! {
         next_from_stream = async {
-            match timeout(Duration::from_millis(NOTIFY_IN_MS as u64), stream.next()).await {
-                Ok(item) => {
-                    if let Some((_, item)) = item {
-                        Some(Next::Item(item))
-                    } else {
-                        Some(Next::Waiting)
-                    }
-                },
-                Err(_) => Some(Next::Timeout),
+            if let Some((_, item)) = stream.next().await {
+                Some(Next::Item(item))
+            } else {
+                Some(Next::Waiting)
             }
         } => next_from_stream,
         _ = cancel.cancelled() => None,
@@ -328,8 +318,7 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
             Next::Item(item) => {
                 match item {
                     MessageStreamItem::Item(item) => {
-                        has_updated_content =
-                            state.write_session_file(format!("{}\n", item)).await?;
+                        state.write_session_file(format!("{}\n", item)).await?;
                     }
                     MessageStreamItem::Done => {
                         trace!("observe, message stream is done");
@@ -348,12 +337,6 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                     MessageStreamItem::Empty => {
                         trace!("observe: empty message");
                     }
-                }
-            }
-            Next::Timeout => {
-                if !state.is_closing() && has_updated_content {
-                    state.update_session().await?;
-                    has_updated_content = false;
                 }
             }
             Next::Waiting => {
