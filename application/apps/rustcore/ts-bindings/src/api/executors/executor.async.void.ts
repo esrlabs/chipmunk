@@ -22,7 +22,6 @@ export function AsyncVoidExecutor<TOptions>(
     name: string,
 ): CancelablePromise<void> {
     return new CancelablePromise<void>((resolve, reject, cancel, refCancelCB, self) => {
-        let error: Error | undefined;
         // Setup subscriptions
         const lifecircle: {
             abortOperationId: string | undefined;
@@ -41,15 +40,13 @@ export function AsyncVoidExecutor<TOptions>(
                     return; // Ignore. This is another operation
                 }
                 logger.warn(`Error on operation "${name}": ${event.error.message}`);
-                error = new Error(event.error.message);
+                reject(new Error(event.error.message));
             }),
             done: provider.getEvents().OperationDone.subscribe((event: IOperationDoneEvent) => {
                 if (event.uuid !== opUuid && event.uuid !== lifecircle.abortOperationId) {
                     return; // Ignore. This is another operation
                 }
-                if (error instanceof Error) {
-                    reject(new Error(`Operation done error: ${error.message}`));
-                } else if (event.uuid === lifecircle.abortOperationId) {
+                if (event.uuid === lifecircle.abortOperationId) {
                     cancel();
                 } else {
                     resolve(undefined);
