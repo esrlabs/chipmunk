@@ -66,9 +66,7 @@ class Bindings
     node_modules = "#{consumer}/node_modules"
     rustcore_dest = "#{node_modules}/rustcore"
     Dir.mkdir(node_modules) unless File.exist?(node_modules)
-    if (replace && File.exist?(rustcore_dest)) || File.symlink?(rustcore_dest)
-      Shell.rm_rf(rustcore_dest)
-    end
+    Shell.rm_rf(rustcore_dest) if (replace && File.exist?(rustcore_dest)) || File.symlink?(rustcore_dest)
     unless File.exist?(rustcore_dest)
       Reporter.add(Jobs::Checks, Owner::Bindings, "#{consumer} doesn't have platform", '')
       bindings = Bindings.new(reinstall)

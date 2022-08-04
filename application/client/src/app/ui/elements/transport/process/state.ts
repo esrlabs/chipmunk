@@ -2,11 +2,11 @@ import { ProcessTransportSettings } from '@platform/types/transport/process';
 import { Base } from '../common/state';
 
 export class State extends Base<ProcessTransportSettings> {
-    public cmd: string = '';
+    public cwd: string = '';
     public command: string = '';
 
     public from(opt: ProcessTransportSettings) {
-        this.cmd = opt.cmd;
+        this.cwd = opt.cwd;
         this.command = opt.command;
     }
 
@@ -14,7 +14,7 @@ export class State extends Base<ProcessTransportSettings> {
         const parts = this.command.split(' ');
         return {
             command: parts[0],
-            cmd: this.cmd,
+            cwd: this.cwd,
             args: parts.slice(1),
             envs: {},
         };

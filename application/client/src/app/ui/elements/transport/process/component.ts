@@ -33,7 +33,7 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
             input: Controll;
             recent: List;
         };
-        cmd: {
+        cwd: {
             input: Controll;
             recent: List;
         };
@@ -42,7 +42,7 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
         const command = new Controll();
-        const cmd = new Controll();
+        const cwd = new Controll();
         this.inputs = {
             command: {
                 input: command,
@@ -52,9 +52,9 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
                     'processes_commands_recent',
                 ),
             },
-            cmd: {
-                input: cmd,
-                recent: new List(cmd.control, 'CmdRecentList', 'processes_cmd_recent'),
+            cwd: {
+                input: cwd,
+                recent: new List(cwd.control, 'CmdRecentList', 'processes_cmd_recent'),
             },
         };
     }
@@ -65,7 +65,7 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
 
     public ngAfterViewInit(): void {
         this.inputs.command.input.bind(this.commandInputRef.nativeElement, this.commandsPanelRef);
-        this.inputs.cmd.input.bind(this.cmdInputRef.nativeElement, this.cmdPanelRef);
+        this.inputs.cwd.input.bind(this.cmdInputRef.nativeElement, this.cmdPanelRef);
         this.inputs.command.input.actions.edit.subscribe((value: string) => {
             this.state.command = value;
             // this.inputs.command.recent.update(this.inputs.command.input.value);
@@ -73,16 +73,16 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
         this.inputs.command.input.actions.recent.subscribe(() => {
             this.markChangesForCheck();
         });
-        this.inputs.cmd.input.actions.edit.subscribe((value: string) => {
-            this.state.cmd = value;
-            // this.inputs.cmd.recent.update(this.inputs.cmd.input.value);
+        this.inputs.cwd.input.actions.edit.subscribe((value: string) => {
+            this.state.cwd = value;
+            // this.inputs.cwd.recent.update(this.inputs.cwd.input.value);
         });
-        this.inputs.cmd.input.actions.recent.subscribe(() => {
+        this.inputs.cwd.input.actions.recent.subscribe(() => {
             this.markChangesForCheck();
         });
         this.state.subjects.get().accepted.subscribe(() => {
             this.inputs.command.recent.update(this.state.command);
-            this.inputs.cmd.recent.update(this.state.cmd);
+            this.inputs.cwd.recent.update(this.state.cwd);
         });
     }
 }

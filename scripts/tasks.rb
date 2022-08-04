@@ -162,7 +162,7 @@ namespace :developing do
     Platform.new(true, true).clean
     Release.new(true, true).clean
     Holder.new(HolderSettings.new).clean
-    Holder.new(HolderSettings.new.set_platform_rebuild(true).set_bindings_rebuild(true)).build
+    Holder.new(HolderSettings.new.set_platform_rebuild(true).set_bindings_rebuild(true).set_bindings_reinstall(true)).build
     Reporter.print
   end
 end

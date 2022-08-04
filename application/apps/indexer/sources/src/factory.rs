@@ -58,7 +58,7 @@ pub enum Transport {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProcessTransportConfig {
-    pub cmd: PathBuf,
+    pub cwd: PathBuf,
     pub command: String,
     pub args: Vec<String>,
     pub envs: HashMap<String, String>,

@@ -1,4 +1,4 @@
-import { popup, Service as UIPopupService } from '@ui/service/pupup';
+import { popup, Service as UIPopupService } from '@ui/service/popup';
 import { notifications, Service as UINotificationsService } from '@ui/service/notifications';
 import { contextmenu, Service as UIContextmenuService } from '@ui/service/contextmenu';
 import { layout, Service as UILayoutService } from '@ui/service/layout';

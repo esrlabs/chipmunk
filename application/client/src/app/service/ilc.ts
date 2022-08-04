@@ -14,7 +14,7 @@ import { Instance as Logger } from '@platform/env/logger';
 import { session, Session, UnboundTab } from '@service/session';
 import { state } from '@service/state';
 import { jobs } from '@service/jobs';
-import { popup } from '@ui/service/pupup';
+import { popup } from '@ui/service/popup';
 import { notifications } from '@ui/service/notifications';
 import { contextmenu } from '@ui/service/contextmenu';
 import { layout } from '@ui/service/layout';
