@@ -717,7 +717,15 @@ pub async fn run(
             }
             Api::Grab((range, tx_response)) => {
                 let result = if let Some(ref mut grabber) = state.content_grabber {
-                    Ok(grabber.grab_content(&range)?)
+                    if let Ok(content) = grabber.grab_content(&range) {
+                        Ok(content)
+                    } else {
+                        Err(NativeError {
+                            severity: Severity::ERROR,
+                            kind: NativeErrorKind::Grabber,
+                            message: Some(String::from("Failed to grab content")),
+                        })
+                    }
                 } else {
                     Err(NativeError {
                         severity: Severity::ERROR,

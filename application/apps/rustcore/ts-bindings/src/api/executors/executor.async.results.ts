@@ -29,7 +29,6 @@ export function AsyncResultsExecutor<TResult, TOptions>(
     name: string,
 ): CancelablePromise<TResult> {
     return new CancelablePromise<TResult>((resolve, reject, cancel, refCancelCB, self) => {
-        let error: Error | undefined;
         // Setup subscriptions
         const lifecircle: {
             abortOperationId: string | undefined;
@@ -48,15 +47,13 @@ export function AsyncResultsExecutor<TResult, TOptions>(
                     return; // Ignore. This is another operation
                 }
                 logger.warn(`Error on operation "${name}": ${event.error.message}`);
-                error = new Error(event.error.message);
+                reject(new Error(event.error.message));
             }),
             done: provider.getEvents().OperationDone.subscribe((event: IOperationDoneEvent) => {
                 if (event.uuid !== opUuid && event.uuid !== lifecircle.abortOperationId) {
                     return; // Ignore. This is another operation
                 }
-                if (error instanceof Error) {
-                    reject(error);
-                } else if (event.uuid === lifecircle.abortOperationId) {
+                if (event.uuid === lifecircle.abortOperationId) {
                     cancel();
                 } else {
                     reader(event.result, resolve, reject);

@@ -35,6 +35,9 @@ export interface IConfiguration {
         cancel: {
             regular: IRegularTests;
         };
+        errors: {
+            regular: IRegularTests;
+        };
     };
 }
 
