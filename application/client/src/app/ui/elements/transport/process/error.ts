@@ -3,7 +3,7 @@ import { FormControl } from '@angular/forms';
 
 export enum Field {
     command = 'command',
-    cmd = 'cmd',
+    cwd = 'cwd',
 }
 
 export enum Codes {
@@ -42,7 +42,7 @@ export class ErrorState implements ErrorStateMatcher {
             return false;
         }
         switch (this._alias) {
-            case Field.cmd:
+            case Field.cwd:
             case Field.command:
                 return value.trim() !== '';
         }
@@ -53,7 +53,7 @@ export class ErrorState implements ErrorStateMatcher {
             return true;
         }
         switch (this._alias) {
-            case Field.cmd:
+            case Field.cwd:
             case Field.command:
                 return value.trim() === '';
         }

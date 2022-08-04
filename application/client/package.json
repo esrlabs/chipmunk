@@ -24,7 +24,6 @@
     "@angular/platform-browser": "~13.3.0",
     "@angular/platform-browser-dynamic": "~13.3.0",
     "@angular/router": "~13.3.0",
-    "chart.js": "^3.7.1",
     "moment": "^2.29.1",
     "moment-timezone": "^0.5.34",
     "rxjs": "~7.5.0",

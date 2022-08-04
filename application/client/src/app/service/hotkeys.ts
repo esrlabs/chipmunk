@@ -7,7 +7,7 @@ import { listener } from '@ui/service/listener';
 import { ilc, Services } from '@service/ilc';
 import { unique } from '@platform/env/sequence';
 import { components } from '@env/decorators/initial';
-import { Vertical, Horizontal } from '@ui/service/pupup';
+import { Vertical, Horizontal } from '@ui/service/popup';
 
 @SetupService(services['hotkeys'])
 export class Service extends Implementation {

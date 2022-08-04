@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Popup } from '@ui/service/pupup';
+import { Popup } from '@ui/service/popup';
 
 @Component({
     selector: 'app-layout-popups',
