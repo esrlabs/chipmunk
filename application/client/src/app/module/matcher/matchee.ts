@@ -1,4 +1,4 @@
-import { Matcher } from '@matcher/index';
+import { Matcher } from '@matcher/matcher';
 
 export abstract class Matchee {
     private _index: number | undefined;
