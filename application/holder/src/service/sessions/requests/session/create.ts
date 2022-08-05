@@ -136,6 +136,12 @@ export const handler = Requests.InjectLogger<
                                 reject(new Error(`Unsupported format of file`));
                                 return;
                         }
+                    } else {
+                        resolve(
+                            new Requests.Session.Create.Response({
+                                uuid: uuid,
+                            }),
+                        );
                     }
                 })
                 .catch((err: Error) => {

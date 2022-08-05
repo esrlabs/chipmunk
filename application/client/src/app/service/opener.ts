@@ -7,8 +7,9 @@ import { TabControls } from './session/tab';
 import { File } from '@platform/types/files';
 import { IDLTOptions } from '@platform/types/parsers/dlt';
 import { SourceDefinition } from '@platform/types/transport';
-
+import { Vertical, Horizontal } from '@ui/service/popup';
 import { getRenderFor } from '@schema/render/tools';
+import { Progress } from '@ui/views/dialogs/progress/progress';
 
 export { Session, TabControls };
 
@@ -32,6 +33,25 @@ export class Service extends Implementation {
         ): Promise<void>;
         text(options?: { source: SourceDefinition }, openPresetSettings?: boolean): Promise<void>;
     } {
+        const getProgress = () => {
+            const progress = new Progress(true, 'creating stream...');
+            return {
+                progress,
+                popup: this._services.ui.popup.open({
+                    component: {
+                        factory: components.get('app-dialogs-progress-message'),
+                        inputs: {
+                            progress,
+                        },
+                    },
+                    position: {
+                        vertical: Vertical.top,
+                        horizontal: Horizontal.center,
+                    },
+                    width: 250,
+                }),
+            };
+        };
         return {
             dlt: (
                 options?: { source: SourceDefinition; options: IDLTOptions },
@@ -82,11 +102,34 @@ export class Service extends Implementation {
                                 factory: components.get('app-tabs-source-dltstream'),
                                 inputs: {
                                     options: options,
-                                    done: (options: {
-                                        source: SourceDefinition;
-                                        options: IDLTOptions;
-                                    }) => {
-                                        open(options).then(resolve).catch(reject);
+                                    done: (
+                                        options: {
+                                            source: SourceDefinition;
+                                            options: IDLTOptions;
+                                        },
+                                        cb: (err: Error | undefined) => void,
+                                    ) => {
+                                        // this._services.ui.popup.open({
+                                        //     component: {
+                                        //         factory: components.get('app-recent-actions-mini'),
+                                        //         inputs: {},
+                                        //     },
+                                        //     position: {
+                                        //         vertical: Vertical.top,
+                                        //         horizontal: Horizontal.center,
+                                        //     },
+                                        //     closeOnKey: 'Escape',
+                                        //     width: 450,
+                                        // });
+                                        open(options)
+                                            .then(() => {
+                                                resolve();
+                                                cb(undefined);
+                                            })
+                                            .catch((err: Error) => {
+                                                // We do not reject, but let component know - we are not able to observe
+                                                cb(err);
+                                            });
                                     },
                                 },
                             },
@@ -141,8 +184,26 @@ export class Service extends Implementation {
                                 factory: components.get('app-tabs-source-textstream'),
                                 inputs: {
                                     options: options,
-                                    done: (options: { source: SourceDefinition }) => {
-                                        open(options).then(resolve).catch(reject);
+                                    done: (
+                                        options: { source: SourceDefinition },
+                                        cb: (err: Error | undefined) => void,
+                                    ) => {
+                                        const progress = getProgress();
+                                        open(options)
+                                            .then(() => {
+                                                progress.popup.close();
+                                                resolve();
+                                                cb(undefined);
+                                            })
+                                            .catch((err: Error) => {
+                                                progress.progress
+                                                    .set()
+                                                    .message(err.message)
+                                                    .type('error')
+                                                    .spinner(false);
+                                                // We do not reject, but let component know - we are not able to observe
+                                                cb(err);
+                                            });
                                     },
                                 },
                             },

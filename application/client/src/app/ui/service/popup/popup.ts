@@ -41,8 +41,11 @@ export class Popup {
     public options: Options;
     public readonly uuid: string = unique();
 
-    constructor(options: Options) {
+    protected readonly closer: (uuid: string) => void;
+
+    constructor(options: Options, closer: (uuid: string) => void) {
         this.options = options;
+        this.closer = closer;
     }
 
     public destroy() {
@@ -51,6 +54,6 @@ export class Popup {
     }
 
     public close(): void {
-        //
+        this.closer(this.uuid);
     }
 }

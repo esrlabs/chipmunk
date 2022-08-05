@@ -22,7 +22,10 @@ import { SourceDefinition } from '@platform/types/transport';
 export class TabSourceDltStream extends ChangesDetector implements AfterContentInit {
     public readonly ConnectionType = ConnectionType;
 
-    @Input() done!: (options: { source: SourceDefinition; options: IDLTOptions }) => void;
+    @Input() done!: (
+        options: { source: SourceDefinition; options: IDLTOptions },
+        cb: (err: Error | undefined) => void,
+    ) => void;
     @Input() file!: File;
     @Input() tab!: TabControls;
     @Input() options: { source: SourceDefinition; options: IDLTOptions } | undefined;
@@ -58,8 +61,12 @@ export class TabSourceDltStream extends ChangesDetector implements AfterContentI
     }
 
     public ngOnConnect() {
-        this.done(this.state.asOptions());
-        this.tab.close();
+        this.done(this.state.asOptions(), (err: Error | undefined) => {
+            if (err === undefined) {
+                this.tab.close();
+                return;
+            }
+        });
     }
 
     public ngOnClose() {

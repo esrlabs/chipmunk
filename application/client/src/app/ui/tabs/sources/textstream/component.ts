@@ -15,11 +15,13 @@ import { SourceDefinition } from '@platform/types/transport';
 @Initial()
 @Ilc()
 export class TabSourceTextStream extends ChangesDetector implements AfterContentInit {
-
-    @Input() done!: (options: { source: SourceDefinition }) => void;
+    @Input() done!: (
+        options: { source: SourceDefinition },
+        cb: (err: Error | undefined) => void,
+    ) => void;
     @Input() file!: File;
     @Input() tab!: TabControls;
-    @Input() options: { source: SourceDefinition; } | undefined;
+    @Input() options: { source: SourceDefinition } | undefined;
 
     public state: State = new State();
 
@@ -40,8 +42,12 @@ export class TabSourceTextStream extends ChangesDetector implements AfterContent
     }
 
     public ngOnConnect() {
-        this.done(this.state.asOptions());
-        this.tab.close();
+        this.done(this.state.asOptions(), (err: Error | undefined) => {
+            if (err === undefined) {
+                this.tab.close();
+                return;
+            }
+        });
     }
 
     public ngOnClose() {
