@@ -12,7 +12,8 @@ import { Progress } from './progress';
 @Initial()
 @Ilc()
 export class ProgressMessage extends ChangesDetector implements AfterViewInit {
-    @Input() progress!: Progress;
+    @Input() public progress!: Progress;
+    @Input() public close!: () => void;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -24,6 +25,10 @@ export class ProgressMessage extends ChangesDetector implements AfterViewInit {
                 this.detectChanges();
             }),
         );
+    }
+
+    ngClose() {
+        this.close();
     }
 }
 export interface ProgressMessage extends IlcInterface {}

@@ -46,6 +46,9 @@ export class LayoutPopups extends ChangesDetector implements AfterContentInit {
 
     public onBGClick(): void {
         this.popups.forEach((popup, uuid) => {
+            if (popup.popup.options.closable === false) {
+                return;
+            }
             if (popup.popup.options.closeOnBGClick === false) {
                 return;
             }

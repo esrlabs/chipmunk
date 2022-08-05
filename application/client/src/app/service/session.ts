@@ -1,6 +1,6 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
-import { ilc, Emitter, Channel, Declarations, Services } from '@service/ilc';
+import { ilc, Emitter, Channel, Declarations } from '@service/ilc';
 import { TabsService, ITab } from '@elements/tabs/service';
 import { Base } from './session/base';
 import { Session } from './session/session';
@@ -19,7 +19,6 @@ export { Session, TabControls, UnboundTab, Base };
 export class Service extends Implementation {
     private _emitter!: Emitter;
     private _channel!: Channel;
-    private _services!: Services;
     private _active: Base | undefined;
     private _sessions: Map<string, Base> = new Map();
     private _tabs: TabsService = new TabsService();
@@ -28,7 +27,6 @@ export class Service extends Implementation {
     public override ready(): Promise<void> {
         this._emitter = ilc.emitter(this.getName(), this.log());
         this._channel = ilc.channel(this.getName(), this.log());
-        this._services = ilc.services(this.getName(), this.log());
         this._channel.system.ready(() => {
             this.log().debug(`Session is unlocked`);
             this._locker.unlock();
@@ -40,10 +38,15 @@ export class Service extends Implementation {
                 this._active === undefined ? undefined : this._active.uuid(),
             );
         });
-        this._tabs.getObservable().removed.subscribe((uuid) => {
+        this._tabs.getObservable().removed.subscribe(this.kill.bind(this));
+        return Promise.resolve();
+    }
+
+    public kill(uuid: string): Promise<void> {
+        return new Promise((resolve) => {
             const session = this._sessions.get(uuid);
             if (session === undefined) {
-                return;
+                return resolve();
             }
             session
                 .destroy()
@@ -52,10 +55,9 @@ export class Service extends Implementation {
                 })
                 .finally(() => {
                     this._sessions.delete(uuid);
+                    resolve();
                 });
         });
-
-        return Promise.resolve();
     }
 
     private _onHotKey(event: Declarations.HotkeyEvent) {
@@ -71,7 +73,7 @@ export class Service extends Implementation {
         // service.setActive(UUIDs.search);
     }
 
-    public add(): {
+    public add(bind = true): {
         empty: (render: Render<unknown>) => Promise<Session>;
         file: (file: TargetFile, render: Render<unknown>) => Promise<Session>;
         unbound: (opts: {
@@ -84,20 +86,10 @@ export class Service extends Implementation {
     } {
         const binding = (uuid: string, session: Session, caption: string) => {
             this._sessions.set(uuid, session);
-            session.bind(
-                this._tabs.add({
-                    uuid: uuid,
-                    content: {
-                        factory: components.get('app-views-workspace'),
-                        inputs: {
-                            session: session,
-                        },
-                    },
-                    name: caption,
-                    active: true,
-                }),
-            );
-            this._emitter.session.change(uuid);
+            if (!bind) {
+                return;
+            }
+            this.bind(uuid, caption);
         };
         return {
             empty: (render: Render<unknown>): Promise<Session> => {
@@ -162,6 +154,28 @@ export class Service extends Implementation {
                 return unbound;
             },
         };
+    }
+
+    public bind(uuid: string, caption: string, makeActive = true): Error | undefined {
+        const session = this._sessions.get(uuid);
+        if (session === undefined) {
+            return new Error(`Session doesn't exist`);
+        }
+        session.bind(
+            this._tabs.add({
+                uuid: uuid,
+                content: {
+                    factory: components.get('app-views-workspace'),
+                    inputs: {
+                        session: session,
+                    },
+                },
+                name: caption,
+                active: true,
+            }),
+        );
+        makeActive && this._emitter.session.change(uuid);
+        return undefined;
     }
 
     public getTabsService(): TabsService {
