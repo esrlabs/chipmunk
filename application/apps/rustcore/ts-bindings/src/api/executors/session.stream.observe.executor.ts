@@ -1,4 +1,4 @@
-import { TExecutor, Logger, CancelablePromise, AsyncVoidExecutor } from './executor';
+import { TExecutor, Logger, CancelablePromise, AsyncVoidConfirmedExecutor } from './executor';
 import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../../api/session.provider';
 import { Observe } from '../../interfaces/index';
@@ -17,7 +17,7 @@ export const executor: TExecutor<void, Observe.DataSource> = (
     logger: Logger,
     options: Observe.DataSource,
 ): CancelablePromise<void> => {
-    return AsyncVoidExecutor<Observe.DataSource>(
+    return AsyncVoidConfirmedExecutor<Observe.DataSource>(
         session,
         provider,
         logger,

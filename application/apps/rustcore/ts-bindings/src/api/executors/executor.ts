@@ -15,3 +15,4 @@ export { VoidExecutor } from './executor.sync.void';
 export { ResultsExecutor } from './executor.sync.results';
 export { AsyncVoidExecutor } from './executor.async.void';
 export { AsyncResultsExecutor } from './executor.async.results';
+export { AsyncVoidConfirmedExecutor } from './executor.async.void.confirmed';

@@ -2,7 +2,6 @@ import { CancelablePromise } from 'platform/env/promise';
 import { Observe } from 'rustcore';
 import { sessions } from '@service/sessions';
 import { Instance as Logger } from 'platform/env/logger';
-import { jobs } from '@service/jobs';
 import { optionsToParserSettings } from 'platform/types/parsers/dlt';
 
 import * as Requests from 'platform/ipc/request';
@@ -20,32 +19,29 @@ export const handler = Requests.InjectLogger<
             if (stored === undefined) {
                 return reject(new Error(`Session doesn't exist`));
             }
-            const observe = jobs
-                .create({
-                    session: request.session,
-                    desc: 'streaming',
-                    pinned: true,
-                })
-                .start();
             if (request.source.udp !== undefined) {
-                stored.session
-                    .getStream()
+                stored
                     .observe(
                         Observe.DataSource.stream()
                             .upd(request.source.udp)
                             .dlt(optionsToParserSettings(request.options, false, 0, 0)),
+                        'DLT on UDP',
                     )
-                    .catch((err: Error) => {
-                        log.error(`Fail to call observe. Error: ${err.message}`);
+                    .then(() => {
+                        resolve(
+                            new Requests.Connect.Dlt.Response({
+                                session: stored.session.getUUID(),
+                            }),
+                        );
                     })
-                    .finally(() => {
-                        observe.done();
+                    .catch((err: Error) => {
+                        resolve(
+                            new Requests.Connect.Dlt.Response({
+                                session: stored.session.getUUID(),
+                                error: err.message,
+                            }),
+                        );
                     });
-                resolve(
-                    new Requests.Connect.Dlt.Response({
-                        session: stored.session.getUUID(),
-                    }),
-                );
             } else if (request.source.tcp !== undefined) {
                 resolve(
                     new Requests.Connect.Dlt.Response({
@@ -61,24 +57,28 @@ export const handler = Requests.InjectLogger<
                     }),
                 );
             } else if (request.source.process !== undefined) {
-                stored.session
-                    .getStream()
+                stored
                     .observe(
                         Observe.DataSource.stream()
                             .process(request.source.process)
                             .dlt(optionsToParserSettings(request.options, false, 0, 0)),
+                        'DLT on process',
                     )
-                    .catch((err: Error) => {
-                        log.error(`Fail to call observe. Error: ${err.message}`);
+                    .then(() => {
+                        resolve(
+                            new Requests.Connect.Dlt.Response({
+                                session: stored.session.getUUID(),
+                            }),
+                        );
                     })
-                    .finally(() => {
-                        observe.done();
+                    .catch((err: Error) => {
+                        resolve(
+                            new Requests.Connect.Dlt.Response({
+                                session: stored.session.getUUID(),
+                                error: err.message,
+                            }),
+                        );
                     });
-                resolve(
-                    new Requests.Connect.Dlt.Response({
-                        session: stored.session.getUUID(),
-                    }),
-                );
             } else {
                 return reject(new Error(`Not supported type of transport`));
             }

@@ -78,7 +78,7 @@ export const handler = Requests.InjectLogger<
                                 });
                         }),
                     );
-                    sessions.add(session, subscriber);
+                    const stored = sessions.add(session, subscriber);
                     sessions.setActive(uuid);
                     if (request.file !== undefined) {
                         const reading = jobs
@@ -89,41 +89,26 @@ export const handler = Requests.InjectLogger<
                                 pinned: false,
                             })
                             .start();
-                        const observe = jobs
-                            .create({
-                                session: uuid,
-                                desc: 'tail',
-                                pinned: true,
-                            })
-                            .start();
                         switch (request.file.type) {
                             case FileType.Any:
                             case FileType.Text:
                                 // Opening file as text file
-                                session
-                                    .getStream()
-                                    .observe(Observe.DataSource.file(request.file.filename).text())
-                                    .catch((err: Error) => {
-                                        log.error(`Fail to call observe. Error: ${err.message}`);
+                                stored
+                                    .observe(
+                                        Observe.DataSource.file(request.file.filename).text(),
+                                        'tail text',
+                                    )
+                                    .then(() => {
+                                        resolve(
+                                            new Requests.Session.Create.Response({
+                                                uuid: uuid,
+                                            }),
+                                        );
                                     })
-                                    .finally(() => {
-                                        observe.done();
-                                    });
+                                    .catch(reject);
                                 break;
                             case FileType.Dlt:
-                                // Opening file as DLT file
-                                // console.log(
-                                //     request.file.options.dlt === undefined
-                                //         ? (defaultParserSettings(true) as any)
-                                //         : (optionsToParserSettings(
-                                //               request.file.options.dlt,
-                                //               true,
-                                //               0,
-                                //               0,
-                                //           ) as any),
-                                // );
-                                session
-                                    .getStream()
+                                stored
                                     .observe(
                                         Observe.DataSource.file(request.file.filename).dlt(
                                             request.file.options.dlt === undefined
@@ -135,26 +120,23 @@ export const handler = Requests.InjectLogger<
                                                       0,
                                                   ),
                                         ),
+                                        'tail DLT',
                                     )
-                                    .catch((err: Error) => {
-                                        log.error(`Fail to call observe. Error: ${err.message}`);
+                                    .then(() => {
+                                        resolve(
+                                            new Requests.Session.Create.Response({
+                                                uuid: uuid,
+                                            }),
+                                        );
                                     })
-                                    .finally(() => {
-                                        observe.done();
-                                    });
+                                    .catch(reject);
                                 break;
                             default:
-                                observe.done();
                                 reading.done();
                                 reject(new Error(`Unsupported format of file`));
                                 return;
                         }
                     }
-                    resolve(
-                        new Requests.Session.Create.Response({
-                            uuid: uuid,
-                        }),
-                    );
                 })
                 .catch((err: Error) => {
                     log.error(`Fail to create session: ${err.message}`);
