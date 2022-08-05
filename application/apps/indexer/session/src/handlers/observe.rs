@@ -104,6 +104,7 @@ pub async fn handle(
                     state.file_read().await?;
                     // Switching to tail
                     let cancel = operation_api.cancellation_token();
+                    operation_api.started();
                     let (result, tracker) = join!(
                         async {
                             let result = select! {
@@ -290,20 +291,12 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     mut rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
     use log::debug;
-    // let (tx_event, mut rx_event): (UnboundedSender<Event>, UnboundedReceiver<Event>) =
-    //     unbounded_channel();
-    // TODO: producer should return relevate source_id. It should be used
-    // instead an internal file alias (file_name.to_string())
-    //
-    // call should looks like:
-    // TextFileSource::new(&session_file_path, producer.source_alias());
-    // or
-    // TextFileSource::new(&session_file_path, producer.source_id());
     state.set_session_file(SessionFile::ToBeCreated).await?;
     let cancel = operation_api.cancellation_token();
     let stream = producer.as_stream();
     futures::pin_mut!(stream);
     let cancel_on_tail = cancel.clone();
+    operation_api.started();
     while let Some(next) = select! {
         next_from_stream = async {
             if let Some((_, item)) = stream.next().await {
