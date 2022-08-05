@@ -160,6 +160,12 @@ pub enum CallbackEvent {
      */
     OperationError { uuid: Uuid, error: NativeError },
     /**
+     * Triggered on continues asynch operation like observe
+     * >> Scope: async operation
+     * >> Kind: repeated
+     */
+    OperationStarted(Uuid),
+    /**
      * Triggered on some asynch operation is done
      * >> Scope: async operation
      * >> Kind: repeated

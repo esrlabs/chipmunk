@@ -274,9 +274,9 @@ impl Output for TextFileOutput {
         self.update_channel
             .send(match progress {
                 Ok(OutputProgress::Progress { ticks }) => Ok(IndexingProgress::Progress { ticks }),
-                Ok(OutputProgress::Stopped) => (Ok(IndexingProgress::Stopped)),
-                Ok(OutputProgress::Finished) => (Ok(IndexingProgress::Finished)),
-                Err(notification) => (Err(notification)),
+                Ok(OutputProgress::Stopped) => Ok(IndexingProgress::Stopped),
+                Ok(OutputProgress::Finished) => Ok(IndexingProgress::Finished),
+                Err(notification) => Err(notification),
             })
             .await
             .expect("Could not use update channel");
@@ -319,9 +319,9 @@ impl Output for DltFileOutput {
         self.update_channel
             .send(match progress {
                 Ok(OutputProgress::Progress { ticks }) => Ok(IndexingProgress::Progress { ticks }),
-                Ok(OutputProgress::Stopped) => (Ok(IndexingProgress::Stopped)),
-                Ok(OutputProgress::Finished) => (Ok(IndexingProgress::Finished)),
-                Err(notification) => (Err(notification)),
+                Ok(OutputProgress::Stopped) => Ok(IndexingProgress::Stopped),
+                Ok(OutputProgress::Finished) => Ok(IndexingProgress::Finished),
+                Err(notification) => Err(notification),
             })
             .await
             .expect("Could not use update channel");
@@ -403,9 +403,9 @@ impl Output for ChunkOutput {
         self.update_channel
             .send(match progress {
                 Ok(OutputProgress::Progress { ticks }) => Ok(IndexingProgress::Progress { ticks }),
-                Ok(OutputProgress::Stopped) => (Ok(IndexingProgress::Stopped)),
-                Ok(OutputProgress::Finished) => (Ok(IndexingProgress::Finished)),
-                Err(notification) => (Err(notification)),
+                Ok(OutputProgress::Stopped) => Ok(IndexingProgress::Stopped),
+                Ok(OutputProgress::Finished) => Ok(IndexingProgress::Finished),
+                Err(notification) => Err(notification),
             })
             .await
             .expect("Could not use update channel");
