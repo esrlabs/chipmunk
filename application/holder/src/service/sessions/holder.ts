@@ -3,6 +3,9 @@ import { Session } from 'rustcore';
 import { JobsTracker } from 'platform/env/promise';
 import { scope } from 'platform/env/scope';
 import { Instance as Logger } from 'platform/env/logger';
+import { Observe } from 'rustcore';
+import { jobs } from '@service/jobs';
+import { ICancelablePromise } from 'platform/env/promise';
 
 export enum Jobs {
     search = 'search',
@@ -12,6 +15,7 @@ export class Holder {
     public readonly session: Session;
     public readonly subscriber: Subscriber;
     private readonly _jobs: Map<string, JobsTracker> = new Map();
+    private readonly _observers: Map<string, ICancelablePromise> = new Map();
     private readonly _logger: Logger;
     protected _shutdown = false;
 
@@ -48,8 +52,40 @@ export class Holder {
                     );
                 })
                 .finally(() => {
+                    this._observers.clear();
                     this.session.destroy().then(resolve).catch(reject);
                 });
+        });
+    }
+
+    public observe(source: Observe.DataSource, jobName: string): Promise<void> {
+        if (this._shutdown) {
+            return Promise.reject(new Error(`Session is closing`));
+        }
+        const observe = jobs
+            .create({
+                session: this.session.getUUID(),
+                desc: jobName,
+                pinned: true,
+            })
+            .start();
+        return new Promise((resolve, reject) => {
+            const observer = this.session
+                .getStream()
+                .observe(source)
+                .on('confirmed', () => {
+                    resolve();
+                })
+                .catch((err: Error) => {
+                    this._logger.error(`Fail to call observe. Error: ${err.message}`);
+                    reject(err);
+                })
+                .finally(() => {
+                    observe.done();
+                    this._observers.delete(uuid);
+                });
+            const uuid = observer.uuid();
+            this._observers.set(uuid, observer);
         });
     }
 

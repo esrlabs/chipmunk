@@ -47,6 +47,7 @@ export interface ISessionEvents {
     SessionError: Subject<IError>;
     OperationError: Subject<IErrorEvent>;
     SessionDestroyed: Subject<void>;
+    OperationStarted: Subject<string>;
     OperationDone: Subject<IOperationDoneEvent>;
 }
 
@@ -60,6 +61,7 @@ interface ISessionEventsSignatures {
     SessionError: 'SessionError';
     OperationError: 'OperationError';
     SessionDestroyed: 'SessionDestroyed';
+    OperationStarted: 'OperationStarted';
     OperationDone: 'OperationDone';
 }
 
@@ -73,6 +75,7 @@ const SessionEventsSignatures: ISessionEventsSignatures = {
     SessionError: 'SessionError',
     OperationError: 'OperationError',
     SessionDestroyed: 'SessionDestroyed',
+    OperationStarted: 'OperationStarted',
     OperationDone: 'OperationDone',
 };
 
@@ -97,6 +100,7 @@ interface ISessionEventsInterfaces {
         error: { self: 'object'; severity: 'string'; message: 'string'; kind: 'string' };
     };
     SessionDestroyed: { self: null };
+    OperationStarted: { self: 'string' };
     OperationDone: { self: 'object'; uuid: 'string'; result: 'any' };
 }
 
@@ -121,6 +125,7 @@ const SessionEventsInterfaces: ISessionEventsInterfaces = {
         error: { self: 'object', severity: 'string', message: 'string', kind: 'string' },
     },
     SessionDestroyed: { self: null },
+    OperationStarted: { self: 'string' },
     OperationDone: { self: 'object', uuid: 'string', result: 'any' },
 };
 
@@ -139,6 +144,7 @@ export class EventProvider extends Computation<
         SessionError: new Subject<IError>(),
         OperationError: new Subject<IErrorEvent>(),
         SessionDestroyed: new Subject<void>(),
+        OperationStarted: new Subject<string>(),
         OperationDone: new Subject<IOperationDoneEvent>(),
     };
 

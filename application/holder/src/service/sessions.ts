@@ -113,8 +113,10 @@ export class Service extends Implementation {
         });
     }
 
-    public add(session: Session, subscriber: Subscriber) {
-        this._sessions.set(session.getUUID(), new Holder(session, subscriber));
+    public add(session: Session, subscriber: Subscriber): Holder {
+        const holder = new Holder(session, subscriber);
+        this._sessions.set(session.getUUID(), holder);
+        return holder;
     }
 
     public get(uuid: string): Holder | undefined {
