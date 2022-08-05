@@ -17,7 +17,7 @@ export class Service extends Implementation {
     }
 
     public open(options: Options): Popup {
-        const popup = new Popup(options);
+        const popup = new Popup(options, this.close.bind(this));
         this._emitter.ui.popup.open(popup);
         return popup;
     }

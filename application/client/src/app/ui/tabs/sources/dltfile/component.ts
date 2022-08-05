@@ -152,14 +152,14 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
                 inputs: {
                     selected: (timezone: Timezone): void => {
                         this.state.timezone = timezone;
-                    }
+                    },
                 },
             },
             closeOnKey: 'Escape',
             width: 350,
             closed: () => {
                 this._filterLockTocken.unlock();
-            }
+            },
         });
     }
 }
