@@ -45,10 +45,11 @@ export class Service extends Implementation {
                         },
                     },
                     position: {
-                        vertical: Vertical.top,
+                        vertical: Vertical.center,
                         horizontal: Horizontal.center,
                     },
-                    width: 250,
+                    closable: false,
+                    width: 350,
                 }),
             };
         };
@@ -109,18 +110,6 @@ export class Service extends Implementation {
                                         },
                                         cb: (err: Error | undefined) => void,
                                     ) => {
-                                        // this._services.ui.popup.open({
-                                        //     component: {
-                                        //         factory: components.get('app-recent-actions-mini'),
-                                        //         inputs: {},
-                                        //     },
-                                        //     position: {
-                                        //         vertical: Vertical.top,
-                                        //         horizontal: Horizontal.center,
-                                        //     },
-                                        //     closeOnKey: 'Escape',
-                                        //     width: 450,
-                                        // });
                                         open(options)
                                             .then(() => {
                                                 resolve();
@@ -142,12 +131,17 @@ export class Service extends Implementation {
                 options?: { source: SourceDefinition },
                 openPresetSettings?: boolean,
             ): Promise<void> => {
-                const open = (opt: { source: SourceDefinition }): Promise<void> => {
+                let session: Session | undefined;
+                const open = (
+                    opt: { source: SourceDefinition },
+                    bind: boolean,
+                ): Promise<string> => {
                     return new Promise((resolve, reject) => {
                         this._services.system.session
-                            .add()
+                            .add(bind)
                             .empty(getRenderFor().text())
-                            .then((session) => {
+                            .then((created) => {
+                                session = created;
                                 session
                                     .connect(opt.source)
                                     .text()
@@ -161,7 +155,7 @@ export class Service extends Implementation {
                                         //             `Fail to add recent action; error: ${err.message}`,
                                         //         );
                                         //     });
-                                        resolve();
+                                        resolve(created.uuid());
                                     })
                                     .catch((err: Error) => {
                                         this.log().error(`Fail to connect: ${err.message}`);
@@ -176,7 +170,11 @@ export class Service extends Implementation {
                 };
                 return new Promise((resolve, reject) => {
                     if (options !== undefined && openPresetSettings !== true) {
-                        open(options).then(resolve).catch(reject);
+                        open(options, true)
+                            .then(() => {
+                                resolve();
+                            })
+                            .catch(reject);
                     } else {
                         this._services.system.session.add().tab({
                             name: `Text source streaming`,
@@ -189,9 +187,13 @@ export class Service extends Implementation {
                                         cb: (err: Error | undefined) => void,
                                     ) => {
                                         const progress = getProgress();
-                                        open(options)
-                                            .then(() => {
+                                        open(options, false)
+                                            .then((session: string) => {
                                                 progress.popup.close();
+                                                this._services.system.session.bind(
+                                                    session,
+                                                    'Text Streaming',
+                                                );
                                                 resolve();
                                                 cb(undefined);
                                             })
@@ -201,6 +203,10 @@ export class Service extends Implementation {
                                                     .message(err.message)
                                                     .type('error')
                                                     .spinner(false);
+                                                session !== undefined &&
+                                                    this._services.system.session.kill(
+                                                        session.uuid(),
+                                                    );
                                                 // We do not reject, but let component know - we are not able to observe
                                                 cb(err);
                                             });

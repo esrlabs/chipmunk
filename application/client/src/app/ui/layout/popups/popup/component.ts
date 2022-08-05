@@ -2,6 +2,7 @@ import {
     Component,
     ChangeDetectorRef,
     AfterViewInit,
+    AfterContentInit,
     OnDestroy,
     ChangeDetectionStrategy,
     Input,
@@ -19,7 +20,10 @@ import { Popup } from '@ui/service/popup';
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Ilc()
-export class LayoutPopup extends ChangesDetector implements AfterViewInit, OnDestroy {
+export class LayoutPopup
+    extends ChangesDetector
+    implements AfterViewInit, AfterContentInit, OnDestroy
+{
     @Input() public popup!: Popup;
     @Input() public close!: () => void;
 
@@ -33,6 +37,9 @@ export class LayoutPopup extends ChangesDetector implements AfterViewInit, OnDes
 
     @HostListener('click', ['$event']) onClick(event: MouseEvent) {
         if ((event.target as HTMLElement).tagName.toLowerCase() === 'app-layout-popup') {
+            if (this.popup.options.closable === false) {
+                return;
+            }
             if (this.popup.options.closeOnBGClick === false) {
                 return;
             }
@@ -44,6 +51,15 @@ export class LayoutPopup extends ChangesDetector implements AfterViewInit, OnDes
         super(cdRef);
     }
 
+    public ngAfterContentInit(): void {
+        this.popup.options.component.inputs =
+            this.popup.options.component.inputs === undefined
+                ? {}
+                : this.popup.options.component.inputs;
+        this.popup.options.component.inputs.close = this.close;
+        this.popup.options.component.inputs.popup = this.popup;
+    }
+
     public ngAfterViewInit(): void {
         this.popup.subjects.get().opened.emit();
         this.env().subscriber.register(
@@ -51,6 +67,9 @@ export class LayoutPopup extends ChangesDetector implements AfterViewInit, OnDes
                 'keydown',
                 window,
                 (event: KeyboardEvent) => {
+                    if (this.popup.options.closable === false) {
+                        return true;
+                    }
                     if (this.popup.options.closeOnKey === undefined) {
                         return true;
                     }
