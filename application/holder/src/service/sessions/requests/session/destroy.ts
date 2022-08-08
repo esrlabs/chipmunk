@@ -29,6 +29,7 @@ export const handler = Requests.InjectLogger<
                 stored
                     .destroy()
                     .then(() => {
+                        sessions.delete(session_uuid);
                         resolve(
                             new Requests.Session.Destroy.Response({
                                 session: session_uuid,
