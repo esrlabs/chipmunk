@@ -119,6 +119,10 @@ export class Service extends Implementation {
         return holder;
     }
 
+    public delete(uuid: string) {
+        this._sessions.delete(uuid);
+    }
+
     public get(uuid: string): Holder | undefined {
         return this._sessions.get(uuid);
     }
