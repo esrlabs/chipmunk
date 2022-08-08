@@ -234,8 +234,8 @@ export class Action {
                     caption: 'Open connection preset',
                     handler: () => {
                         opener
-                            .stream()
-                            .dlt(opt, true)
+                            .stream(opt.source, true)
+                            .dlt(opt.options)
                             .catch((err: Error) => {
                                 console.error(`Fail to open stream; error: ${err.message}`);
                             });
@@ -265,8 +265,8 @@ export class Action {
             }
         } else if (this.dlt_stream !== undefined) {
             opener
-                .stream()
-                .dlt({ source: this.dlt_stream.source, options: this.dlt_stream.options })
+                .stream(this.dlt_stream.source)
+                .dlt(this.dlt_stream.options)
                 .catch((err: Error) => {
                     console.error(`Fail to open stream; error: ${err.message}`);
                 });
