@@ -31,6 +31,10 @@ export class Locker {
         return this.group;
     }
 
+    public getTime(): string {
+        return new Date(this.created).toLocaleTimeString();
+    }
+
     public set(): Setter {
         const setter = {
             message: (msg: string | undefined): Setter => {

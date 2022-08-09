@@ -6,13 +6,17 @@
     width: 100%;
     height: 100%;
     flex-direction: row;
-    padding: 6px 0;
-    border-bottom: thin dotted @scheme-color-3;
+    padding: 6px 0 12px 0;
+    border-bottom: thin dotted @scheme-color-4;
     &:last-child {
         border-bottom: none;
     }
     & mat-icon {
         padding-right: 12px;
+        font-size: 18px;
+        height: 18px;
+        width: 18px;
+        margin-top: 15px;
         &[data-type="error"] {
             color: @scheme-color-error-light;
         }
@@ -20,8 +24,13 @@
             color: @scheme-color-warning-light;
         }
     }
-    & p {
+    & div p {
         color: @scheme-color-2;
+        &.time {
+            font-size: 10px;
+            color: @scheme-color-2;
+            text-align: right;
+        }
     }
 
 }
