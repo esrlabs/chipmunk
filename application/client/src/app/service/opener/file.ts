@@ -55,11 +55,12 @@ export abstract class FileOpener<Options, NamedOptions> {
             if (options !== undefined || settings === undefined) {
                 open(options).then(resolve).catch(reject);
             } else {
-                this.services.system.session.add().tab({
+                const api = this.services.system.session.add().tab({
                     name: settings.name,
                     content: {
                         factory: components.get(settings.component),
                         inputs: {
+                            getTabApi: () => api,
                             file,
                             done: (opt?: Options) => {
                                 open(opt).then(resolve).catch(reject);

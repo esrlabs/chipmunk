@@ -7,6 +7,7 @@ import { TabsModule } from '@elements/tabs/module';
 import { RecentActionsModule } from '@elements/recent/module';
 import { RecentActionsMiniModule } from '@elements/recent.mini/module';
 import { TreeModule } from '@elements/tree/module';
+import { LocksHistoryModule } from '@elements/locks.history/module';
 
 import { ComTooltipComponent } from '@elements/tooltip/component';
 
@@ -20,6 +21,7 @@ import { ComTooltipComponent } from '@elements/tooltip/component';
         RecentActionsModule,
         RecentActionsMiniModule,
         TreeModule,
+        LocksHistoryModule,
     ],
     declarations: [ComTooltipComponent],
     exports: [
@@ -29,6 +31,7 @@ import { ComTooltipComponent } from '@elements/tooltip/component';
         RecentActionsModule,
         RecentActionsMiniModule,
         TreeModule,
+        LocksHistoryModule,
     ],
 })
 export class ElementsModule {}

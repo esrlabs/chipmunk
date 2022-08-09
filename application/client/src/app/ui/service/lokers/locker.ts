@@ -1,19 +1,34 @@
+import { unique } from '@platform/env/sequence';
 import { Subject } from '@platform/env/subscription';
+import { Level } from '../notification/index';
 
 export interface Setter {
     message(msg: string | undefined): Setter;
-    type(type: 'info' | 'error' | 'warn'): Setter;
+    type(type: Level): Setter;
     spinner(spinner: boolean): Setter;
+    group(uuid: string): Setter;
+    end(): Locker;
 }
-export class Progress {
+export class Locker {
     public updated: Subject<void> = new Subject();
     public message: string | undefined;
-    public type: 'info' | 'error' | 'warn' = 'info';
+    public type: Level = Level.info;
     public spinner: boolean = true;
+    public group: string = unique();
+    public uuid: string = unique();
+    public created: number = Date.now();
 
     constructor(spinner: boolean, message: string | undefined) {
         this.message = message;
         this.spinner = spinner;
+    }
+
+    public getLevel(): Level {
+        return this.type;
+    }
+
+    public getGroup(): string {
+        return this.group;
     }
 
     public set(): Setter {
@@ -23,7 +38,7 @@ export class Progress {
                 this.updated.emit();
                 return setter;
             },
-            type: (type: 'info' | 'error' | 'warn'): Setter => {
+            type: (type: Level): Setter => {
                 this.type = type;
                 this.updated.emit();
                 return setter;
@@ -32,6 +47,14 @@ export class Progress {
                 this.spinner = spinner;
                 this.updated.emit();
                 return setter;
+            },
+            group: (uuid: string): Setter => {
+                this.group = uuid;
+                this.updated.emit();
+                return setter;
+            },
+            end: (): Locker => {
+                return this;
             },
         };
         return setter;

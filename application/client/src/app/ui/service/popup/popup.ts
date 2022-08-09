@@ -19,13 +19,16 @@ export interface Position {
     horizontal: Horizontal;
 }
 
-export interface Options {
+export interface PopupOptions {
     closable?: boolean;
     width?: number;
     position?: Position;
     closeOnKey?: string;
     closeOnBGClick?: boolean;
     closed?: () => void;
+}
+
+export interface Options extends PopupOptions {
     component: IComponentDesc;
 }
 

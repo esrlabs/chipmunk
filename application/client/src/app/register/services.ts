@@ -93,4 +93,8 @@ export const ui: { [key: string]: Inputs } = {
         name: `Listener`,
         uuid: v4(),
     },
+    lockers: {
+        name: `Lockers`,
+        uuid: v4(),
+    },
 };

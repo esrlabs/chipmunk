@@ -1,7 +1,7 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
 import { ilc, Emitter, Channel, Declarations } from '@service/ilc';
-import { TabsService, ITab } from '@elements/tabs/service';
+import { TabsService, ITab, ITabAPI } from '@elements/tabs/service';
 import { Base } from './session/base';
 import { Session } from './session/session';
 import { UnboundTab } from './session/unbound';
@@ -82,7 +82,7 @@ export class Service extends Implementation {
             toolbar?: boolean;
             uuid?: string;
         }) => UnboundTab;
-        tab: (tab: ITab) => void;
+        tab: (tab: ITab) => ITabAPI;
     } {
         const binding = (uuid: string, session: Session, caption: string) => {
             this._sessions.set(uuid, session);
@@ -130,12 +130,12 @@ export class Service extends Implementation {
                         });
                 });
             },
-            tab: (tab: ITab): void => {
+            tab: (tab: ITab): ITabAPI => {
                 if (tab.content !== undefined) {
                     tab.content.inputs = tab.content.inputs === undefined ? {} : tab.content.inputs;
                     tab.content.inputs.tab = new TabControls(tab, this._tabs);
                 }
-                this._tabs.add(tab);
+                return this._tabs.add(tab);
             },
             unbound: (opts: {
                 tab: ITab;

@@ -2,7 +2,7 @@ import { Component, Inject, ViewEncapsulation } from '@angular/core';
 import { MAT_SNACK_BAR_DATA, MatSnackBarRef } from '@angular/material/snack-bar';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Action } from '@platform/types/notification/index';
-import { Notification } from '@ui/service/notification/index';
+import { Notification } from '@ui/service/notification/notification';
 
 import * as Requests from '@platform/ipc/request';
 

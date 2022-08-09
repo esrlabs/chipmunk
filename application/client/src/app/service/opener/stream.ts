@@ -1,8 +1,7 @@
 import { Render } from '@schema/render/index';
 import { Services } from '@service/ilc';
 import { Instance as Logger } from '@platform/env/logger';
-import { Vertical, Horizontal } from '@ui/service/popup';
-import { Progress } from '@ui/views/dialogs/progress/progress';
+import { Locker, Level, lockers } from '@ui/service/lockers';
 import { components } from '@env/decorators/initial';
 import { Session } from '../session/session';
 import { SourceDefinition } from '@platform/types/transport';
@@ -28,25 +27,8 @@ export abstract class StreamOpener<Options> {
         options?: Options,
         openPresetSettings?: boolean,
     ): Promise<void> {
-        const getProgress = () => {
-            const progress = new Progress(true, 'creating stream...');
-            return {
-                progress,
-                popup: this.services.ui.popup.open({
-                    component: {
-                        factory: components.get('app-dialogs-progress-message'),
-                        inputs: {
-                            progress,
-                        },
-                    },
-                    position: {
-                        vertical: Vertical.center,
-                        horizontal: Horizontal.center,
-                    },
-                    closable: false,
-                    width: 350,
-                }),
-            };
+        const getProgress = (uuid: string) => {
+            return lockers.lock(new Locker(true, 'creating stream...').set().group(uuid).end(), {});
         };
         let session: Session | undefined;
         const open = (
@@ -82,17 +64,18 @@ export abstract class StreamOpener<Options> {
                     })
                     .catch(reject);
             } else {
-                this.services.system.session.add().tab({
+                const api = this.services.system.session.add().tab({
                     name: this.getStreamSettingsTabName(),
                     content: {
                         factory: components.get(this.getSettingsComponentName()),
                         inputs: {
+                            getTabApi: () => api,
                             options: { source, options },
                             done: (
                                 redefined: { source: SourceDefinition; options: Options },
                                 cb: (err: Error | undefined) => void,
                             ) => {
-                                const progress = getProgress();
+                                const progress = getProgress(api.getGUID());
                                 open(false, redefined)
                                     .then((uuid: string) => {
                                         progress.popup.close();
@@ -112,10 +95,10 @@ export abstract class StreamOpener<Options> {
                                             });
                                     })
                                     .catch((err: Error) => {
-                                        progress.progress
+                                        progress.locker
                                             .set()
                                             .message(err.message)
-                                            .type('error')
+                                            .type(Level.error)
                                             .spinner(false);
                                         session !== undefined &&
                                             this.services.system.session.kill(session.uuid());
