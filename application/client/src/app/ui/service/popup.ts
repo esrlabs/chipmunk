@@ -2,9 +2,9 @@ import { SetupService, Interface, Implementation, register } from '@platform/ent
 import { ui } from '@register/services';
 import { ilc, Emitter } from '@service/ilc';
 import { IComponentDesc } from '@elements/containers/dynamic/component';
-import { Popup, Options, Vertical, Horizontal } from './popup/popup';
+import { Popup, Options, PopupOptions, Vertical, Horizontal } from './popup/popup';
 
-export { IComponentDesc, Popup, Vertical, Horizontal };
+export { IComponentDesc, Popup, Vertical, Horizontal, PopupOptions, Options };
 
 @SetupService(ui['popup'])
 export class Service extends Implementation {

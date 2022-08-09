@@ -1,5 +1,0 @@
-<mat-spinner *ngIf="progress.spinner" [diameter]="24"></mat-spinner>
-<mat-icon *ngIf="progress.type === 'error'">highlight_off</mat-icon>
-<mat-icon *ngIf="progress.type === 'warn'">report_problem</mat-icon>
-<p *ngIf="progress.message !== undefined">{{progress.message}}</p>
-<button mat-stroked-button *ngIf="progress.message !== undefined" (click)="ngClose()">Close</button>

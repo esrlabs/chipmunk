@@ -2,7 +2,8 @@ import { TabsService, ITab } from '@elements/tabs/service';
 import { unique } from '@platform/env/sequence';
 
 export class TabControls {
-    private readonly uuid: string;
+    public readonly uuid: string;
+
     private readonly service: TabsService;
     private _storage: unknown;
 

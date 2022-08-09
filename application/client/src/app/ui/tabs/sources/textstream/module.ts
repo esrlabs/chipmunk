@@ -15,6 +15,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatInputModule } from '@angular/material/input';
 
 import { TransportModule } from '@ui/elements/transport/module';
+import { LocksHistoryModule } from '@ui/elements/locks.history/module';
 
 import { TabSourceTextStream } from './component';
 
@@ -37,6 +38,7 @@ import { TabSourceTextStream } from './component';
         MatListModule,
         MatInputModule,
         TransportModule,
+        LocksHistoryModule,
     ],
     declarations: [TabSourceTextStream],
     exports: [TabSourceTextStream],

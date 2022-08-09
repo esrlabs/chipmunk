@@ -45,21 +45,29 @@ export class State {
     public bindingPort: string = '';
     public connectionType: ConnectionType = ConnectionType.Tcp;
 
-    public fromOptions(opt: { source: SourceDefinition; options: IDLTOptions }) {
-        this.logLevel = NUM_LOGS_LEVELS[opt.options.logLevel] as EMTIN;
-        this.timezone = opt.options.tz !== undefined ? Timezone.from(opt.options.tz) : undefined;
-        if (opt.options.fibex.length > 0) {
-            bridge
-                .files()
-                .getByPath(opt.options.fibex)
-                .then((files: File[]) => {
-                    this.fibex = files;
-                })
-                .catch((err: Error) => {
-                    console.error(`Fail to get files data: ${err.message}`);
-                });
+    public fromOptions(opt: {
+        source: SourceDefinition | undefined;
+        options: IDLTOptions | undefined;
+    }) {
+        if (opt.options !== undefined) {
+            this.logLevel = NUM_LOGS_LEVELS[opt.options.logLevel] as EMTIN;
+            this.timezone =
+                opt.options.tz !== undefined ? Timezone.from(opt.options.tz) : undefined;
+            if (opt.options.fibex.length > 0) {
+                bridge
+                    .files()
+                    .getByPath(opt.options.fibex)
+                    .then((files: File[]) => {
+                        this.fibex = files;
+                    })
+                    .catch((err: Error) => {
+                        console.error(`Fail to get files data: ${err.message}`);
+                    });
+            }
         }
-        this.transport.from(opt.source);
+        if (opt.source !== undefined) {
+            this.transport.from(opt.source);
+        }
     }
 
     public asOptions(): { source: SourceDefinition; options: IDLTOptions } {

@@ -2,7 +2,7 @@ import { Component, AfterContentInit, NgZone } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { notifications } from '@ui/service/notifications';
-import { Notification } from '@ui/service/notification/index';
+import { Notification } from '@ui/service/notification/notification';
 import { LayoutSnackBarMessage } from './message/component';
 
 @Component({

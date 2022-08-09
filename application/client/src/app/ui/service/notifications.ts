@@ -1,9 +1,12 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { ui } from '@register/services';
-import { Notification } from './notification/index';
+import { Notification } from './notification/notification';
 import { Subject } from '@platform/env/subscription';
+import { Level } from './notification/index';
 
 import * as Events from '@platform/ipc/event';
+
+export { Level };
 
 @SetupService(ui['notifications'])
 export class Service extends Implementation {
@@ -22,7 +25,7 @@ export class Service extends Implementation {
         return Promise.resolve();
     }
 
-    public add(notification: Notification) {
+    public notify(notification: Notification) {
         this.messages.set(notification.uuid, notification);
         this.pop.emit(notification);
     }

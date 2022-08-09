@@ -24,6 +24,7 @@ export class TabSourceTextStream extends ChangesDetector implements AfterContent
     @Input() options: { source: SourceDefinition } | undefined;
 
     public state: State = new State();
+    public group: string | undefined;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -39,6 +40,16 @@ export class TabSourceTextStream extends ChangesDetector implements AfterContent
         if (this.options !== undefined) {
             this.state.fromOptions(this.options);
         }
+        this.env().subscriber.register(
+            this.ilc().services.ui.lockers.unbound.subscribe(() => {
+                if (this.ilc().services.ui.lockers.get(this.tab.uuid).length !== 0) {
+                    this.group = this.tab.uuid;
+                } else {
+                    this.group = undefined;
+                }
+                this.detectChanges();
+            }),
+        );
     }
 
     public ngOnConnect() {

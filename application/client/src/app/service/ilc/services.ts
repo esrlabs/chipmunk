@@ -13,6 +13,7 @@ import { recent, Service as RecentService } from '@service/recent';
 import { opener, Service as OpenerService } from '@service/opener';
 import { hotkeys, Service as HotkeysService } from '@service/hotkeys';
 import { listener, Service as ListenerService } from '@ui/service/listener';
+import { lockers, Service as LockersService } from '@ui/service/lockers';
 
 import { Instance as Logger } from '@platform/env/logger';
 
@@ -35,6 +36,7 @@ export class Services {
         sidebar: UISidebarService;
         styles: UIStylesService;
         listener: ListenerService;
+        lockers: LockersService;
     };
 
     private readonly _owner: string;
@@ -61,6 +63,7 @@ export class Services {
             sidebar,
             styles,
             listener,
+            lockers,
         };
     }
 }

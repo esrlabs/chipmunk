@@ -1,0 +1,27 @@
+@import '../../../styles/variables.less';
+
+:host{
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    flex-direction: row;
+    padding: 6px 0;
+    border-bottom: thin dotted @scheme-color-3;
+    &:last-child {
+        border-bottom: none;
+    }
+    & mat-icon {
+        padding-right: 12px;
+        &[data-type="error"] {
+            color: @scheme-color-error-light;
+        }
+        &[data-type="warning"] {
+            color: @scheme-color-warning-light;
+        }
+    }
+    & p {
+        color: @scheme-color-2;
+    }
+
+}

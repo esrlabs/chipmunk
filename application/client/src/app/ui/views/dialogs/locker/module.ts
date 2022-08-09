@@ -1,14 +1,14 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { ProgressMessage } from './component';
+import { LockerMessage } from './component';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 
 @NgModule({
-    entryComponents: [ProgressMessage],
+    entryComponents: [LockerMessage],
     imports: [CommonModule, MatProgressSpinnerModule, MatIconModule, MatButtonModule],
-    declarations: [ProgressMessage],
-    exports: [ProgressMessage],
+    declarations: [LockerMessage],
+    exports: [LockerMessage],
 })
-export class ProgressMessageModule {}
+export class LockerMessageModule {}

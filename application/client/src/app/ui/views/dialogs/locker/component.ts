@@ -2,26 +2,30 @@ import { Component, ChangeDetectorRef, Input, AfterViewInit } from '@angular/cor
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Initial } from '@env/decorators/initial';
-import { Progress } from './progress';
+import { Locker, Level } from '@ui/service/lockers';
 
 @Component({
-    selector: 'app-dialogs-progress-message',
+    selector: 'app-dialogs-locker-message',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
 @Initial()
 @Ilc()
-export class ProgressMessage extends ChangesDetector implements AfterViewInit {
-    @Input() public progress!: Progress;
+export class LockerMessage extends ChangesDetector implements AfterViewInit {
+    @Input() public locker!: Locker;
     @Input() public close!: () => void;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
 
+    public get Level(): typeof Level {
+        return Level;
+    }
+
     ngAfterViewInit(): void {
         this.env().subscriber.register(
-            this.progress.updated.subscribe(() => {
+            this.locker.updated.subscribe(() => {
                 this.detectChanges();
             }),
         );
@@ -31,4 +35,4 @@ export class ProgressMessage extends ChangesDetector implements AfterViewInit {
         this.close();
     }
 }
-export interface ProgressMessage extends IlcInterface {}
+export interface LockerMessage extends IlcInterface {}
