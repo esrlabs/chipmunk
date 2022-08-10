@@ -2,6 +2,7 @@ import { Component, ChangeDetectorRef, Input, OnDestroy } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
+import { Action } from '@ui/tabs/sources/common/stream.open/action';
 
 @Component({
     selector: 'app-transport-udp',
@@ -11,6 +12,7 @@ import { State } from './state';
 @Ilc()
 export class TransportUdp extends ChangesDetector implements OnDestroy {
     @Input() public state!: State;
+    @Input() public action!: Action;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);

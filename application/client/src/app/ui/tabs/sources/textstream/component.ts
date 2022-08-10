@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, AfterContentInit, OnDestroy } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -6,6 +6,7 @@ import { File } from '@platform/types/files';
 import { TabControls } from '@service/session';
 import { State } from './state';
 import { SourceDefinition } from '@platform/types/transport';
+import { Action } from '../common/stream.open/action';
 
 @Component({
     selector: 'app-tabs-source-textstream',
@@ -14,7 +15,7 @@ import { SourceDefinition } from '@platform/types/transport';
 })
 @Initial()
 @Ilc()
-export class TabSourceTextStream extends ChangesDetector implements AfterContentInit {
+export class TabSourceTextStream extends ChangesDetector implements AfterContentInit, OnDestroy {
     @Input() done!: (
         options: { source: SourceDefinition },
         cb: (err: Error | undefined) => void,
@@ -25,9 +26,15 @@ export class TabSourceTextStream extends ChangesDetector implements AfterContent
 
     public state: State = new State();
     public group: string | undefined;
+    public action: Action = new Action();
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
+    }
+
+    public ngOnDestroy(): void {
+        this.tab.storage<State>().set(this.state);
+        this.action.destroy();
     }
 
     public ngAfterContentInit(): void {
@@ -50,19 +57,21 @@ export class TabSourceTextStream extends ChangesDetector implements AfterContent
                 this.detectChanges();
             }),
         );
-    }
-
-    public ngOnConnect() {
-        this.done(this.state.asOptions(), (err: Error | undefined) => {
-            if (err === undefined) {
+        this.env().subscriber.register(
+            this.action.subjects.get().applied.subscribe(() => {
+                this.done(this.state.asOptions(), (err: Error | undefined) => {
+                    if (err === undefined) {
+                        this.tab.close();
+                        return;
+                    }
+                });
+            }),
+        );
+        this.env().subscriber.register(
+            this.action.subjects.get().canceled.subscribe(() => {
                 this.tab.close();
-                return;
-            }
-        });
-    }
-
-    public ngOnClose() {
-        this.tab.close();
+            }),
+        );
     }
 }
 export interface TabSourceTextStream extends IlcInterface {}

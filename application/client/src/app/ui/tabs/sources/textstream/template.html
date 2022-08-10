@@ -4,7 +4,7 @@
             <mat-card class="top">
                 <mat-card-title>Streaming</mat-card-title>
                 <mat-card-content>
-                    <app-transport [state]="state.transport"></app-transport>
+                    <app-transport [state]="state.transport" [action]="action"></app-transport>
                 </mat-card-content>
             </mat-card>
             <mat-card class="fill sticky">
@@ -29,13 +29,14 @@
                 </mat-card-content>
             </mat-card>
             <div class="spacer"></div>
-            <mat-card class="controlls">
+            <app-tabs-source-stream-actions [action]="action"></app-tabs-source-stream-actions>
+            <!-- <mat-card class="controlls">
                 <mat-card-title>Actions</mat-card-title>
                 <mat-card-content>
                   <button class="major-button" mat-stroked-button (click)="ngOnConnect()">Connect</button>
                   <button mat-stroked-button (click)="ngOnClose()">Cancel</button>
                 </mat-card-content>
-            </mat-card>
+            </mat-card> -->
         </div>
     </div>
 </div>
