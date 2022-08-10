@@ -162,6 +162,25 @@ export class Service extends Implementation {
         };
     }
 
+    public ports(): {
+        list(): Promise<string[]>;
+    } {
+        return {
+            list: (): Promise<string[]> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Serial.Ports.Response,
+                        new Requests.Serial.Ports.Request(),
+                    )
+                        .then((response) => {
+                            resolve(response.ports);
+                        })
+                        .catch(reject);
+                });
+            },
+        };
+    }
+
     public entries(key: string): {
         get(): Promise<Entry[]>;
         /**

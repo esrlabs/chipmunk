@@ -281,6 +281,26 @@ async fn listen_from_source<T: LogMessage, P: Parser<T>>(
             )
             .await
         }
+        Transport::Serial(config) => {
+            listen(
+                operation_api,
+                state,
+                MessageProducer::new(
+                    parser,
+                    sources::serial::serialport::SerialSource::new(&config.path, config.baud_rate)
+                        .map_err(|e| NativeError {
+                            severity: Severity::ERROR,
+                            kind: NativeErrorKind::Interrupted,
+                            message: Some(format!(
+                                "Fail to create serial connection due error: {:?}",
+                                e
+                            )),
+                        })?,
+                ),
+                None,
+            )
+            .await
+        }
     }
 }
 

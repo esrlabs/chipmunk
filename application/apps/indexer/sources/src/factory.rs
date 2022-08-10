@@ -54,6 +54,7 @@ pub enum Transport {
     Process(ProcessTransportConfig),
     TCP(ProcessTransportConfig),
     UDP(UDPTransportConfig),
+    Serial(SerialTransportConfig),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -62,6 +63,15 @@ pub struct ProcessTransportConfig {
     pub command: String,
     pub args: Vec<String>,
     pub envs: HashMap<String, String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SerialTransportConfig {
+    pub path: String,
+    pub baud_rate: u32,
+    pub data_bits: String,
+    pub flow_control: String,
+    pub parity: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

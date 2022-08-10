@@ -40,6 +40,7 @@ export {
 
 export * as dlt from './native/native.dlt';
 export * as tools from './native/native.tools';
+export * as serial from './native/native.serial';
 
 export { Units, Events, Interfaces };
 

@@ -50,12 +50,28 @@ export const handler = Requests.InjectLogger<
                     }),
                 );
             } else if (request.source.serial !== undefined) {
-                resolve(
-                    new Requests.Connect.Dlt.Response({
-                        session: stored.session.getUUID(),
-                        error: `serial support isn't implemented yet`,
-                    }),
-                );
+                stored
+                    .observe(
+                        Observe.DataSource.stream()
+                            .serial(request.source.serial)
+                            .dlt(optionsToParserSettings(request.options, false, 0, 0)),
+                        'DLT on serial',
+                    )
+                    .then(() => {
+                        resolve(
+                            new Requests.Connect.Dlt.Response({
+                                session: stored.session.getUUID(),
+                            }),
+                        );
+                    })
+                    .catch((err: Error) => {
+                        resolve(
+                            new Requests.Connect.Dlt.Response({
+                                session: stored.session.getUUID(),
+                                error: err.message,
+                            }),
+                        );
+                    });
             } else if (request.source.process !== undefined) {
                 stored
                     .observe(

@@ -38,7 +38,7 @@ export class SourceDefinitionHolder {
         } else if (this.source.tcp !== undefined) {
             return 'tcp_connection';
         } else if (this.source.serial !== undefined) {
-            return 'serial_connection';
+            return `${this.source.serial.path}_${this.source.serial.baud_rate}_${this.source.serial.data_bits}_${this.source.serial.flow_control}_${this.source.serial.parity}`;
         } else if (this.source.process !== undefined) {
             return 'command_caller';
         }

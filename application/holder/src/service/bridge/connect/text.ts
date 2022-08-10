@@ -47,10 +47,29 @@ export const handler = Requests.InjectLogger<
                     }),
                 );
             } else if (request.source.serial !== undefined) {
+                stored
+                    .observe(
+                        Observe.DataSource.stream().serial(request.source.serial).text(),
+                        'text on serial',
+                    )
+                    .then(() => {
+                        resolve(
+                            new Requests.Connect.Text.Response({
+                                session: stored.session.getUUID(),
+                            }),
+                        );
+                    })
+                    .catch((err: Error) => {
+                        resolve(
+                            new Requests.Connect.Text.Response({
+                                session: stored.session.getUUID(),
+                                error: err.message,
+                            }),
+                        );
+                    });
                 resolve(
                     new Requests.Connect.Text.Response({
                         session: stored.session.getUUID(),
-                        error: `serial support isn't implemented yet`,
                     }),
                 );
             } else if (request.source.process !== undefined) {

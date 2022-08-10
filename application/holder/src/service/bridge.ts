@@ -87,6 +87,15 @@ export class Service extends Implementation {
                     RequestHandlers.Os.AsFSEntity.handler,
                 ),
         );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Serial.Ports.Request,
+                    RequestHandlers.Serial.Ports.handler,
+                ),
+        );
         return Promise.resolve();
     }
 
