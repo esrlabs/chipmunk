@@ -13,6 +13,7 @@ import { State } from './state';
 import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { Controll } from './input';
 import { List } from '@env/storages/recent/list';
+import { Action } from '@ui/tabs/sources/common/stream.open/action';
 
 @Component({
     selector: 'app-transport-process',
@@ -22,6 +23,8 @@ import { List } from '@env/storages/recent/list';
 @Ilc()
 export class TransportProcess extends ChangesDetector implements AfterViewInit, OnDestroy {
     @Input() public state!: State;
+    @Input() public action!: Action;
+
     @ViewChild('commandinput') commandInputRef!: ElementRef<HTMLInputElement>;
     @ViewChild('cmdinput') cmdInputRef!: ElementRef<HTMLInputElement>;
     @ViewChild('commandinput', { read: MatAutocompleteTrigger })
@@ -68,14 +71,13 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
         this.inputs.cwd.input.bind(this.cmdInputRef.nativeElement, this.cmdPanelRef);
         this.inputs.command.input.actions.edit.subscribe((value: string) => {
             this.state.command = value;
-            // this.inputs.command.recent.update(this.inputs.command.input.value);
+            this.action.setDisabled(value.trim() === '');
         });
         this.inputs.command.input.actions.recent.subscribe(() => {
             this.markChangesForCheck();
         });
         this.inputs.cwd.input.actions.edit.subscribe((value: string) => {
             this.state.cwd = value;
-            // this.inputs.cwd.recent.update(this.inputs.cwd.input.value);
         });
         this.inputs.cwd.input.actions.recent.subscribe(() => {
             this.markChangesForCheck();
@@ -84,6 +86,11 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
             this.inputs.command.recent.update(this.state.command);
             this.inputs.cwd.recent.update(this.state.cwd);
         });
+        this.inputs.command.input.set(this.state.command);
+        this.inputs.cwd.input.set(this.state.cwd);
+        if (this.inputs.command.input.value.trim() === '') {
+            this.action.setDisabled(true);
+        }
     }
 }
 export interface TransportProcess extends IlcInterface {}
