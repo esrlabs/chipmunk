@@ -82,6 +82,8 @@ export class State {
             udp: this.udp === undefined ? undefined : this.udp.accept().asSourceDefinition(),
             process:
                 this.process === undefined ? undefined : this.process.accept().asSourceDefinition(),
+            serial:
+                this.serial === undefined ? undefined : this.serial.accept().asSourceDefinition(),
         };
     }
 }

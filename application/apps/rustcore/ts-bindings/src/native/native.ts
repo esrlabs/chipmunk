@@ -7,6 +7,7 @@ import * as Logs from '../util/logging';
 export interface IRustModuleExports {
     RustSession: any;
     Dlt: any;
+    Serial: any;
     execute: (filename: string, args: string[]) => Promise<void>;
 }
 

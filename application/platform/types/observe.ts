@@ -4,6 +4,7 @@ import { SomeIPParserSettings } from './parsers/someip';
 import { UDPTransportSettings } from './transport/udp';
 import { TCPTransportSettings } from './transport/tcp';
 import { ProcessTransportSettings } from './transport/process';
+import { SerialTransportSettings } from './transport/serial';
 
 export interface Parser {
     Dlt?: DltParserSettings;
@@ -14,6 +15,7 @@ export interface Parser {
 }
 
 export interface Transport {
+    Serial?: SerialTransportSettings;
     Process?: ProcessTransportSettings;
     TCP?: TCPTransportSettings;
     UDP?: UDPTransportSettings;
@@ -54,11 +56,25 @@ export class DataSource {
     }
 
     public static stream(): {
+        serial(Serial: SerialTransportSettings): SourcesFactory;
         process(Process: ProcessTransportSettings): SourcesFactory;
         upd(UDP: UDPTransportSettings): SourcesFactory;
         tcp(TCP: TCPTransportSettings): SourcesFactory;
     } {
         return {
+            serial: (Serial: SerialTransportSettings): SourcesFactory => {
+                return {
+                    dlt: (settings: DltParserSettings): DataSource => {
+                        return new DataSource({ Stream: [{ Serial }, { Dlt: settings }] });
+                    },
+                    pcap: (settings: PcapParserSettings): DataSource => {
+                        return new DataSource({ Stream: [{ Serial }, { Pcap: settings }] });
+                    },
+                    text: (): DataSource => {
+                        return new DataSource({ Stream: [{ Serial }, { Text: null }] });
+                    },
+                };
+            },
             process: (Process: ProcessTransportSettings): SourcesFactory => {
                 return {
                     dlt: (settings: DltParserSettings): DataSource => {
