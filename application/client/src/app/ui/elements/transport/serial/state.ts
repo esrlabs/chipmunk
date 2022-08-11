@@ -3,11 +3,11 @@ import { Base } from '../common/state';
 
 export class State extends Base<SerialTransportSettings> {
     public baudRate: number = 9600;
-    public dataBits: string = 'Eight';
-    public flowControl: string = 'None';
-    public parity: string = 'None';
+    public dataBits: number = 8;
+    public flowControl: number = 0;
+    public parity: number = 0;
     public path: string = '';
-    public stopBits: string = 'One';
+    public stopBits: number = 1;
 
     public from(opt: SerialTransportSettings) {
         this.baudRate = opt.baud_rate;

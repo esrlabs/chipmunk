@@ -1,9 +1,46 @@
+use crate::factory::SerialTransportConfig;
 use crate::ByteSource;
 use crate::{Error as SourceError, ReloadInfo, SourceFilter};
 use async_trait::async_trait;
 use buf_redux::Buffer;
 use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio_serial::{SerialPortBuilderExt, SerialStream};
+use tokio_serial::{DataBits, FlowControl, Parity, SerialPortBuilderExt, SerialStream, StopBits};
+
+fn data_bits(data_bits: &u8) -> DataBits {
+    match data_bits {
+        5 => DataBits::Five,
+        6 => DataBits::Six,
+        7 => DataBits::Seven,
+        8 => DataBits::Eight,
+        _ => DataBits::Eight,
+    }
+}
+
+fn flow_control(flow_control: &u8) -> FlowControl {
+    match flow_control {
+        0 => FlowControl::None,
+        1 => FlowControl::Hardware,
+        2 => FlowControl::Software,
+        _ => FlowControl::None,
+    }
+}
+
+fn parity(parity: &u8) -> Parity {
+    match parity {
+        0 => Parity::None,
+        1 => Parity::Odd,
+        2 => Parity::Even,
+        _ => Parity::None,
+    }
+}
+
+fn stop_bits(stop_bits: &u8) -> StopBits {
+    match stop_bits {
+        1 => StopBits::One,
+        2 => StopBits::Two,
+        _ => StopBits::One,
+    }
+}
 
 pub struct SerialSource {
     buf_reader: BufReader<SerialStream>,
@@ -13,13 +50,20 @@ pub struct SerialSource {
 }
 
 impl SerialSource {
-    pub fn new(path: &str, baud_rate: u32) -> Result<Self, SourceError> {
+    pub fn new(config: &SerialTransportConfig) -> Result<Self, SourceError> {
         Ok(Self {
             buf_reader: BufReader::new(
-                tokio_serial::new(path, baud_rate)
+                tokio_serial::new(config.path.as_str(), config.baud_rate)
+                    .data_bits(data_bits(&config.data_bits))
+                    .flow_control(flow_control(&config.flow_control))
+                    .parity(parity(&config.parity))
+                    .stop_bits(stop_bits(&config.stop_bits))
                     .open_native_async()
                     .map_err(|e| {
-                        SourceError::Setup(format!("Failed to open serial port {}: {}", path, e))
+                        SourceError::Setup(format!(
+                            "Failed to open serial port {}: {}",
+                            config.path, e
+                        ))
                     })?,
             ),
             string_buffer: String::new(),

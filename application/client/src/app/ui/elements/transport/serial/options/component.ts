@@ -57,39 +57,39 @@ export class TransportSerialOptions implements AfterViewInit {
     ];
     public readonly _ng_dataBits = [
         {
-            value: 'Five',
+            value: 5,
             name: 5,
         },
         {
-            value: 'Six',
+            value: 6,
             name: 6,
         },
         {
-            value: 'Seven',
+            value: 7,
             name: 7,
         },
         {
-            value: 'Eight',
+            value: 8,
             name: 8,
         },
     ];
     public readonly _ng_flowControl = [
-        { value: 'None', name: 'None' },
-        { value: 'Software', name: 'Software' },
-        { value: 'Hardware', name: 'Hardware' },
+        { value: 0, name: 'None' },
+        { value: 1, name: 'Hardware' },
+        { value: 2, name: 'Software' },
     ];
     public readonly _ng_parity = [
-        { value: 'None', name: 'None' },
-        { value: 'Odd', name: 'Odd' },
-        { value: 'Even', name: 'Even' },
+        { value: 0, name: 'None' },
+        { value: 1, name: 'Odd' },
+        { value: 2, name: 'Even' },
     ];
     public readonly _ng_stopBits = [
         {
-            value: 'One',
+            value: 1,
             name: 1,
         },
         {
-            value: 'Two',
+            value: 2,
             name: 2,
         },
     ];
