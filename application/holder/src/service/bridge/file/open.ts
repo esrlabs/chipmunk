@@ -33,7 +33,8 @@ export const handler = Requests.InjectLogger<
                     case FileType.Any:
                     case FileType.Text:
                         stored
-                            .observe(
+                            .observe()
+                            .start(
                                 Observe.DataSource.file(request.file.filename).text(),
                                 'tail text',
                             )
@@ -55,7 +56,8 @@ export const handler = Requests.InjectLogger<
                         break;
                     case FileType.Dlt:
                         stored
-                            .observe(
+                            .observe()
+                            .start(
                                 Observe.DataSource.file(request.file.filename).text(),
                                 'tail DLT',
                             )

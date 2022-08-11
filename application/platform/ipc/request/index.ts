@@ -9,3 +9,4 @@ export * as Storage from './storage';
 export * as Os from './os';
 export * as Action from './action';
 export * as Serial from './serial';
+export * as Observe from './observe';

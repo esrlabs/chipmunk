@@ -48,6 +48,17 @@ export class Session extends Base {
             },
         });
         this._sidebar.add({
+            name: 'Observing',
+            active: false,
+            closable: false,
+            content: {
+                factory: components.get('app-views-observe-list'),
+                inputs: {
+                    session: this,
+                },
+            },
+        });
+        this._sidebar.add({
             name: 'Filters',
             active: true,
             closable: false,

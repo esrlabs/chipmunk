@@ -1,0 +1,6 @@
+<mat-card class="top">
+    <mat-card-title>Observing</mat-card-title>
+    <mat-card-content>
+        <app-transport-review *ngFor="let source of observed | keyvalue" [source]="source.value" [session]="session"></app-transport-review>
+    </mat-card-content>
+</mat-card>

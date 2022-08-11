@@ -21,7 +21,8 @@ export const handler = Requests.InjectLogger<
             }
             if (request.source.udp !== undefined) {
                 stored
-                    .observe(
+                    .observe()
+                    .start(
                         Observe.DataSource.stream()
                             .upd(request.source.udp)
                             .dlt(optionsToParserSettings(request.options, false, 0, 0)),
@@ -74,7 +75,8 @@ export const handler = Requests.InjectLogger<
                     });
             } else if (request.source.process !== undefined) {
                 stored
-                    .observe(
+                    .observe()
+                    .start(
                         Observe.DataSource.stream()
                             .process(request.source.process)
                             .dlt(optionsToParserSettings(request.options, false, 0, 0)),

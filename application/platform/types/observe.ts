@@ -4,6 +4,7 @@ import { SomeIPParserSettings } from './parsers/someip';
 import { UDPTransportSettings } from './transport/udp';
 import { TCPTransportSettings } from './transport/tcp';
 import { ProcessTransportSettings } from './transport/process';
+import { error } from '../env/logger';
 import { SerialTransportSettings } from './transport/serial';
 
 export interface Parser {
@@ -19,6 +20,10 @@ export interface Transport {
     Process?: ProcessTransportSettings;
     TCP?: TCPTransportSettings;
     UDP?: UDPTransportSettings;
+}
+
+export interface Source extends Transport {
+    File?: string;
 }
 
 export interface ISource {
@@ -39,6 +44,22 @@ export class DataSource {
     constructor(opt: ISource) {
         this.File = opt.File;
         this.Stream = opt.Stream;
+    }
+
+    public static from(jsonStr: string): Error | DataSource {
+        try {
+            const parsed = JSON.parse(jsonStr);
+            const target = parsed.File === undefined ? parsed.Stream : parsed.File;
+            if (target === undefined) {
+                throw new Error(`No "File" or "Stream" fields aren't found`);
+            }
+            if (!(target instanceof Array) || target.length !== 2) {
+                throw new Error(`Invalid count of items in "File" or "Stream"`);
+            }
+            return new DataSource(parsed);
+        } catch (err) {
+            return new Error(error(err));
+        }
     }
 
     public static file(filename: string): SourcesFactory {
@@ -115,6 +136,18 @@ export class DataSource {
                 };
             },
         };
+    }
+
+    public getSource(): Source | Error {
+        if (this.File !== undefined) {
+            return {
+                File: this.File[0],
+            };
+        }
+        if (this.Stream === undefined) {
+            return new Error(`Source isn't defined`);
+        }
+        return this.Stream[0];
     }
 
     public toJSON(): string {

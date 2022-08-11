@@ -94,7 +94,8 @@ export const handler = Requests.InjectLogger<
                             case FileType.Text:
                                 // Opening file as text file
                                 stored
-                                    .observe(
+                                    .observe()
+                                    .start(
                                         Observe.DataSource.file(request.file.filename).text(),
                                         'tail text',
                                     )
@@ -109,7 +110,8 @@ export const handler = Requests.InjectLogger<
                                 break;
                             case FileType.Dlt:
                                 stored
-                                    .observe(
+                                    .observe()
+                                    .start(
                                         Observe.DataSource.file(request.file.filename).dlt(
                                             request.file.options.dlt === undefined
                                                 ? defaultParserSettings(true)

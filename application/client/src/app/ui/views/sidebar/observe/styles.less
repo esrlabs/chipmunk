@@ -1,0 +1,20 @@
+@import '../../../styles/variables.less';
+
+:host {
+    position: absolute;
+    display: block;
+    padding: 0;
+    margin: 0;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    left: 0.5rem;
+    top: 0.5rem;
+    overflow: hidden;
+    outline: none;
+    & mat-card {
+        & mat-card-title {
+            font-size: 15px;
+            color: @scheme-color-3; 
+        }
+    }
+}
