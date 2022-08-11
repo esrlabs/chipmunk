@@ -1,11 +1,9 @@
 import { CancelablePromise } from 'platform/env/promise';
-import { Session, Observe } from 'rustcore';
+import { Session } from 'rustcore';
 import { sessions } from '@service/sessions';
 import { Subscriber } from 'platform/env/subscription';
 import { Instance as Logger } from 'platform/env/logger';
 import { jobs, aliases } from '@service/jobs';
-import { FileType } from 'platform/types/files';
-import { defaultParserSettings, optionsToParserSettings } from 'platform/types/parsers/dlt';
 
 import * as Events from 'platform/ipc/event';
 import * as Requests from 'platform/ipc/request';
