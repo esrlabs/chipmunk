@@ -69,9 +69,10 @@ pub struct ProcessTransportConfig {
 pub struct SerialTransportConfig {
     pub path: String,
     pub baud_rate: u32,
-    pub data_bits: String,
-    pub flow_control: String,
-    pub parity: String,
+    pub data_bits: u8,
+    pub flow_control: u8,
+    pub parity: u8,
+    pub stop_bits: u8,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
