@@ -49,7 +49,8 @@ export const handler = Requests.InjectLogger<
                 );
             } else if (request.source.serial !== undefined) {
                 stored
-                    .observe(
+                    .observe()
+                    .start(
                         Observe.DataSource.stream().serial(request.source.serial).text(),
                         'text on serial',
                     )
