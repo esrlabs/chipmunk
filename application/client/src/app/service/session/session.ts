@@ -71,11 +71,11 @@ export class Session extends Base {
         });
     }
 
-    public init(inputs: { file?: TargetFile }): Promise<string> {
+    public init(): Promise<string> {
         return new Promise((resolve, reject) => {
             Requests.IpcRequest.send<Requests.Session.Create.Response>(
                 Requests.Session.Create.Response,
-                new Requests.Session.Create.Request(inputs),
+                new Requests.Session.Create.Request({}),
             )
                 .then((response) => {
                     this.setLoggerName(`Session: ${cutUuid(response.uuid)}`);
@@ -85,6 +85,23 @@ export class Session extends Base {
                     this.cursor.init(this._uuid);
                     this.bookmarks.init(this._uuid, this.cursor);
                     resolve(this._uuid);
+                })
+                .catch(reject);
+        });
+    }
+
+    public file(file: TargetFile): Promise<void> {
+        return new Promise((resolve, reject) => {
+            Requests.IpcRequest.send<Requests.File.Open.Response>(
+                Requests.File.Open.Response,
+                new Requests.File.Open.Request({ session: this._uuid, file }),
+            )
+                .then((response) => {
+                    if (typeof response.error === 'string' && response.error !== '') {
+                        reject(new Error(response.error));
+                    } else {
+                        resolve(undefined);
+                    }
                 })
                 .catch(reject);
         });
