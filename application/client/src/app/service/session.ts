@@ -99,7 +99,7 @@ export class Service extends Implementation {
                 return new Promise((resolve, reject) => {
                     const session = new Session(render);
                     session
-                        .init({})
+                        .init()
                         .then((uuid: string) => {
                             binding(uuid, session, 'Empty');
                             resolve(session);
@@ -117,12 +117,18 @@ export class Service extends Implementation {
                 return new Promise((resolve, reject) => {
                     const session = new Session(render);
                     session
-                        .init({
-                            file,
-                        })
+                        .init()
                         .then((uuid: string) => {
-                            binding(uuid, session, file.name);
-                            resolve(session);
+                            session
+                                .file(file)
+                                .then(() => {
+                                    binding(uuid, session, file.name);
+                                    resolve(session);
+                                })
+                                .catch((err: Error) => {
+                                    this.log().error(`Fail to open file; error: ${err.message}`);
+                                    reject(err);
+                                });
                         })
                         .catch((err: Error) => {
                             this.log().error(`Fail to add session; error: ${err.message}`);

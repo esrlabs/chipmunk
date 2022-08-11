@@ -78,73 +78,13 @@ export const handler = Requests.InjectLogger<
                                 });
                         }),
                     );
-                    const stored = sessions.add(session, subscriber);
+                    sessions.add(session, subscriber);
                     sessions.setActive(uuid);
-                    if (request.file !== undefined) {
-                        const reading = jobs
-                            .create({
-                                uuid: aliases.getFileReadingJobUuid(session.getUUID()),
-                                session: session.getUUID(),
-                                desc: 'reading',
-                                pinned: false,
-                            })
-                            .start();
-                        switch (request.file.type) {
-                            case FileType.Any:
-                            case FileType.Text:
-                                // Opening file as text file
-                                stored
-                                    .observe()
-                                    .start(
-                                        Observe.DataSource.file(request.file.filename).text(),
-                                        'tail text',
-                                    )
-                                    .then(() => {
-                                        resolve(
-                                            new Requests.Session.Create.Response({
-                                                uuid: uuid,
-                                            }),
-                                        );
-                                    })
-                                    .catch(reject);
-                                break;
-                            case FileType.Dlt:
-                                stored
-                                    .observe()
-                                    .start(
-                                        Observe.DataSource.file(request.file.filename).dlt(
-                                            request.file.options.dlt === undefined
-                                                ? defaultParserSettings(true)
-                                                : optionsToParserSettings(
-                                                      request.file.options.dlt,
-                                                      true,
-                                                      0,
-                                                      0,
-                                                  ),
-                                        ),
-                                        'tail DLT',
-                                    )
-                                    .then(() => {
-                                        resolve(
-                                            new Requests.Session.Create.Response({
-                                                uuid: uuid,
-                                            }),
-                                        );
-                                    })
-                                    .catch(reject);
-                                break;
-                            default:
-                                reading.done();
-                                reject(new Error(`Unsupported format of file`));
-                                return;
-                        }
-                    } else {
-                        resolve(
-                            new Requests.Session.Create.Response({
-                                uuid: uuid,
-                            }),
-                        );
-                    }
+                    resolve(
+                        new Requests.Session.Create.Response({
+                            uuid: uuid,
+                        }),
+                    );
                 })
                 .catch((err: Error) => {
                     log.error(`Fail to create session: ${err.message}`);

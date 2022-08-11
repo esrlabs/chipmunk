@@ -4,6 +4,7 @@ import { sessions } from '@service/sessions';
 import { Instance as Logger } from 'platform/env/logger';
 import { jobs, aliases } from '@service/jobs';
 import { FileType } from 'platform/types/files';
+import { defaultParserSettings, optionsToParserSettings } from 'platform/types/parsers/dlt';
 
 import * as Requests from 'platform/ipc/request';
 
@@ -58,7 +59,16 @@ export const handler = Requests.InjectLogger<
                         stored
                             .observe()
                             .start(
-                                Observe.DataSource.file(request.file.filename).text(),
+                                Observe.DataSource.file(request.file.filename).dlt(
+                                    request.file.options.dlt === undefined
+                                        ? defaultParserSettings(true)
+                                        : optionsToParserSettings(
+                                              request.file.options.dlt,
+                                              true,
+                                              0,
+                                              0,
+                                          ),
+                                ),
                                 'tail DLT',
                             )
                             .then(() => {
@@ -78,10 +88,7 @@ export const handler = Requests.InjectLogger<
                             });
                         break;
                     default:
-                        reading.doneAndPinStatus({
-                            icon: 'file_download',
-                            desc: 'read',
-                        });
+                        reading.done();
                         return reject(new Error(`Not supported file type`));
                 }
             } else {
