@@ -7,6 +7,8 @@ import { Observe } from 'rustcore';
 import { jobs } from '@service/jobs';
 import { ICancelablePromise } from 'platform/env/promise';
 
+import * as Events from 'platform/ipc/event';
+
 export enum Jobs {
     search = 'search',
 }
@@ -15,7 +17,10 @@ export class Holder {
     public readonly session: Session;
     public readonly subscriber: Subscriber;
     private readonly _jobs: Map<string, JobsTracker> = new Map();
-    private readonly _observers: Map<string, ICancelablePromise> = new Map();
+    private readonly _observers: Map<
+        string,
+        { source: Observe.DataSource; observer: ICancelablePromise }
+    > = new Map();
     private readonly _logger: Logger;
     protected _shutdown = false;
 
@@ -58,35 +63,77 @@ export class Holder {
         });
     }
 
-    public observe(source: Observe.DataSource, jobName: string): Promise<void> {
-        if (this._shutdown) {
-            return Promise.reject(new Error(`Session is closing`));
-        }
-        const observe = jobs
-            .create({
-                session: this.session.getUUID(),
-                desc: jobName,
-                pinned: true,
-            })
-            .start();
-        return new Promise((resolve, reject) => {
-            const observer = this.session
-                .getStream()
-                .observe(source)
-                .on('confirmed', () => {
-                    resolve();
-                })
-                .catch((err: Error) => {
-                    this._logger.error(`Fail to call observe. Error: ${err.message}`);
-                    reject(err);
-                })
-                .finally(() => {
-                    observe.done();
-                    this._observers.delete(uuid);
+    public observe(): {
+        start(source: Observe.DataSource, jobName: string): Promise<void>;
+        cancel(uuid: string): Promise<void>;
+        list(): { [key: string]: string };
+    } {
+        return {
+            start: (source: Observe.DataSource, jobName: string): Promise<void> => {
+                if (this._shutdown) {
+                    return Promise.reject(new Error(`Session is closing`));
+                }
+                const observe = jobs
+                    .create({
+                        session: this.session.getUUID(),
+                        desc: jobName,
+                        pinned: true,
+                    })
+                    .start();
+                return new Promise((resolve, reject) => {
+                    const observer = this.session
+                        .getStream()
+                        .observe(source)
+                        .on('confirmed', () => {
+                            Events.IpcEvent.emit(
+                                new Events.Observe.Started.Event({
+                                    session: this.session.getUUID(),
+                                    operation: uuid,
+                                    source: source.toJSON(),
+                                }),
+                            );
+                            resolve();
+                        })
+                        .catch((err: Error) => {
+                            this._logger.error(`Fail to call observe. Error: ${err.message}`);
+                            reject(err);
+                        })
+                        .finally(() => {
+                            observe.done();
+                            this._observers.delete(uuid);
+                            Events.IpcEvent.emit(
+                                new Events.Observe.Finished.Event({
+                                    session: this.session.getUUID(),
+                                    operation: uuid,
+                                    source: source.toJSON(),
+                                }),
+                            );
+                        });
+                    const uuid = observer.uuid();
+                    this._observers.set(uuid, { source, observer });
                 });
-            const uuid = observer.uuid();
-            this._observers.set(uuid, observer);
-        });
+            },
+            cancel: (uuid: string): Promise<void> => {
+                const operation = this._observers.get(uuid);
+                if (operation === undefined) {
+                    return Promise.reject(new Error(`Operation isn't found`));
+                }
+                return new Promise((resolve) => {
+                    operation.observer
+                        .finally(() => {
+                            resolve();
+                        })
+                        .abort();
+                });
+            },
+            list: (): { [key: string]: string } => {
+                const list: { [key: string]: string } = {};
+                this._observers.forEach((operation, uuid) => {
+                    list[uuid] = operation.source.toJSON();
+                });
+                return list;
+            },
+        };
     }
 
     public isShutdowning(): boolean {

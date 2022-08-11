@@ -8,7 +8,7 @@ import { RecentActionsModule } from '@elements/recent/module';
 import { RecentActionsMiniModule } from '@elements/recent.mini/module';
 import { TreeModule } from '@elements/tree/module';
 import { LocksHistoryModule } from '@elements/locks.history/module';
-
+import { TransportReviewModule } from '@elements/transport.review/module';
 import { ComTooltipComponent } from '@elements/tooltip/component';
 
 @NgModule({
@@ -22,6 +22,7 @@ import { ComTooltipComponent } from '@elements/tooltip/component';
         RecentActionsMiniModule,
         TreeModule,
         LocksHistoryModule,
+        TransportReviewModule,
     ],
     declarations: [ComTooltipComponent],
     exports: [
@@ -32,6 +33,7 @@ import { ComTooltipComponent } from '@elements/tooltip/component';
         RecentActionsMiniModule,
         TreeModule,
         LocksHistoryModule,
+        TransportReviewModule,
     ],
 })
 export class ElementsModule {}
