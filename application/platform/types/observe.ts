@@ -219,7 +219,7 @@ export class DataSource {
         } else if (this.Stream[0].Serial !== undefined) {
             return {
                 major: this.Stream[0].Serial.path,
-                minor: `rate: ${this.Stream[0].Serial.baud_rate}; bits: ${this.Stream[0].Serial.data_bits}`,
+                minor: `Baud Rate: ${this.Stream[0].Serial.baud_rate}`,
                 icon: 'import_export',
                 type: 'serial',
                 state: {
