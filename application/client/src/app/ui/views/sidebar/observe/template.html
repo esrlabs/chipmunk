@@ -1,6 +1,19 @@
-<mat-card class="top">
+<mat-card class="list">
     <mat-card-title>Observing</mat-card-title>
     <mat-card-content>
-        <app-transport-review *ngFor="let source of observed | keyvalue" [source]="source.value" [session]="session"></app-transport-review>
+        <app-transport-review *ngFor="let source of observed | keyvalue"
+            [attr.class]="ngGetCssClass(source.key)"
+            [source]="source.value"
+            [session]="session"
+            (click)="ngSelect(source.key, source.value)"></app-transport-review>
     </mat-card-content>
 </mat-card>
+<mat-card *ngIf="selected !== undefined">
+    <mat-card-title>Details</mat-card-title>
+    <mat-card-content>
+        <app-transport-details
+            [source]="selected.source"
+            [session]="session"></app-transport-details>
+    </mat-card-content>
+</mat-card>
+

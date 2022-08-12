@@ -8,7 +8,7 @@ import { RecentActionsModule } from '@elements/recent/module';
 import { RecentActionsMiniModule } from '@elements/recent.mini/module';
 import { TreeModule } from '@elements/tree/module';
 import { LocksHistoryModule } from '@elements/locks.history/module';
-import { TransportReviewModule } from '@elements/transport.review/module';
+import { TransportReviewModule } from '@ui/elements/transport/listed/module';
 import { ComTooltipComponent } from '@elements/tooltip/component';
 
 @NgModule({

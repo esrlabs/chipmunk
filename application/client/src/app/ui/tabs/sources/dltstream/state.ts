@@ -10,7 +10,7 @@ import {
 import { Timezone } from '@ui/elements/timezones/timezone';
 import { SourceDefinition } from '@platform/types/transport';
 import { bridge } from '@service/bridge';
-import { State as TransportState } from '@ui/elements/transport/state';
+import { State as TransportState } from '@ui/elements/transport/setup/state';
 
 import * as Errors from './error';
 

@@ -12,9 +12,25 @@
     overflow: hidden;
     outline: none;
     & mat-card {
+        margin-bottom: 12px;
         & mat-card-title {
             font-size: 15px;
             color: @scheme-color-3; 
+        }
+    }
+    & mat-card.list {
+        & mat-card-content {
+            margin-left: -16px;
+            width: ~"calc(100% + 32px)";
+            
+        }
+    }
+    & app-transport-review {
+        &:hover{
+            background: @scheme-color-5;
+        }
+        &.selected{
+            background: fadeout(@scheme-color-accent, 50%);
         }
     }
 }
