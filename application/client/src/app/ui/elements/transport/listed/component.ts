@@ -1,7 +1,7 @@
 import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { DataSource, Source, SourceDescription } from '@platform/types/observe';
+import { DataSource, SourceDescription } from '@platform/types/observe';
 import { Session } from '@service/session/session';
 
 @Component({
