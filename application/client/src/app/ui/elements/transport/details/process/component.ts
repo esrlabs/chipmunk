@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Input, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectorRef, Input } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Session } from '@service/session/session';
@@ -10,7 +10,7 @@ import { ProcessTransportSettings } from '@platform/types/transport/process';
     styleUrls: ['./styles.less'],
 })
 @Ilc()
-export class TransportProcess extends ChangesDetector implements AfterViewInit, OnDestroy {
+export class TransportProcess extends ChangesDetector {
     @Input() public source!: ProcessTransportSettings;
     @Input() public session!: Session;
 
@@ -18,12 +18,12 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
         super(cdRef);
     }
 
-    public ngOnDestroy(): void {
-        //
+    public ngFullCommand(): string {
+        return `${this.source.command} + ${this.source.args.join(' ')}`;
     }
 
-    public ngAfterViewInit(): void {
-        //
+    public ngCwd(): string {
+        return `${this.source.cwd === '' ? 'not defined' : this.source.cwd}`;
     }
 }
 export interface TransportProcess extends IlcInterface {}

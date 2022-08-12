@@ -1,7 +1,9 @@
-import { Component, ChangeDetectorRef, Input, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, AfterViewInit } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Session } from '@service/session/session';
+import { File } from '@platform/types/files';
+import { bytesToStr, timestampToUTC } from '@env/str';
 
 @Component({
     selector: 'app-transport-file-details',
@@ -9,20 +11,37 @@ import { Session } from '@service/session/session';
     styleUrls: ['./styles.less'],
 })
 @Ilc()
-export class TransportFile extends ChangesDetector implements AfterViewInit, OnDestroy {
+export class TransportFile extends ChangesDetector implements AfterViewInit {
     @Input() public source!: string;
     @Input() public session!: Session;
+
+    public file: File | undefined;
+    public datetime: (ts: number) => string = timestampToUTC;
+    public bytesToStr: (size: number) => string = bytesToStr;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
 
-    public ngOnDestroy(): void {
-        //
+    public ngAfterViewInit(): void {
+        this.ilc()
+            .services.system.bridge.files()
+            .getByPath([this.source])
+            .then((result) => {
+                if (result.length !== 1) {
+                    this.log().error(`Invalid file stat info`);
+                    return;
+                }
+                this.file = result[0];
+                this.detectChanges();
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to get file info: ${err.message}`);
+            });
     }
 
-    public ngAfterViewInit(): void {
-        //
+    public ngSize(size: number): string {
+        return bytesToStr(size);
     }
 }
 export interface TransportFile extends IlcInterface {}

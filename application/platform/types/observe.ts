@@ -180,8 +180,11 @@ export class DataSource {
         } else if (this.Stream[0].Process !== undefined) {
             return {
                 major: `${this.Stream[0].Process.command} ${this.Stream[0].Process.args.join(' ')}`,
-                minor: this.Stream[0].Process.cwd,
-                icon: 'terminal',
+                minor:
+                    this.Stream[0].Process.cwd === ''
+                        ? 'no defined cwd'
+                        : this.Stream[0].Process.cwd,
+                icon: 'web_asset',
                 type: 'command',
                 state: {
                     runing: 'spawning',

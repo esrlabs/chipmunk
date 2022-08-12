@@ -1,11 +1,7 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ContainersModule } from '@elements/containers/module';
-import { AppDirectiviesModule } from '@directives/module';
-import { MatIconModule } from '@angular/material/icon';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { MatOptionModule } from '@angular/material/core';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatButtonModule } from '@angular/material/button';
 import { ObserveList } from './component';
 import { MatCardModule } from '@angular/material/card';
 import { TransportReviewModule } from '@ui/elements/transport/listed/module';
@@ -19,11 +15,7 @@ const components = [...entryComponents];
     imports: [
         CommonModule,
         ContainersModule,
-        AppDirectiviesModule,
-        MatIconModule,
-        MatAutocompleteModule,
-        MatOptionModule,
-        MatProgressSpinnerModule,
+        MatButtonModule,
         TransportReviewModule,
         TransportDetailsModule,
         MatCardModule,
