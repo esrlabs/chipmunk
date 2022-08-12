@@ -1,5 +1,8 @@
-<app-transport-udp-review *ngIf="verified.UDP !== undefined" [source]="verified.UDP" [session]="session"></app-transport-udp-review>
-<app-transport-tcp-review *ngIf="verified.TCP !== undefined" [source]="verified.TCP" [session]="session"></app-transport-tcp-review>
-<app-transport-serial-review *ngIf="verified.Serial !== undefined" [source]="verified.Serial" [session]="session"></app-transport-serial-review>
-<app-transport-process-review *ngIf="verified.Process !== undefined" [source]="verified.Process" [session]="session"></app-transport-process-review>
-<app-transport-file-review *ngIf="verified.File !== undefined" [source]="verified.File" [session]="session"></app-transport-file-review>
+<div class="icon" *ngIf="description !== undefined">
+    <mat-icon>{{description.icon}}</mat-icon>
+    <span>{{description.type}}</span>
+</div>
+<div class="info" *ngIf="description !== undefined">
+    <p class="t-medium nowrap major">{{description.major}}</p>
+    <p class="t-medium nowrap color-scheme-2 minor">{{description.minor}}</p>
+</div>

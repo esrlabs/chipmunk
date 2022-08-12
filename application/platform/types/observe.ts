@@ -6,6 +6,7 @@ import { TCPTransportSettings } from './transport/tcp';
 import { ProcessTransportSettings } from './transport/process';
 import { error } from '../env/logger';
 import { SerialTransportSettings } from './transport/serial';
+import { filename, basefolder } from '../env/str';
 
 export interface Parser {
     Dlt?: DltParserSettings;
@@ -35,6 +36,17 @@ export interface SourcesFactory {
     dlt(settings: DltParserSettings): DataSource;
     pcap(settings: PcapParserSettings): DataSource;
     text(): DataSource;
+}
+
+export interface SourceDescription {
+    major: string;
+    minor: string;
+    icon: string | undefined;
+    type: string;
+    state: {
+        runing: string;
+        stopped: string;
+    };
 }
 
 export class DataSource {
@@ -148,6 +160,72 @@ export class DataSource {
             return new Error(`Source isn't defined`);
         }
         return this.Stream[0];
+    }
+
+    public desc(): SourceDescription | Error {
+        if (this.File !== undefined) {
+            return {
+                major: filename(this.File[0]),
+                minor: basefolder(this.File[0]),
+                icon: 'insert_drive_file',
+                type: 'file',
+                state: {
+                    runing: 'tail',
+                    stopped: '',
+                },
+            };
+        }
+        if (this.Stream === undefined) {
+            return new Error(`Source isn't defined`);
+        } else if (this.Stream[0].Process !== undefined) {
+            return {
+                major: `${this.Stream[0].Process.command} ${this.Stream[0].Process.args.join(' ')}`,
+                minor: this.Stream[0].Process.cwd,
+                icon: 'terminal',
+                type: 'command',
+                state: {
+                    runing: 'spawning',
+                    stopped: '',
+                },
+            };
+        } else if (this.Stream[0].UDP !== undefined) {
+            return {
+                major: this.Stream[0].UDP.bind_addr,
+                minor:
+                    this.Stream[0].UDP.multicast.length === 0
+                        ? ''
+                        : this.Stream[0].UDP.multicast.map((m) => m.multiaddr).join(', '),
+                icon: 'network_wifi_3_bar',
+                type: 'net',
+                state: {
+                    runing: 'listening',
+                    stopped: '',
+                },
+            };
+        } else if (this.Stream[0].TCP !== undefined) {
+            return {
+                major: 'not implemented',
+                minor: 'not implemented',
+                icon: 'not implemented',
+                type: 'not implemented',
+                state: {
+                    runing: 'not implemented',
+                    stopped: '',
+                },
+            };
+        } else if (this.Stream[0].Serial !== undefined) {
+            return {
+                major: this.Stream[0].Serial.path,
+                minor: `rate: ${this.Stream[0].Serial.baud_rate}; bits: ${this.Stream[0].Serial.data_bits}`,
+                icon: 'import_export',
+                type: 'serial',
+                state: {
+                    runing: 'listening',
+                    stopped: '',
+                },
+            };
+        }
+        return new Error(`Unknown source`);
     }
 
     public toJSON(): string {
