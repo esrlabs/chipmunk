@@ -23,6 +23,7 @@ export class ObserveList extends ChangesDetector implements OnDestroy, AfterCont
     @Input() session!: Session;
 
     public observed: Map<string, DataSource> = new Map();
+    public selected: { uuid: string; source: DataSource } | undefined;
 
     constructor(cdRef: ChangeDetectorRef, private _self: ElementRef) {
         super(cdRef);
@@ -40,6 +41,23 @@ export class ObserveList extends ChangesDetector implements OnDestroy, AfterCont
             }),
         );
         this.observed = this.session.stream.observed;
+    }
+
+    public ngSelect(uuid: string, source: DataSource): void {
+        if (this.selected !== undefined && this.selected.uuid === uuid) {
+            this.selected = undefined;
+        } else {
+            this.selected = { uuid, source };
+        }
+        this.detectChanges();
+    }
+
+    public ngGetCssClass(uuid: string): string {
+        if (this.selected !== undefined && this.selected.uuid === uuid) {
+            return 'selected';
+        } else {
+            return '';
+        }
     }
 }
 export interface ObserveList extends IlcInterface {}

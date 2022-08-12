@@ -7,8 +7,9 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatOptionModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ObserveList } from './component';
-import { TransportReviewModule } from '@elements/transport.review/module';
 import { MatCardModule } from '@angular/material/card';
+import { TransportReviewModule } from '@ui/elements/transport/listed/module';
+import { TransportDetailsModule } from '@ui/elements/transport/details/module';
 
 const entryComponents = [ObserveList];
 const components = [...entryComponents];
@@ -24,6 +25,7 @@ const components = [...entryComponents];
         MatOptionModule,
         MatProgressSpinnerModule,
         TransportReviewModule,
+        TransportDetailsModule,
         MatCardModule,
     ],
     declarations: [...components],
