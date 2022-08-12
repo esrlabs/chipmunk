@@ -1,41 +1,13 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { TransportReviewUdpModule } from './udp/module';
-import { TransportReviewTcpModule } from './tcp/module';
-import { TransportReviewSerialModule } from './serial/module';
-import { TransportReviewProcessModule } from './process/module';
-import { TransportReviewFileModule } from './file/module';
+import { MatIconModule } from '@angular/material/icon';
 
 import { Transport } from './component';
 
 @NgModule({
     entryComponents: [Transport],
-    imports: [
-        CommonModule,
-        FormsModule,
-        ReactiveFormsModule,
-        MatButtonModule,
-        MatDividerModule,
-        MatFormFieldModule,
-        MatSelectModule,
-        TransportReviewUdpModule,
-        TransportReviewTcpModule,
-        TransportReviewSerialModule,
-        TransportReviewProcessModule,
-        TransportReviewFileModule,
-    ],
+    imports: [CommonModule, MatIconModule],
     declarations: [Transport],
-    exports: [
-        Transport,
-        TransportReviewUdpModule,
-        TransportReviewTcpModule,
-        TransportReviewSerialModule,
-        TransportReviewProcessModule,
-    ],
+    exports: [Transport],
 })
 export class TransportReviewModule {}
