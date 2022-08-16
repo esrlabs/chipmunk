@@ -6,7 +6,7 @@ import { File } from '@platform/types/files';
 import { TabControls } from '@service/session';
 import { State } from './state';
 import { SourceDefinition } from '@platform/types/transport';
-import { Action } from '../common/stream.open/action';
+import { Action } from '../common/actions/action';
 
 @Component({
     selector: 'app-tabs-source-textstream',

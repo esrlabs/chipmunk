@@ -3,7 +3,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
 import { Source } from '@platform/types/transport';
-import { Action } from '@ui/tabs/sources/common/stream.open/action';
+import { Action } from '@ui/tabs/sources/common/actions/action';
 
 @Component({
     selector: 'app-transport',

@@ -13,7 +13,7 @@ import { State } from './state';
 import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { Controll } from './input';
 import { List } from '@env/storages/recent/list';
-import { Action } from '@ui/tabs/sources/common/stream.open/action';
+import { Action } from '@ui/tabs/sources/common/actions/action';
 
 @Component({
     selector: 'app-transport-process',
