@@ -23,7 +23,10 @@
         & mat-card-content {
             margin-left: -16px;
             width: ~"calc(100% + 32px)";
-            
+            & p.info {
+                padding: 12px 18px;
+                color: @scheme-color-2;
+            }
         }
     }
     & app-transport-review {
@@ -39,5 +42,10 @@
         text-align: right;
         color: @scheme-color-0;
         margin-top: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        & button {
+            margin-left: 12px;
+        }
     }
 }

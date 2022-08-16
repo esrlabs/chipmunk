@@ -19,7 +19,7 @@ export class TransportProcess extends ChangesDetector {
     }
 
     public ngFullCommand(): string {
-        return `${this.source.command} + ${this.source.args.join(' ')}`;
+        return `${this.source.command} ${this.source.args.join(' ')}`;
     }
 
     public ngCwd(): string {

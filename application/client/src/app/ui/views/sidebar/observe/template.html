@@ -1,10 +1,23 @@
 <mat-card class="list">
     <mat-card-title>Observing</mat-card-title>
     <mat-card-content>
-        <app-transport-review *ngFor="let source of observed | keyvalue"
+        <p *ngIf="observed.running.size === 0" class="info t-medium">No running observe operations</p>
+        <app-transport-review *ngFor="let source of observed.running | keyvalue"
             [attr.class]="ngGetCssClass(source.key)"
             [source]="source.value"
             [session]="session"
+            [finished]="false"
+            (click)="ngSelect(source.key, source.value)"></app-transport-review>
+    </mat-card-content>
+</mat-card>
+<mat-card class="list" *ngIf="observed.done.size > 0">
+    <mat-card-title>Finished</mat-card-title>
+    <mat-card-content>
+        <app-transport-review *ngFor="let source of observed.done | keyvalue"
+            [attr.class]="ngGetCssClass(source.key)"
+            [source]="source.value"
+            [session]="session"
+            [finished]="true"
             (click)="ngSelect(source.key, source.value)"></app-transport-review>
     </mat-card-content>
 </mat-card>
@@ -17,6 +30,6 @@
     </mat-card-content>
 </mat-card>
 <div class="controlls">
-    <button mat-stroked-button >Add</button>
+    <button mat-stroked-button (click)="ngAttachStream()">Attach New</button>
 </div>
 

@@ -1,7 +1,7 @@
 import { Component, ChangeDetectorRef, Input, OnDestroy, AfterViewInit } from '@angular/core';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
-import { Action } from '@ui/tabs/sources/common/stream.open/action';
+import { Action } from '@ui/tabs/sources/common/actions/action';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 
 import SerialService from './service/service';

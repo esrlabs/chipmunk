@@ -18,10 +18,10 @@ import { TransportModule } from '@ui/elements/transport/setup/module';
 import { LocksHistoryModule } from '@ui/elements/locks.history/module';
 
 import { TabSourceTextStream } from './component';
-import { StreamActions } from '../common/stream.open/component';
+import { Actions } from '../common/actions/component';
 
 @NgModule({
-    entryComponents: [TabSourceTextStream, StreamActions],
+    entryComponents: [TabSourceTextStream, Actions],
     imports: [
         CommonModule,
         FormsModule,
@@ -41,7 +41,7 @@ import { StreamActions } from '../common/stream.open/component';
         TransportModule,
         LocksHistoryModule,
     ],
-    declarations: [TabSourceTextStream, StreamActions],
+    declarations: [TabSourceTextStream, Actions],
     exports: [TabSourceTextStream],
 })
 export class TabSourceTextStreamModule {}
