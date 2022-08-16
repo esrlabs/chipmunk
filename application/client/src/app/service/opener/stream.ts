@@ -5,12 +5,15 @@ import { Locker, Level, lockers } from '@ui/service/lockers';
 import { components } from '@env/decorators/initial';
 import { Session } from '../session/session';
 import { SourceDefinition } from '@platform/types/transport';
+import { Base } from './base';
+import { isRenderMatch } from '@schema/render/tools';
 
-export abstract class StreamOpener<Options> {
+export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> {
     protected readonly services: Services;
     protected readonly logger: Logger;
 
     constructor(services: Services, logger: Logger) {
+        super();
         this.services = services;
         this.logger = logger;
     }
@@ -35,26 +38,42 @@ export abstract class StreamOpener<Options> {
             bind: boolean,
             used: { source: SourceDefinition; options: Options },
         ): Promise<string> => {
-            return new Promise((resolve, reject) => {
-                this.services.system.session
-                    .add(bind)
-                    .empty(this.getRender())
-                    .then((created) => {
-                        session = created;
-                        this.binding(session, used.source, used.options)
-                            .then(() => {
-                                resolve(created.uuid());
-                            })
-                            .catch((err: Error) => {
-                                this.logger.error(`Fail to connect: ${err.message}`);
-                                reject(err);
-                            });
-                    })
-                    .catch((err: Error) => {
-                        this.logger.error(`Fail to create session: ${err.message}`);
-                        reject(err);
-                    });
-            });
+            if (this.session !== undefined) {
+                const matching = isRenderMatch(this.session, this.getRender());
+                if (matching instanceof Error) {
+                    return Promise.reject(matching);
+                }
+                if (!matching) {
+                    return Promise.reject(
+                        new Error(`Combination of renders in the scope of session isn't supported`),
+                    );
+                }
+                const uuid = this.session.uuid();
+                return this.binding(this.session, used.source, used.options).then(() =>
+                    Promise.resolve(uuid),
+                );
+            } else {
+                return new Promise((resolve, reject) => {
+                    this.services.system.session
+                        .add(bind)
+                        .empty(this.getRender())
+                        .then((created) => {
+                            session = created;
+                            this.binding(session, used.source, used.options)
+                                .then(() => {
+                                    resolve(created.uuid());
+                                })
+                                .catch((err: Error) => {
+                                    this.logger.error(`Fail to connect: ${err.message}`);
+                                    reject(err);
+                                });
+                        })
+                        .catch((err: Error) => {
+                            this.logger.error(`Fail to create session: ${err.message}`);
+                            reject(err);
+                        });
+                });
+            }
         };
         return new Promise((resolve, reject) => {
             if (source !== undefined && options !== undefined && openPresetSettings !== true) {
@@ -79,10 +98,11 @@ export abstract class StreamOpener<Options> {
                                 open(false, redefined)
                                     .then((uuid: string) => {
                                         progress.popup.close();
-                                        this.services.system.session.bind(
-                                            uuid,
-                                            this.getStreamTabName(),
-                                        );
+                                        this.session === undefined &&
+                                            this.services.system.session.bind(
+                                                uuid,
+                                                this.getStreamTabName(),
+                                            );
                                         this.after(redefined.source, redefined.options)
                                             .catch((err: Error) => {
                                                 this.logger.error(

@@ -44,7 +44,7 @@ export interface SourceDescription {
     icon: string | undefined;
     type: string;
     state: {
-        runing: string;
+        running: string;
         stopped: string;
     };
 }
@@ -170,7 +170,7 @@ export class DataSource {
                 icon: 'insert_drive_file',
                 type: 'file',
                 state: {
-                    runing: 'tail',
+                    running: 'tail',
                     stopped: '',
                 },
             };
@@ -187,7 +187,7 @@ export class DataSource {
                 icon: 'web_asset',
                 type: 'command',
                 state: {
-                    runing: 'spawning',
+                    running: 'spawning',
                     stopped: '',
                 },
             };
@@ -201,7 +201,7 @@ export class DataSource {
                 icon: 'network_wifi_3_bar',
                 type: 'net',
                 state: {
-                    runing: 'listening',
+                    running: 'listening',
                     stopped: '',
                 },
             };
@@ -212,7 +212,7 @@ export class DataSource {
                 icon: 'not implemented',
                 type: 'not implemented',
                 state: {
-                    runing: 'not implemented',
+                    running: 'not implemented',
                     stopped: '',
                 },
             };
@@ -223,7 +223,7 @@ export class DataSource {
                 icon: 'import_export',
                 type: 'serial',
                 state: {
-                    runing: 'listening',
+                    running: 'listening',
                     stopped: '',
                 },
             };

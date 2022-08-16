@@ -12,6 +12,18 @@ import * as Streams from './opener/streams';
 
 export { Session, TabControls };
 
+export interface StreamConnectFuncs {
+    dlt(options?: IDLTOptions): Promise<void>;
+    text(): Promise<void>;
+    assign(session: Session | undefined): StreamConnectFuncs;
+}
+
+export interface FileOpenFuncs {
+    text(): Promise<void>;
+    dlt(options?: IDLTOptions): Promise<void>;
+    assign(session: Session | undefined): FileOpenFuncs;
+}
+
 @SetupService(services['opener'])
 export class Service extends Implementation {
     private _emitter!: Emitter;
@@ -25,43 +37,44 @@ export class Service extends Implementation {
         return Promise.resolve();
     }
 
-    public stream(
-        source?: SourceDefinition,
-        openPresetSettings?: boolean,
-    ): {
-        dlt(options?: IDLTOptions): Promise<void>;
-        text(): Promise<void>;
-    } {
-        return {
+    public stream(source?: SourceDefinition, openPresetSettings?: boolean): StreamConnectFuncs {
+        let scope: Session | undefined;
+        const out = {
             text: (): Promise<void> => {
-                return new Streams.Text(this._services, this.log()).stream(
-                    source,
-                    undefined,
-                    openPresetSettings,
-                );
+                return new Streams.Text(this._services, this.log())
+                    .assign(scope)
+                    .stream(source, undefined, openPresetSettings);
             },
             dlt: (options?: IDLTOptions): Promise<void> => {
-                return new Streams.Dlt(this._services, this.log()).stream(
-                    source,
-                    options,
-                    openPresetSettings,
-                );
+                return new Streams.Dlt(this._services, this.log())
+                    .assign(scope)
+                    .stream(source, options, openPresetSettings);
+            },
+            assign: (session: Session | undefined): StreamConnectFuncs => {
+                scope = session;
+                return out;
             },
         };
+        return out;
     }
 
-    public file(file: File | string): {
-        text(): Promise<void>;
-        dlt(options?: IDLTOptions): Promise<void>;
-    } {
-        return {
+    public file(file: File | string): FileOpenFuncs {
+        let scope: Session | undefined;
+        const out = {
             text: (): Promise<void> => {
-                return new Files.Text(this._services, this.log()).open(file, undefined);
+                return new Files.Text(this._services, this.log())
+                    .assign(scope)
+                    .open(file, undefined);
             },
             dlt: (options?: IDLTOptions): Promise<void> => {
-                return new Files.Dlt(this._services, this.log()).open(file, options);
+                return new Files.Dlt(this._services, this.log()).assign(scope).open(file, options);
+            },
+            assign: (session: Session | undefined): FileOpenFuncs => {
+                scope = session;
+                return out;
             },
         };
+        return out;
     }
 }
 export interface Service extends Interface {}

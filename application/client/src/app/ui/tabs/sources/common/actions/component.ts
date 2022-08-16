@@ -4,12 +4,12 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Action } from './action';
 
 @Component({
-    selector: 'app-tabs-source-stream-actions',
+    selector: 'app-tabs-source-actions',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
 @Ilc()
-export class StreamActions extends ChangesDetector implements AfterContentInit {
+export class Actions extends ChangesDetector implements AfterContentInit {
     @Input() action!: Action;
 
     constructor(cdRef: ChangeDetectorRef) {
@@ -35,4 +35,4 @@ export class StreamActions extends ChangesDetector implements AfterContentInit {
         this.action.subjects.get().canceled.emit();
     }
 }
-export interface StreamActions extends IlcInterface {}
+export interface Actions extends IlcInterface {}

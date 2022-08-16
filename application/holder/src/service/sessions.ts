@@ -98,6 +98,15 @@ export class Service extends Implementation {
                     RequestHandlers.Observe.List.handler,
                 ),
         );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Observe.Abort.Request,
+                    RequestHandlers.Observe.Abort.handler,
+                ),
+        );
         return Promise.resolve();
     }
 

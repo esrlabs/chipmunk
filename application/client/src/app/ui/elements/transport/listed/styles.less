@@ -22,6 +22,20 @@
         & span {
             display: block;
         }
+        &.running {
+            & mat-icon {
+                color: @scheme-color-0;
+            }
+        }
+        & span.state {
+            font-size: 12px;
+            &.running {
+                color: @scheme-color-accent;
+            }
+            &.stopped {
+                color: @scheme-color-2;
+            }
+        }
     }
     & div.info {
         position: relative;
