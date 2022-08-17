@@ -26,6 +26,7 @@ export enum Source {
     GetFilters = 'GetFilters',
     GetOperationsStat = 'GetOperationsStat',
     SetDebug = 'SetDebug',
+    SendIntoSde = 'SendIntoSde',
     Concat = 'Concat',
     Merge = 'Merge',
     Extract = 'Extract',

@@ -88,7 +88,7 @@ export class Holder {
                             Events.IpcEvent.emit(
                                 new Events.Observe.Started.Event({
                                     session: this.session.getUUID(),
-                                    operation: uuid,
+                                    operation: observer.uuid(),
                                     source: source.toJSON(),
                                 }),
                             );
@@ -100,17 +100,16 @@ export class Holder {
                         })
                         .finally(() => {
                             observe.done();
-                            this._observers.delete(uuid);
+                            this._observers.delete(observer.uuid());
                             Events.IpcEvent.emit(
                                 new Events.Observe.Finished.Event({
                                     session: this.session.getUUID(),
-                                    operation: uuid,
+                                    operation: observer.uuid(),
                                     source: source.toJSON(),
                                 }),
                             );
                         });
-                    const uuid = observer.uuid();
-                    this._observers.set(uuid, { source, observer });
+                    this._observers.set(observer.uuid(), { source, observer });
                 });
             },
             cancel: (uuid: string): Promise<void> => {

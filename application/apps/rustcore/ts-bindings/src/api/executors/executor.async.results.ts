@@ -40,17 +40,17 @@ export function AsyncResultsExecutor<TResult, TOptions>(
         } = {
             abortOperationId: undefined,
             destroy: provider.getEvents().SessionDestroyed.subscribe(() => {
-                reject(new Error(logger.warn(`Session was destroyed. Operation: ${opUuid}`)));
+                reject(new Error(logger.warn(`Session was destroyed. Operation: ${self.uuid()}`)));
             }),
             error: provider.getEvents().OperationError.subscribe((event: IErrorEvent) => {
-                if (event.uuid !== opUuid) {
+                if (event.uuid !== self.uuid()) {
                     return; // Ignore. This is another operation
                 }
                 logger.warn(`Error on operation "${name}": ${event.error.message}`);
                 reject(new Error(event.error.message));
             }),
             done: provider.getEvents().OperationDone.subscribe((event: IOperationDoneEvent) => {
-                if (event.uuid !== opUuid && event.uuid !== lifecircle.abortOperationId) {
+                if (event.uuid !== self.uuid() && event.uuid !== lifecircle.abortOperationId) {
                     return; // Ignore. This is another operation
                 }
                 if (event.uuid === lifecircle.abortOperationId) {
@@ -77,15 +77,17 @@ export function AsyncResultsExecutor<TResult, TOptions>(
                 lifecircle.abortOperationId = uuidv4();
                 const state: NativeError | undefined = session.abort(
                     lifecircle.abortOperationId,
-                    opUuid,
+                    self.uuid(),
                 );
                 if (state instanceof NativeError) {
                     lifecircle.abortOperationId = undefined;
                     self.stopCancelation();
-                    logger.error(`Fail to cancel operation ${opUuid}; error: ${state.message}`);
+                    logger.error(
+                        `Fail to cancel operation ${self.uuid()}; error: ${state.message}`,
+                    );
                     reject(new Error(`Fail to cancel operation. Error: ${state.message}`));
                 } else {
-                    logger.debug(`Cancel signal for operation ${opUuid} has been sent`);
+                    logger.debug(`Cancel signal for operation ${self.uuid()} has been sent`);
                 }
             },
         };
@@ -102,8 +104,7 @@ export function AsyncResultsExecutor<TResult, TOptions>(
             lifecircle.unsunscribe();
         });
         // Call operation
-        const opUuid: string = self.uuid();
-        runner(session, options, opUuid).catch((err: Error) => {
+        runner(session, options, self.uuid()).catch((err: Error) => {
             if (self.isProcessing()) {
                 reject(
                     new Error(

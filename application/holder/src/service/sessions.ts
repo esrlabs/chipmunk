@@ -107,6 +107,15 @@ export class Service extends Implementation {
                     RequestHandlers.Observe.Abort.handler,
                 ),
         );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Observe.SDE.Request,
+                    RequestHandlers.Observe.Sde.handler,
+                ),
+        );
         return Promise.resolve();
     }
 

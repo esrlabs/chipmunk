@@ -196,6 +196,8 @@ export abstract class RustSession extends RustSessionRequiered {
         positionInStream: number,
     ): Promise<{ index: number; position: number } | undefined>;
 
+    public abstract sendIntoSde(targetOperationUuid: string, jsonStrMsg: string): Promise<string>;
+
     public abstract abort(
         selfOperationUuid: string,
         targetOperationUuid: string,
@@ -272,6 +274,8 @@ export abstract class RustSessionNative {
         operationUuid: string,
         positionInStream: number,
     ): Promise<number[] | null>;
+
+    public abstract sendIntoSde(targetOperationUuid: string, jsonStrMsg: string): Promise<string>;
 
     public abstract abort(
         selfOperationUuid: string,
@@ -722,6 +726,17 @@ export class RustSessionWrapper extends RustSession {
                 })
                 .catch((err) => {
                     reject(new NativeError(NativeError.from(err), Type.Other, Source.GetNearestTo));
+                });
+        });
+    }
+
+    public sendIntoSde(targetOperationUuid: string, jsonStrMsg: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            this._native
+                .sendIntoSde(targetOperationUuid, jsonStrMsg)
+                .then(resolve)
+                .catch((err) => {
+                    reject(new NativeError(NativeError.from(err), Type.Other, Source.SendIntoSde));
                 });
         });
     }

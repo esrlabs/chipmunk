@@ -1,10 +1,11 @@
 use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use async_trait::async_trait;
 use buf_redux::Buffer;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, process::Stdio};
 use thiserror::Error;
 use tokio::{
-    io::{AsyncBufReadExt, BufReader},
+    io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
     process::{Child, ChildStderr, ChildStdout, Command},
     select,
 };
@@ -47,6 +48,16 @@ impl ProcessSource {
     }
 }
 
+#[derive(Serialize)]
+pub struct StdinWriteReport {
+    bytes: usize,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct StdinRequestReport {
+    data: String,
+}
+
 #[async_trait]
 impl ByteSource for ProcessSource {
     async fn reload(
@@ -59,6 +70,16 @@ impl ByteSource for ProcessSource {
                 None => {
                     return Err(SourceError::Unrecoverable(
                         "Detecting stdout failed".to_string(),
+                    ))
+                }
+            }
+        }
+        if self.stderr_reader.is_none() {
+            match self.process.stderr.take() {
+                Some(stderr) => self.stderr_reader = Some(BufReader::new(stderr)),
+                None => {
+                    return Err(SourceError::Unrecoverable(
+                        "Detecting stderr failed".to_string(),
                     ))
                 }
             }
@@ -84,12 +105,6 @@ impl ByteSource for ProcessSource {
                 }
             } => stdout_buffer,
             stderr_buffer = async {
-                if self.stderr_reader.is_none() {
-                    match self.process.stderr.take() {
-                        Some(stderr) => self.stderr_reader = Some(BufReader::new(stderr)),
-                        None => return Err(SourceError::Unrecoverable("Detecting stderr failed".to_string())),
-                    }
-                }
                 let mut stderr_buffer = String::new();
                 match &mut self.stderr_reader {
                     Some(reader) => {
@@ -135,6 +150,21 @@ impl ByteSource for ProcessSource {
 
     fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    async fn income(&mut self, msg: String) -> Result<String, String> {
+        let message = serde_json::from_str::<StdinRequestReport>(&msg)
+            .map_err(|e| format!("Fail to deserialize message: {}", e))?;
+        if let Some(stdin) = self.process.stdin.as_mut() {
+            stdin
+                .write(message.data.as_bytes())
+                .await
+                .map_err(|e| format!("Fail to write into stdin: {}", e))?;
+        }
+        serde_json::to_string(&StdinWriteReport {
+            bytes: msg.as_bytes().len(),
+        })
+        .map_err(|e| format!("Fail to convert response to JSON: {}", e))
     }
 }
 

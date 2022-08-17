@@ -1108,7 +1108,7 @@ pub async fn main() -> Result<()> {
             // PAYLOAD,
             println!("dynamic producer");
             let source = BinaryByteSource::new(reader);
-            let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
+            let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source, None);
             let dlt_stream = dlt_msg_producer.as_stream();
             pin_mut!(dlt_stream);
             let mut last_grab_call = Instant::now();
@@ -1748,7 +1748,7 @@ async fn count_dlt_messages(input: &Path) -> Result<u64, DltParseError> {
 
         let source = BinaryByteSource::new(second_reader);
 
-        let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
+        let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source, None);
         let msg_stream = dlt_msg_producer.as_stream();
         Ok(msg_stream.count().await as u64)
     } else {
@@ -1766,7 +1766,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
             let buf_reader = BufReader::new(fs::File::open(&input)?);
             let source = BinaryByteSource::new(buf_reader);
             let dlt_parser = DltRangeParser::new();
-            let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
+            let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source, None);
             let msg_stream = dlt_msg_producer.as_stream();
             pin_mut!(msg_stream);
             let mut item_count = 0usize;
@@ -1798,7 +1798,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
             let some_parser = SomeipParser::new();
             match PcapngByteSource::new(fs::File::open(&input)?) {
                 Ok(source) => {
-                    let mut some_msg_producer = MessageProducer::new(some_parser, source);
+                    let mut some_msg_producer = MessageProducer::new(some_parser, source, None);
                     let msg_stream = some_msg_producer.as_stream();
                     pin_mut!(msg_stream);
                     let mut item_count = 0usize;
@@ -1838,7 +1838,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
             // let buf_reader = BufReader::new(fs::File::open(&input)?);
             match PcapngByteSource::new(fs::File::open(&input)?) {
                 Ok(source) => {
-                    let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
+                    let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source, None);
                     let msg_stream = dlt_msg_producer.as_stream();
                     pin_mut!(msg_stream);
                     let mut item_count = 0usize;
@@ -1877,7 +1877,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
             let txt_parser = StringTokenizer {};
             let buf_reader = BufReader::new(fs::File::open(&input)?);
             let source = BinaryByteSource::new(buf_reader);
-            let mut txt_msg_producer = MessageProducer::new(txt_parser, source);
+            let mut txt_msg_producer = MessageProducer::new(txt_parser, source, None);
             let msg_stream = txt_msg_producer.as_stream();
             pin_mut!(msg_stream);
             let mut item_count = 0usize;

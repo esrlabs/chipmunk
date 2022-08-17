@@ -428,7 +428,7 @@ pub async fn print_from_pcapng<T: LogMessage + std::marker::Unpin + Send, P: Par
     let buf_reader = std::io::BufReader::new(&pcap_file);
     let pcapng_byte_src =
         PcapngByteSource::new(buf_reader).map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
-    let mut pcap_msg_producer = MessageProducer::new(parser, pcapng_byte_src);
+    let mut pcap_msg_producer = MessageProducer::new(parser, pcapng_byte_src, None);
     let msg_stream = pcap_msg_producer.as_stream();
     pin_mut!(msg_stream);
     index_from_message_stream(total, cancel, msg_stream, output).await
@@ -453,7 +453,7 @@ pub async fn convert_from_pcapng<
     let buf_reader = std::io::BufReader::new(&pcap_file);
     let pcapng_byte_src =
         PcapngByteSource::new(buf_reader).map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
-    let mut pcap_msg_producer = MessageProducer::new(parser, pcapng_byte_src);
+    let mut pcap_msg_producer = MessageProducer::new(parser, pcapng_byte_src, None);
     let msg_stream = pcap_msg_producer.as_stream();
     pin_mut!(msg_stream);
     index_from_message_stream(total, cancel, msg_stream, output).await
@@ -572,7 +572,7 @@ pub async fn create_index_and_mapping_from_pcapng<
     trace!("create_index_and_mapping_from_pcapng");
     match utils::next_line_nr(&config.out_path) {
         Ok(initial_line_nr) => {
-            let mut pcap_msg_producer = MessageProducer::new(parser, source);
+            let mut pcap_msg_producer = MessageProducer::new(parser, source, None);
             let output = ChunkOutput::new(
                 &config.tag,
                 config.append,

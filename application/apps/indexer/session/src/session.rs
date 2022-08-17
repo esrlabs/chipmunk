@@ -17,7 +17,10 @@ use serde::Serialize;
 use sources::factory::SourceType;
 use tokio::{
     join,
-    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    sync::{
+        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+        oneshot,
+    },
     task,
 };
 use tokio_util::sync::CancellationToken;
@@ -112,6 +115,34 @@ impl Session {
                 operations::OperationKind::Cancel { target },
             ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
+    }
+
+    pub async fn send_into_sde(
+        &self,
+        target: Uuid,
+        msg: String,
+    ) -> Result<String, ComputationError> {
+        let (tx_response, rx_response) = oneshot::channel();
+        let response = if let Some(tx_sde) = self
+            .tracker
+            .get_sde_sender(target)
+            .await
+            .map_err(|e| ComputationError::IoOperation(format!("{:?}", e)))?
+        {
+            tx_sde.send((msg, tx_response)).map_err(|_| {
+                ComputationError::Communication(String::from(
+                    "Fail to send message into SDE channel",
+                ))
+            })?;
+            rx_response.await.map_err(|_| {
+                ComputationError::Communication(String::from(
+                    "Fail to get response from SDE channel",
+                ))
+            })?
+        } else {
+            Err(String::from("No SDE channel"))
+        };
+        serde_json::to_string(&response).map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
     pub async fn stop(&self, operation_id: Uuid) -> Result<(), ComputationError> {

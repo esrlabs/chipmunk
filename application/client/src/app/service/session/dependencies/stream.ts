@@ -6,6 +6,7 @@ import { Rank } from './rank';
 import { IGrabbedElement } from '@platform/types/content';
 import { DataSource } from '@platform/types/observe';
 import { ObserveOperation } from './observe/operation';
+import { error } from '@platform/env/logger';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -62,7 +63,12 @@ export class Stream extends Subscriber {
                 }
                 this.observed.running.set(
                     event.operation,
-                    new ObserveOperation(event.operation, source, this.observe().abort),
+                    new ObserveOperation(
+                        event.operation,
+                        source,
+                        this.observe().sde,
+                        this.observe().abort,
+                    ),
                 );
                 this.subjects.get().observe.emit(this.observed.running);
             }),
@@ -95,6 +101,7 @@ export class Stream extends Subscriber {
     public observe(): {
         abort(uuid: string): Promise<void>;
         list(): Promise<Map<string, DataSource>>;
+        sde<T, R>(uuid: string, msg: T): Promise<R>;
     } {
         return {
             abort: (uuid: string): Promise<void> => {
@@ -143,6 +150,34 @@ export class Stream extends Subscriber {
                             this.log().error(
                                 `Fail to get a list of observed sources: ${error.message}`,
                             );
+                        });
+                });
+            },
+            sde: <T, R>(uuid: string, msg: T): Promise<R> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Observe.SDE.Response,
+                        new Requests.Observe.SDE.Request({
+                            session: this._uuid,
+                            operation: uuid,
+                            json: JSON.stringify(msg),
+                        }),
+                    )
+                        .then((response: Requests.Observe.SDE.Response) => {
+                            if (response.error !== undefined) {
+                                return reject(new Error(response.error));
+                            }
+                            if (response.result === undefined) {
+                                return reject(new Error(`SDE doesn't return any kind of result`));
+                            }
+                            try {
+                                resolve(JSON.parse(response.result) as unknown as R);
+                            } catch (e) {
+                                return reject(new Error(error(e)));
+                            }
+                        })
+                        .catch((error: Error) => {
+                            this.log().error(`Fail to send SDE into operation: ${error.message}`);
                         });
                 });
             },
