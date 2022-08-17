@@ -81,7 +81,7 @@ pub(crate) const DEFAULT_MIN_BUFFER_SPACE: usize = 10 * 1024;
 /// data into an internal buffer.
 /// This data can then be accessed via the `current_slice` method.
 #[async_trait]
-pub trait ByteSource {
+pub trait ByteSource: Send {
     /// Indicate that we have consumed a certain amount of data from our internal
     /// buffer and that this part can be discarded
     fn consume(&mut self, offset: usize);
@@ -116,5 +116,9 @@ pub trait ByteSource {
     /// cleanup before the ByteSource is discarded
     async fn cancel(&mut self) -> Result<(), Error> {
         Ok(())
+    }
+
+    async fn income(&mut self, _msg: String) -> Result<String, String> {
+        Ok(String::new())
     }
 }

@@ -348,6 +348,24 @@ impl RustSession {
     }
 
     #[node_bindgen]
+    async fn send_into_sde(
+        &self,
+        target: String,
+        msg: String,
+    ) -> Result<String, ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            session
+                .send_into_sde(operations::uuid_from_str(&target)?, msg)
+                .await
+                .map_err(ComputationErrorWrapper)
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
     async fn concat(
         &self,
         _files: Vec<WrappedConcatenatorInput>,

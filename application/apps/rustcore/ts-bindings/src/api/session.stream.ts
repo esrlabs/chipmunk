@@ -77,8 +77,29 @@ export class SessionStream {
     }
 
     public observe(source: Observe.DataSource): ICancelablePromise<void> {
-        // TODO create grabber
         return Executors.observe(this._session, this._provider, this._logger, source);
+    }
+
+    public sde(operation: string, msg: string): Promise<string> {
+        return this._session.sendIntoSde(operation, msg).then((result) => {
+            try {
+                const parsed: { Ok?: string; Err?: string } = JSON.parse(result);
+                if (typeof parsed.Ok !== 'string' && typeof parsed.Err !== 'string') {
+                    return Promise.reject(new Error(`Invalid format of response`));
+                }
+                if (typeof parsed.Err === 'string') {
+                    return Promise.reject(new Error(parsed.Err));
+                }
+                if (typeof parsed.Ok === 'string') {
+                    return Promise.resolve(
+                        typeof parsed.Ok === 'string' ? parsed.Ok : JSON.stringify(parsed.Ok),
+                    );
+                }
+                return Promise.resolve('');
+            } catch (e) {
+                return Promise.reject(new Error(`Fail to parse response`));
+            }
+        });
     }
 
     public concat(files: IConcatFile[], append: boolean): ICancelablePromise<IConcatResults> {

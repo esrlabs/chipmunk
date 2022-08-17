@@ -14,7 +14,7 @@ async fn test_read_messages_from_pcapng() {
     let dlt_parser = DltParser::default();
     let in_file = File::open(&*EXAMPLE_PCAPNG).expect("cannot open file");
     let source = PcapngByteSource::new(in_file).expect("cannot create source");
-    let mut pcap_msg_producer = MessageProducer::new(dlt_parser, source);
+    let mut pcap_msg_producer = MessageProducer::new(dlt_parser, source, None);
     let msg_stream = pcap_msg_producer.as_stream();
     pin_mut!(msg_stream);
     let mut found_msg = 0usize;

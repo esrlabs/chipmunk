@@ -37,14 +37,14 @@ export function AsyncVoidConfirmedExecutor<TOptions>(
                 reject(new Error(logger.warn('Session was destroyed')));
             }),
             error: provider.getEvents().OperationError.subscribe((event: IErrorEvent) => {
-                if (event.uuid !== opUuid) {
+                if (event.uuid !== self.uuid()) {
                     return; // Ignore. This is another operation
                 }
                 logger.warn(`Error on operation "${name}": ${event.error.message}`);
                 reject(new Error(event.error.message));
             }),
             done: provider.getEvents().OperationDone.subscribe((event: IOperationDoneEvent) => {
-                if (event.uuid !== opUuid && event.uuid !== lifecircle.abortOperationId) {
+                if (event.uuid !== self.uuid() && event.uuid !== lifecircle.abortOperationId) {
                     return; // Ignore. This is another operation
                 }
                 if (event.uuid === lifecircle.abortOperationId) {
@@ -54,7 +54,7 @@ export function AsyncVoidConfirmedExecutor<TOptions>(
                 }
             }),
             confirmed: provider.getEvents().OperationStarted.subscribe((uuid: string) => {
-                if (uuid !== opUuid) {
+                if (uuid !== self.uuid()) {
                     return;
                 }
                 self.emit('confirmed');
@@ -77,15 +77,15 @@ export function AsyncVoidConfirmedExecutor<TOptions>(
                 lifecircle.abortOperationId = uuidv4();
                 const state: NativeError | undefined = session.abort(
                     lifecircle.abortOperationId,
-                    opUuid,
+                    self.uuid(),
                 );
                 if (state instanceof NativeError) {
                     lifecircle.abortOperationId = undefined;
                     self.stopCancelation();
-                    logger.error(`Fail to cancel operation ${opUuid}; error: ${state.message}`);
+                    logger.error(`Fail to cancel operation ${self.uuid()}; error: ${state.message}`);
                     reject(new Error(`Fail to cancel operation. Error: ${state.message}`));
                 } else {
-                    logger.debug(`Cancel signal for operation ${opUuid} has been sent`);
+                    logger.debug(`Cancel signal for operation ${self.uuid()} has been sent`);
                 }
             },
         };
@@ -101,8 +101,7 @@ export function AsyncVoidConfirmedExecutor<TOptions>(
             logger.debug('Async void operation promise is closed as well');
             lifecircle.unsunscribe();
         });
-        const opUuid: string = uuidv4();
-        runner(session, options, opUuid).catch((err: Error) => {
+        runner(session, options, self.uuid()).catch((err: Error) => {
             if (self.isProcessing()) {
                 reject(
                     new Error(

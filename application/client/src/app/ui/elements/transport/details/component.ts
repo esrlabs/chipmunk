@@ -56,7 +56,17 @@ export class Transport extends ChangesDetector implements AfterContentInit, Afte
     }
 
     public ngClone(): void {
-        //
+        if (!(this.source instanceof ObserveOperation)) {
+            return;
+        }
+        this.source
+            .sendIntoSde({ data: 'test' })
+            .then((res) => {
+                console.log(`>>>>>>>>>>>>>>>>>>>>>>> ${res}`);
+            })
+            .catch((err: Error) => {
+                console.log(`>>>>>>>>>>>>>>>>>>>>>>> ${err}`);
+            });
     }
 
     protected update() {

@@ -5,31 +5,32 @@ import { Instance as Logger } from 'platform/env/logger';
 import * as Requests from 'platform/ipc/request';
 
 export const handler = Requests.InjectLogger<
-    Requests.Observe.Abort.Request,
-    CancelablePromise<Requests.Observe.Abort.Response>
+    Requests.Observe.SDE.Request,
+    CancelablePromise<Requests.Observe.SDE.Response>
 >(
     (
         log: Logger,
-        request: Requests.Observe.Abort.Request,
-    ): CancelablePromise<Requests.Observe.Abort.Response> => {
+        request: Requests.Observe.SDE.Request,
+    ): CancelablePromise<Requests.Observe.SDE.Response> => {
         return new CancelablePromise((resolve, reject) => {
             const stored = sessions.get(request.session);
             if (stored === undefined) {
                 return reject(new Error(`Session doesn't exist`));
             }
-            stored
-                .observe()
-                .cancel(request.operation)
-                .then(() => {
+            stored.session
+                .getStream()
+                .sde(request.operation, request.json)
+                .then((result: string) => {
                     resolve(
-                        new Requests.Observe.Abort.Response({
+                        new Requests.Observe.SDE.Response({
                             session: stored.session.getUUID(),
+                            result,
                         }),
                     );
                 })
                 .catch((err: Error) => {
                     resolve(
-                        new Requests.Observe.Abort.Response({
+                        new Requests.Observe.SDE.Response({
                             session: stored.session.getUUID(),
                             error: err.message,
                         }),

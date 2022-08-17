@@ -9,13 +9,17 @@ use log::{debug, error, warn};
 use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
 use processor::search::SearchFilter;
 use serde::Serialize;
-use sources::factory::SourceType;
+use sources::{
+    factory::SourceType,
+    producer::{SdeReceiver, SdeSender},
+};
 use std::{
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
 };
+//use thiserror::Error;
 use tokio::{
-    sync::mpsc::{UnboundedReceiver, UnboundedSender},
+    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::spawn,
 };
 use tokio_util::sync::CancellationToken;
@@ -235,12 +239,18 @@ impl OperationAPI {
         self.cancellation_token.clone()
     }
 
-    pub async fn execute(&self, operation: Operation) -> Result<(), NativeError> {
+    pub async fn execute(
+        &self,
+        operation: Operation,
+        tx_sde: Option<SdeSender>,
+        rx_sde: Option<SdeReceiver>,
+    ) -> Result<(), NativeError> {
         let added = self
             .tracker_api
             .add_operation(
                 self.id(),
                 operation.kind.to_string(),
+                tx_sde,
                 self.cancellation_token(),
                 self.done_token(),
             )
@@ -260,7 +270,7 @@ impl OperationAPI {
             match operation.kind {
                 OperationKind::Observe(source) => {
                     api.finish(
-                        handlers::observe::handle(api.clone(), state, source).await,
+                        handlers::observe::handle(api.clone(), state, source, rx_sde).await,
                         operation_str,
                     )
                     .await;
@@ -406,7 +416,14 @@ pub async fn run(
                 operation.id,
                 CancellationToken::new(),
             );
-            if let Err(err) = operation_api.execute(operation).await {
+            let (tx_sde, rx_sde): (Option<SdeSender>, Option<SdeReceiver>) =
+                if matches!(operation.kind, OperationKind::Observe(..)) {
+                    let (tx_sde, rx_sde): (SdeSender, SdeReceiver) = unbounded_channel();
+                    (Some(tx_sde), Some(rx_sde))
+                } else {
+                    (None, None)
+                };
+            if let Err(err) = operation_api.execute(operation, tx_sde, rx_sde).await {
                 operation_api.emit(CallbackEvent::OperationError {
                     uuid: operation_api.id(),
                     error: err,

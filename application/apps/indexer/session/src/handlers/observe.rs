@@ -11,7 +11,7 @@ use sources::{
     command,
     factory::{ParserType, SourceType, Transport},
     pcap,
-    producer::MessageProducer,
+    producer::{MessageProducer, SdeReceiver},
     raw, socket, ByteSource,
 };
 use std::fs::File;
@@ -26,7 +26,13 @@ pub async fn handle(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     source: SourceType,
+    rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
+    let rx_sde = rx_sde.ok_or(NativeError {
+        severity: Severity::ERROR,
+        kind: NativeErrorKind::UnsupportedFileType,
+        message: Some(String::from("Observe operation requires SDE channel")),
+    })?;
     let result: OperationResult<()> = match source {
         SourceType::Stream(transport, parser_type) => {
             let fibex_metadata;
@@ -39,7 +45,14 @@ pub async fn handle(
                     });
                 }
                 ParserType::Text => {
-                    listen_from_source(transport, text::StringTokenizer, operation_api, state).await
+                    listen_from_source(
+                        transport,
+                        text::StringTokenizer,
+                        operation_api,
+                        state,
+                        rx_sde,
+                    )
+                    .await
                 }
                 ParserType::Pcap(settings) => {
                     fibex_metadata = if let Some(fibex_file_paths) = settings.dlt.fibex_file_paths {
@@ -56,6 +69,7 @@ pub async fn handle(
                         ),
                         operation_api,
                         state,
+                        rx_sde,
                     )
                     .await
                 }
@@ -76,6 +90,7 @@ pub async fn handle(
                         ),
                         operation_api,
                         state,
+                        rx_sde,
                     )
                     .await
                 }
@@ -177,7 +192,7 @@ pub async fn handle(
                         listen(
                             operation_api,
                             state,
-                            MessageProducer::new(dlt_parser, source),
+                            MessageProducer::new(dlt_parser, source, Some(rx_sde)),
                             Some(rx_tail),
                         )
                     );
@@ -215,7 +230,7 @@ pub async fn handle(
                         listen(
                             operation_api,
                             state,
-                            MessageProducer::new(dlt_parser, source),
+                            MessageProducer::new(dlt_parser, source, Some(rx_sde)),
                             Some(rx_tail),
                         )
                     );
@@ -237,6 +252,7 @@ async fn listen_from_source<T: LogMessage, P: Parser<T>>(
     parser: P,
     operation_api: OperationAPI,
     state: SessionStateAPI,
+    rx_sde: SdeReceiver,
 ) -> OperationResult<()> {
     match transport {
         Transport::UDP(config) => {
@@ -252,6 +268,7 @@ async fn listen_from_source<T: LogMessage, P: Parser<T>>(
                             kind: NativeErrorKind::Interrupted,
                             message: Some(format!("Fail to create socket due error: {:?}", e)),
                         })?,
+                    Some(rx_sde),
                 ),
                 None,
             )
@@ -276,6 +293,7 @@ async fn listen_from_source<T: LogMessage, P: Parser<T>>(
                                 e
                             )),
                         })?,
+                    Some(rx_sde),
                 ),
                 None,
             )
@@ -297,6 +315,7 @@ async fn listen_from_source<T: LogMessage, P: Parser<T>>(
                             )),
                         }
                     })?,
+                    Some(rx_sde),
                 ),
                 None,
             )
