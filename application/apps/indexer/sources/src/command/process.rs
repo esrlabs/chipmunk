@@ -1,12 +1,14 @@
-use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
+use crate::{
+    command::sde::{SdeRequest, SdeResponse, WriteResponse},
+    ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
+};
 use async_trait::async_trait;
 use buf_redux::Buffer;
-use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, process::Stdio};
 use thiserror::Error;
 use tokio::{
-    io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
-    process::{Child, ChildStderr, ChildStdout, Command},
+    io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter},
+    process::{Child, ChildStderr, ChildStdin, ChildStdout, Command},
     select,
 };
 
@@ -24,6 +26,7 @@ pub struct ProcessSource {
     amount: usize,
     stdout_reader: Option<BufReader<ChildStdout>>,
     stderr_reader: Option<BufReader<ChildStderr>>,
+    stdin_writer: Option<BufWriter<ChildStdin>>,
 }
 
 impl ProcessSource {
@@ -38,24 +41,16 @@ impl ProcessSource {
                 .envs(envs)
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
+                .stdin(Stdio::piped())
                 .spawn()
                 .map_err(|e| ProcessError::Setup(format!("{}", e)))?,
             buffer: Buffer::new(),
             amount: 0,
             stdout_reader: None,
             stderr_reader: None,
+            stdin_writer: None,
         })
     }
-}
-
-#[derive(Serialize)]
-pub struct StdinWriteReport {
-    bytes: usize,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct StdinRequestReport {
-    data: String,
 }
 
 #[async_trait]
@@ -90,7 +85,9 @@ impl ByteSource for ProcessSource {
                 match &mut self.stdout_reader {
                     Some(reader) => {
                         match reader.read_line(&mut stdout_buffer).await {
-                            Ok(_) => Ok(stdout_buffer),
+                            Ok(_) => {
+                                Ok(stdout_buffer)
+                            },
                             Err(err) => {
                                 Err(SourceError::Unrecoverable(format!(
                                     "Reading line from stdout failed: {}",
@@ -109,7 +106,9 @@ impl ByteSource for ProcessSource {
                 match &mut self.stderr_reader {
                     Some(reader) => {
                         match reader.read_line(&mut stderr_buffer).await {
-                            Ok(_) => Ok(stderr_buffer),
+                            Ok(_) => {
+                                Ok(stderr_buffer)
+                            },
                             Err(err) => {
                                 Err(SourceError::Unrecoverable(format!(
                                     "Reading line from stderr failed: {}",
@@ -153,18 +152,41 @@ impl ByteSource for ProcessSource {
     }
 
     async fn income(&mut self, msg: String) -> Result<String, String> {
-        let message = serde_json::from_str::<StdinRequestReport>(&msg)
+        let request = serde_json::from_str::<SdeRequest>(&msg)
             .map_err(|e| format!("Fail to deserialize message: {}", e))?;
-        if let Some(stdin) = self.process.stdin.as_mut() {
-            stdin
-                .write(message.data.as_bytes())
-                .await
-                .map_err(|e| format!("Fail to write into stdin: {}", e))?;
+        if self.stdin_writer.is_none() {
+            match self.process.stdin.take() {
+                Some(stdin) => self.stdin_writer = Some(BufWriter::new(stdin)),
+                None => return Err(String::from("No stdin available")),
+            }
         }
-        serde_json::to_string(&StdinWriteReport {
-            bytes: msg.as_bytes().len(),
-        })
-        .map_err(|e| format!("Fail to convert response to JSON: {}", e))
+        let response = if let Some(writer) = self.stdin_writer.as_mut() {
+            let response = match request {
+                SdeRequest::WriteText(str) => {
+                    let written = writer
+                        .write(str.as_bytes())
+                        .await
+                        .map_err(|e| format!("Fail to write string into stdin: {}", e))?;
+                    SdeResponse::WriteText(WriteResponse { bytes: written })
+                }
+                SdeRequest::WriteBytes(bytes) => {
+                    let written = writer
+                        .write(&bytes)
+                        .await
+                        .map_err(|e| format!("Fail to write bytes into stdin: {}", e))?;
+                    SdeResponse::WriteText(WriteResponse { bytes: written })
+                }
+            };
+            writer
+                .flush()
+                .await
+                .map_err(|e| format!("Fail to write string into stdin: {}", e))?;
+            response
+        } else {
+            SdeResponse::Error(String::from("No access to stdin"))
+        };
+        serde_json::to_string(&response)
+            .map_err(|e| format!("Fail to convert response to JSON: {}", e))
     }
 }
 

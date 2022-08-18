@@ -2,6 +2,7 @@ import * as Logs from '../util/logging';
 
 import { RustSession } from '../native/native.session';
 import { ICancelablePromise } from 'platform/env/promise';
+import { SdeResult } from 'platform/types/sde/common';
 import { EventProvider } from '../api/session.provider';
 import { IExportOptions } from './executors/session.stream.export.executor';
 import {
@@ -83,7 +84,7 @@ export class SessionStream {
     public sde(operation: string, msg: string): Promise<string> {
         return this._session.sendIntoSde(operation, msg).then((result) => {
             try {
-                const parsed: { Ok?: string; Err?: string } = JSON.parse(result);
+                const parsed: SdeResult = JSON.parse(result);
                 if (typeof parsed.Ok !== 'string' && typeof parsed.Err !== 'string') {
                     return Promise.reject(new Error(`Invalid format of response`));
                 }
