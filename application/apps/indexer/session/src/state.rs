@@ -26,7 +26,7 @@ use tokio::sync::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-const NOTIFY_IN_MS: u128 = 250;
+pub const NOTIFY_IN_MS: u128 = 250;
 
 #[derive(Debug)]
 pub enum SearchHolderState {
@@ -134,6 +134,7 @@ pub enum Status {
 pub struct SessionState {
     pub session_file: Option<PathBuf>,
     pub session_writer: Option<BufWriter<File>>,
+    pub session_has_updates: bool,
     pub last_message_timestamp: Instant,
     pub search_map: SearchMap,
     pub search_holder: SearchHolderState,
@@ -302,6 +303,8 @@ impl SessionState {
                 return self
                     .handle_update_session(state_cancellation_token, tx_callback_events)
                     .await;
+            } else {
+                self.session_has_updates = true;
             }
         }
         Ok(false)
@@ -319,6 +322,9 @@ impl SessionState {
                 message: Some(String::from("Session file isn't assigned yet")),
             });
         }
+        if !self.session_has_updates {
+            return Ok(());
+        }
         if let Some(session_writer) = self.session_writer.as_mut() {
             session_writer.flush().map_err(|e| NativeError {
                 severity: Severity::ERROR,
@@ -326,6 +332,7 @@ impl SessionState {
                 message: Some(e.to_string()),
             })?;
             self.last_message_timestamp = Instant::now();
+            self.session_has_updates = false;
             self.handle_update_session(state_cancellation_token, tx_callback_events)
                 .await?;
         }
@@ -343,7 +350,6 @@ impl SessionState {
             let current = grabber.log_entry_count().unwrap_or(0) as u64;
             if prev != current {
                 tx_callback_events.send(CallbackEvent::StreamUpdated(current))?;
-
                 match self
                     .search_holder
                     .execute_search(state_cancellation_token.clone())
@@ -648,6 +654,7 @@ pub async fn run(
     let mut state = SessionState {
         session_file: None,
         session_writer: None,
+        session_has_updates: false,
         last_message_timestamp: Instant::now(),
         search_map: SearchMap::new(),
         search_holder: SearchHolderState::NotInited,

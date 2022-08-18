@@ -1,7 +1,7 @@
 use crate::{
     events::{NativeError, NativeErrorKind},
     operations::{OperationAPI, OperationResult},
-    state::{SessionFile, SessionStateAPI},
+    state::{SessionFile, SessionStateAPI, NOTIFY_IN_MS},
     tail,
 };
 use indexer_base::progress::Severity;
@@ -18,6 +18,7 @@ use std::fs::File;
 use tokio::{
     join, select,
     sync::mpsc::{channel, Receiver, Sender},
+    time::{timeout, Duration},
 };
 use tokio_stream::StreamExt;
 
@@ -244,6 +245,7 @@ pub async fn handle(
 
 enum Next<T: LogMessage> {
     Item(MessageStreamItem<T>),
+    Timeout,
     Waiting,
 }
 
@@ -339,10 +341,15 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     operation_api.started();
     while let Some(next) = select! {
         next_from_stream = async {
-            if let Some((_, item)) = stream.next().await {
-                Some(Next::Item(item))
-            } else {
-                Some(Next::Waiting)
+            match timeout(Duration::from_millis(NOTIFY_IN_MS as u64), stream.next()).await {
+                Ok(item) => {
+                    if let Some((_, item)) = item {
+                        Some(Next::Item(item))
+                    } else {
+                        Some(Next::Waiting)
+                    }
+                },
+                Err(_) => Some(Next::Timeout),
             }
         } => next_from_stream,
         _ = cancel.cancelled() => None,
@@ -370,6 +377,11 @@ async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                     MessageStreamItem::Empty => {
                         trace!("observe: empty message");
                     }
+                }
+            }
+            Next::Timeout => {
+                if !state.is_closing() {
+                    state.flush_session_file().await?;
                 }
             }
             Next::Waiting => {
