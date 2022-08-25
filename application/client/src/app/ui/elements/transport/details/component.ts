@@ -10,7 +10,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { DataSource, Source } from '@platform/types/observe';
 import { Session } from '@service/session/session';
 import { ObserveOperation } from '@service/session/dependencies/observe/operation';
-import { SdeRequest, SdeResponse } from '@platform/types/sde/processes';
+// import { SdeRequest, SdeResponse } from '@platform/types/sde/processes';
 
 @Component({
     selector: 'app-transport-details',
@@ -60,15 +60,15 @@ export class Transport extends ChangesDetector implements AfterContentInit, Afte
         if (!(this.source instanceof ObserveOperation)) {
             return;
         }
-        const source = this.source;
-        source
-            .sendIntoSde<SdeRequest, SdeResponse>({ WriteText: 'test' })
-            .then((res: SdeResponse) => {
-                console.log(`>>>>>>>>>>>>>>>>>>>>>>> ${res}`);
-            })
-            .catch((err: Error) => {
-                console.log(`>>>>>>>>>>>>>>>>>>>>>>> ${err}`);
-            });
+        // const source = this.source;
+        // source
+        //     .sendIntoSde<SdeRequest, SdeResponse>({ WriteText: 'test' })
+        //     .then((res: SdeResponse) => {
+        //         console.log(`>>>>>>>>>>>>>>>>>>>>>>> ${res}`);
+        //     })
+        //     .catch((err: Error) => {
+        //         console.log(`>>>>>>>>>>>>>>>>>>>>>>> ${err}`);
+        //     });
     }
 
     protected update() {

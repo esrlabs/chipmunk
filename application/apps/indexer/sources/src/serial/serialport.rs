@@ -1,4 +1,5 @@
 use crate::factory::SerialTransportConfig;
+// use crate::serial::sde;
 use crate::ByteSource;
 use crate::{Error as SourceError, ReloadInfo, SourceFilter};
 use async_trait::async_trait;
@@ -48,6 +49,13 @@ pub struct SerialSource {
     buffer: Buffer,
     amount: usize,
 }
+
+// Do we need to do some actions of destractor?
+// impl Drop for SerialSource {
+//     fn drop(&mut self) {
+//         // Todo something good
+//     }
+// }
 
 impl SerialSource {
     pub fn new(config: &SerialTransportConfig) -> Result<Self, SourceError> {
@@ -112,6 +120,39 @@ impl ByteSource for SerialSource {
 
     fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    async fn income(&mut self, _msg: String) -> Result<String, String> {
+        Ok(String::new())
+        // let request = serde_json::from_str::<sde::SdeRequest>(&msg)
+        //     .map_err(|e| format!("Fail to deserialize message: {}", e))?;
+        // let response = if let Some(writer) = self.writer.as_mut() {
+        //     let response = match request {
+        //         sde::SdeRequest::WriteText(str) => {
+        //             let written = writer
+        //                 .write(str.as_bytes())
+        //                 .await
+        //                 .map_err(|e| format!("Fail to write string into stdin: {}", e))?;
+        //             sde::SdeResponse::WriteText(sde::WriteResponse { bytes: written })
+        //         }
+        //         sde::SdeRequest::WriteBytes(bytes) => {
+        //             let written = writer
+        //                 .write(&bytes)
+        //                 .await
+        //                 .map_err(|e| format!("Fail to write bytes into stdin: {}", e))?;
+        //             sde::SdeResponse::WriteText(sde::WriteResponse { bytes: written })
+        //         }
+        //     };
+        //     writer
+        //         .flush()
+        //         .await
+        //         .map_err(|e| format!("Fail to write string into stdin: {}", e))?;
+        //     response
+        // } else {
+        //     sde::SdeResponse::Error(String::from("No access to stdin"))
+        // };
+        // serde_json::to_string(&response)
+        //     .map_err(|e| format!("Fail to convert response to JSON: {}", e))
     }
 }
 
