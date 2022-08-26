@@ -41,10 +41,15 @@
     }
     & div.right {
         position: absolute;
+        display: flex;
         left: 20rem;
         right: 0;
         bottom: 0;
         top: 0;
+        & mat-card.fill {
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
     }
     & div.feature {
         margin: 6px 0;

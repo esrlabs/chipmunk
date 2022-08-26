@@ -61,6 +61,7 @@ export class Service extends Implementation {
         file(file: File, options: TargetFileOptions): Promise<void>;
         stream(source: SourceDefinition): {
             dlt(options: IDLTOptions): Promise<void>;
+            text(): Promise<void>;
         };
     } {
         return {
@@ -77,6 +78,14 @@ export class Service extends Implementation {
                     dlt: (options: IDLTOptions): Promise<void> => {
                         try {
                             const action = new Action().from().stream(source).dlt(options);
+                            return this.update([action]);
+                        } catch (err) {
+                            return Promise.reject(new Error(error(err)));
+                        }
+                    },
+                    text: (): Promise<void> => {
+                        try {
+                            const action = new Action().from().stream(source).text();
                             return this.update([action]);
                         } catch (err) {
                             return Promise.reject(new Error(error(err)));

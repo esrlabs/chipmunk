@@ -20,11 +20,11 @@ class Matcher
     end
     if File.exist?(@node_modules)
       Shell.rm_rf(@node_modules)
-      Reporter.add(Jobs::Clearing, Owner::Matcher, "removed: #{@node_modules}")
+      Reporter.add(Jobs::Clearing, Owner::Matcher, "removed: #{@node_modules}", '')
     end
     if File.exist?(@test_output)
       Shell.rm_rf(@test_output)
-      Reporter.add(Jobs::Clearing, Owner::Matcher, "removed: #{@test_output}")
+      Reporter.add(Jobs::Clearing, Owner::Matcher, "removed: #{@test_output}", '')
     end
   end
 

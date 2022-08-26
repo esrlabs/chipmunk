@@ -1,11 +1,4 @@
-import {
-    Component,
-    OnDestroy,
-    Input,
-    AfterContentInit,
-    ChangeDetectorRef,
-    ElementRef,
-} from '@angular/core';
+import { Component, Input, AfterContentInit, ChangeDetectorRef, ElementRef } from '@angular/core';
 import { Session } from '@service/session';
 import { ObserveOperation } from '@service/session/dependencies/observe/operation';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -21,7 +14,7 @@ import { Alias, getRenderAlias } from '@schema/render/tools';
 })
 @Initial()
 @Ilc()
-export class ObserveList extends ChangesDetector implements OnDestroy, AfterContentInit {
+export class ObserveList extends ChangesDetector implements AfterContentInit {
     @Input() session!: Session;
 
     public observed: {
@@ -35,10 +28,6 @@ export class ObserveList extends ChangesDetector implements OnDestroy, AfterCont
 
     constructor(cdRef: ChangeDetectorRef, private _self: ElementRef) {
         super(cdRef);
-    }
-
-    public ngOnDestroy() {
-        //
     }
 
     public ngAfterContentInit(): void {
@@ -125,6 +114,15 @@ export class ObserveList extends ChangesDetector implements OnDestroy, AfterCont
                     break;
             }
         });
+    }
+
+    public isTextFile(): boolean {
+        const running = Array.from(this.observed.running.values());
+        if (running.length !== 1) {
+            return false;
+        }
+        const source = running[0].asSource();
+        return source.File !== undefined && source.File[1].Text !== undefined ? true : false;
     }
 }
 export interface ObserveList extends IlcInterface {}

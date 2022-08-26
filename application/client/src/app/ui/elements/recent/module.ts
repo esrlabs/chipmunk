@@ -12,11 +12,13 @@ import { RecentActions } from './component';
 import { RecentStream } from './stream/component';
 import { DLTStream } from './stream/parsers/dlt/component';
 import { SourceUdp } from './stream/sources/udp/component';
+import { SourceProcess } from './stream/sources/process/component';
 
 const components = [
     RecentStream,
     DLTStream,
     SourceUdp,
+    SourceProcess,
     RecentFile,
     RecentActions,
     RecentFileDlt,

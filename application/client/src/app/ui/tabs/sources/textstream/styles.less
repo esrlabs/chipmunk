@@ -32,28 +32,6 @@
             margin-left: 6px;
         }
     }
-    & mat-card.fill {
-        & mat-card-title {
-            position: sticky;
-            display: block;
-            top: 0;
-            background: @scheme-bk-color-0;
-            z-index: 1;
-            &::before {
-                display: block;
-                content: '';
-                position: absolute;
-                bottom: 0;
-                height: 37px;
-                width: calc(100% + 32px);
-                left: -16px;
-                background: @scheme-bk-color-0;
-                z-index: -1;
-            }
-        }
-        overflow: auto;
-        flex: auto;
-    }
     & h1 {
         font-size: 14px;
     }

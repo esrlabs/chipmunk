@@ -4,17 +4,19 @@ import { ilc, Emitter, Channel, Services } from '@service/ilc';
 import { Session } from './session/session';
 import { TabControls } from './session/tab';
 import { File } from '@platform/types/files';
-import { IDLTOptions } from '@platform/types/parsers/dlt';
 import { SourceDefinition } from '@platform/types/transport';
+import { IDLTOptions, parserSettingsToOptions } from '@platform/types/parsers/dlt';
 
 import * as Files from './opener/files';
 import * as Streams from './opener/streams';
+import { DataSource } from './session/dependencies/stream';
 
 export { Session, TabControls };
 
 export interface StreamConnectFuncs {
     dlt(options?: IDLTOptions): Promise<void>;
-    text(): Promise<void>;
+    text(options?: {}): Promise<void>;
+    source(src: DataSource): Promise<void>;
     assign(session: Session | undefined): StreamConnectFuncs;
 }
 
@@ -40,10 +42,10 @@ export class Service extends Implementation {
     public stream(source?: SourceDefinition, openPresetSettings?: boolean): StreamConnectFuncs {
         let scope: Session | undefined;
         const out = {
-            text: (): Promise<void> => {
+            text: (options?: {}): Promise<void> => {
                 return new Streams.Text(this._services, this.log())
                     .assign(scope)
-                    .stream(source, undefined, openPresetSettings);
+                    .stream(source, options, openPresetSettings);
             },
             dlt: (options?: IDLTOptions): Promise<void> => {
                 return new Streams.Dlt(this._services, this.log())
@@ -53,6 +55,17 @@ export class Service extends Implementation {
             assign: (session: Session | undefined): StreamConnectFuncs => {
                 scope = session;
                 return out;
+            },
+            source: (src: DataSource): Promise<void> => {
+                if (src.Stream === undefined) {
+                    return Promise.reject(new Error(`Operation is available only for streams`));
+                }
+                if (src.Stream[1].Dlt !== undefined) {
+                    return out.dlt(parserSettingsToOptions(src.Stream[1].Dlt));
+                } else if (src.Stream[1].Text !== undefined) {
+                    return out.text();
+                }
+                return Promise.reject(new Error(`Unsupported type of source`));
             },
         };
         return out;

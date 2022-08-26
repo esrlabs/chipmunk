@@ -7,6 +7,9 @@ import { IGrabbedElement } from '@platform/types/content';
 import { DataSource } from '@platform/types/observe';
 import { ObserveOperation } from './observe/operation';
 import { error } from '@platform/env/logger';
+import { SourceDefinition } from '@platform/types/transport';
+import { IDLTOptions, parserSettingsToOptions } from '@platform/types/parsers/dlt';
+import { TargetFile } from '@platform/types/files';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -67,6 +70,7 @@ export class Stream extends Subscriber {
                         event.operation,
                         source,
                         this.observe().sde,
+                        this.observe().restart,
                         this.observe().abort,
                     ),
                 );
@@ -94,12 +98,82 @@ export class Stream extends Subscriber {
         this.subjects.destroy();
     }
 
+    public file(file: TargetFile): Promise<void> {
+        return new Promise((resolve, reject) => {
+            Requests.IpcRequest.send<Requests.File.Open.Response>(
+                Requests.File.Open.Response,
+                new Requests.File.Open.Request({ session: this._uuid, file }),
+            )
+                .then((response) => {
+                    if (typeof response.error === 'string' && response.error !== '') {
+                        reject(new Error(response.error));
+                    } else {
+                        resolve(undefined);
+                    }
+                })
+                .catch(reject);
+        });
+    }
+
+    public connect(source: SourceDefinition): {
+        dlt(options: IDLTOptions): Promise<void>;
+        text(): Promise<void>;
+        source(source: DataSource): Promise<void>;
+    } {
+        return {
+            dlt: (options: IDLTOptions): Promise<void> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send<Requests.Connect.Dlt.Response>(
+                        Requests.Connect.Dlt.Response,
+                        new Requests.Connect.Dlt.Request({ session: this._uuid, source, options }),
+                    )
+                        .then((response) => {
+                            if (typeof response.error === 'string' && response.error !== '') {
+                                reject(new Error(response.error));
+                            } else {
+                                resolve(undefined);
+                            }
+                        })
+                        .catch(reject);
+                });
+            },
+            text: (): Promise<void> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send<Requests.Connect.Text.Response>(
+                        Requests.Connect.Text.Response,
+                        new Requests.Connect.Text.Request({ session: this._uuid, source }),
+                    )
+                        .then((response) => {
+                            if (typeof response.error === 'string' && response.error !== '') {
+                                reject(new Error(response.error));
+                            } else {
+                                resolve(undefined);
+                            }
+                        })
+                        .catch(reject);
+                });
+            },
+            source: (src: DataSource): Promise<void> => {
+                if (src.Stream === undefined) {
+                    return Promise.reject(new Error(`Operation is available only for streams`));
+                }
+                if (src.Stream[1].Dlt !== undefined) {
+                    return this.connect(source).dlt(parserSettingsToOptions(src.Stream[1].Dlt));
+                } else if (src.Stream[1].Text !== undefined) {
+                    return this.connect(source).text();
+                }
+                return Promise.reject(new Error(`Unsupported type of source`));
+            },
+        };
+    }
+
     public len(): number {
         return this._len;
     }
 
     public observe(): {
         abort(uuid: string): Promise<void>;
+        restart(uuid: string, source: DataSource): Promise<void>;
         list(): Promise<Map<string, DataSource>>;
         sde<T, R>(uuid: string, msg: T): Promise<R>;
     } {
@@ -125,6 +199,23 @@ export class Stream extends Subscriber {
                             );
                         });
                 });
+            },
+            restart: (uuid: string, source: DataSource): Promise<void> => {
+                return this.observe()
+                    .abort(uuid)
+                    .then(() => {
+                        const sourceDef = source.asSourceDefinition();
+                        if (sourceDef instanceof Error) {
+                            this.log().error(sourceDef.message);
+                            return;
+                        }
+                        return this.connect(sourceDef).source(source);
+                    })
+                    .catch((error: Error) => {
+                        this.log().error(
+                            `Fail to restart observe operation sources: ${error.message}`,
+                        );
+                    });
             },
             list: (): Promise<Map<string, DataSource>> => {
                 return new Promise((resolve) => {

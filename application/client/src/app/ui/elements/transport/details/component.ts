@@ -53,22 +53,49 @@ export class Transport extends ChangesDetector implements AfterContentInit, Afte
     }
 
     public ngRestart(): void {
-        //
+        const sourceDef =
+            this.source instanceof DataSource
+                ? this.source.asSourceDefinition()
+                : this.source.asSource().asSourceDefinition();
+        if (sourceDef instanceof Error) {
+            return;
+        }
+        (() => {
+            if (this.source instanceof ObserveOperation) {
+                return this.source.restart();
+            } else {
+                return this.session.stream.connect(sourceDef).source(this.source);
+            }
+        })()
+            .catch((err: Error) => {
+                this.log().error(`Fail to restart observe operation: ${err.message}`);
+            })
+            .finally(() => {
+                this.detectChanges();
+            });
     }
 
     public ngClone(): void {
+        const sourceDef =
+            this.source instanceof DataSource
+                ? this.source.asSourceDefinition()
+                : this.source.asSource().asSourceDefinition();
+        if (sourceDef instanceof Error) {
+            return;
+        }
+        this.ilc()
+            .services.system.opener.stream(sourceDef)
+            .assign(this.session)
+            .source(this.source instanceof ObserveOperation ? this.source.asSource() : this.source);
         if (!(this.source instanceof ObserveOperation)) {
             return;
         }
-        // const source = this.source;
-        // source
-        //     .sendIntoSde<SdeRequest, SdeResponse>({ WriteText: 'test' })
-        //     .then((res: SdeResponse) => {
-        //         console.log(`>>>>>>>>>>>>>>>>>>>>>>> ${res}`);
-        //     })
-        //     .catch((err: Error) => {
-        //         console.log(`>>>>>>>>>>>>>>>>>>>>>>> ${err}`);
-        //     });
+    }
+
+    public isTextFile(): boolean {
+        const source =
+            this.source instanceof ObserveOperation ? this.source.asSource() : this.source;
+        return source.File !== undefined && source.File[1].Text !== undefined ? true : false;
     }
 
     protected update() {

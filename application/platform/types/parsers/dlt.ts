@@ -131,6 +131,21 @@ export function optionsToParserSettings(
     };
 }
 
+export function parserSettingsToOptions(options: DltParserSettings): IDLTOptions {
+    return {
+        logLevel:
+            options.filter_config?.min_log_level === undefined
+                ? 1
+                : options.filter_config.min_log_level,
+        filters: {
+            app_ids: options.filter_config?.app_ids,
+            context_ids: options.filter_config?.context_ids,
+            ecu_ids: options.filter_config?.ecu_ids,
+        },
+        fibex: options.fibex_file_paths === undefined ? [] : options.fibex_file_paths,
+    };
+}
+
 export function defaultParserSettings(with_storage_header: boolean): DltParserSettings {
     return {
         filter_config: undefined,

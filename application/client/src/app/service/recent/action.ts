@@ -1,5 +1,6 @@
 import { Recent as RecentFileAction, BaseInfo } from './implementations/file/file';
 import { Recent as RecentStreamDltAction } from './implementations/stream/dlt';
+import { Recent as RecentStreamTextAction } from './implementations/stream/text';
 
 import { IComponentDesc } from '@ui/elements/containers/dynamic/component';
 import { Entry } from '@platform/types/storage/entry';
@@ -18,6 +19,7 @@ import * as obj from '@platform/env/obj';
 export class Action {
     public file: RecentFileAction | undefined;
     public dlt_stream: RecentStreamDltAction | undefined;
+    public text_stream: RecentStreamTextAction | undefined;
 
     public uuid: string = unique();
 
@@ -29,6 +31,8 @@ export class Action {
             return this.file.description();
         } else if (this.dlt_stream !== undefined) {
             return this.dlt_stream.description();
+        } else if (this.text_stream !== undefined) {
+            return this.text_stream.description();
         } else {
             throw new Error(`Unknonw type of action.`);
         }
@@ -46,6 +50,8 @@ export class Action {
             return this.file.asComponent();
         } else if (this.dlt_stream !== undefined) {
             return this.dlt_stream.asComponent();
+        } else if (this.text_stream !== undefined) {
+            return this.text_stream.asComponent();
         } else {
             throw new Error(`Unknonw type of action.`);
         }
@@ -57,6 +63,8 @@ export class Action {
             body['file'] = this.file.asObj();
         } else if (this.dlt_stream !== undefined) {
             body['dlt_stream'] = this.dlt_stream.asObj();
+        } else if (this.text_stream !== undefined) {
+            body['text_stream'] = this.text_stream.asObj();
         } else {
             throw new Error(`Recent action isn't defined`);
         }
@@ -71,6 +79,7 @@ export class Action {
         file(file: File, options: TargetFileOptions): Action;
         stream(source: SourceDefinition): {
             dlt(options: IDLTOptions): Action;
+            text(): Action;
         };
     } {
         return {
@@ -83,6 +92,10 @@ export class Action {
                     } else if (action['dlt_stream'] !== undefined) {
                         this.dlt_stream = new RecentStreamDltAction().from(
                             obj.asAnyObj(action['dlt_stream']),
+                        );
+                    } else if (action['text_stream'] !== undefined) {
+                        this.text_stream = new RecentStreamTextAction().from(
+                            obj.asAnyObj(action['text_stream']),
                         );
                     } else {
                         throw new Error(`Unknonw type of action.`);
@@ -120,6 +133,15 @@ export class Action {
                         this.uuid = source_holder.uuid();
                         try {
                             this.dlt_stream = new RecentStreamDltAction().from({ source, options });
+                        } catch (err) {
+                            throw new Error(`Fail to parse action: ${error(err)}`);
+                        }
+                        return this;
+                    },
+                    text: (): Action => {
+                        this.uuid = source_holder.uuid();
+                        try {
+                            this.text_stream = new RecentStreamTextAction().from({ source });
                         } catch (err) {
                             throw new Error(`Fail to parse action: ${error(err)}`);
                         }
@@ -242,6 +264,25 @@ export class Action {
                     },
                 },
             ];
+        } else if (this.text_stream !== undefined) {
+            const opt = this.text_stream;
+            return [
+                {
+                    caption: 'Restart',
+                    handler: this.apply.bind(this),
+                },
+                {
+                    caption: 'Open start parameters',
+                    handler: () => {
+                        opener
+                            .stream(opt.source, true)
+                            .text()
+                            .catch((err: Error) => {
+                                console.error(`Fail to open stream; error: ${err.message}`);
+                            });
+                    },
+                },
+            ];
         }
         return [];
     }
@@ -267,6 +308,13 @@ export class Action {
             opener
                 .stream(this.dlt_stream.source)
                 .dlt(this.dlt_stream.options)
+                .catch((err: Error) => {
+                    console.error(`Fail to open stream; error: ${err.message}`);
+                });
+        } else if (this.text_stream !== undefined) {
+            opener
+                .stream(this.text_stream.source)
+                .text({})
                 .catch((err: Error) => {
                     console.error(`Fail to open stream; error: ${err.message}`);
                 });

@@ -286,7 +286,7 @@ async function getWslProfiles(
             // wsl.exe output is encoded in utf16le (ie. A -> 0x4100)
             cp.exec('wsl.exe -l -q', { encoding: 'utf16le' }, (err, stdout) => {
                 if (err) {
-                    return reject('Problem occurred when getting wsl distros');
+                    return reject(new Error('Problem occurred when getting wsl distros'));
                 }
                 resolve(stdout);
             });

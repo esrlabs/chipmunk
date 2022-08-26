@@ -40,7 +40,9 @@ export class SourceDefinitionHolder {
         } else if (this.source.serial !== undefined) {
             return `${this.source.serial.path}_${this.source.serial.baud_rate}_${this.source.serial.data_bits}_${this.source.serial.flow_control}_${this.source.serial.parity}`;
         } else if (this.source.process !== undefined) {
-            return 'command_caller';
+            return `${this.source.process.cwd}>${
+                this.source.process.command
+            } ${this.source.process.args.join(' ')}`;
         }
         throw new Error(`Type of source isn't defined.`);
     }
