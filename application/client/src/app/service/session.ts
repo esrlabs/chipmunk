@@ -119,7 +119,7 @@ export class Service extends Implementation {
                     session
                         .init()
                         .then((uuid: string) => {
-                            session
+                            session.stream
                                 .file(file)
                                 .then(() => {
                                     binding(uuid, session, file.name);

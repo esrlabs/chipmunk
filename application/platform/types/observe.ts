@@ -7,6 +7,7 @@ import { ProcessTransportSettings } from './transport/process';
 import { error } from '../env/logger';
 import { SerialTransportSettings } from './transport/serial';
 import { filename, basefolder } from '../env/str';
+import { SourceDefinition } from './transport/index';
 
 export interface Parser {
     Dlt?: DltParserSettings;
@@ -160,6 +161,23 @@ export class DataSource {
             return new Error(`Source isn't defined`);
         }
         return this.Stream[0];
+    }
+
+    public asSourceDefinition(): SourceDefinition | Error {
+        if (this.File !== undefined) {
+            return new Error(
+                `DataSource bound with File. SourceDefinition is available only for streams`,
+            );
+        }
+        if (this.Stream === undefined) {
+            return new Error(`SourceDefinition is available only for streams`);
+        }
+        return {
+            serial: this.Stream[0].Serial !== undefined ? this.Stream[0].Serial : undefined,
+            process: this.Stream[0].Process !== undefined ? this.Stream[0].Process : undefined,
+            tcp: this.Stream[0].TCP !== undefined ? this.Stream[0].TCP : undefined,
+            udp: this.Stream[0].UDP !== undefined ? this.Stream[0].UDP : undefined,
+        };
     }
 
     public desc(): SourceDescription | Error {

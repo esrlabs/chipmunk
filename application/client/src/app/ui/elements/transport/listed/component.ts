@@ -20,6 +20,17 @@ export class Transport extends ChangesDetector implements AfterContentInit {
     @HostListener('contextmenu', ['$event']) onContextMenu(event: MouseEvent) {
         const items: IMenuItem[] = [];
         const source = this.source;
+        const sourceDef =
+            source instanceof DataSource
+                ? source.asSourceDefinition()
+                : source.asSource().asSourceDefinition();
+        const dataSource = source instanceof DataSource ? source : source.asSource();
+        if (dataSource.File !== undefined) {
+            if (dataSource.File[1].Text !== undefined) {
+                // Text file can be opened just once per session
+                return;
+            }
+        }
         if (source instanceof ObserveOperation) {
             items.push(
                 ...[
@@ -38,31 +49,65 @@ export class Transport extends ChangesDetector implements AfterContentInit {
                                 });
                         },
                     },
-                ],
-            );
-        } else {
-            items.push(
-                ...[
                     {
                         caption: 'Restart',
                         handler: () => {
-                            //
+                            source
+                                .restart()
+                                .catch((err: Error) => {
+                                    this.log().error(
+                                        `Fail to restart observe operation: ${err.message}`,
+                                    );
+                                })
+                                .finally(() => {
+                                    this.detectChanges();
+                                });
                         },
                     },
                 ],
             );
+        } else if (source instanceof DataSource) {
+            !(sourceDef instanceof Error) &&
+                items.push(
+                    ...[
+                        {
+                            caption: 'Restart',
+                            handler: () => {
+                                this.session.stream
+                                    .connect(sourceDef)
+                                    .source(source)
+                                    .catch((err: Error) => {
+                                        this.log().error(
+                                            `Fail to restart observe operation: ${err.message}`,
+                                        );
+                                    })
+                                    .finally(() => {
+                                        this.detectChanges();
+                                    });
+                            },
+                        },
+                    ],
+                );
         }
-        items.push(
-            ...[
-                {},
-                {
-                    caption: 'Clone',
-                    handler: () => {
-                        //
+        !(sourceDef instanceof Error) &&
+            items.push(
+                ...[
+                    {},
+                    {
+                        caption: 'Restart Parameters',
+                        handler: () => {
+                            this.ilc()
+                                .services.system.opener.stream(sourceDef)
+                                .assign(this.session)
+                                .source(
+                                    this.source instanceof ObserveOperation
+                                        ? this.source.asSource()
+                                        : this.source,
+                                );
+                        },
                     },
-                },
-            ],
-        );
+                ],
+            );
 
         contextmenu.show({
             items: items,

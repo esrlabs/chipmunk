@@ -17,7 +17,7 @@ export class Dlt extends StreamOpener<IDLTOptions> {
         source: SourceDefinition,
         options: IDLTOptions,
     ): Promise<void> {
-        return session.connect(source).dlt(options);
+        return session.stream.connect(source).dlt(options);
     }
     public after(source: SourceDefinition, options?: IDLTOptions): Promise<void> {
         if (options === undefined) {

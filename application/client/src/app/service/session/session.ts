@@ -5,11 +5,8 @@ import { Search } from './dependencies/search';
 import { Cursor } from './dependencies/cursor';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { cutUuid } from '@log/index';
-import { TargetFile } from '@platform/types/files';
 import { Render } from '@schema/render';
 import { components } from '@env/decorators/initial';
-import { SourceDefinition } from '@platform/types/transport';
-import { IDLTOptions } from '@platform/types/parsers/dlt';
 import { Base } from './base';
 import { Bookmarks } from './dependencies/bookmarks';
 
@@ -88,63 +85,6 @@ export class Session extends Base {
                 })
                 .catch(reject);
         });
-    }
-
-    public file(file: TargetFile): Promise<void> {
-        return new Promise((resolve, reject) => {
-            Requests.IpcRequest.send<Requests.File.Open.Response>(
-                Requests.File.Open.Response,
-                new Requests.File.Open.Request({ session: this._uuid, file }),
-            )
-                .then((response) => {
-                    if (typeof response.error === 'string' && response.error !== '') {
-                        reject(new Error(response.error));
-                    } else {
-                        resolve(undefined);
-                    }
-                })
-                .catch(reject);
-        });
-    }
-
-    public connect(source: SourceDefinition): {
-        dlt(options: IDLTOptions): Promise<void>;
-        text(): Promise<void>;
-    } {
-        return {
-            dlt: (options: IDLTOptions): Promise<void> => {
-                return new Promise((resolve, reject) => {
-                    Requests.IpcRequest.send<Requests.Connect.Dlt.Response>(
-                        Requests.Connect.Dlt.Response,
-                        new Requests.Connect.Dlt.Request({ session: this._uuid, source, options }),
-                    )
-                        .then((response) => {
-                            if (typeof response.error === 'string' && response.error !== '') {
-                                reject(new Error(response.error));
-                            } else {
-                                resolve(undefined);
-                            }
-                        })
-                        .catch(reject);
-                });
-            },
-            text: (): Promise<void> => {
-                return new Promise((resolve, reject) => {
-                    Requests.IpcRequest.send<Requests.Connect.Text.Response>(
-                        Requests.Connect.Text.Response,
-                        new Requests.Connect.Text.Request({ session: this._uuid, source }),
-                    )
-                        .then((response) => {
-                            if (typeof response.error === 'string' && response.error !== '') {
-                                reject(new Error(response.error));
-                            } else {
-                                resolve(undefined);
-                            }
-                        })
-                        .catch(reject);
-                });
-            },
-        };
     }
 
     public destroy(): Promise<void> {

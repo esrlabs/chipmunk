@@ -35,11 +35,13 @@ export class State {
         if (source.udp !== undefined) {
             this.udp = this._backup.udp;
             this.udp.from(source.udp);
+            this.switch(Source.Udp);
             return;
         }
         if (source.process !== undefined) {
             this.process = this._backup.process;
             this.process.from(source.process);
+            this.switch(Source.Process);
             return;
         }
     }
@@ -49,6 +51,9 @@ export class State {
         this._backup.tcp = this.tcp === undefined ? this._backup.tcp : this.tcp;
         this._backup.serial = this.serial === undefined ? this._backup.serial : this.serial;
         this._backup.process = this.process === undefined ? this._backup.process : this.process;
+        if (source !== undefined) {
+            this.source = source;
+        }
         switch (source === undefined ? this.source : source) {
             case Source.Udp:
                 this.udp = this._backup.udp;

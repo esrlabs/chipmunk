@@ -7,7 +7,7 @@ export class State extends Base<ProcessTransportSettings> {
 
     public from(opt: ProcessTransportSettings) {
         this.cwd = opt.cwd;
-        this.command = opt.command;
+        this.command = `${opt.command}${opt.args.length > 0 ? ' ' : ''}${opt.args.join(' ')}`;
     }
 
     public asSourceDefinition(): ProcessTransportSettings {

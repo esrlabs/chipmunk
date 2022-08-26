@@ -30,6 +30,6 @@
     </mat-card-content>
 </mat-card>
 <div class="controlls">
-    <button mat-stroked-button (click)="ngAttachStream()">Attach New</button>
+    <button mat-stroked-button [disabled]="isTextFile()" (click)="ngAttachStream()">Attach New</button>
 </div>
 

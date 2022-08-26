@@ -6,7 +6,9 @@ import { File } from '@platform/types/files';
 import { Base } from './base';
 import { isRenderMatch } from '@schema/render/tools';
 
-export abstract class FileOpener<Options, NamedOptions> extends Base<FileOpener<Options, NamedOptions>> {
+export abstract class FileOpener<Options, NamedOptions> extends Base<
+    FileOpener<Options, NamedOptions>
+> {
     protected readonly services: Services;
     protected readonly logger: Logger;
 
@@ -42,7 +44,7 @@ export abstract class FileOpener<Options, NamedOptions> extends Base<FileOpener<
                         new Error(`Combination of renders in the scope of session isn't supported`),
                     );
                 }
-                return this.session.file({
+                return this.session.stream.file({
                     filename: target.filename,
                     name: target.name,
                     type: target.type,

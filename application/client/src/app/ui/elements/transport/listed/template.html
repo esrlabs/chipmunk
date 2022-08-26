@@ -1,6 +1,6 @@
 <div [attr.class]="'icon ' + (finished ? 'finished' : 'running')" *ngIf="description !== undefined">
     <mat-icon>{{description.icon}}</mat-icon>
-    <span>{{description.type}}</span>
+    <span class="type">{{description.type}}</span>
     <span class="state running" *ngIf="!finished">{{description.state.running}}</span>
     <span class="state stopped"*ngIf="finished">{{description.state.stopped}}</span>
 </div>
