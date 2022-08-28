@@ -1,5 +1,5 @@
 module Shell
-  @@cmd = ''
+  @@cwd = ''
 
   def self.suppress_output
     original_stdout = $stdout.clone
@@ -13,8 +13,8 @@ module Shell
   end
 
   def self.sh(cmd)
+    puts "[sh   ] #{Shell.cwd}> #{cmd}"
     if Shell.is_verbose_hidden
-      puts "[sh   ] #{Shell.cmd}> #{cmd}"
       Shell.suppress_output do
         Rake.sh(cmd) do |ok, status|
           raise "Failed with status (#{status.exitstatus})" unless ok
@@ -32,22 +32,22 @@ module Shell
   end
 
   def self.rm_rf(dir)
-    puts "[rm_rf] #{Shell.cmd}> #{dir}" if Shell.is_verbose_hidden
+    puts "[rm_rf] #{Shell.cwd}> #{dir}" if Shell.is_verbose_hidden
     FileUtils.rm_rf(dir) if File.exist?(dir)
   end
 
   def self.rm(file)
-    puts "[rm   ] #{Shell.cmd}> #{file}" if Shell.is_verbose_hidden
+    puts "[rm   ] #{Shell.cwd}> #{file}" if Shell.is_verbose_hidden
     FileUtils.rm(file) if File.exist?(file)
   end
 
   def self.chdir(dir, &block)
-    @@cmd = "#{dir}"
+    @@cwd = "#{dir}"
     Dir.chdir(dir, &block)
-    @@cmd = ''
+    @@cwd = ''
   end
 
-  def self.cmd
-    "\e[36m#{@@cmd}\e[0m"
+  def self.cwd
+    "\e[36m#{@@cwd}\e[0m"
   end
 end

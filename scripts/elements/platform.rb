@@ -23,6 +23,7 @@ class Platform
     if !@installed || @reinstall
       Shell.chdir(Paths::PLATFORM) do
         Shell.sh 'npm install'
+        Shell.sh 'ls -lsa ./node_modules/.bin'
         Reporter.add(Jobs::Install, Owner::Platform, 'installing', '')
       end
     else
@@ -46,9 +47,7 @@ class Platform
     node_modules = "#{consumer}/node_modules"
     platform_dest = "#{node_modules}/platform"
     Dir.mkdir(node_modules) unless File.exist?(node_modules)
-    if (replace && File.exist?(platform_dest)) || File.symlink?(platform_dest)
-      Shell.rm_rf(platform_dest)
-    end
+    Shell.rm_rf(platform_dest) if (replace && File.exist?(platform_dest)) || File.symlink?(platform_dest)
     unless File.exist?(platform_dest)
       Reporter.add(Jobs::Checks, Owner::Platform, "#{consumer} doesn't have platform", '')
       platform = Platform.new(false, false)
