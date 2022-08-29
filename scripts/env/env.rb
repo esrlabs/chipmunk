@@ -1,4 +1,6 @@
 module Environment
+  @@checked = false
+
   def self.rust
     config = Config.new
     if config.get_rust_version == 'stable'
@@ -44,9 +46,13 @@ module Environment
   end
 
   def self.check
+    return if @@checked
+
+    Reporter.add(Jobs::Install, Owner::Env, 'checking envs', '')
     Environment.rust
     Environment.nj_cli
     Environment.wasm_pack
     Environment.yarn
+    @@checked = true
   end
 end
