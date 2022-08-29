@@ -269,7 +269,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
     private _destroy() {
         this._destroyed = true;
         // Unsubscribe all event listeners
-        Object.keys(this.getEvents()).forEach((key: string) => {
+        Object.keys(this.getEvents() as unknown as object).forEach((key: string) => {
             (this.getEvents() as any)[key].destroy();
         });
         Object.keys(this._tracking.subjects).forEach((key: string) => {

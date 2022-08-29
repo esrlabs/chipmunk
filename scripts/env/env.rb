@@ -1,4 +1,6 @@
 module Environment
+  @@checked = false
+
   def self.rust
     config = Config.new
     if config.get_rust_version == 'stable'
@@ -34,9 +36,23 @@ module Environment
     Reporter.add(Jobs::Install, Owner::Env, 'wasm-pack is installed', '')
   end
 
+  def self.yarn
+    if system('yarn -v')
+      Reporter.add(Jobs::Skipped, Owner::Env, 'yarn is installed already', '')
+      return
+    end
+    Shell.sh 'npm install --global yarn'
+    Reporter.add(Jobs::Install, Owner::Env, 'yarn is installed', '')
+  end
+
   def self.check
+    return if @@checked
+
+    Reporter.add(Jobs::Install, Owner::Env, 'checking envs', '')
     Environment.rust
     Environment.nj_cli
     Environment.wasm_pack
+    Environment.yarn
+    @@checked = true
   end
 end

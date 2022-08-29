@@ -14,6 +14,7 @@ class Release
   end
 
   def build
+    Environment.check
     clean
     if @prod
       Rake::Task['rebuild:prod'].invoke

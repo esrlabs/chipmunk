@@ -32,7 +32,7 @@ class Matcher
     Shell.rm_rf(@node_modules) if @reinstall
     if !@installed || @reinstall
       Shell.chdir(Paths::MATCHER) do
-        Shell.sh 'npm install'
+        Shell.sh 'yarn install'
         Reporter.add(Jobs::Install, Owner::Matcher, 'installing', '')
       end
     else
