@@ -16,14 +16,10 @@ module Shell
     puts "[sh   ] #{Shell.cwd}> #{cmd}"
     if Shell.is_verbose_hidden
       Shell.suppress_output do
-        Rake.sh(cmd) do |ok, status|
-          raise "Failed with status (#{status.exitstatus})" unless ok
-        end
+        raise "#{cmd}: failed with #{$?.exitstatus}" unless Kernel.system(cmd, exception: true)
       end
-    else
-      Rake.sh(cmd) do |ok, status|
-        raise "Failed with status (#{status.exitstatus})" unless ok
-      end
+    elsif !Kernel.system(cmd, exception: true)
+      raise "#{cmd}: failed with #{$?.exitstatus}"
     end
   end
 

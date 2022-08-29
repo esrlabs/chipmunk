@@ -23,7 +23,6 @@ class Platform
     if !@installed || @reinstall
       Shell.chdir(Paths::PLATFORM) do
         Shell.sh 'npm install'
-        Shell.sh 'ls -lsa ./node_modules/.bin'
         Reporter.add(Jobs::Install, Owner::Platform, 'installing', '')
       end
     else
