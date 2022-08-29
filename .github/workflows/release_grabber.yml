@@ -90,7 +90,6 @@ jobs:
                   SIGNING_ID: ${{ secrets.SIGNING_ID }}
                   KEYCHAIN_PWD: ${{ secrets.KEYCHAIN_PWD }}
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              shell: bash
             - name: list release files
               working-directory: ./application/holder/release
               run: ls
