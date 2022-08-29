@@ -36,11 +36,7 @@ class Platform
     Shell.rm_rf(@dist)
     Reporter.add(Jobs::Clearing, Owner::Platform, @dist, '')
     Shell.chdir(Paths::PLATFORM) do
-      if OS.windows?
-        Shell.sh 'npm run build_win'
-      else
-        Shell.sh 'npm run build'
-      end
+      Shell.sh 'npm run build'
       Reporter.add(Jobs::Building, Owner::Platform, 'clearing', '')
     end
     Shell.rm_rf(@node_modules)

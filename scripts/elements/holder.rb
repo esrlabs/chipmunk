@@ -91,11 +91,7 @@ class Holder
     Bindings.check(Paths::ELECTRON, @settings.bindings_reinstall, @settings.bindings_rebuild)
     Client.delivery(@dist, @settings.client_prod, @settings.replace_client)
     Shell.chdir(Paths::ELECTRON) do
-      if OS.windows?
-        Shell.sh 'npm run build_win'
-      else
-        Shell.sh 'npm run build'
-      end
+      Shell.sh 'npm run build'
       Reporter.add(Jobs::Building, Owner::Holder, 'built', '')
     end
     Shell.sh "cp #{Paths::ELECTRON}/package.json #{@dist}/package.json"
