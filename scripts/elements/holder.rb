@@ -61,7 +61,7 @@ class Holder
     Shell.rm_rf(@node_modules) if @settings.reinstall
     if !@installed || @settings.reinstall
       Shell.chdir(Paths::ELECTRON) do
-        Shell.sh 'npm install'
+        Shell.sh 'yarn install'
         Reporter.add(Jobs::Install, Owner::Holder, 'installing', '')
       end
     else
@@ -85,13 +85,14 @@ class Holder
   end
 
   def build
+    Environment.check
     install
     Platform.check(Paths::ELECTRON, @settings.platform_rebuild)
     Platform.check(Paths::TS_BINDINGS, @settings.platform_rebuild) if @settings.platform_rebuild
     Bindings.check(Paths::ELECTRON, @settings.bindings_reinstall, @settings.bindings_rebuild)
     Client.delivery(@dist, @settings.client_prod, @settings.replace_client)
     Shell.chdir(Paths::ELECTRON) do
-      Shell.sh 'npm run build'
+      Shell.sh 'yarn run build'
       Reporter.add(Jobs::Building, Owner::Holder, 'built', '')
     end
     Shell.sh "cp #{Paths::ELECTRON}/package.json #{@dist}/package.json"
@@ -101,7 +102,7 @@ class Holder
   def lint
     install
     Shell.chdir(Paths::ELECTRON) do
-      Shell.sh 'npm run lint'
+      Shell.sh 'yarn run lint'
       Reporter.add(Jobs::Checks, Owner::Holder, 'linting', '')
     end
   end

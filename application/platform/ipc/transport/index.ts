@@ -221,9 +221,9 @@ export class Package<Payload> {
             return this.err(`no packed contect or not payload part`);
         }
         if (
-            [setup.PAYLOAD_FIELD] === null ||
-            (typeof [setup.PAYLOAD_FIELD] === 'object' &&
-                Object.keys([setup.PAYLOAD_FIELD] as object).length !== 1)
+            this._packed[setup.PAYLOAD_FIELD] === null ||
+            (typeof this._packed[setup.PAYLOAD_FIELD] === 'object' &&
+                Object.keys(this._packed[setup.PAYLOAD_FIELD] as object).length !== 1)
         ) {
             return this.err(
                 `Payload has incorrect structure. It should has only one field by name of signature.`,
