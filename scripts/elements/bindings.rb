@@ -33,7 +33,7 @@ class Bindings
     Shell.rm_rf(@node_modules) if @reinstall
     if !@installed || @reinstall
       Shell.chdir(Paths::TS_BINDINGS) do
-        Shell.sh 'npm install'
+        Shell.sh 'yarn install'
         Reporter.add(Jobs::Install, Owner::Bindings, 'installing', '')
       end
     else
@@ -51,7 +51,7 @@ class Bindings
       Reporter.add(Jobs::Building, Owner::Bindings, 'rs bindings', '')
     end
     Shell.chdir(Paths::TS_BINDINGS) do
-      Shell.sh 'npm run build'
+      Shell.sh 'yarn run build'
       Reporter.add(Jobs::Building, Owner::Bindings, 'ts bindings', '')
     end
     Shell.sh "cp #{Paths::RS_BINDINGS}/dist/index.node #{@dist}/native/index.node"
@@ -78,7 +78,7 @@ class Bindings
       Shell.rm_rf("#{node_modules}/rustcore/node_modules")
       dest_module = "#{node_modules}/rustcore"
       Shell.chdir(dest_module) do
-        Shell.sh 'npm install --production'
+        Shell.sh 'yarn install --production'
       end
       Platform.check(dest_module, false)
       Reporter.add(Jobs::Building, Owner::Bindings, 'reinstalled in production', '')
@@ -89,7 +89,7 @@ class Bindings
   def lint
     install
     Shell.chdir(Paths::TS_BINDINGS) do
-      Shell.sh 'npm run lint'
+      Shell.sh 'yarn run lint'
       Reporter.add(Jobs::Checks, Owner::Bindings, 'linting', '')
     end
   end

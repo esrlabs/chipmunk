@@ -22,7 +22,7 @@ class Platform
     Shell.rm_rf(@node_modules) if @reinstall
     if !@installed || @reinstall
       Shell.chdir(Paths::PLATFORM) do
-        Shell.sh 'npm install'
+        Shell.sh 'yarn install'
         Reporter.add(Jobs::Install, Owner::Platform, 'installing', '')
       end
     else
@@ -31,12 +31,13 @@ class Platform
   end
 
   def build
+    Environment.check
     Reporter.add(Jobs::Skipped, Owner::Platform, 'already built', '') if File.exist?(@dist) && !@rebuild
     install
     Shell.rm_rf(@dist)
     Reporter.add(Jobs::Clearing, Owner::Platform, @dist, '')
     Shell.chdir(Paths::PLATFORM) do
-      Shell.sh 'npm run build'
+      Shell.sh 'yarn run build'
       Reporter.add(Jobs::Building, Owner::Platform, 'clearing', '')
     end
     Shell.rm_rf(@node_modules)
@@ -59,7 +60,7 @@ class Platform
   def lint
     install
     Shell.chdir(Paths::PLATFORM) do
-      Shell.sh 'npm run lint'
+      Shell.sh 'yarn run lint'
       Reporter.add(Jobs::Checks, Owner::Platform, 'linting', '')
     end
   end

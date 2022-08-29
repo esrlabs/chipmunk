@@ -34,9 +34,19 @@ module Environment
     Reporter.add(Jobs::Install, Owner::Env, 'wasm-pack is installed', '')
   end
 
+  def self.yarn
+    if system('yarn -v')
+      Reporter.add(Jobs::Skipped, Owner::Env, 'yarn is installed already', '')
+      return
+    end
+    Shell.sh 'npm install --global yarn'
+    Reporter.add(Jobs::Install, Owner::Env, 'yarn is installed', '')
+  end
+
   def self.check
     Environment.rust
     Environment.nj_cli
     Environment.wasm_pack
+    Environment.yarn
   end
 end

@@ -11,7 +11,7 @@ class Client
     Shell.rm_rf(@node_modules) if @reinstall
     if !@installed || @reinstall
       Shell.chdir(Paths::CLIENT) do
-        Shell.sh 'npm install'
+        Shell.sh 'yarn install'
         Reporter.add(Jobs::Install, Owner::Client, 'installing', '')
       end
     else
@@ -31,17 +31,18 @@ class Client
   end
 
   def build
+    Environment.check
     install
     if @prod
       Matcher.new(true, true).build
       Shell.chdir(Paths::CLIENT) do
-        Shell.sh 'npm run prod'
+        Shell.sh 'yarn run prod'
         Reporter.add(Jobs::Building, Owner::Client, 'production mode', '')
       end
     else
       Matcher.new(false, false).build
       Shell.chdir(Paths::CLIENT) do
-        Shell.sh 'npm run build'
+        Shell.sh 'yarn run build'
         Reporter.add(Jobs::Building, Owner::Client, 'developing mode', '')
       end
     end
@@ -62,7 +63,7 @@ class Client
   def lint
     install
     Shell.chdir(Paths::CLIENT) do
-      Shell.sh 'npm run lint'
+      Shell.sh 'yarn run lint'
       Reporter.add(Jobs::Checks, Owner::Client, 'linting', '')
     end
   end
@@ -78,21 +79,21 @@ namespace :client do
   desc 'Install client'
   task :install do
     Shell.chdir(Paths::CLIENT) do
-      sh 'npm install'
+      sh 'yarn install'
     end
   end
 
   desc 'Build client (dev)'
   task :dev do
     Shell.chdir(Paths::CLIENT) do
-      sh 'npm run build'
+      sh 'yarn run build'
     end
   end
 
   desc 'Build client (prod)'
   task :prod do
     Shell.chdir(Paths::CLIENT) do
-      sh 'npm run prod'
+      sh 'yarn run prod'
     end
   end
 
