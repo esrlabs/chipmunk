@@ -34,6 +34,7 @@
     },
     "scripts": {
         "build": "./node_modules/.bin/tsc -p ./tsconfig.json",
+        "build_win": ".\\node_modules\\.bin\\tsc.exe -p .\\tsconfig.json",
         "lint": "./node_modules/.bin/eslint . --ext .ts --max-warnings=0"
     },
     "exports": {
