@@ -5,8 +5,8 @@
   "main": "./dist/apps/rustcore/ts-bindings/src/index.js",
   "types": "./dist/apps/rustcore/ts-bindings/src/index.d.ts",
   "scripts": {
-    "build": "tsc -p ./tsconfig.json",
-    "test": "./node_modules/.bin/electron ./node_modules/jasmine-ts/lib/index.js"
+    "build": "node_modules/.bin/tsc -p tsconfig.json",
+    "test": "node_modules/.bin/electron node_modules/jasmine-ts/lib/index.js"
   },
   "bin": {
     "ts-bindings-cli": "./dist/apps/rustcore/ts-bindings-cli/src/index.js"

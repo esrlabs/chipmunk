@@ -115,13 +115,13 @@
     },
     "scripts": {
         "electron": "npm run build && ./node_modules/.bin/electron --inspect ./dist/app.js",
-        "electron-win": "./node_modules/.bin/electron --inspect ./dist/app.js",
-        "build": "./node_modules/.bin/tsc -p ./tsconfig.json",
+        "electron-win": "node_modules/.bin/electron --inspect ./dist/app.js",
+        "build": "node_modules/.bin/tsc -p tsconfig.json",
         "start": "npm run build-ts && npm run electron",
         "postinstall": "electron-builder install-app-deps",
-        "build-darwin": "./node_modules/.bin/electron-builder --mac --dir",
-        "build-linux": "./node_modules/.bin/electron-builder --linux --dir",
-        "build-win": "./node_modules/.bin/electron-builder --win --dir",
-        "lint": "./node_modules/.bin/eslint . --ext .ts --max-warnings=0"
+        "build-darwin": "node_modules/.bin/electron-builder --mac --dir",
+        "build-linux": "node_modules/.bin/electron-builder --linux --dir",
+        "build-win": "node_modules/.bin/electron-builder --win --dir",
+        "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0"
     }
 }

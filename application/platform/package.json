@@ -33,8 +33,8 @@
         "typescript": "^4.6.3"
     },
     "scripts": {
-        "build": "./node_modules/.bin/tsc -p ./tsconfig.json",
-        "lint": "./node_modules/.bin/eslint . --ext .ts --max-warnings=0"
+        "build": "node_modules/.bin/tsc -p tsconfig.json",
+        "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0"
     },
     "exports": {
         "./entity": "./dist/entity/index.js",
