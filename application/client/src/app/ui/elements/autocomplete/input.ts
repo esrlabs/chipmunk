@@ -15,16 +15,19 @@ export class Controll {
 
     public actions: {
         edit: Subject<string>;
-        recent: Subject<void>;
+        accept: Subject<string>;
+        panel: Subject<boolean>;
     } = {
         edit: new Subject(),
-        recent: new Subject(),
+        accept: new Subject(),
+        panel: new Subject(),
     };
     private _panel!: MatAutocompleteTrigger;
 
     public destroy() {
+        this.actions.accept.destroy();
         this.actions.edit.destroy();
-        this.actions.recent.destroy();
+        this.actions.panel.destroy();
     }
 
     public bind(ref: HTMLInputElement, panel: MatAutocompleteTrigger) {
@@ -46,17 +49,19 @@ export class Controll {
             if (this.recent) {
                 this.recent = false;
                 this._panel.closePanel();
+                this.actions.panel.emit(false);
             }
+            this.actions.accept.emit(this.value);
         } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
             if (!this.recent) {
                 this.recent = true;
                 this._panel.openPanel();
-                this.actions.recent.emit();
+                this.actions.panel.emit(true);
             }
         } else if (this.control.value !== '' && !this.recent) {
             this.recent = true;
             this._panel.openPanel();
-            this.actions.recent.emit();
+            this.actions.panel.emit(true);
         }
         this.value = this.control.value;
         this.actions.edit.emit(this.value);

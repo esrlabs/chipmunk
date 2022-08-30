@@ -8,7 +8,8 @@ import { RecentActionsModule } from '@elements/recent/module';
 import { RecentActionsMiniModule } from '@elements/recent.mini/module';
 import { TreeModule } from '@elements/tree/module';
 import { LocksHistoryModule } from '@elements/locks.history/module';
-import { TransportReviewModule } from '@ui/elements/transport/listed/module';
+import { TransportReviewModule } from '@elements/transport/listed/module';
+import { AutocompleteModule } from '@elements/autocomplete/module';
 import { ComTooltipComponent } from '@elements/tooltip/component';
 
 @NgModule({
@@ -23,6 +24,7 @@ import { ComTooltipComponent } from '@elements/tooltip/component';
         TreeModule,
         LocksHistoryModule,
         TransportReviewModule,
+        AutocompleteModule,
     ],
     declarations: [ComTooltipComponent],
     exports: [
@@ -34,6 +36,7 @@ import { ComTooltipComponent } from '@elements/tooltip/component';
         TreeModule,
         LocksHistoryModule,
         TransportReviewModule,
+        AutocompleteModule,
     ],
 })
 export class ElementsModule {}

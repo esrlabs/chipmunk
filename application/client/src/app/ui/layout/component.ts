@@ -13,7 +13,7 @@ import { Direction } from '@directives/resizer';
 import { Base } from '@service/session';
 
 const TOOLBAR_NORMAL_HEIGHT = 250;
-const SIDEBAR_NORMAL_WIDTH = 250;
+const SIDEBAR_NORMAL_WIDTH = 350;
 const TOOLBAR_MIN_HEIGHT = 50;
 const SIDEBAR_MIN_WIDTH = 50;
 const TOOLBAR_MAX_SIZE_RATE = 0.7;

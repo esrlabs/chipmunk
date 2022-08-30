@@ -94,7 +94,7 @@ export class Transport extends ChangesDetector implements AfterContentInit {
                 ...[
                     {},
                     {
-                        caption: 'Restart Parameters',
+                        caption: 'Parameters',
                         handler: () => {
                             this.ilc()
                                 .services.system.opener.stream(sourceDef)
