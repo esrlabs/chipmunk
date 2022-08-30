@@ -19,6 +19,25 @@ mat-icon.mini-button {
     height: 1.5rem!important;
     line-height: 1.5rem!important;
     max-height: 1.5rem!important;
+    & span.mat-option-text {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        & span.option-caption {
+            flex: auto;
+        }
+        & mat-icon {
+            font-size: 16px;
+            height: 16px;
+            width: 16px;
+            padding: 0;
+            margin: 0;
+            color: @scheme-color-2;
+            &:hover {
+                color: @scheme-color-1;
+            }
+        }
+    }
 }
 & mat-form-field.outline{
     margin: 0 4px;

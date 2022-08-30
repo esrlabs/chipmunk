@@ -14,18 +14,17 @@ export class List extends Storage implements EntryConvertable {
     public filter: string = '';
     public observer: Observable<Recent[]>;
 
-    private _matcher: Matcher = Matcher.new();
-    private _filealias: string;
+    protected readonly control: FormControl;
+    protected readonly matcher: Matcher = Matcher.new();
+    protected readonly filealias: string;
 
     constructor(control: FormControl, name: string, filealias: string) {
         super();
-        this._filealias = filealias;
+        this.filealias = filealias;
+        this.control = control;
         this.observer = control.valueChanges.pipe(
             startWith(''),
-            map((filter: string) => {
-                this.setFilter(filter);
-                return this.items.filter((i) => i.filtered);
-            }),
+            map(() => []),
         );
         this.setLoggerName(name);
         this.storage()
@@ -38,10 +37,17 @@ export class List extends Storage implements EntryConvertable {
                 if (error instanceof Error) {
                     this.log().error(`Fail to parse loaded content: ${error.message}`);
                 }
+                this.assign();
             })
             .catch((err: Error) => {
                 this.log().error(`Fail to load: ${err.message}`);
             });
+    }
+
+    public remove(recent: string) {
+        this.items = this.items.filter((r) => r.value !== recent);
+        this.assign();
+        this.save();
     }
 
     public getStorageEntry(): Entry {
@@ -49,26 +55,28 @@ export class List extends Storage implements EntryConvertable {
     }
 
     public getStorageKey(): string {
-        return `${this._filealias}`;
+        return `${this.filealias}`;
     }
 
     public update(recent: string) {
         const item = this.items.find((i) => i.value === recent);
         if (item === undefined) {
-            this.items.push(new Recent(recent, this._matcher));
+            this.items.push(new Recent(recent, this.matcher));
         } else {
             item.used += 1;
         }
         this.setFilter('');
-        this.storage()
-            .save()
-            .catch((err: Error) => {
-                this.log().error(`Fail to save: ${err.message}`);
-            });
+        this.save();
+    }
+
+    public sort(items?: Recent[]) {
+        (items === undefined ? this.items : items).sort((a, b) => {
+            return a.used > b.used ? -1 : 1;
+        });
     }
 
     public setFilter(filter: string) {
-        this._matcher.search(filter);
+        this.matcher.search(filter);
         this.items.sort((a: Recent, b: Recent) => b.getScore() - a.getScore());
         this.items.forEach((i) => i.setFilter());
     }
@@ -97,11 +105,12 @@ export class List extends Storage implements EntryConvertable {
                     }
                     this.items = recent
                         .map((r) => {
-                            const item = new Recent('', this._matcher);
+                            const item = new Recent('', this.matcher);
                             const error = item.entry().from(r);
                             return error instanceof Error ? error : item;
                         })
                         .filter((r) => r instanceof Recent) as Recent[];
+                    this.sort();
                 } catch (e) {
                     return new Error(error(e));
                 }
@@ -117,6 +126,29 @@ export class List extends Storage implements EntryConvertable {
                 return undefined;
             },
         };
+    }
+
+    protected save() {
+        this.sort();
+        this.storage()
+            .save()
+            .catch((err: Error) => {
+                this.log().error(`Fail to save: ${err.message}`);
+            });
+    }
+
+    protected assign(): void {
+        this.observer = this.control.valueChanges.pipe(
+            startWith(''),
+            map((filter: string) => {
+                this.setFilter(filter);
+                const output = this.items.filter((i) => i.filtered);
+                if (output.length === this.items.length) {
+                    this.sort(output);
+                }
+                return output;
+            }),
+        );
     }
 }
 export interface List extends LoggerInterface {}

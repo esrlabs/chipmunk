@@ -13,6 +13,7 @@ import { State } from './state';
 import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { Controll } from './input';
 import { List } from '@env/storages/recent/list';
+import { Recent } from '@env/storages/recent/item';
 import { Action } from '@ui/tabs/sources/common/actions/action';
 
 @Component({
@@ -26,10 +27,10 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
     @Input() public action!: Action;
 
     @ViewChild('commandinput') commandInputRef!: ElementRef<HTMLInputElement>;
-    @ViewChild('cmdinput') cmdInputRef!: ElementRef<HTMLInputElement>;
+    @ViewChild('cwdinput') cwdInputRef!: ElementRef<HTMLInputElement>;
     @ViewChild('commandinput', { read: MatAutocompleteTrigger })
     commandsPanelRef!: MatAutocompleteTrigger;
-    @ViewChild('cmdinput', { read: MatAutocompleteTrigger }) cmdPanelRef!: MatAutocompleteTrigger;
+    @ViewChild('cwdinput', { read: MatAutocompleteTrigger }) cmdPanelRef!: MatAutocompleteTrigger;
 
     public readonly inputs: {
         command: {
@@ -68,7 +69,7 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
 
     public ngAfterViewInit(): void {
         this.inputs.command.input.bind(this.commandInputRef.nativeElement, this.commandsPanelRef);
-        this.inputs.cwd.input.bind(this.cmdInputRef.nativeElement, this.cmdPanelRef);
+        this.inputs.cwd.input.bind(this.cwdInputRef.nativeElement, this.cmdPanelRef);
         this.inputs.command.input.actions.edit.subscribe((value: string) => {
             this.state.command = value;
             this.action.setDisabled(value.trim() === '');
@@ -88,9 +89,20 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
         });
         this.inputs.command.input.set(this.state.command);
         this.inputs.cwd.input.set(this.state.cwd);
-        if (this.inputs.command.input.value.trim() === '') {
+        if (this.state.command.trim() === '') {
             this.action.setDisabled(true);
         }
+    }
+
+    public ngRemoveRecent(target: 'cmd' | 'cwd', recent: Recent, event: MouseEvent) {
+        if (target === 'cmd') {
+            this.inputs.command.recent.remove(recent.value);
+        } else {
+            this.inputs.cwd.recent.remove(recent.value);
+        }
+        this.detectChanges();
+        event.preventDefault();
+        event.stopImmediatePropagation();
     }
 }
 export interface TransportProcess extends IlcInterface {}

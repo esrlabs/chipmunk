@@ -43,7 +43,7 @@ export class Recent extends Matchee implements EntryConvertable {
                 return {
                     uuid: this.value,
                     content: JSON.stringify({
-                        filter: this.value,
+                        value: this.value,
                         used: this.used,
                     }),
                 };
@@ -51,10 +51,10 @@ export class Recent extends Matchee implements EntryConvertable {
             from: (entry: Entry): Error | undefined => {
                 try {
                     const def: {
-                        filter: string;
+                        value: string;
                         used: number;
                     } = JSON.parse(entry.content);
-                    this.value = obj.getAsNotEmptyString(def, 'filter');
+                    this.value = obj.getAsNotEmptyString(def, 'value');
                     this.used = obj.getAsValidNumber(def, 'used');
                     this.setItem({ value: this.value });
                 } catch (e) {

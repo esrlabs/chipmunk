@@ -1,0 +1,33 @@
+<mat-form-field class="outline" appearance="outline">
+    <input
+        #input
+        tabindex="1"
+        type="text"
+        placeholder="options.placeholder"
+        aria-label="options.label"
+        matInput
+        [formControl]="control.control"
+        [matAutocomplete]="recent_ref"
+        [matAutocompleteDisabled]="!control.recent"
+        (keyup)="control.keyup($event)"
+    />
+    <mat-autocomplete
+        #recent_ref="matAutocomplete"
+        class="regular"
+        (optionSelected)="control.selected($event)"
+        (closed)="control.onPanelClosed()"
+        [classList]="'recent-requests'"
+        [disableRipple]="true"
+    >
+        <mat-option
+            class="small"
+            *ngFor="let recent of recent.observer | async"
+            [value]="recent.value"                   
+        >
+            <span class="option-caption t-console t-small t-subselection"
+                [innerHTML]="recent.html()"
+            ></span>
+            <mat-icon (click)="ngRemove(recent, $event)">close</mat-icon>
+        </mat-option>
+    </mat-autocomplete>
+</mat-form-field>
