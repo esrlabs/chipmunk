@@ -45,7 +45,7 @@
     "@types/uuid": "^8.3.4",
     "@typescript-eslint/eslint-plugin": "^5.28.0",
     "@typescript-eslint/parser": "^5.28.0",
-    "eslint": "^8.2.0",
+    "eslint": "8.13.0",
     "jasmine-core": "^4.1.0",
     "karma": "~6.3.0",
     "karma-chrome-launcher": "~3.1.0",
