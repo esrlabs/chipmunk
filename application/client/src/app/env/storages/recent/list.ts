@@ -59,6 +59,9 @@ export class List extends Storage implements EntryConvertable {
     }
 
     public update(recent: string) {
+        if (recent.trim() === '') {
+            return;
+        }
         const item = this.items.find((i) => i.value === recent);
         if (item === undefined) {
             this.items.push(new Recent(recent, this.matcher));

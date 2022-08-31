@@ -1,69 +1,8 @@
-<div class="input">
-    <mat-form-field class="outline" appearance="outline">
-        <input
-            #commandinput
-            tabindex="1"
-            type="text"
-            placeholder="Type a Terminal Command"
-            aria-label="Command"
-            matInput
-            [formControl]="inputs.command.input.control"
-            [matAutocomplete]="commandsrecent"
-            [matAutocompleteDisabled]="!inputs.command.input.recent"
-            (keyup)="inputs.command.input.keyup($event)"
-        />
-        <mat-autocomplete
-            #commandsrecent="matAutocomplete"
-            class="regular"
-            (optionSelected)="inputs.command.input.selected($event)"
-            (closed)="inputs.command.input.onPanelClosed()"
-            [classList]="'recent-requests'"
-            [disableRipple]="true"
-        >
-            <mat-option
-                class="small"
-                *ngFor="let recent of inputs.command.recent.observer | async"
-                [value]="recent.value"                   
-            >
-                <span class="option-caption t-console t-small t-subselection"
-                    [innerHTML]="recent.html()"
-                ></span>
-                <mat-icon (click)="ngRemoveRecent('cmd', recent, $event)">close</mat-icon>
-            </mat-option>
-        </mat-autocomplete>
-    </mat-form-field>
-</div>
-<div class="input">
-    <mat-form-field class="outline" appearance="outline">
-        <input
-            #cwdinput
-            tabindex="2"
-            type="text"
-            placeholder="Type a default location (cwd)"
-            aria-label="cwd"
-            matInput
-            [formControl]="inputs.cwd.input.control"
-            [matAutocomplete]="cmdrecent"
-            [matAutocompleteDisabled]="!inputs.cwd.input.recent"
-            (keyup)="inputs.cwd.input.keyup($event)"
-        />
-        <mat-autocomplete
-            #cmdrecent="matAutocomplete"
-            class="regular"
-            (closed)="inputs.cwd.input.onPanelClosed()"
-            [classList]="'recent-requests'"
-            [disableRipple]="true"
-        >
-            <mat-option
-                class="small"
-                *ngFor="let recent of inputs.cwd.recent.observer | async"
-                [value]="recent.value"                   
-            >
-                <span class="option-caption t-console t-small t-subselection"
-                    [innerHTML]="recent.html()"
-                ></span>
-                <mat-icon (click)="ngRemoveRecent('cwd', recent, $event)">close</mat-icon>
-            </mat-option>
-        </mat-autocomplete>
-    </mat-form-field>
-</div>
+<app-autocomplete-input [options]="inputs.cmd"
+    (edit)="ngEdit('cmd', $event)"
+    (enter)="ngEnter('cmd')"
+    (panel)="ngPanel()"></app-autocomplete-input>
+<app-autocomplete-input [options]="inputs.cwd"
+    (edit)="ngEdit('cwd', $event)"
+    (enter)="ngEnter('cwd')"
+    (panel)="ngPanel()"></app-autocomplete-input>

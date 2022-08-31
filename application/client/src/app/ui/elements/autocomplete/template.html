@@ -3,14 +3,18 @@
         #input
         tabindex="1"
         type="text"
-        placeholder="options.placeholder"
-        aria-label="options.label"
+        [attr.placeholder]="options.placeholder"
+        [attr.ariaLabel]="options.label"
+        [errorStateMatcher]="error"
         matInput
         [formControl]="control.control"
         [matAutocomplete]="recent_ref"
         [matAutocompleteDisabled]="!control.recent"
         (keyup)="control.keyup($event)"
     />
+    <mat-error *ngIf="error.is()">
+        {{error.msg()}}
+    </mat-error>
     <mat-autocomplete
         #recent_ref="matAutocomplete"
         class="regular"

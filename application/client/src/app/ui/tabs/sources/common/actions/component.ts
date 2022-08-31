@@ -22,9 +22,14 @@ export class Actions extends ChangesDetector implements AfterContentInit {
                 this.detectChanges();
             }),
         );
+        this.env().subscriber.register(
+            this.action.subjects.get().apply.subscribe(() => {
+                this.ngOnApply();
+            }),
+        );
     }
 
-    public ngOnApplied(): void {
+    public ngOnApply(): void {
         if (this.action.disabled) {
             return;
         }
