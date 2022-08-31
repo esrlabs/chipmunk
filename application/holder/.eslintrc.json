@@ -18,6 +18,7 @@
         "@typescript-eslint"
     ],
     "rules": {
+        "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
         "no-empty-interface": 0,
         "@typescript-eslint/no-empty-interface": [
             "error",

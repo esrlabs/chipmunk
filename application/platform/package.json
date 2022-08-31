@@ -25,7 +25,7 @@
         "@types/node": "^18.0.0",
         "@typescript-eslint/eslint-plugin": "^5.19.0",
         "@typescript-eslint/parser": "^5.19.0",
-        "eslint": "^8.13.0",
+        "eslint": "8.13.0",
         "eslint-plugin-import": "^2.26.0",
         "eslint-plugin-node": "^11.1.0",
         "eslint-plugin-promise": "^6.0.0",
@@ -34,7 +34,7 @@
     },
     "scripts": {
         "build": "node_modules/.bin/tsc -p tsconfig.json",
-        "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0"
+        "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0 "
     },
     "exports": {
         "./entity": "./dist/entity/index.js",

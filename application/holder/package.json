@@ -107,7 +107,7 @@
         "electron": "^18.0.4",
         "electron-builder": "^23.1.0",
         "electron-notarize": "^1.2.1",
-        "eslint": "^8.13.0",
+        "eslint": "8.13.0",
         "eslint-plugin-import": "^2.26.0",
         "eslint-plugin-node": "^11.1.0",
         "eslint-plugin-promise": "^6.0.0",
