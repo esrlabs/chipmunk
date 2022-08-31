@@ -15,17 +15,17 @@ export class Controll {
 
     public actions: {
         edit: Subject<string>;
-        accept: Subject<string>;
+        enter: Subject<string>;
         panel: Subject<boolean>;
     } = {
         edit: new Subject(),
-        accept: new Subject(),
+        enter: new Subject(),
         panel: new Subject(),
     };
     private _panel!: MatAutocompleteTrigger;
 
     public destroy() {
-        this.actions.accept.destroy();
+        this.actions.enter.destroy();
         this.actions.edit.destroy();
         this.actions.panel.destroy();
     }
@@ -51,7 +51,7 @@ export class Controll {
                 this._panel.closePanel();
                 this.actions.panel.emit(false);
             }
-            this.actions.accept.emit(this.value);
+            this.actions.enter.emit(this.value);
         } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
             if (!this.recent) {
                 this.recent = true;

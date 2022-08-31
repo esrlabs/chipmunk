@@ -7,9 +7,11 @@ export class Action {
     public subjects: Subjects<{
         updated: Subject<void>;
         applied: Subject<void>;
+        apply: Subject<void>;
         canceled: Subject<void>;
     }> = new Subjects({
         updated: new Subject<void>(),
+        apply: new Subject<void>(),
         applied: new Subject<void>(),
         canceled: new Subject<void>(),
     });
@@ -35,5 +37,9 @@ export class Action {
         this.caption = DEFAULT_CAPTION;
         this.disabled = DEFAULT_STATE;
         this.subjects.get().updated.emit();
+    }
+
+    public apply(): void {
+        this.subjects.get().apply.emit();
     }
 }

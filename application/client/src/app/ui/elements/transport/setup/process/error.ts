@@ -1,69 +1,42 @@
-import { ErrorStateMatcher } from '@angular/material/core';
-import { FormControl } from '@angular/forms';
+import { ErrorState } from '@elements/autocomplete/error';
+import { Subject } from '@platform/env/subscription';
+import { bridge } from '@service/bridge';
+import { EntityType } from '@platform/types/files';
 
-export enum Field {
-    command = 'command',
-    cwd = 'cwd',
-}
+export class CwdErrorState extends ErrorState {
+    protected updated: Subject<void> = new Subject();
+    protected error: string | undefined;
 
-export enum Codes {
-    NO_ERRORS = 'NO_ERRORS',
-    REQUIRED = 'REQUIRED',
-    INVALID = 'INVALID',
-}
-
-export class ErrorState implements ErrorStateMatcher {
-    readonly _alias: Field;
-    private _code: Codes = Codes.NO_ERRORS;
-
-    constructor(alias: Field) {
-        this._alias = alias;
+    public validate(): void {
+        bridge
+            .files()
+            .stat(this.value)
+            .then((info) => {
+                if (info.type === EntityType.Directory) {
+                    this.error = undefined;
+                } else if (info.type === EntityType.File) {
+                    this.error = `File cannot be used as CWD`;
+                } else {
+                    this.error = `Define path to folder (CWD)`;
+                }
+            })
+            .catch((err: Error) => {
+                this.error = err.message;
+            })
+            .finally(() => {
+                this.updated.emit();
+            });
     }
 
-    public isErrorState(
-        control: FormControl | null,
-        // form: FormGroupDirective | NgForm | null,
-    ): boolean {
-        if (control === null) {
-            return false;
-        }
-        if (this.isFieldRequired(control.value)) {
-            this._code = Codes.REQUIRED;
-        } else if (!this.isFieldValid(control.value)) {
-            this._code = Codes.INVALID;
-        } else {
-            this._code = Codes.NO_ERRORS;
-        }
-        return this._code !== Codes.NO_ERRORS;
+    public is(): boolean {
+        return this.error !== undefined;
     }
 
-    public isFieldValid(value: string): boolean {
-        if (typeof value !== 'string') {
-            return false;
-        }
-        switch (this._alias) {
-            case Field.cwd:
-            case Field.command:
-                return value.trim() !== '';
-        }
+    public msg(): string {
+        return this.error === undefined ? '' : this.error;
     }
 
-    public isFieldRequired(value: string): boolean {
-        if (typeof value !== 'string') {
-            return true;
-        }
-        switch (this._alias) {
-            case Field.cwd:
-            case Field.command:
-                return value.trim() === '';
-        }
-    }
-
-    public getErrorCode(): Codes {
-        return this._code;
-    }
-
-    public isValid(): boolean {
-        return this._code === Codes.NO_ERRORS;
+    public observer(): Subject<void> {
+        return this.updated;
     }
 }
