@@ -1,7 +1,7 @@
 import { Level, LOGS_LEVEL_TABLE } from '@platform/env/logger';
 
 export const DEFAUT_ALLOWED_CONSOLE = {
-    DEBUG: false,
+    DEBUG: true,
     ERROR: true,
     INFO: false,
     VERBOS: false,

@@ -1,5 +1,6 @@
 import { singleDecoratorFactory, DecoratorConstructor } from '@platform/env/decorators';
 import { getComponentSelector } from '@env/reflect';
+import { scope } from '@platform/env/scope';
 
 export class Components {
     private _components: Map<string, DecoratorConstructor> = new Map();
@@ -26,6 +27,7 @@ export const Initial = singleDecoratorFactory((constructor: DecoratorConstructor
         throw new Error(`Fail to detect selector for angular component`);
     }
     components.add(selector, constructor);
+    scope.getLogger('@Initial').debug(`${selector} has been registered as initial`);
     return class extends constructor {};
 });
 
