@@ -9,7 +9,7 @@ import { TabControls } from '@service/session';
 import { State, ConnectionType } from './state';
 import { components } from '@env/decorators/initial';
 import { LockToken } from '@platform/env/lock.token';
-import { Timezone } from '@ui/elements/timezones/timezone';
+import { Timezone } from '@elements/timezones/timezone';
 import { SourceDefinition } from '@platform/types/transport';
 
 @Component({

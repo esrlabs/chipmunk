@@ -14,8 +14,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatListModule } from '@angular/material/list';
 import { MatInputModule } from '@angular/material/input';
 
-import { TransportModule } from '@ui/elements/transport/setup/module';
-import { LocksHistoryModule } from '@ui/elements/locks.history/module';
+import { TransportModule } from '@elements/transport/setup/module';
+import { LocksHistoryModule } from '@elements/locks.history/module';
 
 import { TabSourceTextStream } from './component';
 import { Actions } from '../common/actions/component';
@@ -43,5 +43,6 @@ import { Actions } from '../common/actions/component';
     ],
     declarations: [TabSourceTextStream, Actions],
     exports: [TabSourceTextStream],
+    bootstrap: [TabSourceTextStream],
 })
 export class TabSourceTextStreamModule {}

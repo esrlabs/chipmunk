@@ -13,8 +13,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatListModule } from '@angular/material/list';
 import { MatInputModule } from '@angular/material/input';
-
-import { TransportModule } from '@ui/elements/transport/setup/module';
+import { TransportModule } from '@elements/transport/setup/module';
 
 import { TabSourceDltStream } from './component';
 
@@ -40,5 +39,6 @@ import { TabSourceDltStream } from './component';
     ],
     declarations: [TabSourceDltStream],
     exports: [TabSourceDltStream],
+    bootstrap: [TabSourceDltStream],
 })
 export class TabSourceDltStreamModule {}

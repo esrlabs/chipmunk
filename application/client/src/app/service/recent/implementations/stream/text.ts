@@ -1,6 +1,6 @@
 import { components } from '@env/decorators/initial';
 import { RecentAction } from '../recent';
-import { IComponentDesc } from '@ui/elements/containers/dynamic/component';
+import { IComponentDesc } from '@elements/containers/dynamic/component';
 import { SourceDefinition } from '@platform/types/transport';
 
 import * as obj from '@platform/env/obj';

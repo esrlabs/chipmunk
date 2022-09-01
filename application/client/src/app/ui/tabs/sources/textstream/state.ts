@@ -1,5 +1,5 @@
 import { SourceDefinition } from '@platform/types/transport';
-import { State as TransportState } from '@ui/elements/transport/setup/state';
+import { State as TransportState } from '@elements/transport/setup/state';
 
 export class State {
     public transport: TransportState = new TransportState();

@@ -9,7 +9,7 @@ import { RowComponent } from './component';
 import { Standard } from './standard/component';
 import { Columns } from './columns/component';
 
-import { ContainersModule } from '@ui/elements/containers/module';
+import { ContainersModule } from '@elements/containers/module';
 
 const components = [RowComponent, Standard, Columns];
 

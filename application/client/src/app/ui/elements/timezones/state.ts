@@ -1,5 +1,5 @@
 import { Filter } from '@ui/env/entities/filter';
-import { Timezone } from '@ui/elements/timezones/timezone';
+import { Timezone } from '@elements/timezones/timezone';
 import { InternalAPI } from '@service/ilc';
 
 import * as moment_timezone from 'moment-timezone';
