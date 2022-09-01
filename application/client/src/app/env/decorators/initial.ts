@@ -20,12 +20,16 @@ export class Components {
 
 const components = new Components();
 
-export const Initial = singleDecoratorFactory((constructor: DecoratorConstructor) => {
+function getSelector(constructor: DecoratorConstructor): string {
     const selector: string | undefined = getComponentSelector(constructor);
     if (selector === undefined) {
         console.log(constructor);
         throw new Error(`Fail to detect selector for angular component`);
     }
+    return selector;
+}
+export const Initial = singleDecoratorFactory((constructor: DecoratorConstructor) => {
+    const selector: string = getSelector(constructor);
     components.add(selector, constructor);
     scope.getLogger('@Initial').debug(`${selector} has been registered as initial`);
     return class extends constructor {};

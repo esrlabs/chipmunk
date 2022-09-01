@@ -18,7 +18,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSelectModule } from '@angular/material/select';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { ComColorSelectorComponent } from '@ui/elements/color.selector/component';
+import { ComColorSelectorComponent } from '@elements/color.selector/component';
 import { Filters } from './component';
 
 import { FilterDetails } from './filters/details/component';

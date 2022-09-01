@@ -13,7 +13,7 @@ import { getTypedProp } from '@platform/env/obj';
 import { Subject } from '@platform/env/subscription';
 import { Filter } from '@ui/env/entities/filter';
 import { Summary } from './summary';
-import { Timezone } from '@ui/elements/timezones/timezone';
+import { Timezone } from '@elements/timezones/timezone';
 import { bridge } from '@service/bridge';
 import { InternalAPI } from '@service/ilc';
 import { Holder } from '@module/matcher';

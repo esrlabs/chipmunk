@@ -7,10 +7,10 @@ import {
     LOG_LEVELS,
     NUM_LOGS_LEVELS,
 } from '@platform/types/parsers/dlt';
-import { Timezone } from '@ui/elements/timezones/timezone';
+import { Timezone } from '@elements/timezones/timezone';
 import { SourceDefinition } from '@platform/types/transport';
 import { bridge } from '@service/bridge';
-import { State as TransportState } from '@ui/elements/transport/setup/state';
+import { State as TransportState } from '@elements/transport/setup/state';
 
 import * as Errors from './error';
 

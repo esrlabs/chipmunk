@@ -2,7 +2,7 @@ import { Entity } from '../providers/definitions/entity';
 import { Provider } from '../providers/definitions/provider';
 import { FilterRequest } from '@service/session/dependencies/search/filters/store';
 import { DisabledRequest } from '@service/session/dependencies/search/disabled/request';
-import { IComponentDesc } from '@ui/elements/containers/dynamic/component';
+import { IComponentDesc } from '@elements/containers/dynamic/component';
 import { FiltersList } from './list/component';
 import { FiltersPlaceholder } from './placeholder/component';
 import { FilterDetails } from './details/component';

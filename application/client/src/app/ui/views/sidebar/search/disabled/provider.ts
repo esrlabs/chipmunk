@@ -1,7 +1,7 @@
 import { Entity } from '../providers/definitions/entity';
 import { Provider } from '../providers/definitions/provider';
 import { DisabledRequest } from '@service/session/dependencies/search/disabled/store';
-import { IComponentDesc } from '@ui/elements/containers/dynamic/component';
+import { IComponentDesc } from '@elements/containers/dynamic/component';
 import { DisabledList } from './list/component';
 import { IMenuItem } from '@ui/service/contextmenu';
 import { DisableConvertable } from '@service/session/dependencies/search/disabled/converting';

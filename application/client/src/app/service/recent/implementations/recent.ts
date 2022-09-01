@@ -1,4 +1,4 @@
-import { IComponentDesc } from '@ui/elements/containers/dynamic/component';
+import { IComponentDesc } from '@elements/containers/dynamic/component';
 
 export abstract class RecentAction {
     public abstract asComponent(): IComponentDesc;

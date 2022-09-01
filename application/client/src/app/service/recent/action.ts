@@ -2,7 +2,7 @@ import { Recent as RecentFileAction, BaseInfo } from './implementations/file/fil
 import { Recent as RecentStreamDltAction } from './implementations/stream/dlt';
 import { Recent as RecentStreamTextAction } from './implementations/stream/text';
 
-import { IComponentDesc } from '@ui/elements/containers/dynamic/component';
+import { IComponentDesc } from '@elements/containers/dynamic/component';
 import { Entry } from '@platform/types/storage/entry';
 import { error } from '@platform/env/logger';
 import { unique } from '@platform/env/sequence';

@@ -1,7 +1,7 @@
 import { Subject, Subscriber } from '@platform/env/subscription';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Entity } from './entity';
-import { IComponentDesc } from '@ui/elements/containers/dynamic/component';
+import { IComponentDesc } from '@elements/containers/dynamic/component';
 import { KeyboardListener } from './keyboard.listener';
 import { IMenuItem } from '@ui/service/contextmenu';
 import { EntityData } from './entity.data';

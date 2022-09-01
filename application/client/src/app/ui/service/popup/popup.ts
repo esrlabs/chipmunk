@@ -1,6 +1,6 @@
 import { unique } from '@platform/env/sequence';
 import { Subjects, Subject } from '@platform/env/subscription';
-import { IComponentDesc } from '@ui/elements/containers/dynamic/component';
+import { IComponentDesc } from '@elements/containers/dynamic/component';
 
 export enum Vertical {
     top = 'top',

@@ -39,5 +39,6 @@ const components = [TabSourceDltFile, TabSourceDltFileStructure];
     ],
     declarations: [...components],
     exports: [...components],
+    bootstrap: [...components],
 })
 export class TabSourceDltFileModule {}
