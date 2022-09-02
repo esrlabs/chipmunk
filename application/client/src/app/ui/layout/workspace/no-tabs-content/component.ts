@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { FileType, File } from '@platform/types/files';
+import { TabSourceMultipleFiles } from '@tabs/sources/multiplefiles/component';
 
 @Component({
     selector: 'app-layout-area-no-tabs-content',
@@ -53,32 +54,45 @@ export class LayoutWorkspaceNoContent {
             .then((files: File[]) => {
                 if (files.length === 0) {
                     return;
+                } else if (files.length === 1) {
+                    files.forEach((file: File) => {
+                        switch (file.type) {
+                            case FileType.Any:
+                            case FileType.Text:
+                                this.ilc()
+                                    .services.system.opener.file(file)
+                                    .text()
+                                    .catch((err: Error) => {
+                                        this.log().error(
+                                            `Fail to open text file; error: ${err.message}`,
+                                        );
+                                    });
+                                break;
+                            case FileType.Dlt:
+                                this.ilc()
+                                    .services.system.opener.file(file)
+                                    .dlt()
+                                    .catch((err: Error) => {
+                                        this.log().error(
+                                            `Fail to open dlt file; error: ${err.message}`,
+                                        );
+                                    });
+                                break;
+                        }
+                    });
+                } else {
+                    this.ilc()
+                        .services.system.session.add()
+                        .tab({
+                            name: 'Multiple Files',
+                            active: true,
+                            closable: true,
+                            content: {
+                                factory: TabSourceMultipleFiles,
+                                inputs: { files: files },
+                            },
+                        });
                 }
-                files.forEach((file: File) => {
-                    switch (file.type) {
-                        case FileType.Any:
-                        case FileType.Text:
-                            this.ilc()
-                                .services.system.opener.file(file)
-                                .text()
-                                .catch((err: Error) => {
-                                    this.log().error(
-                                        `Fail to open text file; error: ${err.message}`,
-                                    );
-                                });
-                            break;
-                        case FileType.Dlt:
-                            this.ilc()
-                                .services.system.opener.file(file)
-                                .dlt()
-                                .catch((err: Error) => {
-                                    this.log().error(
-                                        `Fail to open dlt file; error: ${err.message}`,
-                                    );
-                                });
-                            break;
-                    }
-                });
             })
             .catch((err: Error) => {
                 this.log().error(`Fail to open file: ${err.message}`);
