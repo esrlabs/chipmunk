@@ -4,6 +4,7 @@ import { TabSourceDltFileModule } from '@tabs/sources/dltfile/module';
 import { TabSourceDltStreamModule } from '@tabs/sources/dltstream/module';
 import { TabSourceTextStreamModule } from '@tabs/sources/textstream/module';
 import { TimezoneSelectorModule } from '@elements/timezones/module';
+import { TabSourceMultipleFilesModule } from '@ui/tabs/sources/multiplefiles/module';
 
 @NgModule({
     entryComponents: [],
@@ -14,12 +15,14 @@ import { TimezoneSelectorModule } from '@elements/timezones/module';
         TabSourceDltStreamModule,
         TimezoneSelectorModule,
         TabSourceTextStreamModule,
+        TabSourceMultipleFilesModule,
     ],
     bootstrap: [
         TabSourceDltFileModule,
         TabSourceDltStreamModule,
         TimezoneSelectorModule,
         TabSourceTextStreamModule,
+        TabSourceMultipleFilesModule,
     ],
 })
 export class TabsModule {}
