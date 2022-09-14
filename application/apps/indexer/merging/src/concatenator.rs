@@ -97,7 +97,7 @@ pub fn concat_files(
             .create(true)
             .open(out_path)?
     } else {
-        std::fs::File::create(&out_path)?
+        std::fs::File::create(out_path)?
     };
     let original_file_size = out_file.metadata()?.len() as usize;
     let mut buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);

@@ -141,6 +141,16 @@ pub enum CallbackEvent {
      */
     SearchUpdated(u64),
     /**
+     * Triggered on update of search result data
+     * @event SearchMapUpdated { Option<String> }
+     * includes JSON String of Vec<u64> - map of all matches in search
+     * also called with each search update if there are streaming
+     * None - map is dropped
+     * >> Scope: session
+     * >> Kind: repeated
+     */
+    SearchMapUpdated(Option<String>),
+    /**
      * Triggered on progress of async operation
      * @event Progress: { total: usize, done: usize }
      * >> Scope: async operation

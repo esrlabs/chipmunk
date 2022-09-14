@@ -444,7 +444,7 @@ impl IndexOutput {
                 .create(true)
                 .open(out_path)?
         } else {
-            File::create(&out_path)?
+            File::create(out_path)?
         };
         let line_nr = if append {
             utils::next_line_nr(out_path)

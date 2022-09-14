@@ -1,6 +1,6 @@
 use serde::Serialize;
+use serde_json;
 use std::collections::HashMap;
-
 /// When looking at the search results of a file, we can say that
 /// we have n results in row m
 /// That allows us to depict the distribution of search matches over a file.
@@ -210,6 +210,11 @@ impl SearchMap {
 
     pub fn append(&mut self, matches: &mut Vec<FilterMatch>) {
         self.matches.append(matches);
+    }
+
+    pub fn map_as_str(matches: &[FilterMatch]) -> String {
+        serde_json::to_string(&matches.iter().map(|m| m.index).collect::<Vec<u64>>())
+            .map_or(String::new(), |s| s)
     }
 }
 
