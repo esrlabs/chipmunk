@@ -93,5 +93,28 @@ export class AutocompleteInput extends ChangesDetector implements AfterContentIn
         event.preventDefault();
         event.stopImmediatePropagation();
     }
+
+    public disable(): AutocompleteInput {
+        this.control.disable();
+        this.detectChanges();
+        return this;
+    }
+
+    public enable(): AutocompleteInput {
+        this.control.enable();
+        this.detectChanges();
+        return this;
+    }
+
+    public set(value: string): AutocompleteInput {
+        this.control.set(value);
+        this.detectChanges();
+        return this;
+    }
+
+    public focus(): AutocompleteInput {
+        this.inputRef.nativeElement.focus();
+        return this;
+    }
 }
 export interface AutocompleteInput extends IlcInterface {}

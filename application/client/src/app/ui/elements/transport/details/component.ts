@@ -38,6 +38,10 @@ export class Transport extends ChangesDetector implements AfterContentInit, Afte
         this.detectChanges();
     }
 
+    public ngGetObserveHandle(): ObserveOperation | undefined {
+        return this.source instanceof ObserveOperation ? this.source : undefined;
+    }
+
     public ngStop(): void {
         if (!(this.source instanceof ObserveOperation)) {
             return;

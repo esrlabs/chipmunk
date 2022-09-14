@@ -3,6 +3,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Session } from '@service/session/session';
 import { UDPTransportSettings } from '@platform/types/transport/udp';
+import { ObserveOperation } from '@service/session/dependencies/observe/operation';
 
 @Component({
     selector: 'app-transport-udp-details',
@@ -11,6 +12,7 @@ import { UDPTransportSettings } from '@platform/types/transport/udp';
 })
 @Ilc()
 export class TransportUdp extends ChangesDetector {
+    @Input() public observe!: ObserveOperation | undefined;
     @Input() public source!: UDPTransportSettings;
     @Input() public session!: Session;
 

@@ -23,12 +23,7 @@ export class Cell {
     }
 
     public styles(): { [key: string]: string } {
-        const width = this._controller.getWidth(this.index);
-        return width === undefined
-            ? {}
-            : {
-                  width: `${width}px`,
-              };
+        return this._controller.getStyle(this.index);
     }
 
     public visible(): boolean {

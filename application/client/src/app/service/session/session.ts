@@ -9,6 +9,7 @@ import { Render } from '@schema/render';
 import { components } from '@env/decorators/initial';
 import { Base } from './base';
 import { Bookmarks } from './dependencies/bookmarks';
+import { Cache } from './dependencies/cache';
 
 import * as Requests from '@platform/ipc/request';
 
@@ -23,6 +24,7 @@ export class Session extends Base {
     public readonly search: Search = new Search();
     public readonly bookmarks: Bookmarks = new Bookmarks();
     public readonly cursor: Cursor = new Cursor();
+    public readonly cache: Cache = new Cache();
     public readonly render: Render<unknown>;
 
     private readonly _toolbar: TabsService = new TabsService();
@@ -78,9 +80,10 @@ export class Session extends Base {
                     this.setLoggerName(`Session: ${cutUuid(response.uuid)}`);
                     this._uuid = response.uuid;
                     this.stream.init(this._uuid);
-                    this.search.init(this._uuid);
                     this.cursor.init(this._uuid);
                     this.bookmarks.init(this._uuid, this.cursor);
+                    this.cache.init(this._uuid, this.cursor, this.stream);
+                    this.search.init(this._uuid, this.bookmarks, this.cache);
                     resolve(this._uuid);
                 })
                 .catch(reject);
@@ -93,6 +96,7 @@ export class Session extends Base {
         this.stream.destroy();
         this.bookmarks.destroy();
         this.cursor.destroy();
+        this.cache.destroy();
         return new Promise((resolve) => {
             Requests.IpcRequest.send<Requests.Session.Destroy.Response>(
                 Requests.Session.Destroy.Response,

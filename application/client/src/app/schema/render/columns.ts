@@ -10,6 +10,7 @@ export interface Header {
 }
 export class Columns {
     public readonly headers: Header[];
+    protected styles: Array<{ [key: string]: string }> = [];
     private readonly _uuid: string;
     private: number = 0;
 
@@ -50,6 +51,9 @@ export class Columns {
                 index: i,
             };
         });
+        this.styles = this.headers.map((h) => {
+            return { width: `${h.width === undefined ? '' : `${h.width.value}px`}` };
+        });
     }
 
     public update: Subject<void> = new Subject<void>();
@@ -73,5 +77,19 @@ export class Columns {
     public getWidth(column: number): number | undefined {
         const value = this.headers[column].width;
         return value !== undefined ? value.value : undefined;
+    }
+
+    public getStyle(column: number): { [key: string]: string } {
+        const style = this.styles[column];
+        if (style === undefined) {
+            return {};
+        }
+        const width = this.getWidth(column);
+        if (width === undefined) {
+            style['width'] = '';
+        } else {
+            style['width'] = `${width}px`;
+        }
+        return style;
     }
 }

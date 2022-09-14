@@ -8,9 +8,9 @@ import {
     NUM_LOGS_LEVELS,
     IDLTFilters,
 } from '@platform/types/parsers/dlt';
-import { StatEntity, Section } from './structure/statentity';
+import { StatEntity } from './structure/statentity';
+import { Section } from './structure/section';
 import { getTypedProp } from '@platform/env/obj';
-import { Subject } from '@platform/env/subscription';
 import { Filter } from '@ui/env/entities/filter';
 import { Summary } from './summary';
 import { Timezone } from '@elements/timezones/timezone';
@@ -33,13 +33,18 @@ export const NAMES: { [key: string]: string } = {
 export class State extends Holder {
     public logLevel: EMTIN = EMTIN.DLT_LOG_VERBOSE;
     public structure: Section[] = [];
-    public selected: StatEntity[] = [];
     public fibex: File[] = [];
     public stat: StatisticInfo | undefined;
     public filters: {
         entities: Filter;
     };
-    public summary: Summary = new Summary();
+    public summary: {
+        total: Summary;
+        selected: Summary;
+    } = {
+        total: new Summary(),
+        selected: new Summary(),
+    };
     public timezone: Timezone | undefined;
 
     constructor(ilc: InternalAPI) {
@@ -53,9 +58,17 @@ export class State extends Holder {
         return this.stat !== undefined;
     }
 
+    public getSelectedEntities(): StatEntity[] {
+        let selected: StatEntity[] = [];
+        this.structure.forEach((section) => {
+            selected = selected.concat(section.getSelected());
+        });
+        return selected;
+    }
+
     public asOptions(): IDLTOptions {
         const filters: IDLTFilters = {};
-        this.selected.forEach((entity) => {
+        this.getSelectedEntities().forEach((entity) => {
             if ((filters as { [key: string]: string[] })[entity.parent] === undefined) {
                 (filters as { [key: string]: string[] })[entity.parent] = [];
             }
@@ -87,10 +100,7 @@ export class State extends Holder {
 
     public struct(): {
         build(preselection?: IDLTFilters): void;
-        remove(target: StatEntity): void;
-        back(target: StatEntity): void;
         filter(): void;
-        summary(): void;
     } {
         return {
             build: (preselection?: IDLTFilters): void => {
@@ -114,38 +124,14 @@ export class State extends Holder {
                                 ((preselection as any)[key] as string[]).indexOf(record[0]) !== -1
                             ) {
                                 entity.select();
-                                this.selected.push(entity);
                             }
                         }
                         return entity;
                     });
-                    structure.push({
-                        key,
-                        name: NAMES[key],
-                        entities,
-                        update: new Subject<void>(),
-                    });
+                    structure.push(new Section(key, NAMES[key]).fill(entities));
                 });
                 this.structure = structure;
-                this.struct().summary();
-            },
-            remove: (target: StatEntity): void => {
-                target.select();
-                this.structure.forEach((structure) => {
-                    if (structure.key === target.parent) {
-                        structure.update.emit();
-                    }
-                });
-                this.struct().summary();
-            },
-            back: (target: StatEntity): void => {
-                target.unselect();
-                this.structure.forEach((structure) => {
-                    if (structure.key === target.parent) {
-                        structure.update.emit();
-                    }
-                });
-                this.struct().summary();
+                this.buildSummary().all();
             },
             filter: (): void => {
                 this.matcher.search(this.filters.entities.value());
@@ -156,18 +142,35 @@ export class State extends Holder {
                     structure.update.emit();
                 });
             },
-            summary: (): void => {
-                this.summary.reset();
+        };
+    }
+
+    public buildSummary(): {
+        total(): void;
+        selected(): void;
+        all(): void;
+    } {
+        return {
+            total: (): void => {
+                this.summary.total.reset();
                 this.structure.forEach((structure) => {
                     structure.entities.forEach((entity) => {
-                        if (this.selected.length === 0) {
-                            this.summary.inc(entity);
-                        } else if (entity.selected) {
-                            this.summary.inc(entity);
-                        }
+                        this.summary.total.inc(entity);
                     });
                 });
             },
+            selected: (): void => {
+                this.summary.selected.reset();
+                this.structure.forEach((structure) => {
+                    structure.entities.forEach((entity) => {
+                        entity.selected && this.summary.selected.inc(entity);
+                    });
+                });
+            },
+            all: (): void => {
+                this.buildSummary().total();
+                this.buildSummary().selected();
+            }
         };
     }
 }

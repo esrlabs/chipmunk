@@ -8,6 +8,9 @@ import { FiltersStore } from './search/filters/store';
 import { DisableStore } from './search/disabled/store';
 import { Highlights } from './search/highlights';
 import { State } from './search/state';
+import { Map } from './search/map';
+import { Bookmarks } from './bookmarks';
+import { Cache } from './cache';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -16,9 +19,12 @@ import * as Events from '@platform/ipc/event';
 export class Search extends Subscriber {
     public readonly subjects: Subjects<{
         updated: Subject<number>;
+        map: Subject<void>;
     }> = new Subjects({
         updated: new Subject<number>(),
+        map: new Subject<void>(),
     });
+    public readonly map: Map = new Map();
     private _len: number = 0;
     private _uuid!: string;
     private _store!: {
@@ -28,9 +34,10 @@ export class Search extends Subscriber {
     private _highlights!: Highlights;
     private _state!: State;
 
-    public init(uuid: string) {
+    public init(uuid: string, bookmarks: Bookmarks, cache: Cache) {
         this.setLoggerName(`Search: ${cutUuid(uuid)}`);
         this._uuid = uuid;
+        this.map.init(bookmarks, cache);
         this.register(
             Events.IpcEvent.subscribe(Events.Search.Updated.Event, (event) => {
                 if (event.session !== this._uuid) {
@@ -38,6 +45,19 @@ export class Search extends Subscriber {
                 }
                 this._len = event.rows;
                 this.subjects.get().updated.emit(this._len);
+            }),
+        );
+        this.register(
+            Events.IpcEvent.subscribe(Events.Search.MapUpdated.Event, (event) => {
+                if (event.session !== this._uuid) {
+                    return;
+                }
+                const error = this.map.parse(event.map);
+                if (error instanceof Error) {
+                    this.log().error(`Fail to parse map update: ${error.message}`);
+                } else {
+                    this.subjects.get().map.emit();
+                }
             }),
         );
         this._store = {
@@ -54,6 +74,7 @@ export class Search extends Subscriber {
         this._store.disabled.destroy();
         this._highlights.destroy();
         this._state.destroy();
+        this.map.destroy();
         this.subjects.destroy();
     }
 

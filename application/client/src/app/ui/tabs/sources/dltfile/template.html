@@ -1,35 +1,19 @@
 <div class="preset-container">
     <div class="preset-container-content w-1400">
         <div class="left">
-            <mat-card class="top">
-                <mat-card-title>Structure</mat-card-title>
-                <mat-card-subtitle>Content DLT file data</mat-card-subtitle>
-                <mat-card-content>
-                    <div class="section" *ngIf="state.selected.length > 0">
-                        <mat-divider></mat-divider>
-                        <mat-chip-list aria-label="Filtered">
-                            <mat-chip *ngFor="let entity of state.selected" (removed)="ngOnRemoveSelection(entity)">
-                                {{entity.id}}
-                                <button matChipRemove>
-                                  <mat-icon>cancel</mat-icon>
-                                </button>
-                            </mat-chip>
-                        </mat-chip-list>
-                    </div>
-                </mat-card-content>
-            </mat-card>
             <mat-card class="fill sticky">
                 <mat-card-content>
                   <div class="progress" *ngIf="!state.isStatLoaded()">
                       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
                       <p class="t-medium color-scheme-2">Scanning DLT structure...</p>
                   </div>
-                  <app-tabs-source-dltfile-structure *ngFor="let section of state.structure" 
+                  <app-tabs-source-dltfile-structure *ngFor="let section of state.structure"
+                    (contextmenu)="ngContextMenu($event)"
                     (select)="ngOnEntitySelect($event)"
                     [section]="section"></app-tabs-source-dltfile-structure>
                 </mat-card-content>
                 <div class="filter t-medium" *ngIf="!state.filters.entities.isEmpty()">{{state.filters.entities.value()}}</div>
-              </mat-card>
+            </mat-card>
         </div>
         <div class="right">
             <mat-card>
@@ -67,29 +51,29 @@
                           </mat-option>
                         </mat-select>
                     </mat-form-field>
-                    <p class="t-medium color-scheme-2">Summary</p>
-                    <table class="table-fill">
-                        <tr class="info" *ngIf="state.summary.isLoaded()">
+                    <p class="t-medium color-scheme-2">Summary ({{state.summary.total.count}} / {{state.summary.selected.count}})</p>
+                    <table class="table-fill" *ngIf="state.summary.total.isLoaded()">
+                        <tr class="info" >
                             <td class="caption t-medium color-scheme-3">Fatal</td>
-                            <td class="value t-medium color-scheme-2">{{state.summary.fatal}}</td>
+                            <td class="value t-medium color-scheme-2">{{state.summary.total.fatal}}<br/>{{state.summary.selected.fatal}}</td>
                             <td class="caption t-medium color-scheme-3">Error</td>
-                            <td class="value t-medium color-scheme-2">{{state.summary.error}}</td>
+                            <td class="value t-medium color-scheme-2">{{state.summary.total.error}}<br/>{{state.summary.selected.error}}</td>
                         </tr>
-                        <tr class="info" *ngIf="state.summary.isLoaded()">
+                        <tr class="info">
                             <td class="caption t-medium color-scheme-3">Debug</td>
-                            <td class="value t-medium color-scheme-2">{{state.summary.debug}}</td>
+                            <td class="value t-medium color-scheme-2">{{state.summary.total.debug}}<br/>{{state.summary.selected.debug}}</td>
                             <td class="caption t-medium color-scheme-3">Info</td>
-                            <td class="value t-medium color-scheme-2">{{state.summary.info}}</td>
+                            <td class="value t-medium color-scheme-2">{{state.summary.total.info}}<br/>{{state.summary.selected.info}}</td>
                         </tr>
-                        <tr class="info" *ngIf="state.summary.isLoaded()">
+                        <tr class="info">
                             <td class="caption t-medium color-scheme-3">Verbose</td>
-                            <td class="value t-medium color-scheme-2">{{state.summary.verbose}}</td>
+                            <td class="value t-medium color-scheme-2">{{state.summary.total.verbose}}<br/>{{state.summary.selected.verbose}}</td>
                             <td class="caption t-medium color-scheme-3">Invalid</td>
-                            <td class="value t-medium color-scheme-2">{{state.summary.invalid}}</td>
+                            <td class="value t-medium color-scheme-2">{{state.summary.total.invalid}}<br/>{{state.summary.selected.invalid}}</td>
                         </tr>
-                        <tr class="info" *ngIf="state.summary.isLoaded()">
+                        <tr class="info">
                             <td class="caption t-medium color-scheme-3">Total</td>
-                            <td class="value t-medium color-scheme-2" colspan="3">{{state.summary.total}}</td>
+                            <td class="value t-medium color-scheme-2" colspan="3">{{state.summary.total.total}} / {{state.summary.selected.total}}</td>
                         </tr>
                     </table>
                 </mat-card-content>
