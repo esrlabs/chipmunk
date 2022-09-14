@@ -32,6 +32,22 @@ export class Subject<T> {
         if (desc.self === undefined) {
             return new Error(`Self cannot be undefined`);
         }
+        if (desc.self instanceof Array) {
+            let valid: boolean = false;
+            desc.self.forEach((self) => {
+                if (valid) {
+                    return;
+                }
+                const cloned = Object.assign({}, desc);
+                cloned.self = self;
+                valid = Subject.validate(cloned, target) === undefined;
+            });
+            return valid
+                ? undefined
+                : new Error(
+                      `Self should be one of [${desc.self.join(', ')}], but not one is suitable.`,
+                  );
+        }
         if (desc.self === null && (target === null || target === undefined)) {
             return undefined;
         }

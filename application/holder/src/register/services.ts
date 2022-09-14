@@ -46,4 +46,8 @@ export const services: { [key: string]: Inputs } = {
         name: 'Notifications',
         uuid: v4(),
     },
+    env: {
+        name: 'env',
+        uuid: v4(),
+    },
 };

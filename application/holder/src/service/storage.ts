@@ -20,11 +20,11 @@ import * as Requests from 'platform/ipc/request';
 @SetupService(services['storage'])
 export class Service extends Implementation {
     private _files: Map<string, FileController> = new Map();
-    private _entries: Entries;
+    public readonly entries: Entries;
 
     constructor() {
         super();
-        this._entries = new Entries(this._write.bind(this), this._read.bind(this));
+        this.entries = new Entries(this._write.bind(this), this._read.bind(this));
     }
 
     public override ready(): Promise<void> {
@@ -101,7 +101,7 @@ export class Service extends Implementation {
                         request: Requests.Storage.EntriesGet.Request,
                     ): CancelablePromise<Requests.Storage.EntriesGet.Response> => {
                         return new CancelablePromise((resolve, reject) => {
-                            this._entries
+                            this.entries
                                 .get(request.key)
                                 .then((entries) => {
                                     resolve(
@@ -129,14 +129,11 @@ export class Service extends Implementation {
                             ((): Promise<void> => {
                                 switch (request.mode) {
                                     case 'overwrite':
-                                        return this._entries.overwrite(
-                                            request.key,
-                                            request.entries,
-                                        );
+                                        return this.entries.overwrite(request.key, request.entries);
                                     case 'append':
-                                        return this._entries.append(request.key, request.entries);
+                                        return this.entries.append(request.key, request.entries);
                                     case 'update':
-                                        return this._entries.update(request.key, request.entries);
+                                        return this.entries.update(request.key, request.entries);
                                 }
                             })()
                                 .then(() => {
@@ -157,7 +154,7 @@ export class Service extends Implementation {
                         request: Requests.Storage.EntriesDelete.Request,
                     ): CancelablePromise<Requests.Storage.EntriesDelete.Response> => {
                         return new CancelablePromise((resolve, reject) => {
-                            this._entries
+                            this.entries
                                 .delete(request.key, request.uuids)
                                 .then(() => {
                                     resolve(new Requests.Storage.EntriesDelete.Response());
