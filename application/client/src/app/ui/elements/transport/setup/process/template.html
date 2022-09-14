@@ -2,7 +2,7 @@
     (edit)="ngEdit('cmd', $event)"
     (enter)="ngEnter('cmd')"
     (panel)="ngPanel()"></app-autocomplete-input>
-<app-autocomplete-input [options]="inputs.cwd"
+<app-autocomplete-input #cwd [options]="inputs.cwd"
     (edit)="ngEdit('cwd', $event)"
     (enter)="ngEnter('cwd')"
     (panel)="ngPanel()"></app-autocomplete-input>

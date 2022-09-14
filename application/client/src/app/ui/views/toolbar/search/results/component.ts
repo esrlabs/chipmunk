@@ -46,32 +46,33 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                 this.service.setLen(len);
             }),
         );
+        // this.env().subscriber.register(
+        //     this.session.bookmarks.subjects.get().updated.subscribe(() => {
+        //         this.service.refresh();
+        //     }),
+        // );
         this.env().subscriber.register(
-            this.session.bookmarks.subjects.get().updated.subscribe(() => {
-                this.service.refresh();
-            }),
-        );
-        this.env().subscriber.register(
-            this.session.cursor.subjects.get().selected.subscribe((event) => {
-                if (this.session.search.len() === 0) {
-                    return;
-                }
+            this.session.search.map.updated.subscribe((_event) => {
+                // if (this.session.search.len() === 0) {
+                //     return;
+                // }
                 const single = this.session.cursor.getSingle();
-                if (event.initiator === Owner.Search || single === undefined) {
+                if (this.session.search.len() > 0 && single !== undefined) {
+                    // if (event.initiator === Owner.Search || single === undefined) {
+                    this.session.search
+                        .nearest(single.position.stream)
+                        .then((location) => {
+                            this.service.scrollTo(
+                                location.position - 2 < 0 ? 0 : location.position - 2,
+                            );
+                            this.service.refresh();
+                        })
+                        .catch((err: Error) => {
+                            console.error(err);
+                        });
+                } else {
                     this.service.refresh();
-                    return;
                 }
-                this.session.search
-                    .nearest(single.position.stream)
-                    .then((location) => {
-                        this.service.scrollTo(
-                            location.position - 2 < 0 ? 0 : location.position - 2,
-                        );
-                        this.service.refresh();
-                    })
-                    .catch((err: Error) => {
-                        console.error(err);
-                    });
             }),
         );
         this.env().subscriber.register(

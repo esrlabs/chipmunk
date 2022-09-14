@@ -9,6 +9,7 @@ export class Summary {
     public verbose: number = 0;
     public invalid: number = 0;
     public total: number = 0;
+    public count: number = 0;
 
     private _loaded: boolean = false;
 
@@ -32,6 +33,7 @@ export class Summary {
             entity.log_debug +
             entity.log_verbose +
             entity.log_invalid;
+        this.count += 1;
     }
 
     public reset() {
@@ -44,5 +46,6 @@ export class Summary {
         this.verbose = 0;
         this.invalid = 0;
         this.total = 0;
+        this.count = 0;
     }
 }

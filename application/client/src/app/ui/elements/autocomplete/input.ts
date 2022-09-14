@@ -85,4 +85,12 @@ export class Controll {
     public selected(event: MatAutocompleteSelectedEvent) {
         this.set(event.option.value);
     }
+
+    public disable(): void {
+        this.control.disable();
+    }
+
+    public enable(): void {
+        this.control.enable();
+    }
 }

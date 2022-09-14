@@ -4,6 +4,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Session } from '@service/session/session';
 import { File } from '@platform/types/files';
 import { bytesToStr, timestampToUTC } from '@env/str';
+import { ObserveOperation } from '@service/session/dependencies/observe/operation';
 
 @Component({
     selector: 'app-transport-file-details',
@@ -12,6 +13,7 @@ import { bytesToStr, timestampToUTC } from '@env/str';
 })
 @Ilc()
 export class TransportFile extends ChangesDetector implements AfterViewInit {
+    @Input() public observe!: ObserveOperation | undefined;
     @Input() public source!: string;
     @Input() public session!: Session;
 

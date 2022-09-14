@@ -19,22 +19,22 @@ class State {
 
     public get(range: Range): Promise<{ rows: Row[]; cursor: number }> {
         return new Promise((resolve, reject) => {
-            const cursor = this.cursor;
-            const len = this._session.search.len();
-            const extended = new Range(
-                range.from - this.len > 0 ? range.from - this.len : 0,
-                range.to + 1 > len - 1 ? (len > 0 ? len - 1 : range.to) : range.to + 1,
-            );
-            this._session.search
-                .chunk(extended)
-                .then((rows) => {
-                    const data = this.getRows(cursor, rows);
-                    resolve({
-                        rows: data.rows,
-                        cursor: this.cursor - data.injected > 0 ? this.cursor - data.injected : 0,
-                    });
-                })
-                .catch(reject);
+            if (this._session.search.len() === 0) {
+                return resolve({
+                    rows: this.getRows(this.cursor, []),
+                    cursor: this.cursor,
+                });
+            } else {
+                this._session.search
+                    .chunk(range)
+                    .then((rows) => {
+                        resolve({
+                            rows: this.getRows(this.cursor, rows),
+                            cursor: this.cursor,
+                        });
+                    })
+                    .catch(reject);
+            }
         });
     }
 
@@ -47,77 +47,37 @@ class State {
         this.prev = range;
     }
 
-    public getRows(cursor: number, rows: IGrabbedElement[]): { rows: Row[]; injected: number } {
-        if (rows.length === 0) {
-            return {
-                rows: this.convert(this._session.bookmarks.get().map((b, i) => b.as().grabbed(i))),
-                injected: this._session.bookmarks.get().length,
-            };
-        } else {
-            let injected = 0;
-            const elements: IGrabbedElement[] = [];
-            rows.forEach((current: IGrabbedElement, i: number) => {
-                const next: IGrabbedElement | undefined = rows[i + 1];
-                if (i === 0) {
-                    // Insert bookmarks before range
-                    const bookmarks = this._session.bookmarks
-                        .get(new Range(current.position, current.position).before(true))
-                        .filter((b) => b.stream() !== current.position);
-                    elements.push(...bookmarks.map((b) => b.as().grabbed(0)));
-                }
-                if (next !== undefined) {
-                    // Insert bookmarks between current and next
-                    const bookmarks = this._session.bookmarks
-                        .get(new Range(current.position, next.position).left(false).right(false))
-                        .filter((b) => b.stream() !== current.position);
-                    elements.push(current);
-                    elements.push(...bookmarks.map((b) => b.as().grabbed(0)));
-                    injected += bookmarks.length;
-                }
-                if (next === undefined) {
-                    // Insert bookmarks after range
-                    const bookmarks = this._session.bookmarks
-                        .get(new Range(current.position, current.position).after(true))
-                        .filter((b) => b.stream() !== current.position);
-                    elements.push(...bookmarks.map((b) => b.as().grabbed(0)));
-                }
-            });
-            const row = rows[0].row;
-            // Inject single selection if is't present
-            const single = this._session.cursor.getSingle();
-            if (single !== undefined) {
-                if (row === 0 && rows[0].position > single.position.stream) {
-                    elements.push(single.as().grabbed(0));
-                } else {
-                    const from = Math.min(...elements.map((el) => el.position));
-                    const to = Math.max(...elements.map((el) => el.position));
-                    if (
-                        elements.find((el) => el.position === single.position.stream) === undefined
-                    ) {
-                        if (single.position.stream >= from && single.position.stream <= to) {
-                            elements.push(single.as().grabbed(0));
-                            injected += 1;
-                        }
-                    }
-                }
-                elements.sort((a, b) => {
-                    return a.position < b.position ? -1 : 1;
-                });
-            }
-            // Correct indexes
-            elements.forEach((el, i) => {
-                el.row = row + i;
-            });
-            const first = elements.findIndex((r) => r.row === cursor);
-            if (first === -1) {
-                throw new Error(`Fail to find the first item`);
-            }
-            elements.splice(0, first);
-            return {
-                rows: this.convert(elements),
-                injected,
-            };
+    public getRows(cursor: number, rows: IGrabbedElement[]): Row[] {
+        const first = this._session.search.map.getStreamPositionOn(cursor);
+        if (first === undefined) {
+            // There are nothing to inject
+            return this.convert(rows);
         }
+        const filtered: number[] = [];
+        const injections = this._session.cache
+            .getRows()
+            .concat(this._session.bookmarks.get().map((b, i) => b.as().grabbed(i)))
+            .filter((r) => {
+                if (
+                    r.position < first ||
+                    filtered.indexOf(r.position) !== -1 ||
+                    rows.find((g) => r.position === g.position) !== undefined
+                ) {
+                    return false;
+                } else {
+                    filtered.push(r.position);
+                    return true;
+                }
+            });
+        const mixed = rows
+            .concat(injections)
+            .filter((r) => r.position >= first)
+            .map((r, i) => {
+                r.row = i;
+                return r;
+            })
+            .sort((a, b) => (a.position > b.position ? 1 : -1));
+        return this.convert(mixed);
     }
 
     public convert(elements: IGrabbedElement[]): Row[] {
@@ -154,23 +114,36 @@ export function getScrollAreaService(session: Session): Service {
             ) => {
                 state.setFrameLength(getFrameLength());
                 state.update(range);
+                const modified = (() => {
+                    const len = session.search.len();
+                    if (len === 0) {
+                        return new Range(0, 0);
+                    }
+                    const from = session.search.map.getCorrectedPosition(range.from);
+                    if (from === undefined) {
+                        return range;
+                    }
+                    const to = from + getFrameLength();
+                    return new Range(from, to < len ? to : len - 1);
+                })();
                 state
-                    .get(range)
+                    .get(modified)
                     .then((data) => {
                         setCursor(data.cursor);
                         service.setRows({
                             rows: data.rows,
                             range,
                         });
-                        service.setLen(session.search.len() + session.bookmarks.count());
+                        service.setLen(
+                            session.search.len() + session.search.map.getInjectedCount(),
+                        );
                     })
                     .catch((err: Error) => {
-                        console.error(err);
                         throw new Error(`Fail get chunk: ${err.message}`);
                     });
             },
             getLen: (): number => {
-                return session.search.len() + session.bookmarks.count();
+                return session.search.len() + session.search.map.getInjectedCount();
             },
             getItemHeight: (): number => {
                 return 16;

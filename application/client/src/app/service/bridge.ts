@@ -181,6 +181,83 @@ export class Service extends Implementation {
         };
     }
 
+    public cwd(): {
+        set(uuid: string | undefined, path: string): Promise<void>;
+        get(uuid: string | undefined): Promise<string>;
+    } {
+        return {
+            set: (uuid: string | undefined, path: string): Promise<void> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Cwd.Set.Response,
+                        new Requests.Cwd.Set.Request({
+                            uuid,
+                            cwd: path,
+                        }),
+                    )
+                        .then((response) => {
+                            if (response.error !== undefined) {
+                                return reject(new Error(response.error));
+                            }
+                            resolve(undefined);
+                        })
+                        .catch(reject);
+                });
+            },
+            get: (uuid: string | undefined): Promise<string> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Cwd.Get.Response,
+                        new Requests.Cwd.Get.Request({
+                            uuid,
+                        }),
+                    )
+                        .then((response) => {
+                            resolve(response.cwd);
+                        })
+                        .catch(reject);
+                });
+            },
+        };
+    }
+
+    public env(): {
+        inject(envs: { [key: string]: string }): Promise<void>;
+        get(): Promise<{ [key: string]: string }>;
+    } {
+        return {
+            inject: (env: { [key: string]: string }): Promise<void> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Env.Set.Response,
+                        new Requests.Env.Set.Request({
+                            env,
+                        }),
+                    )
+                        .then((response) => {
+                            if (response.error !== undefined) {
+                                return reject(new Error(response.error));
+                            }
+                            resolve(undefined);
+                        })
+                        .catch(reject);
+                });
+            },
+            get: (): Promise<{ [key: string]: string }> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Env.Get.Response,
+                        new Requests.Env.Get.Request(),
+                    )
+                        .then((response) => {
+                            resolve(response.env);
+                        })
+                        .catch(reject);
+                });
+            },
+        };
+    }
+
     public entries(key: string): {
         get(): Promise<Entry[]>;
         /**

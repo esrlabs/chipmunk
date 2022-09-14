@@ -1,7 +1,7 @@
 import { Session } from '@service/session/session';
-import { serializeHtml } from '@platform/env/str';
 import { Subject, Subscriber } from '@platform/env/subscription';
 import { IGrabbedElement } from '@platform/types/content';
+import { ansiToHtml } from '@module/ansi';
 
 export interface Position {
     stream: number;
@@ -42,6 +42,10 @@ export class Row extends Subscriber {
     public color: string | undefined;
     public background: string | undefined;
 
+    public columns: string[] = [];
+
+    protected readonly delimiter: string | undefined;
+
     constructor(inputs: RowInputs) {
         super();
         this.session = inputs.session;
@@ -50,10 +54,10 @@ export class Row extends Subscriber {
             inputs.content.length > MAX_ROW_LENGTH_LIMIT
                 ? `${inputs.content.substring(0, MAX_ROW_LENGTH_LIMIT)}...`
                 : inputs.content;
-        this.content = serializeHtml(this.content);
         this.position = inputs.position;
         this.owner = inputs.owner;
         this.source = inputs.source;
+        this.delimiter = this.session.render.delimiter();
         this._update();
         this.register(
             this.session.search
@@ -82,24 +86,6 @@ export class Row extends Subscriber {
         this.session !== row.session && (this.session = row.session);
         this.cropped !== row.cropped && (this.cropped = row.cropped);
         this.change.emit();
-    }
-
-    public columns(): string[] {
-        const delimiter: string | undefined = this.session.render.delimiter();
-        if (delimiter === undefined) {
-            return [this.content];
-        } else {
-            let columns: string[] = this.content.split(delimiter);
-            const expected = this.session.render.columns();
-            if (columns.length > expected) {
-                columns.splice(expected - 1, columns.length - expected);
-            } else if (columns.length < expected) {
-                columns = columns.concat(
-                    Array.from({ length: expected - columns.length }, () => ''),
-                );
-            }
-            return columns;
-        }
     }
 
     public as(): {
@@ -154,9 +140,32 @@ export class Row extends Subscriber {
     }
 
     private _update() {
-        const parsed = this.session.search.highlights().parse(this.content, this.owner, false);
-        this.html = parsed.html;
-        this.color = parsed.color;
-        this.background = parsed.background;
+        if (this.delimiter === undefined) {
+            const parsed = this.session.search.highlights().parse(this.content, this.owner, false);
+            const ansi = ansiToHtml(parsed.html);
+            this.html = ansi instanceof Error ? parsed.html : ansi;
+            this.color = parsed.color;
+            this.background = parsed.background;
+        } else {
+            this.color = undefined;
+            this.background = undefined;
+            this.columns = this.content.split(this.delimiter);
+            const expected = this.session.render.columns();
+            if (this.columns.length > expected) {
+                this.columns.splice(expected - 1, this.columns.length - expected);
+            } else if (this.columns.length < expected) {
+                this.columns = this.columns.concat(
+                    Array.from({ length: expected - this.columns.length }, () => ''),
+                );
+            }
+            this.columns = this.columns.map((col) => {
+                const parsed = this.session.search.highlights().parse(col, this.owner, false);
+                if (this.color === undefined && this.background === undefined) {
+                    this.color = parsed.color;
+                    this.background = parsed.background;
+                }
+                return parsed.html;
+            });
+        }
     }
 }

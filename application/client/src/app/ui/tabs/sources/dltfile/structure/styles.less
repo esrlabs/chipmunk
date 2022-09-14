@@ -9,9 +9,22 @@ app-tabs-source-dltfile-structure {
     & .mat-table {
         width: 100%;
         & tr.mat-row {
+            position: relative;
             height: 32px;
             &:hover {
                 background: @scheme-color-4;
+            }
+        }
+        & tr[dataselected="true"] {
+            background: @scheme-color-active;
+            &::after {
+                position: absolute;
+                display: block;
+                content: '';
+                width: 4px;
+                height: 100%;
+                background: @scheme-color-accent;
+                left: 0;
             }
         }
     }

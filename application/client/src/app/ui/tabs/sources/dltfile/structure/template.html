@@ -57,5 +57,5 @@
   </ng-container>
 
   <tr mat-header-row *matHeaderRowDef="columns; sticky: true"></tr>
-  <tr mat-row *matRowDef="let row; columns: columns;" (click)="ngOnRowSelect(row)"></tr>
+  <tr mat-row [attr.dataSelected]="row.selected" *matRowDef="let row; columns: columns;" (click)="ngOnRowSelect(row)"></tr>
 </table>

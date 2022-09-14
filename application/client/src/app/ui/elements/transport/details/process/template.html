@@ -8,3 +8,8 @@
         <td class="t-medium color-scheme-0">{{ngCwd()}}</td>
     </tr>
 </table>
+<div *ngIf="observe !== undefined">
+    <mat-divider></mat-divider>
+    <p class="t-medium color-scheme-2">Sending</p>
+    <app-autocomplete-input #stdin [options]="options" (enter)="ngEnter($event)"></app-autocomplete-input>    
+</div>

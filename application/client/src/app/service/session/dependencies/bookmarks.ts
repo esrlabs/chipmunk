@@ -68,6 +68,10 @@ export class Bookmarks extends Subscriber {
         }
     }
 
+    public getRowsPositions(): number[] {
+        return this.bookmarks.map((b) => b.stream());
+    }
+
     protected move(): {
         next(): void;
         prev(): void;

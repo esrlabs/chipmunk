@@ -1,9 +1,19 @@
-import { Component, ChangeDetectorRef, Input, AfterViewInit, OnDestroy } from '@angular/core';
+import {
+    Component,
+    ChangeDetectorRef,
+    Input,
+    AfterViewInit,
+    OnDestroy,
+    ViewChild,
+} from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
 import { Action } from '@ui/tabs/sources/common/actions/action';
-import { Options as AutocompleteOptions } from '@elements/autocomplete/component';
+import {
+    Options as AutocompleteOptions,
+    AutocompleteInput,
+} from '@elements/autocomplete/component';
 import { Subject } from '@platform/env/subscription';
 import { CwdErrorState } from './error';
 
@@ -16,6 +26,7 @@ import { CwdErrorState } from './error';
 export class TransportProcess extends ChangesDetector implements AfterViewInit, OnDestroy {
     @Input() public state!: State;
     @Input() public action!: Action;
+    @ViewChild('cwd') public cwdInputRef!: AutocompleteInput;
 
     public readonly inputs: {
         cmd: AutocompleteOptions;
@@ -33,7 +44,7 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
             name: 'CwdRecentList',
             storage: 'processes_cwd_recent',
             defaults: '',
-            placeholder: 'Enter terminal command',
+            placeholder: 'Enter working folder',
             label: 'Terminal command',
             recent: new Subject<void>(),
             error: new CwdErrorState(),
@@ -54,10 +65,38 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
         this.action.subjects.get().applied.subscribe(() => {
             this.inputs.cmd.recent.emit();
             this.inputs.cwd.recent.emit();
+            this.state.cwd.trim() !== '' &&
+                this.ilc()
+                    .services.system.bridge.cwd()
+                    .set(undefined, this.state.cwd)
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to set cwd path: ${err.message}`);
+                    });
         });
         if (this.state.command.trim() === '') {
             this.action.setDisabled(true);
         }
+        this.ilc()
+            .services.system.bridge.cwd()
+            .get(undefined)
+            .then((cwd) => {
+                this.cwdInputRef.set(cwd);
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to get cwd path: ${err.message}`);
+            });
+        this.ilc()
+            .services.system.bridge.env()
+            .get()
+            .then((env) => {
+                this.state.env = env;
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to get envvars path: ${err.message}`);
+            })
+            .finally(() => {
+                this.markChangesForCheck();
+            });
     }
 
     public ngEdit(target: 'cmd' | 'cwd', value: string): void {

@@ -37,14 +37,12 @@ export class Columns extends ChangesDetector implements AfterContentInit {
     }
 
     @HostBinding('class') classes = 'row noreset';
-    // @HostBinding('attr.data-id') id = unique();
-
-    // @HostBinding('style.background') background = '';
-    // @HostBinding('style.color') color = '';
+    @HostBinding('style.background') background = '';
+    @HostBinding('style.color') color = '';
 
     public ngAfterContentInit(): void {
         this.controller = this.row.session.render.getBoundEntity() as ColumnsController;
-        this.cells = this.row.columns().map((s, i) => {
+        this.cells = this.row.columns.map((s, i) => {
             return new Cell(this._sanitizer, this.controller, s, i);
         });
         this.env().subscriber.register(
@@ -54,13 +52,15 @@ export class Columns extends ChangesDetector implements AfterContentInit {
         );
         this.env().subscriber.register(
             this.row.change.subscribe(() => {
-                this.row.columns().map((s, i) => {
+                this.row.columns.map((s, i) => {
                     if (this.cells[i] === undefined) {
                         this.log().error(`Column ${i} doesn't exist`);
                         return;
                     }
                     this.cells[i].update(s);
                 });
+                this.background = this.row.background === undefined ? '' : this.row.background;
+                this.color = this.row.color === undefined ? '' : this.row.color;
                 this.markChangesForCheck();
             }),
         );

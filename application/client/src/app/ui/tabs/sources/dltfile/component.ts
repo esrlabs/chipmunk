@@ -104,18 +104,8 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
         this.tab.close();
     }
 
-    public ngOnEntitySelect(entity: StatEntity) {
-        if (this.state.selected.find((ent) => entity.equal(ent)) !== undefined) {
-            return;
-        }
-        this.state.selected.push(entity);
-        this.state.struct().remove(entity);
-        this.detectChanges();
-    }
-
-    public ngOnRemoveSelection(entity: StatEntity) {
-        this.state.selected = this.state.selected.filter((ent) => !entity.equal(ent));
-        this.state.struct().back(entity);
+    public ngOnEntitySelect(_entity: StatEntity) {
+        this.state.buildSummary().selected();
         this.detectChanges();
     }
 
@@ -160,6 +150,114 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
             closed: () => {
                 this._filterLockTocken.unlock();
             },
+        });
+    }
+
+    public ngContextMenu(event: MouseEvent) {
+        const after = () => {
+            this.state.buildSummary().selected();
+            this.detectChanges();
+        };
+        this.ilc().emitter.ui.contextmenu.open({
+            items: [
+                {
+                    caption: 'Select all',
+                    handler: () => {
+                        this.state.structure.forEach((section) => {
+                            section.entities.forEach((e) => e.select());
+                        });
+                        after();
+                    },
+                },
+                {
+                    caption: 'Unselect all',
+                    handler: () => {
+                        this.state.structure.forEach((section) => {
+                            section.entities.forEach((e) => e.unselect());
+                        });
+                        after();
+                    },
+                },
+                {
+                    caption: 'Reverse selection',
+                    handler: () => {
+                        this.state.structure.forEach((section) => {
+                            section.entities.forEach((e) => e.toggle());
+                        });
+                        after();
+                    },
+                },
+                {},
+                {
+                    caption: 'Select with fotal',
+                    handler: () => {
+                        this.state.structure.forEach((section) => {
+                            section.entities.forEach((e) => {
+                                e.log_fatal > 0 && e.select();
+                            });
+                        });
+                        after();
+                    },
+                },
+                {
+                    caption: 'Select with errors',
+                    handler: () => {
+                        this.state.structure.forEach((section) => {
+                            section.entities.forEach((e) => {
+                                e.log_error > 0 && e.select();
+                            });
+                        });
+                        after();
+                    },
+                },
+                {
+                    caption: 'Select with warnings',
+                    handler: () => {
+                        this.state.structure.forEach((section) => {
+                            section.entities.forEach((e) => {
+                                e.log_warning > 0 && e.select();
+                            });
+                        });
+                        after();
+                    },
+                },
+                {},
+                {
+                    caption: 'Unselect without fotal',
+                    handler: () => {
+                        this.state.structure.forEach((section) => {
+                            section.entities.forEach((e) => {
+                                e.log_fatal === 0 && e.unselect();
+                            });
+                        });
+                        after();
+                    },
+                },
+                {
+                    caption: 'Unselect without errors',
+                    handler: () => {
+                        this.state.structure.forEach((section) => {
+                            section.entities.forEach((e) => {
+                                e.log_error === 0 && e.unselect();
+                            });
+                        });
+                        after();
+                    },
+                },
+                {
+                    caption: 'Unselect without warnings',
+                    handler: () => {
+                        this.state.structure.forEach((section) => {
+                            section.entities.forEach((e) => {
+                                e.log_warning === 0 && e.unselect();
+                            });
+                        });
+                        after();
+                    },
+                },
+            ],
+            x: event.x,
+            y: event.y,
         });
     }
 }

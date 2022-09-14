@@ -1,8 +1,8 @@
-<app-transport-udp-details *ngIf="verified.UDP !== undefined" [source]="verified.UDP" [session]="session"></app-transport-udp-details>
-<app-transport-tcp-details *ngIf="verified.TCP !== undefined" [source]="verified.TCP" [session]="session"></app-transport-tcp-details>
-<app-transport-serial-details *ngIf="verified.Serial !== undefined" [source]="verified.Serial" [session]="session"></app-transport-serial-details>
-<app-transport-process-details *ngIf="verified.Process !== undefined" [source]="verified.Process" [session]="session"></app-transport-process-details>
-<app-transport-file-details *ngIf="verified.File !== undefined" [source]="verified.File" [session]="session"></app-transport-file-details>
+<app-transport-udp-details *ngIf="verified.UDP !== undefined" [source]="verified.UDP" [session]="session" [observe]="ngGetObserveHandle()"></app-transport-udp-details>
+<app-transport-tcp-details *ngIf="verified.TCP !== undefined" [source]="verified.TCP" [session]="session" [observe]="ngGetObserveHandle()"></app-transport-tcp-details>
+<app-transport-serial-details *ngIf="verified.Serial !== undefined" [source]="verified.Serial" [session]="session" [observe]="ngGetObserveHandle()"></app-transport-serial-details>
+<app-transport-process-details *ngIf="verified.Process !== undefined" [source]="verified.Process" [session]="session" [observe]="ngGetObserveHandle()"></app-transport-process-details>
+<app-transport-file-details *ngIf="verified.File !== undefined" [source]="verified.File" [session]="session" [observe]="ngGetObserveHandle()"></app-transport-file-details>
 <div class="controlls" *ngIf="!isTextFile()">
     <button mat-stroked-button (click)="ngStop()" *ngIf="!stopped">Stop</button>
     <button mat-stroked-button (click)="ngRestart()" *ngIf="stopped">Restart</button>

@@ -1,14 +1,6 @@
 import { LevelDistribution } from '@platform/types/parsers/dlt';
-import { Subject } from '@platform/env/subscription';
 import { Matcher } from '@matcher/matcher';
 import { Matchee } from '@module/matcher';
-
-export interface Section {
-    key: string;
-    name: string;
-    update: Subject<void>;
-    entities: StatEntity[];
-}
 
 export class StatEntity extends Matchee {
     public selected: boolean = false;
@@ -48,6 +40,10 @@ export class StatEntity extends Matchee {
 
     public equal(entity: StatEntity): boolean {
         return entity.hash() === this.hash();
+    }
+
+    public toggle() {
+        this.selected = !this.selected;
     }
 
     public select() {

@@ -14,7 +14,8 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
-import { StatEntity, Section } from './statentity';
+import { StatEntity } from './statentity';
+import { Section } from './section';
 import { MatTable } from '@angular/material/table';
 
 export const COLUMNS = {
@@ -67,7 +68,7 @@ export class TabSourceDltFileStructure
         this.data = new MatTableDataSource<StatEntity>(this.section.entities);
         this.env().subscriber.register(
             this.section.update.subscribe(() => {
-                this.data.data = this.section.entities.filter((e) => !e.selected && !e.hidden());
+                this.data.data = this.section.entities.filter((e: StatEntity) => !e.hidden());
                 this.table.renderRows();
                 this.detectChanges();
             }),
@@ -84,7 +85,9 @@ export class TabSourceDltFileStructure
     }
 
     public ngOnRowSelect(entity: StatEntity) {
+        entity.toggle();
         this.select.emit(entity);
+        this.detectChanges();
     }
 
     public safeHtml(html: string): SafeHtml {
