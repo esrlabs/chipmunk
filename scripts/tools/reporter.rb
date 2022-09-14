@@ -16,6 +16,7 @@ module Owner
   Rustcore = 'Rustcore'
   Bindings = 'Bindings'
   Matcher = 'Matcher'
+  Ansi = 'Ansi'
   Precompiled = 'Precompiled'
   Release = 'Release'
   Compressor = 'Compressor'

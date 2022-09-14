@@ -66,6 +66,12 @@ namespace :build do
     Matcher.new(false, false).build
     Reporter.print
   end
+
+  desc 'Build ansi'
+  task :ansi do
+    Ansi.new(false, false).build
+    Reporter.print
+  end
 end
 
 namespace :rebuild do
@@ -145,6 +151,7 @@ namespace :developing do
   task :clean_all do
     Precompiled.new.clean
     Matcher.new(true, true).clean
+    Ansi.new(true, true).clean
     Client.new(true, true).clean
     Bindings.new(true).clean
     Platform.new(true, true).clean
@@ -157,6 +164,7 @@ namespace :developing do
   task :clean_rebuild_all do
     Precompiled.new.clean
     Matcher.new(true, true).clean
+    Ansi.new(true, true).clean
     Client.new(true, true).clean
     Bindings.new(true).clean
     Platform.new(true, true).clean
@@ -237,9 +245,26 @@ namespace :test do
       end
     end
   end
+  namespace :ansi do
+    desc 'run karma tests'
+    task :karma do
+      Reporter.print
+      Ansi.new(false, false).install
+      Shell.chdir("#{Paths::ANSI}/spec") do
+        sh 'npm run test'
+      end
+    end
+    desc 'run rust tests'
+    task :rust do
+      Reporter.print
+      Shell.chdir(Paths::ANSI) do
+        sh 'wasm-pack test --node'
+      end
+    end
+  end
   desc 'run all test'
   task all: ['test:binding:observe', 'test:binding:search', 'test:binding:cancel', 'test:binding:errors',
-             'test:matcher:karma', 'test:matcher:rust']
+             'test:matcher:karma', 'test:matcher:rust', 'test:ansi:karma', 'test:ansi:rust']
 end
 
 namespace :lint do
@@ -298,8 +323,15 @@ namespace :clippy do
     end
   end
 
+  desc 'Clippy ansi'
+  task :ansi do
+    Shell.chdir("#{Paths::ANSI}/src") do
+      sh Paths::CLIPPY_STABLE
+    end
+  end
+
   desc 'Clippy all'
-  task all: ['clippy:nightly', 'clippy:indexer', 'clippy:rs_bindings', 'clippy:matcher']
+  task all: ['clippy:nightly', 'clippy:indexer', 'clippy:rs_bindings', 'clippy:matcher', 'clippy:ansi']
 end
 
 namespace :env do
