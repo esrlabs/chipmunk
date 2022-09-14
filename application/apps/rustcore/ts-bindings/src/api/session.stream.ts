@@ -96,7 +96,7 @@ export class SessionStream {
                         typeof parsed.Ok === 'string' ? parsed.Ok : JSON.stringify(parsed.Ok),
                     );
                 }
-                return Promise.resolve('');
+                return Promise.reject(new Error(`Invalid format of response`));
             } catch (e) {
                 return Promise.reject(new Error(`Fail to parse response`));
             }

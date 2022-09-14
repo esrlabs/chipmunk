@@ -272,17 +272,18 @@ impl SessionState {
         }
         if self.session_writer.is_none() {
             if let Some(ref session_file) = self.session_file {
-                self.session_writer = Some(BufWriter::new(File::create(&session_file).map_err(
-                    |e| NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Io,
-                        message: Some(format!(
-                            "Fail to create session writer for {}: {}",
-                            session_file.to_string_lossy(),
-                            e
-                        )),
-                    },
-                )?));
+                self.session_writer =
+                    Some(BufWriter::new(File::create(session_file).map_err(|e| {
+                        NativeError {
+                            severity: Severity::ERROR,
+                            kind: NativeErrorKind::Io,
+                            message: Some(format!(
+                                "Fail to create session writer for {}: {}",
+                                session_file.to_string_lossy(),
+                                e
+                            )),
+                        }
+                    })?));
             }
         }
         if let Some(session_writer) = self.session_writer.as_mut() {
@@ -355,14 +356,17 @@ impl SessionState {
                     .execute_search(state_cancellation_token.clone())
                 {
                     Some(Ok((file_path, mut matches, _stats))) => {
-                        self.search_map.append(&mut matches);
                         match self
                             .update_search_result(&file_path, state_cancellation_token.clone())
                             .await
                         {
                             Ok(found) => {
+                                self.search_map.append(&mut matches);
                                 tx_callback_events
                                     .send(CallbackEvent::SearchUpdated(found as u64))?;
+                                tx_callback_events.send(CallbackEvent::SearchMapUpdated(Some(
+                                    SearchMap::map_as_str(&matches),
+                                )))?;
                             }
                             Err(err) => {
                                 error!("Fail to update search results: {:?}", err);
@@ -833,6 +837,7 @@ pub async fn run(
                     state.search_holder = SearchHolderState::NotInited;
                     state.search_map.set(None);
                     tx_callback_events.send(CallbackEvent::SearchUpdated(0))?;
+                    tx_callback_events.send(CallbackEvent::SearchMapUpdated(None))?;
                     true
                 };
                 tx_response
@@ -840,6 +845,13 @@ pub async fn run(
                     .map_err(|_| NativeError::channel("Failed to respond to Api::DropSearch"))?;
             }
             Api::SetMatches((matches, tx_response)) => {
+                if let Some(matches) = matches.as_ref() {
+                    tx_callback_events.send(CallbackEvent::SearchMapUpdated(Some(
+                        SearchMap::map_as_str(matches),
+                    )))?;
+                } else {
+                    tx_callback_events.send(CallbackEvent::SearchMapUpdated(None))?;
+                }
                 state.search_map.set(matches);
                 tx_response
                     .send(())

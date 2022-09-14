@@ -100,9 +100,9 @@ pub fn remove_entity(entity: &Path) -> Result<()> {
         return Ok(());
     }
     if entity.is_dir() {
-        std::fs::remove_dir_all(&entity)?;
+        std::fs::remove_dir_all(entity)?;
     } else if entity.is_file() {
-        std::fs::remove_file(&entity)?;
+        std::fs::remove_file(entity)?;
     }
     Ok(())
 }

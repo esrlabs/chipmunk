@@ -41,6 +41,7 @@ export interface ISessionEvents {
     StreamUpdated: Subject<number>;
     FileRead: Subject<void>;
     SearchUpdated: Subject<number>;
+    SearchMapUpdated: Subject<string>;
     MapUpdated: Subject<IEventMapUpdated>;
     MatchesUpdated: Subject<IEventMatchesUpdated>;
     Progress: Subject<IProgressEvent>;
@@ -55,6 +56,7 @@ interface ISessionEventsSignatures {
     StreamUpdated: 'StreamUpdated';
     FileRead: 'FileRead';
     SearchUpdated: 'SearchUpdated';
+    SearchMapUpdated: 'SearchMapUpdated';
     MapUpdated: 'MapUpdated';
     MatchesUpdated: 'MatchesUpdated';
     Progress: 'Progress';
@@ -69,6 +71,7 @@ const SessionEventsSignatures: ISessionEventsSignatures = {
     StreamUpdated: 'StreamUpdated',
     FileRead: 'FileRead',
     SearchUpdated: 'SearchUpdated',
+    SearchMapUpdated: 'SearchMapUpdated',
     MapUpdated: 'MapUpdated',
     MatchesUpdated: 'MatchesUpdated',
     Progress: 'Progress',
@@ -83,6 +86,7 @@ interface ISessionEventsInterfaces {
     StreamUpdated: { self: 'number' };
     FileRead: { self: null };
     SearchUpdated: { self: 'number' };
+    SearchMapUpdated: { self: ['string', null] };
     MapUpdated: { self: 'object'; map: typeof Array };
     MatchesUpdated: { self: 'object'; matches: typeof Array };
     Progress: {
@@ -108,6 +112,7 @@ const SessionEventsInterfaces: ISessionEventsInterfaces = {
     StreamUpdated: { self: 'number' },
     FileRead: { self: null },
     SearchUpdated: { self: 'number' },
+    SearchMapUpdated: { self: ['string', null] },
     MapUpdated: { self: 'object', map: Array },
     MatchesUpdated: { self: 'object', matches: Array },
     Progress: {
@@ -138,6 +143,7 @@ export class EventProvider extends Computation<
         StreamUpdated: new Subject<number>(),
         FileRead: new Subject<void>(),
         SearchUpdated: new Subject<number>(),
+        SearchMapUpdated: new Subject<string>(),
         MapUpdated: new Subject<IEventMapUpdated>(), // dummy
         MatchesUpdated: new Subject<IEventMatchesUpdated>(), // dummy
         Progress: new Subject<IProgressEvent>(),

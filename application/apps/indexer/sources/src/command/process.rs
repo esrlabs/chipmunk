@@ -1,14 +1,16 @@
-use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
+use crate::{command::sde, ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use async_trait::async_trait;
 use buf_redux::Buffer;
 use futures;
 use std::{collections::HashMap, process::Stdio};
 use thiserror::Error;
 use tokio::{
-    io::{AsyncBufReadExt, BufReader},
-    process::{Child, ChildStderr, ChildStdout, Command},
+    io::AsyncWriteExt,
+    process::{Child, ChildStderr, ChildStdin, ChildStdout, Command},
     select,
 };
+use tokio_stream::StreamExt;
+use tokio_util::codec::{self, FramedRead, LinesCodec};
 
 #[derive(Error, Debug)]
 pub enum ProcessError {
@@ -21,9 +23,9 @@ pub enum ProcessError {
 pub struct ProcessSource {
     process: Child,
     buffer: Buffer,
-    amount: usize,
-    stdout: BufReader<ChildStdout>,
-    stderr: BufReader<ChildStderr>,
+    stdout: FramedRead<ChildStdout, LinesCodec>,
+    stderr: FramedRead<ChildStderr, LinesCodec>,
+    stdin: ChildStdin,
 }
 
 impl Drop for ProcessSource {
@@ -45,24 +47,33 @@ impl ProcessSource {
             .envs(envs)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
+            .stdin(Stdio::piped())
             .spawn()
             .map_err(|e| ProcessError::Setup(format!("{}", e)))?;
-        let stdout = process
-            .stdout
+        let stdout = codec::FramedRead::new(
+            process
+                .stdout
+                .take()
+                .ok_or_else(|| ProcessError::Setup(String::from("Fail to get stdout handle")))?,
+            LinesCodec::default(),
+        );
+        let stderr = codec::FramedRead::new(
+            process
+                .stderr
+                .take()
+                .ok_or_else(|| ProcessError::Setup(String::from("Fail to get stderr handle")))?,
+            LinesCodec::default(),
+        );
+        let stdin = process
+            .stdin
             .take()
-            .map(BufReader::new)
-            .ok_or_else(|| ProcessError::Setup(String::from("Fail to get stdout handle")))?;
-        let stderr = process
-            .stderr
-            .take()
-            .map(BufReader::new)
-            .ok_or_else(|| ProcessError::Setup(String::from("Fail to get stderr handle")))?;
+            .ok_or_else(|| ProcessError::Setup(String::from("Fail to get stdin handle")))?;
         Ok(Self {
             process,
             buffer: Buffer::new(),
-            amount: 0,
             stdout,
             stderr,
+            stdin,
         })
     }
 }
@@ -73,28 +84,37 @@ impl ByteSource for ProcessSource {
         &mut self,
         _filter: Option<&SourceFilter>,
     ) -> Result<Option<ReloadInfo>, SourceError> {
-        let output = select! {
-            buffer = async {
-                let mut out = String::new();
-                self.stdout.read_line(&mut out).await.map_err(|e| SourceError::Unrecoverable(format!(
-                    "Reading line from stdout failed: {}",
-                    e
-                ))).map(|_| out)
-            } => buffer,
-            buffer = async {
-                let mut out = String::new();
-                self.stderr.read_line(&mut out).await.map_err(|e| SourceError::Unrecoverable(format!(
-                    "Reading line from stdout failed: {}",
-                    e
-                ))).map(|_| out)
-            } => buffer,
-        }?;
-        self.amount = output.len();
-        if self.amount == 0 {
-            return Ok(None);
+        let mut closing = false;
+        let mut output;
+        loop {
+            if !closing {
+                output = select! {
+                    res = self.stdout.next() => res,
+                    res = self.stderr.next() => {
+                        if res.is_none() {
+                            closing = true;
+                        }
+                        res
+                    },
+                };
+                if !closing {
+                    break;
+                }
+            } else {
+                output = self.stdout.next().await;
+                break;
+            }
         }
-        self.buffer.copy_from_slice(output.as_bytes());
-        Ok(Some(ReloadInfo::new(self.amount, self.amount, 0, None)))
+        if let Some(Ok(line)) = output {
+            let stored = line.len() + 1;
+            self.buffer.copy_from_slice(line.as_bytes());
+            self.buffer.copy_from_slice(b"\n");
+            Ok(Some(ReloadInfo::new(stored, stored, 0, None)))
+        } else if let Some(Err(err)) = output {
+            Err(SourceError::Unrecoverable(format!("{}", err)))
+        } else {
+            Ok(None)
+        }
     }
 
     fn current_slice(&self) -> &[u8] {
@@ -111,6 +131,30 @@ impl ByteSource for ProcessSource {
 
     fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    async fn income(&mut self, msg: String) -> Result<String, String> {
+        let request = serde_json::from_str::<sde::SdeRequest>(&msg)
+            .map_err(|e| format!("Fail to deserialize message: {}", e))?;
+        let response = match request {
+            sde::SdeRequest::WriteText(str) => {
+                let bytes = str.as_bytes();
+                self.stdin
+                    .write_all(bytes)
+                    .await
+                    .map_err(|e| format!("Fail to write string into stdin: {}", e))?;
+                sde::SdeResponse::WriteText(sde::WriteResponse { bytes: bytes.len() })
+            }
+            sde::SdeRequest::WriteBytes(bytes) => {
+                self.stdin
+                    .write_all(&bytes)
+                    .await
+                    .map_err(|e| format!("Fail to write bytes into stdin: {}", e))?;
+                sde::SdeResponse::WriteBytes(sde::WriteResponse { bytes: bytes.len() })
+            }
+        };
+        serde_json::to_string(&response)
+            .map_err(|e| format!("Fail to convert response to JSON: {}", e))
     }
 }
 
