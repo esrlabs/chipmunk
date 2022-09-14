@@ -35,12 +35,14 @@ class Client
     install
     if @prod
       Matcher.new(true, true).build
+      Ansi.new(true, true).build
       Shell.chdir(Paths::CLIENT) do
         Shell.sh 'yarn run prod'
         Reporter.add(Jobs::Building, Owner::Client, 'production mode', '')
       end
     else
       Matcher.new(false, false).build
+      Ansi.new(false, false).build
       Shell.chdir(Paths::CLIENT) do
         Shell.sh 'yarn run build'
         Reporter.add(Jobs::Building, Owner::Client, 'developing mode', '')
