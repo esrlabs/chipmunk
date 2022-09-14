@@ -49,6 +49,19 @@ export const handler = Requests.InjectLogger<
                         }),
                     );
                     subscriber.register(
+                        session.getEvents().SearchMapUpdated.subscribe((map: string | null) => {
+                            if (!sessions.exists(uuid)) {
+                                return;
+                            }
+                            Events.IpcEvent.emit(
+                                new Events.Search.MapUpdated.Event({
+                                    session: uuid,
+                                    map,
+                                }),
+                            );
+                        }),
+                    );
+                    subscriber.register(
                         session.getEvents().FileRead.subscribe(() => {
                             if (!sessions.exists(uuid)) {
                                 return;

@@ -21,6 +21,11 @@ export class Range {
         before: false,
         after: false,
     };
+
+    public static get<T>(range: Range, src: T[], index: (entry: T) => number): T[] {
+        return src.filter((r) => range.in(index(r)));
+    }
+
     constructor(from: number, to: number) {
         if (
             from > to ||
