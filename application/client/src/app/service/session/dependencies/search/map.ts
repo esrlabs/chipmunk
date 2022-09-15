@@ -32,7 +32,7 @@ export class Map extends Subscriber {
 
     public destroy(): void {
         this.updated.destroy();
-        this.destroy();
+        this.unsubscribe();
     }
 
     public parse(str: string | null): Error | undefined {
