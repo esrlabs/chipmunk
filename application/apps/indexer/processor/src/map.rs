@@ -1,6 +1,8 @@
 use serde::Serialize;
 use serde_json;
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::RangeInclusive};
+use thiserror::Error;
+
 /// When looking at the search results of a file, we can say that
 /// we have n results in row m
 /// That allows us to depict the distribution of search matches over a file.
@@ -26,6 +28,12 @@ impl FilterMatch {
 pub struct NearestPosition {
     pub index: u64,    // Position in search results
     pub position: u64, // Position in original stream/file
+}
+
+#[derive(Error, Debug, Serialize)]
+pub enum MapError {
+    #[error("Out of range ({0})")]
+    OutOfRange(String),
 }
 
 /// Holds search results map
@@ -167,6 +175,17 @@ impl SearchMap {
         map
     }
 
+    pub fn indexes(&self, range: &RangeInclusive<u64>) -> Result<&[FilterMatch], MapError> {
+        if range.end() > &(self.len() as u64 - 1) {
+            return Err(MapError::OutOfRange(format!(
+                "Search has: {} matches. Requested: {:?}",
+                self.len(),
+                range
+            )));
+        }
+        Ok(&self.matches[*range.start() as usize..=*range.end() as usize])
+    }
+
     /// Takes position of row in main stream/file and try to find
     /// relevant nearest position in search results.
     /// For example, search results are (indexes or rows):
@@ -208,8 +227,17 @@ impl SearchMap {
         self.stream_len = len;
     }
 
-    pub fn append(&mut self, matches: &mut Vec<FilterMatch>) {
+    pub fn append(&mut self, matches: &mut Vec<FilterMatch>) -> usize {
         self.matches.append(matches);
+        self.matches.len()
+    }
+
+    pub fn len(&self) -> usize {
+        self.matches.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.matches.is_empty()
     }
 
     pub fn map_as_str(matches: &[FilterMatch]) -> String {

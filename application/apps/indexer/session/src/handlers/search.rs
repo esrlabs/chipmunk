@@ -1,5 +1,5 @@
 use crate::{
-    events::{CallbackEvent, NativeError, NativeErrorKind, SearchOperationResult},
+    events::{NativeError, NativeErrorKind, SearchOperationResult},
     operations::{OperationAPI, OperationResult},
     state::SessionStateAPI,
 };
@@ -31,7 +31,6 @@ pub async fn handle(
     state.drop_search().await?;
     if filters.is_empty() {
         debug!("RUST: Search will be dropped. Filters are empty");
-        operation_api.emit(CallbackEvent::SearchUpdated(0));
         Ok(Some(SearchOperationResult {
             found: 0,
             stats: FilterStats::new(vec![]),
@@ -39,7 +38,6 @@ pub async fn handle(
     } else {
         let mut search_holder = state.get_search_holder(operation_api.id()).await?;
         search_holder.set_filters(&mut filters.iter());
-        let search_res_file = search_holder.out_file_path.clone();
         let (tx_result, mut rx_result): SearchResultChannel = channel(1);
         let cancel = operation_api.cancellation_token();
         let cancel_search = operation_api.cancellation_token();
@@ -70,8 +68,8 @@ pub async fn handle(
                                 }),
                                 |(search_holder, search_results)| {
                                     search_results
-                                        .map(|(file_path, matches, stats)| {
-                                            (file_path, matches.len(), matches, stats, search_holder)
+                                        .map(|(processed, matches, stats)| {
+                                            (processed, matches.len(), matches, stats, search_holder)
                                         })
                                         .map_err(|err| NativeError {
                                             severity: Severity::ERROR,
@@ -86,14 +84,7 @@ pub async fn handle(
                         }
                         Err(_) => {
                             if !cancel.is_cancelled() {
-                                match state.update_search_result(operation_api.id(), &search_res_file).await {
-                                    Ok(found) => {
-                                        operation_api.emit(CallbackEvent::SearchUpdated(found as u64));
-                                    }
-                                    Err(err) => {
-                                        break Err(err);
-                                    }
-                                }
+                                state.set_matches(None).await?;
                             }
                         },
                     };
@@ -105,21 +96,12 @@ pub async fn handle(
         };
         if let Some(search_results) = search_results {
             match search_results {
-                Ok((file_path, found, matches, stats, search_holder)) => {
+                Ok((_processed, found, matches, stats, search_holder)) => {
                     state
                         .set_search_holder(Some(search_holder), operation_api.id())
                         .await?;
                     state.set_matches(Some(matches)).await?;
-                    if found == 0 {
-                        operation_api.emit(CallbackEvent::SearchUpdated(0));
-                        Ok(Some(SearchOperationResult { found, stats }))
-                    } else {
-                        state
-                            .update_search_result(operation_api.id(), &file_path)
-                            .await?;
-                        operation_api.emit(CallbackEvent::SearchUpdated(found as u64));
-                        Ok(Some(SearchOperationResult { found, stats }))
-                    }
+                    Ok(Some(SearchOperationResult { found, stats }))
                 }
                 Err(err) => Err(err),
             }
@@ -128,7 +110,6 @@ pub async fn handle(
             // We should not recreate holder, but just drop into NotInited
             state.set_search_holder(None, operation_api.id()).await?;
             state.drop_search().await?;
-            operation_api.emit(CallbackEvent::SearchUpdated(0));
             Ok(Some(SearchOperationResult {
                 found: 0,
                 stats: FilterStats::new(vec![]),

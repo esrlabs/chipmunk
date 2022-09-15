@@ -12,9 +12,9 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    fs,
-    fs::{File, OpenOptions},
-    io::{BufRead, BufWriter, Read, Seek, SeekFrom, Write},
+    fs::File,
+    io::{BufRead, Read, Seek, SeekFrom},
+    ops::Range,
     path::{Path, PathBuf},
     str::FromStr,
 };
@@ -59,7 +59,7 @@ impl ReaderPolicy for CancallableMinBuffered {
 const REDUX_READER_CAPACITY: usize = 1024 * 1024;
 const REDUX_MIN_BUFFER_SPACE: usize = 10 * 1024;
 
-pub type SearchResults = Result<(PathBuf, Vec<FilterMatch>, FilterStats), SearchError>;
+pub type SearchResults = Result<(Range<usize>, Vec<FilterMatch>, FilterStats), SearchError>;
 
 #[derive(Error, Debug, Serialize)]
 pub enum SearchError {
@@ -129,14 +129,10 @@ impl FilterStats {
 #[derive(Debug)]
 pub struct SearchHolder {
     pub file_path: PathBuf,
-    pub out_file_path: PathBuf,
     pub uuid: Uuid,
     search_filters: Vec<SearchFilter>,
     bytes_read: u64,
     lines_read: u64,
-    // pub handler: Option<EventHandler>,
-    // pub shutdown_channel: Channel<()>,
-    // pub event_channel: Channel<IndexingResults<()>>
 }
 
 pub struct MatchesExtractor {
@@ -220,20 +216,6 @@ fn filter_as_regex(filter: &SearchFilter) -> String {
     )
 }
 
-impl Drop for SearchHolder {
-    fn drop(&mut self) {
-        if self.out_file_path.exists() {
-            if let Err(err) = fs::remove_file(&self.out_file_path) {
-                error!(
-                    "Fail to remove file {}: {}",
-                    self.out_file_path.to_string_lossy(),
-                    err
-                );
-            }
-        }
-    }
-}
-
 impl SearchHolder {
     pub fn new<'a, I>(path: &Path, filters: I, uuid: Uuid) -> Self
     where
@@ -245,10 +227,6 @@ impl SearchHolder {
         }
         Self {
             file_path: PathBuf::from(path),
-            out_file_path: path
-                .parent()
-                .unwrap_or(path)
-                .join(PathBuf::from(format!("{}.out", uuid))),
             uuid,
             search_filters,
             bytes_read: 0,
@@ -301,18 +279,6 @@ impl SearchHolder {
         let in_file = File::open(&self.file_path).map_err(|_| {
             GrabError::IoOperation(format!("Could not open file {:?}", &self.file_path))
         })?;
-        let out_file = if self.out_file_path.exists() {
-            OpenOptions::new()
-                .append(true)
-                .open(&self.out_file_path)
-                .map_err(|_| {
-                    GrabError::IoOperation(format!("Could not open file {:?}", &self.file_path))
-                })?
-        } else {
-            File::create(&self.out_file_path).map_err(|_| {
-                GrabError::IoOperation(format!("Could create file {:?}", &self.out_file_path))
-            })?
-        };
         let mut in_file_reader =
             ReduxReader::with_capacity(REDUX_READER_CAPACITY, in_file).set_policy(
                 CancallableMinBuffered((REDUX_MIN_BUFFER_SPACE, cancallation)),
@@ -325,7 +291,6 @@ impl SearchHolder {
                     &self.file_path, self.bytes_read
                 ))
             })?;
-        let mut writer = BufWriter::new(out_file);
         let mut indexes: Vec<FilterMatch> = vec![];
         let mut stats: HashMap<u8, u64> = HashMap::new();
         // Take in account: we are counting on all levels (grabbing search, grabbing stream etc)
@@ -342,6 +307,7 @@ impl SearchHolder {
                     &self.file_path, self.bytes_read
                 ))
             })?;
+
         Searcher::new()
             .search_reader(
                 &matcher,
@@ -356,7 +322,7 @@ impl SearchHolder {
                         }
                     }
                     indexes.push(line_indexes);
-                    writeln!(writer, "{}", lnum - 1)?;
+                    //writeln!(writer, "{}", lnum - 1)?;
                     Ok(true)
                 }),
             )
@@ -372,8 +338,9 @@ impl SearchHolder {
                 &self.file_path, e
             ))
         })?;
+        let processed = lines_read as usize..(lines_read as usize + indexes.len());
         Ok((
-            self.out_file_path.clone(),
+            processed,
             indexes,
             FilterStats(
                 stats
@@ -382,18 +349,6 @@ impl SearchHolder {
                     .collect(),
             ),
         ))
-    }
-
-    pub fn clean(&self) {
-        if self.out_file_path.exists() {
-            if let Err(err) = fs::remove_file(&self.out_file_path) {
-                error!(
-                    "Fail to remove file {}: {}",
-                    self.out_file_path.to_string_lossy(),
-                    err
-                );
-            }
-        }
     }
 }
 
@@ -467,8 +422,7 @@ mod tests {
         "[Info](1.8): f",
     ];
     use super::*;
-    // use grep_printer::SummaryBuilder;
-    use std::io::{Error, ErrorKind};
+    use std::io::{Error, ErrorKind, Write};
     fn as_matches(content: &str) -> Vec<u64> {
         let lines: Vec<&str> = content.lines().collect();
         println!("lines: {:?}", lines);
@@ -479,16 +433,18 @@ mod tests {
     }
 
     // create tmp file with content, apply search
-    fn filtered(content: &str, filters: &[SearchFilter]) -> Result<String, std::io::Error> {
+    fn filtered(
+        content: &str,
+        filters: &[SearchFilter],
+    ) -> Result<Vec<FilterMatch>, std::io::Error> {
         let mut tmp_file = tempfile::NamedTempFile::new()?;
         let input_file = tmp_file.as_file_mut();
         input_file.write_all(content.as_bytes())?;
-        let mut search_holder = SearchHolder::new(tmp_file.path(), filters.iter(), Uuid::new_v4());
-        let (out_path, _indexes, _stats) =
-            search_holder
-                .execute_search(CancellationToken::new())
-                .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {}", e)))?;
-        std::fs::read_to_string(out_path)
+        let mut holder = SearchHolder::new(tmp_file.path(), filters.iter(), Uuid::new_v4());
+        let (_range, indexes, _stats) = holder
+            .execute_search(CancellationToken::new())
+            .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {}", e)))?;
+        Ok(indexes)
     }
 
     #[test]
@@ -504,12 +460,12 @@ mod tests {
                 .word(false),
         ];
 
-        let result_content = filtered(&LOGS.join("\n"), &filters)?;
-        println!("result_content: {:?}", result_content);
-        let matches = as_matches(&result_content);
-        assert_eq!(2, matches.len());
-        assert_eq!(1, matches[0]);
-        assert_eq!(3, matches[1]);
+        let indexes = filtered(&LOGS.join("\n"), &filters)?;
+        // println!("result_content: {:?}", result_content);
+        // let matches = as_matches(&result_content);
+        // assert_eq!(2, matches.len());
+        // assert_eq!(1, matches[0]);
+        // assert_eq!(3, matches[1]);
         Ok(())
     }
 
@@ -526,11 +482,11 @@ mod tests {
                 .word(false),
         ];
 
-        let result_content = filtered(&LOGS.join("\n"), &filters)?;
-        println!("result_content: {:?}", result_content);
-        let matches = as_matches(&result_content);
-        assert_eq!(1, matches.len());
-        assert_eq!(3, matches[0]);
+        let indexes = filtered(&LOGS.join("\n"), &filters)?;
+        // println!("result_content: {:?}", result_content);
+        // let matches = as_matches(&result_content);
+        // assert_eq!(1, matches.len());
+        // assert_eq!(3, matches[0]);
         Ok(())
     }
 }
