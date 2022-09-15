@@ -4,7 +4,7 @@ use crate::{
     tracker::OperationTrackerAPI,
 };
 use indexer_base::progress::Severity;
-use log::{debug, error, warn};
+use log::{debug, error};
 use processor::{
     grabber::{GrabbedContent, Grabber, LineRange},
     map::{FilterMatch, SearchMap},
@@ -16,7 +16,7 @@ use std::{
     fmt::Display,
     fs::File,
     io::{BufWriter, Write},
-    path::{Path, PathBuf},
+    path::PathBuf,
     time::Instant,
 };
 use tokio::sync::{
@@ -66,7 +66,6 @@ pub enum Api {
     SetStreamLen((u64, oneshot::Sender<()>)),
     GetStreamLen(oneshot::Sender<Result<usize, NativeError>>),
     GetSearchResultLen(oneshot::Sender<usize>),
-    UpdateSearchResult((Uuid, PathBuf, oneshot::Sender<Result<usize, NativeError>>)),
     GetSearchHolder((Uuid, oneshot::Sender<Result<SearchHolder, NativeError>>)),
     SetSearchHolder(
         (
@@ -107,7 +106,6 @@ impl Display for Api {
                 Self::SetStreamLen(_) => "SetStreamLen",
                 Self::GetStreamLen(_) => "GetStreamLen",
                 Self::GetSearchResultLen(_) => "GetSearchResultLen",
-                Self::UpdateSearchResult(_) => "UpdateSearchResult",
                 Self::GetSearchHolder(_) => "GetSearchHolder",
                 Self::SetSearchHolder(_) => "SetSearchHolder",
                 Self::DropSearch(_) => "DropSearch",
@@ -139,7 +137,6 @@ pub struct SessionState {
     pub search_map: SearchMap,
     pub search_holder: SearchHolderState,
     pub content_grabber: Option<Box<Grabber>>,
-    pub search_grabber: Option<Box<Grabber>>,
     pub cancelling_operations: HashMap<Uuid, bool>,
     pub status: Status,
     pub debug: bool,
@@ -177,64 +174,53 @@ impl SessionState {
     }
 
     fn handle_grab_search(&mut self, range: LineRange) -> Result<GrabbedContent, NativeError> {
-        if let Some(ref mut grabber) = self.search_grabber {
-            let line_numbers: GrabbedContent =
-                grabber.grab_content(&range).map_err(|e| NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Grabber,
-                    message: Some(format!("Failed to grab search data. Error: {}", e)),
-                })?;
-            let mut search_grabbed: GrabbedContent = GrabbedContent {
-                grabbed_elements: vec![],
-            };
-            let mut ranges = vec![];
-            let mut from_pos: u64 = 0;
-            let mut to_pos: u64 = 0;
-            for (i, el) in line_numbers.grabbed_elements.iter().enumerate() {
-                let pos = el.content.parse::<u64>().map_err(|err| NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::OperationSearch,
-                    message: Some(format!("Cannot parse line number: {}", err)),
-                })?;
-                if i == 0 {
-                    from_pos = pos;
-                } else if to_pos + 1 != pos {
-                    ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
-                    from_pos = pos;
-                }
-                to_pos = pos;
-            }
-            if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from_pos)
-                || (ranges.is_empty() && !line_numbers.grabbed_elements.is_empty())
-            {
+        let indexes = self
+            .search_map
+            .indexes(&range.range)
+            .map_err(|e| NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Grabber,
+                message: Some(format!("{}", e)),
+            })?;
+        let mut search_grabbed: GrabbedContent = GrabbedContent {
+            grabbed_elements: vec![],
+        };
+        let mut ranges = vec![];
+        let mut from_pos: u64 = 0;
+        let mut to_pos: u64 = 0;
+        for (i, el) in indexes.iter().enumerate() {
+            if i == 0 {
+                from_pos = el.index;
+            } else if to_pos + 1 != el.index {
                 ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
+                from_pos = el.index;
             }
-            let mut row: usize = range.start() as usize;
-            let grabber = &mut (self.content_grabber.as_ref().ok_or(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
-                message: Some(String::from("Grabber isn't inited")),
-            })?);
-            for range in ranges.iter() {
-                let mut session_grabbed = grabber.grab_content(&LineRange::from(range.clone()))?;
-                let start = *range.start() as usize;
-                for (j, element) in session_grabbed.grabbed_elements.iter_mut().enumerate() {
-                    element.pos = Some(start + j);
-                    element.row = Some(row);
-                    row += 1;
-                }
-                search_grabbed
-                    .grabbed_elements
-                    .append(&mut session_grabbed.grabbed_elements);
-            }
-            Ok(search_grabbed)
-        } else {
-            Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
-                message: Some(String::from("Search grabber isn't inited")),
-            })
+            to_pos = el.index;
         }
+        if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from_pos)
+            || (ranges.is_empty() && !indexes.is_empty())
+        {
+            ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
+        }
+        let mut row: usize = range.start() as usize;
+        let grabber = &mut (self.content_grabber.as_ref().ok_or(NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Grabber,
+            message: Some(String::from("Grabber isn't inited")),
+        })?);
+        for range in ranges.iter() {
+            let mut session_grabbed = grabber.grab_content(&LineRange::from(range.clone()))?;
+            let start = *range.start() as usize;
+            for (j, element) in session_grabbed.grabbed_elements.iter_mut().enumerate() {
+                element.pos = Some(start + j);
+                element.row = Some(row);
+                row += 1;
+            }
+            search_grabbed
+                .grabbed_elements
+                .append(&mut session_grabbed.grabbed_elements);
+        }
+        Ok(search_grabbed)
     }
 
     fn handle_get_stream_len(&mut self) -> Result<usize, NativeError> {
@@ -351,27 +337,14 @@ impl SessionState {
             let current = grabber.log_entry_count().unwrap_or(0) as u64;
             if prev != current {
                 tx_callback_events.send(CallbackEvent::StreamUpdated(current))?;
-                match self
-                    .search_holder
-                    .execute_search(state_cancellation_token.clone())
-                {
-                    Some(Ok((file_path, mut matches, _stats))) => {
-                        match self
-                            .update_search_result(&file_path, state_cancellation_token.clone())
-                            .await
-                        {
-                            Ok(found) => {
-                                self.search_map.append(&mut matches);
-                                tx_callback_events
-                                    .send(CallbackEvent::SearchUpdated(found as u64))?;
-                                tx_callback_events.send(CallbackEvent::SearchMapUpdated(Some(
-                                    SearchMap::map_as_str(&matches),
-                                )))?;
-                            }
-                            Err(err) => {
-                                error!("Fail to update search results: {:?}", err);
-                            }
-                        };
+                match self.search_holder.execute_search(state_cancellation_token) {
+                    Some(Ok((_processed, mut matches, _stats))) => {
+                        tx_callback_events.send(CallbackEvent::SearchUpdated(
+                            self.search_map.append(&mut matches) as u64,
+                        ))?;
+                        tx_callback_events.send(CallbackEvent::SearchMapUpdated(Some(
+                            SearchMap::map_as_str(&matches),
+                        )))?;
                     }
                     Some(Err(err)) => error!("Fail to append search: {}", err),
                     None => (),
@@ -417,52 +390,6 @@ impl SessionState {
                 }
             }
         }
-    }
-
-    pub async fn update_search_result(
-        &mut self,
-        search_result_file: &Path,
-        cancellation_token: CancellationToken,
-    ) -> Result<usize, NativeError> {
-        // TODO: we should check: related operation isn't canceled
-        if !search_result_file.exists() {
-            warn!(
-                "search result file {} doesn't exist",
-                search_result_file.to_string_lossy()
-            );
-            return Ok(0);
-        }
-        let grabber: &mut std::boxed::Box<processor::grabber::Grabber> = match self.search_grabber {
-            Some(ref mut grabber) => grabber,
-            None => {
-                let grabber = Grabber::lazy(TextFileSource::new(
-                    search_result_file,
-                    &search_result_file.to_string_lossy(),
-                ))
-                .map_err(|err| NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Grabber,
-                    message: Some(format!(
-                        "Failed to create search result file ({}) grabber. Error: {}",
-                        search_result_file.to_string_lossy(),
-                        err
-                    )),
-                })?;
-                self.search_grabber = Some(Box::new(grabber));
-                self.search_grabber.as_mut().expect("Was just set")
-            }
-        };
-        // To check: probably we need spetial canceler for search to prevent possible issues
-        // on dropping search between searches
-        grabber.update_from_file(Some(cancellation_token))?;
-        grabber
-            .get_metadata()
-            .ok_or(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
-                message: Some("Grabber doesn't have metadata".to_string()),
-            })
-            .map(|mt| mt.line_count)
     }
 }
 
@@ -565,19 +492,6 @@ impl SessionStateAPI {
         self.exec_operation(Api::SetStreamLen((len, tx)), rx).await
     }
 
-    pub async fn update_search_result(
-        &self,
-        uuid: Uuid,
-        search_result_file: &Path,
-    ) -> Result<usize, NativeError> {
-        let (tx, rx) = oneshot::channel();
-        self.exec_operation(
-            Api::UpdateSearchResult((uuid, PathBuf::from(search_result_file), tx)),
-            rx,
-        )
-        .await?
-    }
-
     pub async fn get_search_holder(&self, uuid: Uuid) -> Result<SearchHolder, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetSearchHolder((uuid, tx)), rx)
@@ -663,7 +577,6 @@ pub async fn run(
         search_map: SearchMap::new(),
         search_holder: SearchHolderState::NotInited,
         content_grabber: None,
-        search_grabber: None,
         status: Status::Open,
         cancelling_operations: HashMap::new(),
         debug: false,
@@ -778,32 +691,9 @@ pub async fn run(
                     .map_err(|_| NativeError::channel("Failed to respond to Api::GetStreamLen"))?;
             }
             Api::GetSearchResultLen(tx_response) => {
-                let len = if let Some(ref grabber) = state.search_grabber {
-                    grabber.get_metadata().map(|md| md.line_count).unwrap_or(0)
-                } else {
-                    0
-                };
-                tx_response.send(len).map_err(|_| {
+                tx_response.send(state.search_map.len()).map_err(|_| {
                     NativeError::channel("Failed to respond to Api::GetSearchResultLen")
                 })?;
-            }
-            Api::UpdateSearchResult((uuid, search_result_file, tx_response)) => {
-                tx_response
-                    .send(if state.cancelling_operations.get(&uuid).is_some() {
-                        // Operation is in canceling state. We should not update search and just ignore
-                        // this request.
-                        Ok(0)
-                    } else {
-                        state
-                            .update_search_result(
-                                &search_result_file,
-                                state_cancellation_token.clone(),
-                            )
-                            .await
-                    })
-                    .map_err(|_| {
-                        NativeError::channel("Failed to respond to Api::UpdateSearchResult")
-                    })?;
             }
             Api::GetSearchHolder((uuid, tx_response)) => {
                 tx_response
@@ -833,26 +723,24 @@ pub async fn run(
                 let result = if matches!(state.search_holder, SearchHolderState::InUse) {
                     false
                 } else {
-                    state.search_grabber = None;
                     state.search_holder = SearchHolderState::NotInited;
                     state.search_map.set(None);
-                    tx_callback_events.send(CallbackEvent::SearchUpdated(0))?;
-                    tx_callback_events.send(CallbackEvent::SearchMapUpdated(None))?;
                     true
                 };
+                tx_callback_events.send(CallbackEvent::SearchUpdated(0))?;
+                tx_callback_events.send(CallbackEvent::SearchMapUpdated(None))?;
                 tx_response
                     .send(result)
                     .map_err(|_| NativeError::channel("Failed to respond to Api::DropSearch"))?;
             }
             Api::SetMatches((matches, tx_response)) => {
-                if let Some(matches) = matches.as_ref() {
-                    tx_callback_events.send(CallbackEvent::SearchMapUpdated(Some(
-                        SearchMap::map_as_str(matches),
-                    )))?;
-                } else {
-                    tx_callback_events.send(CallbackEvent::SearchMapUpdated(None))?;
-                }
+                let update = matches
+                    .as_ref()
+                    .map(|matches| SearchMap::map_as_str(matches));
                 state.search_map.set(matches);
+                tx_callback_events.send(CallbackEvent::SearchMapUpdated(update))?;
+                tx_callback_events
+                    .send(CallbackEvent::SearchUpdated(state.search_map.len() as u64))?;
                 tx_response
                     .send(())
                     .map_err(|_| NativeError::channel("Failed to respond to Api::SetMatches"))?;
