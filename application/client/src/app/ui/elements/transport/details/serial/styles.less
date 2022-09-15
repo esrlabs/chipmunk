@@ -4,10 +4,25 @@
     position: relative;
     display: block;
     width: 100%;
-    & table.settings {
+    & table {
+        position: relative;
+        width: 100%;
         border-collapse: collapse;
+        overflow: hidden;
+        display: block;
+        & tr {
+            position: relative;
+            overflow: hidden;
+            & td {
+                padding: 6px 12px 0 0;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                overflow: hidden;
+            }    
+        }
     }
-    & td.setting {
-        min-width: 7em;
+    & mat-divider {
+        position: relative;
+        margin: 12px 0 6px 0;
     }
 }

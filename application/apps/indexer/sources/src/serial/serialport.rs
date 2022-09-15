@@ -1,11 +1,45 @@
 use crate::factory::SerialTransportConfig;
-// use crate::serial::sde;
+use crate::serial::sde;
 use crate::ByteSource;
 use crate::{Error as SourceError, ReloadInfo, SourceFilter};
 use async_trait::async_trait;
 use buf_redux::Buffer;
-use tokio::io::{AsyncBufReadExt, BufReader};
+use bytes::{BufMut, BytesMut};
+use futures::stream::{SplitSink, SplitStream, StreamExt};
+use futures::SinkExt;
+use std::{io, str};
 use tokio_serial::{DataBits, FlowControl, Parity, SerialPortBuilderExt, SerialStream, StopBits};
+use tokio_util::codec::{Decoder, Encoder, Framed};
+
+struct LineCodec;
+
+impl Decoder for LineCodec {
+    type Item = String;
+    type Error = io::Error;
+
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        match &src.iter().position(|b| *b == b'\n') {
+            Some(n) => match str::from_utf8(&src.split_to(n + 1)) {
+                Ok(s) => Ok(Some(s.to_string())),
+                Err(err) => Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Failed to format string: {}", err),
+                )),
+            },
+            None => Ok(None),
+        }
+    }
+}
+
+impl Encoder<Vec<u8>> for LineCodec {
+    type Error = io::Error;
+
+    fn encode(&mut self, item: Vec<u8>, dst: &mut BytesMut) -> Result<(), Self::Error> {
+        dst.reserve(item.len());
+        dst.put(&item as &[u8]);
+        Ok(())
+    }
+}
 
 fn data_bits(data_bits: &u8) -> DataBits {
     match data_bits {
@@ -44,13 +78,13 @@ fn stop_bits(stop_bits: &u8) -> StopBits {
 }
 
 pub struct SerialSource {
-    buf_reader: BufReader<SerialStream>,
-    string_buffer: String,
+    write_stream: SplitSink<Framed<SerialStream, LineCodec>, Vec<u8>>,
+    read_stream: SplitStream<Framed<SerialStream, LineCodec>>,
     buffer: Buffer,
     amount: usize,
 }
 
-// Do we need to do some actions of destractor?
+// Do we need to do some actions of destructor?
 // impl Drop for SerialSource {
 //     fn drop(&mut self) {
 //         // Todo something good
@@ -59,25 +93,35 @@ pub struct SerialSource {
 
 impl SerialSource {
     pub fn new(config: &SerialTransportConfig) -> Result<Self, SourceError> {
-        Ok(Self {
-            buf_reader: BufReader::new(
-                tokio_serial::new(config.path.as_str(), config.baud_rate)
-                    .data_bits(data_bits(&config.data_bits))
-                    .flow_control(flow_control(&config.flow_control))
-                    .parity(parity(&config.parity))
-                    .stop_bits(stop_bits(&config.stop_bits))
-                    .open_native_async()
-                    .map_err(|e| {
-                        SourceError::Setup(format!(
-                            "Failed to open serial port {}: {}",
-                            config.path, e
-                        ))
-                    })?,
-            ),
-            string_buffer: String::new(),
-            buffer: Buffer::new(),
-            amount: 0,
-        })
+        match tokio_serial::new(config.path.as_str(), config.baud_rate)
+            .data_bits(data_bits(&config.data_bits))
+            .flow_control(flow_control(&config.flow_control))
+            .parity(parity(&config.parity))
+            .stop_bits(stop_bits(&config.stop_bits))
+            .open_native_async()
+        {
+            Ok(mut port) => {
+                #[cfg(unix)]
+                if let Err(err) = port.set_exclusive(false) {
+                    return Err(SourceError::Setup(format!(
+                        "Unable to set serial port {} exclusive to false: {}",
+                        config.path, err
+                    )));
+                }
+                let stream = LineCodec.framed(port);
+                let (write_stream, read_stream) = stream.split();
+                Ok(Self {
+                    write_stream,
+                    read_stream,
+                    buffer: Buffer::new(),
+                    amount: 0,
+                })
+            }
+            Err(err) => Err(SourceError::Setup(format!(
+                "Failed to open serial port {}: {}",
+                config.path, err
+            ))),
+        }
     }
 }
 
@@ -87,20 +131,26 @@ impl ByteSource for SerialSource {
         &mut self,
         _filter: Option<&SourceFilter>,
     ) -> Result<Option<ReloadInfo>, SourceError> {
-        self.string_buffer.clear();
-        match self.buf_reader.read_line(&mut self.string_buffer).await {
-            Ok(amount) => {
-                self.amount = amount;
-                if amount == 0 {
-                    return Ok(None);
+        match self.read_stream.next().await {
+            Some(result) => match result {
+                Ok(received) => {
+                    self.amount = received.len();
+                    if self.amount == 0 {
+                        return Ok(None);
+                    }
+                    self.buffer.copy_from_slice(received.as_bytes());
                 }
-                self.buffer.copy_from_slice(self.string_buffer.as_bytes());
-            }
-            Err(err) => {
-                return Err(SourceError::Unrecoverable(format!(
-                    "Reading line from stream failed: {}",
-                    err
-                )))
+                Err(err) => {
+                    return Err(SourceError::Setup(format!(
+                        "Failed to read stream: {}",
+                        err
+                    )));
+                }
+            },
+            None => {
+                return Err(SourceError::Setup(
+                    "Error awaiting future in reading (RX) stream".to_string(),
+                ));
             }
         }
         Ok(Some(ReloadInfo::new(self.amount, self.amount, 0, None)))
@@ -122,37 +172,31 @@ impl ByteSource for SerialSource {
         self.len() == 0
     }
 
-    async fn income(&mut self, _msg: String) -> Result<String, String> {
-        Ok(String::new())
-        // let request = serde_json::from_str::<sde::SdeRequest>(&msg)
-        //     .map_err(|e| format!("Fail to deserialize message: {}", e))?;
-        // let response = if let Some(writer) = self.writer.as_mut() {
-        //     let response = match request {
-        //         sde::SdeRequest::WriteText(str) => {
-        //             let written = writer
-        //                 .write(str.as_bytes())
-        //                 .await
-        //                 .map_err(|e| format!("Fail to write string into stdin: {}", e))?;
-        //             sde::SdeResponse::WriteText(sde::WriteResponse { bytes: written })
-        //         }
-        //         sde::SdeRequest::WriteBytes(bytes) => {
-        //             let written = writer
-        //                 .write(&bytes)
-        //                 .await
-        //                 .map_err(|e| format!("Fail to write bytes into stdin: {}", e))?;
-        //             sde::SdeResponse::WriteText(sde::WriteResponse { bytes: written })
-        //         }
-        //     };
-        //     writer
-        //         .flush()
-        //         .await
-        //         .map_err(|e| format!("Fail to write string into stdin: {}", e))?;
-        //     response
-        // } else {
-        //     sde::SdeResponse::Error(String::from("No access to stdin"))
-        // };
-        // serde_json::to_string(&response)
-        //     .map_err(|e| format!("Fail to convert response to JSON: {}", e))
+    async fn income(&mut self, msg: String) -> Result<String, String> {
+        let request = serde_json::from_str::<sde::SdeRequest>(&msg)
+            .map_err(|e| format!("Fail to deserialize message: {}", e))?;
+        let response = match request {
+            sde::SdeRequest::WriteText(str) => {
+                let len = str.len();
+                match self.write_stream.send(str.as_bytes().to_vec()).await {
+                    Ok(()) => sde::SdeResponse::WriteText(sde::WriteResponse { bytes: len }),
+                    Err(err) => {
+                        sde::SdeResponse::Error(format!("Fail to write string to port: {}", err))
+                    }
+                }
+            }
+            sde::SdeRequest::WriteBytes(bytes) => {
+                let len = bytes.len();
+                match self.write_stream.send(bytes).await {
+                    Ok(()) => sde::SdeResponse::WriteText(sde::WriteResponse { bytes: len }),
+                    Err(err) => {
+                        sde::SdeResponse::Error(format!("Fail to write bytes to port: {}", err))
+                    }
+                }
+            }
+        };
+        serde_json::to_string(&response)
+            .map_err(|e| format!("Fail to convert response to JSON: {}", e))
     }
 }
 
