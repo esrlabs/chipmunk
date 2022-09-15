@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fs::File,
-    io::{BufRead, Read, Seek, SeekFrom},
+    io::{Seek, SeekFrom},
     ops::Range,
     path::{Path, PathBuf},
     str::FromStr,
@@ -426,14 +426,6 @@ mod tests {
     ];
     use super::*;
     use std::io::{Error, ErrorKind, Write};
-    fn as_matches(content: &str) -> Vec<u64> {
-        let lines: Vec<&str> = content.lines().collect();
-        println!("lines: {:?}", lines);
-        lines
-            .into_iter()
-            .map(|line| line.parse::<u64>().unwrap())
-            .collect()
-    }
 
     // create tmp file with content, apply search
     fn filtered(
@@ -445,7 +437,7 @@ mod tests {
         input_file.write_all(content.as_bytes())?;
         let mut holder = SearchHolder::new(tmp_file.path(), filters.iter(), Uuid::new_v4());
         let (_range, indexes, _stats) = holder
-            .execute_search(CancellationToken::new())
+            .execute_search(0, CancellationToken::new())
             .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {}", e)))?;
         Ok(indexes)
     }
@@ -463,12 +455,11 @@ mod tests {
                 .word(false),
         ];
 
-        let indexes = filtered(&LOGS.join("\n"), &filters)?;
-        // println!("result_content: {:?}", result_content);
-        // let matches = as_matches(&result_content);
-        // assert_eq!(2, matches.len());
-        // assert_eq!(1, matches[0]);
-        // assert_eq!(3, matches[1]);
+        let matches = filtered(&LOGS.join("\n"), &filters)?;
+        println!("matches: {:?}", matches);
+        assert_eq!(2, matches.len());
+        assert_eq!(1, matches[0].index);
+        assert_eq!(3, matches[1].index);
         Ok(())
     }
 
@@ -485,11 +476,10 @@ mod tests {
                 .word(false),
         ];
 
-        let indexes = filtered(&LOGS.join("\n"), &filters)?;
-        // println!("result_content: {:?}", result_content);
-        // let matches = as_matches(&result_content);
-        // assert_eq!(1, matches.len());
-        // assert_eq!(3, matches[0]);
+        let matches = filtered(&LOGS.join("\n"), &filters)?;
+        println!("matches: {:?}", matches);
+        assert_eq!(1, matches.len());
+        assert_eq!(3, matches[0].index);
         Ok(())
     }
 }
