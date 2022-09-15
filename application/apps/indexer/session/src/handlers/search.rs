@@ -23,12 +23,11 @@ type SearchResultChannel = (
 pub async fn handle(
     operation_api: &OperationAPI,
     filters: Vec<SearchFilter>,
-    //mut search_grabber,
-    //mut search_holder,
     state: SessionStateAPI,
 ) -> OperationResult<SearchOperationResult> {
     debug!("RUST: Search operation is requested");
     state.drop_search().await?;
+    let session_file_len = state.get_stream_len().await? as u64;
     if filters.is_empty() {
         debug!("RUST: Search will be dropped. Filters are empty");
         Ok(Some(SearchOperationResult {
@@ -42,7 +41,8 @@ pub async fn handle(
         let cancel = operation_api.cancellation_token();
         let cancel_search = operation_api.cancellation_token();
         task::spawn(async move {
-            let search_results = search_holder.execute_search(cancel_search.clone());
+            let search_results =
+                search_holder.execute_search(session_file_len, cancel_search.clone());
             if !cancel_search.is_cancelled()
                 && tx_result
                     .send((search_holder, search_results))

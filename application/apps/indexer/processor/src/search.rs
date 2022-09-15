@@ -255,7 +255,11 @@ impl SearchHolder {
     ///
     /// stat information shows how many times a filter matched:
     /// [(index_of_filter, count_of_matches), ...]
-    pub fn execute_search(&mut self, cancallation: CancellationToken) -> SearchResults {
+    pub fn execute_search(
+        &mut self,
+        target_file_len: u64,
+        cancallation: CancellationToken,
+    ) -> SearchResults {
         if self.search_filters.is_empty() {
             return Err(SearchError::Input(
                 "Cannot search without filters".to_owned(),
@@ -284,7 +288,7 @@ impl SearchHolder {
                 CancallableMinBuffered((REDUX_MIN_BUFFER_SPACE, cancallation)),
             );
         in_file_reader
-            .seek(SeekFrom::Start(self.bytes_read + 1))
+            .seek(SeekFrom::Start(self.bytes_read))
             .map_err(|_| {
                 GrabError::IoOperation(format!(
                     "Could not seek file {:?} to {}",
@@ -297,8 +301,7 @@ impl SearchHolder {
         // from 0 line always. But grep gives results from 1. That's why here is a point of correct:
         // lnum - 1
         let lines_read = self.lines_read;
-        let extra = in_file_reader.by_ref().lines().count() as u64;
-        self.lines_read += extra;
+        self.lines_read = target_file_len;
         in_file_reader
             .seek(SeekFrom::Start(self.bytes_read))
             .map_err(|_| {
@@ -337,7 +340,7 @@ impl SearchHolder {
                 "Cannot detect position in file {:?}; error: {}",
                 &self.file_path, e
             ))
-        })?;
+        })? + 1;
         let processed = lines_read as usize..(lines_read as usize + indexes.len());
         Ok((
             processed,

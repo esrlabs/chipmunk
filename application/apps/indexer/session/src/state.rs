@@ -42,9 +42,13 @@ pub enum SessionFile {
 }
 
 impl SearchHolderState {
-    pub fn execute_search(&mut self, cancel_token: CancellationToken) -> Option<SearchResults> {
+    pub fn execute_search(
+        &mut self,
+        session_file_len: u64,
+        cancel_token: CancellationToken,
+    ) -> Option<SearchResults> {
         match self {
-            Self::Available(h) => Some(h.execute_search(cancel_token)),
+            Self::Available(h) => Some(h.execute_search(session_file_len, cancel_token)),
             _ => None,
         }
     }
@@ -337,7 +341,10 @@ impl SessionState {
             let current = grabber.log_entry_count().unwrap_or(0) as u64;
             if prev != current {
                 tx_callback_events.send(CallbackEvent::StreamUpdated(current))?;
-                match self.search_holder.execute_search(state_cancellation_token) {
+                match self
+                    .search_holder
+                    .execute_search(current, state_cancellation_token)
+                {
                     Some(Ok((_processed, mut matches, _stats))) => {
                         tx_callback_events.send(CallbackEvent::SearchUpdated(
                             self.search_map.append(&mut matches) as u64,
