@@ -272,17 +272,18 @@ impl SessionState {
         }
         if self.session_writer.is_none() {
             if let Some(ref session_file) = self.session_file {
-                self.session_writer = Some(BufWriter::new(File::create(&session_file).map_err(
-                    |e| NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Io,
-                        message: Some(format!(
-                            "Fail to create session writer for {}: {}",
-                            session_file.to_string_lossy(),
-                            e
-                        )),
-                    },
-                )?));
+                self.session_writer =
+                    Some(BufWriter::new(File::create(session_file).map_err(|e| {
+                        NativeError {
+                            severity: Severity::ERROR,
+                            kind: NativeErrorKind::Io,
+                            message: Some(format!(
+                                "Fail to create session writer for {}: {}",
+                                session_file.to_string_lossy(),
+                                e
+                            )),
+                        }
+                    })?));
             }
         }
         if let Some(session_writer) = self.session_writer.as_mut() {

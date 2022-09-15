@@ -824,7 +824,7 @@ pub async fn main() -> Result<()> {
             .collect();
 
         let ending = &file_path.extension().expect("could not get extension");
-        let in_file = File::open(&file_path).unwrap();
+        let in_file = File::open(file_path).unwrap();
         let _reader = BufReader::new(&in_file);
         if ending.to_str() == Some("dlt") {
             todo!("use grabber for export");
@@ -900,7 +900,7 @@ pub async fn main() -> Result<()> {
             };
             let dlt_parser =
                 DltParser::new(filter_conf.map(|f| f.into()), fibex_metadata.as_ref(), true);
-            let in_file = File::open(&file_path).unwrap();
+            let in_file = File::open(file_path).unwrap();
             let reader = BufReader::new(&in_file);
             let out_file = File::create(&out_path).expect("could not create file");
             let mut out_writer = BufWriter::new(out_file);
@@ -950,7 +950,7 @@ pub async fn main() -> Result<()> {
             // wtr.flush().unwrap();
             out_writer.flush().unwrap();
 
-            let source_file_size = fs::metadata(&file_path).expect("file size error").len();
+            let source_file_size = fs::metadata(file_path).expect("file size error").len();
             let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
             let out_file_size = fs::metadata(&out_path).expect("file size error").len();
             let out_file_size_in_mb = out_file_size as f64 / 1024.0 / 1024.0;
@@ -1048,7 +1048,7 @@ pub async fn main() -> Result<()> {
         let out_path = output.unwrap_or_else(|| PathBuf::from(fallback_out.as_str()));
         let mapping_out_path = PathBuf::from(format!("{}.map.json", file_path.to_string_lossy()));
         let tag_string = tag.to_string();
-        let source_file_size = fs::metadata(&file_path).expect("file size error").len();
+        let source_file_size = fs::metadata(file_path).expect("file size error").len();
         // let progress_bar = initialize_progress_bar(total);
 
         let cancel = CancellationToken::new();
@@ -1072,7 +1072,7 @@ pub async fn main() -> Result<()> {
             println!("NOT one-go");
             let (tx, mut rx): (mpsc::Sender<ChunkResults>, mpsc::Receiver<ChunkResults>) =
                 mpsc::channel(100);
-            let in_file = File::open(&file_path).expect("cannot open file");
+            let in_file = File::open(file_path).expect("cannot open file");
             let source = PcapngByteSource::new(in_file).expect("cannot create source");
             let res = create_index_and_mapping_from_pcapng(
                 IndexingConfig {
@@ -1417,7 +1417,7 @@ pub async fn main() -> Result<()> {
                 );
             }
         } else {
-            let f = match fs::File::open(&file_path) {
+            let f = match fs::File::open(file_path) {
                 Ok(file) => file,
                 Err(_) => {
                     report_error(format!("could not open {:?}", file_path));
@@ -1482,7 +1482,7 @@ pub async fn main() -> Result<()> {
             let someip_parser = SomeipParser::from_fibex(&fibex_model);
 
             println!("parse input file {}", input_path.to_str().unwrap());
-            let input_file_size = fs::metadata(&input_path).expect("file size error").len();
+            let input_file_size = fs::metadata(input_path).expect("file size error").len();
             let cancel = CancellationToken::new();
             let (tx, rx): (mpsc::Sender<VoidResults>, mpsc::Receiver<VoidResults>) =
                 mpsc::channel(100);
@@ -1550,7 +1550,7 @@ fn initialize_progress_bar(len: u64) -> ProgressBar {
 /// each message needs to be equiped with a storage header
 async fn count_dlt_messages(input: &Path) -> Result<u64, DltParseError> {
     if input.exists() {
-        let second_reader = BufReader::new(fs::File::open(&input)?);
+        let second_reader = BufReader::new(fs::File::open(input)?);
         let dlt_parser = DltRangeParser::new();
 
         let source = BinaryByteSource::new(second_reader);
@@ -1570,7 +1570,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
     if input.exists() {
         {
             println!("try dlt parser");
-            let buf_reader = BufReader::new(fs::File::open(&input)?);
+            let buf_reader = BufReader::new(fs::File::open(input)?);
             let source = BinaryByteSource::new(buf_reader);
             let dlt_parser = DltRangeParser::new();
             let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source, None);
@@ -1603,7 +1603,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
         {
             println!("try pcap someip parser");
             let some_parser = SomeipParser::new();
-            match PcapngByteSource::new(fs::File::open(&input)?) {
+            match PcapngByteSource::new(fs::File::open(input)?) {
                 Ok(source) => {
                     let mut some_msg_producer = MessageProducer::new(some_parser, source, None);
                     let msg_stream = some_msg_producer.as_stream();
@@ -1643,7 +1643,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
             println!("try pcap dlt parser");
             let dlt_parser = DltParser::new(None, None, false);
             // let buf_reader = BufReader::new(fs::File::open(&input)?);
-            match PcapngByteSource::new(fs::File::open(&input)?) {
+            match PcapngByteSource::new(fs::File::open(input)?) {
                 Ok(source) => {
                     let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source, None);
                     let msg_stream = dlt_msg_producer.as_stream();
@@ -1682,7 +1682,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
         {
             println!("try text parser");
             let txt_parser = StringTokenizer {};
-            let buf_reader = BufReader::new(fs::File::open(&input)?);
+            let buf_reader = BufReader::new(fs::File::open(input)?);
             let source = BinaryByteSource::new(buf_reader);
             let mut txt_msg_producer = MessageProducer::new(txt_parser, source, None);
             let msg_stream = txt_msg_producer.as_stream();

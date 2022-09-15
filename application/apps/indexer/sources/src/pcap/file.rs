@@ -424,7 +424,7 @@ pub async fn print_from_pcapng<T: LogMessage + std::marker::Unpin + Send, P: Par
     debug!("Starting convert_from_pcapng with {} bytes", total);
     let output = TextFileOutput::new(out_path, update_channel)?;
 
-    let pcap_file = File::open(&pcap_path)?;
+    let pcap_file = File::open(pcap_path)?;
     let buf_reader = std::io::BufReader::new(&pcap_file);
     let pcapng_byte_src =
         PcapngByteSource::new(buf_reader).map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
@@ -449,7 +449,7 @@ pub async fn convert_from_pcapng<
     debug!("Starting convert_from_pcapng with {} bytes", total);
     let output = DltFileOutput::new(out_path, update_channel)?;
 
-    let pcap_file = File::open(&pcap_path)?;
+    let pcap_file = File::open(pcap_path)?;
     let buf_reader = std::io::BufReader::new(&pcap_file);
     let pcapng_byte_src =
         PcapngByteSource::new(buf_reader).map_err(|e| Error::Unrecoverable(format!("{}", e)))?;

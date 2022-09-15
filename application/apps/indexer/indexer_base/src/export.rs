@@ -44,7 +44,7 @@ pub fn export_file_line_based(
     );
     if file_path.exists() {
         trace!("found file to export: {:?}", &file_path);
-        let f = fs::File::open(&file_path)?;
+        let f = fs::File::open(file_path)?;
         let reader = &mut std::io::BufReader::new(f);
         let out_file = std::fs::File::create(destination_path)?;
         let lines_iter = &mut reader.lines();

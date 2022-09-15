@@ -32,7 +32,7 @@ impl TextFileSource {
 impl TextFileSource {
     pub fn contains_text(path: &Path) -> Result<bool, GrabError> {
         let chunk_size = 100 * 1024usize;
-        let mut f = fs::File::open(&path)
+        let mut f = fs::File::open(path)
             .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", &path)))?;
         let mut count = 0usize;
         let mut buffer = vec![0; chunk_size];
@@ -86,7 +86,7 @@ impl TextFileSource {
 
     /// the size of the input content
     pub fn input_size(&self) -> Result<u64, GrabError> {
-        let input_file_size = std::fs::metadata(&self.path())
+        let input_file_size = std::fs::metadata(self.path())
             .map_err(|e| {
                 GrabError::Config(format!("Could not determine size of input file: {}", e))
             })?
@@ -241,7 +241,7 @@ impl TextFileSource {
         //     file_part.total_lines - file_part.lines_to_skip - file_part.lines_to_drop
         // );
         let mut read_buf = vec![0; file_part.length];
-        let mut read_from = fs::File::open(&self.path())
+        let mut read_from = fs::File::open(self.path())
             .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", &self.path)))?;
         read_from
             .seek(SeekFrom::Start(file_part.offset_in_file))
