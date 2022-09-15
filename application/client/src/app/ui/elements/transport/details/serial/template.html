@@ -20,3 +20,8 @@
         <td class="t-medium">{{source.stop_bits}}</td>
     </tr>
 </table>
+<div *ngIf="observe !== undefined">
+    <mat-divider></mat-divider>
+    <p class="t-medium color-scheme-2">Sending</p>
+    <app-autocomplete-input #message [options]="options" (enter)="ngEnter($event)"></app-autocomplete-input>
+</div>
