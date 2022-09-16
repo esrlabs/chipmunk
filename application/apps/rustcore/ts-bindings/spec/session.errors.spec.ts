@@ -5,7 +5,7 @@
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 
 import { Session, SessionStream, Observe } from '../src/api/session';
-import { IGrabbedElement, ISearchResults } from '../src/interfaces/index';
+import { IGrabbedElement } from '../src/interfaces/index';
 import { finish, createSampleFile } from './common';
 import { getLogger } from '../src/util/logging';
 import { readConfigurationFile } from './config';
@@ -106,7 +106,7 @@ describe('Errors', () => {
                             flags: { reg: true, word: true, cases: false },
                         },
                     ])
-                    .then((result: ISearchResults) =>
+                    .then((found: number) =>
                         finish(session, done, new Error('Search should not be available')),
                     )
                     .catch((err: Error) => {
@@ -249,7 +249,7 @@ describe('Errors', () => {
                             flags: { reg: true, word: false, cases: false },
                         },
                     ])
-                    .then((result: ISearchResults) => {
+                    .then((found: number) => {
                         search
                             .len()
                             .then((len: number) => {

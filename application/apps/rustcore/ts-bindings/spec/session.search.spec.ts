@@ -60,7 +60,7 @@ describe('Search', function () {
                     .observe(Observe.DataSource.file(tmpobj.name).text())
                     .catch(finish.bind(null, session, done));
                 let searchStreamUpdated = false;
-                events.SearchUpdated.subscribe((found: number) => {
+                events.SearchUpdated.subscribe((event) => {
                     searchStreamUpdated = true;
                 });
                 search
@@ -355,8 +355,8 @@ describe('Search', function () {
                             flags: { reg: true, word: false, cases: false },
                         },
                     ])
-                    .then((results) => {
-                        expect(results.found).toEqual(0);
+                    .then((found) => {
+                        expect(found).toEqual(0);
                         finish(session, done);
                     })
                     .catch(finish.bind(null, session, done));
