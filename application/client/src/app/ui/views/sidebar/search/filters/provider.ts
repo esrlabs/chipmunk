@@ -32,6 +32,17 @@ export class ProviderFilters extends Provider<FilterRequest> {
                     // this.select().drop();
                 }),
         );
+        this.subscriber.register(
+            this.session.search.subjects.get().updated.subscribe((event) => {
+                this._entities.forEach((entity) => {
+                    const alias = entity.extract().alias();
+                    entity
+                        .extract()
+                        .set()
+                        .found(event.stat[alias] === undefined ? 0 : event.stat[alias]);
+                });
+            }),
+        );
     }
 
     public entities(): Array<Entity<FilterRequest>> {

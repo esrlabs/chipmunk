@@ -16,6 +16,7 @@ export class State {
     public active: boolean = false;
     public provider: ProviderFilters;
     public entity: Entity<FilterRequest>;
+    public found: number = 0;
 
     constructor(entity: Entity<FilterRequest>, prodider: ProviderFilters) {
         this.filter = obj.clone<IFilter>(entity.extract().definition.filter);
@@ -34,6 +35,7 @@ export class State {
         filter(): void;
         colors(): void;
         state(): void;
+        stat(): void;
     } {
         return {
             filter: (): void => {
@@ -44,6 +46,9 @@ export class State {
             },
             state: (): void => {
                 this.active = this.entity.extract().definition.active;
+            },
+            stat: (): void => {
+                this.found = this.entity.extract().found;
             },
         };
     }

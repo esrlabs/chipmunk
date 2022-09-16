@@ -210,6 +210,16 @@ fn filter_as_regex(filter: &SearchFilter) -> String {
     )
 }
 
+fn filter_as_alias(filter: &SearchFilter) -> String {
+    let word_marker = if filter.is_word { "1" } else { "0" };
+    let ignore_case = if filter.ignore_case { "1" } else { "0" };
+    let is_regex = if filter.is_regex { "1" } else { "0" };
+    format!(
+        "{}:{}{}{}",
+        filter.value, is_regex, ignore_case, word_marker
+    )
+}
+
 impl SearchHolder {
     pub fn new<'a, I>(path: &Path, filters: I, uuid: Uuid) -> Self
     where
@@ -268,7 +278,9 @@ impl SearchHolder {
             Err(err) => return Err(SearchError::Regex(format!("{}", err))),
         };
         let mut matchers: Vec<Regex> = vec![];
-        for filter in self.search_filters.iter() {
+        let mut aliases: HashMap<usize, String> = HashMap::new();
+        for (pos, filter) in self.search_filters.iter().enumerate() {
+            aliases.insert(pos, filter_as_alias(filter));
             matchers.push(
                 Regex::from_str(&filter_as_regex(filter))
                     .map_err(|err| SearchError::Regex(format!("{}", err)))?,
@@ -314,7 +326,9 @@ impl SearchHolder {
                     for (index, re) in matchers.iter().enumerate() {
                         if re.is_match(line) {
                             line_indexes.filters.push(index as u8);
-                            stats.inc(index as u16, None);
+                            if let Some(alias) = aliases.get(&index) {
+                                stats.inc(alias, None);
+                            }
                         }
                     }
                     indexes.push(line_indexes);

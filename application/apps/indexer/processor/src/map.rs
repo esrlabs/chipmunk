@@ -26,7 +26,7 @@ impl FilterMatch {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FiltersStats {
-    pub stats: HashMap<u16, u64>,
+    pub stats: HashMap<String, u64>,
 }
 impl FiltersStats {
     pub fn new() -> Self {
@@ -35,8 +35,8 @@ impl FiltersStats {
         }
     }
 
-    pub fn inc(&mut self, index: u16, value: Option<u64>) {
-        *self.stats.entry(index).or_insert(0) += value.map_or(1, |v| v) as u64;
+    pub fn inc(&mut self, alias: &str, value: Option<u64>) {
+        *self.stats.entry(alias.to_string()).or_insert(0) += value.map_or(1, |v| v) as u64;
     }
 }
 
@@ -252,7 +252,7 @@ impl SearchMap {
         }
     }
 
-    pub fn get_stats(&self) -> HashMap<u16, u64> {
+    pub fn get_stats(&self) -> HashMap<String, u64> {
         self.stats.stats.clone()
     }
 
@@ -267,7 +267,7 @@ impl SearchMap {
 
     pub fn append_stats(&mut self, stats: FiltersStats) {
         for (key, val) in stats.stats.iter() {
-            self.stats.inc(*key, Some(*val));
+            self.stats.inc(key, Some(*val));
         }
     }
 
