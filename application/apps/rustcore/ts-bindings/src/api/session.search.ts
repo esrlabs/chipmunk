@@ -6,7 +6,6 @@ import { EventProvider } from '../api/session.provider';
 import {
     IFilter,
     IGrabbedElement,
-    ISearchResults,
     ISearchMap,
     TExtractedValues,
     INearest,
@@ -20,8 +19,8 @@ export class SessionSearch {
     private readonly _logger: Logs.Logger;
     private readonly _tasks: {
         search: {
-            current: ICancelablePromise<ISearchResults> | undefined;
-            pending: { filters: IFilter[]; self: ICancelablePromise<ISearchResults> } | undefined;
+            current: ICancelablePromise<number> | undefined;
+            pending: { filters: IFilter[]; self: ICancelablePromise<number> } | undefined;
         };
     } = {
         search: {
@@ -98,8 +97,8 @@ export class SessionSearch {
         return undefined;
     }
 
-    public search(filters: IFilter[]): ICancelablePromise<ISearchResults> {
-        const executor = (self: ICancelablePromise<ISearchResults>, filters: IFilter[]) => {
+    public search(filters: IFilter[]): ICancelablePromise<number> {
+        const executor = (self: ICancelablePromise<number>, filters: IFilter[]) => {
             this._tasks.search.current = Executors.search(
                 this._session,
                 this._provider,

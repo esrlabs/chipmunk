@@ -13,7 +13,7 @@ export interface ISearchStats {
     stats: { [key: number]: number };
 }
 
-export interface ISearchResults {
+export interface ISearchUpdated {
     found: number;
-    stats: ISearchStats;
+    stat: { [key: number]: number };
 }

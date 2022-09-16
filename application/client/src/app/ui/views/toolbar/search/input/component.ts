@@ -15,7 +15,6 @@ import { SearchInput } from './input';
 import { List } from '@env/storages/recent/list';
 import { Progress } from './progress';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { ISearchResults } from '@platform/types/filter';
 import { ActiveSearch } from './active';
 
 @Component({
@@ -67,10 +66,8 @@ export class ViewSearchInput
             this.session.search
                 .state()
                 .subjects.get()
-                .finish.subscribe((results: ISearchResults | undefined) => {
-                    if (results !== undefined) {
-                        this.progress.setFound(results.found);
-                    }
+                .finish.subscribe((found: number) => {
+                    this.progress.setFound(found);
                     this.progress.stop();
                 }),
         );

@@ -6,12 +6,14 @@ import * as validator from '../../../env/obj';
 export class Event extends SignatureRequirement {
     public session: string;
     public rows: number;
+    public stat: { [key: number]: number };
 
-    constructor(input: { session: string; rows: number }) {
+    constructor(input: { session: string; rows: number; stat: { [key: number]: number } }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
         this.rows = validator.getAsValidNumber(input, 'rows');
+        this.stat = validator.getAsObj(input, 'stat');
     }
 }
 

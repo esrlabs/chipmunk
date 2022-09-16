@@ -24,7 +24,7 @@ impl FilterMatch {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FiltersStats {
     pub stats: HashMap<u16, u64>,
 }
@@ -250,6 +250,10 @@ impl SearchMap {
         } else {
             self.stats = FiltersStats::default();
         }
+    }
+
+    pub fn get_stats(&self) -> HashMap<u16, u64> {
+        self.stats.stats.clone()
     }
 
     pub fn set_stream_len(&mut self, len: u64) {

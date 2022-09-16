@@ -42,8 +42,8 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
     public ngAfterContentInit(): void {
         this.service = getScrollAreaService(this.session);
         this.env().subscriber.register(
-            this.session.search.subjects.get().updated.subscribe((len: number) => {
-                this.service.setLen(len);
+            this.session.search.subjects.get().updated.subscribe((event) => {
+                this.service.setLen(event.found);
             }),
         );
         // this.env().subscriber.register(

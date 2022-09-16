@@ -2,7 +2,6 @@ import { FilterRequest } from './filters/request';
 import { IFilter } from '@platform/types/filter';
 import { Subjects, Subject } from '@platform/env/subscription';
 import { Search } from '@service/session/dependencies/search';
-import { ISearchResults } from '@platform/types/filter';
 
 import * as obj from '@platform/env/obj';
 
@@ -11,12 +10,12 @@ export class State {
         active: Subject<IFilter | undefined>;
         collection: Subject<FilterRequest[]>;
         start: Subject<void>;
-        finish: Subject<ISearchResults | undefined>;
+        finish: Subject<number>;
     }> = new Subjects({
         active: new Subject<IFilter | undefined>(),
         collection: new Subject<FilterRequest[]>(),
         start: new Subject<void>(),
-        finish: new Subject<ISearchResults | undefined>(),
+        finish: new Subject<number>(),
     });
 
     private _search: Search;
@@ -35,7 +34,7 @@ export class State {
         return this._active;
     }
 
-    public setActive(filter: IFilter): Promise<ISearchResults> {
+    public setActive(filter: IFilter): Promise<number> {
         return new Promise((resolve, reject) => {
             this._active = obj.clone(filter);
             this._hash = undefined;
@@ -46,14 +45,14 @@ export class State {
                     this.subjects.get().active.emit(obj.clone(filter));
                     this._search
                         .search([filter])
-                        .then((results: ISearchResults) => {
-                            this.subjects.get().finish.emit(results);
-                            resolve(results);
+                        .then((found: number) => {
+                            this.subjects.get().finish.emit(found);
+                            resolve(found);
                         })
                         .catch((err: Error) => {
                             this._active = undefined;
                             this.subjects.get().active.emit(undefined);
-                            this.subjects.get().finish.emit(undefined);
+                            this.subjects.get().finish.emit(0);
                             reject(err);
                         });
                 })
@@ -95,12 +94,12 @@ export class State {
                     this.subjects.get().start.emit();
                     this._search
                         .search(filters)
-                        .then((results: ISearchResults) => {
-                            this.subjects.get().finish.emit(results);
+                        .then((found: number) => {
+                            this.subjects.get().finish.emit(found);
                             resolve();
                         })
                         .catch((err: Error) => {
-                            this.subjects.get().finish.emit(undefined);
+                            this.subjects.get().finish.emit(0);
                             reject(err);
                         });
                 })

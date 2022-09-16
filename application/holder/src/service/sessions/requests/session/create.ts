@@ -1,4 +1,5 @@
 import { CancelablePromise } from 'platform/env/promise';
+import { ISearchUpdated } from 'platform/types/filter';
 import { Session } from 'rustcore';
 import { sessions } from '@service/sessions';
 import { Subscriber } from 'platform/env/subscription';
@@ -36,14 +37,15 @@ export const handler = Requests.InjectLogger<
                         }),
                     );
                     subscriber.register(
-                        session.getEvents().SearchUpdated.subscribe((len: number) => {
+                        session.getEvents().SearchUpdated.subscribe((event: ISearchUpdated) => {
                             if (!sessions.exists(uuid)) {
                                 return;
                             }
                             Events.IpcEvent.emit(
                                 new Events.Search.Updated.Event({
                                     session: uuid,
-                                    rows: len,
+                                    rows: event.found,
+                                    stat: event.stat,
                                 }),
                             );
                         }),

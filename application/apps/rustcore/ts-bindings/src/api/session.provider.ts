@@ -1,4 +1,5 @@
 import { Subject } from 'platform/env/subscription';
+import { ISearchUpdated } from 'platform/types/filter';
 import { Computation } from '../provider/provider';
 import { EErrorKind, EErrorSeverity } from '../provider/provider.errors';
 import { IMapEntity, IMatchEntity } from '../interfaces/index';
@@ -40,7 +41,7 @@ export interface IEventMatchesUpdated {
 export interface ISessionEvents {
     StreamUpdated: Subject<number>;
     FileRead: Subject<void>;
-    SearchUpdated: Subject<number>;
+    SearchUpdated: Subject<ISearchUpdated>;
     SearchMapUpdated: Subject<string>;
     MapUpdated: Subject<IEventMapUpdated>;
     MatchesUpdated: Subject<IEventMatchesUpdated>;
@@ -85,7 +86,7 @@ const SessionEventsSignatures: ISessionEventsSignatures = {
 interface ISessionEventsInterfaces {
     StreamUpdated: { self: 'number' };
     FileRead: { self: null };
-    SearchUpdated: { self: 'number' };
+    SearchUpdated: { self: 'object'; found: 'number'; stat: typeof Object };
     SearchMapUpdated: { self: ['string', null] };
     MapUpdated: { self: 'object'; map: typeof Array };
     MatchesUpdated: { self: 'object'; matches: typeof Array };
@@ -111,7 +112,7 @@ interface ISessionEventsInterfaces {
 const SessionEventsInterfaces: ISessionEventsInterfaces = {
     StreamUpdated: { self: 'number' },
     FileRead: { self: null },
-    SearchUpdated: { self: 'number' },
+    SearchUpdated: { self: 'object', found: 'number', stat: Object },
     SearchMapUpdated: { self: ['string', null] },
     MapUpdated: { self: 'object', map: Array },
     MatchesUpdated: { self: 'object', matches: Array },
@@ -142,7 +143,7 @@ export class EventProvider extends Computation<
     private readonly _events: ISessionEvents = {
         StreamUpdated: new Subject<number>(),
         FileRead: new Subject<void>(),
-        SearchUpdated: new Subject<number>(),
+        SearchUpdated: new Subject<ISearchUpdated>(),
         SearchMapUpdated: new Subject<string>(),
         MapUpdated: new Subject<IEventMapUpdated>(), // dummy
         MatchesUpdated: new Subject<IEventMatchesUpdated>(), // dummy

@@ -1,7 +1,6 @@
 import { CancelablePromise } from 'platform/env/promise';
 import { sessions, Jobs } from '@service/sessions';
 import { Instance as Logger } from 'platform/env/logger';
-import { ISearchResults } from 'platform/types/filter';
 import { ICancelablePromise } from 'platform/env/promise';
 
 import * as Requests from 'platform/ipc/request';
@@ -27,11 +26,11 @@ export const handler = Requests.InjectLogger<
                 stored.session
                     .getSearch()
                     .search(request.filters)
-                    .then((results: ISearchResults) => {
+                    .then((found: number) => {
                         resolve(
                             new Requests.Search.Search.Response({
                                 session: session_uuid,
-                                results,
+                                found,
                                 canceled: false,
                             }),
                         );
@@ -40,7 +39,7 @@ export const handler = Requests.InjectLogger<
                         resolve(
                             new Requests.Search.Search.Response({
                                 session: session_uuid,
-                                results: undefined,
+                                found: 0,
                                 canceled: true,
                             }),
                         );

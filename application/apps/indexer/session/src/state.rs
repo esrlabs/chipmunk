@@ -356,7 +356,10 @@ impl SessionState {
                     Some(Ok((_processed, mut matches, stats))) => {
                         let found = self.search_map.append(&mut matches) as u64;
                         self.search_map.append_stats(stats);
-                        tx_callback_events.send(CallbackEvent::SearchUpdated(found))?;
+                        tx_callback_events.send(CallbackEvent::search_results(
+                            found,
+                            self.search_map.get_stats(),
+                        ))?;
                         tx_callback_events.send(CallbackEvent::SearchMapUpdated(Some(
                             SearchMap::map_as_str(&matches),
                         )))?;
@@ -767,7 +770,7 @@ pub async fn run(
                     state.search_map.set(None, None);
                     true
                 };
-                tx_callback_events.send(CallbackEvent::SearchUpdated(0))?;
+                tx_callback_events.send(CallbackEvent::no_search_results())?;
                 tx_callback_events.send(CallbackEvent::SearchMapUpdated(None))?;
                 tx_response
                     .send(result)
@@ -779,8 +782,10 @@ pub async fn run(
                     .map(|matches| SearchMap::map_as_str(matches));
                 state.search_map.set(matches, stats);
                 tx_callback_events.send(CallbackEvent::SearchMapUpdated(update))?;
-                tx_callback_events
-                    .send(CallbackEvent::SearchUpdated(state.search_map.len() as u64))?;
+                tx_callback_events.send(CallbackEvent::search_results(
+                    state.search_map.len() as u64,
+                    state.search_map.get_stats(),
+                ))?;
                 tx_response
                     .send(())
                     .map_err(|_| NativeError::channel("Failed to respond to Api::SetMatches"))?;
