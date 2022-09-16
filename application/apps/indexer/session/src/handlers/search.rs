@@ -1,14 +1,11 @@
 use crate::{
-    events::{NativeError, NativeErrorKind, SearchOperationResult},
+    events::{NativeError, NativeErrorKind},
     operations::{OperationAPI, OperationResult},
     state::SessionStateAPI,
 };
 use indexer_base::progress::Severity;
 use log::debug;
-use processor::{
-    map::FiltersStats,
-    search::{SearchFilter, SearchHolder, SearchResults},
-};
+use processor::search::{SearchFilter, SearchHolder, SearchResults};
 use tokio::{
     select,
     sync::mpsc::{channel, Receiver, Sender},
@@ -27,16 +24,13 @@ pub async fn handle(
     operation_api: &OperationAPI,
     filters: Vec<SearchFilter>,
     state: SessionStateAPI,
-) -> OperationResult<SearchOperationResult> {
+) -> OperationResult<u64> {
     debug!("RUST: Search operation is requested");
     state.drop_search().await?;
     let session_file_len = state.get_stream_len().await? as u64;
     if filters.is_empty() {
         debug!("RUST: Search will be dropped. Filters are empty");
-        Ok(Some(SearchOperationResult {
-            found: 0,
-            stats: FiltersStats::default(),
-        }))
+        Ok(Some(0))
     } else {
         let mut search_holder = state.get_search_holder(operation_api.id()).await?;
         search_holder.set_filters(&mut filters.iter());
@@ -105,10 +99,8 @@ pub async fn handle(
                         .await?;
                     // stats - isn't big object, it's small hashmap and clone operation here will not decrease performance.
                     // even this happens just once per search
-                    state
-                        .set_matches(Some(matches), Some(stats.clone()))
-                        .await?;
-                    Ok(Some(SearchOperationResult { found, stats }))
+                    state.set_matches(Some(matches), Some(stats)).await?;
+                    Ok(Some(found as u64))
                 }
                 Err(err) => Err(err),
             }
@@ -117,10 +109,7 @@ pub async fn handle(
             // We should not recreate holder, but just drop into NotInited
             state.set_search_holder(None, operation_api.id()).await?;
             state.drop_search().await?;
-            Ok(Some(SearchOperationResult {
-                found: 0,
-                stats: FiltersStats::default(),
-            }))
+            Ok(Some(0))
         }
     }
 }

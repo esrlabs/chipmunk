@@ -1,5 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { IFilter, ISearchResults } from '../../../types/filter';
+import { IFilter } from '../../../types/filter';
 
 import * as validator from '../../../env/obj';
 
@@ -21,18 +21,14 @@ export interface Request extends Interface {}
 @Define({ name: 'SearchResponse' })
 export class Response extends SignatureRequirement {
     public session: string;
-    public results: ISearchResults | undefined;
+    public found: number;
     public canceled: boolean;
 
-    constructor(input: {
-        session: string;
-        results: ISearchResults | undefined;
-        canceled: boolean;
-    }) {
+    constructor(input: { session: string; found: number; canceled: boolean }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
-        this.results = validator.getAsObjOrUndefined(input, 'results');
+        this.found = validator.getAsValidNumber(input, 'found');
         this.canceled = validator.getAsBool(input, 'canceled');
     }
 }

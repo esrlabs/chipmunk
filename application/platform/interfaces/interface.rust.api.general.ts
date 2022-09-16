@@ -1,6 +1,6 @@
 import { IFilter } from '../types/filter';
 
-export { IFilter, IFilterFlags, ISearchResults } from '../types/filter';
+export { IFilter, IFilterFlags } from '../types/filter';
 export { IGrabbedContent, IGrabbedElement } from '../types/content';
 
 export interface IMatchEntity {

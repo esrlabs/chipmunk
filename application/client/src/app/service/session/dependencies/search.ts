@@ -1,8 +1,9 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
+import { ISearchUpdated } from '@platform/types/filter';
 import { Range } from '@platform/types/range';
 import { cutUuid } from '@log/index';
-import { IFilter, ISearchResults } from '@platform/types/filter';
+import { IFilter } from '@platform/types/filter';
 import { IGrabbedElement } from '@platform/types/content';
 import { FiltersStore } from './search/filters/store';
 import { DisableStore } from './search/disabled/store';
@@ -18,10 +19,10 @@ import * as Events from '@platform/ipc/event';
 @SetupLogger()
 export class Search extends Subscriber {
     public readonly subjects: Subjects<{
-        updated: Subject<number>;
+        updated: Subject<ISearchUpdated>;
         map: Subject<void>;
     }> = new Subjects({
-        updated: new Subject<number>(),
+        updated: new Subject<ISearchUpdated>(),
         map: new Subject<void>(),
     });
     public readonly map: Map = new Map();
@@ -44,7 +45,7 @@ export class Search extends Subscriber {
                     return;
                 }
                 this._len = event.rows;
-                this.subjects.get().updated.emit(this._len);
+                this.subjects.get().updated.emit({ found: this._len, stat: event.stat });
             }),
         );
         this.register(
@@ -82,7 +83,7 @@ export class Search extends Subscriber {
         return this._len;
     }
 
-    public search(filters: IFilter[]): Promise<ISearchResults> {
+    public search(filters: IFilter[]): Promise<number> {
         return new Promise((resolve, reject) => {
             Requests.IpcRequest.send(
                 Requests.Search.Search.Response,
@@ -92,8 +93,8 @@ export class Search extends Subscriber {
                 }),
             )
                 .then((response) => {
-                    if (response.results !== undefined) {
-                        resolve(response.results);
+                    if (response.found !== undefined) {
+                        resolve(response.found);
                     } else {
                         reject(
                             response.canceled

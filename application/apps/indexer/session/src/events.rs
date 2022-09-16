@@ -1,7 +1,8 @@
 use crossbeam_channel as cc;
 use indexer_base::progress::{Progress, Severity};
-use processor::{grabber::GrabError, map::FiltersStats, search::SearchError};
+use processor::{grabber::GrabError, search::SearchError};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -107,12 +108,6 @@ pub struct OperationDone {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct SearchOperationResult {
-    pub found: usize,
-    pub stats: FiltersStats,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub enum CallbackEvent {
     /**
      * Triggered on update of stream (session) file
@@ -136,7 +131,7 @@ pub enum CallbackEvent {
      * >> Scope: session
      * >> Kind: repeated
      */
-    SearchUpdated(u64),
+    SearchUpdated { found: u64, stat: HashMap<u16, u64> },
     /**
      * Triggered on update of search result data
      * @event SearchMapUpdated { Option<String> }
@@ -185,6 +180,19 @@ pub enum CallbackEvent {
      * >> Kind: once
      */
     SessionDestroyed,
+}
+
+impl CallbackEvent {
+    pub fn no_search_results() -> Self {
+        CallbackEvent::SearchUpdated {
+            found: 0,
+            stat: HashMap::new(),
+        }
+    }
+
+    pub fn search_results(found: u64, stat: HashMap<u16, u64>) -> Self {
+        CallbackEvent::SearchUpdated { found, stat }
+    }
 }
 
 #[derive(Error, Debug, Serialize)]

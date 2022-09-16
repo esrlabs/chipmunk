@@ -1,15 +1,15 @@
 import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './executor';
 import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../../api/session.provider';
-import { IFilter, ISearchResults } from '../../interfaces/index';
+import { IFilter } from '../../interfaces/index';
 
-export const executor: TExecutor<ISearchResults, IFilter[]> = (
+export const executor: TExecutor<number, IFilter[]> = (
     session: RustSession,
     provider: EventProvider,
     logger: Logger,
     filters: IFilter[],
-): CancelablePromise<ISearchResults> => {
-    return AsyncResultsExecutor<ISearchResults, IFilter[]>(
+): CancelablePromise<number> => {
+    return AsyncResultsExecutor<number, IFilter[]>(
         session,
         provider,
         logger,
@@ -17,30 +17,16 @@ export const executor: TExecutor<ISearchResults, IFilter[]> = (
         function (session: RustSession, filters: IFilter[], operationUuid: string): Promise<void> {
             return session.search(filters, operationUuid);
         },
-        function (data: any, resolve: (res: ISearchResults) => void, reject: (err: Error) => void) {
-            try {
-                const result: ISearchResults = JSON.parse(data);
-                if (
-                    typeof result.found !== 'number' ||
-                    typeof result.stats !== 'object' ||
-                    typeof result.stats.stats !== 'object'
-                ) {
-                    return reject(
-                        new Error(
-                            `Fail to parse search results. Invalid format. Expecting ISearchResults.`,
-                        ),
-                    );
-                }
-                resolve(result);
-            } catch (err) {
+        function (data: any, resolve: (found: number) => void, reject: (err: Error) => void) {
+            const found = parseInt(data, 10);
+            if (typeof found !== 'number' || isNaN(found) || !isFinite(found)) {
                 return reject(
                     new Error(
-                        `Fail to parse search results. Error: ${
-                            err instanceof Error ? err.message : err
-                        }`,
+                        `Fail to parse search results. Invalid format. Expecting valid { number }.`,
                     ),
                 );
             }
+            resolve(found);
         },
         'search',
     );

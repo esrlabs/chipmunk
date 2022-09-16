@@ -31,7 +31,7 @@ export const executor: TExecutor<IConcatResults, IExecuteConcatOptions> = (
             try {
                 const result: IConcatResults = JSON.parse(data);
                 // if (typeof result.found !== 'number' || !(result.stats instanceof Array)) {
-                //     return reject(new Error(`Fail to parse search results. Invalid format. Expecting ISearchResults.`));
+                //     return reject(new Error(`Fail to parse search results. Invalid format. Expecting --------.`));
                 // }
                 resolve(result);
             } catch (e) {

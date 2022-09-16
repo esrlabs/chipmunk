@@ -13,8 +13,8 @@ export class Progress {
     constructor(session: Session) {
         this._session = session;
         this._subscriber.register(
-            this._session.search.subjects.get().updated.subscribe((len: number) => {
-                this.found = len;
+            this._session.search.subjects.get().updated.subscribe((event) => {
+                this.found = event.found;
                 this.updated.emit();
             }),
         );

@@ -4,7 +4,6 @@ export {
     IGrabbedContent,
     IGrabbedElement,
     IResultSearchElement,
-    ISearchResults,
     ISearchMap,
     TExtractedValuesSrc,
     IExtractedValueSrc,
