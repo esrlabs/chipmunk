@@ -296,16 +296,17 @@ impl OperationAPI {
                     )
                     .await;
                 }
-                OperationKind::Map { dataset_len, range } => match state.get_search_map().await {
-                    Ok(map) => {
-                        api.finish(Ok(Some(map.scaled(dataset_len, range))), operation_str)
-                            .await;
+                OperationKind::Map { dataset_len, range } => {
+                    match state.get_scaled_map(dataset_len, range).await {
+                        Ok(map) => {
+                            api.finish(Ok(Some(map)), operation_str).await;
+                        }
+                        Err(err) => {
+                            api.finish::<OperationResult<()>>(Err(err), operation_str)
+                                .await;
+                        }
                     }
-                    Err(err) => {
-                        api.finish::<OperationResult<()>>(Err(err), operation_str)
-                            .await;
-                    }
-                },
+                }
                 OperationKind::Concat {
                     files,
                     out_path,
@@ -371,16 +372,17 @@ impl OperationAPI {
                         .await;
                     }
                 },
-                OperationKind::GetNearestPosition(position) => match state.get_search_map().await {
-                    Ok(map) => {
-                        api.finish(Ok(Some(map.nearest_to(position))), operation_str)
-                            .await;
+                OperationKind::GetNearestPosition(position) => {
+                    match state.get_nearest_position(position).await {
+                        Ok(nearest) => {
+                            api.finish(Ok(nearest), operation_str).await;
+                        }
+                        Err(err) => {
+                            api.finish::<OperationResult<()>>(Err(err), operation_str)
+                                .await;
+                        }
                     }
-                    Err(err) => {
-                        api.finish::<OperationResult<()>>(Err(err), operation_str)
-                            .await;
-                    }
-                },
+                }
                 _ => {
                     // OperationKind::End is processing in the loop directly
                 }

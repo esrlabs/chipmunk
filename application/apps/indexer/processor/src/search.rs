@@ -1,4 +1,7 @@
-use crate::{grabber::GrabError, map::FilterMatch};
+use crate::{
+    grabber::GrabError,
+    map::{FilterMatch, FiltersStats},
+};
 use buf_redux::{
     do_read,
     policy::{DoRead, ReaderPolicy},
@@ -59,7 +62,7 @@ impl ReaderPolicy for CancallableMinBuffered {
 const REDUX_READER_CAPACITY: usize = 1024 * 1024;
 const REDUX_MIN_BUFFER_SPACE: usize = 10 * 1024;
 
-pub type SearchResults = Result<(Range<usize>, Vec<FilterMatch>, FilterStats), SearchError>;
+pub type SearchResults = Result<(Range<usize>, Vec<FilterMatch>, FiltersStats), SearchError>;
 
 #[derive(Error, Debug, Serialize)]
 pub enum SearchError {
@@ -114,15 +117,6 @@ impl ExtractedMatchValue {
             }
         }
         values
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct FilterStats(Vec<(u8, u64)>);
-
-impl FilterStats {
-    pub fn new(v: Vec<(u8, u64)>) -> Self {
-        Self(v)
     }
 }
 
@@ -296,7 +290,7 @@ impl SearchHolder {
                 ))
             })?;
         let mut indexes: Vec<FilterMatch> = vec![];
-        let mut stats: HashMap<u8, u64> = HashMap::new();
+        let mut stats = FiltersStats::default();
         // Take in account: we are counting on all levels (grabbing search, grabbing stream etc)
         // from 0 line always. But grep gives results from 1. That's why here is a point of correct:
         // lnum - 1
@@ -310,7 +304,6 @@ impl SearchHolder {
                     &self.file_path, self.bytes_read
                 ))
             })?;
-
         Searcher::new()
             .search_reader(
                 &matcher,
@@ -321,11 +314,10 @@ impl SearchHolder {
                     for (index, re) in matchers.iter().enumerate() {
                         if re.is_match(line) {
                             line_indexes.filters.push(index as u8);
-                            *stats.entry(index as u8).or_insert(0) += 1;
+                            stats.inc(index as u16, None);
                         }
                     }
                     indexes.push(line_indexes);
-                    //writeln!(writer, "{}", lnum - 1)?;
                     Ok(true)
                 }),
             )
@@ -342,16 +334,7 @@ impl SearchHolder {
             ))
         })? + 1;
         let processed = lines_read as usize..(lines_read as usize + indexes.len());
-        Ok((
-            processed,
-            indexes,
-            FilterStats(
-                stats
-                    .into_iter()
-                    .map(|(filter_index, meets)| (filter_index, meets))
-                    .collect(),
-            ),
-        ))
+        Ok((processed, indexes, stats))
     }
 }
 

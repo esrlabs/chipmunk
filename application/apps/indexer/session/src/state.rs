@@ -7,7 +7,7 @@ use indexer_base::progress::Severity;
 use log::{debug, error};
 use processor::{
     grabber::{GrabbedContent, Grabber, LineRange},
-    map::{FilterMatch, SearchMap},
+    map::{FilterMatch, FiltersStats, NearestPosition, ScaledDistribution, SearchMap},
     search::{SearchHolder, SearchResults},
     text_source::TextFileSource,
 };
@@ -85,8 +85,15 @@ pub enum Api {
             oneshot::Sender<Result<GrabbedContent, NativeError>>,
         ),
     ),
-    GetSearchMap(oneshot::Sender<SearchMap>),
-    SetMatches((Option<Vec<FilterMatch>>, oneshot::Sender<()>)),
+    GetNearestPosition((u64, oneshot::Sender<Option<NearestPosition>>)),
+    GetScaledMap((u16, Option<(u64, u64)>, oneshot::Sender<ScaledDistribution>)),
+    SetMatches(
+        (
+            Option<Vec<FilterMatch>>,
+            Option<FiltersStats>,
+            oneshot::Sender<()>,
+        ),
+    ),
     CloseSession(oneshot::Sender<()>),
     SetDebugMode((bool, oneshot::Sender<()>)),
     NotifyCancelingOperation(Uuid),
@@ -114,7 +121,8 @@ impl Display for Api {
                 Self::SetSearchHolder(_) => "SetSearchHolder",
                 Self::DropSearch(_) => "DropSearch",
                 Self::GrabSearch(_) => "GrabSearch",
-                Self::GetSearchMap(_) => "GetSearchMap",
+                Self::GetNearestPosition(_) => "GetNearestPosition",
+                Self::GetScaledMap(_) => "GetScaledMap",
                 Self::SetMatches(_) => "SetMatches",
                 Self::CloseSession(_) => "CloseSession",
                 Self::SetDebugMode(_) => "SetDebugMode",
@@ -345,10 +353,10 @@ impl SessionState {
                     .search_holder
                     .execute_search(current, state_cancellation_token)
                 {
-                    Some(Ok((_processed, mut matches, _stats))) => {
-                        tx_callback_events.send(CallbackEvent::SearchUpdated(
-                            self.search_map.append(&mut matches) as u64,
-                        ))?;
+                    Some(Ok((_processed, mut matches, stats))) => {
+                        let found = self.search_map.append(&mut matches) as u64;
+                        self.search_map.append_stats(stats);
+                        tx_callback_events.send(CallbackEvent::SearchUpdated(found))?;
                         tx_callback_events.send(CallbackEvent::SearchMapUpdated(Some(
                             SearchMap::map_as_str(&matches),
                         )))?;
@@ -457,9 +465,23 @@ impl SessionStateAPI {
         self.exec_operation(Api::GetSearchResultLen(tx), rx).await
     }
 
-    pub async fn get_search_map(&self) -> Result<SearchMap, NativeError> {
+    pub async fn get_nearest_position(
+        &self,
+        position: u64,
+    ) -> Result<Option<NearestPosition>, NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::GetSearchMap(tx), rx).await
+        self.exec_operation(Api::GetNearestPosition((position, tx)), rx)
+            .await
+    }
+
+    pub async fn get_scaled_map(
+        &self,
+        dataset_len: u16,
+        range: Option<(u64, u64)>,
+    ) -> Result<ScaledDistribution, NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GetScaledMap((dataset_len, range, tx)), rx)
+            .await
     }
 
     pub async fn set_session_file(&self, session_file: SessionFile) -> Result<(), NativeError> {
@@ -520,9 +542,13 @@ impl SessionStateAPI {
         self.exec_operation(Api::DropSearch(tx), rx).await
     }
 
-    pub async fn set_matches(&self, matches: Option<Vec<FilterMatch>>) -> Result<(), NativeError> {
+    pub async fn set_matches(
+        &self,
+        matches: Option<Vec<FilterMatch>>,
+        stats: Option<FiltersStats>,
+    ) -> Result<(), NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::SetMatches((matches, tx)), rx)
+        self.exec_operation(Api::SetMatches((matches, stats, tx)), rx)
             .await
     }
 
@@ -675,10 +701,17 @@ pub async fn run(
                         NativeError::channel("Failed to respond to Api::GrabbedContent")
                     })?;
             }
-            Api::GetSearchMap(tx_response) => {
+            Api::GetNearestPosition((position, tx_response)) => {
                 tx_response
-                    .send(state.search_map.clone())
-                    .map_err(|_| NativeError::channel("Failed to respond to Api::GetSearchMap"))?;
+                    .send(state.search_map.nearest_to(position))
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::GetNearestPosition")
+                    })?;
+            }
+            Api::GetScaledMap((len, range, tx_response)) => {
+                tx_response
+                    .send(state.search_map.scaled(len, range))
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::GetScaledMap"))?;
             }
             Api::FileRead(tx_response) => {
                 tx_callback_events.send(CallbackEvent::FileRead)?;
@@ -731,7 +764,7 @@ pub async fn run(
                     false
                 } else {
                     state.search_holder = SearchHolderState::NotInited;
-                    state.search_map.set(None);
+                    state.search_map.set(None, None);
                     true
                 };
                 tx_callback_events.send(CallbackEvent::SearchUpdated(0))?;
@@ -740,11 +773,11 @@ pub async fn run(
                     .send(result)
                     .map_err(|_| NativeError::channel("Failed to respond to Api::DropSearch"))?;
             }
-            Api::SetMatches((matches, tx_response)) => {
+            Api::SetMatches((matches, stats, tx_response)) => {
                 let update = matches
                     .as_ref()
                     .map(|matches| SearchMap::map_as_str(matches));
-                state.search_map.set(matches);
+                state.search_map.set(matches, stats);
                 tx_callback_events.send(CallbackEvent::SearchMapUpdated(update))?;
                 tx_callback_events
                     .send(CallbackEvent::SearchUpdated(state.search_map.len() as u64))?;

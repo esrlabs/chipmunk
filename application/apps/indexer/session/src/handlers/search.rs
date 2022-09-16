@@ -5,7 +5,10 @@ use crate::{
 };
 use indexer_base::progress::Severity;
 use log::debug;
-use processor::search::{FilterStats, SearchFilter, SearchHolder, SearchResults};
+use processor::{
+    map::FiltersStats,
+    search::{SearchFilter, SearchHolder, SearchResults},
+};
 use tokio::{
     select,
     sync::mpsc::{channel, Receiver, Sender},
@@ -32,7 +35,7 @@ pub async fn handle(
         debug!("RUST: Search will be dropped. Filters are empty");
         Ok(Some(SearchOperationResult {
             found: 0,
-            stats: FilterStats::new(vec![]),
+            stats: FiltersStats::default(),
         }))
     } else {
         let mut search_holder = state.get_search_holder(operation_api.id()).await?;
@@ -84,7 +87,7 @@ pub async fn handle(
                         }
                         Err(_) => {
                             if !cancel.is_cancelled() {
-                                state.set_matches(None).await?;
+                                state.set_matches(None, None).await?;
                             }
                         },
                     };
@@ -100,7 +103,11 @@ pub async fn handle(
                     state
                         .set_search_holder(Some(search_holder), operation_api.id())
                         .await?;
-                    state.set_matches(Some(matches)).await?;
+                    // stats - isn't big object, it's small hashmap and clone operation here will not decrease performance.
+                    // even this happens just once per search
+                    state
+                        .set_matches(Some(matches), Some(stats.clone()))
+                        .await?;
                     Ok(Some(SearchOperationResult { found, stats }))
                 }
                 Err(err) => Err(err),
@@ -112,7 +119,7 @@ pub async fn handle(
             state.drop_search().await?;
             Ok(Some(SearchOperationResult {
                 found: 0,
-                stats: FilterStats::new(vec![]),
+                stats: FiltersStats::default(),
             }))
         }
     }

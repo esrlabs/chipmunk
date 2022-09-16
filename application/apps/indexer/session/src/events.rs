@@ -1,9 +1,6 @@
 use crossbeam_channel as cc;
 use indexer_base::progress::{Progress, Severity};
-use processor::{
-    grabber::GrabError,
-    search::{FilterStats, SearchError},
-};
+use processor::{grabber::GrabError, map::FiltersStats, search::SearchError};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
@@ -112,7 +109,7 @@ pub struct OperationDone {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SearchOperationResult {
     pub found: usize,
-    pub stats: FilterStats,
+    pub stats: FiltersStats,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

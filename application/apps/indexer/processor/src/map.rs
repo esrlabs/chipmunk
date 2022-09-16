@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json;
 use std::{collections::HashMap, ops::RangeInclusive};
 use thiserror::Error;
@@ -9,7 +9,7 @@ use thiserror::Error;
 /// Note that since we do not need to keep track of each individual row,
 /// we create regions of the file that span possible multiple rows.
 /// [0-12] []
-type ScaledDistribution = Vec<Vec<(u8, u16)>>;
+pub type ScaledDistribution = Vec<Vec<(u8, u16)>>;
 
 /// Lists all matching filters at an index
 #[derive(Debug, Clone)]
@@ -21,6 +21,28 @@ pub struct FilterMatch {
 impl FilterMatch {
     pub fn new(index: u64, filters: Vec<u8>) -> Self {
         Self { index, filters }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FiltersStats {
+    pub stats: HashMap<u16, u64>,
+}
+impl FiltersStats {
+    pub fn new() -> Self {
+        Self {
+            stats: HashMap::new(),
+        }
+    }
+
+    pub fn inc(&mut self, index: u16, value: Option<u64>) {
+        *self.stats.entry(index).or_insert(0) += value.map_or(1, |v| v) as u64;
+    }
+}
+
+impl Default for FiltersStats {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -45,9 +67,10 @@ pub enum MapError {
 ///         )
 ///     >
 ///
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug)]
 pub struct SearchMap {
     matches: Vec<FilterMatch>,
+    stats: FiltersStats,
     stream_len: u64,
 }
 
@@ -55,6 +78,7 @@ impl SearchMap {
     pub fn new() -> Self {
         Self {
             matches: vec![],
+            stats: FiltersStats::default(),
             stream_len: 0,
         }
     }
@@ -215,11 +239,16 @@ impl SearchMap {
         }
     }
 
-    pub fn set(&mut self, matches: Option<Vec<FilterMatch>>) {
+    pub fn set(&mut self, matches: Option<Vec<FilterMatch>>, mut stats: Option<FiltersStats>) {
         if let Some(matches) = matches {
             self.matches = matches;
         } else {
             self.matches = vec![];
+        }
+        if let Some(stats) = stats.take() {
+            self.stats = stats;
+        } else {
+            self.stats = FiltersStats::default();
         }
     }
 
@@ -230,6 +259,12 @@ impl SearchMap {
     pub fn append(&mut self, matches: &mut Vec<FilterMatch>) -> usize {
         self.matches.append(matches);
         self.matches.len()
+    }
+
+    pub fn append_stats(&mut self, stats: FiltersStats) {
+        for (key, val) in stats.stats.iter() {
+            self.stats.inc(*key, Some(*val));
+        }
     }
 
     pub fn len(&self) -> usize {
@@ -249,28 +284,31 @@ impl SearchMap {
 #[test]
 fn test_scaled_map() {
     let mut example_map: SearchMap = SearchMap::new();
-    example_map.set(Some(vec![
-        FilterMatch::new(10, vec![0]),
-        FilterMatch::new(20, vec![1]),
-        FilterMatch::new(30, vec![0]),
-        FilterMatch::new(40, vec![1]),
-        FilterMatch::new(50, vec![0]),
-        FilterMatch::new(60, vec![1]),
-        FilterMatch::new(70, vec![0]),
-        FilterMatch::new(80, vec![1]),
-        FilterMatch::new(90, vec![0]),
-        FilterMatch::new(100, vec![1]),
-        FilterMatch::new(110, vec![0]),
-        FilterMatch::new(120, vec![1]),
-        FilterMatch::new(130, vec![0]),
-        FilterMatch::new(140, vec![1]),
-        FilterMatch::new(150, vec![0]),
-        FilterMatch::new(160, vec![1]),
-        FilterMatch::new(170, vec![0]),
-        FilterMatch::new(180, vec![1]),
-        FilterMatch::new(190, vec![0]),
-        FilterMatch::new(200, vec![1]),
-    ]));
+    example_map.set(
+        Some(vec![
+            FilterMatch::new(10, vec![0]),
+            FilterMatch::new(20, vec![1]),
+            FilterMatch::new(30, vec![0]),
+            FilterMatch::new(40, vec![1]),
+            FilterMatch::new(50, vec![0]),
+            FilterMatch::new(60, vec![1]),
+            FilterMatch::new(70, vec![0]),
+            FilterMatch::new(80, vec![1]),
+            FilterMatch::new(90, vec![0]),
+            FilterMatch::new(100, vec![1]),
+            FilterMatch::new(110, vec![0]),
+            FilterMatch::new(120, vec![1]),
+            FilterMatch::new(130, vec![0]),
+            FilterMatch::new(140, vec![1]),
+            FilterMatch::new(150, vec![0]),
+            FilterMatch::new(160, vec![1]),
+            FilterMatch::new(170, vec![0]),
+            FilterMatch::new(180, vec![1]),
+            FilterMatch::new(190, vec![0]),
+            FilterMatch::new(200, vec![1]),
+        ]),
+        None,
+    );
 
     example_map.set_stream_len(200);
     let scaled = example_map.scaled(10, None);
@@ -382,33 +420,36 @@ fn test_scaled_map() {
     assert_eq!(scaled[40][0], (1, 1));
     assert_eq!(scaled[50][0], (0, 1));
 
-    example_map.set(Some(
-        vec![
-            (10, vec![0, 1, 2, 3]),
-            (20, vec![1]),
-            (30, vec![2]),
-            (40, vec![3]),
-            (50, vec![0, 1, 2, 3]),
-            (60, vec![1]),
-            (70, vec![2]),
-            (80, vec![3]),
-            (90, vec![0, 1, 2, 3]),
-            (100, vec![1]),
-            (110, vec![2]),
-            (120, vec![3]),
-            (130, vec![0, 1, 2, 3]),
-            (140, vec![1]),
-            (150, vec![2]),
-            (160, vec![3]),
-            (170, vec![0, 1, 2, 3]),
-            (180, vec![1]),
-            (190, vec![2]),
-            (200, vec![3]),
-        ]
-        .into_iter()
-        .map(|(a, b)| FilterMatch::new(a, b))
-        .collect(),
-    ));
+    example_map.set(
+        Some(
+            vec![
+                (10, vec![0, 1, 2, 3]),
+                (20, vec![1]),
+                (30, vec![2]),
+                (40, vec![3]),
+                (50, vec![0, 1, 2, 3]),
+                (60, vec![1]),
+                (70, vec![2]),
+                (80, vec![3]),
+                (90, vec![0, 1, 2, 3]),
+                (100, vec![1]),
+                (110, vec![2]),
+                (120, vec![3]),
+                (130, vec![0, 1, 2, 3]),
+                (140, vec![1]),
+                (150, vec![2]),
+                (160, vec![3]),
+                (170, vec![0, 1, 2, 3]),
+                (180, vec![1]),
+                (190, vec![2]),
+                (200, vec![3]),
+            ]
+            .into_iter()
+            .map(|(a, b)| FilterMatch::new(a, b))
+            .collect(),
+        ),
+        None,
+    );
 
     example_map.set_stream_len(200);
     let scaled = example_map.scaled(10, None);
