@@ -131,7 +131,10 @@ pub enum CallbackEvent {
      * >> Scope: session
      * >> Kind: repeated
      */
-    SearchUpdated { found: u64, stat: HashMap<u16, u64> },
+    SearchUpdated {
+        found: u64,
+        stat: HashMap<String, u64>,
+    },
     /**
      * Triggered on update of search result data
      * @event SearchMapUpdated { Option<String> }
@@ -190,7 +193,7 @@ impl CallbackEvent {
         }
     }
 
-    pub fn search_results(found: u64, stat: HashMap<u16, u64>) -> Self {
+    pub fn search_results(found: u64, stat: HashMap<String, u64>) -> Self {
         CallbackEvent::SearchUpdated { found, stat }
     }
 }

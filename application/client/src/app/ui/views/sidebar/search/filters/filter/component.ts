@@ -69,6 +69,8 @@ export class Filter extends ChangesDetector implements AfterContentInit {
                     this.state.update().colors();
                 } else if (event.updated.state) {
                     this.state.update().state();
+                } else if (event.updated.stat) {
+                    this.state.update().stat();
                 }
                 this.update();
             }),

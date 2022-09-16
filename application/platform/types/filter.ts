@@ -10,10 +10,10 @@ export interface IFilter {
 }
 
 export interface ISearchStats {
-    stats: { [key: number]: number };
+    stats: { [key: string]: number };
 }
 
 export interface ISearchUpdated {
     found: number;
-    stat: { [key: number]: number };
+    stat: { [key: string]: number };
 }

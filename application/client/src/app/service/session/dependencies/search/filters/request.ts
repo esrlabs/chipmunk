@@ -50,6 +50,7 @@ export interface UpdateEvent {
         filter: boolean;
         state: boolean;
         colors: boolean;
+        stat: boolean;
     };
 }
 
@@ -84,6 +85,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
 
     private _regex!: RegExp;
     private _hash!: string;
+    public found: number = 0;
 
     static isValid(request: string | undefined): boolean {
         if (request === undefined) {
@@ -194,6 +196,12 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
         };
     }
 
+    public alias(): string {
+        return `${this.definition.filter.filter}:${this.definition.filter.flags.reg ? '1' : '0'}${
+            !this.definition.filter.flags.cases ? '1' : '0'
+        }${this.definition.filter.flags.word ? '1' : '0'}`;
+    }
+
     public set(silence: boolean = false): {
         from(desc: UpdateRequest): boolean;
         color(color: string): boolean;
@@ -201,6 +209,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
         state(active: boolean): boolean;
         flags(flags: IFilterFlags): boolean;
         filter(filter: string): boolean;
+        found(number: number): boolean;
     } {
         return {
             from: (desc: UpdateRequest): boolean => {
@@ -209,6 +218,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
                         filter: false,
                         colors: false,
                         state: false,
+                        stat: false,
                     },
                     filter: this,
                 };
@@ -248,6 +258,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
                             filter: false,
                             colors: true,
                             state: false,
+                            stat: false,
                         },
                         filter: this,
                     });
@@ -265,6 +276,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
                             filter: false,
                             colors: true,
                             state: false,
+                            stat: false,
                         },
                         filter: this,
                     });
@@ -282,6 +294,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
                             filter: false,
                             colors: false,
                             state: true,
+                            stat: false,
                         },
                         filter: this,
                     });
@@ -299,6 +312,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
                             filter: true,
                             colors: false,
                             state: false,
+                            stat: false,
                         },
                         filter: this,
                     });
@@ -316,6 +330,25 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
                             filter: true,
                             colors: false,
                             state: false,
+                            stat: false,
+                        },
+                        filter: this,
+                    });
+                }
+                return true;
+            },
+            found: (found: number): boolean => {
+                if (this.found === found) {
+                    return false;
+                }
+                this.found = found;
+                if (!silence) {
+                    this.subjects.updated.emit({
+                        updated: {
+                            filter: false,
+                            colors: false,
+                            state: false,
+                            stat: true,
                         },
                         filter: this,
                     });
