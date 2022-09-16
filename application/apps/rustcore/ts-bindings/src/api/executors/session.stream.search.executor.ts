@@ -20,7 +20,11 @@ export const executor: TExecutor<ISearchResults, IFilter[]> = (
         function (data: any, resolve: (res: ISearchResults) => void, reject: (err: Error) => void) {
             try {
                 const result: ISearchResults = JSON.parse(data);
-                if (typeof result.found !== 'number' || !(result.stats instanceof Array)) {
+                if (
+                    typeof result.found !== 'number' ||
+                    typeof result.stats !== 'object' ||
+                    typeof result.stats.stats !== 'object'
+                ) {
                     return reject(
                         new Error(
                             `Fail to parse search results. Invalid format. Expecting ISearchResults.`,

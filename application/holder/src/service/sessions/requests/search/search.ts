@@ -45,7 +45,9 @@ export const handler = Requests.InjectLogger<
                             }),
                         );
                     })
-                    .catch(reject),
+                    .catch((err) => {
+                        console.log(err);
+                    }),
             );
         });
     },
