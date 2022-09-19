@@ -116,6 +116,15 @@ export class Service extends Implementation {
                     RequestHandlers.Observe.Sde.handler,
                 ),
         );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Search.Map.Request,
+                    RequestHandlers.Search.Map.handler,
+                ),
+        );
         return Promise.resolve();
     }
 

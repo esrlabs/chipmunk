@@ -65,11 +65,13 @@ export class Layout extends ChangesDetector implements AfterViewInit {
     public ngSidebarResize(width: number) {
         this.sidebar.set(width);
         this.detectChanges();
+        this.ilc().emitter.ui.sidebar.resize();
     }
 
     public ngToolbarResize(height: number) {
         this.toolbar.set(height);
         this.detectChanges();
+        this.ilc().emitter.ui.toolbar.resize();
     }
 
     public ngLayoutResize(rect: DOMRect) {

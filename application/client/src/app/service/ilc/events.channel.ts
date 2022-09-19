@@ -40,11 +40,13 @@ export class Channel {
         toolbar: {
             min: (handler: Handler<void>) => Subscription;
             max: (handler: Handler<void>) => Subscription;
+            resize: (handler: Handler<void>) => Subscription;
             view: (handler: Handler<Declarations.AvailableToolbarTabs>) => Subscription;
         };
         sidebar: {
             min: (handler: Handler<void>) => Subscription;
             max: (handler: Handler<void>) => Subscription;
+            resize: (handler: Handler<void>) => Subscription;
             view: (handler: Handler<Declarations.AvailableSidebarTabs>) => Subscription;
         };
         window: {
@@ -100,11 +102,13 @@ export class Channel {
             toolbar: {
                 min: this._add<void>(this._events.ui.toolbar.min),
                 max: this._add<void>(this._events.ui.toolbar.max),
+                resize: this._add<void>(this._events.ui.toolbar.resize),
                 view: this._add<Declarations.AvailableToolbarTabs>(this._events.ui.toolbar.view),
             },
             sidebar: {
                 min: this._add<void>(this._events.ui.sidebar.min),
                 max: this._add<void>(this._events.ui.sidebar.max),
+                resize: this._add<void>(this._events.ui.sidebar.resize),
                 view: this._add<Declarations.AvailableSidebarTabs>(this._events.ui.sidebar.view),
             },
             window: {

@@ -67,7 +67,6 @@ pub enum Api {
             oneshot::Sender<Result<GrabbedContent, NativeError>>,
         ),
     ),
-    SetStreamLen((u64, oneshot::Sender<()>)),
     GetStreamLen(oneshot::Sender<Result<usize, NativeError>>),
     GetSearchResultLen(oneshot::Sender<usize>),
     GetSearchHolder((Uuid, oneshot::Sender<Result<SearchHolder, NativeError>>)),
@@ -114,7 +113,6 @@ impl Display for Api {
                 Self::UpdateSession(_) => "UpdateSession",
                 Self::FileRead(_) => "FileRead",
                 Self::Grab(_) => "Grab",
-                Self::SetStreamLen(_) => "SetStreamLen",
                 Self::GetStreamLen(_) => "GetStreamLen",
                 Self::GetSearchResultLen(_) => "GetSearchResultLen",
                 Self::GetSearchHolder(_) => "GetSearchHolder",
@@ -348,6 +346,7 @@ impl SessionState {
             grabber.update_from_file(Some(state_cancellation_token.clone()))?;
             let current = grabber.log_entry_count().unwrap_or(0) as u64;
             if prev != current {
+                self.search_map.set_stream_len(current);
                 tx_callback_events.send(CallbackEvent::StreamUpdated(current))?;
                 match self
                     .search_holder
@@ -517,11 +516,6 @@ impl SessionStateAPI {
     pub async fn file_read(&self) -> Result<(), NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::FileRead(tx), rx).await
-    }
-
-    pub async fn set_stream_len(&self, len: u64) -> Result<(), NativeError> {
-        let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::SetStreamLen((len, tx)), rx).await
     }
 
     pub async fn get_search_holder(&self, uuid: Uuid) -> Result<SearchHolder, NativeError> {
@@ -721,12 +715,6 @@ pub async fn run(
                 tx_response
                     .send(())
                     .map_err(|_| NativeError::channel("Failed to respond to Api::FileRead"))?;
-            }
-            Api::SetStreamLen((len, tx_response)) => {
-                state.search_map.set_stream_len(len);
-                tx_response
-                    .send(())
-                    .map_err(|_| NativeError::channel("Failed to respond to Api::SetStreamLen"))?;
             }
             Api::GetStreamLen(tx_response) => {
                 tx_response

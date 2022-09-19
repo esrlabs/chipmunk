@@ -39,11 +39,13 @@ export class Emitter {
         toolbar: {
             min: Handler<void>;
             max: Handler<void>;
+            resize: Handler<void>;
             view: Handler<Declarations.AvailableToolbarTabs>;
         };
         sidebar: {
             min: Handler<void>;
             max: Handler<void>;
+            resize: Handler<void>;
             view: Handler<Declarations.AvailableSidebarTabs>;
         };
         window: {
@@ -99,11 +101,13 @@ export class Emitter {
             toolbar: {
                 min: this._add<void>(this._events.ui.toolbar.min),
                 max: this._add<void>(this._events.ui.toolbar.max),
+                resize: this._add<void>(this._events.ui.toolbar.resize),
                 view: this._add<Declarations.AvailableToolbarTabs>(this._events.ui.toolbar.view),
             },
             sidebar: {
                 min: this._add<void>(this._events.ui.sidebar.min),
                 max: this._add<void>(this._events.ui.sidebar.max),
+                resize: this._add<void>(this._events.ui.sidebar.resize),
                 view: this._add<Declarations.AvailableSidebarTabs>(this._events.ui.sidebar.view),
             },
             window: {

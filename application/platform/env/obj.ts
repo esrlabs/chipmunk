@@ -194,6 +194,14 @@ export function getAsValidNumber(
     return src[key];
 }
 
+export function getAsValidNumberOrUndefined(
+    src: any,
+    key: string,
+    conditions?: { min?: number; max?: number; defaults?: number },
+): number | undefined {
+    return src[key] === undefined ? undefined : getAsValidNumber(src, key, conditions);
+}
+
 export function getAsArray<T>(src: any, key: string): Array<T> {
     if (!(src[key] instanceof Array)) {
         throw new Error(`Parameter "${key}" should be valid array`);
