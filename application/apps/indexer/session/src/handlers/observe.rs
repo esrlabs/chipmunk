@@ -29,11 +29,6 @@ pub async fn handle(
     source: SourceType,
     rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
-    let rx_sde = rx_sde.ok_or(NativeError {
-        severity: Severity::ERROR,
-        kind: NativeErrorKind::UnsupportedFileType,
-        message: Some(String::from("Observe operation requires SDE channel")),
-    })?;
     let result: OperationResult<()> = match source {
         SourceType::Stream(transport, parser_type) => {
             let fibex_metadata;
@@ -193,7 +188,7 @@ pub async fn handle(
                         listen(
                             operation_api,
                             state,
-                            MessageProducer::new(dlt_parser, source, Some(rx_sde)),
+                            MessageProducer::new(dlt_parser, source, rx_sde),
                             Some(rx_tail),
                         )
                     );
@@ -231,7 +226,7 @@ pub async fn handle(
                         listen(
                             operation_api,
                             state,
-                            MessageProducer::new(dlt_parser, source, Some(rx_sde)),
+                            MessageProducer::new(dlt_parser, source, rx_sde),
                             Some(rx_tail),
                         )
                     );
@@ -254,7 +249,7 @@ async fn listen_from_source<T: LogMessage, P: Parser<T>>(
     parser: P,
     operation_api: OperationAPI,
     state: SessionStateAPI,
-    rx_sde: SdeReceiver,
+    rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
     match transport {
         Transport::UDP(config) => {
@@ -270,7 +265,7 @@ async fn listen_from_source<T: LogMessage, P: Parser<T>>(
                             kind: NativeErrorKind::Interrupted,
                             message: Some(format!("Fail to create socket due error: {:?}", e)),
                         })?,
-                    Some(rx_sde),
+                    rx_sde,
                 ),
                 None,
             )
@@ -295,7 +290,7 @@ async fn listen_from_source<T: LogMessage, P: Parser<T>>(
                                 e
                             )),
                         })?,
-                    Some(rx_sde),
+                    rx_sde,
                 ),
                 None,
             )
@@ -317,7 +312,7 @@ async fn listen_from_source<T: LogMessage, P: Parser<T>>(
                             )),
                         }
                     })?,
-                    Some(rx_sde),
+                    rx_sde,
                 ),
                 None,
             )
