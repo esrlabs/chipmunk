@@ -8,6 +8,7 @@ import {
     Output,
     EventEmitter,
 } from '@angular/core';
+import { Subject } from '@platform/env/subscription';
 
 export enum Direction {
     Vertical = 'Vertical',
@@ -23,6 +24,7 @@ export class ResizerDirective implements AfterViewInit, OnDestroy {
     @Input() public max: number = -1;
     @Input() public size!: number;
     @Input() public corrector: number = 1;
+    @Input() public resized: Subject<number> | undefined;
     @Output() changesize = new EventEmitter<number>();
 
     private _position: number = -1;
@@ -61,7 +63,12 @@ export class ResizerDirective implements AfterViewInit, OnDestroy {
         this._position = this._getPos(event);
         event.stopImmediatePropagation();
         event.preventDefault();
-        this.changesize.emit(this.size);
+        if (this.resized !== undefined) {
+            this.resized.emit(this.size);
+        } else {
+            this.changesize.emit(this.size);
+        }
+        console.log(`>>>>>>>>>>>>>>>>>> resize: ${this.size}`);
     }
 
     private _mouseup(event: MouseEvent) {

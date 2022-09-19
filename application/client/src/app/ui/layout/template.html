@@ -12,10 +12,10 @@
             [min]="toolbar.min"
             [max]="toolbar.max"
             [size]="toolbar.value"
+            [resized]="resizes.toolbar"
             [direction]="Direction.Vertical"
             [corrector]="1"
-            [ngStyle]="ngToolbarResizeStyle()"
-            (changesize)="ngToolbarResize($event)"></div>
+            [ngStyle]="ngToolbarResizeStyle()"></div>
         <div class="sidebar" *ngIf="session !== undefined && session.sidebar() !== undefined" [ngStyle]="ngSidebarStyle()">
             <div class="sidebar-caption">
                 <div class="injections">
@@ -28,9 +28,9 @@
                 [min]="sidebar.min"
                 [max]="sidebar.max"
                 [size]="sidebar.value"
+                [resized]="resizes.sidebar"
                 [direction]="Direction.Horizontal"
-                [corrector]="1"
-                (changesize)="ngSidebarResize($event)"></div>
+                [corrector]="1"></div>
         </div>
     </div>
     <app-layout-statusbar></app-layout-statusbar>

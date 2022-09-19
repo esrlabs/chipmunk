@@ -11,6 +11,7 @@ import { LimittedValue } from '@ui/env/entities/value.limited';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Direction } from '@directives/resizer';
 import { Base } from '@service/session';
+import { Subject } from '@platform/env/subscription';
 
 const TOOLBAR_NORMAL_HEIGHT = 250;
 const SIDEBAR_NORMAL_WIDTH = 350;
@@ -43,6 +44,13 @@ export class Layout extends ChangesDetector implements AfterViewInit {
     public toolbar: LimittedValue = initialToolbarHeight();
     public sidebar: LimittedValue = initialSidebarWidth();
     public session: Base | undefined;
+    public resizes: {
+        toolbar: Subject<number>;
+        sidebar: Subject<number>;
+    } = {
+        toolbar: new Subject<number>().balanced(25),
+        sidebar: new Subject<number>().balanced(25),
+    };
 
     private _layout: DOMRect | undefined;
     private readonly _sessions: Map<string, { toolbar: number; sidebar: number }> = new Map();
@@ -60,18 +68,20 @@ export class Layout extends ChangesDetector implements AfterViewInit {
                 this.detectChanges();
             });
         });
-    }
-
-    public ngSidebarResize(width: number) {
-        this.sidebar.set(width);
-        this.detectChanges();
-        this.ilc().emitter.ui.sidebar.resize();
-    }
-
-    public ngToolbarResize(height: number) {
-        this.toolbar.set(height);
-        this.detectChanges();
-        this.ilc().emitter.ui.toolbar.resize();
+        this.env().subscriber.register(
+            this.resizes.toolbar.subscribe((height: number) => {
+                this.toolbar.set(height);
+                this.detectChanges();
+                this.ilc().emitter.ui.toolbar.resize();
+            }),
+        );
+        this.env().subscriber.register(
+            this.resizes.sidebar.subscribe((width: number) => {
+                this.sidebar.set(width);
+                this.detectChanges();
+                this.ilc().emitter.ui.sidebar.resize();
+            }),
+        );
     }
 
     public ngLayoutResize(rect: DOMRect) {

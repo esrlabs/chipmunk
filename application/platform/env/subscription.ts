@@ -13,6 +13,14 @@ export class Subject<T> {
     private _handlers: Array<(value: T) => any> = [];
     private _name: string = '';
     private _emitted: boolean = false;
+    private _delay: number | undefined;
+    private _balanced: {
+        timer: any;
+        last: number;
+    } = {
+        timer: undefined,
+        last: -1,
+    };
 
     public static unsubscribe(subjects: unknown): void {
         if (typeof subjects !== 'object' || subjects === null) {
@@ -141,6 +149,11 @@ export class Subject<T> {
         }
     }
 
+    public balanced(delay: number): Subject<T> {
+        this._delay = delay;
+        return this;
+    }
+
     public subscribe(handler: (value: T) => void): Subscription {
         if (typeof handler !== 'function') {
             throw new Error(`Handler of event should be a function.`);
@@ -158,10 +171,29 @@ export class Subject<T> {
     }
 
     public emit(value: T) {
-        this._emitted = true;
-        this._handlers.forEach((handler: (value: T) => void) => {
-            handler(value);
-        });
+        const emit = () => {
+            this._emitted = true;
+            this._balanced.last = -1;
+            this._balanced.timer = -1;
+            this._handlers.forEach((handler: (value: T) => void) => {
+                handler(value);
+            });
+        };
+        if (this._delay === undefined) {
+            emit();
+        } else {
+            clearTimeout(this._balanced.timer);
+            if (this._balanced.last === -1) {
+                this._balanced.last = Date.now();
+            }
+            if (Date.now() - this._balanced.last >= this._delay) {
+                emit();
+            } else {
+                this._balanced.timer = setTimeout(() => {
+                    emit();
+                }, this._delay);
+            }
+        }
     }
 
     public emitted(): boolean {
