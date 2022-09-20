@@ -2293,6 +2293,7 @@ dependencies = [
  "async-stream",
  "async-trait",
  "buf_redux 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bytes 1.1.0",
  "crossbeam-channel",
  "etherparse",
  "futures 0.3.21",
