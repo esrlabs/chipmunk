@@ -1,6 +1,7 @@
 import {
     AfterViewInit,
     Directive,
+    HostBinding,
     ElementRef,
     OnDestroy,
     HostListener,
@@ -40,6 +41,10 @@ export class ResizerDirective implements AfterViewInit, OnDestroy {
         this._position = this._getPos(event);
     }
 
+    @HostBinding('class.dragging') get dragging() {
+        return this._position !== -1;
+    }
+
     public ngAfterViewInit() {
         (this._hostElement.nativeElement as HTMLElement).focus();
     }
@@ -68,7 +73,6 @@ export class ResizerDirective implements AfterViewInit, OnDestroy {
         } else {
             this.changesize.emit(this.size);
         }
-        console.log(`>>>>>>>>>>>>>>>>>> resize: ${this.size}`);
     }
 
     private _mouseup(event: MouseEvent) {

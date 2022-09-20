@@ -7,6 +7,7 @@
     left: 0;
     width: 100%;
     height: 100%;
+    background: @scheme-color-5;
     &.blur {
         & div.main {
             filter: blur(1px);
@@ -32,6 +33,7 @@
                 top: 0;
                 left: 0;
                 right: @tabs-list-height;
+                margin-bottom: 6px;
                 &.full {
                     right: 0;
                     bottom: 0;
@@ -114,17 +116,42 @@
                     position: absolute;
                     display: block;
                     overflow: hidden;
+                    margin-left: 5px;
                 }
                 & div.sidebar-resizer {
                     position: absolute;
                     display: block;
                     top: 0;
-                    left: -3px;
+                    left: 0px;
                     width: 6px;
                     bottom: 0;
-                    background: rgba(0, 0, 0, 0.001);
+                    background: lighten(@scheme-color-5, 15%);
                     cursor: col-resize;
                     z-index: 1;
+                    &.dragging {
+                        &::after{
+                            display: block;
+                            content: '';
+                            position: absolute;
+                            top:0;
+                            height: 100%;
+                            left:2px;
+                            width: 1px;
+                            border-left: dashed @scheme-color-1 thin;
+                        }
+                    }
+                    &:hover {
+                        &::after{
+                            display: block;
+                            content: '';
+                            position: absolute;
+                            top:0;
+                            height: 100%;
+                            left:2px;
+                            width: 1px;
+                            border-left: dashed @scheme-color-1 thin;
+                        }
+                    }
                 }
             }
             & div.toolbar-resizer {
@@ -134,9 +161,33 @@
                 bottom: -3px;
                 height: 6px;
                 right: 0;
-                background: rgba(0, 0, 0, 0.001);
+                background: lighten(@scheme-color-5, 15%);
                 cursor: row-resize;
                 z-index: 1;
+                &.dragging {
+                    &::after{
+                        display: block;
+                        content: '';
+                        position: absolute;
+                        top:2px;
+                        height: 1px;
+                        left:0;
+                        width: 100%;
+                        border-top: dashed @scheme-color-1 thin;
+                    }
+                }
+                &:hover {
+                    &::after{
+                        display: block;
+                        content: '';
+                        position: absolute;
+                        top:2px;
+                        height: 1px;
+                        left:0;
+                        width: 100%;
+                        border-top: dashed @scheme-color-1 thin;
+                    }
+                }
             }
         }
         & app-layout-statusbar {
