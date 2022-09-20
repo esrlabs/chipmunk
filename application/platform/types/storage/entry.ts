@@ -8,6 +8,10 @@ export interface Entry {
     content: string;
 }
 
+export interface Recognizable {
+    uuid(): string;
+}
+
 export abstract class EntryConvertable {
     public static from(str: string): Entry | Error {
         try {
