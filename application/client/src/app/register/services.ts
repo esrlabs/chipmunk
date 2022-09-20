@@ -50,6 +50,10 @@ export const services: { [key: string]: Inputs } = {
         name: 'Hotkeys',
         uuid: v4(),
     },
+    filters: {
+        name: 'Filters',
+        uuid: v4(),
+    },
 };
 
 export const ui: { [key: string]: Inputs } = {

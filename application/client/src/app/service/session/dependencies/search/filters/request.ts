@@ -2,10 +2,9 @@ import { Subject } from '@platform/env/subscription';
 import { getContrastColor, scheme_color_accent } from '@styles/colors';
 import { DisableConvertable } from '../disabled/converting';
 import { IFilter, IFilterFlags } from '@platform/types/filter';
-import { EntryConvertable, Entry } from '@platform/types/storage/entry';
+import { EntryConvertable, Entry, Recognizable } from '@platform/types/storage/entry';
 import { unique } from '@platform/env/sequence';
 import { error } from '@platform/env/logger';
-import { Recognizable } from '../declarations/recognizable';
 import { Key } from '../store';
 
 import * as regexFilters from '@platform/env/filters';

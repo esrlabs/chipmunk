@@ -1,7 +1,6 @@
 import { FilterRequest } from '../filters/request';
 import { DisableConvertable } from './converting';
-import { Recognizable } from '../declarations/recognizable';
-import { EntryConvertable, Entry } from '@platform/types/storage/entry';
+import { EntryConvertable, Entry, Recognizable } from '@platform/types/storage/entry';
 import { Key } from '../store';
 import { error } from '@platform/env/logger';
 

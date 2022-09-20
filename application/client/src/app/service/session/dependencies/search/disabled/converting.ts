@@ -1,5 +1,4 @@
-import { Recognizable } from '../declarations/recognizable';
-import { EntryConvertable } from '@platform/types/storage/entry';
+import { EntryConvertable, Recognizable } from '@platform/types/storage/entry';
 import { Key } from '../store';
 
 export interface DisableConvertable extends Recognizable, EntryConvertable {
