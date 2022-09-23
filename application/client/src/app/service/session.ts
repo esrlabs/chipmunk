@@ -1,4 +1,10 @@
-import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
+import {
+    SetupService,
+    Interface,
+    Implementation,
+    register,
+    DependOn,
+} from '@platform/entity/service';
 import { services } from '@register/services';
 import { ilc, Emitter, Channel, Declarations } from '@service/ilc';
 import { TabsService, ITab, ITabAPI } from '@elements/tabs/service';
@@ -10,11 +16,13 @@ import { components } from '@env/decorators/initial';
 import { TargetFile } from '@platform/types/files';
 import { TabControls } from './session/tab';
 import { unique } from '@platform/env/sequence';
+import { history } from '@service/history';
 
 import { Render } from '@schema/render';
 
 export { Session, TabControls, UnboundTab, Base };
 
+@DependOn(history)
 @SetupService(services['session'])
 export class Service extends Implementation {
     private _emitter!: Emitter;
@@ -42,12 +50,20 @@ export class Service extends Implementation {
         return Promise.resolve();
     }
 
+    public override destroy(): Promise<void> {
+        this._emitter.destroy();
+        this._channel.destroy();
+        super.destroy();
+        return Promise.resolve();
+    }
+
     public kill(uuid: string): Promise<void> {
         return new Promise((resolve) => {
             const session = this._sessions.get(uuid);
             if (session === undefined) {
                 return resolve();
             }
+            this._emitter.session.closing(session);
             session
                 .destroy()
                 .catch((err: Error) => {
@@ -55,6 +71,7 @@ export class Service extends Implementation {
                 })
                 .finally(() => {
                     this._sessions.delete(uuid);
+                    this._emitter.session.closed(uuid);
                     resolve();
                 });
         });

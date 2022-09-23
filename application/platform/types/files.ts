@@ -67,3 +67,28 @@ export interface Stat {
     ctimeMs: number;
     birthtimeMs: number;
 }
+
+const FILE_NAME_REG = /[^/\\]*$/gi;
+const FILE_EXT_REG = /[^/\\\.]*$/gi;
+export function getFileName(filename: string): string {
+    const match = FILE_NAME_REG.exec(filename);
+    if (match === null) {
+        return filename;
+    }
+    FILE_NAME_REG.lastIndex = 0;
+    return match[0];
+}
+
+export function getParentFolder(filename: string): string {
+    const name = getFileName(filename);
+    return filename.replace(name, '').replace(/[/\\]$/gi, '');
+}
+
+export function getFileExtention(filename: string): string {
+    const match = FILE_EXT_REG.exec(filename);
+    if (match === null) {
+        return '';
+    }
+    FILE_EXT_REG.lastIndex = 0;
+    return match[0];
+}

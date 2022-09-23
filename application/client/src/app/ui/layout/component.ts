@@ -58,7 +58,7 @@ export class Layout extends ChangesDetector implements AfterViewInit {
     constructor(@SkipSelf() cdRef: ChangeDetectorRef, private ngZone: NgZone) {
         super(cdRef);
         this.ilc().channel.session.change(this._onSessionChange.bind(this));
-        this.ilc().channel.session.close(this._onSessionClosed.bind(this));
+        this.ilc().channel.session.closed(this._onSessionClosed.bind(this));
     }
 
     public ngAfterViewInit(): void {

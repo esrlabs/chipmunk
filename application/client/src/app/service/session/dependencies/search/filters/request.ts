@@ -3,6 +3,7 @@ import { getContrastColor, scheme_color_accent } from '@styles/colors';
 import { DisableConvertable } from '../disabled/converting';
 import { IFilter, IFilterFlags } from '@platform/types/filter';
 import { EntryConvertable, Entry, Recognizable } from '@platform/types/storage/entry';
+import { Json } from '@platform/types/storage/json';
 import { unique } from '@platform/env/sequence';
 import { error } from '@platform/env/logger';
 import { Key } from '../store';
@@ -53,7 +54,10 @@ export interface UpdateEvent {
     };
 }
 
-export class FilterRequest implements Recognizable, DisableConvertable, EntryConvertable {
+export class FilterRequest
+    extends Json<FilterRequest>
+    implements Recognizable, DisableConvertable, EntryConvertable
+{
     public static KEY: Key = Key.filters;
     public static from(input: Entry | string): FilterRequest | Error {
         let entry: Entry | Error;
@@ -73,6 +77,22 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
             return error;
         }
         return request;
+    }
+    public static fromJson(json: string): FilterRequest | Error {
+        try {
+            const def: Definition = JSON.parse(json);
+            def.uuid = obj.getAsString(def, 'uuid');
+            def.filter = obj.getAsObj(def, 'filter');
+            def.filter.flags = obj.getAsObj(def.filter, 'flags');
+            def.filter.filter = obj.getAsNotEmptyString(def.filter, 'filter');
+            def.colors = obj.getAsObj(def, 'colors');
+            def.colors.color = obj.getAsNotEmptyString(def.colors, 'color');
+            def.colors.background = obj.getAsNotEmptyString(def.colors, 'background');
+            def.active = obj.getAsBool(def, 'active');
+            return new FilterRequest(def);
+        } catch (e) {
+            return new Error(error(e));
+        }
     }
 
     public readonly definition: Definition;
@@ -97,6 +117,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
     }
 
     constructor(def: OptionalDefinition) {
+        super();
         this.definition = {
             filter: {
                 filter: def.filter.filter,
@@ -119,7 +140,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
                         : def.colors.background,
             },
         };
-        this._update();
+        this.update();
     }
 
     public destroy() {
@@ -130,6 +151,25 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
         return this.definition.uuid;
     }
 
+    public json(): {
+        to(): string;
+        from(str: string): FilterRequest | Error;
+        key(): string;
+    } {
+        const self = this;
+        return {
+            to: (): string => {
+                return JSON.stringify(this.definition);
+            },
+            from: (json: string): FilterRequest | Error => {
+                return FilterRequest.fromJson(json);
+            },
+            key: (): string => {
+                return FilterRequest.KEY;
+            },
+        };
+    }
+
     public entry(): {
         to(): Entry;
         from(entry: Entry): Error | undefined;
@@ -137,6 +177,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
         uuid(): string;
         updated(): Subject<void>;
     } {
+        const self = this;
         return {
             to: (): Entry => {
                 return {
@@ -145,19 +186,14 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
                 };
             },
             from: (entry: Entry): Error | undefined => {
-                try {
-                    const def: Definition = JSON.parse(entry.content);
-                    def.uuid = obj.getAsString(def, 'uuid');
-                    def.filter = obj.getAsObj(def, 'filter');
-                    def.filter.flags = obj.getAsObj(def.filter, 'flags');
-                    def.filter.filter = obj.getAsNotEmptyString(def.filter, 'filter');
-                    def.colors = obj.getAsObj(def, 'colors');
-                    def.colors.color = obj.getAsNotEmptyString(def.colors, 'color');
-                    def.colors.background = obj.getAsNotEmptyString(def.colors, 'background');
-                    def.active = obj.getAsBool(def, 'active');
-                } catch (e) {
-                    return new Error(error(e));
+                const filter = FilterRequest.fromJson(entry.content);
+                if (filter instanceof Error) {
+                    return filter;
                 }
+                this.definition.uuid = filter.definition.uuid;
+                this.definition.filter = filter.definition.filter;
+                this.definition.colors = filter.definition.colors;
+                this.definition.active = filter.definition.active;
                 return undefined;
             },
             hash: (): string => {
@@ -302,7 +338,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
             },
             flags: (flags: IFilterFlags): boolean => {
                 this.definition.filter.flags = Object.assign({}, flags);
-                if (!this._update()) {
+                if (!this.update()) {
                     return false;
                 }
                 if (!silence) {
@@ -320,7 +356,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
             },
             filter: (filter: string): boolean => {
                 this.definition.filter.filter = filter;
-                if (!this._update()) {
+                if (!this.update()) {
                     return false;
                 }
                 if (!silence) {
@@ -379,7 +415,7 @@ export class FilterRequest implements Recognizable, DisableConvertable, EntryCon
         return this._hash;
     }
 
-    private _update(): boolean {
+    protected update(): boolean {
         const prev: string = this._hash;
         this._regex = regexFilters.getMarkerRegExp(
             this.definition.filter.filter,

@@ -2,6 +2,7 @@ import { Subject, Subscription } from '@platform/env/subscription';
 import { Events } from './events';
 import { Instance as Logger } from '@platform/env/logger';
 import { Row } from '@schema/content/row';
+import { Base } from '../session/base';
 
 import * as Declarations from './declarations';
 
@@ -20,9 +21,10 @@ export class Channel {
         job: (handler: Handler<Declarations.JobEvent>) => Subscription;
     };
     public readonly session: {
-        close: (handler: Handler<string>) => Subscription;
+        closed: (handler: Handler<string>) => Subscription;
         open: (handler: Handler<string>) => Subscription;
         change: (handler: Handler<string | undefined>) => Subscription;
+        closing: (handler: Handler<Base>) => Subscription;
     };
     public readonly ux: {
         hotkey: (handler: Handler<Declarations.HotkeyEvent>) => Subscription;
@@ -82,9 +84,10 @@ export class Channel {
             job: this._add<Declarations.JobEvent>(this._events.backend.job),
         };
         this.session = {
-            close: this._add<string>(this._events.session.close),
+            closed: this._add<string>(this._events.session.closed),
             open: this._add<string>(this._events.session.open),
             change: this._add<string | undefined>(this._events.session.change),
+            closing: this._add<Base>(this._events.session.closing),
         };
         this.ux = {
             hotkey: this._add<Declarations.HotkeyEvent>(this._events.ux.hotkey),

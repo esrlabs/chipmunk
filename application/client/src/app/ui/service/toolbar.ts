@@ -23,7 +23,7 @@ export class Service extends Implementation {
         this._services = ilc.services(this.getName(), this.log());
         this._channel.ux.hotkey(this._onHotKey.bind(this));
         this._channel.session.change(this._onSessionChange.bind(this));
-        this._channel.session.close(this._onSessionClosed.bind(this));
+        this._channel.session.closed(this._onSessionClosed.bind(this));
         this._channel.ui.toolbar.view(this._onViewChange.bind(this));
         this._available = new Tabs();
         return Promise.resolve();
