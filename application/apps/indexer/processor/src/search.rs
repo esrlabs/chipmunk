@@ -308,14 +308,6 @@ impl SearchHolder {
         // lnum - 1
         let lines_read = self.lines_read;
         self.lines_read = target_file_len;
-        in_file_reader
-            .seek(SeekFrom::Start(self.bytes_read))
-            .map_err(|_| {
-                GrabError::IoOperation(format!(
-                    "Could not seek file {:?} to {}",
-                    &self.file_path, self.bytes_read
-                ))
-            })?;
         Searcher::new()
             .search_reader(
                 &matcher,
@@ -341,12 +333,18 @@ impl SearchHolder {
                     &self.file_path, e
                 ))
             })?;
-        self.bytes_read = in_file_reader.seek(SeekFrom::Current(0)).map_err(|e| {
+        self.bytes_read = in_file_reader.stream_position().map_err(|e| {
             SearchError::IoOperation(format!(
                 "Cannot detect position in file {:?}; error: {}",
                 &self.file_path, e
             ))
         })? + 1;
+        // self.bytes_read = in_file_reader.seek(SeekFrom::Current(0)).map_err(|e| {
+        //     SearchError::IoOperation(format!(
+        //         "Cannot detect position in file {:?}; error: {}",
+        //         &self.file_path, e
+        //     ))
+        // })? + 1;
         let processed = lines_read as usize..(lines_read as usize + indexes.len());
         Ok((processed, indexes, stats))
     }
