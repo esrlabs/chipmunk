@@ -239,17 +239,9 @@ impl SearchMap {
         }
     }
 
-    pub fn set(&mut self, matches: Option<Vec<FilterMatch>>, mut stats: Option<FiltersStats>) {
-        if let Some(matches) = matches {
-            self.matches = matches;
-        } else {
-            self.matches = vec![];
-        }
-        if let Some(stats) = stats.take() {
-            self.stats = stats;
-        } else {
-            self.stats = FiltersStats::default();
-        }
+    pub fn set(&mut self, matches: Option<Vec<FilterMatch>>, stats: Option<FiltersStats>) {
+        self.matches = matches.map_or(vec![], |m| { m });
+        self.stats = stats.map_or(FiltersStats::default(), |s| { s });
     }
 
     pub fn get_stats(&self) -> HashMap<String, u64> {
