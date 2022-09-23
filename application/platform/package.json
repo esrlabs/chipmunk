@@ -86,6 +86,7 @@
         "./types/parsers/pcap": "./dist/types/parsers/pcap.js",
         "./types/parsers/someip": "./dist/types/parsers/someip.js",
         "./types/storage": "./dist/types/storage/index.js",
+        "./types/storage/json": "./dist/types/storage/json.js",
         "./types/storage/entry": "./dist/types/storage/entry.js",
         "./types/storage/storage": "./dist/types/storage/storage.js",
         "./types/storage/storage.record": "./dist/types/storage/storage.record.js",

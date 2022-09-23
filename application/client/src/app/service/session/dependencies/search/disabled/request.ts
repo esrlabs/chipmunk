@@ -3,19 +3,43 @@ import { DisableConvertable } from './converting';
 import { EntryConvertable, Entry, Recognizable } from '@platform/types/storage/entry';
 import { Key } from '../store';
 import { error } from '@platform/env/logger';
+import { Json } from '@platform/types/storage/json';
 
 export interface IDesc {
     type: string;
     desc: any;
 }
 
-export class DisabledRequest implements Recognizable, EntryConvertable {
+export class DisabledRequest
+    extends Json<DisabledRequest>
+    implements Recognizable, EntryConvertable
+{
     public static KEY: Key = Key.disabled;
-
+    public static fromJson(json: string): DisabledRequest | Error {
+        try {
+            const def: {
+                key: Key;
+                value: string;
+            } = JSON.parse(json);
+            let entity;
+            if (def.key === Key.filters) {
+                entity = FilterRequest.from(def.value);
+                if (entity instanceof Error) {
+                    return entity;
+                }
+                return new DisabledRequest(entity);
+            } else {
+                return new Error(`Unsupportable content for Disabled; key = ${def.key}`);
+            }
+        } catch (e) {
+            return new Error(error(e));
+        }
+    }
     private _entity: DisableConvertable;
     private _key: Key;
 
     constructor(entity: DisableConvertable) {
+        super();
         let key: Key | undefined;
         [FilterRequest].forEach((classRef) => {
             if (key !== undefined) {
@@ -38,6 +62,28 @@ export class DisabledRequest implements Recognizable, EntryConvertable {
 
     public entity(): DisableConvertable {
         return this._entity;
+    }
+
+    public json(): {
+        to(): string;
+        from(str: string): DisabledRequest | Error;
+        key(): string;
+    } {
+        const self = this;
+        return {
+            to: (): string => {
+                return JSON.stringify({
+                    key: this._key,
+                    value: this._entity.entry().to(),
+                });
+            },
+            from: (json: string): DisabledRequest | Error => {
+                return DisabledRequest.fromJson(json);
+            },
+            key: (): string => {
+                return DisabledRequest.KEY;
+            },
+        };
     }
 
     public entry(): {

@@ -175,6 +175,7 @@ export class Stream extends Subscriber {
         abort(uuid: string): Promise<void>;
         restart(uuid: string, source: DataSource): Promise<void>;
         list(): Promise<Map<string, DataSource>>;
+        sources(): DataSource[];
         sde<T, R>(uuid: string, msg: T): Promise<R>;
     } {
         return {
@@ -243,6 +244,9 @@ export class Stream extends Subscriber {
                             );
                         });
                 });
+            },
+            sources: (): DataSource[] => {
+                return Array.from(this.observed.running.values()).map(o => o.asSource()).concat(Array.from(this.observed.done.values()));
             },
             sde: <T, R>(uuid: string, msg: T): Promise<R> => {
                 return new Promise((resolve, reject) => {

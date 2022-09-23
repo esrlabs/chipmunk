@@ -7,7 +7,14 @@ import { ProcessTransportSettings } from './transport/process';
 import { error } from '../env/logger';
 import { SerialTransportSettings } from './transport/serial';
 import { filename, basefolder } from '../env/str';
-import { SourceDefinition } from './transport/index';
+import { SourceDefinition, Source as SourceRef } from './transport/index';
+
+export enum ParserName {
+    Dlt = 'Dlt',
+    Pcap = 'Pcap',
+    Someip = 'Someip',
+    Text = 'Text',
+}
 
 export interface Parser {
     Dlt?: DltParserSettings;
@@ -151,6 +158,32 @@ export class DataSource {
         };
     }
 
+    public getParserName(): ParserName | Error {
+        const parser: Parser | Error = (() => {
+            if (this.File !== undefined) {
+                return this.File[1];
+            } else if (this.Stream !== undefined) {
+                return this.Stream[1];
+            } else {
+                return new Error(`Not File, not Stream aren't defined in DataSource`);
+            }
+        })();
+        if (parser instanceof Error) {
+            return parser;
+        }
+        if (parser.Dlt !== undefined) {
+            return ParserName.Dlt;
+        } else if (parser.Pcap !== undefined) {
+            return ParserName.Pcap;
+        } else if (parser.Someip !== undefined) {
+            return ParserName.Someip;
+        } else if (parser.Text !== undefined) {
+            return ParserName.Text;
+        } else {
+            return new Error(`Unknown parser`);
+        }
+    }
+
     public getSource(): Source | Error {
         if (this.File !== undefined) {
             return {
@@ -178,6 +211,28 @@ export class DataSource {
             tcp: this.Stream[0].TCP !== undefined ? this.Stream[0].TCP : undefined,
             udp: this.Stream[0].UDP !== undefined ? this.Stream[0].UDP : undefined,
         };
+    }
+
+    public asSourceRef(): SourceRef | Error {
+        if (this.File !== undefined) {
+            return new Error(
+                `DataSource bound with File. SourceRef is available only for streams`,
+            );
+        }
+        if (this.Stream === undefined) {
+            return new Error(`SourceDefinition is available only for streams`);
+        }
+        if (this.Stream[0].Serial !== undefined) {
+            return SourceRef.Serial;
+        } else if (this.Stream[0].Process !== undefined) {
+            return SourceRef.Process;
+        } else if (this.Stream[0].TCP !== undefined) {
+            return SourceRef.Tcp;
+        } else if (this.Stream[0].UDP !== undefined) {
+            return SourceRef.Udp;
+        } else {
+            return new Error(`Unknown source`);
+        }
     }
 
     public desc(): SourceDescription | Error {

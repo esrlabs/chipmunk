@@ -1,5 +1,6 @@
 import { Subject } from '@platform/env/subscription';
 import { Row } from '@schema/content/row';
+import { Base } from '../session/base';
 
 import * as Declarations from './declarations';
 
@@ -15,9 +16,10 @@ export class Events {
         job: Subject<Declarations.JobEvent>;
     };
     public readonly session: {
-        close: Subject<string>;
+        closed: Subject<string>;
         open: Subject<string>;
         change: Subject<string | undefined>;
+        closing: Subject<Base>;
     };
     public readonly ux: {
         hotkey: Subject<Declarations.HotkeyEvent>;
@@ -76,9 +78,10 @@ export class Events {
             hotkey: this._add<Declarations.HotkeyEvent>(new Subject<Declarations.HotkeyEvent>()),
         };
         this.session = {
-            close: this._add<string>(new Subject<string>()),
+            closed: this._add<string>(new Subject<string>()),
             open: this._add<string>(new Subject<string>()),
             change: this._add<string | undefined>(new Subject<string | undefined>()),
+            closing: this._add<Base>(new Subject<Base>()),
         };
         this.ui = {
             contextmenu: {
