@@ -18,15 +18,18 @@ export interface IDefinition {
     uuid: string;
 }
 
-export class Definition implements IDefinition, EntryConvertable{
-    static fromDataSource(source: DataSource): Definition {
+export class Definition implements IDefinition, EntryConvertable {
+    static from(entry: Entry): Definition {
+        return Definition.fromMinifiedStr(JSON.parse(entry.content));
+    }
+    static async fromDataSource(source: DataSource): Promise<Definition> {
         const parser = source.getParserName();
         if (parser instanceof Error) {
             throw parser;
         }
         const desc: IDefinition = {
-            file: FileDesc.fromDataSource(source),
-            stream: StreamDesc.fromDataSource(source),
+            file: await FileDesc.fromDataSource(source),
+            stream: await StreamDesc.fromDataSource(source),
             parser,
             created: Date.now(),
             used: Date.now(),
@@ -36,8 +39,7 @@ export class Definition implements IDefinition, EntryConvertable{
         if (desc.file === undefined && desc.stream === undefined) {
             throw new Error(`Cannot detect a source of data. Not File, not Stream aren't defined`);
         }
-        return new Definition(desc)
-        
+        return new Definition(desc);
     }
     static fromMinifiedStr(src: { [key: string]: number | string }): Definition {
         const def = new Definition({
@@ -64,7 +66,8 @@ export class Definition implements IDefinition, EntryConvertable{
     public uuid: string;
 
     constructor(definition: IDefinition) {
-        this.stream = definition.stream === undefined ? undefined : new StreamDesc(definition.stream);
+        this.stream =
+            definition.stream === undefined ? undefined : new StreamDesc(definition.stream);
         this.file = definition.file === undefined ? undefined : new FileDesc(definition.file);
         this.parser = definition.parser;
         this.name = definition.name;
@@ -81,7 +84,6 @@ export class Definition implements IDefinition, EntryConvertable{
         this.used = definition.used;
         this.created = definition.created;
         this.uuid = definition.uuid;
-
     }
 
     public isSame(definition: Definition): boolean {
@@ -97,7 +99,9 @@ export class Definition implements IDefinition, EntryConvertable{
         return false;
     }
 
-    public minify(): { [key: string]: number | string | { [key: string]: string | number } | undefined } {
+    public minify(): {
+        [key: string]: number | string | { [key: string]: string | number } | undefined;
+    } {
         return {
             s: this.stream?.minify(),
             f: this.file?.minify(),

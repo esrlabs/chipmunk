@@ -10,7 +10,7 @@ export interface IStreamDesc {
 }
 
 export class StreamDesc implements IStreamDesc {
-    static fromDataSource(source: DataSource): IStreamDesc | undefined {
+    static async fromDataSource(source: DataSource): Promise<IStreamDesc | undefined> {
         if (source.Stream === undefined) {
             return undefined;
         }
@@ -19,7 +19,7 @@ export class StreamDesc implements IStreamDesc {
         let minor: string = '';
         if (source.Stream[0].Serial !== undefined) {
             major = source.Stream[0].Serial.path;
-            minor = `${source.Stream[0].Serial.baud_rate}.${source.Stream[0].Serial.data_bits}.${source.Stream[0].Serial.stop_bits}`
+            minor = `${source.Stream[0].Serial.baud_rate}.${source.Stream[0].Serial.data_bits}.${source.Stream[0].Serial.stop_bits}`;
             sourceRef = Source.Serial;
         } else if (source.Stream[0].Process !== undefined) {
             major = source.Stream[0].Process.command;
@@ -31,7 +31,9 @@ export class StreamDesc implements IStreamDesc {
             sourceRef = Source.Tcp;
         } else if (source.Stream[0].UDP !== undefined) {
             major = source.Stream[0].UDP.bind_addr;
-            minor = source.Stream[0].UDP.multicast.map(m => `${m.multiaddr}-${m.interface}`).join(',');
+            minor = source.Stream[0].UDP.multicast
+                .map((m) => `${m.multiaddr}-${m.interface}`)
+                .join(',');
             sourceRef = Source.Udp;
         } else {
             throw new Error(`Unknown source`);
@@ -40,15 +42,19 @@ export class StreamDesc implements IStreamDesc {
             source: sourceRef,
             major,
             minor,
-        }
+        };
     }
 
-    static fromMinifiedStr(src: { [key: string]: number | string } | undefined): StreamDesc | undefined {
-        return src === undefined ? undefined : new StreamDesc({
-            source: obj.getAsNotEmptyString(src, 's') as Source,
-            major: obj.getAsNotEmptyString(src, 'ma'),
-            minor: obj.getAsNotEmptyString(src, 'mi'),
-        });
+    static fromMinifiedStr(
+        src: { [key: string]: number | string } | undefined,
+    ): StreamDesc | undefined {
+        return src === undefined
+            ? undefined
+            : new StreamDesc({
+                  source: obj.getAsNotEmptyString(src, 's') as Source,
+                  major: obj.getAsNotEmptyString(src, 'ma'),
+                  minor: obj.getAsNotEmptyString(src, 'mi'),
+              });
     }
 
     public source: Source;

@@ -21,10 +21,12 @@ export class Stream extends Subscriber {
     public readonly subjects: Subjects<{
         updated: Subject<number>;
         observe: Subject<Map<string, ObserveOperation>>;
+        source: Subject<DataSource>;
         rank: Subject<number>;
     }> = new Subjects({
         updated: new Subject<number>(),
         observe: new Subject<Map<string, ObserveOperation>>(),
+        source: new Subject<DataSource>(),
         rank: new Subject<number>(),
     });
     private _len: number = 0;
@@ -75,6 +77,7 @@ export class Stream extends Subscriber {
                     ),
                 );
                 this.subjects.get().observe.emit(this.observed.running);
+                this.subjects.get().source.emit(source);
             }),
         );
         this.register(
@@ -246,7 +249,9 @@ export class Stream extends Subscriber {
                 });
             },
             sources: (): DataSource[] => {
-                return Array.from(this.observed.running.values()).map(o => o.asSource()).concat(Array.from(this.observed.done.values()));
+                return Array.from(this.observed.running.values())
+                    .map((o) => o.asSource())
+                    .concat(Array.from(this.observed.done.values()));
             },
             sde: <T, R>(uuid: string, msg: T): Promise<R> => {
                 return new Promise((resolve, reject) => {

@@ -1,6 +1,7 @@
 import { Subject } from '@platform/env/subscription';
 import { Row } from '@schema/content/row';
 import { Base } from '../session/base';
+import { Session } from '../session/session';
 
 import * as Declarations from './declarations';
 
@@ -17,7 +18,8 @@ export class Events {
     };
     public readonly session: {
         closed: Subject<string>;
-        open: Subject<string>;
+        open: Subject<Base>;
+        created: Subject<Session>;
         change: Subject<string | undefined>;
         closing: Subject<Base>;
     };
@@ -79,7 +81,8 @@ export class Events {
         };
         this.session = {
             closed: this._add<string>(new Subject<string>()),
-            open: this._add<string>(new Subject<string>()),
+            open: this._add<Base>(new Subject<Base>()),
+            created: this._add<Session>(new Subject<Session>()),
             change: this._add<string | undefined>(new Subject<string | undefined>()),
             closing: this._add<Base>(new Subject<Base>()),
         };

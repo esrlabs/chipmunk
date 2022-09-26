@@ -3,6 +3,7 @@ import { Events } from './events';
 import { Instance as Logger } from '@platform/env/logger';
 import { Row } from '@schema/content/row';
 import { Base } from '../session/base';
+import { Session } from '../session/session';
 
 import * as Declarations from './declarations';
 
@@ -21,7 +22,8 @@ export class Emitter {
     };
     public readonly session: {
         closed: Handler<string>;
-        open: Handler<string>;
+        open: Handler<Base>;
+        created: Handler<Session>;
         change: Handler<string | undefined>;
         closing: Handler<Base>;
     };
@@ -84,7 +86,8 @@ export class Emitter {
         };
         this.session = {
             closed: this._add<string>(this._events.session.closed),
-            open: this._add<string>(this._events.session.open),
+            open: this._add<Base>(this._events.session.open),
+            created: this._add<Session>(this._events.session.created),
             change: this._add<string | undefined>(this._events.session.change),
             closing: this._add<Base>(this._events.session.closing),
         };
