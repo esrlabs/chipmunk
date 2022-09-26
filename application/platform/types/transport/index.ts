@@ -36,7 +36,7 @@ export class SourceDefinitionHolder {
                 .map((m) => m.multiaddr)
                 .join('_')}`;
         } else if (this.source.tcp !== undefined) {
-            return 'tcp_connection';
+            return `${this.source.tcp.bind_addr}`;
         } else if (this.source.serial !== undefined) {
             return `${this.source.serial.path}_${this.source.serial.baud_rate}_${this.source.serial.data_bits}_${this.source.serial.flow_control}_${this.source.serial.parity}`;
         } else if (this.source.process !== undefined) {
