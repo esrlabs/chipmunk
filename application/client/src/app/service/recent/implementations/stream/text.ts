@@ -41,11 +41,22 @@ export class Recent extends RecentAction {
                 major: `Plain text from STDOUT/ERR`,
                 minor: `${this.source.process.command} ${this.source.process.args.join(' ')}`,
             };
+        } else if (this.source.tcp !== undefined) {
+            return {
+                major: `Plain text on TCP: ${this.source.tcp.bind_addr}`,
+                minor: '',
+            };
+        } else if (this.source.serial !== undefined) {
+            return {
+                major: `Plain text on Serial: ${this.source.serial.path}`,
+                minor: `baudrate: ${this.source.serial.baud_rate}, data bits: ${this.source.serial.data_bits}, flow control: ${this.source.serial.flow_control}, parity: ${this.source.serial.parity}, stop bits: ${this.source.serial.stop_bits}`,
+            };
+        } else {
+            return {
+                major: '',
+                minor: '',
+            };
         }
-        return {
-            major: '---- not implemented ----',
-            minor: '---- not implemented ----',
-        };
     }
     public asObj(): { [key: string]: unknown } {
         return {

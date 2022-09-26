@@ -1,3 +1,3 @@
 export interface TCPTransportSettings {
-    dummy: string;
+    bind_addr: string;
 }

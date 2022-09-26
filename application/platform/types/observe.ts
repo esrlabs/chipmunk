@@ -225,12 +225,12 @@ export class DataSource {
             };
         } else if (this.Stream[0].TCP !== undefined) {
             return {
-                major: 'not implemented',
-                minor: 'not implemented',
-                icon: 'not implemented',
-                type: 'not implemented',
+                major: this.Stream[0].TCP.bind_addr,
+                minor: '',
+                icon: 'network_wifi_3_bar',
+                type: 'net',
                 state: {
-                    running: 'not implemented',
+                    running: 'listening',
                     stopped: '',
                 },
             };

@@ -85,6 +85,7 @@ export class State {
     public asSourceDefinition(): SourceDefinition {
         return {
             udp: this.udp === undefined ? undefined : this.udp.accept().asSourceDefinition(),
+            tcp: this.tcp === undefined ? undefined : this.tcp.accept().asSourceDefinition(),
             process:
                 this.process === undefined ? undefined : this.process.accept().asSourceDefinition(),
             serial:

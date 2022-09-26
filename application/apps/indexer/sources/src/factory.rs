@@ -52,7 +52,7 @@ pub struct SomeIPParserSettings {}
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Transport {
     Process(ProcessTransportConfig),
-    TCP(ProcessTransportConfig),
+    TCP(TCPTransportConfig),
     UDP(UDPTransportConfig),
     Serial(SerialTransportConfig),
 }
@@ -76,7 +76,9 @@ pub struct SerialTransportConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TCPTransportConfig {}
+pub struct TCPTransportConfig {
+    pub bind_addr: String,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UDPTransportConfig {

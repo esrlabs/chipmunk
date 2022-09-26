@@ -271,8 +271,24 @@ async fn listen_from_source<T: LogMessage, P: Parser<T>>(
             )
             .await
         }
-        Transport::TCP(_config) => {
-            todo!("Transport::Process not implemented");
+        Transport::TCP(config) => {
+            listen(
+                operation_api,
+                state,
+                MessageProducer::new(
+                    parser,
+                    socket::tcp::TcpSource::new(&config.bind_addr)
+                        .await
+                        .map_err(|e| NativeError {
+                            severity: Severity::ERROR,
+                            kind: NativeErrorKind::Interrupted,
+                            message: Some(format!("Fail to create socket due error: {:?}", e)),
+                        })?,
+                    rx_sde,
+                ),
+                None,
+            )
+            .await
         }
         Transport::Process(config) => {
             listen(

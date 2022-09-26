@@ -41,12 +41,27 @@ export const handler = Requests.InjectLogger<
                         );
                     });
             } else if (request.source.tcp !== undefined) {
-                resolve(
-                    new Requests.Connect.Text.Response({
-                        session: stored.session.getUUID(),
-                        error: `tcp support isn't implemented yet`,
-                    }),
-                );
+                stored
+                    .observe()
+                    .start(
+                        Observe.DataSource.stream().tcp(request.source.tcp).text(),
+                        'text on TCP',
+                    )
+                    .then(() => {
+                        resolve(
+                            new Requests.Connect.Text.Response({
+                                session: stored.session.getUUID(),
+                            }),
+                        );
+                    })
+                    .catch((err: Error) => {
+                        resolve(
+                            new Requests.Connect.Text.Response({
+                                session: stored.session.getUUID(),
+                                error: err.message,
+                            }),
+                        );
+                    });
             } else if (request.source.serial !== undefined) {
                 stored
                     .observe()

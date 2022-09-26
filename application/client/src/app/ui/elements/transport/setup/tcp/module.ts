@@ -30,5 +30,4 @@ import { TransportTcp } from './component';
     declarations: [TransportTcp],
     exports: [TransportTcp],
 })
-export class TransportTcpModule {
-}
+export class TransportTcpModule {}
