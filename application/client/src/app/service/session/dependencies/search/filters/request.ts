@@ -415,6 +415,13 @@ export class FilterRequest
         return this._hash;
     }
 
+    public isSame(filter: FilterRequest): boolean {
+        const hash = (f: FilterRequest) => {
+            return `${f.definition.filter.filter}|${f.definition.filter.flags.cases}|${f.definition.filter.flags.reg}|${f.definition.filter.flags.word}`;
+        };
+        return hash(filter) === hash(this);
+    }
+
     protected update(): boolean {
         const prev: string = this._hash;
         this._regex = regexFilters.getMarkerRegExp(

@@ -107,6 +107,7 @@ export class Service extends Implementation {
                 return;
             }
             this.bind(uuid, caption);
+            this._emitter.session.open(session);
         };
         return {
             empty: (render: Render<unknown>): Promise<Session> => {
@@ -114,7 +115,7 @@ export class Service extends Implementation {
                     return Promise.reject(new Error(`Sessions aren't available yet`));
                 }
                 return new Promise((resolve, reject) => {
-                    const session = new Session(render);
+                    const session = this.create(render);
                     session
                         .init()
                         .then((uuid: string) => {
@@ -123,6 +124,11 @@ export class Service extends Implementation {
                         })
                         .catch((err: Error) => {
                             this.log().error(`Fail to add session; error: ${err.message}`);
+                            session
+                                .destroy()
+                                .catch((err) =>
+                                    this.log().warn(`Fail to destroy session: ${err.message}`),
+                                );
                             reject(err);
                         });
                 });
@@ -132,7 +138,7 @@ export class Service extends Implementation {
                     return Promise.reject(new Error(`Sessions aren't available yet`));
                 }
                 return new Promise((resolve, reject) => {
-                    const session = new Session(render);
+                    const session = this.create(render);
                     session
                         .init()
                         .then((uuid: string) => {
@@ -149,6 +155,11 @@ export class Service extends Implementation {
                         })
                         .catch((err: Error) => {
                             this.log().error(`Fail to add session; error: ${err.message}`);
+                            session
+                                .destroy()
+                                .catch((err) =>
+                                    this.log().warn(`Fail to destroy session: ${err.message}`),
+                                );
                             reject(err);
                         });
                 });
@@ -221,6 +232,12 @@ export class Service extends Implementation {
                 return this._active instanceof UnboundTab ? this._active : undefined;
             },
         };
+    }
+
+    protected create(render: Render<unknown>): Session {
+        const session = new Session(render);
+        this._emitter.session.created(session);
+        return session;
     }
 }
 export interface Service extends Interface {}

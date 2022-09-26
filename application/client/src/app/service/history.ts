@@ -7,14 +7,13 @@ import {
 } from '@platform/entity/service';
 import { services } from '@register/services';
 import { bridge } from '@service/bridge';
-import { session } from '@service/session';
 import { ilc, Emitter, Channel, Declarations } from '@service/ilc';
 import { Session } from './session/session';
 
 // import { error } from '@platform/env/logger';
-import { SessionCollection } from './history/session';
-import { Definitions } from './history/definitions';
-import { Definition } from './history/definition';
+import { HistorySession } from './history/session';
+import { StorageCollections } from './history/storage.collections';
+import { StorageDefinitions } from './history/storage.definitions';
 
 // import { FilterRequest } from './session/dependencies/search/filters/request';
 
@@ -25,42 +24,54 @@ import { Definition } from './history/definition';
 export class Service extends Implementation {
     private _channel!: Channel;
 
-    public collections: Map<string, SessionCollection> = new Map();
-    public definitions: Definitions = new Definitions();
+    public collections: StorageCollections = new StorageCollections();
+    public definitions: StorageDefinitions = new StorageDefinitions();
 
-    public override ready(): Promise<void> {
+    public sessions: Map<string, HistorySession> = new Map();
+
+    public override async ready(): Promise<void> {
+        await this.collections.load();
+        await this.definitions.load();
         this._channel = ilc.channel(`History`, this.log());
+        this._channel.session.created((session) => {
+            this.sessions.set(session.uuid(), new HistorySession(session));
+            session.stream.subjects.get().source.subscribe((source) => {
+                const history = this.sessions.get(session.uuid());
+                if (history === undefined) {
+                    return;
+                }
+                history.definitions
+                    .add(source)
+                    .then((definition) => {
+                        this.definitions.add(definition);
+                        // this.save(session).catch((err) =>
+                        //     this.log().error(`Fail to save session state: ${err.message}`),
+                        // );
+                    })
+                    .catch((err) => {
+                        this.log().error(`Fail to add source definition: ${err.message}`);
+                    });
+            });
+        });
         this._channel.session.closing((session) => {
-            if (session instanceof Session) {
-                const collection = SessionCollection.from(session);
-                const defs = this.definitions.addFrom(session);
-                console.log(defs);
-                console.log(collection);
+            if (!(session instanceof Session)) {
+                return;
             }
-
-            debugger;
+            this.save(session)
+                .catch((err) => this.log().error(`Fail to save session state: ${err.message}`))
+                .finally(() => {
+                    this.sessions.delete(session.uuid());
+                });
         });
         return Promise.resolve();
     }
 
     public async save(session: Session): Promise<void> {
-        const collection = SessionCollection.from(session);
-
-        const filters = session.search.store().filters().get();
-        const disabled = session.search.store().disabled().get();
-
-        if (filters.length === 0) {
-            return Promise.resolve();
-        }
-        const defs = session.stream
-            .observe()
-            .sources()
-            .map((s) => Definition.fromDataSource(s));
-        if (defs.length === 0) {
-            return Promise.resolve();
-        }
-        const definitions = await this.definitions.add(defs);
-
+        // const collection = Collection.from(session);
+        // if (collection.isEmpty()) {
+        //     return;
+        // }
+        // // const defs = await this.definitions.addFrom(session);
         return Promise.resolve();
     }
 }

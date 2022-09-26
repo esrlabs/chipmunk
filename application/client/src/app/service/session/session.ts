@@ -31,6 +31,7 @@ export class Session extends Base {
     private readonly _sidebar: TabsService = new TabsService({
         options: new TabsOptions({ direction: ETabsListDirection.left }),
     });
+    protected inited: boolean = false;
 
     constructor(render: Render<unknown>) {
         super();
@@ -84,6 +85,7 @@ export class Session extends Base {
                     this.bookmarks.init(this._uuid, this.cursor);
                     this.cache.init(this._uuid, this.cursor, this.stream);
                     this.search.init(this._uuid, this.bookmarks, this.cache);
+                    this.inited = true;
                     resolve(this._uuid);
                 })
                 .catch(reject);
@@ -97,6 +99,9 @@ export class Session extends Base {
         this.bookmarks.destroy();
         this.cursor.destroy();
         this.cache.destroy();
+        if (!this.inited) {
+            return Promise.resolve();
+        }
         return new Promise((resolve) => {
             Requests.IpcRequest.send<Requests.Session.Destroy.Response>(
                 Requests.Session.Destroy.Response,

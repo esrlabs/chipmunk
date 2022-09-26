@@ -56,6 +56,18 @@ export class DisabledRequest
         this._key = key;
     }
 
+    public isSame(disabled: DisabledRequest): boolean {
+        const getFilterHash = (f: FilterRequest) => {
+            return `${f.definition.filter.filter}|${f.definition.filter.flags.cases}|${f.definition.filter.flags.reg}|${f.definition.filter.flags.word}`;
+        };
+        const left = disabled.entity();
+        const right = this.entity();
+        if (left instanceof FilterRequest && right instanceof FilterRequest) {
+            return getFilterHash(left) === getFilterHash(right);
+        }
+        return false;
+    }
+
     public uuid(): string {
         return this._entity.uuid();
     }

@@ -5,9 +5,11 @@ import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 @SetupLogger()
 export abstract class Collection<T extends Json<T> & Recognizable> {
     abstract extractor(): Extractor<T>;
+    abstract isSame(collection: Collection<T>): boolean;
 
     protected entries: JsonSet = [];
-    protected elements: Map<string, T> = new Map();
+
+    public elements: Map<string, T> = new Map();
 
     constructor(alias: string, entries: JsonSet) {
         this.setLoggerName(alias);
