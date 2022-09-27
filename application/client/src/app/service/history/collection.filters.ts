@@ -1,8 +1,9 @@
 import { Collection } from './collection';
 import { FilterRequest } from '../session/dependencies/search/filters/request';
 import { Extractor } from '@platform/types/storage/json';
+import { Equal } from '@platform/types/env/types';
 
-export class FiltersCollection extends Collection<FilterRequest> {
+export class FiltersCollection extends Collection<FilterRequest> implements Equal<FiltersCollection> {
     constructor() {
         super('FiltersCollection', []);
     }
@@ -12,7 +13,7 @@ export class FiltersCollection extends Collection<FilterRequest> {
             return false;
         }
         let found = 0;
-        let elements = Array.from(this.elements.values());
+        const elements = Array.from(this.elements.values());
         collection.elements.forEach((outside) => {
             found += elements.find((f) => f.isSame(outside)) === undefined ? 0 : 1;
         });

@@ -75,6 +75,7 @@
         "./modules": "./dist/modules/index.js",
         "./modules/system": "./dist/modules/system.js",
         "./types": "./dist/types/index.js",
+        "./types/env/types": "./dist/types/env/types.js",
         "./types/sde/common": "./dist/types/sde/common.js",
         "./types/sde/serial": "./dist/types/sde/serial.js",
         "./types/files": "./dist/types/files.js",

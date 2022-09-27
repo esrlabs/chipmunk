@@ -1,8 +1,9 @@
 import { Collection } from './collection';
 import { DisabledRequest } from '../session/dependencies/search/disabled/request';
 import { Extractor } from '@platform/types/storage/json';
+import { Equal } from '@platform/types/env/types';
 
-export class DisabledCollection extends Collection<DisabledRequest> {
+export class DisabledCollection extends Collection<DisabledRequest> implements Equal<DisabledCollection> {
     constructor() {
         super('DisabledCollection', []);
     }
@@ -12,7 +13,7 @@ export class DisabledCollection extends Collection<DisabledRequest> {
             return false;
         }
         let found = 0;
-        let elements = Array.from(this.elements.values());
+        const elements = Array.from(this.elements.values());
         collection.elements.forEach((outside) => {
             found += elements.find((f) => f.isSame(outside)) === undefined ? 0 : 1;
         });

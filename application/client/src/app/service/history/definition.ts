@@ -5,6 +5,7 @@ import { unique } from '@platform/env/sequence';
 import { EntryConvertable, Entry } from '@platform/types/storage/entry';
 import { error } from '@platform/env/logger';
 import { Subject } from '@platform/env/subscription';
+import { Equal } from '@platform/types/env/types';
 
 import * as obj from '@platform/env/obj';
 
@@ -18,7 +19,7 @@ export interface IDefinition {
     uuid: string;
 }
 
-export class Definition implements IDefinition, EntryConvertable {
+export class Definition implements EntryConvertable, Equal<Definition> {
     static from(entry: Entry): Definition {
         return Definition.fromMinifiedStr(JSON.parse(entry.content));
     }

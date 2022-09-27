@@ -7,6 +7,7 @@ import { Json } from '@platform/types/storage/json';
 import { unique } from '@platform/env/sequence';
 import { error } from '@platform/env/logger';
 import { Key } from '../store';
+import { Equal } from '@platform/types/env/types';
 
 import * as regexFilters from '@platform/env/filters';
 import * as regex from '@platform/env/regex';
@@ -56,7 +57,7 @@ export interface UpdateEvent {
 
 export class FilterRequest
     extends Json<FilterRequest>
-    implements Recognizable, DisableConvertable, EntryConvertable
+    implements Recognizable, DisableConvertable, EntryConvertable, Equal<FilterRequest>
 {
     public static KEY: Key = Key.filters;
     public static from(input: Entry | string): FilterRequest | Error {
