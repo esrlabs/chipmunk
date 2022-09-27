@@ -2,6 +2,7 @@ import { bridge } from '@service/bridge';
 import { Collections } from './collections';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { error } from '@platform/env/logger';
+import { Definition } from './definition';
 
 @SetupLogger()
 export class StorageCollections {
@@ -41,13 +42,19 @@ export class StorageCollections {
             });
     }
 
-    public add(collections: Collections): string | undefined {
+    public update(collections: Collections): string | undefined {
         const existed = Array.from(this.collections.values()).find((c) => c.isSame(collections));
-        if (existed === undefined) {
+        if (this.collections.has(collections.uuid) || existed === undefined) {
             this.collections.set(collections.uuid, collections);
             return undefined;
         }
         return existed.uuid;
+    }
+
+    public find(definitions: Definition[]): Collections[] {
+        return Array.from(this.collections.values()).filter((collections) => {
+            return definitions.filter((def) => collections.relations.indexOf(def.uuid) !== -1);
+        });
     }
 }
 export interface StorageCollections extends LoggerInterface {}
