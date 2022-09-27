@@ -1,9 +1,11 @@
 import { Recognizable } from '@platform/types/storage/entry';
+import { Equal } from '@platform/types/env/types';
+
 import { Json, JsonField, JsonSet, Extractor } from '@platform/types/storage/json';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 
 @SetupLogger()
-export abstract class Collection<T extends Json<T> & Recognizable> {
+export abstract class Collection<T extends Json<T> & Recognizable & Equal<T>> {
     abstract extractor(): Extractor<T>;
     abstract isSame(collection: Collection<T>): boolean;
 

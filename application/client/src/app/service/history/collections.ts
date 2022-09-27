@@ -7,6 +7,7 @@ import { JsonSet } from '@platform/types/storage/json';
 import { error } from '@platform/env/logger';
 import { Subject } from '@platform/env/subscription';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
+import { Equal, Empty } from '@platform/types/env/types';
 
 import * as obj from '@platform/env/obj';
 
@@ -27,7 +28,7 @@ export interface UpdateOut {
 }
 
 @SetupLogger()
-export class Collections implements EntryConvertable {
+export class Collections implements EntryConvertable, Equal<Collections>, Empty {
     static from(smth: Session | Entry): Collections {
         if (smth instanceof Session) {
             const filters = smth.search.store().filters().get();

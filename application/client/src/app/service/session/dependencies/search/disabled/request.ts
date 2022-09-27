@@ -4,6 +4,7 @@ import { EntryConvertable, Entry, Recognizable } from '@platform/types/storage/e
 import { Key } from '../store';
 import { error } from '@platform/env/logger';
 import { Json } from '@platform/types/storage/json';
+import { Equal } from '@platform/types/env/types';
 
 export interface IDesc {
     type: string;
@@ -12,7 +13,7 @@ export interface IDesc {
 
 export class DisabledRequest
     extends Json<DisabledRequest>
-    implements Recognizable, EntryConvertable
+    implements Recognizable, EntryConvertable, Equal<DisabledRequest>
 {
     public static KEY: Key = Key.disabled;
     public static fromJson(json: string): DisabledRequest | Error {
