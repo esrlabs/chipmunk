@@ -1,11 +1,6 @@
-import { EntryConvertable, Entry } from '@platform/types/storage/entry';
-import { Subject } from '@platform/env/subscription';
-import { error, Instance as Logger } from '@platform/env/logger';
+import { Instance as Logger } from '@platform/env/logger';
 import { scope } from '@platform/env/scope';
 import { Definition } from './definition';
-import { bridge } from '@service/bridge';
-import { Session } from '../session/session';
-import { DataSource, ParserName } from '@platform/types/observe';
 
 export class Definitions {
     static UUID = 'history_definitions_holder';
@@ -16,10 +11,12 @@ export class Definitions {
         this.logger = scope.getLogger(`Definitions holder (history)`);
     }
 
-    public async add(source: DataSource): Promise<Definition> {
-        const definition = await Definition.fromDataSource(source);
+    public add(definition: Definition): void {
         this.definitions.set(definition.uuid, definition);
-        return definition;
+    }
+
+    public list(): Definition[] {
+        return Array.from(this.definitions.values());
     }
 
     // public async addFrom(session: Session): Promise<Definition[]> {

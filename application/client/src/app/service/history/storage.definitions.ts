@@ -41,13 +41,13 @@ export class StorageDefinitions {
             });
     }
 
-    public add(definition: Definition): string | undefined {
+    public add(definition: Definition): Definition {
         const existed = Array.from(this.definitions.values()).find((d) => d.isSame(definition));
         if (existed === undefined) {
             this.definitions.set(definition.uuid, definition);
-            return undefined;
+            return definition;
         }
-        return existed.uuid;
+        return existed;
     }
 }
 export interface StorageDefinitions extends LoggerInterface {}

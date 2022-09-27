@@ -1,4 +1,4 @@
-import { Collection } from './collection';
+import { Definition } from './definition';
 import { FiltersCollection } from './collection.filters';
 import { DisabledCollection } from './collection.disabled';
 import { Session } from '../session/session';
@@ -19,8 +19,15 @@ export interface ICollection {
     relations: string[];
     entries: JsonSet;
 }
+
+export interface UpdateOut {
+    filters(): UpdateOut;
+    disabled(): UpdateOut;
+    uuid(uuid: string | undefined): UpdateOut;
+}
+
 @SetupLogger()
-export class Collections implements ICollection, EntryConvertable {
+export class Collections implements EntryConvertable {
     static from(smth: Session | Entry): Collections {
         if (smth instanceof Session) {
             const filters = smth.search.store().filters().get();
@@ -63,8 +70,13 @@ export class Collections implements ICollection, EntryConvertable {
     public uuid: string;
     public preset: boolean;
     public relations: string[];
-    public entries: JsonSet = [];
-    public collections: Collection<any>[] = [new FiltersCollection(), new DisabledCollection()];
+    public collections: {
+        filters: FiltersCollection;
+        disabled: DisabledCollection;
+    } = {
+        filters: new FiltersCollection(),
+        disabled: new DisabledCollection(),
+    };
 
     constructor(alias: string, definition: ICollection) {
         this.setLoggerName(alias);
@@ -77,26 +89,37 @@ export class Collections implements ICollection, EntryConvertable {
         this.load(definition.entries);
     }
 
+    public bind(definition: Definition): void {
+        this.relations.indexOf(definition.uuid) === -1 && this.relations.push(definition.uuid);
+    }
+
+    public update(session: Session): UpdateOut {
+        const out: UpdateOut = {
+            filters: (): UpdateOut => {
+                this.collections.filters.update(session.search.store().filters().get());
+                return out;
+            },
+            disabled: (): UpdateOut => {
+                this.collections.disabled.update(session.search.store().disabled().get());
+                return out;
+            },
+            uuid: (uuid: string | undefined): UpdateOut => {
+                this.uuid = uuid !== undefined ? uuid : this.uuid;
+                return out;
+            },
+        };
+        return out;
+    }
+
     public isSame(collections: Collections): boolean {
-        let found = 0;
-        this.collections.forEach((outside) => {
-            collections.collections.forEach((inside) => {
-                if (inside instanceof FiltersCollection && outside instanceof FiltersCollection) {
-                    found += inside.isSame(outside) ? 1 : 0;
-                } else if (
-                    inside instanceof DisabledCollection &&
-                    outside instanceof DisabledCollection
-                ) {
-                    found += inside.isSame(outside) ? 1 : 0;
-                }
-            });
-        });
-        return found === collections.collections.length;
+        return (
+            this.collections.filters.isSame(collections.collections.filters) &&
+            this.collections.disabled.isSame(collections.collections.disabled)
+        );
     }
 
     protected load(entries: JsonSet) {
-        this.entries = entries;
-        this.collections.forEach((c) => c.load(entries));
+        [this.collections.filters, this.collections.disabled].forEach((c) => c.load(entries));
     }
 
     protected overwrite(definition: ICollection) {
@@ -110,7 +133,9 @@ export class Collections implements ICollection, EntryConvertable {
     }
 
     public isEmpty(): boolean {
-        return this.entries.length === 0;
+        return (
+            this.collections.filters.elements.size + this.collections.filters.elements.size === 0
+        );
     }
 
     public minify(): {
@@ -129,7 +154,10 @@ export class Collections implements ICollection, EntryConvertable {
             u: this.used,
             uu: this.uuid,
             r: this.relations,
-            e: this.entries,
+            e: this.collections.filters
+                .as()
+                .jsonSet()
+                .concat(this.collections.disabled.as().jsonSet()),
             p: this.preset,
         };
     }

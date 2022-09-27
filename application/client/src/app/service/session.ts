@@ -115,11 +115,9 @@ export class Service extends Implementation {
                     return Promise.reject(new Error(`Sessions aren't available yet`));
                 }
                 return new Promise((resolve, reject) => {
-                    const session = this.create(render);
-                    session
-                        .init()
-                        .then((uuid: string) => {
-                            binding(uuid, session, 'Empty');
+                    this.create(render)
+                        .then((session: Session) => {
+                            binding(session.uuid(), session, 'Empty');
                             resolve(session);
                         })
                         .catch((err: Error) => {
@@ -138,14 +136,12 @@ export class Service extends Implementation {
                     return Promise.reject(new Error(`Sessions aren't available yet`));
                 }
                 return new Promise((resolve, reject) => {
-                    const session = this.create(render);
-                    session
-                        .init()
-                        .then((uuid: string) => {
+                    this.create(render)
+                        .then((session: Session) => {
                             session.stream
                                 .file(file)
                                 .then(() => {
-                                    binding(uuid, session, file.name);
+                                    binding(session.uuid(), session, file.name);
                                     resolve(session);
                                 })
                                 .catch((err: Error) => {
@@ -234,10 +230,12 @@ export class Service extends Implementation {
         };
     }
 
-    protected create(render: Render<unknown>): Session {
+    protected create(render: Render<unknown>): Promise<Session> {
         const session = new Session(render);
-        this._emitter.session.created(session);
-        return session;
+        return session.init().then((_uuid: string) => {
+            this._emitter.session.created(session);
+            return session;
+        });
     }
 }
 export interface Service extends Interface {}

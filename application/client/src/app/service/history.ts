@@ -7,7 +7,7 @@ import {
 } from '@platform/entity/service';
 import { services } from '@register/services';
 import { bridge } from '@service/bridge';
-import { ilc, Emitter, Channel, Declarations } from '@service/ilc';
+import { ilc, Channel } from '@service/ilc';
 import { Session } from './session/session';
 
 // import { error } from '@platform/env/logger';
@@ -34,24 +34,13 @@ export class Service extends Implementation {
         await this.definitions.load();
         this._channel = ilc.channel(`History`, this.log());
         this._channel.session.created((session) => {
-            this.sessions.set(session.uuid(), new HistorySession(session));
-            session.stream.subjects.get().source.subscribe((source) => {
-                const history = this.sessions.get(session.uuid());
-                if (history === undefined) {
-                    return;
-                }
-                history.definitions
-                    .add(source)
-                    .then((definition) => {
-                        this.definitions.add(definition);
-                        // this.save(session).catch((err) =>
-                        //     this.log().error(`Fail to save session state: ${err.message}`),
-                        // );
-                    })
-                    .catch((err) => {
-                        this.log().error(`Fail to add source definition: ${err.message}`);
-                    });
-            });
+            this.sessions.set(
+                session.uuid(),
+                new HistorySession(session, {
+                    collections: this.collections,
+                    definitions: this.definitions,
+                }),
+            );
         });
         this._channel.session.closing((session) => {
             if (!(session instanceof Session)) {
@@ -60,13 +49,18 @@ export class Service extends Implementation {
             this.save(session)
                 .catch((err) => this.log().error(`Fail to save session state: ${err.message}`))
                 .finally(() => {
+                    const history = this.sessions.get(session.uuid());
+                    if (history === undefined) {
+                        return;
+                    }
+                    history.unsubscribe();
                     this.sessions.delete(session.uuid());
                 });
         });
         return Promise.resolve();
     }
 
-    public async save(session: Session): Promise<void> {
+    public async save(_session: Session): Promise<void> {
         // const collection = Collection.from(session);
         // if (collection.isEmpty()) {
         //     return;

@@ -7,8 +7,6 @@ export abstract class Collection<T extends Json<T> & Recognizable> {
     abstract extractor(): Extractor<T>;
     abstract isSame(collection: Collection<T>): boolean;
 
-    protected entries: JsonSet = [];
-
     public elements: Map<string, T> = new Map();
 
     constructor(alias: string, entries: JsonSet) {
@@ -27,8 +25,14 @@ export abstract class Collection<T extends Json<T> & Recognizable> {
         return this.extractor().from(json);
     }
 
+    public update(elements: T[]): void {
+        this.elements.clear();
+        elements.forEach((e) => {
+            this.elements.set(e.uuid(), e);
+        });
+    }
+
     public load(entries: JsonSet) {
-        this.entries = [];
         this.elements.clear();
         entries.forEach((entry) => {
             const element = this.extract(entry);
@@ -39,7 +43,6 @@ export abstract class Collection<T extends Json<T> & Recognizable> {
             if (element === undefined) {
                 return;
             }
-            this.entries.push(entry);
             this.elements.set(element.uuid(), element);
         });
     }
