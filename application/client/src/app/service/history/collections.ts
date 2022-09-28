@@ -5,9 +5,10 @@ import { Session } from '../session/session';
 import { EntryConvertable, Entry } from '@platform/types/storage/entry';
 import { JsonSet } from '@platform/types/storage/json';
 import { error } from '@platform/env/logger';
-import { Subject } from '@platform/env/subscription';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Equal, Empty } from '@platform/types/env/types';
+import { Subject } from '@platform/env/subscription';
+import { StorageCollections } from './storage.collections';
 
 import * as obj from '@platform/env/obj';
 
@@ -30,27 +31,32 @@ export interface UpdateOut {
 
 @SetupLogger()
 export class Collections implements EntryConvertable, Equal<Collections>, Empty {
-    static from(smth: Session | Entry): Collections {
+    static from(smth: Session | Entry, storage: StorageCollections): Collections {
         if (smth instanceof Session) {
             const filters = smth.search.store().filters().get();
             const disabled = smth.search.store().disabled().get();
-            return new Collections(`Collections:${smth.uuid()}`, {
-                name: '-',
-                last: Date.now(),
-                created: Date.now(),
-                used: 1,
-                uuid: smth.uuid(),
-                preset: false,
-                relations: [],
-                entries: filters
-                    .map((f) => f.asJsonField())
-                    .concat(disabled.map((d) => d.asJsonField())),
-            });
+            return new Collections(
+                `Collections:${smth.uuid()}`,
+                {
+                    name: '-',
+                    last: Date.now(),
+                    created: Date.now(),
+                    used: 1,
+                    uuid: smth.uuid(),
+                    preset: false,
+                    relations: [],
+                    entries: filters
+                        .map((f) => f.asJsonField())
+                        .concat(disabled.map((d) => d.asJsonField())),
+                },
+                storage,
+            );
         } else {
             const def = Collections.fromMinifiedStr(JSON.parse(smth.content));
             return new Collections(
                 `Collections:${def.uuid}`,
                 Collections.fromMinifiedStr(JSON.parse(smth.content)),
+                storage,
             );
         }
     }
@@ -82,8 +88,9 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         filters: new FiltersCollection(),
         disabled: new DisabledCollection(),
     };
+    protected storage: StorageCollections;
 
-    constructor(alias: string, definition: ICollection) {
+    constructor(alias: string, definition: ICollection, storage: StorageCollections) {
         this.setLoggerName(alias);
         this.name = definition.name;
         this.used = definition.used;
@@ -92,7 +99,12 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         this.uuid = definition.uuid;
         this.relations = definition.relations;
         this.preset = definition.preset;
+        this.storage = storage;
         this.load(definition.entries);
+    }
+
+    public delete() {
+        this.storage.delete(this);
     }
 
     public bind(definition: Definition): void {
@@ -115,6 +127,17 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
             },
         };
         return out;
+    }
+
+    public setName(name: string) {
+        if (name.trim() === '' || name.trim() === '-') {
+            this.name = '-';
+            this.preset = false;
+        } else {
+            this.name = name;
+            this.preset = true;
+        }
+        this.storage.update(this);
     }
 
     public isSame(collections: Collections): boolean {

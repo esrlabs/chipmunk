@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatButtonModule } from '@angular/material/button';
+import { EditableModule } from '@ui/elements/editable/module';
 
 import { Preset } from './preset/component';
 import { History } from './component';
@@ -15,7 +16,14 @@ const components = [...entryComponents];
 
 @NgModule({
     entryComponents: [...entryComponents],
-    imports: [CommonModule, MatIconModule, MatButtonModule, MatCardModule, MatDividerModule],
+    imports: [
+        CommonModule,
+        MatIconModule,
+        MatButtonModule,
+        MatCardModule,
+        MatDividerModule,
+        EditableModule,
+    ],
     declarations: [...components],
     exports: [...components],
 })

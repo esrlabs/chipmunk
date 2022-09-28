@@ -1,0 +1,7 @@
+<span *ngIf="!editable">{{caption}}</span>
+<input #requestInput *ngIf="editable"
+    matInput
+    [attr.placeholder]="placeholder"
+    (keyup)="onKeyUp($event)"
+    (blur)="onBlur()"
+    [(ngModel)]="value"/>

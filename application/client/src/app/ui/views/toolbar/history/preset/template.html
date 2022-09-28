@@ -1,6 +1,11 @@
 <mat-card>
-    <mat-card-title>{{getName()}}</mat-card-title>
-    <!-- <mat-card-subtitle>Select and open data source</mat-card-subtitle> -->
+    <mat-card-title>
+        <app-editable-field
+            (changed)="onRename($event)"
+            [value]="getValue()"
+            [caption]="getName()"
+            [placeholder]="'Preset name'"></app-editable-field>
+    </mat-card-title>
     <mat-card-content>
         <div class="section" *ngIf="filters.length > 0">
             <p class="t-small color-scheme-2">Filters</p>
