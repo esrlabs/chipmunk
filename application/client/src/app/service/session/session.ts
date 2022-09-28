@@ -47,6 +47,17 @@ export class Session extends Base {
                 },
             },
         });
+        this._toolbar.add({
+            name: 'Presets / History',
+            active: false,
+            closable: false,
+            content: {
+                factory: components.get('app-views-history'),
+                inputs: {
+                    session: this,
+                },
+            },
+        });
         this._sidebar.add({
             name: 'Observing',
             active: false,

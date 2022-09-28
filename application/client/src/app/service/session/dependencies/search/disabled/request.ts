@@ -77,12 +77,21 @@ export class DisabledRequest
         return this._entity;
     }
 
+    public as(): {
+        filter(): FilterRequest | undefined;
+    } {
+        return {
+            filter: (): FilterRequest | undefined => {
+                return this._entity instanceof FilterRequest ? this._entity : undefined;
+            },
+        };
+    }
+
     public json(): {
         to(): string;
         from(str: string): DisabledRequest | Error;
         key(): string;
     } {
-        const self = this;
         return {
             to: (): string => {
                 return JSON.stringify({

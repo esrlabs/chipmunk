@@ -157,7 +157,6 @@ export class FilterRequest
         from(str: string): FilterRequest | Error;
         key(): string;
     } {
-        const self = this;
         return {
             to: (): string => {
                 return JSON.stringify(this.definition);
@@ -178,7 +177,6 @@ export class FilterRequest
         uuid(): string;
         updated(): Subject<void>;
     } {
-        const self = this;
         return {
             to: (): Entry => {
                 return {

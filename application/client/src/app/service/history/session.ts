@@ -7,11 +7,20 @@ import { StorageDefinitions } from './storage.definitions';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { DataSource } from '@platform/types/observe';
 import { Subscriber } from '@platform/env/subscription';
+import { Subjects, Subject } from '@platform/env/subscription';
+import { Suitable, SuitableGroup } from './suitable';
+
+export { Suitable, SuitableGroup };
 
 @SetupLogger()
 export class HistorySession extends Subscriber {
     public definitions: Definitions;
     public collections: Collections;
+    public subjects: Subjects<{
+        suitable: Subject<Suitable>;
+    }> = new Subjects({
+        suitable: new Subject<Suitable>(),
+    });
     protected storage: {
         collections: StorageCollections;
         definitions: StorageDefinitions;
@@ -53,7 +62,7 @@ export class HistorySession extends Subscriber {
                 this.definitions.add(definition);
                 this.collections.bind(definition);
                 this.save();
-                this.find().related();
+                this.check().all();
             })
             .catch((err: Error) => {
                 this.log().error(`Fail to get definition of source: ${err.message}`);
@@ -92,31 +101,78 @@ export class HistorySession extends Subscriber {
         });
     }
 
-    protected find(): {
+    protected check(): {
         related(): boolean;
-        suitable(): boolean;
+        suitable(): void;
+        all(): void;
     } {
         return {
             related: (): boolean => {
-                const suitable = this.storage.collections.find(this.definitions.list());
-                if (suitable !== undefined) {
-                    if (suitable.length === 1) {
-                        this.session.search
-                            .store()
-                            .filters()
-                            .overwrite(suitable[0].collections.filters.as().elements());
-                        this.session.search
-                            .store()
-                            .disabled()
-                            .overwrite(suitable[0].collections.disabled.as().elements());
-                    }
+                const related = this.find().related();
+                if (related.length === 1) {
+                    this.session.search
+                        .store()
+                        .filters()
+                        .overwrite(related[0].collections.filters.as().elements(), true);
+                    this.session.search
+                        .store()
+                        .disabled()
+                        .overwrite(related[0].collections.disabled.as().elements(), true);
+                    this.collections = related[0];
+                    this.session.search.store().filters().refresh();
+                    this.session.search.store().disabled().refresh();
+                } else if (related.length > 0) {
+                    this.subjects.get().suitable.emit(new Suitable());
                 }
-                return suitable.length > 0;
+                return related.length > 0;
             },
-            suitable: (): boolean => {
-                return false;
+            suitable: (): void => {
+                this.subjects.get().suitable.emit(this.find().suitable());
+            },
+            all: (): void => {
+                if (this.check().related()) {
+                    return;
+                }
+                this.check().suitable();
             },
         };
+    }
+
+    public destroy() {
+        this.unsubscribe();
+        this.subjects.destroy();
+    }
+
+    public find(): {
+        related(): Collections[];
+        suitable(): Suitable;
+    } {
+        return {
+            related: (): Collections[] => {
+                return this.storage.collections.find(this.definitions.list()).related();
+            },
+            suitable: (): Suitable => {
+                return this.storage.collections.find(this.definitions.list()).suitable();
+            },
+        };
+    }
+
+    public apply(collection: Collections) {
+        this.storage.collections.used(collection.uuid);
+        this.session.search
+            .store()
+            .filters()
+            .overwrite(collection.collections.filters.as().elements(), true);
+        this.session.search
+            .store()
+            .disabled()
+            .overwrite(collection.collections.disabled.as().elements(), true);
+        this.collections = collection;
+        this.definitions.list().forEach((def) => {
+            this.collections.bind(def);
+        });
+        this.session.search.store().filters().refresh();
+        this.session.search.store().disabled().refresh();
     }
 }
 export interface HistorySession extends LoggerInterface {}

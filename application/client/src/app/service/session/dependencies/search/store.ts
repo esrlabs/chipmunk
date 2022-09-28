@@ -28,19 +28,26 @@ export abstract class Store<T> extends Subscriber {
         this.unsubscribe();
     }
 
-    public overwrite(items: Array<T & EntryConvertable>): void {
+    public overwrite(items: Array<T & EntryConvertable>, silence: boolean = false): Store<T> {
         this._entities = new Map();
         items.forEach((item) => {
             this._entities.set(item.entry().uuid(), item);
         });
-        this._update();
+        !silence && this._update();
+        return this;
     }
 
-    public update(items: Array<T & EntryConvertable>): void {
+    public refresh(): Store<T> {
+        this._update();
+        return this;
+    }
+
+    public update(items: Array<T & EntryConvertable>): Store<T> {
         items.forEach((item) => {
             this._entities.set(item.entry().uuid(), item);
         });
         this._update();
+        return this;
     }
 
     public delete(items: string[]): void {

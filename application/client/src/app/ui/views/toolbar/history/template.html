@@ -1,0 +1,7 @@
+<p class="no-content t-medium color-scheme-2" *ngIf="groups.length === 0">No recently used filters</p>
+<div *ngFor="let group of groups">
+    <p class="no-content t-medium color-scheme-2" *ngIf="group.caption !== undefined">{{group.caption}}</p>
+    <div class="group">
+        <app-sidebar-history-preset *ngFor="let collection of group.collections" [collections]="collection" (click)="use(collection)"></app-sidebar-history-preset>
+    </div>
+</div>

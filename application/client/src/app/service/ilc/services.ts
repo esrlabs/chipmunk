@@ -12,6 +12,7 @@ import { bridge, Service as BridgeService } from '@service/bridge';
 import { recent, Service as RecentService } from '@service/recent';
 import { opener, Service as OpenerService } from '@service/opener';
 import { hotkeys, Service as HotkeysService } from '@service/hotkeys';
+import { history, Service as HistoryService } from '@service/history';
 import { listener, Service as ListenerService } from '@ui/service/listener';
 import { lockers, Service as LockersService } from '@ui/service/lockers';
 
@@ -26,6 +27,7 @@ export class Services {
         recent: RecentService;
         opener: OpenerService;
         hotkeys: HotkeysService;
+        history: HistoryService;
     };
     public readonly ui: {
         popup: UIPopupService;
@@ -53,6 +55,7 @@ export class Services {
             recent,
             opener,
             hotkeys,
+            history,
         };
         this.ui = {
             popup,

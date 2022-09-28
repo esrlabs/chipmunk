@@ -1,0 +1,14 @@
+<mat-card>
+    <mat-card-title>{{getName()}}</mat-card-title>
+    <!-- <mat-card-subtitle>Select and open data source</mat-card-subtitle> -->
+    <mat-card-content>
+        <div class="section" *ngIf="filters.length > 0">
+            <p class="t-small color-scheme-2">Filters</p>
+            <app-sidebar-filters-filter-preview *ngFor="let filter of filters" [filter]="filter"></app-sidebar-filters-filter-preview>    
+        </div>
+        <div class="section" *ngIf="disabled.filters.length > 0">
+            <p class="t-small color-scheme-2">Disabled filters</p>
+            <app-sidebar-filters-filter-preview *ngFor="let filter of disabled.filters" [filter]="filter"></app-sidebar-filters-filter-preview>
+        </div>
+    </mat-card-content>
+</mat-card>
