@@ -35,7 +35,7 @@ export class HistorySession extends Subscriber {
         },
     ) {
         super();
-        this.collections = Collections.from(session);
+        this.collections = Collections.from(session, storage.collections);
         this.definitions = new Definitions();
         this.storage = storage;
         this.session = session;
@@ -173,6 +173,10 @@ export class HistorySession extends Subscriber {
         });
         this.session.search.store().filters().refresh();
         this.session.search.store().disabled().refresh();
+    }
+
+    public clear() {
+        this.storage.collections.clear();
     }
 }
 export interface HistorySession extends LoggerInterface {}

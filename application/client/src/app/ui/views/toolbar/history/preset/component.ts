@@ -1,8 +1,8 @@
-import { Component, Input, AfterContentInit } from '@angular/core';
+import { Component, Input, AfterContentInit, ChangeDetectorRef } from '@angular/core';
 import { Collections } from '@service/history/collections';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
-
 import { Ilc, IlcInterface } from '@env/decorators/component';
+import { ChangesDetector } from '@ui/env/extentions/changes';
 
 @Component({
     selector: 'app-sidebar-history-preset',
@@ -10,7 +10,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
     styleUrls: ['./styles.less'],
 })
 @Ilc()
-export class Preset implements AfterContentInit {
+export class Preset extends ChangesDetector implements AfterContentInit {
     @Input() public collections!: Collections;
 
     public filters: FilterRequest[] = [];
@@ -19,6 +19,10 @@ export class Preset implements AfterContentInit {
     } = {
         filters: [],
     };
+
+    constructor(cdRef: ChangeDetectorRef) {
+        super(cdRef);
+    }
 
     public ngAfterContentInit(): void {
         this.filters = this.collections.collections.filters.as().elements();
@@ -37,6 +41,20 @@ export class Preset implements AfterContentInit {
         } else {
             return `${this.collections.name}(${this.collections.used})`;
         }
+    }
+
+    public getValue(): string {
+        return this.collections.name === '-' ? '' : this.collections.name;
+    }
+
+    public onRename(value: string) {
+        if (value.trim() === '') {
+            this.collections.name = '-';
+        } else {
+            this.collections.name = value;
+        }
+        this.collections.setName(this.collections.name);
+        this.detectChanges();
     }
 }
 export interface Preset extends IlcInterface {}

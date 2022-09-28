@@ -14,9 +14,6 @@ export interface IDefinition {
     stream?: IStreamDesc;
     file?: IFileDesc;
     parser: ParserName;
-    name: string;
-    created: number;
-    used: number;
     uuid: string;
 }
 
@@ -37,9 +34,6 @@ export class Definition implements EntryConvertable, Equal<Definition> {
             file: await FileDesc.fromDataSource(source),
             stream: await StreamDesc.fromDataSource(source),
             parser,
-            created: Date.now(),
-            used: Date.now(),
-            name: '-',
             uuid: unique(),
         };
         if (desc.file === undefined && desc.stream === undefined) {
@@ -52,10 +46,7 @@ export class Definition implements EntryConvertable, Equal<Definition> {
             file: FileDesc.fromMinifiedStr(obj.getAsObjOrUndefined(src, 'f')),
             stream: StreamDesc.fromMinifiedStr(obj.getAsObjOrUndefined(src, 's')),
             parser: obj.getAsNotEmptyString(src, 'p') as ParserName,
-            name: obj.getAsNotEmptyString(src, 'n'),
-            created: obj.getAsValidNumber(src, 'c'),
-            used: obj.getAsValidNumber(src, 'u'),
-            uuid: obj.getAsNotEmptyString(src, 'uu'),
+            uuid: obj.getAsNotEmptyString(src, 'u'),
         });
         if (def.file === undefined && def.stream === undefined) {
             throw new Error(`Definition doesn't have description not for stream, not for file`);
@@ -66,9 +57,6 @@ export class Definition implements EntryConvertable, Equal<Definition> {
     public stream?: StreamDesc;
     public file?: FileDesc;
     public parser: ParserName;
-    public name: string;
-    public created: number;
-    public used: number;
     public uuid: string;
 
     constructor(definition: IDefinition) {
@@ -76,9 +64,6 @@ export class Definition implements EntryConvertable, Equal<Definition> {
             definition.stream === undefined ? undefined : new StreamDesc(definition.stream);
         this.file = definition.file === undefined ? undefined : new FileDesc(definition.file);
         this.parser = definition.parser;
-        this.name = definition.name;
-        this.used = definition.used;
-        this.created = definition.created;
         this.uuid = definition.uuid;
     }
 
@@ -86,9 +71,6 @@ export class Definition implements EntryConvertable, Equal<Definition> {
         this.stream = definition.stream;
         this.file = definition.file;
         this.parser = definition.parser;
-        this.name = definition.name;
-        this.used = definition.used;
-        this.created = definition.created;
         this.uuid = definition.uuid;
     }
 
@@ -159,10 +141,7 @@ export class Definition implements EntryConvertable, Equal<Definition> {
             s: this.stream?.minify(),
             f: this.file?.minify(),
             p: this.parser,
-            n: this.name,
-            c: this.created,
-            u: this.used,
-            uu: this.uuid,
+            u: this.uuid,
         };
     }
 

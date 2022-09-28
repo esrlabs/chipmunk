@@ -7,6 +7,8 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { HistorySession, Suitable, SuitableGroup } from '@service/history/session';
 import { Collections } from '@service/history/collections';
 
+import * as dom from '@ui/env/dom';
+
 @Component({
     selector: 'app-views-history',
     templateUrl: './template.html',
@@ -20,21 +22,16 @@ export class History extends ChangesDetector implements AfterContentInit {
     public history!: HistorySession;
     public groups: SuitableGroup[] = [];
 
+    constructor(cdRef: ChangeDetectorRef) {
+        super(cdRef);
+    }
     @HostListener('contextmenu', ['$event']) onContextMenu(event: MouseEvent) {
         const items: IMenuItem[] = [
             {
-                caption: `Clear recent history`,
+                caption: `Remove All Presets`,
                 handler: () => {
-                    // this._session
-                    //         .getSessionSearch()
-                    //         .getStoreAPI()
-                    //         .clear()
-                    //         .catch((error: Error) => {
-                    //             this._notifications.add({
-                    //                 caption: 'Error',
-                    //                 message: `Fail to drop recent filters history due error: ${error.message}`,
-                    //             });
-                    //         });
+                    this.history.clear();
+                    this.update().detectChanges();
                 },
             },
         ];
@@ -43,12 +40,25 @@ export class History extends ChangesDetector implements AfterContentInit {
             x: event.pageX,
             y: event.pageY,
         });
-        event.stopImmediatePropagation();
-        event.preventDefault();
+        return dom.stop(event);
     }
 
-    constructor(cdRef: ChangeDetectorRef) {
-        super(cdRef);
+    public onCollectionContextmenu(collection: Collections, event: MouseEvent) {
+        const items: IMenuItem[] = [
+            {
+                caption: `Remove`,
+                handler: () => {
+                    collection.delete();
+                    this.update().detectChanges();
+                },
+            },
+        ];
+        contextmenu.show({
+            items: items,
+            x: event.pageX,
+            y: event.pageY,
+        });
+        return dom.stop(event);
     }
 
     public ngAfterContentInit(): void {
@@ -69,9 +79,10 @@ export class History extends ChangesDetector implements AfterContentInit {
         this.history.apply(collection);
     }
 
-    protected update(collections?: Suitable): void {
+    protected update(collections?: Suitable): History {
         const suitable = collections === undefined ? this.history.find().suitable() : collections;
         this.groups = suitable.asGroups();
+        return this;
     }
 }
 export interface History extends IlcInterface {}

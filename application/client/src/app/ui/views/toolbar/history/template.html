@@ -2,6 +2,6 @@
 <div *ngFor="let group of groups">
     <p class="no-content t-medium color-scheme-2" *ngIf="group.caption !== undefined">{{group.caption}}</p>
     <div class="group">
-        <app-sidebar-history-preset *ngFor="let collection of group.collections" [collections]="collection" (click)="use(collection)"></app-sidebar-history-preset>
+        <app-sidebar-history-preset (contextmenu)="onCollectionContextmenu(collection, $event)" *ngFor="let collection of group.collections" [collections]="collection" (click)="use(collection)"></app-sidebar-history-preset>
     </div>
 </div>

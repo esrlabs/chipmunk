@@ -25,7 +25,7 @@ export class StorageCollections {
             .then((entries) => {
                 entries.forEach((entry) => {
                     try {
-                        const collections = Collections.from(entry);
+                        const collections = Collections.from(entry, this);
                         this.collections.set(collections.uuid, collections);
                     } catch (e) {
                         this.log().error(`Fail parse collection: ${error(e)}`);
@@ -40,7 +40,7 @@ export class StorageCollections {
     public async save(): Promise<void> {
         await bridge
             .entries(StorageCollections.UUID)
-            .update(Array.from(this.collections.values()).map((c) => c.entry().to()))
+            .overwrite(Array.from(this.collections.values()).map((c) => c.entry().to()))
             .catch((err: Error) => {
                 this.log().warn(`Fail to write history collections: ${err.message}`);
             });
@@ -53,6 +53,16 @@ export class StorageCollections {
             return undefined;
         }
         return existed.uuid;
+    }
+
+    public delete(collections: Collections) {
+        this.collections.delete(collections.uuid);
+        this.save();
+    }
+
+    public clear() {
+        this.collections.clear();
+        this.save();
     }
 
     public find(definitions: Definition[]): {
