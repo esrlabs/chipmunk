@@ -30,9 +30,7 @@ export class Transport extends ChangesDetector {
 
     public ngOnSourceChange() {
         this.state.switch();
-        if (this.action !== undefined) {
-            this.action.defaults();
-        }
+        this.action.defaults();
     }
 }
 export interface Transport extends IlcInterface {}
