@@ -24,10 +24,15 @@ import { StorageDefinitions } from './history/storage.definitions';
 export class Service extends Implementation {
     private _channel!: Channel;
 
-    public collections: StorageCollections = new StorageCollections();
-    public definitions: StorageDefinitions = new StorageDefinitions();
-
+    public collections: StorageCollections;
+    public definitions: StorageDefinitions;
     public sessions: Map<string, HistorySession> = new Map();
+
+    constructor() {
+        super();
+        this.definitions = new StorageDefinitions();
+        this.collections = new StorageCollections(this.definitions);
+    }
 
     public override async ready(): Promise<void> {
         await this.collections.load();
@@ -53,7 +58,7 @@ export class Service extends Implementation {
                     if (history === undefined) {
                         return;
                     }
-                    history.unsubscribe();
+                    history.destroy();
                     this.sessions.delete(session.uuid());
                 });
         });
@@ -67,6 +72,10 @@ export class Service extends Implementation {
         // }
         // // const defs = await this.definitions.addFrom(session);
         return Promise.resolve();
+    }
+
+    public get(session: Session | string): HistorySession | undefined {
+        return this.sessions.get(session instanceof Session ? session.uuid() : session);
     }
 }
 export interface Service extends Interface {}

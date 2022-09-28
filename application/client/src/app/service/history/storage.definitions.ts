@@ -49,5 +49,9 @@ export class StorageDefinitions {
         }
         return existed;
     }
+
+    public get(uuid: string): Definition | undefined {
+        return this.definitions.get(uuid);
+    }
 }
 export interface StorageDefinitions extends LoggerInterface {}

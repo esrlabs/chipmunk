@@ -14,6 +14,7 @@ import * as obj from '@platform/env/obj';
 export interface ICollection {
     name: string;
     created: number;
+    last: number;
     used: number;
     uuid: string;
     preset: boolean;
@@ -35,6 +36,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
             const disabled = smth.search.store().disabled().get();
             return new Collections(`Collections:${smth.uuid()}`, {
                 name: '-',
+                last: Date.now(),
                 created: Date.now(),
                 used: 1,
                 uuid: smth.uuid(),
@@ -58,6 +60,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
             name: obj.getAsNotEmptyString(src, 'n'),
             created: obj.getAsValidNumber(src, 'c'),
             used: obj.getAsValidNumber(src, 'u'),
+            last: obj.getAsValidNumber(src, 'l'),
             preset: obj.getAsBool(src, 'p'),
             uuid: obj.getAsNotEmptyString(src, 'uu'),
             relations: obj.getAsArray(src, 'r'),
@@ -68,6 +71,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
     public name: string;
     public created: number;
     public used: number;
+    public last: number;
     public uuid: string;
     public preset: boolean;
     public relations: string[];
@@ -83,6 +87,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         this.setLoggerName(alias);
         this.name = definition.name;
         this.used = definition.used;
+        this.last = definition.last;
         this.created = definition.created;
         this.uuid = definition.uuid;
         this.relations = definition.relations;
@@ -126,6 +131,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
     protected overwrite(definition: ICollection) {
         this.name = definition.name;
         this.used = definition.used;
+        this.last = definition.last;
         this.created = definition.created;
         this.uuid = definition.uuid;
         this.relations = definition.relations;
@@ -153,6 +159,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
             n: this.name,
             c: this.created,
             u: this.used,
+            l: this.last,
             uu: this.uuid,
             r: this.relations,
             e: this.collections.filters

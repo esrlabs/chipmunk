@@ -6,6 +6,7 @@ import { EntryConvertable, Entry } from '@platform/types/storage/entry';
 import { error } from '@platform/env/logger';
 import { Subject } from '@platform/env/subscription';
 import { Equal } from '@platform/types/env/types';
+import { Collections } from './collections';
 
 import * as obj from '@platform/env/obj';
 
@@ -19,6 +20,10 @@ export interface IDefinition {
     uuid: string;
 }
 
+export interface GroupRelations {
+    rank: number;
+    caption?: string;
+}
 export class Definition implements EntryConvertable, Equal<Definition> {
     static from(entry: Entry): Definition {
         return Definition.fromMinifiedStr(JSON.parse(entry.content));
@@ -98,6 +103,53 @@ export class Definition implements EntryConvertable, Equal<Definition> {
             return this.file.isSame(definition.file);
         }
         return false;
+    }
+
+    public check(): {
+        related(collections: Collections): boolean;
+        suitable(definition: Definition): GroupRelations | undefined;
+    } {
+        return {
+            related: (collections: Collections): boolean => {
+                return collections.relations.indexOf(this.uuid) !== -1;
+            },
+            suitable: (definition: Definition): GroupRelations | undefined => {
+                if (this.parser !== definition.parser) {
+                    return undefined;
+                }
+                if (this.file !== undefined && definition.file !== undefined) {
+                    if (
+                        this.file.extention === definition.file.extention &&
+                        this.file.filename === definition.file.filename
+                    ) {
+                        return { rank: 1, caption: 'Same file' };
+                    }
+                    if (this.file.extention === definition.file.extention) {
+                        return { rank: 2, caption: 'Same file format' };
+                    }
+                    if (this.file.parent === definition.file.parent) {
+                        return { rank: 3, caption: 'Same file location' };
+                    }
+                    return undefined;
+                }
+                if (this.stream !== undefined && definition.stream !== undefined) {
+                    if (
+                        this.stream.major === definition.stream.major &&
+                        this.stream.minor === definition.stream.minor
+                    ) {
+                        return { rank: 1 };
+                    }
+                    if (this.stream.major === definition.stream.major) {
+                        return { rank: 2 };
+                    }
+                    if (this.stream.minor === definition.stream.minor) {
+                        return { rank: 3 };
+                    }
+                    return undefined;
+                }
+                return undefined;
+            },
+        };
     }
 
     public minify(): {

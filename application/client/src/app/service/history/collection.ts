@@ -65,4 +65,6 @@ export abstract class Collection<T extends Json<T> & Recognizable & Equal<T>> {
         };
     }
 }
-export interface Collection<T> extends LoggerInterface {}
+export interface Collection<T> extends LoggerInterface {
+    _phantom: T;
+}

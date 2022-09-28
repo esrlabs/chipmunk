@@ -1,0 +1,10 @@
+<div class="doubleclick">
+    <span class="color" [ngStyle]="{'background': filter.definition.colors.color}"></span>
+    <span class="background" [ngStyle]="{'background': filter.definition.colors.background}"></span>
+    <span class="request">{{filter.definition.filter.filter}}</span>
+</div>
+<span class="flags">
+    <span [attr.class]="'small-icon-button codicon codicon-case-sensitive ' + (filter.definition.filter.flags.cases ? 'active' : 'inactive')"></span>
+    <span [attr.class]="'small-icon-button codicon codicon-whole-word ' + (filter.definition.filter.flags.word ? 'active' : 'inactive')"></span>
+    <span [attr.class]="'small-icon-button codicon codicon-regex ' + (filter.definition.filter.flags.reg ? 'active' : 'inactive')"></span>
+</span>
