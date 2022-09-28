@@ -11,6 +11,7 @@ import { components } from '@env/decorators/initial';
 import { LockToken } from '@platform/env/lock.token';
 import { Timezone } from '@elements/timezones/timezone';
 import { SourceDefinition } from '@platform/types/transport';
+import { Action } from '../common/actions/action';
 
 @Component({
     selector: 'app-tabs-source-dltstream',
@@ -33,6 +34,7 @@ export class TabSourceDltStream extends ChangesDetector implements AfterContentI
     public size: (s: number) => string = bytesToStr;
     public datetime: (ts: number) => string = timestampToUTC;
     public state: State = new State();
+    public action: Action = new Action();
     public logLevels: Array<{ value: string; caption: string }> = [
         { value: EMTIN.DLT_LOG_FATAL, caption: 'Fatal' },
         { value: EMTIN.DLT_LOG_ERROR, caption: 'Error' },
