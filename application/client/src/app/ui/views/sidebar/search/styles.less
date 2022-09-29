@@ -13,8 +13,21 @@ app-views-filters {
     overflow-y: hidden;
     outline: none;
     & div.holder {
+        position: absolute;
+        left:0;
+        width: 100%;;
         overflow-y: auto;
-        height: 100%;
+        top: 0;
+        bottom: 32px;
+    }
+    & div.controlls{
+        position: absolute;
+        left:0;
+        width: 100%;
+        bottom: 0;
+        height: 32px;
+        overflow: hidden;
+        text-align: right;
     }
     & div.wrapper{
         position: relative;

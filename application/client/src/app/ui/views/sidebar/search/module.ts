@@ -8,6 +8,7 @@ import { FilterItemDirective } from './directives/item.directive';
 import { FiltersListDirective } from './directives/list.directive';
 
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatOptionModule } from '@angular/material/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -60,6 +61,7 @@ const components = [...entryComponents];
         MatSelectModule,
         MatCheckboxModule,
         MatExpansionModule,
+        MatButtonModule,
         FormsModule,
         ReactiveFormsModule,
         DragDropModule,

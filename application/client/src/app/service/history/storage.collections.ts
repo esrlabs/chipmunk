@@ -65,17 +65,24 @@ export class StorageCollections {
         this.save();
     }
 
-    public find(definitions: Definition[]): {
+    public find(definitions?: Definition[]): {
         related(): Collections[];
         suitable(): Suitable;
+        named(): Collections[];
     } {
         return {
             related: (): Collections[] => {
+                if (definitions === undefined) {
+                    return [];
+                }
                 return Array.from(this.collections.values()).filter((collections) => {
                     return definitions.filter((def) => def.check().related(collections)).length > 0;
                 });
             },
             suitable: (): Suitable => {
+                if (definitions === undefined) {
+                    return new Suitable();
+                }
                 const suitable: Suitable = new Suitable();
                 Array.from(this.collections.values()).forEach((collections) => {
                     collections.relations.forEach((uuid) => {
@@ -89,6 +96,9 @@ export class StorageCollections {
                     });
                 });
                 return suitable;
+            },
+            named: (): Collections[] => {
+                return Array.from(this.collections.values()).filter((c) => c.hasName());
             },
         };
     }
