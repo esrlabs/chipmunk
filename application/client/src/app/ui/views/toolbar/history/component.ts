@@ -40,14 +40,14 @@ export class History extends ChangesDetector implements AfterContentInit {
             {
                 caption: `Export all`,
                 handler: () => {
-                    //
+                    this.state.selection().all().export();
                 },
             },
             {},
             {
                 caption: `Import from file`,
                 handler: () => {
-                    //
+                    this.state.import();
                 },
             },
         ];
@@ -81,7 +81,7 @@ export class History extends ChangesDetector implements AfterContentInit {
             {
                 caption: `Import from file`,
                 handler: () => {
-                    //
+                    this.state.import();
                 },
             },
         ];

@@ -4,6 +4,14 @@ import { Session } from '@service/session';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Collections } from '@service/history/collections';
 
+export interface Selection {
+    select(collection: Collections): Selection;
+    has(): boolean;
+    export(): Selection;
+    all(): Selection;
+    drop(): Selection;
+}
+
 export class State {
     protected parent!: IlcInterface & ChangesDetector;
 
@@ -30,21 +38,16 @@ export class State {
         this.list().update();
     }
 
-    public selection(): {
-        select(collection: Collections): void;
-        has(): boolean;
-        export(): void;
-        all(): void;
-        drop(): void;
-    } {
-        return {
-            select: (collection: Collections): void => {
+    public selection(): Selection {
+        const self = {
+            select: (collection: Collections): Selection => {
                 this.selected[collection.uuid] = true;
+                return self;
             },
             has: (): boolean => {
                 return Object.keys(this.selected).filter((k) => this.selected[k]).length > 0;
             },
-            export: (): void => {
+            export: (): Selection => {
                 this.parent
                     .ilc()
                     .services.system.bridge.files()
@@ -71,16 +74,44 @@ export class State {
                     .catch((err: Error) => {
                         this.parent.log().error(`Fail to export: ${err.message}`);
                     });
+                return self;
             },
-            all: (): void => {
+            all: (): Selection => {
                 Object.keys(this.selected).forEach((k) => (this.selected[k] = true));
                 this.parent.detectChanges();
+                return self;
             },
-            drop: (): void => {
+            drop: (): Selection => {
                 Object.keys(this.selected).forEach((k) => (this.selected[k] = false));
                 this.parent.detectChanges();
+                return self;
             },
         };
+        return self;
+    }
+
+    public import(): void {
+        this.parent
+            .ilc()
+            .services.system.bridge.files()
+            .select.any()
+            .then((files) => {
+                if (files.length !== 1) {
+                    return;
+                }
+                this.parent
+                    .ilc()
+                    .services.system.history.import(files[0].filename)
+                    .then(() => {
+                        this.parent.detectChanges();
+                    })
+                    .catch((err: Error) => {
+                        this.parent.log().error(`Fail import collections: ${err.message}`);
+                    });
+            })
+            .catch((err: Error) => {
+                this.parent.log().error(`Fail open file to import collections: ${err.message}`);
+            });
     }
 
     public update(): State {

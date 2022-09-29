@@ -55,6 +55,12 @@ export class StorageCollections {
         return existed.uuid;
     }
 
+    public overwrite(collections: Collections[]): void {
+        this.collections.clear();
+        collections.forEach((c) => this.collections.set(c.uuid, c));
+        this.save();
+    }
+
     public get(uuid: string): Collections | undefined {
         return this.collections.get(uuid);
     }

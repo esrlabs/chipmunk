@@ -84,8 +84,24 @@ export class Service extends Implementation {
                         return this.collections.get(uuid);
                     })
                     .filter((c) => c !== undefined) as Collections[]
-            ).map((c) => c.clone().entry().to()),
+            ).map((c, i) => {
+                if (!c.hasName()) {
+                    c.name = `imported_${i}`;
+                }
+                return c.clone().entry().to();
+            }),
         );
+    }
+
+    public import(filename: string): Promise<void> {
+        return bridge
+            .entries({ file: filename })
+            .get()
+            .then((entries) => {
+                this.collections.overwrite(
+                    entries.map((entry) => Collections.from(entry, this.collections)),
+                );
+            });
     }
 }
 export interface Service extends Interface {}
