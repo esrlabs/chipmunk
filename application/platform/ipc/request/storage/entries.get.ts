@@ -5,12 +5,17 @@ import * as validator from '../../../env/obj';
 
 @Define({ name: 'EntriesGetRequest' })
 export class Request extends SignatureRequirement {
-    public key: string;
+    public key?: string;
+    public file?: string;
 
-    constructor(input: { key: string }) {
+    constructor(input: { key?: string; file?: string }) {
         super();
         validator.isObject(input);
-        this.key = validator.getAsNotEmptyString(input, 'key');
+        this.key = validator.getAsNotEmptyStringOrAsUndefined(input, 'key');
+        this.file = validator.getAsNotEmptyStringOrAsUndefined(input, 'file');
+        if (this.key === undefined && this.file === undefined) {
+            throw new Error(`For EntriesGetRequest should be defined "file" or "key"`);
+        }
     }
 }
 
@@ -23,6 +28,7 @@ export class Response extends SignatureRequirement {
     constructor(input: { key: string; entries: Entry[] }) {
         super();
         validator.isObject(input);
+        this.entries = validator.getAsArray(input, 'entries');
         this.key = validator.getAsNotEmptyString(input, 'key');
         this.entries = validator.getAsArray(input, 'entries');
     }

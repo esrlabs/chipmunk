@@ -7,15 +7,20 @@ export type Mode = 'overwrite' | 'update' | 'append';
 
 @Define({ name: 'EntriesSetRequest' })
 export class Request extends SignatureRequirement {
-    public key: string;
+    public key?: string;
+    public file?: string;
     public entries: Entry[];
     public mode: Mode;
-    constructor(input: { key: string; entries: Entry[]; mode: Mode }) {
+    constructor(input: { key?: string; file?: string; entries: Entry[]; mode: Mode }) {
         super();
         validator.isObject(input);
-        this.key = validator.getAsNotEmptyString(input, 'key');
+        this.key = validator.getAsNotEmptyStringOrAsUndefined(input, 'key');
+        this.file = validator.getAsNotEmptyStringOrAsUndefined(input, 'file');
         this.mode = validator.getAsNotEmptyString(input, 'mode') as Mode;
         this.entries = validator.getAsArray(input, 'entries');
+        if (this.key === undefined && this.file === undefined) {
+            throw new Error(`For EntriesSetRequest should be defined "file" or "key"`);
+        }
     }
 }
 

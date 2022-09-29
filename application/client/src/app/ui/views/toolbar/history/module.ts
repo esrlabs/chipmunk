@@ -6,6 +6,8 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { EditableModule } from '@ui/elements/editable/module';
 import { MatSelectModule } from '@angular/material/select';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { Preset } from './preset/component';
@@ -23,6 +25,7 @@ const components = [...entryComponents];
         MatButtonModule,
         MatCardModule,
         MatSelectModule,
+        MatCheckboxModule,
         FormsModule,
         ReactiveFormsModule,
         EditableModule,

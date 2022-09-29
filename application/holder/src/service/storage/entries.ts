@@ -1,12 +1,29 @@
 import { Entry } from 'platform/types/storage/entry';
 import { error } from 'platform/env/logger';
 import { SetupLogger, LoggerInterface } from 'platform/entity/logger';
+import { Instance as Logger } from 'platform/env/logger';
 
 export type Writer = (key: string, content: string) => Error | undefined;
 export type Reader = (key: string) => Promise<string>;
 
 @SetupLogger('EntriesHolder')
 export class Entries {
+    static from(str: string, storageKey: string, logger: Logger): Map<string, Entry> {
+        const entries = new Map<string, Entry>();
+        (JSON.parse(str) as Entry[]).forEach((entry) => {
+            if (typeof entry['uuid'] !== 'string' || entry['uuid'].trim() === '') {
+                logger.warn(`Storage "${storageKey}" includes entries without valid "uuid"`);
+                return;
+            }
+            if (typeof entry['content'] !== 'string' || entry['content'].trim() === '') {
+                logger.warn(`Storage "${storageKey}" includes entries without valid "content"`);
+                return;
+            }
+            entries.set(entry.uuid, entry);
+        });
+        return entries;
+    }
+
     private readonly _writer: Writer;
     private readonly _reader: Reader;
     private _entries: Map<string, Map<string, Entry>> = new Map();
@@ -29,7 +46,7 @@ export class Entries {
                             resolve(new Map());
                             return;
                         }
-                        const entries = this._getEntriesFromStr(content, storageKey);
+                        const entries = Entries.from(content, storageKey, this.log());
                         !this._entries.has(storageKey) && this._entries.set(storageKey, entries);
                         resolve(entries);
                     } catch (err) {
@@ -118,22 +135,6 @@ export class Entries {
                 })
                 .catch(reject);
         });
-    }
-
-    private _getEntriesFromStr(str: string, storageKey: string): Map<string, Entry> {
-        const entries = new Map<string, Entry>();
-        (JSON.parse(str) as Entry[]).forEach((entry) => {
-            if (typeof entry['uuid'] !== 'string' || entry['uuid'].trim() === '') {
-                this.log().warn(`Storage "${storageKey}" includes entries without valid "uuid"`);
-                return;
-            }
-            if (typeof entry['content'] !== 'string' || entry['content'].trim() === '') {
-                this.log().warn(`Storage "${storageKey}" includes entries without valid "content"`);
-                return;
-            }
-            entries.set(entry.uuid, entry);
-        });
-        return entries;
     }
 
     private _getEntriesFromArray(entries: Entry[], storageKey: string): Map<string, Entry> {

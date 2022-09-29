@@ -144,7 +144,7 @@ export class State {
             get: (): Promise<string[]> => {
                 return new Promise((resolve, reject) => {
                     this._services.system.bridge
-                        .entries(STORAGE_KEY)
+                        .entries({ key: STORAGE_KEY })
                         .get()
                         .then((entries) => {
                             resolve(entries.map((entry) => entry.content));
@@ -153,7 +153,7 @@ export class State {
                 });
             },
             set: (value: string[]): Promise<void> => {
-                return this._services.system.bridge.entries(STORAGE_KEY).overwrite(
+                return this._services.system.bridge.entries({ key: STORAGE_KEY }).overwrite(
                     value.map((path: string) => {
                         return {
                             uuid: path,

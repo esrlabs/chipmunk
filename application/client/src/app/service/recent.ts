@@ -21,7 +21,7 @@ export class Service extends Implementation {
     public get(): Promise<Action[]> {
         return new Promise((resolve, reject) => {
             bridge
-                .entries(STORAGE_KEY)
+                .entries({ key: STORAGE_KEY })
                 .get()
                 .then((entries) => {
                     resolve(
@@ -42,19 +42,19 @@ export class Service extends Implementation {
     }
 
     public append(actions: Action[]): Promise<void> {
-        return bridge.entries(STORAGE_KEY).append(actions.map((a) => a.asEntry()));
+        return bridge.entries({ key: STORAGE_KEY }).append(actions.map((a) => a.asEntry()));
     }
 
     public overwrite(actions: Action[]): Promise<void> {
-        return bridge.entries(STORAGE_KEY).append(actions.map((a) => a.asEntry()));
+        return bridge.entries({ key: STORAGE_KEY }).append(actions.map((a) => a.asEntry()));
     }
 
     public update(actions: Action[]): Promise<void> {
-        return bridge.entries(STORAGE_KEY).update(actions.map((a) => a.asEntry()));
+        return bridge.entries({ key: STORAGE_KEY }).update(actions.map((a) => a.asEntry()));
     }
 
     public delete(uuids: string[]): Promise<void> {
-        return bridge.entries(STORAGE_KEY).delete(uuids);
+        return bridge.entries({ key: STORAGE_KEY }).delete(uuids);
     }
 
     public add(): {

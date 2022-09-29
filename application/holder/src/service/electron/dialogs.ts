@@ -12,6 +12,23 @@ export class Dialogs extends Implementation {
         this._window = window;
     }
 
+    public saveFile(ext?: string): Promise<string | undefined> {
+        return dialog
+            .showSaveDialog(this._window, {
+                title: 'Select file to save',
+                properties: ['createDirectory', 'showOverwriteConfirmation'],
+                filters:
+                    ext !== undefined
+                        ? ext.split(',').map((e) => {
+                              return { name: `*.${e}`, extensions: [e] };
+                          })
+                        : [{ name: 'All Files', extensions: ['*'] }],
+            })
+            .then((result) => {
+                return result.filePath;
+            });
+    }
+
     public openFile(): {
         any(ext?: string): Promise<string[]>;
         dlt(): Promise<string[]>;

@@ -18,6 +18,7 @@ export class Service extends Implementation {
             pcap(): Promise<File[]>;
             text(): Promise<File[]>;
             custom(ext: string): Promise<File[]>;
+            save(ext?: string): Promise<string | undefined>;
         };
     } {
         const request = (target: FileType, ext?: string): Promise<File[]> => {
@@ -99,6 +100,19 @@ export class Service extends Implementation {
                 },
                 custom: (ext: string): Promise<File[]> => {
                     return request(FileType.Any, ext);
+                },
+                save: (ext?: string): Promise<string | undefined> => {
+                    return Requests.IpcRequest.send(
+                        Requests.File.Save.Response,
+                        new Requests.File.Save.Request({
+                            ext,
+                        }),
+                    ).then((response) => {
+                        if (response.error !== undefined) {
+                            return Promise.reject(new Error(response.error));
+                        }
+                        return response.filename;
+                    });
                 },
             },
         };
@@ -258,7 +272,7 @@ export class Service extends Implementation {
         };
     }
 
-    public entries(key: string): {
+    public entries(dest: { key?: string; file?: string }): {
         get(): Promise<Entry[]>;
         /**
          * Updates existed and inserts new entries
@@ -286,7 +300,7 @@ export class Service extends Implementation {
         delete(uuids: string[]): Promise<void>;
     } {
         const set = (
-            key: string,
+            dest: { key?: string; file?: string },
             entries: Entry[],
             mode: 'overwrite' | 'update' | 'append',
         ): Promise<undefined> => {
@@ -294,7 +308,8 @@ export class Service extends Implementation {
                 Requests.IpcRequest.send(
                     Requests.Storage.EntriesSet.Response,
                     new Requests.Storage.EntriesSet.Request({
-                        key,
+                        key: dest.key,
+                        file: dest.file,
                         entries,
                         mode,
                     }),
@@ -311,7 +326,8 @@ export class Service extends Implementation {
                     Requests.IpcRequest.send(
                         Requests.Storage.EntriesGet.Response,
                         new Requests.Storage.EntriesGet.Request({
-                            key,
+                            key: dest.key,
+                            file: dest.file,
                         }),
                     )
                         .then((response) => {
@@ -321,15 +337,21 @@ export class Service extends Implementation {
                 });
             },
             update: (entries: Entry[]): Promise<void> => {
-                return set(key, entries, 'update');
+                return set(dest, entries, 'update');
             },
             overwrite: (entries: Entry[]): Promise<void> => {
-                return set(key, entries, 'overwrite');
+                return set(dest, entries, 'overwrite');
             },
             append: (entries: Entry[]): Promise<void> => {
-                return set(key, entries, 'append');
+                return set(dest, entries, 'append');
             },
             delete: (uuids: string[]): Promise<void> => {
+                if (dest.key === undefined) {
+                    return Promise.reject(
+                        new Error(`Delete functionality is available only for internal storages`),
+                    );
+                }
+                const key = dest.key;
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(
                         Requests.Storage.EntriesDelete.Response,

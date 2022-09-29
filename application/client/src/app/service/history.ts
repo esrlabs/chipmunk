@@ -14,6 +14,7 @@ import { Session } from './session/session';
 import { HistorySession } from './history/session';
 import { StorageCollections } from './history/storage.collections';
 import { StorageDefinitions } from './history/storage.definitions';
+import { Collections } from './history/collections';
 
 // import { FilterRequest } from './session/dependencies/search/filters/request';
 
@@ -73,6 +74,18 @@ export class Service extends Implementation {
 
     public get(session: Session | string): HistorySession | undefined {
         return this.sessions.get(session instanceof Session ? session.uuid() : session);
+    }
+
+    public export(uuid: string[], filename: string): Promise<void> {
+        return bridge.entries({ file: filename }).overwrite(
+            (
+                uuid
+                    .map((uuid) => {
+                        return this.collections.get(uuid);
+                    })
+                    .filter((c) => c !== undefined) as Collections[]
+            ).map((c) => c.clone().entry().to()),
+        );
     }
 }
 export interface Service extends Interface {}
