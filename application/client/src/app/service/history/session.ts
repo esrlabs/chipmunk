@@ -146,6 +146,8 @@ export class HistorySession extends Subscriber {
     public find(): {
         related(): Collections[];
         suitable(): Suitable;
+        all(): Collections[];
+        named(): Collections[];
     } {
         return {
             related: (): Collections[] => {
@@ -153,6 +155,12 @@ export class HistorySession extends Subscriber {
             },
             suitable: (): Suitable => {
                 return this.storage.collections.find(this.definitions.list()).suitable();
+            },
+            all: (): Collections[] => {
+                return this.storage.collections.find().all();
+            },
+            named: (): Collections[] => {
+                return this.storage.collections.find().named();
             },
         };
     }

@@ -4,18 +4,34 @@
     width: 100%;
     position: absolute;
     height: 100%;
-    overflow-x: hidden;
-    overflow-y: auto;
-
-    & p.no-content {
-        margin: 12px 12px 0px 12px;
-        border-bottom: dotted thin @scheme-color-4;
-        padding-bottom: 3px;
+    overflow: hidden;
+    & div.sorting {
+        position: absolute;
+        top: 0;
+        right: 16px;
+        height: 32px;
+        background: lighten(@scheme-color-5, 15%);
+        padding: 3px 12px 6px 12px;
+        & mat-form-field {
+            font-size: 12px;
+        }
     }
-    & div.group {
+    & div.list {
         width: 100%;
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
+        position: absolute;
+        height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;    
+        & p.no-content {
+            margin: 12px 12px 0px 12px;
+            border-bottom: dotted thin @scheme-color-4;
+            padding-bottom: 3px;
+        }
+        & div.group {
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
     }
 }

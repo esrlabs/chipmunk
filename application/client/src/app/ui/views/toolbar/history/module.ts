@@ -3,9 +3,10 @@ import { CommonModule } from '@angular/common';
 
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
-import { MatDividerModule } from '@angular/material/divider';
 import { MatButtonModule } from '@angular/material/button';
 import { EditableModule } from '@ui/elements/editable/module';
+import { MatSelectModule } from '@angular/material/select';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { Preset } from './preset/component';
 import { History } from './component';
@@ -21,7 +22,9 @@ const components = [...entryComponents];
         MatIconModule,
         MatButtonModule,
         MatCardModule,
-        MatDividerModule,
+        MatSelectModule,
+        FormsModule,
+        ReactiveFormsModule,
         EditableModule,
     ],
     declarations: [...components],

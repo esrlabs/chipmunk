@@ -69,6 +69,7 @@ export class StorageCollections {
         related(): Collections[];
         suitable(): Suitable;
         named(): Collections[];
+        all(): Collections[];
     } {
         return {
             related: (): Collections[] => {
@@ -99,6 +100,9 @@ export class StorageCollections {
             },
             named: (): Collections[] => {
                 return Array.from(this.collections.values()).filter((c) => c.hasName());
+            },
+            all: (): Collections[] => {
+                return Array.from(this.collections.values());
             },
         };
     }

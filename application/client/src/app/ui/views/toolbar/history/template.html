@@ -1,7 +1,19 @@
-<p class="no-content t-medium color-scheme-2" *ngIf="groups.length === 0">No recently used filters</p>
-<div *ngFor="let group of groups">
-    <p class="no-content t-medium color-scheme-2" *ngIf="group.caption !== undefined">{{group.caption}}</p>
-    <div class="group">
-        <app-sidebar-history-preset (contextmenu)="onCollectionContextmenu(collection, $event)" *ngFor="let collection of group.collections" [collections]="collection" (click)="use(collection)"></app-sidebar-history-preset>
-    </div>
+<div class="list">
+    <p class="no-content t-medium color-scheme-2" *ngIf="groups.length === 0">No recently used filters</p>
+    <div *ngFor="let group of groups">
+        <p class="no-content t-medium color-scheme-2" *ngIf="group.caption !== undefined">{{group.caption}}</p>
+        <div class="group">
+            <app-sidebar-history-preset (contextmenu)="onCollectionContextmenu(collection, $event)" *ngFor="let collection of group.collections" [collections]="collection" (click)="use(collection)"></app-sidebar-history-preset>
+        </div>
+    </div>    
+</div>
+<div class="sorting">
+    <mat-form-field>
+        <mat-label>List filter</mat-label>
+        <mat-select [(ngModel)]="show" (selectionChange)="onListFilterChange($event)">
+            <mat-option *ngFor="let option of filters" [value]="option.value">
+                {{option.caption}}
+            </mat-option>
+        </mat-select>
+    </mat-form-field>
 </div>
