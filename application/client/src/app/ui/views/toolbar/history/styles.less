@@ -16,6 +16,17 @@
             font-size: 12px;
         }
     }
+    & div.controlls {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        padding: 6px 0 6px 12px;
+        background: lighten(@scheme-color-5, 15%);
+        & button {
+            margin-right: 12px;
+            color: @scheme-color-0;
+        }
+    }
     & div.list {
         width: 100%;
         position: absolute;
@@ -32,6 +43,21 @@
             display: flex;
             flex-direction: row;
             flex-wrap: wrap;
+            & div.collections{
+                position: relative;
+            }
+            & mat-checkbox {
+                position: absolute;
+                top:0;
+                left: 0;
+                width: 24px;
+                height: 28px;
+                background: @scheme-color-4;
+                border-radius: 17px;
+                padding-left: 7px;
+                padding-top: 2px;
+                overflow: hidden;
+            }
         }
     }
 }

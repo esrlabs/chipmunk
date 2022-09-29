@@ -101,17 +101,40 @@ export class Service extends Implementation {
                         request: Requests.Storage.EntriesGet.Request,
                     ): CancelablePromise<Requests.Storage.EntriesGet.Response> => {
                         return new CancelablePromise((resolve, reject) => {
-                            this.entries
-                                .get(request.key)
-                                .then((entries) => {
-                                    resolve(
-                                        new Requests.Storage.EntriesGet.Response({
-                                            key: request.key,
-                                            entries: Array.from(entries.values()),
-                                        }),
-                                    );
-                                })
-                                .catch(reject);
+                            if (request.key !== undefined) {
+                                const key = request.key;
+                                this.entries
+                                    .get(request.key)
+                                    .then((entries) => {
+                                        resolve(
+                                            new Requests.Storage.EntriesGet.Response({
+                                                key,
+                                                entries: Array.from(entries.values()),
+                                            }),
+                                        );
+                                    })
+                                    .catch(reject);
+                            } else if (request.file !== undefined) {
+                                const filename = request.file;
+                                const file = new FileController(request.file).init();
+                                file.read()
+                                    .then((content) => {
+                                        const entries = Entries.from(content, filename, this.log());
+                                        resolve(
+                                            new Requests.Storage.EntriesGet.Response({
+                                                key: filename,
+                                                entries: Array.from(entries.values()),
+                                            }),
+                                        );
+                                    })
+                                    .catch(reject);
+                            } else {
+                                reject(
+                                    new Error(
+                                        `Fail to read storage as soon as no "key" or "file" are defiend`,
+                                    ),
+                                );
+                            }
                         });
                     },
                 ),
@@ -127,14 +150,37 @@ export class Service extends Implementation {
                     ): CancelablePromise<Requests.Storage.EntriesSet.Response> => {
                         return new CancelablePromise((resolve, reject) => {
                             ((): Promise<void> => {
-                                switch (request.mode) {
-                                    case 'overwrite':
-                                        return this.entries.overwrite(request.key, request.entries);
-                                    case 'append':
-                                        return this.entries.append(request.key, request.entries);
-                                    case 'update':
-                                        return this.entries.update(request.key, request.entries);
+                                if (request.key !== undefined) {
+                                    switch (request.mode) {
+                                        case 'overwrite':
+                                            return this.entries.overwrite(
+                                                request.key,
+                                                request.entries,
+                                            );
+                                        case 'append':
+                                            return this.entries.append(
+                                                request.key,
+                                                request.entries,
+                                            );
+                                        case 'update':
+                                            return this.entries.update(
+                                                request.key,
+                                                request.entries,
+                                            );
+                                    }
+                                } else if (request.file !== undefined) {
+                                    const file = new FileController(request.file).init();
+                                    const error = file.write(JSON.stringify(request.entries));
+                                    if (error instanceof Error) {
+                                        return Promise.reject(error);
+                                    }
+                                    return Promise.resolve();
                                 }
+                                return Promise.reject(
+                                    new Error(
+                                        `Fail to write storage as soon as no "key" or "file" are defiend`,
+                                    ),
+                                );
                             })()
                                 .then(() => {
                                     resolve(new Requests.Storage.EntriesSet.Response());

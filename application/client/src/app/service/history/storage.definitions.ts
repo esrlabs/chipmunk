@@ -15,7 +15,7 @@ export class StorageDefinitions {
     public async load(): Promise<void> {
         this.definitions.clear();
         await bridge
-            .entries(StorageDefinitions.UUID)
+            .entries({ key: StorageDefinitions.UUID })
             .get()
             .then((entries) => {
                 entries.forEach((entry) => {
@@ -34,7 +34,7 @@ export class StorageDefinitions {
 
     public async save(): Promise<void> {
         await bridge
-            .entries(StorageDefinitions.UUID)
+            .entries({ key: StorageDefinitions.UUID })
             .update(Array.from(this.definitions.values()).map((d) => d.entry().to()))
             .catch((err: Error) => {
                 this.log().warn(`Fail to write history definition: ${err.message}`);

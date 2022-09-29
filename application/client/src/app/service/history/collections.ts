@@ -103,6 +103,26 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         this.load(definition.entries);
     }
 
+    public clone(): Collections {
+        return new Collections(
+            '',
+            {
+                name: this.name,
+                used: this.used,
+                created: this.created,
+                uuid: this.uuid,
+                relations: [],
+                preset: this.preset,
+                last: this.last,
+                entries: this.collections.filters
+                    .as()
+                    .jsonSet()
+                    .concat(this.collections.disabled.as().jsonSet()),
+            },
+            this.storage,
+        );
+    }
+
     public delete() {
         this.storage.delete(this);
     }

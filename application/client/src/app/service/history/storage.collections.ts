@@ -20,7 +20,7 @@ export class StorageCollections {
     public async load(): Promise<void> {
         this.collections.clear();
         await bridge
-            .entries(StorageCollections.UUID)
+            .entries({ key: StorageCollections.UUID })
             .get()
             .then((entries) => {
                 entries.forEach((entry) => {
@@ -39,7 +39,7 @@ export class StorageCollections {
 
     public async save(): Promise<void> {
         await bridge
-            .entries(StorageCollections.UUID)
+            .entries({ key: StorageCollections.UUID })
             .overwrite(Array.from(this.collections.values()).map((c) => c.entry().to()))
             .catch((err: Error) => {
                 this.log().warn(`Fail to write history collections: ${err.message}`);
@@ -53,6 +53,10 @@ export class StorageCollections {
             return undefined;
         }
         return existed.uuid;
+    }
+
+    public get(uuid: string): Collections | undefined {
+        return this.collections.get(uuid);
     }
 
     public delete(collections: Collections) {
