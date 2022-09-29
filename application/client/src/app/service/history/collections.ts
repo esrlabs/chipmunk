@@ -140,6 +140,10 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         this.storage.update(this);
     }
 
+    public hasName(): boolean {
+        return this.name !== '' && this.name !== '-';
+    }
+
     public isSame(collections: Collections): boolean {
         return (
             this.collections.filters.isSame(collections.collections.filters) &&

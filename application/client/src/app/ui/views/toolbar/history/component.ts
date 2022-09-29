@@ -34,6 +34,19 @@ export class History extends ChangesDetector implements AfterContentInit {
                     this.update().detectChanges();
                 },
             },
+            {},
+            {
+                caption: `Select all for export`,
+                handler: () => {
+                    //
+                },
+            },
+            {
+                caption: `Export all`,
+                handler: () => {
+                    //
+                },
+            },
         ];
         contextmenu.show({
             items: items,
@@ -50,6 +63,19 @@ export class History extends ChangesDetector implements AfterContentInit {
                 handler: () => {
                     collection.delete();
                     this.update().detectChanges();
+                },
+            },
+            {},
+            {
+                caption: `Select for export`,
+                handler: () => {
+                    //
+                },
+            },
+            {
+                caption: `Export to file`,
+                handler: () => {
+                    //
                 },
             },
         ];

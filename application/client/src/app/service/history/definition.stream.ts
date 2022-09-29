@@ -26,7 +26,7 @@ export class StreamDesc implements IStreamDesc {
             minor = source.Stream[0].Process.args.join(',');
             sourceRef = Source.Process;
         } else if (source.Stream[0].TCP !== undefined) {
-            major = source.Stream[0].TCP.dummy;
+            major = source.Stream[0].TCP.bind_addr;
             minor = '';
             sourceRef = Source.Tcp;
         } else if (source.Stream[0].UDP !== undefined) {

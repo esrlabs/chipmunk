@@ -51,7 +51,7 @@ export class Service extends Implementation {
             if (!(session instanceof Session)) {
                 return;
             }
-            this.save(session)
+            this.save()
                 .catch((err) => this.log().error(`Fail to save session state: ${err.message}`))
                 .finally(() => {
                     const history = this.sessions.get(session.uuid());
@@ -65,13 +65,10 @@ export class Service extends Implementation {
         return Promise.resolve();
     }
 
-    public async save(_session: Session): Promise<void> {
-        // const collection = Collection.from(session);
-        // if (collection.isEmpty()) {
-        //     return;
-        // }
-        // // const defs = await this.definitions.addFrom(session);
-        return Promise.resolve();
+    public async save(): Promise<void> {
+        return Promise.all([this.collections.save(), this.definitions.save()]).then(
+            (_) => undefined,
+        );
     }
 
     public get(session: Session | string): HistorySession | undefined {

@@ -20,6 +20,8 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { ProviderFilters } from './filters/provider';
 import { ProviderDisabled } from './disabled/provider';
 
+import * as dom from '@ui/env/dom';
+
 @Component({
     selector: 'app-views-filters',
     templateUrl: './template.html',
@@ -70,8 +72,7 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
             x: event.pageX,
             y: event.pageY,
         });
-        event.stopImmediatePropagation();
-        event.preventDefault();
+        dom.stop(event);
     }
 
     constructor(cdRef: ChangeDetectorRef, private _self: ElementRef) {
@@ -128,6 +129,37 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
 
     public _ng_onMouseOver() {
         this.draganddrop.onMouseOverGlobal();
+    }
+
+    public onShowPresets(event: MouseEvent) {
+        const items: IMenuItem[] = [
+            {
+                caption: `Open preset manager`,
+                handler: () => {
+                    //
+                },
+            },
+        ];
+        const session = this.ilc().services.system.history.get(this.session.uuid());
+        const named = this.ilc().services.system.history.collections.find().named();
+        if (named.length > 0 && session !== undefined) {
+            const history = session;
+            items.push({});
+            named.forEach((col) => {
+                items.push({
+                    caption: col.name,
+                    handler: () => {
+                        history.apply(col);
+                    },
+                });
+            });
+        }
+        contextmenu.show({
+            items: items,
+            x: event.pageX,
+            y: event.pageY,
+        });
+        dom.stop(event);
     }
 
     private _onGlobalKeyUp(event: KeyboardEvent) {
