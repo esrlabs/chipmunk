@@ -68,6 +68,19 @@ export class Provider implements EntryConvertable {
                 if (error instanceof Error) {
                     return Promise.reject(error);
                 }
+                this.collections = this.collections.map((col) => {
+                    // Reassign uuids of definitions as soon as it will be diffrent in case
+                    // if both users have same source
+                    col.relations = col.relations.map((uuid) => {
+                        let target = this.definitions.find((d) => d.uuid === uuid);
+                        if (target === undefined) {
+                            return uuid;
+                        }
+                        target = this.storage.definitions.update(target);
+                        return target.uuid;
+                    });
+                    return col;
+                });
                 this.storage.definitions.add(this.definitions);
                 this.storage.collections.add(this.collections);
                 this.collections = [];

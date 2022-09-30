@@ -38,6 +38,7 @@ export {
 } from './interfaces/index';
 
 export * as dlt from './native/native.dlt';
+export * as files from './native/native.files';
 export * as tools from './native/native.tools';
 export * as serial from './native/native.serial';
 
