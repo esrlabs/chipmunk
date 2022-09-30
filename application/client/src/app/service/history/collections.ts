@@ -112,7 +112,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
                 used: this.used,
                 created: this.created,
                 uuid: this.uuid,
-                relations: [],
+                relations: this.relations,
                 preset: this.preset,
                 last: this.last,
                 entries: this.collections.filters
