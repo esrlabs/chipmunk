@@ -25,11 +25,13 @@ export class Provider implements EntryConvertable {
     }
 
     public export(uuids: string[], filename: string): Promise<void> {
-        this.collections = uuids
-            .map((uuid) => {
-                return this.storage.collections.get(uuid);
-            })
-            .filter((c) => c !== undefined) as Collections[];
+        this.collections = (
+            uuids
+                .map((uuid) => {
+                    return this.storage.collections.get(uuid);
+                })
+                .filter((c) => c !== undefined) as Collections[]
+        ).map((c) => c.clone());
         this.definitions = [];
         const names: { [key: string]: number } = {};
         this.collections = this.collections.map((col) => {
