@@ -41,13 +41,18 @@ export class StorageDefinitions {
             });
     }
 
-    public add(definition: Definition): Definition {
+    public update(definition: Definition): Definition {
         const existed = Array.from(this.definitions.values()).find((d) => d.isSame(definition));
         if (existed === undefined) {
             this.definitions.set(definition.uuid, definition);
             return definition;
         }
         return existed;
+    }
+
+    public add(definitions: Definition[]): void {
+        definitions.forEach((def) => this.update(def));
+        this.save();
     }
 
     public get(uuid: string): Definition | undefined {

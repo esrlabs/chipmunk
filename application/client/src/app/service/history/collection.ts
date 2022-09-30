@@ -9,7 +9,7 @@ export abstract class Collection<T extends Json<T> & Recognizable & Equal<T>> {
     abstract extractor(): Extractor<T>;
     abstract isSame(collection: Collection<T>): boolean;
 
-    public elements: Map<string, T> = new Map();
+    public readonly elements: Map<string, T> = new Map();
 
     constructor(alias: string, entries: JsonSet) {
         this.setLoggerName(alias);

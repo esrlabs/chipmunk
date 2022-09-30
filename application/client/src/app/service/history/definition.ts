@@ -134,6 +134,30 @@ export class Definition implements EntryConvertable, Equal<Definition> {
         };
     }
 
+    public toExport(): Definition {
+        const def = {
+            stream: this.stream,
+            file: this.file,
+            parser: this.parser,
+            uuid: this.uuid,
+        };
+        if (def.file !== undefined) {
+            def.file.filename = unique();
+            def.file.parent = unique();
+        }
+        return new Definition(def);
+    }
+
+    public getCollectionName(): string {
+        if (this.file !== undefined) {
+            return `files *.${this.file.extention}`;
+        } else if (this.stream !== undefined) {
+            return `${this.stream.major}`;
+        } else {
+            return '-';
+        }
+    }
+
     public minify(): {
         [key: string]: number | string | { [key: string]: string | number } | undefined;
     } {
