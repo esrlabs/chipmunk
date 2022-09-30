@@ -8,6 +8,7 @@ export interface IRustModuleExports {
     RustSession: any;
     Dlt: any;
     Serial: any;
+    Files: any;
     execute: (filename: string, args: string[]) => Promise<void>;
 }
 

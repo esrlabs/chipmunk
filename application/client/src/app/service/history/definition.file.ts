@@ -6,6 +6,7 @@ import * as obj from '@platform/env/obj';
 
 export interface IFileDesc {
     extention: string;
+    checksum: string;
     filename: string;
     parent: string;
     size: number;
@@ -23,6 +24,7 @@ export class FileDesc implements IFileDesc {
         }
         const stat = file[0].stat;
         return {
+            checksum: await bridge.files().checksum(source.File[0]),
             extention: getFileExtention(source.File[0]).toLowerCase(),
             filename: getFileName(source.File[0]).toLowerCase(),
             parent: getParentFolder(source.File[0]).toLowerCase(),
@@ -36,6 +38,7 @@ export class FileDesc implements IFileDesc {
         return src === undefined
             ? undefined
             : new FileDesc({
+                  checksum: obj.getAsString(src, 'h'),
                   extention: obj.getAsString(src, 'e'),
                   filename: obj.getAsNotEmptyString(src, 'n'),
                   parent: obj.getAsString(src, 'p'),
@@ -49,6 +52,7 @@ export class FileDesc implements IFileDesc {
     public parent: string;
     public size: number;
     public created: number;
+    public checksum: string;
 
     constructor(definition: IFileDesc) {
         this.extention = definition.extention;
@@ -56,10 +60,11 @@ export class FileDesc implements IFileDesc {
         this.parent = definition.parent;
         this.size = definition.size;
         this.created = definition.created;
+        this.checksum = definition.checksum;
     }
 
     public isSame(file: FileDesc): boolean {
-        return file.filename === this.filename && this.extention === file.extention;
+        return file.checksum === this.checksum;
     }
 
     public minify(): { [key: string]: number | string } {
@@ -69,6 +74,7 @@ export class FileDesc implements IFileDesc {
             p: this.parent,
             s: this.size,
             c: this.created,
+            h: this.checksum,
         };
     }
 }

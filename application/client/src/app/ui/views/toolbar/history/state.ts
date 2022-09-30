@@ -77,7 +77,11 @@ export class State {
                 return self;
             },
             all: (): Selection => {
-                Object.keys(this.selected).forEach((k) => (this.selected[k] = true));
+                this.groups.forEach((group) => {
+                    group.collections.forEach((col) => {
+                        this.selected[col.uuid] = true;
+                    });
+                });
                 this.parent.detectChanges();
                 return self;
             },
@@ -103,6 +107,7 @@ export class State {
                     .ilc()
                     .services.system.history.import(files[0].filename)
                     .then(() => {
+                        this.list().update();
                         this.parent.detectChanges();
                     })
                     .catch((err: Error) => {

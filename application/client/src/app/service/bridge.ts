@@ -12,6 +12,7 @@ export class Service extends Implementation {
         getByPath(filenames: string[]): Promise<File[]>;
         ls(path: string): Promise<Entity[]>;
         stat(path: string): Promise<Entity>;
+        checksum(filename: string): Promise<string>;
         select: {
             any(): Promise<File[]>;
             dlt(): Promise<File[]>;
@@ -83,6 +84,22 @@ export class Service extends Implementation {
                             }
                         })
                         .catch(reject);
+                });
+            },
+            checksum: (filename: string): Promise<string> => {
+                return Requests.IpcRequest.send(
+                    Requests.File.Checksum.Response,
+                    new Requests.File.Checksum.Request({
+                        filename,
+                    }),
+                ).then((response) => {
+                    if (response.hash !== undefined) {
+                        return response.hash;
+                    } else if (response.error !== undefined) {
+                        return Promise.reject(new Error(response.error));
+                    } else {
+                        return Promise.reject(new Error(`Unknown error`));
+                    }
                 });
             },
             select: {

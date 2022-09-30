@@ -22,8 +22,10 @@ export class StreamDesc implements IStreamDesc {
             minor = `${source.Stream[0].Serial.baud_rate}.${source.Stream[0].Serial.data_bits}.${source.Stream[0].Serial.stop_bits}`;
             sourceRef = Source.Serial;
         } else if (source.Stream[0].Process !== undefined) {
-            major = source.Stream[0].Process.command;
-            minor = source.Stream[0].Process.args.join(',');
+            major = `${source.Stream[0].Process.command} ${source.Stream[0].Process.args.join(
+                ',',
+            )}`;
+            minor = '';
             sourceRef = Source.Process;
         } else if (source.Stream[0].TCP !== undefined) {
             major = source.Stream[0].TCP.bind_addr;
@@ -52,8 +54,8 @@ export class StreamDesc implements IStreamDesc {
             ? undefined
             : new StreamDesc({
                   source: obj.getAsNotEmptyString(src, 's') as Source,
-                  major: obj.getAsNotEmptyString(src, 'ma'),
-                  minor: obj.getAsNotEmptyString(src, 'mi'),
+                  major: obj.getAsString(src, 'ma'),
+                  minor: obj.getAsString(src, 'mi'),
               });
     }
 
