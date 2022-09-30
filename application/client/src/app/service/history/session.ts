@@ -14,18 +14,19 @@ export { Suitable, SuitableGroup };
 
 @SetupLogger()
 export class HistorySession extends Subscriber {
-    public definitions: Definitions;
+    protected readonly storage: {
+        collections: StorageCollections;
+        definitions: StorageDefinitions;
+    };
+    protected readonly session: Session;
+
+    public readonly definitions: Definitions;
     public collections: Collections;
-    public subjects: Subjects<{
+    public readonly subjects: Subjects<{
         suitable: Subject<Suitable>;
     }> = new Subjects({
         suitable: new Subject<Suitable>(),
     });
-    protected storage: {
-        collections: StorageCollections;
-        definitions: StorageDefinitions;
-    };
-    protected session: Session;
 
     constructor(
         session: Session,
@@ -58,7 +59,7 @@ export class HistorySession extends Subscriber {
     protected handleNewSource(source: DataSource) {
         Definition.fromDataSource(source)
             .then((definition) => {
-                definition = this.storage.definitions.add(definition);
+                definition = this.storage.definitions.update(definition);
                 this.definitions.add(definition);
                 this.collections.bind(definition);
                 this.save();

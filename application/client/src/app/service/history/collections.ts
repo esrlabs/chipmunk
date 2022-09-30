@@ -74,6 +74,8 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         };
     }
 
+    protected readonly storage: StorageCollections;
+
     public name: string;
     public created: number;
     public used: number;
@@ -81,14 +83,13 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
     public uuid: string;
     public preset: boolean;
     public relations: string[];
-    public collections: {
+    public readonly collections: {
         filters: FiltersCollection;
         disabled: DisabledCollection;
     } = {
         filters: new FiltersCollection(),
         disabled: new DisabledCollection(),
     };
-    protected storage: StorageCollections;
 
     constructor(alias: string, definition: ICollection, storage: StorageCollections) {
         this.setLoggerName(alias);
