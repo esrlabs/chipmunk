@@ -22,16 +22,32 @@ export const handler = Requests.InjectLogger<
             }
             stored.session
                 .getSearch()
-                .grab(request.from, request.to - request.from + 1)
-                .then((rows) => {
-                    resolve(
-                        new Requests.Search.Chunk.Response({
-                            session: stored.session.getUUID(),
-                            from: request.from,
-                            to: request.to,
-                            rows,
-                        }),
-                    );
+                .len()
+                .then((len) => {
+                    if (len < request.to) {
+                        return resolve(
+                            new Requests.Search.Chunk.Response({
+                                session: stored.session.getUUID(),
+                                from: request.from,
+                                to: request.to,
+                                rows: [],
+                            }),
+                        );
+                    }
+                    stored.session
+                        .getSearch()
+                        .grab(request.from, request.to - request.from + 1)
+                        .then((rows) => {
+                            resolve(
+                                new Requests.Search.Chunk.Response({
+                                    session: stored.session.getUUID(),
+                                    from: request.from,
+                                    to: request.to,
+                                    rows,
+                                }),
+                            );
+                        })
+                        .catch(reject);
                 })
                 .catch(reject);
         });

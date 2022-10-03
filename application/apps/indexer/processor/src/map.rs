@@ -200,7 +200,7 @@ impl SearchMap {
     }
 
     pub fn indexes(&self, range: &RangeInclusive<u64>) -> Result<&[FilterMatch], MapError> {
-        if range.end() > &(self.len() as u64 - 1) {
+        if range.end() > &(self.len() as u64) {
             return Err(MapError::OutOfRange(format!(
                 "Search has: {} matches. Requested: {:?}",
                 self.len(),
@@ -240,8 +240,8 @@ impl SearchMap {
     }
 
     pub fn set(&mut self, matches: Option<Vec<FilterMatch>>, stats: Option<FiltersStats>) {
-        self.matches = matches.map_or(vec![], |m| { m });
-        self.stats = stats.map_or(FiltersStats::default(), |s| { s });
+        self.matches = matches.map_or(vec![], |m| m);
+        self.stats = stats.map_or(FiltersStats::default(), |s| s);
     }
 
     pub fn get_stats(&self) -> HashMap<String, u64> {

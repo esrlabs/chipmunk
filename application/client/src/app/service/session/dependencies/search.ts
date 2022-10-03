@@ -142,7 +142,8 @@ export class Search extends Subscriber {
     }
 
     public chunk(range: Range): Promise<IGrabbedElement[]> {
-        if (this._len === 0) {
+        const len = this._len;
+        if (len === 0) {
             // TODO: Grabber is crash session in this case... should be prevented on grabber level
             return Promise.resolve([]);
         }
@@ -159,7 +160,9 @@ export class Search extends Subscriber {
                     resolve(response.rows);
                 })
                 .catch((error: Error) => {
-                    this.log().error(`Fail to grab content: ${error.message}`);
+                    this.log().error(
+                        `Fail to grab content (actual len: ${this._len}; len on request: ${len}): ${error.message}`,
+                    );
                 });
         });
     }
