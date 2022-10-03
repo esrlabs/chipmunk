@@ -223,18 +223,25 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
      * @param data {string}
      */
     private _emitter(data: TEventData) {
-        function dataAsStr(data: TEventData): string {
+        function dataAsStr(data: TEventData): { debug: string; verb?: string } {
+            let message = '';
             if (typeof data === 'string') {
-                return `(defined as string): ${data}`;
+                message = `(defined as string): ${data}`;
             } else {
-                return `(defined as object): keys: ${Object.keys(data).join(
+                message = `(defined as object): keys: ${Object.keys(data).join(
                     ', ',
                 )} / values: ${Object.keys(data)
                     .map((k) => JSON.stringify(data[k]))
                     .join(', ')}`;
             }
+            return {
+                debug: `${message.substring(0, 250)}${message.length > 250 ? '...' : ''}`,
+                verb: message.length > 250 ? message : undefined,
+            };
         }
-        this.logger.debug(`Event from rust:\n\t${dataAsStr(data)}`);
+        const logs = dataAsStr(data);
+        this.logger.debug(`Event from rust:\n\t${logs.debug}`);
+        logs.verb !== undefined && this.logger.verbose(`Event from rust:\n\t${logs.verb}`);
         let event: Required<IEventData>;
         if (typeof data === 'string') {
             try {
