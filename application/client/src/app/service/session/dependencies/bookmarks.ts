@@ -39,6 +39,14 @@ export class Bookmarks extends Subscriber {
         this.subjects.destroy();
     }
 
+    public overwrite(bookmarks: Bookmark[], silence: boolean = false) {
+        this.bookmarks = bookmarks;
+        this.bookmarks.sort((a, b) => {
+            return a.stream() < b.stream() ? -1 : 1;
+        });
+        !silence && this.update();
+    }
+
     public bookmark(row: Row) {
         const exist = this.bookmarks.find((b) => b.stream() === row.position.stream);
         if (exist) {
@@ -49,7 +57,7 @@ export class Bookmarks extends Subscriber {
         this.bookmarks.sort((a, b) => {
             return a.stream() < b.stream() ? -1 : 1;
         });
-        this.subjects.get().updated.emit();
+        this.update();
     }
 
     public is(stream: number): boolean {
@@ -70,6 +78,10 @@ export class Bookmarks extends Subscriber {
 
     public getRowsPositions(): number[] {
         return this.bookmarks.map((b) => b.stream());
+    }
+
+    public update(): void {
+        this.subjects.get().updated.emit();
     }
 
     protected move(): {

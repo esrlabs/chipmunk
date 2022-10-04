@@ -1,11 +1,36 @@
-import { Collection } from './collection';
+import { Collection, AfterApplyCallback } from './collection';
 import { DisabledRequest } from '../session/dependencies/search/disabled/request';
 import { Extractor } from '@platform/types/storage/json';
 import { Equal } from '@platform/types/env/types';
+import { Session } from '@service/session/session';
+import { Definition } from './definition';
+import { Subscriber } from '@platform/env/subscription';
 
-export class DisabledCollection extends Collection<DisabledRequest> implements Equal<DisabledCollection> {
+export class DisabledCollection
+    extends Collection<DisabledRequest>
+    implements Equal<DisabledCollection>
+{
     constructor() {
         super('DisabledCollection', []);
+    }
+
+    public subscribe(subscriber: Subscriber, session: Session): void {
+        subscriber.register(
+            session.search
+                .store()
+                .disabled()
+                .subjects.update.subscribe(() => {
+                    this.update(session.search.store().disabled().get());
+                    this.updated.emit();
+                }),
+        );
+    }
+
+    public applyTo(session: Session, _definitions: Definition[]): AfterApplyCallback {
+        session.search.store().disabled().overwrite(this.as().elements(), true);
+        return () => {
+            session.search.store().disabled().refresh();
+        };
     }
 
     public isSame(collection: Collection<DisabledRequest>): boolean {
