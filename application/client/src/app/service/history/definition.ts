@@ -101,8 +101,9 @@ export class Definition implements EntryConvertable, Equal<Definition> {
                 }
                 if (this.file !== undefined && definition.file !== undefined) {
                     if (
-                        this.file.extention === definition.file.extention &&
-                        this.file.filename === definition.file.filename
+                        (this.file.extention === definition.file.extention &&
+                            this.file.filename === definition.file.filename) ||
+                        this.file.checksum === definition.file.checksum
                     ) {
                         return { rank: 1, caption: 'Same file' };
                     }

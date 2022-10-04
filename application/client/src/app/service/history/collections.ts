@@ -1,13 +1,15 @@
 import { Definition } from './definition';
 import { FiltersCollection } from './collection.filters';
 import { DisabledCollection } from './collection.disabled';
-import { Session } from '../session/session';
+import { BookmarksCollection } from './collection.bookmarks';
+import { Collection } from './collection';
+import { Session } from '@service/session/session';
 import { EntryConvertable, Entry } from '@platform/types/storage/entry';
 import { JsonSet } from '@platform/types/storage/json';
 import { error } from '@platform/env/logger';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Equal, Empty } from '@platform/types/env/types';
-import { Subject } from '@platform/env/subscription';
+import { Subject, Subscriber } from '@platform/env/subscription';
 import { StorageCollections } from './storage.collections';
 
 import * as obj from '@platform/env/obj';
@@ -23,18 +25,13 @@ export interface ICollection {
     entries: JsonSet;
 }
 
-export interface UpdateOut {
-    filters(): UpdateOut;
-    disabled(): UpdateOut;
-    uuid(uuid: string | undefined): UpdateOut;
-}
-
 @SetupLogger()
 export class Collections implements EntryConvertable, Equal<Collections>, Empty {
     static from(smth: Session | Entry, storage: StorageCollections): Collections {
         if (smth instanceof Session) {
             const filters = smth.search.store().filters().get();
             const disabled = smth.search.store().disabled().get();
+            const bookmarks = smth.bookmarks.get();
             return new Collections(
                 `Collections:${smth.uuid()}`,
                 {
@@ -47,7 +44,8 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
                     relations: [],
                     entries: filters
                         .map((f) => f.asJsonField())
-                        .concat(disabled.map((d) => d.asJsonField())),
+                        .concat(disabled.map((d) => d.asJsonField()))
+                        .concat(bookmarks.map((b) => b.asJsonField())),
                 },
                 storage,
             );
@@ -86,10 +84,13 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
     public readonly collections: {
         filters: FiltersCollection;
         disabled: DisabledCollection;
+        bookmarks: BookmarksCollection;
     } = {
         filters: new FiltersCollection(),
         disabled: new DisabledCollection(),
+        bookmarks: new BookmarksCollection(),
     };
+    public readonly updated: Subject<void> = new Subject();
 
     constructor(alias: string, definition: ICollection, storage: StorageCollections) {
         this.setLoggerName(alias);
@@ -104,6 +105,13 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         this.load(definition.entries);
     }
 
+    public subscribe(subscriber: Subscriber, session: Session): void {
+        this.asCollectionsArray().forEach((c) => {
+            subscriber.register(c.updated.subscribe(() => this.updated.emit()));
+            c.subscribe(subscriber, session);
+        });
+    }
+
     public clone(): Collections {
         return new Collections(
             '',
@@ -115,10 +123,9 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
                 relations: this.relations,
                 preset: this.preset,
                 last: this.last,
-                entries: this.collections.filters
-                    .as()
-                    .jsonSet()
-                    .concat(this.collections.disabled.as().jsonSet()),
+                entries: this.asCollectionsArray()
+                    .map((c) => c.as().jsonSet())
+                    .flat(),
             },
             this.storage,
         );
@@ -132,22 +139,13 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         this.relations.indexOf(definition.uuid) === -1 && this.relations.push(definition.uuid);
     }
 
-    public update(session: Session): UpdateOut {
-        const out: UpdateOut = {
-            filters: (): UpdateOut => {
-                this.collections.filters.update(session.search.store().filters().get());
-                return out;
-            },
-            disabled: (): UpdateOut => {
-                this.collections.disabled.update(session.search.store().disabled().get());
-                return out;
-            },
-            uuid: (uuid: string | undefined): UpdateOut => {
-                this.uuid = uuid !== undefined ? uuid : this.uuid;
-                return out;
-            },
-        };
-        return out;
+    public applyTo(session: Session, definitions: Definition[]): void {
+        const after = this.asCollectionsArray().map((c) => c.applyTo(session, definitions));
+        after.forEach((cb) => cb());
+    }
+
+    public updateUuid(uuid: string | undefined): void {
+        this.uuid = uuid !== undefined ? uuid : this.uuid;
     }
 
     public setName(name: string) {
@@ -173,7 +171,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
     }
 
     protected load(entries: JsonSet) {
-        [this.collections.filters, this.collections.disabled].forEach((c) => c.load(entries));
+        this.asCollectionsArray().forEach((c) => c.load(entries));
     }
 
     protected overwrite(definition: ICollection) {
@@ -187,9 +185,17 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         this.load(definition.entries);
     }
 
+    protected asCollectionsArray(): Collection<any>[] {
+        return Object.keys(this.collections).map(
+            (key) => (this.collections as { [key: string]: Collection<any> })[key],
+        );
+    }
+
     public isEmpty(): boolean {
         return (
-            this.collections.filters.elements.size + this.collections.filters.elements.size === 0
+            this.asCollectionsArray()
+                .map((c) => c.elements.size)
+                .reduce((prev, curr) => prev + curr, 0) === 0
         );
     }
 
@@ -210,10 +216,9 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
             l: this.last,
             uu: this.uuid,
             r: this.relations,
-            e: this.collections.filters
-                .as()
-                .jsonSet()
-                .concat(this.collections.disabled.as().jsonSet()),
+            e: this.asCollectionsArray()
+                .map((c) => c.as().jsonSet())
+                .flat(),
             p: this.preset,
         };
     }

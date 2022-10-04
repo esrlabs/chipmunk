@@ -36,24 +36,12 @@ export class HistorySession extends Subscriber {
         },
     ) {
         super();
-        this.collections = Collections.from(session, storage.collections);
         this.definitions = new Definitions();
         this.storage = storage;
         this.session = session;
         this.setLoggerName(`History: ${this.session.uuid()}`);
         this.session.stream.subjects.get().source.subscribe(this.handleNewSource.bind(this));
-        this.register(
-            this.session.search
-                .store()
-                .filters()
-                .subjects.update.subscribe(this.handleFiltersUpdates.bind(this)),
-        );
-        this.register(
-            this.session.search
-                .store()
-                .disabled()
-                .subjects.update.subscribe(this.handleDisabledUpdates.bind(this)),
-        );
+        this.collections = this.setCollection(Collections.from(session, storage.collections));
     }
 
     protected handleNewSource(source: DataSource) {
@@ -68,22 +56,6 @@ export class HistorySession extends Subscriber {
             .catch((err: Error) => {
                 this.log().error(`Fail to get definition of source: ${err.message}`);
             });
-    }
-
-    protected handleFiltersUpdates() {
-        this.collections
-            .update(this.session)
-            .filters()
-            .uuid(this.storage.collections.update(this.collections));
-        this.save();
-    }
-
-    protected handleDisabledUpdates() {
-        this.collections
-            .update(this.session)
-            .disabled()
-            .uuid(this.storage.collections.update(this.collections));
-        this.save();
     }
 
     protected save() {
@@ -111,17 +83,8 @@ export class HistorySession extends Subscriber {
             related: (): boolean => {
                 const related = this.find().related();
                 if (related.length === 1) {
-                    this.session.search
-                        .store()
-                        .filters()
-                        .overwrite(related[0].collections.filters.as().elements(), true);
-                    this.session.search
-                        .store()
-                        .disabled()
-                        .overwrite(related[0].collections.disabled.as().elements(), true);
-                    this.collections = related[0];
-                    this.session.search.store().filters().refresh();
-                    this.session.search.store().disabled().refresh();
+                    this.setCollection(related[0]);
+                    this.collections.applyTo(this.session, this.definitions.list());
                 } else if (related.length > 0) {
                     this.subjects.get().suitable.emit(new Suitable());
                 }
@@ -137,6 +100,20 @@ export class HistorySession extends Subscriber {
                 this.check().suitable();
             },
         };
+    }
+
+    protected setCollection(collections: Collections): Collections {
+        this.unsubscribe();
+        this.collections = collections;
+        this.session.stream.subjects.get().source.subscribe(this.handleNewSource.bind(this));
+        this.collections.subscribe(this, this.session);
+        this.register(
+            this.collections.updated.subscribe(() => {
+                this.collections.updateUuid(this.storage.collections.update(this.collections));
+                this.save();
+            }),
+        );
+        return collections;
     }
 
     public destroy() {
@@ -168,20 +145,11 @@ export class HistorySession extends Subscriber {
 
     public apply(collection: Collections) {
         this.storage.collections.used(collection.uuid);
-        this.session.search
-            .store()
-            .filters()
-            .overwrite(collection.collections.filters.as().elements(), true);
-        this.session.search
-            .store()
-            .disabled()
-            .overwrite(collection.collections.disabled.as().elements(), true);
-        this.collections = collection;
+        this.setCollection(collection);
         this.definitions.list().forEach((def) => {
             this.collections.bind(def);
         });
-        this.session.search.store().filters().refresh();
-        this.session.search.store().disabled().refresh();
+        this.collections.applyTo(this.session, this.definitions.list());
     }
 
     public clear() {

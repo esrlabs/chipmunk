@@ -1,15 +1,21 @@
 import { Recognizable } from '@platform/types/storage/entry';
 import { Equal } from '@platform/types/env/types';
-
+import { Session } from '@service/session/session';
 import { Json, JsonField, JsonSet, Extractor } from '@platform/types/storage/json';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
+import { Definition } from './definition';
+import { Subscriber, Subject } from '@platform/env/subscription';
 
+export type AfterApplyCallback = () => void;
 @SetupLogger()
 export abstract class Collection<T extends Json<T> & Recognizable & Equal<T>> {
+    abstract subscribe(subscriber: Subscriber, session: Session): void;
     abstract extractor(): Extractor<T>;
     abstract isSame(collection: Collection<T>): boolean;
+    abstract applyTo(session: Session, definitions: Definition[]): AfterApplyCallback;
 
     public readonly elements: Map<string, T> = new Map();
+    public readonly updated: Subject<void> = new Subject();
 
     constructor(alias: string, entries: JsonSet) {
         this.setLoggerName(alias);

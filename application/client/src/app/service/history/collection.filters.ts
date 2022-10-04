@@ -1,11 +1,36 @@
-import { Collection } from './collection';
+import { Collection, AfterApplyCallback } from './collection';
 import { FilterRequest } from '../session/dependencies/search/filters/request';
 import { Extractor } from '@platform/types/storage/json';
 import { Equal } from '@platform/types/env/types';
+import { Session } from '@service/session/session';
+import { Definition } from './definition';
+import { Subscriber } from '@platform/env/subscription';
 
-export class FiltersCollection extends Collection<FilterRequest> implements Equal<FiltersCollection> {
+export class FiltersCollection
+    extends Collection<FilterRequest>
+    implements Equal<FiltersCollection>
+{
     constructor() {
         super('FiltersCollection', []);
+    }
+
+    public subscribe(subscriber: Subscriber, session: Session): void {
+        subscriber.register(
+            session.search
+                .store()
+                .filters()
+                .subjects.update.subscribe(() => {
+                    this.update(session.search.store().filters().get());
+                    this.updated.emit();
+                }),
+        );
+    }
+
+    public applyTo(session: Session, _definitions: Definition[]): AfterApplyCallback {
+        session.search.store().filters().overwrite(this.as().elements(), true);
+        return () => {
+            session.search.store().filters().refresh();
+        };
     }
 
     public isSame(collection: Collection<FilterRequest>): boolean {
