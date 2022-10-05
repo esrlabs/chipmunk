@@ -74,6 +74,10 @@
                 box-sizing: content-box !important;
                 cursor: default;
                 overflow: hidden;
+                & mat-icon {
+                    color: @scheme-color-0;
+                    padding: 3px 6px 3px 2px;
+                }
                 & p.title {
                     display: inline-block;
                     white-space: nowrap;
@@ -93,8 +97,8 @@
                     margin: 0;
                     vertical-align: top;
                 }
-                & span.close-button {
-                    font-size: 12px;
+                & mat-icon.close {
+                    font-size: 18px;
                     opacity: 0;
                     color: @scheme-color-3;
                     vertical-align: top;
@@ -102,16 +106,8 @@
                         color: @scheme-color-1;
                     }
                 }
-                &:not(.active) {
-                }
-                &:first-child {
-                }
-                &.active + li.tab {
-                }
-                &:last-child {
-                }
                 &:hover {
-                    & span.close-button {
+                    & mat-icon.close {
                         opacity: 1;
                     }
                 }
@@ -124,7 +120,7 @@
                         content: '';
                         background: @scheme-color-5;
                     }
-                    & span.close-button {
+                    & mat-icon.close {
                         opacity: 1;
                     }
                     & p.title {
@@ -146,10 +142,10 @@
                     cursor: default;
                     box-sizing: content-box !important;
                     & p.title {
-                        padding: 0.1rem 1rem;
+                        padding: 6px 12px;
                     }
-                    & span.close-button {
-                        padding: 0.4rem 0.5rem 0 0;
+                    & mat-icon.close {
+                        padding: 7px 0.5rem 0 0;
                         transition: all 150ms ease-in-out;
                         transform: translateY(-16px);
                         vertical-align: top;
@@ -167,7 +163,7 @@
                         border-right: thin outset @background;
                     }
                     &:hover {
-                        & span.close-button {
+                        & mat-icon.close {
                             transform: translateY(0);
                         }
                     }
@@ -181,7 +177,7 @@
                             bottom: -1px;
                             background: @scheme-color-5;
                         }
-                        & span.close-button {
+                        & mat-icon.close {
                             transform: translateY(0);
                         }
                     }
@@ -200,12 +196,12 @@
                     white-space: nowrap;
                     width: ~'calc(100% + 2px)';
                     & p.title {
-                        padding: 1.5rem 0.2rem 1rem 0.1rem;
+                        padding: 1.5rem 0.4rem 1rem 0.1rem;
                         writing-mode: vertical-rl;
                         text-orientation: mixed;
                         transform: rotate(180deg);
                     }
-                    & span.close-button {
+                    & mat-icon.close {
                         display: inline-block;
                         padding: 0px 0px 0px 0px;
                         margin: 0px 0px 7px -15px;
@@ -227,7 +223,7 @@
                         border-bottom: thin outset @background;
                     }
                     &:hover {
-                        & span.close-button {
+                        & mat-icon.close {
                             transform: translateY(0);
                             pointer-events: all;
                         }
@@ -242,7 +238,7 @@
                             bottom: -1px;
                             background: @scheme-color-5;
                         }
-                        & span.close-button {
+                        & mat-icon.close {
                             transform: translateY(0);
                             pointer-events: all;
                         }

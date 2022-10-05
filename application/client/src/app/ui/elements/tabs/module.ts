@@ -1,6 +1,7 @@
 import { ContainersModule } from '../containers/module';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
 
 import { TabsComponent } from './component';
 import { TabsListComponent } from './list/component';
@@ -13,7 +14,7 @@ const components = [TabsComponent, ...entryComponents];
 
 @NgModule({
     entryComponents: [...entryComponents],
-    imports: [CommonModule, ContainersModule],
+    imports: [CommonModule, ContainersModule, MatIconModule],
     declarations: [...components],
     exports: [...components],
 })
