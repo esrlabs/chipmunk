@@ -41,7 +41,6 @@ export class Service extends Implementation {
                         vertical: Vertical.center,
                         horizontal: Horizontal.center,
                     },
-                    closable: false,
                     width: 350,
                 }),
             ),
