@@ -4,11 +4,12 @@
             [attr.class]="'tab ' + (tab.active ? 'active' : '')"
             (contextmenu)="_ng_onContextMenu($event, tab)"
             (click) = "_ng_onClick(tab.uuid)">
-            <p class="title t-normal" [attr.title]="tab.name">{{tab.name}}</p>
+            <mat-icon class="title" *ngIf="tab.icon !== undefined">{{tab.icon}}</mat-icon>
+            <p *ngIf="tab.name !== ''" class="title t-normal" [attr.title]="tab.name">{{tab.name}}</p>
             <div class="title-injection" *ngIf="tab.tabCaptionInjection !== undefined">
                 <lib-containers-dynamic [component]="tab.tabCaptionInjection"></lib-containers-dynamic>
             </div>
-            <span *ngIf="tab.closable" class="close-button fas fa-times" (click)="_ng_onTabClose($event, tab.uuid)"></span>
+            <mat-icon class="close" *ngIf="tab.closable" (click)="_ng_onTabClose($event, tab.uuid)">close</mat-icon>
         </li>
     </ul>
     <div *ngIf="_ng_options.injections && _ng_options.injections.bar" #injectionsnode class="injection">

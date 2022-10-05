@@ -30,7 +30,9 @@ export class LayoutWorkspace extends ChangesDetector implements AfterViewInit {
                         factory: LayoutWorkspaceNoContent,
                     },
                     active: true,
-                    name: 'Chipmunk',
+                    name: '',
+                    closable: false,
+                    icon: 'home',
                 },
             })
             .sidebar()

@@ -14,6 +14,7 @@ export interface ITabSubjects {
 
 export interface ITab {
     uuid?: string;
+    icon?: string;
     name: string;
     active: boolean;
     closable?: boolean;
@@ -24,6 +25,7 @@ export interface ITab {
 export interface ITabInternal {
     uuid: string;
     name: string;
+    icon?: string;
     active: boolean;
     closable: boolean;
     subjects: ITabSubjects;
