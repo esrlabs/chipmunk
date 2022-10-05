@@ -1,10 +1,12 @@
 import { FilterRequest } from '../filters/request';
 import { DisableConvertable } from './converting';
-import { EntryConvertable, Entry, Recognizable } from '@platform/types/storage/entry';
+import { Hash, Recognizable } from '@platform/types/storage/entry';
 import { Key } from '../store';
 import { error } from '@platform/env/logger';
 import { Json } from '@platform/types/storage/json';
 import { Equal } from '@platform/types/env/types';
+import { Updatable } from '../store';
+import { Subject } from '@platform/env/subscription';
 
 export interface IDesc {
     type: string;
@@ -13,7 +15,7 @@ export interface IDesc {
 
 export class DisabledRequest
     extends Json<DisabledRequest>
-    implements Recognizable, EntryConvertable, Equal<DisabledRequest>
+    implements Recognizable, Hash, Equal<DisabledRequest>, Updatable<void>
 {
     public static KEY: Key = Key.disabled;
     public static fromJson(json: string): DisabledRequest | Error {
@@ -24,7 +26,7 @@ export class DisabledRequest
             } = JSON.parse(json);
             let entity;
             if (def.key === Key.filters) {
-                entity = FilterRequest.from(def.value);
+                entity = FilterRequest.fromJson(def.value);
                 if (entity instanceof Error) {
                     return entity;
                 }
@@ -38,6 +40,7 @@ export class DisabledRequest
     }
     private _entity: DisableConvertable;
     private _key: Key;
+    public readonly updated: Subject<void> | undefined;
 
     constructor(entity: DisableConvertable) {
         super();
@@ -96,7 +99,7 @@ export class DisabledRequest
             to: (): string => {
                 return JSON.stringify({
                     key: this._key,
-                    value: this._entity.entry().to(),
+                    value: this._entity.json().to(),
                 });
             },
             from: (json: string): DisabledRequest | Error => {
@@ -108,51 +111,7 @@ export class DisabledRequest
         };
     }
 
-    public entry(): {
-        to(): Entry;
-        from(entry: Entry): Error | undefined;
-        hash(): string;
-        uuid(): string;
-        updated(): undefined;
-    } {
-        return {
-            to: (): Entry => {
-                return {
-                    uuid: this._entity.uuid(),
-                    content: JSON.stringify({
-                        key: this._key,
-                        value: this._entity.entry().to(),
-                    }),
-                };
-            },
-            from: (entry: Entry): Error | undefined => {
-                try {
-                    const def: {
-                        key: Key;
-                        value: string;
-                    } = JSON.parse(entry.content);
-                    let entity;
-                    if (def.key === Key.filters) {
-                        entity = FilterRequest.from(entry.content);
-                        if (entity instanceof Error) {
-                            return entity;
-                        }
-                        this._entity = entity;
-                    }
-                } catch (e) {
-                    return new Error(error(e));
-                }
-                return undefined;
-            },
-            hash: (): string => {
-                return this._entity.entry().hash();
-            },
-            uuid: (): string => {
-                return this._entity.uuid();
-            },
-            updated: (): undefined => {
-                return undefined;
-            },
-        };
+    public hash(): string {
+        return this._entity.hash();
     }
 }

@@ -1,4 +1,4 @@
-import { EntryConvertable } from '@platform/types/storage/entry';
+import { Hash, Recognizable } from '@platform/types/storage/entry';
 import { Subject, Subscriber } from '@platform/env/subscription';
 
 export enum Key {
@@ -8,14 +8,18 @@ export enum Key {
     disabled = 'disabled',
 }
 
+export interface Updatable<T> {
+    updated: Subject<T> | undefined;
+}
+
 export abstract class Store<T> extends Subscriber {
     public subjects: {
-        update: Subject<Array<T & EntryConvertable>>;
+        update: Subject<Array<T & Hash & Recognizable & Updatable<any>>>;
     } = {
         update: new Subject(),
     };
 
-    private _entities: Map<string, T & EntryConvertable> = new Map();
+    private _entities: Map<string, T & Hash & Recognizable & Updatable<any>> = new Map();
     private _hash: string = '';
     private _uuid: string;
 
@@ -28,10 +32,13 @@ export abstract class Store<T> extends Subscriber {
         this.unsubscribe();
     }
 
-    public overwrite(items: Array<T & EntryConvertable>, silence: boolean = false): Store<T> {
+    public overwrite(
+        items: Array<T & Hash & Recognizable & Updatable<any>>,
+        silence: boolean = false,
+    ): Store<T> {
         this._entities = new Map();
         items.forEach((item) => {
-            this._entities.set(item.entry().uuid(), item);
+            this._entities.set(item.uuid(), item);
         });
         !silence && this._update();
         return this;
@@ -42,9 +49,9 @@ export abstract class Store<T> extends Subscriber {
         return this;
     }
 
-    public update(items: Array<T & EntryConvertable>): Store<T> {
+    public update(items: Array<T & Hash & Recognizable & Updatable<any>>): Store<T> {
         items.forEach((item) => {
-            this._entities.set(item.entry().uuid(), item);
+            this._entities.set(item.uuid(), item);
         });
         this._update();
         return this;
@@ -57,7 +64,7 @@ export abstract class Store<T> extends Subscriber {
         this._update();
     }
 
-    public get(): Array<T & EntryConvertable> {
+    public get(): Array<T & Hash & Recognizable & Updatable<any>> {
         return Array.from(this._entities.values());
     }
     /*
@@ -69,14 +76,16 @@ export abstract class Store<T> extends Subscriber {
         this._subjects.updated.next({ requests: this._stored, updated: undefined });
 */
     public reorder(params: { prev: number; curt: number }) {
-        let entities: Array<T & EntryConvertable> = this.get();
+        let entities: Array<T & Hash & Recognizable & Updatable<any>> = this.get();
         const prev = entities[params.prev];
         if (prev === undefined) {
             return;
         }
-        entities = entities.filter((_entity: T & EntryConvertable, index: number) => {
-            return index !== params.prev;
-        });
+        entities = entities.filter(
+            (_entity: T & Hash & Recognizable & Updatable<any>, index: number) => {
+                return index !== params.prev;
+            },
+        );
         entities.splice(params.curt, 0, prev);
         this.overwrite(entities);
     }
@@ -91,7 +100,7 @@ export abstract class Store<T> extends Subscriber {
 
     public hash(): string {
         return Array.from(this._entities.values())
-            .map((entry) => entry.entry().hash())
+            .map((entry) => entry.hash())
             .join('_');
     }
 
@@ -103,20 +112,17 @@ export abstract class Store<T> extends Subscriber {
         }
         this.unsubscribe();
         this._entities.forEach((entity) => {
-            const updated = entity.entry().updated();
-            let hash = entity.entry().hash();
-            if (updated === undefined) {
-                return;
-            }
-            this.register(
-                updated.subscribe(() => {
-                    const updated_hash = entity.entry().hash();
-                    if (hash !== updated_hash) {
-                        hash = updated_hash;
-                        this.subjects.update.emit(Array.from(this._entities.values()));
-                    }
-                }),
-            );
+            let hash = entity.hash();
+            entity.updated !== undefined &&
+                this.register(
+                    entity.updated.subscribe(() => {
+                        const updated_hash = entity.hash();
+                        if (hash !== updated_hash) {
+                            hash = updated_hash;
+                            this.subjects.update.emit(Array.from(this._entities.values()));
+                        }
+                    }),
+                );
         });
     }
 }
