@@ -2,12 +2,13 @@ import { Subject } from '@platform/env/subscription';
 import { getContrastColor, scheme_color_accent } from '@styles/colors';
 import { DisableConvertable } from '../disabled/converting';
 import { IFilter, IFilterFlags } from '@platform/types/filter';
-import { EntryConvertable, Entry, Recognizable } from '@platform/types/storage/entry';
+import { Hash, Recognizable } from '@platform/types/storage/entry';
 import { Json } from '@platform/types/storage/json';
 import { unique } from '@platform/env/sequence';
 import { error } from '@platform/env/logger';
 import { Key } from '../store';
 import { Equal } from '@platform/types/env/types';
+import { Updatable } from '../store';
 
 import * as regexFilters from '@platform/env/filters';
 import * as regex from '@platform/env/regex';
@@ -57,28 +58,10 @@ export interface UpdateEvent {
 
 export class FilterRequest
     extends Json<FilterRequest>
-    implements Recognizable, DisableConvertable, EntryConvertable, Equal<FilterRequest>
+    implements Recognizable, DisableConvertable, Hash, Equal<FilterRequest>, Updatable<UpdateEvent>
 {
     public static KEY: Key = Key.filters;
-    public static from(input: Entry | string): FilterRequest | Error {
-        let entry: Entry | Error;
-        if (typeof input === 'string') {
-            entry = EntryConvertable.from(input);
-        } else {
-            entry = input;
-        }
-        if (entry instanceof Error) {
-            return entry;
-        }
-        const request = new FilterRequest({
-            filter: { filter: '', flags: { cases: true, word: false, reg: false } },
-        });
-        const error = request.entry().from(entry);
-        if (error instanceof Error) {
-            return error;
-        }
-        return request;
-    }
+
     public static fromJson(json: string): FilterRequest | Error {
         try {
             const def: Definition = JSON.parse(json);
@@ -97,11 +80,7 @@ export class FilterRequest
     }
 
     public readonly definition: Definition;
-    public readonly subjects: {
-        updated: Subject<UpdateEvent>;
-    } = {
-        updated: new Subject<UpdateEvent>(),
-    };
+    public readonly updated: Subject<UpdateEvent> = new Subject<UpdateEvent>();
 
     private _regex!: RegExp;
     private _hash!: string;
@@ -145,7 +124,7 @@ export class FilterRequest
     }
 
     public destroy() {
-        this.subjects.updated.destroy();
+        this.updated.destroy();
     }
 
     public uuid(): string {
@@ -166,49 +145,6 @@ export class FilterRequest
             },
             key: (): string => {
                 return FilterRequest.KEY;
-            },
-        };
-    }
-
-    public entry(): {
-        to(): Entry;
-        from(entry: Entry): Error | undefined;
-        hash(): string;
-        uuid(): string;
-        updated(): Subject<void>;
-    } {
-        return {
-            to: (): Entry => {
-                return {
-                    uuid: this.definition.uuid,
-                    content: JSON.stringify(this.definition),
-                };
-            },
-            from: (entry: Entry): Error | undefined => {
-                const filter = FilterRequest.fromJson(entry.content);
-                if (filter instanceof Error) {
-                    return filter;
-                }
-                this.definition.uuid = filter.definition.uuid;
-                this.definition.filter = filter.definition.filter;
-                this.definition.colors = filter.definition.colors;
-                this.definition.active = filter.definition.active;
-                return undefined;
-            },
-            hash: (): string => {
-                return `${this.definition.filter.filter}${
-                    this.definition.filter.flags.cases ? 'c' : ''
-                }${this.definition.filter.flags.reg ? 'r' : ''}${
-                    this.definition.filter.flags.word ? 'w' : ''
-                }${this.definition.colors.color}${this.definition.colors.background}${
-                    this.definition.active ? '1' : '0'
-                }`;
-            },
-            uuid: (): string => {
-                return this.definition.uuid;
-            },
-            updated: (): Subject<void> => {
-                return this.subjects.updated.to<void>();
             },
         };
     }
@@ -277,7 +213,7 @@ export class FilterRequest
                 const hasToBeEmitted: boolean =
                     event.updated.filter || event.updated.state || event.updated.colors;
                 if (hasToBeEmitted) {
-                    this.subjects.updated.emit(event);
+                    this.updated.emit(event);
                 }
                 return hasToBeEmitted;
             },
@@ -287,7 +223,7 @@ export class FilterRequest
                 }
                 this.definition.colors.color = color;
                 if (!silence) {
-                    this.subjects.updated.emit({
+                    this.updated.emit({
                         updated: {
                             filter: false,
                             colors: true,
@@ -305,7 +241,7 @@ export class FilterRequest
                 }
                 this.definition.colors.background = background;
                 if (!silence) {
-                    this.subjects.updated.emit({
+                    this.updated.emit({
                         updated: {
                             filter: false,
                             colors: true,
@@ -323,7 +259,7 @@ export class FilterRequest
                 }
                 this.definition.active = active;
                 if (!silence) {
-                    this.subjects.updated.emit({
+                    this.updated.emit({
                         updated: {
                             filter: false,
                             colors: false,
@@ -341,7 +277,7 @@ export class FilterRequest
                     return false;
                 }
                 if (!silence) {
-                    this.subjects.updated.emit({
+                    this.updated.emit({
                         updated: {
                             filter: true,
                             colors: false,
@@ -359,7 +295,7 @@ export class FilterRequest
                     return false;
                 }
                 if (!silence) {
-                    this.subjects.updated.emit({
+                    this.updated.emit({
                         updated: {
                             filter: true,
                             colors: false,
@@ -377,7 +313,7 @@ export class FilterRequest
                 }
                 this.found = found;
                 if (!silence) {
-                    this.subjects.updated.emit({
+                    this.updated.emit({
                         updated: {
                             filter: false,
                             colors: false,
@@ -427,7 +363,13 @@ export class FilterRequest
             this.definition.filter.filter,
             this.definition.filter.flags,
         );
-        this._hash = this._regex.source + this._regex.flags;
+        this._hash = `${this.definition.filter.filter}${
+            this.definition.filter.flags.cases ? 'c' : ''
+        }${this.definition.filter.flags.reg ? 'r' : ''}${
+            this.definition.filter.flags.word ? 'w' : ''
+        }${this.definition.colors.color}${this.definition.colors.background}${
+            this.definition.active ? '1' : '0'
+        }`;
         return prev !== this._hash;
     }
 }

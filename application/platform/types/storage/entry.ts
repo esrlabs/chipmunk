@@ -8,6 +8,10 @@ export interface Entry {
     content: string;
 }
 
+export interface Hash {
+    hash(): string;
+}
+
 export interface Recognizable {
     uuid(): string;
 }
