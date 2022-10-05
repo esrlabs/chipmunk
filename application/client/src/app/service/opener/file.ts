@@ -5,6 +5,7 @@ import { components } from '@env/decorators/initial';
 import { File } from '@platform/types/files';
 import { Base } from './base';
 import { isRenderMatch } from '@schema/render/tools';
+import { lockers, Locker, Level } from '@ui/service/lockers';
 
 export abstract class FileOpener<Options, NamedOptions> extends Base<
     FileOpener<Options, NamedOptions>
@@ -48,9 +49,15 @@ export abstract class FileOpener<Options, NamedOptions> extends Base<
                     filename: target.filename,
                     name: target.name,
                     type: target.type,
-                    options: options === undefined ? {} : this.getNamedOptions(options),
+                    options: options === undefined ? {} : (this.getNamedOptions(options) as {}),
                 });
             } else {
+                const progress = lockers.lock(
+                    new Locker(true, 'indexing file...').set().group(target.filename).end(),
+                    {
+                        closable: false,
+                    },
+                );
                 return this.services.system.session
                     .add()
                     .file(
@@ -58,16 +65,18 @@ export abstract class FileOpener<Options, NamedOptions> extends Base<
                             filename: target.filename,
                             name: target.name,
                             type: target.type,
-                            options: options === undefined ? {} : this.getNamedOptions(options),
+                            options:
+                                options === undefined ? {} : (this.getNamedOptions(options) as {}),
                         },
                         this.getRender(),
                     )
                     .then(() => {
+                        progress.popup.close();
                         this.services.system.recent
                             .add()
                             .file(
                                 target,
-                                options === undefined ? {} : this.getNamedOptions(options),
+                                options === undefined ? {} : (this.getNamedOptions(options) as {}),
                             )
                             .catch((err: Error) => {
                                 this.logger.error(
@@ -75,6 +84,10 @@ export abstract class FileOpener<Options, NamedOptions> extends Base<
                                 );
                             });
                         return Promise.resolve(undefined);
+                    })
+                    .catch((err: Error) => {
+                        progress.locker.set().message(err.message).type(Level.error).spinner(false);
+                        return Promise.reject(err);
                     });
             }
         };

@@ -3,6 +3,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Initial } from '@env/decorators/initial';
 import { Locker, Level } from '@ui/service/lockers';
+import { Popup } from '@ui/service/popup';
 
 @Component({
     selector: 'app-dialogs-locker-message',
@@ -13,6 +14,7 @@ import { Locker, Level } from '@ui/service/lockers';
 @Ilc()
 export class LockerMessage extends ChangesDetector implements AfterViewInit {
     @Input() public locker!: Locker;
+    @Input() public popup!: Popup;
     @Input() public close!: () => void;
 
     constructor(cdRef: ChangeDetectorRef) {

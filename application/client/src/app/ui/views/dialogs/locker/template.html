@@ -2,4 +2,4 @@
 <mat-icon *ngIf="locker.type === Level.error">highlight_off</mat-icon>
 <mat-icon *ngIf="locker.type === Level.warning">report_problem</mat-icon>
 <p *ngIf="locker.message !== undefined">{{locker.message}}</p>
-<button mat-stroked-button *ngIf="locker.message !== undefined" (click)="ngClose()">Close</button>
+<button mat-stroked-button *ngIf="popup.options.closable" (click)="ngClose()">Close</button>
