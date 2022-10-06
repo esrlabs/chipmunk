@@ -46,10 +46,8 @@ export class ScrollAreaVerticalComponent implements AfterContentInit, AfterViewI
         if (this._fillerHeight === 0) {
             return;
         }
-        const position = Math.round(
-            (this._count - this._rowsInView) *
-                (target.scrollTop / (target.scrollHeight - this._height)),
-        );
+        const rate = target.scrollTop / (target.scrollHeight - target.offsetHeight);
+        const position = Math.round((this._count - this._rowsInView) * rate);
         this.scrolling.next(position);
     }
 
