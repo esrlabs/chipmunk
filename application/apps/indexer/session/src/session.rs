@@ -15,6 +15,7 @@ use processor::{
 };
 use serde::Serialize;
 use sources::factory::SourceType;
+use std::{ops::RangeInclusive, path::PathBuf};
 use tokio::{
     join,
     sync::{
@@ -176,6 +177,20 @@ impl Session {
             .send(Operation::new(
                 operation_id,
                 operations::OperationKind::Observe(source_type),
+            ))
+            .map_err(|e| ComputationError::Communication(e.to_string()))
+    }
+
+    pub fn export(
+        &self,
+        operation_id: Uuid,
+        out_path: PathBuf,
+        ranges: Vec<RangeInclusive<u64>>,
+    ) -> Result<(), ComputationError> {
+        self.tx_operations
+            .send(Operation::new(
+                operation_id,
+                operations::OperationKind::Export { out_path, ranges },
             ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }

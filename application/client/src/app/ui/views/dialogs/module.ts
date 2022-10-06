@@ -9,5 +9,6 @@ import { LockerMessageModule } from './locker/module';
     imports: [CommonModule, HotkeysModule, LockerMessageModule],
     declarations: [],
     exports: [HotkeysModule, LockerMessageModule],
+    bootstrap: [LockerMessageModule],
 })
 export class DialogsModule {}

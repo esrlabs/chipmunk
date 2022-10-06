@@ -113,6 +113,11 @@ export class Cursor extends Subscriber {
         return this._selected.length === 1 ? this._last : undefined;
     }
 
+    public drop() {
+        this._selected = [];
+        this.subjects.get().updated.emit();
+    }
+
     private _onKeyDown(event: KeyboardEvent) {
         if (event.key === 'Shift') {
             this._hold = HoldKey.shift;

@@ -10,6 +10,7 @@ import { components } from '@env/decorators/initial';
 import { Base } from './base';
 import { Bookmarks } from './dependencies/bookmarks';
 import { Cache } from './dependencies/cache';
+import { Exporter } from './dependencies/exporter';
 
 import * as Requests from '@platform/ipc/request';
 
@@ -25,6 +26,7 @@ export class Session extends Base {
     public readonly bookmarks: Bookmarks = new Bookmarks();
     public readonly cursor: Cursor = new Cursor();
     public readonly cache: Cache = new Cache();
+    public readonly exporter: Exporter = new Exporter();
     public readonly render: Render<unknown>;
 
     private readonly _toolbar: TabsService = new TabsService();
@@ -96,6 +98,7 @@ export class Session extends Base {
                     this.bookmarks.init(this._uuid, this.cursor);
                     this.cache.init(this._uuid, this.cursor, this.stream);
                     this.search.init(this._uuid, this.bookmarks, this.cache);
+                    this.exporter.init(this._uuid, this.cursor, this.stream);
                     this.inited = true;
                     resolve(this._uuid);
                 })
@@ -110,6 +113,7 @@ export class Session extends Base {
         this.bookmarks.destroy();
         this.cursor.destroy();
         this.cache.destroy();
+        this.exporter.destroy();
         if (!this.inited) {
             return Promise.resolve();
         }

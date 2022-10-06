@@ -16,10 +16,10 @@ import {
 import { getNativeModule } from '../native/native';
 import { EFileOptionsRequirements } from '../api/executors/session.stream.observe.executor';
 import { IDetectOptions } from '../api/executors/session.stream.timeformat.detect.executor';
-import { IExportOptions } from '../api/executors/session.stream.export.executor';
 import { Type, Source, NativeError } from '../interfaces/errors';
 import { v4 as uuidv4 } from 'uuid';
 import { getValidNum } from '../util/numbers';
+import { IRange } from 'platform/types/range';
 
 export type RustSessionConstructorImpl<T> = new (
     uuid: string,
@@ -169,7 +169,7 @@ export abstract class RustSession extends RustSessionRequiered {
         operationUuid: string,
     ): Promise<void>;
 
-    public abstract export(options: IExportOptions): string | NativeError;
+    public abstract export(dest: string, ranges: IRange[], operationUuid: string): Promise<void>;
 
     public abstract detect(options: IDetectOptions): string | NativeError;
 
@@ -240,6 +240,8 @@ export abstract class RustSessionNative {
     public abstract grabSearch(start: number, len: number): Promise<string>;
 
     public abstract getSearchLen(): Promise<number>;
+
+    public abstract export(dest: string, ranges: number[][], operationUuid: string): Promise<void>;
 
     public abstract applySearchFilters(
         filters: Array<{
@@ -601,8 +603,24 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
-    public export(options: IExportOptions): string | NativeError {
-        return new NativeError(new Error('Not implemented yet'), Type.Other, Source.Export);
+    public export(dest: string, ranges: IRange[], operationUuid: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            try {
+                this._provider.debug().emit.operation('observe', operationUuid);
+                this._native
+                    .export(
+                        dest,
+                        ranges.map((r) => [r.from, r.to]),
+                        operationUuid,
+                    )
+                    .then(resolve)
+                    .catch((err: Error) => {
+                        reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
+                    });
+            } catch (err) {
+                return reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
+            }
+        });
     }
 
     public detect(options: IDetectOptions): string | NativeError {

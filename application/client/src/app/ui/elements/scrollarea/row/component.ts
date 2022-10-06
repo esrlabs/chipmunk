@@ -42,6 +42,37 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         this.ilc().emitter.ui.row.hover(undefined);
     }
 
+    @HostListener('contextmenu', ['$event']) onContextMenu(event: MouseEvent) {
+        const items: {}[] = [];
+        if (this.row.session.cursor.get().length > 0) {
+            items.push(
+                ...[
+                    {
+                        caption: 'Unselect All',
+                        handler: () => {
+                            this.row.session.cursor.drop();
+                        },
+                    },
+                    {},
+                ],
+            );
+        }
+        items.push({
+            caption: 'Export Selected',
+            disabled: this.row.session.cursor.get().length === 0,
+            handler: () => {
+                this.row.session.exporter.export().catch((err: Error) => {
+                    this.log().error(`Fail to export data: ${err.message}`);
+                });
+            },
+        });
+        this.ilc().emitter.ui.contextmenu.open({
+            items,
+            x: event.x,
+            y: event.y,
+        });
+    }
+
     @HostListener('click') onClick() {
         this.row.select().toggle();
     }

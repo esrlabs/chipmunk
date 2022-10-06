@@ -60,6 +60,12 @@ pub enum Api {
     WriteSessionFile((String, oneshot::Sender<Result<bool, NativeError>>)),
     FlushSessionFile(oneshot::Sender<Result<(), NativeError>>),
     UpdateSession(oneshot::Sender<Result<bool, NativeError>>),
+    ExportSession {
+        out_path: PathBuf,
+        ranges: Vec<std::ops::RangeInclusive<u64>>,
+        cancel: CancellationToken,
+        tx_response: oneshot::Sender<Result<bool, NativeError>>,
+    },
     FileRead(oneshot::Sender<()>),
     Grab(
         (
@@ -111,6 +117,7 @@ impl Display for Api {
                 Self::WriteSessionFile(_) => "WriteSessionFile",
                 Self::FlushSessionFile(_) => "FlushSessionFile",
                 Self::UpdateSession(_) => "UpdateSession",
+                Self::ExportSession { .. } => "ExportSession",
                 Self::FileRead(_) => "FileRead",
                 Self::Grab(_) => "Grab",
                 Self::GetStreamLen(_) => "GetStreamLen",
@@ -379,6 +386,51 @@ impl SessionState {
         }
     }
 
+    async fn handle_export_session(
+        &mut self,
+        out_path: PathBuf,
+        ranges: Vec<std::ops::RangeInclusive<u64>>,
+        cancel: CancellationToken,
+    ) -> Result<bool, NativeError> {
+        let grabber = &mut (self.content_grabber.as_ref().ok_or(NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Grabber,
+            message: Some(String::from("Grabber isn't inited")),
+        })?);
+        let mut writer = BufWriter::new(File::create(&out_path).map_err(|e| NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Io,
+            message: Some(format!(
+                "Fail to create writer for {}: {}",
+                out_path.to_string_lossy(),
+                e
+            )),
+        })?);
+        for (i, range) in ranges.iter().enumerate() {
+            grabber.copy_content(&mut writer, &LineRange::from(range.clone()))?;
+            if i != ranges.len() - 1 {
+                writer.write(b"\n").map_err(|e| NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Io,
+                    message: Some(format!(
+                        "Fail to write to file {}: {}",
+                        out_path.to_string_lossy(),
+                        e
+                    )),
+                })?;
+            }
+            if cancel.is_cancelled() {
+                return Ok(false);
+            }
+        }
+        writer.flush().map_err(|e| NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Io,
+            message: Some(format!("Fail to write into file: {:?}", e)),
+        })?;
+        Ok(true)
+    }
+
     fn handle_get_search_holder(&mut self, uuid: Uuid) -> Result<SearchHolder, NativeError> {
         match self.search_holder {
             SearchHolderState::Available(_) => {
@@ -511,6 +563,25 @@ impl SessionStateAPI {
     pub async fn update_session(&self) -> Result<bool, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::UpdateSession(tx), rx).await?
+    }
+
+    pub async fn export_session(
+        &self,
+        out_path: PathBuf,
+        ranges: Vec<std::ops::RangeInclusive<u64>>,
+        cancel: CancellationToken,
+    ) -> Result<bool, NativeError> {
+        let (tx_response, rx) = oneshot::channel();
+        self.exec_operation(
+            Api::ExportSession {
+                out_path,
+                ranges,
+                tx_response,
+                cancel,
+            },
+            rx,
+        )
+        .await?
     }
 
     pub async fn file_read(&self) -> Result<(), NativeError> {
@@ -668,6 +739,17 @@ pub async fn run(
                 tx_response
                     .send(res)
                     .map_err(|_| NativeError::channel("Failed to respond to Api::UpdateSession"))?;
+            }
+            Api::ExportSession {
+                out_path,
+                ranges,
+                cancel,
+                tx_response,
+            } => {
+                let res = state.handle_export_session(out_path, ranges, cancel).await;
+                tx_response
+                    .send(res)
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::ExportSession"))?;
             }
             Api::Grab((range, tx_response)) => {
                 let result = if let Some(ref mut grabber) = state.content_grabber {

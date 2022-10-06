@@ -4,7 +4,6 @@ import { RustSession } from '../native/native.session';
 import { ICancelablePromise } from 'platform/env/promise';
 import { SdeResult } from 'platform/types/sde/common';
 import { EventProvider } from '../api/session.provider';
-import { IExportOptions } from './executors/session.stream.export.executor';
 import {
     IDetectDTFormatResult,
     IDetectOptions,
@@ -21,10 +20,10 @@ import {
 } from '../interfaces/index';
 import { IConcatResults } from './executors/session.stream.concat.executor';
 import { IMergeResults } from './executors/session.stream.merge.executor';
+import { IRange } from 'platform/types/range';
 
 export {
     IFileMergeOptions,
-    IExportOptions,
     IDetectDTFormatResult,
     IDetectOptions,
     IExtractDTFormatOptions,
@@ -111,8 +110,8 @@ export class SessionStream {
         return Executors.merge(this._session, this._provider, this._logger, { files, append });
     }
 
-    public export(options: IExportOptions): ICancelablePromise<void> {
-        return Executors.export(this._session, this._provider, this._logger, options);
+    public export(dest: string, ranges: IRange[]): ICancelablePromise<boolean> {
+        return Executors.export(this._session, this._provider, this._logger, { dest, ranges });
     }
 
     public detectTimeformat(options: IDetectOptions): ICancelablePromise<IDetectDTFormatResult> {

@@ -1,6 +1,6 @@
 use crate::grabber::{
-    identify_byte_range, ByteRange, GrabError, GrabMetadata, GrabbedContent, GrabbedElement,
-    LineRange, Slot,
+    identify_byte_range, ByteRange, FilePart, GrabError, GrabMetadata, GrabbedContent,
+    GrabbedElement, LineRange, Slot,
 };
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use indexer_base::progress::ComputationResult;
@@ -210,18 +210,11 @@ impl TextFileSource {
         }))
     }
 
-    /// Calling this function is only possible when the metadata already has been
-    /// created.
-    /// It will deliever the content of the file that is requested by line_range.
-    ///
-    /// Get all lines in a file within the supplied line-range
-    /// naive implementation that just reads all slots that are involved and drops
-    /// everything that is not needed
-    pub fn get_entries(
+    pub fn read_file_segment(
         &self,
         metadata: &GrabMetadata,
         line_range: &LineRange,
-    ) -> Result<GrabbedContent, GrabError> {
+    ) -> Result<(Vec<u8>, FilePart), GrabError> {
         if line_range.range.is_empty() {
             return Err(GrabError::InvalidRange {
                 range: line_range.clone(),
@@ -235,11 +228,6 @@ impl TextFileSource {
                 context: format!("Error identifying byte range for range {:?}", line_range),
             }
         })?;
-        // println!(
-        //     "relevant file-part (starts at index {}): lines {}",
-        //     file_part.offset_in_file,
-        //     file_part.total_lines - file_part.lines_to_skip - file_part.lines_to_drop
-        // );
         let mut read_buf = vec![0; file_part.length];
         let mut read_from = fs::File::open(self.path())
             .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", &self.path)))?;
@@ -252,19 +240,62 @@ impl TextFileSource {
         read_from.read_exact(&mut read_buf).map_err(|_| {
             GrabError::IoOperation(format!("Could not read from file {:?}", &self.path))
         })?;
-        let s = unsafe { std::str::from_utf8_unchecked(&read_buf) };
+        Ok((read_buf, file_part))
+    }
+
+    pub fn clear_lines<'a>(
+        &self,
+        read_buf: &'a [u8],
+        file_part: &FilePart,
+    ) -> Result<Vec<&'a str>, GrabError> {
+        let s = unsafe { std::str::from_utf8_unchecked(read_buf) };
         let all_lines = s.split(|c| c == '\n');
         let lines_minus_end = all_lines.take(file_part.total_lines - file_part.lines_to_drop);
-        let pure_lines = lines_minus_end.skip(file_part.lines_to_skip);
-        let grabbed_elements = pure_lines
+        let pure_lines = lines_minus_end
+            .skip(file_part.lines_to_skip)
+            .collect::<Vec<&str>>();
+        Ok(pure_lines)
+    }
+
+    /// Calling this function is only possible when the metadata already has been
+    /// created.
+    /// It will deliever the content of the file that is requested by line_range.
+    ///
+    /// Get all lines in a file within the supplied line-range
+    /// naive implementation that just reads all slots that are involved and drops
+    /// everything that is not needed
+    pub fn get_entries(
+        &self,
+        metadata: &GrabMetadata,
+        line_range: &LineRange,
+    ) -> Result<GrabbedContent, GrabError> {
+        let (read_buf, file_part) = self.read_file_segment(metadata, line_range)?;
+        let clean = self.clear_lines(&read_buf, &file_part)?;
+        let grabbed_elements = clean
+            .iter()
             .map(|s| GrabbedElement {
                 source_id: self.source_id.clone(),
-                content: s.to_owned(),
+                content: s.to_string(),
                 row: None,
                 pos: None,
             })
             .collect::<Vec<GrabbedElement>>();
         Ok(GrabbedContent { grabbed_elements })
+    }
+
+    pub fn write_to<W: std::io::Write>(
+        &self,
+        writer: &mut W,
+        metadata: &GrabMetadata,
+        line_range: &LineRange,
+    ) -> Result<(), GrabError> {
+        let (read_buf, file_part) = self.read_file_segment(metadata, line_range)?;
+        let clean = self.clear_lines(&read_buf, &file_part)?;
+        println!(">>>>>>>>>>>>>>>>>>>>>>> {:?}", line_range);
+        writer
+            .write(clean.join("\n").as_bytes())
+            .map_err(|e| GrabError::IoOperation(format!("Could not write into file {:?}", e)))?;
+        Ok(())
     }
 }
 
