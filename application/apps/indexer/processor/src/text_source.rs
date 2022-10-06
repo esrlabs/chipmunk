@@ -270,8 +270,8 @@ impl TextFileSource {
         line_range: &LineRange,
     ) -> Result<GrabbedContent, GrabError> {
         let (read_buf, file_part) = self.read_file_segment(metadata, line_range)?;
-        let clean = self.clear_lines(&read_buf, &file_part)?;
-        let grabbed_elements = clean
+        let grabbed_elements = self
+            .clear_lines(&read_buf, &file_part)?
             .iter()
             .map(|s| GrabbedElement {
                 source_id: self.source_id.clone(),
@@ -290,10 +290,12 @@ impl TextFileSource {
         line_range: &LineRange,
     ) -> Result<(), GrabError> {
         let (read_buf, file_part) = self.read_file_segment(metadata, line_range)?;
-        let clean = self.clear_lines(&read_buf, &file_part)?;
-        println!(">>>>>>>>>>>>>>>>>>>>>>> {:?}", line_range);
         writer
-            .write(clean.join("\n").as_bytes())
+            .write(
+                self.clear_lines(&read_buf, &file_part)?
+                    .join("\n")
+                    .as_bytes(),
+            )
             .map_err(|e| GrabError::IoOperation(format!("Could not write into file {:?}", e)))?;
         Ok(())
     }
