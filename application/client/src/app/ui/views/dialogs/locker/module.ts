@@ -10,5 +10,6 @@ import { MatButtonModule } from '@angular/material/button';
     imports: [CommonModule, MatProgressSpinnerModule, MatIconModule, MatButtonModule],
     declarations: [LockerMessage],
     exports: [LockerMessage],
+    bootstrap: [LockerMessage],
 })
 export class LockerMessageModule {}

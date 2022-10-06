@@ -1,6 +1,6 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
-import { Range } from '@platform/types/range';
+import { Range, IRange } from '@platform/types/range';
 import { cutUuid } from '@log/index';
 import { Rank } from './rank';
 import { IGrabbedElement } from '@platform/types/content';
@@ -303,6 +303,31 @@ export class Stream extends Subscriber {
                 })
                 .catch((error: Error) => {
                     this.log().error(`Fail to grab content: ${error.message}`);
+                });
+        });
+    }
+
+    public export(dest: string, ranges: IRange[]): Promise<boolean> {
+        if (this._len === 0) {
+            return Promise.resolve(true);
+        }
+        return new Promise((resolve, reject) => {
+            Requests.IpcRequest.send(
+                Requests.Session.Export.Response,
+                new Requests.Session.Export.Request({
+                    session: this._uuid,
+                    dest,
+                    ranges,
+                }),
+            )
+                .then((response: Requests.Session.Export.Response) => {
+                    if (response.error !== undefined) {
+                        return reject(new Error(response.error));
+                    }
+                    resolve(response.complete);
+                })
+                .catch((error: Error) => {
+                    this.log().error(`Fail to export content: ${error.message}`);
                 });
         });
     }

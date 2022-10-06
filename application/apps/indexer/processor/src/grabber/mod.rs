@@ -155,6 +155,25 @@ pub struct Grabber {
 }
 
 impl Grabber {
+    pub fn copy_content<W: std::io::Write>(
+        &self,
+        writer: &mut W,
+        line_range: &LineRange,
+    ) -> Result<(), GrabError> {
+        match &self.metadata {
+            None => Err(GrabError::NotInitialize),
+            Some(md) => {
+                if line_range.range.is_empty() {
+                    return Err(GrabError::InvalidRange {
+                        range: line_range.clone(),
+                        context: "Cannot get entries of empty range".to_string(),
+                    });
+                }
+                self.source.write_to(writer, md, line_range)
+            }
+        }
+    }
+
     pub fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError> {
         self.get_entries(line_range)
     }

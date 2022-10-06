@@ -20,7 +20,7 @@ use session::{
     operations,
     session::Session,
 };
-use std::thread;
+use std::{ops::RangeInclusive, path::PathBuf, thread};
 use tokio::{runtime::Runtime, sync::oneshot};
 use uuid::Uuid;
 
@@ -161,6 +161,32 @@ impl RustSession {
     async fn details(&self, _index: i64) -> Result<String, ComputationErrorWrapper> {
         todo!("nyi");
         // Log
+    }
+
+    #[node_bindgen]
+    async fn export(
+        &self,
+        out_path: String,
+        ranges: Vec<(i64, i64)>,
+        operation_id: String,
+    ) -> Result<(), ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            session
+                .export(
+                    operations::uuid_from_str(&operation_id)?,
+                    PathBuf::from(out_path),
+                    ranges
+                        .iter()
+                        .map(|(s, e)| RangeInclusive::<u64>::new(*s as u64, *e as u64))
+                        .collect::<Vec<RangeInclusive<u64>>>(),
+                )
+                .map_err(ComputationErrorWrapper)?;
+            Ok(())
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
     }
 
     #[node_bindgen]

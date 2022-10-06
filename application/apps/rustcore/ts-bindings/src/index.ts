@@ -23,7 +23,7 @@ export {
     IEventMatchesUpdated,
 } from './api/session';
 
-export { IExportOptions, IDetectDTFormatResult, IDetectOptions } from './api/session.stream';
+export { IDetectDTFormatResult, IDetectOptions } from './api/session.stream';
 
 export {
     IGrabbedElement,
