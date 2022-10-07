@@ -12,6 +12,7 @@ import {
 import { Row } from '@schema/content/row';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
+import { Locker, Level } from '@ui/service/lockers';
 
 @Component({
     selector: 'app-scrollarea-row',
@@ -61,9 +62,24 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
             caption: 'Export Selected',
             disabled: this.row.session.cursor.get().length === 0,
             handler: () => {
-                this.row.session.exporter.export().catch((err: Error) => {
-                    this.log().error(`Fail to export data: ${err.message}`);
-                });
+                const progress = this.ilc().services.ui.lockers.lock(
+                    new Locker(true, 'exporting into file...')
+                        .set()
+                        .group(this.row.session.uuid())
+                        .end(),
+                    {
+                        closable: false,
+                    },
+                );
+                this.row.session.exporter
+                    .export()
+                    .then(() => {
+                        progress.popup.close();
+                    })
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to export data: ${err.message}`);
+                        progress.locker.set().message(err.message).type(Level.error).spinner(false);
+                    });
             },
         });
         this.ilc().emitter.ui.contextmenu.open({

@@ -47,8 +47,6 @@ export class Exporter {
             }
             prev = row;
         });
-        console.log(`>>>>>>>>>>>>>>>>`);
-        console.log(ranges);
         return this._stream.export(
             dest,
             ranges.map((r) => r.get()),

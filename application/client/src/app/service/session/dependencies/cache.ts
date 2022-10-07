@@ -6,6 +6,9 @@ import { Stream } from './stream';
 import { Range } from '@platform/types/range';
 import { IGrabbedElement } from '@platform/types/content';
 
+const MAX_CACHED_CONTENT_LEN = 1024 * 1024 * 25; // 25 Mb
+const MAX_CACHED_ROWS_COUNT = Math.round(MAX_CACHED_CONTENT_LEN / 1024);
+
 @SetupLogger()
 export class Cache extends Subscriber {
     public updated: Subject<void> = new Subject();
@@ -88,21 +91,48 @@ export class Cache extends Subscriber {
         });
         // Build list of rows to be requested
         const absent: number[] = [];
+        let size = 0;
         this.selected.forEach((pos: number) => {
-            this.rows.has(pos) === false && absent.push(pos);
+            const row = this.rows.get(pos);
+            if (row === undefined) {
+                absent.push(pos);
+            } else {
+                size += row.content.length;
+            }
         });
+        const checked = ((indexes: number[]) => {
+            if (size > MAX_CACHED_CONTENT_LEN) {
+                // Do not upload more
+                return { toLoad: [], toCut: indexes };
+            }
+            const overLimitCount = this.rows.size + indexes.length - MAX_CACHED_ROWS_COUNT;
+            if (overLimitCount > 0) {
+                if (indexes.length < overLimitCount) {
+                    // Do not upload any
+                    return { toLoad: [], toCut: indexes };
+                }
+                // Cut content
+                const toCut = indexes.splice(overLimitCount - indexes.length, indexes.length);
+                return {
+                    toLoad: indexes,
+                    toCut,
+                };
+            }
+            return { toLoad: indexes, toCut: [] };
+        })(absent);
+        this.selected = this.selected.filter((r) => checked.toCut.indexOf(r) === -1);
         // Gets ranges to be requested
         const ranges: Range[] = [];
         let start: number | undefined;
         let prev: number = -1;
-        absent.forEach((row: number, i: number) => {
+        checked.toLoad.forEach((row: number, i: number) => {
             if (start === undefined) {
                 start = row;
             } else if (row !== prev + 1) {
                 ranges.push(new Range(start, prev));
                 start = row;
             }
-            if (absent.length - 1 === i) {
+            if (checked.toLoad.length - 1 === i) {
                 ranges.push(new Range(start, row));
             }
             prev = row;
@@ -119,6 +149,7 @@ export class Cache extends Subscriber {
         )
             .catch((err: Error) => {
                 this.rows.clear();
+                this.selected = [];
                 this.log().error(`Fail to request range: ${err.message}`);
             })
             .finally(() => {
