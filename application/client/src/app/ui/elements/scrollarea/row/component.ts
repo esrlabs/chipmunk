@@ -58,30 +58,70 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                 ],
             );
         }
-        items.push({
-            caption: 'Export Selected',
-            disabled: this.row.session.cursor.get().length === 0,
-            handler: () => {
-                const progress = this.ilc().services.ui.lockers.lock(
-                    new Locker(true, 'exporting into file...')
-                        .set()
-                        .group(this.row.session.uuid())
-                        .end(),
-                    {
-                        closable: false,
+        items.push(
+            ...[
+                {
+                    caption: 'Export Selected',
+                    disabled: this.row.session.cursor.get().length === 0,
+                    handler: () => {
+                        const progress = this.ilc().services.ui.lockers.lock(
+                            new Locker(true, 'exporting into file...')
+                                .set()
+                                .group(this.row.session.uuid())
+                                .end(),
+                            {
+                                closable: false,
+                            },
+                        );
+                        this.row.session.exporter
+                            .export()
+                            .stream()
+                            .then(() => {
+                                progress.popup.close();
+                            })
+                            .catch((err: Error) => {
+                                this.log().error(`Fail to export data: ${err.message}`);
+                                progress.locker
+                                    .set()
+                                    .message(err.message)
+                                    .type(Level.error)
+                                    .spinner(false);
+                            });
                     },
-                );
-                this.row.session.exporter
-                    .export()
-                    .then(() => {
-                        progress.popup.close();
-                    })
-                    .catch((err: Error) => {
-                        this.log().error(`Fail to export data: ${err.message}`);
-                        progress.locker.set().message(err.message).type(Level.error).spinner(false);
-                    });
-            },
-        });
+                },
+                {},
+                {
+                    caption: 'Export All Search Result',
+                    disabled: this.row.session.search.len() === 0,
+                    handler: () => {
+                        const progress = this.ilc().services.ui.lockers.lock(
+                            new Locker(true, 'exporting into file...')
+                                .set()
+                                .group(this.row.session.uuid())
+                                .end(),
+                            {
+                                closable: false,
+                            },
+                        );
+                        this.row.session.exporter
+                            .export()
+                            .search()
+                            .then(() => {
+                                progress.popup.close();
+                            })
+                            .catch((err: Error) => {
+                                this.log().error(`Fail to export data: ${err.message}`);
+                                progress.locker
+                                    .set()
+                                    .message(err.message)
+                                    .type(Level.error)
+                                    .spinner(false);
+                            });
+                    },
+                },
+            ],
+        );
+
         this.ilc().emitter.ui.contextmenu.open({
             items,
             x: event.x,

@@ -66,6 +66,12 @@ pub enum Api {
         cancel: CancellationToken,
         tx_response: oneshot::Sender<Result<bool, NativeError>>,
     },
+    ExportSearch {
+        out_path: PathBuf,
+        ranges: Vec<std::ops::RangeInclusive<u64>>,
+        cancel: CancellationToken,
+        tx_response: oneshot::Sender<Result<bool, NativeError>>,
+    },
     FileRead(oneshot::Sender<()>),
     Grab(
         (
@@ -118,6 +124,7 @@ impl Display for Api {
                 Self::FlushSessionFile(_) => "FlushSessionFile",
                 Self::UpdateSession(_) => "UpdateSession",
                 Self::ExportSession { .. } => "ExportSession",
+                Self::ExportSearch { .. } => "ExportSearch",
                 Self::FileRead(_) => "FileRead",
                 Self::Grab(_) => "Grab",
                 Self::GetStreamLen(_) => "GetStreamLen",
@@ -431,6 +438,77 @@ impl SessionState {
         Ok(true)
     }
 
+    async fn handle_export_search(
+        &mut self,
+        out_path: PathBuf,
+        ranges: Vec<std::ops::RangeInclusive<u64>>,
+        cancel: CancellationToken,
+    ) -> Result<bool, NativeError> {
+        let grabber = &mut (self.content_grabber.as_ref().ok_or(NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Grabber,
+            message: Some(String::from("Grabber isn't inited")),
+        })?);
+        let mut indexes: Vec<u64> = self.search_map.matches.iter().map(|el| el.index).collect();
+        for range in ranges.iter() {
+            (*range.start()..=*range.end()).for_each(|i| {
+                if !indexes.iter().any(|s| s == &i) {
+                    indexes.push(i);
+                }
+            });
+        }
+        indexes.sort_unstable();
+        let mut ranges = vec![];
+        let mut from_pos: u64 = 0;
+        let mut to_pos: u64 = 0;
+        for (i, index) in indexes.iter().enumerate() {
+            if i == 0 {
+                from_pos = *index;
+            } else if to_pos + 1 != *index {
+                ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
+                from_pos = *index;
+            }
+            to_pos = *index;
+        }
+        if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from_pos)
+            || (ranges.is_empty() && !indexes.is_empty())
+        {
+            ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
+        }
+        let mut writer = BufWriter::new(File::create(&out_path).map_err(|e| NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Io,
+            message: Some(format!(
+                "Fail to create writer for {}: {}",
+                out_path.to_string_lossy(),
+                e
+            )),
+        })?);
+        for (i, range) in ranges.iter().enumerate() {
+            grabber.copy_content(&mut writer, &LineRange::from(range.clone()))?;
+            if i != ranges.len() - 1 {
+                writer.write(b"\n").map_err(|e| NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Io,
+                    message: Some(format!(
+                        "Fail to write to file {}: {}",
+                        out_path.to_string_lossy(),
+                        e
+                    )),
+                })?;
+            }
+            if cancel.is_cancelled() {
+                return Ok(false);
+            }
+        }
+        writer.flush().map_err(|e| NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Io,
+            message: Some(format!("Fail to write into file: {:?}", e)),
+        })?;
+        Ok(true)
+    }
+
     fn handle_get_search_holder(&mut self, uuid: Uuid) -> Result<SearchHolder, NativeError> {
         match self.search_holder {
             SearchHolderState::Available(_) => {
@@ -574,6 +652,25 @@ impl SessionStateAPI {
         let (tx_response, rx) = oneshot::channel();
         self.exec_operation(
             Api::ExportSession {
+                out_path,
+                ranges,
+                tx_response,
+                cancel,
+            },
+            rx,
+        )
+        .await?
+    }
+
+    pub async fn export_search(
+        &self,
+        out_path: PathBuf,
+        ranges: Vec<std::ops::RangeInclusive<u64>>,
+        cancel: CancellationToken,
+    ) -> Result<bool, NativeError> {
+        let (tx_response, rx) = oneshot::channel();
+        self.exec_operation(
+            Api::ExportSearch {
                 out_path,
                 ranges,
                 tx_response,
@@ -750,6 +847,17 @@ pub async fn run(
                 tx_response
                     .send(res)
                     .map_err(|_| NativeError::channel("Failed to respond to Api::ExportSession"))?;
+            }
+            Api::ExportSearch {
+                out_path,
+                ranges,
+                cancel,
+                tx_response,
+            } => {
+                let res = state.handle_export_search(out_path, ranges, cancel).await;
+                tx_response
+                    .send(res)
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::ExportSearch"))?;
             }
             Api::Grab((range, tx_response)) => {
                 let result = if let Some(ref mut grabber) = state.content_grabber {

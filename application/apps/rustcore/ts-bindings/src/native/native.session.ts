@@ -171,6 +171,8 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract export(dest: string, ranges: IRange[], operationUuid: string): Promise<void>;
 
+    public abstract exportSearch(dest: string, ranges: IRange[], operationUuid: string): Promise<void>;
+
     public abstract detect(options: IDetectOptions): string | NativeError;
 
     /**
@@ -242,6 +244,8 @@ export abstract class RustSessionNative {
     public abstract getSearchLen(): Promise<number>;
 
     public abstract export(dest: string, ranges: number[][], operationUuid: string): Promise<void>;
+
+    public abstract exportSearch(dest: string, ranges: number[][], operationUuid: string): Promise<void>;
 
     public abstract applySearchFilters(
         filters: Array<{
@@ -606,9 +610,29 @@ export class RustSessionWrapper extends RustSession {
     public export(dest: string, ranges: IRange[], operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
-                this._provider.debug().emit.operation('observe', operationUuid);
+                this._provider.debug().emit.operation('export', operationUuid);
                 this._native
                     .export(
+                        dest,
+                        ranges.map((r) => [r.from, r.to]),
+                        operationUuid,
+                    )
+                    .then(resolve)
+                    .catch((err: Error) => {
+                        reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
+                    });
+            } catch (err) {
+                return reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
+            }
+        });
+    }
+
+    public exportSearch(dest: string, ranges: IRange[], operationUuid: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            try {
+                this._provider.debug().emit.operation('exportSearch', operationUuid);
+                this._native
+                    .exportSearch(
                         dest,
                         ranges.map((r) => [r.from, r.to]),
                         operationUuid,

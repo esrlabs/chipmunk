@@ -69,7 +69,7 @@ pub enum MapError {
 ///
 #[derive(Default, Debug)]
 pub struct SearchMap {
-    matches: Vec<FilterMatch>,
+    pub matches: Vec<FilterMatch>,
     stats: FiltersStats,
     stream_len: u64,
 }

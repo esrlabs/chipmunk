@@ -11,6 +11,7 @@ import {
     INearest,
 } from '../interfaces/index';
 import { Executors } from './executors/session.stream.executors';
+import { IRange } from 'platform/types/range';
 
 export class SessionSearch {
     private readonly _provider: EventProvider;
@@ -145,6 +146,13 @@ export class SessionSearch {
                     })
                     .abort();
             }
+        });
+    }
+
+    public export(dest: string, ranges: IRange[]): ICancelablePromise<boolean> {
+        return Executors.exportSearch(this._session, this._provider, this._logger, {
+            dest,
+            ranges,
         });
     }
 

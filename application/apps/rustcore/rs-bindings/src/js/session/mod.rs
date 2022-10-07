@@ -190,6 +190,32 @@ impl RustSession {
     }
 
     #[node_bindgen]
+    async fn export_search(
+        &self,
+        out_path: String,
+        ranges: Vec<(i64, i64)>,
+        operation_id: String,
+    ) -> Result<(), ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            session
+                .export_search(
+                    operations::uuid_from_str(&operation_id)?,
+                    PathBuf::from(out_path),
+                    ranges
+                        .iter()
+                        .map(|(s, e)| RangeInclusive::<u64>::new(*s as u64, *e as u64))
+                        .collect::<Vec<RangeInclusive<u64>>>(),
+                )
+                .map_err(ComputationErrorWrapper)?;
+            Ok(())
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
     async fn grab(
         &self,
         start_line_index: i64,
