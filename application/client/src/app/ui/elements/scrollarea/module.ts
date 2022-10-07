@@ -15,6 +15,6 @@ const components = [...entryComponents];
     imports: [CommonModule, RowModule],
     declarations: [...components],
     exports: [...components],
+    bootstrap: [...components, RowModule],
 })
-export class ScrollAreaModule {
-}
+export class ScrollAreaModule {}

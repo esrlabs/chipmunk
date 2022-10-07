@@ -195,6 +195,20 @@ impl Session {
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
+    pub fn export_search(
+        &self,
+        operation_id: Uuid,
+        out_path: PathBuf,
+        ranges: Vec<RangeInclusive<u64>>,
+    ) -> Result<(), ComputationError> {
+        self.tx_operations
+            .send(Operation::new(
+                operation_id,
+                operations::OperationKind::ExportSearch { out_path, ranges },
+            ))
+            .map_err(|e| ComputationError::Communication(e.to_string()))
+    }
+
     pub fn apply_search_filters(
         &self,
         operation_id: Uuid,

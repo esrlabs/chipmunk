@@ -87,6 +87,10 @@ pub enum OperationKind {
         out_path: PathBuf,
         ranges: Vec<std::ops::RangeInclusive<u64>>,
     },
+    ExportSearch {
+        out_path: PathBuf,
+        ranges: Vec<std::ops::RangeInclusive<u64>>,
+    },
     Extract {
         filters: Vec<SearchFilter>,
     },
@@ -123,6 +127,7 @@ impl std::fmt::Display for OperationKind {
                 OperationKind::Observe(_) => "Observe",
                 OperationKind::Search { .. } => "Search",
                 OperationKind::Export { .. } => "Export",
+                OperationKind::ExportSearch { .. } => "ExportSearch",
                 OperationKind::Extract { .. } => "Extract",
                 OperationKind::Map { .. } => "Map",
                 OperationKind::Concat { .. } => "Concat",
@@ -290,6 +295,13 @@ impl OperationAPI {
                 OperationKind::Export { out_path, ranges } => {
                     api.finish(
                         handlers::export::handle(&api, state, out_path, ranges).await,
+                        operation_str,
+                    )
+                    .await;
+                }
+                OperationKind::ExportSearch { out_path, ranges } => {
+                    api.finish(
+                        handlers::export_search::handle(&api, state, out_path, ranges).await,
                         operation_str,
                     )
                     .await;

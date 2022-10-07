@@ -58,6 +58,15 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
+                    Requests.Search.Export.Request,
+                    RequestHandlers.Search.Export.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
                     Requests.Stream.Chunk.Request,
                     RequestHandlers.Stream.Chunk.handler,
                 ),

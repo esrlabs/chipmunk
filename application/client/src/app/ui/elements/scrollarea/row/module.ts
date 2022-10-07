@@ -25,5 +25,6 @@ const components = [RowComponent, Standard, Columns];
     ],
     declarations: [...components],
     exports: [...components],
+    bootstrap: [...components],
 })
 export class RowModule {}
