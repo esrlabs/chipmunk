@@ -200,7 +200,7 @@ impl SearchMap {
     }
 
     pub fn indexes(&self, range: &RangeInclusive<u64>) -> Result<&[FilterMatch], MapError> {
-        if range.end() > &(self.len() as u64) {
+        if range.end() >= &(self.len() as u64) {
             return Err(MapError::OutOfRange(format!(
                 "Search has: {} matches. Requested: {:?}",
                 self.len(),

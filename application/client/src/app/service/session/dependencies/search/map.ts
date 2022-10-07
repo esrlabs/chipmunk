@@ -67,6 +67,12 @@ export class Map extends Subscriber {
     }
 
     public getCorrectedPosition(row: number): number | undefined {
+        if (this._matches.length === 0) {
+            return undefined;
+        }
+        if (this._matches.length === 1) {
+            return 0;
+        }
         const stream = this._mixed[row];
         if (stream === undefined) {
             return undefined;
@@ -86,7 +92,10 @@ export class Map extends Subscriber {
                 position = i;
             }
         });
-        return position === -1 ? undefined : position;
+        if (position === -1) {
+            throw new Error(`Fail to find corrected position`);
+        }
+        return position;
     }
 
     protected build() {
