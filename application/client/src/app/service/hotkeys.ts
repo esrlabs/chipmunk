@@ -1,4 +1,10 @@
-import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
+import {
+    SetupService,
+    Interface,
+    Implementation,
+    register,
+    DependOn,
+} from '@platform/entity/service';
 import { services } from '@register/services';
 import { Listener } from './hotkeys/listener';
 import { KeysMap, getKeyByUuid, Requirement, getKeyByAlias } from './hotkeys/map';
@@ -8,7 +14,9 @@ import { ilc, Services } from '@service/ilc';
 import { unique } from '@platform/env/sequence';
 import { components } from '@env/decorators/initial';
 import { Vertical, Horizontal } from '@ui/service/popup';
+import { env } from '@service/env';
 
+@DependOn(env)
 @SetupService(services['hotkeys'])
 export class Service extends Implementation {
     private _listener!: Listener;

@@ -1,6 +1,7 @@
 import { KeyDescription, Requirement } from './map';
 import { Emitter } from './emitter';
 import { Subject } from '@platform/env/subscription';
+import { env } from '@service/env';
 
 export class Listener {
     static CONCLUSION_TIMEOUT = 300;
@@ -46,7 +47,7 @@ export class Listener {
             }
             if (
                 emitter
-                    .ctrl(event.ctrlKey)
+                    .ctrl(env.platform().darwin() ? event.metaKey : event.ctrlKey)
                     .alt(event.altKey)
                     .shift(event.shiftKey)
                     .key(event.key)

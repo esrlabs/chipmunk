@@ -30,7 +30,7 @@ export interface KeyDescription {
     shortkeys: string[];
     description: string;
     category: Category;
-    binding: Binding;
+    binding: Binding | Binding[];
     required: Requirement[];
     uuid: string;
 }
@@ -167,7 +167,7 @@ export const KeysMap: KeyDescription[] = [
         shortkeys: ['⌘ + F', 'Ctrl + F', '/'],
         description: 'Focus on search input',
         category: Category.Focus,
-        binding: { ctrl: true, key: 'f' },
+        binding: [{ ctrl: true, key: 'f' }, { key: '/' }],
         required: [Requirement.Session],
         uuid: unique(),
     },
