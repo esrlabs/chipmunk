@@ -6,6 +6,10 @@ export const services: { [key: string]: Inputs } = {
         name: 'System',
         uuid: v4(),
     },
+    env: {
+        name: 'Env',
+        uuid: v4(),
+    },
     api: {
         name: 'API',
         uuid: v4(),

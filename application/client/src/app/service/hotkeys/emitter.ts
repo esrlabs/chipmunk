@@ -8,20 +8,21 @@ export class Emitter {
     private _alt: boolean = false;
     private _key: boolean = false;
     private _collected: string = '';
-    private _target: string = '';
+    private _targets: string[] = [];
     private _timeout: unknown;
-    private readonly _binding: Binding;
+    private readonly _binding: Binding[];
     private readonly _uuid: string;
     private readonly _requirements: Requirement[];
 
-    constructor(uuid: string, binding: Binding, requirements: Requirement[]) {
+    constructor(uuid: string, binding: Binding | Binding[], requirements: Requirement[]) {
         this._uuid = uuid;
-        this._binding = binding;
+        this._binding = binding instanceof Array ? binding : [binding];
         this._requirements = requirements;
-        this._target =
-            this._binding.key instanceof Array
-                ? this._binding.key.map((k) => k.toLowerCase()).join('')
-                : this._binding.key.toLowerCase();
+        this._targets = this._binding.map((binding) => {
+            return binding.key instanceof Array
+                ? binding.key.map((k) => k.toLowerCase()).join('')
+                : binding.key.toLowerCase();
+        });
     }
 
     public destroy() {
@@ -29,23 +30,23 @@ export class Emitter {
     }
 
     public ctrl(value: boolean): Emitter {
-        this._ctrl = this._binding.ctrl === true ? value : true;
+        this._ctrl = this._binding.filter((b) => b.ctrl === true).length > 0 ? value : true;
         return this;
     }
 
     public shift(value: boolean): Emitter {
-        this._shift = this._binding.shift === true ? value : true;
+        this._shift = this._binding.filter((b) => b.shift === true).length > 0 ? value : true;
         return this;
     }
 
     public alt(value: boolean): Emitter {
-        this._alt = this._binding.alt === true ? value : true;
+        this._alt = this._binding.filter((b) => b.alt === true).length > 0 ? value : true;
         return this;
     }
 
     public key(key: string): Emitter {
         this._collected += key.toLowerCase();
-        this._key = this._collected === this._target;
+        this._key = this._targets.filter((t) => t === this._collected).length > 0;
         return this;
     }
 
@@ -62,7 +63,7 @@ export class Emitter {
     }
 
     public postponed(): boolean {
-        return this._binding.postponed === true ? true : false;
+        return this._binding.filter((b) => b.postponed === true).length > 0;
     }
 
     public uuid(): string {
@@ -88,6 +89,6 @@ export class Emitter {
     }
 
     protected isCollectable(): boolean {
-        return this._binding.key instanceof Array;
+        return this._binding.filter((b) => b.key instanceof Array).length > 0;
     }
 }
