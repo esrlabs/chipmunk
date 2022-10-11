@@ -422,7 +422,7 @@ where
     T: Len + Debug,
 {
     paths.iter().try_fold(0, |acc, x| match x.len() {
-        Ok(len) => Ok(acc + len as u64),
+        Ok(len) => Ok(acc + len),
         Err(e) => Err(MergeError::GeneralMergingProblem(format!(
             "error getting combined file size ({})",
             e

@@ -200,7 +200,7 @@ pub fn next_line_nr(path: &std::path::Path) -> Result<usize, Error> {
     };
     let mut reader = BufReader::new(file);
     let seek_offset: i64 = -(std::cmp::min(file_size - 1, PEEK_END_SIZE as u64) as i64);
-    match reader.seek(SeekFrom::End(seek_offset as i64)) {
+    match reader.seek(SeekFrom::End(seek_offset)) {
         Ok(_) => (),
         Err(e) => {
             return Err(Error::MalformedPreprocessed(format!(

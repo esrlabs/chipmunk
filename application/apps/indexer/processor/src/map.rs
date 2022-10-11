@@ -36,7 +36,7 @@ impl FiltersStats {
     }
 
     pub fn inc(&mut self, alias: &str, value: Option<u64>) {
-        *self.stats.entry(alias.to_string()).or_insert(0) += value.map_or(1, |v| v) as u64;
+        *self.stats.entry(alias.to_string()).or_insert(0) += value.map_or(1, |v| v);
     }
 }
 

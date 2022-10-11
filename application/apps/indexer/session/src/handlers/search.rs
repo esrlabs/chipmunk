@@ -51,7 +51,7 @@ pub async fn handle(
             res = async {
                 loop {
                     match timeout(
-                        Duration::from_millis(TRACKING_INTERVAL_MS as u64),
+                        Duration::from_millis(TRACKING_INTERVAL_MS),
                         rx_result.recv(),
                     )
                     .await
