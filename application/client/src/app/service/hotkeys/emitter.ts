@@ -1,4 +1,4 @@
-import { Binding, Requirement } from './map';
+import { Binding, Requirement } from '@platform/types/hotkeys/map';
 
 export class Emitter {
     static TIMEOUT = 250;
@@ -14,9 +14,13 @@ export class Emitter {
     private readonly _uuid: string;
     private readonly _requirements: Requirement[];
 
-    constructor(uuid: string, binding: Binding | Binding[], requirements: Requirement[]) {
+    constructor(
+        uuid: string,
+        binding: Binding | Binding[] | undefined,
+        requirements: Requirement[],
+    ) {
         this._uuid = uuid;
-        this._binding = binding instanceof Array ? binding : [binding];
+        this._binding = binding === undefined ? [] : binding instanceof Array ? binding : [binding];
         this._requirements = requirements;
         this._targets = this._binding.map((binding) => {
             return binding.key instanceof Array
@@ -27,6 +31,10 @@ export class Emitter {
 
     public destroy() {
         this._timeout !== undefined && clearTimeout(this._timeout as number);
+    }
+
+    public isTracking(): boolean {
+        return this._binding.length > 0;
     }
 
     public ctrl(value: boolean): Emitter {

@@ -1,63 +1,72 @@
-import { KeyDescription, Requirement } from './map';
+import { KeyDescription, Requirement } from '@platform/types/hotkeys/map';
 import { Emitter } from './emitter';
 import { Subject } from '@platform/env/subscription';
 import { env } from '@service/env';
 
 export class Listener {
-    static CONCLUSION_TIMEOUT = 300;
+    static CONCLUSION_TIMEOUT = 200;
 
     public subject: Subject<string> = new Subject();
 
-    private readonly emitters: Map<string, Emitter> = new Map();
-    private _iteration: {
+    protected readonly emitters: Map<string, Emitter> = new Map();
+    protected readonly iteration: {
         timer: unknown;
         emitted: string[];
     } = {
         timer: undefined,
         emitted: [],
     };
-    private _requirements: Requirement[] = [];
+    protected requirements: Requirement[] = [];
 
     constructor(descs: KeyDescription[]) {
         descs.forEach((desc: KeyDescription) => {
-            this.emitters.set(desc.uuid, new Emitter(desc.uuid, desc.binding, desc.required));
+            this.emitters.set(desc.uuid, new Emitter(desc.uuid, desc.client, desc.required));
         });
     }
 
     public destroy(): void {
-        this._iteration.timer !== undefined && clearTimeout(this._iteration.timer as number);
+        this.iteration.timer !== undefined && clearTimeout(this.iteration.timer as number);
         this.emitters.forEach((emitter: Emitter) => {
             emitter.destroy();
         });
     }
 
-    public emit(event: KeyboardEvent): boolean {
-        console.log(`Registred key: ${event.key}`);
-        console.log(event);
-        if (this._iteration.timer === undefined) {
-            this._iteration.emitted = [];
-            this._iteration.timer = setTimeout(() => {
-                this._accept();
-            }, Listener.CONCLUSION_TIMEOUT);
-        }
+    public emit(event: KeyboardEvent | string): boolean {
         let postponed = false;
-        this.emitters.forEach((emitter: Emitter) => {
-            if (!emitter.allowed(this._requirements)) {
-                return;
+        if (typeof event === 'string') {
+            console.log(`Recieved key: ${event}`);
+            const emitter = this.emitters.get(event);
+            if (emitter === undefined) {
+                return false;
             }
-            if (
-                emitter
-                    .ctrl(env.platform().darwin() ? event.metaKey : event.ctrlKey)
-                    .alt(event.altKey)
-                    .shift(event.shiftKey)
-                    .key(event.key)
-                    .emitted()
-            ) {
-                this._iteration.emitted.indexOf(emitter.uuid()) === -1 &&
-                    this._iteration.emitted.push(emitter.uuid());
-                postponed = emitter.postponed();
+            this.iteration.emitted.indexOf(emitter.uuid()) === -1 &&
+                this.iteration.emitted.push(emitter.uuid());
+        } else {
+            console.log(`Registred key: ${event.key}`);
+            if (this.iteration.timer === undefined) {
+                this.iteration.emitted = [];
+                this.iteration.timer = setTimeout(() => {
+                    this._accept();
+                }, Listener.CONCLUSION_TIMEOUT);
             }
-        });
+            this.emitters.forEach((emitter: Emitter) => {
+                if (!emitter.isTracking() || !emitter.allowed(this.requirements)) {
+                    return;
+                }
+                if (
+                    emitter
+                        .ctrl(env.platform().darwin() ? event.metaKey : event.ctrlKey)
+                        .alt(event.altKey)
+                        .shift(event.shiftKey)
+                        .key(event.key)
+                        .emitted()
+                ) {
+                    this.iteration.emitted.indexOf(emitter.uuid()) === -1 &&
+                        this.iteration.emitted.push(emitter.uuid());
+                    postponed = emitter.postponed();
+                }
+            });
+        }
         if (!postponed) {
             return this._accept();
         } else {
@@ -71,22 +80,22 @@ export class Listener {
     } {
         return {
             activate: (): void => {
-                if (this._requirements.includes(requirement)) {
+                if (this.requirements.includes(requirement)) {
                     return;
                 }
-                this._requirements.push(requirement);
+                this.requirements.push(requirement);
             },
             deactivate: (): void => {
-                this._requirements = this._requirements.filter((r) => r !== requirement);
+                this.requirements = this.requirements.filter((r) => r !== requirement);
             },
         };
     }
 
     private _accept(): boolean {
-        const emitted = this._iteration.emitted;
-        this._iteration.timer !== undefined && clearTimeout(this._iteration.timer as number);
-        this._iteration.timer = undefined;
-        this._iteration.emitted = [];
+        const emitted = this.iteration.emitted;
+        this.iteration.timer !== undefined && clearTimeout(this.iteration.timer as number);
+        this.iteration.timer = undefined;
+        this.iteration.emitted = [];
         if (emitted.length === 0) {
             return true;
         }

@@ -76,11 +76,25 @@ export class Window extends Implementation {
         return Promise.resolve();
     }
 
-    public getWindow(): BrowserWindow {
-        if (this._window === undefined) {
-            throw new Error(this.log().error(`BrowserWindow isn't created`));
-        }
-        return this._window;
+    public instance(): {
+        created(): boolean;
+        focused(): boolean;
+        get(): BrowserWindow;
+    } {
+        return {
+            created: (): boolean => {
+                return this._window !== undefined;
+            },
+            focused: (): boolean => {
+                return this.instance().get().isFocused();
+            },
+            get: (): BrowserWindow => {
+                if (this._window === undefined) {
+                    throw new Error(this.log().error(`BrowserWindow isn't created`));
+                }
+                return this._window;
+            },
+        };
     }
 
     public ipc(): Transport {

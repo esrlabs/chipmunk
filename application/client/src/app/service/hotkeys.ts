@@ -7,7 +7,7 @@ import {
 } from '@platform/entity/service';
 import { services } from '@register/services';
 import { Listener } from './hotkeys/listener';
-import { KeysMap, getKeyByUuid, Requirement, getKeyByAlias } from './hotkeys/map';
+import { KeysMap, getKeyByUuid, Requirement, getKeyByAlias } from '@platform/types/hotkeys/map';
 import { Subscription } from '@platform/env/subscription';
 import { listener } from '@ui/service/listener';
 import { ilc, Services } from '@service/ilc';
@@ -15,6 +15,8 @@ import { unique } from '@platform/env/sequence';
 import { components } from '@env/decorators/initial';
 import { Vertical, Horizontal } from '@ui/service/popup';
 import { env } from '@service/env';
+
+import * as Events from '@platform/ipc/event/index';
 
 @DependOn(env)
 @SetupService(services['hotkeys'])
@@ -31,6 +33,19 @@ export class Service extends Implementation {
             channel.session.change(() => {
                 this.check().session();
             }),
+        );
+        this.register(
+            Events.IpcEvent.subscribe<Events.Hotkey.Emit.Event>(
+                Events.Hotkey.Emit.Event,
+                (event) => {
+                    const target = getKeyByAlias(event.code);
+                    if (target === undefined) {
+                        this.log().warn(`Recieved unknown hotkey: ${event.code}`);
+                        return;
+                    }
+                    this._listener.emit(target.uuid);
+                },
+            ),
         );
         this.register(
             this._listener.subject.subscribe((uuid: string) => {

@@ -54,21 +54,31 @@ export class Service extends Implementation {
             });
         });
         await this._window.create();
-        this._dialogs.bind(this._window.getWindow());
-        this._window.getWindow().once('close', () => {
-            this._state.closing = true;
-            this.subjects.get().closing.emit();
-        });
-        this._window.getWindow().once('closed', () => {
-            this._state.closed = true;
-            this.subjects.get().closed.emit();
-        });
+        this._dialogs.bind(this._window.instance().get());
+        this._window
+            .instance()
+            .get()
+            .once('close', () => {
+                this._state.closing = true;
+                this.subjects.get().closing.emit();
+            });
+        this._window
+            .instance()
+            .get()
+            .once('closed', () => {
+                this._state.closed = true;
+                this.subjects.get().closed.emit();
+            });
         return Promise.resolve();
     }
 
     public override destroy(): Promise<void> {
         this.subjects.destroy();
         return Promise.resolve();
+    }
+
+    public window(): Window {
+        return this._window;
     }
 
     public ipc(): Transport {
