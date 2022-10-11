@@ -212,17 +212,14 @@ export class FilterRequest
                 }
                 const hasToBeEmitted: boolean =
                     event.updated.filter || event.updated.state || event.updated.colors;
-                if (hasToBeEmitted) {
+                if (hasToBeEmitted && this.update()) {
                     this.updated.emit(event);
                 }
                 return hasToBeEmitted;
             },
             color: (color: string): boolean => {
-                if (this.definition.colors.color === color) {
-                    return false;
-                }
                 this.definition.colors.color = color;
-                if (!silence) {
+                if (!silence && this.update()) {
                     this.updated.emit({
                         updated: {
                             filter: false,
@@ -236,11 +233,8 @@ export class FilterRequest
                 return true;
             },
             background: (background: string): boolean => {
-                if (this.definition.colors.background === background) {
-                    return false;
-                }
                 this.definition.colors.background = background;
-                if (!silence) {
+                if (!silence && this.update()) {
                     this.updated.emit({
                         updated: {
                             filter: false,
@@ -254,11 +248,8 @@ export class FilterRequest
                 return true;
             },
             state: (active: boolean): boolean => {
-                if (this.definition.active === active) {
-                    return false;
-                }
                 this.definition.active = active;
-                if (!silence) {
+                if (!silence && this.update()) {
                     this.updated.emit({
                         updated: {
                             filter: false,
@@ -273,10 +264,7 @@ export class FilterRequest
             },
             flags: (flags: IFilterFlags): boolean => {
                 this.definition.filter.flags = Object.assign({}, flags);
-                if (!this.update()) {
-                    return false;
-                }
-                if (!silence) {
+                if (!silence && this.update()) {
                     this.updated.emit({
                         updated: {
                             filter: true,
@@ -291,10 +279,7 @@ export class FilterRequest
             },
             filter: (filter: string): boolean => {
                 this.definition.filter.filter = filter;
-                if (!this.update()) {
-                    return false;
-                }
-                if (!silence) {
+                if (!silence && this.update()) {
                     this.updated.emit({
                         updated: {
                             filter: true,
@@ -308,11 +293,8 @@ export class FilterRequest
                 return true;
             },
             found: (found: number): boolean => {
-                if (this.found === found) {
-                    return false;
-                }
                 this.found = found;
-                if (!silence) {
+                if (!silence && this.update()) {
                     this.updated.emit({
                         updated: {
                             filter: false,

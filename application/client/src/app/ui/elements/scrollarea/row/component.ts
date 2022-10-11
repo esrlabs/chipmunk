@@ -121,7 +121,6 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                 },
             ],
         );
-
         this.ilc().emitter.ui.contextmenu.open({
             items,
             x: event.x,
