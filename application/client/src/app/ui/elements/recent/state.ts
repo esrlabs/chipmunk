@@ -37,15 +37,7 @@ export class State extends Holder {
                     },
                 ),
         );
-        recent
-            .get()
-            .then((actions: Action[]) => {
-                this.actions = actions.map((action) => new WrappedAction(action, this.matcher));
-                this.update.emit();
-            })
-            .catch((error: Error) => {
-                console.log(`Fail to get recent due error: ${error.message}`);
-            });
+        this.reload();
     }
 
     public filtering() {
@@ -56,5 +48,28 @@ export class State extends Holder {
 
     public getFilteredActions(): WrappedAction[] {
         return this.actions.filter((a: WrappedAction) => a.getScore() > 0);
+    }
+
+    public remove(uuids: string[]) {
+        recent
+            .delete(uuids)
+            .then(() => {
+                this.reload();
+            })
+            .catch((err: Error) => {
+                console.error(`Fail to remove recent action: ${err.message}`);
+            });
+    }
+
+    protected reload(): void {
+        recent
+            .get()
+            .then((actions: Action[]) => {
+                this.actions = actions.map((action) => new WrappedAction(action, this.matcher));
+                this.update.emit();
+            })
+            .catch((error: Error) => {
+                console.log(`Fail to get recent due error: ${error.message}`);
+            });
     }
 }
