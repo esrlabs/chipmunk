@@ -113,7 +113,7 @@ export const KeysMap: KeyDescription[] = [
     {
         alias: '[',
         shortkeys: { others: ['['] },
-        description: 'Select next match row',
+        description: 'Select previous match row',
         category: Category.Movement,
         required: [Requirement.NoInput, Requirement.Session],
         uuid: '[',
@@ -122,7 +122,7 @@ export const KeysMap: KeyDescription[] = [
     {
         alias: ']',
         shortkeys: { others: [']'] },
-        description: 'Select previous match row',
+        description: 'Select next match row',
         category: Category.Movement,
         required: [Requirement.NoInput, Requirement.Session],
         uuid: ']',

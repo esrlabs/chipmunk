@@ -46,16 +46,8 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                 this.service.setLen(event.found);
             }),
         );
-        // this.env().subscriber.register(
-        //     this.session.bookmarks.subjects.get().updated.subscribe(() => {
-        //         this.service.refresh();
-        //     }),
-        // );
         this.env().subscriber.register(
             this.session.search.map.updated.subscribe((_event) => {
-                // if (this.session.search.len() === 0) {
-                //     return;
-                // }
                 const single = this.session.cursor.getSingle();
                 if (this.session.search.len() > 0 && single !== undefined) {
                     // if (event.initiator === Owner.Search || single === undefined) {
