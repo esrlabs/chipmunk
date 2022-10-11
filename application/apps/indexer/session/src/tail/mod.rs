@@ -29,7 +29,7 @@ pub async fn track(
         .map_err(|e| Error::Io(e.to_string()))?;
     loop {
         match timeout(
-            Duration::from_millis(TRACKING_INTERVAL_MS as u64),
+            Duration::from_millis(TRACKING_INTERVAL_MS),
             shutdown.cancelled(),
         )
         .await

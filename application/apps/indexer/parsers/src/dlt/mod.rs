@@ -123,9 +123,7 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
                 let msg_with_storage_header = if i.storage_header.is_some() {
                     i
                 } else {
-                    i.add_storage_header(
-                        timestamp.map(|time| dlt::DltTimeStamp::from_ms(time as u64)),
-                    )
+                    i.add_storage_header(timestamp.map(dlt::DltTimeStamp::from_ms))
                 };
                 let msg = FormattableMessage {
                     message: msg_with_storage_header,
