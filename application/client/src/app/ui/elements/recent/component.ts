@@ -39,17 +39,17 @@ export class RecentActions extends ChangesDetector implements AfterContentInit {
     }
 
     public onDefaultAction(action: Action) {
-        action.apply();
+        action.apply(this.state.remove.bind(this.state));
     }
 
     public onAllActions(event: MouseEvent, action: Action) {
         const items = [
-            ...action.getActions(),
+            ...action.getActions(this.state.remove.bind(this.state)),
             {},
             {
                 caption: 'Remove recent',
                 handler: () => {
-                    console.log(`Not implemented`);
+                    this.state.remove([action.uuid]);
                 },
             },
             {

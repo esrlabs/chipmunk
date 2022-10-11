@@ -2,16 +2,22 @@ import { unique } from '@platform/env/sequence';
 import { Subject } from '@platform/env/subscription';
 import { Level } from '../notification/index';
 
+export interface Button {
+    caption: string;
+    handler: () => void;
+}
 export interface Setter {
     message(msg: string | undefined): Setter;
     type(type: Level): Setter;
     spinner(spinner: boolean): Setter;
     group(uuid: string): Setter;
+    buttons(buttons: Button[]): Setter;
     end(): Locker;
 }
 export class Locker {
     public updated: Subject<void> = new Subject();
     public message: string | undefined;
+    public buttons: Button[] = [];
     public type: Level = Level.info;
     public spinner: boolean = true;
     public group: string = unique();
@@ -54,6 +60,11 @@ export class Locker {
             },
             group: (uuid: string): Setter => {
                 this.group = uuid;
+                this.updated.emit();
+                return setter;
+            },
+            buttons: (buttons: Button[]): Setter => {
+                this.buttons = buttons;
                 this.updated.emit();
                 return setter;
             },

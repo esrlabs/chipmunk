@@ -13,6 +13,7 @@ import { opener } from '@service/opener';
 import { bridge } from '@service/bridge';
 import { session } from '@service/session';
 import { components } from '@env/decorators/initial';
+import { lockers, Locker } from '@ui/service/lockers';
 
 import * as obj from '@platform/env/obj';
 
@@ -152,13 +153,15 @@ export class Action {
         };
     }
 
-    public getActions(): Array<{ caption?: string; handler?: () => void }> {
+    public getActions(
+        remove: (uuid: string[]) => void,
+    ): Array<{ caption?: string; handler?: () => void }> {
         if (this.file !== undefined) {
             if (this.file.text !== undefined) {
                 return [
                     {
                         caption: 'Reopen file',
-                        handler: this.apply.bind(this),
+                        handler: this.apply.bind(this, remove),
                     },
                 ];
             } else if (this.file.dlt !== undefined) {
@@ -167,7 +170,7 @@ export class Action {
                 return [
                     {
                         caption: 'Reopen file',
-                        handler: this.apply.bind(this),
+                        handler: this.apply.bind(this, remove),
                     },
                     {
                         caption: 'Open another file',
@@ -250,7 +253,7 @@ export class Action {
             return [
                 {
                     caption: 'Reconnect',
-                    handler: this.apply.bind(this),
+                    handler: this.apply.bind(this, remove),
                 },
                 {
                     caption: 'Open connection preset',
@@ -269,7 +272,7 @@ export class Action {
             return [
                 {
                     caption: 'Restart',
-                    handler: this.apply.bind(this),
+                    handler: this.apply.bind(this, remove),
                 },
                 {
                     caption: 'Open start parameters',
@@ -287,37 +290,47 @@ export class Action {
         return [];
     }
 
-    public apply() {
-        if (this.file !== undefined) {
-            if (this.file.text !== undefined) {
-                opener
-                    .file(this.file.text.filename)
-                    .text()
-                    .catch((err: Error) => {
-                        console.error(`Fail to open file; error: ${err.message}`);
-                    });
-            } else if (this.file.dlt !== undefined) {
-                opener
-                    .file(this.file.dlt.filename)
-                    .dlt(this.file.dlt.options)
-                    .catch((err: Error) => {
-                        console.error(`Fail to open file; error: ${err.message}`);
-                    });
+    public apply(remove: (uuid: string[]) => void): void {
+        (() => {
+            if (this.file !== undefined) {
+                if (this.file.text !== undefined) {
+                    return opener.file(this.file.text.filename).text();
+                } else if (this.file.dlt !== undefined) {
+                    return opener.file(this.file.dlt.filename).dlt(this.file.dlt.options);
+                } else {
+                    return Promise.reject(new Error(`Opener for file action isn't found`));
+                }
+            } else if (this.dlt_stream !== undefined) {
+                return opener.stream(this.dlt_stream.source).dlt(this.dlt_stream.options);
+            } else if (this.text_stream !== undefined) {
+                return opener.stream(this.text_stream.source).text({});
+            } else {
+                return Promise.reject(new Error(`Opener for action isn't found`));
             }
-        } else if (this.dlt_stream !== undefined) {
-            opener
-                .stream(this.dlt_stream.source)
-                .dlt(this.dlt_stream.options)
-                .catch((err: Error) => {
-                    console.error(`Fail to open stream; error: ${err.message}`);
-                });
-        } else if (this.text_stream !== undefined) {
-            opener
-                .stream(this.text_stream.source)
-                .text({})
-                .catch((err: Error) => {
-                    console.error(`Fail to open stream; error: ${err.message}`);
-                });
-        }
+        })().catch((err: Error) => {
+            const message = lockers.lock(
+                new Locker(false, `Fail to apply action via error: ${err.message}`)
+                    .set()
+                    .buttons([
+                        {
+                            caption: `Remove`,
+                            handler: () => {
+                                remove([this.uuid]);
+                                message.popup.close();
+                            },
+                        },
+                        {
+                            caption: `Cancel`,
+                            handler: () => {
+                                message.popup.close();
+                            },
+                        },
+                    ])
+                    .end(),
+                {
+                    closable: false,
+                },
+            );
+        });
     }
 }

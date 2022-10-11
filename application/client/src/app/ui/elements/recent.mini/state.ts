@@ -39,7 +39,7 @@ export class State extends Holder {
                             if (action === undefined) {
                                 return true;
                             }
-                            action.action.apply();
+                            action.action.apply(this.remove.bind(this));
                             this.close !== undefined && this.close();
                             return true;
                         }
@@ -73,6 +73,17 @@ export class State extends Holder {
 
     public getFilteredActions(): WrappedAction[] {
         return this.actions.filter((a: WrappedAction) => a.getScore() > 0);
+    }
+
+    public remove(uuids: string[]) {
+        recent
+            .delete(uuids)
+            .then(() => {
+                this.reload();
+            })
+            .catch((err: Error) => {
+                console.error(`Fail to remove recent action: ${err.message}`);
+            });
     }
 
     protected move(): {
@@ -126,5 +137,17 @@ export class State extends Holder {
                 }
             },
         };
+    }
+
+    protected reload(): void {
+        recent
+            .get()
+            .then((actions: Action[]) => {
+                this.actions = actions.map((action) => new WrappedAction(action, this.matcher));
+                this.update.emit();
+            })
+            .catch((error: Error) => {
+                console.log(`Fail to get recent due error: ${error.message}`);
+            });
     }
 }
