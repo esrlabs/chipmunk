@@ -17,6 +17,7 @@ import { Vertical, Horizontal } from '@ui/service/popup';
 import { env } from '@service/env';
 
 import * as Events from '@platform/ipc/event/index';
+import * as Requests from '@platform/ipc/request';
 
 @DependOn(env)
 @SetupService(services['hotkeys'])
@@ -58,6 +59,18 @@ export class Service extends Implementation {
                     return;
                 }
                 handlers.forEach((handler) => handler());
+            }),
+        );
+        this.register(
+            listener.listen('focus', window, () => {
+                this.check().inputs();
+                return true;
+            }),
+        );
+        this.register(
+            listener.listen('blur', window, () => {
+                this.remote().unbind();
+                return true;
             }),
         );
         this.register(
@@ -158,8 +171,10 @@ export class Service extends Implementation {
                     const tag: string = document.activeElement.tagName.toLowerCase();
                     if (['input', 'textarea'].indexOf(tag) !== -1) {
                         this._listener.requirement(Requirement.NoInput).deactivate();
+                        this.remote().unbind();
                     } else {
                         this._listener.requirement(Requirement.NoInput).activate();
+                        this.remote().bind();
                     }
                 }, 150);
             },
@@ -174,6 +189,50 @@ export class Service extends Implementation {
             all: (): void => {
                 this.check().inputs();
                 this.check().session();
+            },
+        };
+    }
+
+    protected remote(): {
+        bind(): void;
+        unbind(): void;
+    } {
+        return {
+            bind: (): void => {
+                Requests.IpcRequest.send<Requests.Hotkey.On.Response>(
+                    Requests.Hotkey.On.Response,
+                    new Requests.Hotkey.On.Request(),
+                )
+                    .then((response) => {
+                        if (response.error !== undefined && response.error !== '') {
+                            this.log().error(
+                                `Fail to activate listener of hotkeys: ${response.error}`,
+                            );
+                        }
+                    })
+                    .catch((err: Error) => {
+                        this.log().error(
+                            `Fail send request to activate listener of hotkeys: ${err.message}`,
+                        );
+                    });
+            },
+            unbind: (): void => {
+                Requests.IpcRequest.send<Requests.Hotkey.Off.Response>(
+                    Requests.Hotkey.Off.Response,
+                    new Requests.Hotkey.Off.Request(),
+                )
+                    .then((response) => {
+                        if (response.error !== undefined && response.error !== '') {
+                            this.log().error(
+                                `Fail to deactivate listener of hotkeys: ${response.error}`,
+                            );
+                        }
+                    })
+                    .catch((err: Error) => {
+                        this.log().error(
+                            `Fail send request to deactivate listener of hotkeys: ${err.message}`,
+                        );
+                    });
             },
         };
     }
