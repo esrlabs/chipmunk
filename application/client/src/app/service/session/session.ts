@@ -21,6 +21,7 @@ export { Stream };
 const TOOLBAR_TAB_SEARCH = unique();
 const TOOLBAR_TAB_PRESET = unique();
 const TOOLBAR_TAB_DETAILS = unique();
+const TOOLBAR_TAB_CHART = unique();
 
 @SetupLogger()
 export class Session extends Base {
@@ -76,6 +77,18 @@ export class Session extends Base {
             closable: false,
             content: {
                 factory: components.get('app-views-history'),
+                inputs: {
+                    session: this,
+                },
+            },
+        });
+        this._toolbar.add({
+            uuid: TOOLBAR_TAB_CHART,
+            name: 'Chart',
+            active: false,
+            closable: false,
+            content: {
+                factory: components.get('app-views-chart'),
                 inputs: {
                     session: this,
                 },

@@ -95,11 +95,13 @@
                     "text": "/storage/projects/esrlabs/logs-examples/indexing_access_huge.log"
                 },
                 "spec": {
-                    /* Specification for test #3*/
-                    "3": {
-                        "terms": ["a", "b", "c", "d", "e", "f", "g", "r", "h", "t"],
-                        "interval_ms": 250,
-                        "timeout_last_search_ms": 10000
+                    "cancel": {
+                        /* Specification for test #3*/
+                        "3": {
+                            "terms": ["a", "b", "c", "d", "e", "f", "g", "r", "h", "t"],
+                            "interval_ms": 250,
+                            "timeout_last_search_ms": 10000
+                        }
                     }
                 }
                 
@@ -115,6 +117,32 @@
                     "4": "Test 4. Error: Assign & single and grab invalid range",
                     "5": "Test 5. Error: Grab lines with negative length",
                     "6": "Test 6. Error: Grab lines with negative start"
+                }
+            }
+        },
+        "map": {
+            "regular": {
+                "execute_only": [],
+                "list": {
+                    "1": "Test 1. Search map for file length < dataset length",
+                    "2": "Test 2. Search map for 10 line file with match on first line",
+                    "3": "Test 3. Search map for big file with multiple filters"
+                },
+                "spec": {
+                    "map": {
+                        "1": {
+                            "filesize": 3000,
+                            "datasetLength": 6000
+                        },
+                        "2": {
+                            "filesize": 10,
+                            "datasetLength": 10
+                        },
+                        "3": {
+                            "filesize": 6000,
+                            "datasetLength": 6000
+                        }
+                    }
                 }
             }
         }

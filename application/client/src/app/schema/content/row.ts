@@ -12,6 +12,7 @@ export enum Owner {
     Output = 'Output',
     Search = 'Search',
     Bookmark = 'Bookmark',
+    Chart = 'Chart',
 }
 
 export interface RowInputs {

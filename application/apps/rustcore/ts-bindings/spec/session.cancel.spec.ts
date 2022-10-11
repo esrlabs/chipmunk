@@ -103,14 +103,18 @@ describe('Cancel', function () {
                 new Error(`Text file should defined in settings: cancel.regular.files`),
             );
         }
-        if (config.regular.spec === undefined || config.regular.spec[3] === undefined) {
+        if (
+            config.regular.spec === undefined ||
+            config.regular.spec.cancel === undefined ||
+            config.regular.spec.cancel[3] === undefined
+        ) {
             return finish(
                 undefined,
                 done,
                 new Error(`For test #3 required specification: cancel.regular.spec`),
             );
         }
-        const spec = config.regular.spec[3];
+        const spec = config.regular.spec.cancel[3];
         Session.create()
             .then((session: Session) => {
                 // Set provider into debug mode
@@ -192,7 +196,7 @@ describe('Cancel', function () {
                         })
                         .then(() => {
                             console.log(
-                                `-> [..👍..]\tsearch operation #${index} (${task.uuid()}) is resolved`,
+                                `-> [..👝..]\tsearch operation #${index} (${task.uuid()}) is resolved`,
                             );
                             resolved += 1;
                         })
