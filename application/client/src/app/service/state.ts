@@ -1,6 +1,7 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
 import { ilc, Emitter, Declarations } from '@service/ilc';
+
 import * as Events from '@platform/ipc/event/index';
 
 export interface States {

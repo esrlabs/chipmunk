@@ -14,3 +14,4 @@ import '@service/settings';
 import '@service/updater';
 import '@service/notifications';
 import '@service/env';
+import '@service/hotkeys';

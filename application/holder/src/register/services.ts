@@ -50,4 +50,8 @@ export const services: { [key: string]: Inputs } = {
         name: 'env',
         uuid: v4(),
     },
+    hotkeys: {
+        name: 'hotkeys',
+        uuid: v4(),
+    },
 };

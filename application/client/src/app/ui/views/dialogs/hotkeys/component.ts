@@ -1,6 +1,6 @@
 import { Component, ChangeDetectorRef, AfterViewChecked, AfterViewInit } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
-import { KeysMap, KeyDescription } from '@service/hotkeys/map';
+import { KeysMap, KeyDescription } from '@platform/types/hotkeys/map';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Initial } from '@env/decorators/initial';
 
@@ -34,7 +34,12 @@ export class Hotkeys extends ChangesDetector implements AfterViewChecked, AfterV
                 };
             }
             groups[desc.category].keys.push({
-                shortkeys: desc.shortkeys,
+                shortkeys:
+                    desc.shortkeys.darwin === undefined
+                        ? desc.shortkeys.others
+                        : this.ilc().services.system.env.platform().darwin()
+                        ? desc.shortkeys.darwin
+                        : desc.shortkeys.others,
                 description: desc.description,
             });
         });
