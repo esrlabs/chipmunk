@@ -152,7 +152,7 @@ impl SearchMap {
             let rate: f64 = (self.stream_len as f64) / (dataset_len as f64);
             let mut cursor: usize = 0;
             if rate <= 1.0 {
-                for n in 1..=self.stream_len {
+                for n in 0..=self.stream_len - 1 {
                     if cursor < self.matches.len() {
                         if (self.matches[cursor]).index == n {
                             map.push(
@@ -345,25 +345,28 @@ fn test_scaled_map() {
     example_map.set_stream_len(200);
     let scaled = example_map.scaled(200, None);
     assert_eq!(scaled.len(), 200);
-    for n in (1..=20).step_by(2) {
-        assert_eq!(scaled[n * 10 - 1][0], (0, 1));
-        assert_eq!(scaled[(n + 1) * 10 - 1][0], (1, 1));
+    for n in 0..200 {
+        if n != 0 && n % 10 == 0 {
+            assert_eq!(scaled[n][0], if n % 20 == 0 { (1, 1) } else { (0, 1) });
+        }
     }
 
     example_map.set_stream_len(200);
     let scaled = example_map.scaled(1000, None);
     assert_eq!(scaled.len(), 200);
-    for n in (1..=20).step_by(2) {
-        assert_eq!(scaled[n * 10 - 1][0], (0, 1));
-        assert_eq!(scaled[(n + 1) * 10 - 1][0], (1, 1));
+    for n in 0..200 {
+        if n != 0 && n % 10 == 0 {
+            assert_eq!(scaled[n][0], if n % 20 == 0 { (1, 1) } else { (0, 1) });
+        }
     }
 
     example_map.set_stream_len(1000);
     let scaled = example_map.scaled(1000, None);
     assert_eq!(scaled.len(), 1000);
-    for n in (1..=20).step_by(2) {
-        assert_eq!(scaled[n * 10 - 1][0], (0, 1));
-        assert_eq!(scaled[(n + 1) * 10 - 1][0], (1, 1));
+    for n in 0..200 {
+        if n != 0 && n % 10 == 0 {
+            assert_eq!(scaled[n][0], if n % 20 == 0 { (1, 1) } else { (0, 1) });
+        }
     }
     #[allow(clippy::needless_range_loop)]
     for n in 201..1000 {

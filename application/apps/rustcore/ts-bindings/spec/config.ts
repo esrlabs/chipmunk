@@ -12,13 +12,25 @@ export interface ICancelTestSpec {
     terms: string[];
     interval_ms: number;
     timeout_last_search_ms: number;
+    filesize: number;
+    datasetLength: number;
 }
+
+export interface IMapTestSpec {
+    filesize: number;
+    datasetLength: number;
+}
+
 export interface IRegularTests {
     execute_only: number[];
     list: { [key: string]: string };
     files: { [key: string]: string };
-    spec?: { [key: string]: ICancelTestSpec };
+    spec?: {
+        cancel?: { [key: string]: ICancelTestSpec };
+        map?: { [key: string]: IMapTestSpec };
+    };
 }
+
 export interface IConfiguration {
     log_level: number;
     tests: {
@@ -45,6 +57,9 @@ export interface IConfiguration {
             regular: IRegularTests;
         };
         errors: {
+            regular: IRegularTests;
+        };
+        map: {
             regular: IRegularTests;
         };
     };

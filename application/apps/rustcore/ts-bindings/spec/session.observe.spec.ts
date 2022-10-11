@@ -12,7 +12,7 @@ import { readConfigurationFile } from './config';
 
 const config = readConfigurationFile().get().tests.observe;
 
-function ingore(id: string | number, done: () => void) {
+function ignore(id: string | number, done: () => void) {
     if (
         config.regular.execute_only.length > 0 &&
         config.regular.execute_only.indexOf(typeof id === 'number' ? id : parseInt(id, 10)) === -1
@@ -28,7 +28,7 @@ function ingore(id: string | number, done: () => void) {
 describe('Observe', function () {
     it(config.regular.list[1], function (done) {
         const testName = config.regular.list[1];
-        if (ingore(1, done)) {
+        if (ignore(1, done)) {
             return;
         }
         console.log(`\nStarting: ${testName}`);
@@ -104,7 +104,7 @@ describe('Observe', function () {
 
     it(config.regular.list[2], function (done) {
         const testName = config.regular.list[2];
-        if (ingore(2, done)) {
+        if (ignore(2, done)) {
             return;
         }
         console.log(`\nStarting: ${testName}`);
@@ -187,7 +187,7 @@ describe('Observe', function () {
 
     it(config.regular.list[3], function (done) {
         const testName = config.regular.list[3];
-        if (ingore(3, done)) {
+        if (ignore(3, done)) {
             return;
         }
         console.log(`\nStarting: ${testName}`);

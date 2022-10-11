@@ -29,7 +29,7 @@ module Screens
     when 6
       Screens.release(prompt)
     else
-      puts 'Goodbuy!'
+      puts 'Goodbye!'
     end
   end
 
@@ -53,7 +53,7 @@ module Screens
     when 4
       Screens.welcome(prompt)
     else
-      puts 'Goodbuy!'
+      puts 'Goodbye!'
     end
   end
 
@@ -74,7 +74,7 @@ module Screens
     when 3
       Screens.welcome(prompt)
     else
-      puts 'Goodbuy!'
+      puts 'Goodbye!'
     end
   end
 
@@ -98,7 +98,7 @@ module Screens
     when 4
       Screens.welcome(prompt)
     else
-      puts 'Goodbuy!'
+      puts 'Goodbye!'
     end
   end
 
@@ -143,7 +143,7 @@ module Screens
     when 11
       Screens.welcome(prompt)
     else
-      puts 'Goodbuy!'
+      puts 'Goodbye!'
     end
   end
 
@@ -164,7 +164,7 @@ module Screens
     when 3
       Screens.welcome(prompt)
     else
-      puts 'Goodbuy!'
+      puts 'Goodbye!'
     end
   end
 
@@ -179,11 +179,12 @@ module Screens
       { name: 'Test binding exporting [rake test:binding:exporting]', value: 5 },
       { name: 'Test binding cancel [rake test:binding:cancel]', value: 6 },
       { name: 'Test binding errors [rake test:binding:errors]', value: 7 },
-      { name: 'Test matcher karma [rake test:matcher:karma]', value: 8 },
-      { name: 'Test matcher rust [rake test:matcher:rust', value: 9 },
-      { name: 'Test all [rake test:all', value: 10 },
-      { name: 'back', value: 11 },
-      { name: 'exit', value: 12 }
+      { name: 'Test binding map [rake test:binding:map]', value: 8 },
+      { name: 'Test matcher karma [rake test:matcher:karma]', value: 9 },
+      { name: 'Test matcher rust [rake test:matcher:rust', value: 10 },
+      { name: 'Test all [rake test:all', value: 11 },
+      { name: 'back', value: 12 },
+      { name: 'exit', value: 13 }
     ]
     case prompt.select('Actions groups', choices)
     when 1
@@ -201,15 +202,17 @@ module Screens
     when 7
       Rake::Task['test:binding:errors'].invoke
     when 8
-      Rake::Task['test:matcher:karma'].invoke
+      Rake::Task['test:binding:map'].invoke
     when 9
-      Rake::Task['test:matcher:rust'].invoke
+      Rake::Task['test:matcher:karma'].invoke
     when 10
-      Rake::Task['test:all'].invoke
+      Rake::Task['test:matcher:rust'].invoke
     when 11
+      Rake::Task['test:all'].invoke
+    when 12
       Screens.checks(prompt)
     else
-      puts 'Goodbuy!'
+      puts 'Goodbye!'
     end
   end
 
@@ -234,7 +237,7 @@ module Screens
     when 4
       Screens.welcome(prompt)
     else
-      puts 'Goodbuy!'
+      puts 'Goodbye!'
     end
   end
 end

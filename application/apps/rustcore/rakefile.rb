@@ -119,6 +119,11 @@ namespace :test do
     sh "#{test_runner} ts-bindings/spec/session.search.spec.ts"
   end
 
+  desc 'run map tests'
+  task :map do
+    sh "#{test_runner} ts-bindings/spec/session.map.spec.ts"
+  end
+
   desc 'run observe tests'
   task :observe do
     sh "#{test_runner} ts-bindings/spec/session.observe.spec.ts"
