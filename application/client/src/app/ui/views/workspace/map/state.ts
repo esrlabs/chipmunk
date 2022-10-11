@@ -29,8 +29,7 @@ export class State {
         }
         this.context = context;
         this.detectChanges = detectChanges;
-        this.resize();
-        this.draw();
+        this.resize().update();
     }
 
     public update(): State {

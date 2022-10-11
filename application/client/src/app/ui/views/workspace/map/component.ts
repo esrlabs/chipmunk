@@ -32,9 +32,7 @@ export class ViewContentMapComponent extends ChangesDetector implements AfterVie
             this.session,
             this.elRef.nativeElement,
             this.canvasElementRef.nativeElement,
-            () => {
-                this.detectChanges();
-            },
+            this.detectChanges.bind(this),
         );
         this.env().subscriber.register(
             this.session.search.subjects.get().updated.subscribe((_event) => {
