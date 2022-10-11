@@ -9,8 +9,10 @@ import { services } from '@register/services';
 import { KeysMap, KeyDescription } from 'platform/types/hotkeys/map';
 import { app, globalShortcut, powerMonitor } from 'electron';
 import { electron } from '@service/electron';
+import { CancelablePromise } from 'platform/env/promise';
 
 import * as Events from 'platform/ipc/event';
+import * as Requests from 'platform/ipc/request';
 
 @DependOn(electron)
 @SetupService(services['hotkeys'])
@@ -23,6 +25,38 @@ export class Service extends Implementation {
         powerMonitor.on('shutdown', this.unbind);
         app.on('browser-window-blur', this.unbind);
         app.on('browser-window-focus', this.bind);
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Hotkey.On.Request,
+                    (
+                        _request: Requests.Hotkey.On.Request,
+                    ): CancelablePromise<Requests.Hotkey.On.Response> => {
+                        return new CancelablePromise((resolve, _reject) => {
+                            this.bind();
+                            resolve(new Requests.Hotkey.On.Response({ error: undefined }));
+                        });
+                    },
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Hotkey.Off.Request,
+                    (
+                        _request: Requests.Hotkey.Off.Request,
+                    ): CancelablePromise<Requests.Hotkey.Off.Response> => {
+                        return new CancelablePromise((resolve, _reject) => {
+                            this.unbind();
+                            resolve(new Requests.Hotkey.Off.Response({ error: undefined }));
+                        });
+                    },
+                ),
+        );
         return Promise.resolve();
     }
 
@@ -36,6 +70,7 @@ export class Service extends Implementation {
     }
 
     protected bind(): void {
+        let listeners = 0;
         KeysMap.forEach((key) => {
             if (key.client) {
                 return;
@@ -53,12 +88,16 @@ export class Service extends Implementation {
                     this.log().warn(
                         `Fail to register key "${shortcut}" for action "${key.alias}" as shortcut.`,
                     );
+                } else {
+                    listeners += 1;
                 }
             });
         });
+        listeners > 0 && this.log().debug(`Activated ${listeners} hotkeys listeners`);
     }
 
     protected unbind(): void {
+        let listeners = 0;
         KeysMap.forEach((key) => {
             if (key.client) {
                 return;
@@ -69,9 +108,13 @@ export class Service extends Implementation {
                     ? shortcuts[process.platform]
                     : shortcuts['others'];
             keys.forEach((shortcut) => {
-                globalShortcut.isRegistered(shortcut) && globalShortcut.unregister(shortcut);
+                if (globalShortcut.isRegistered(shortcut)) {
+                    globalShortcut.unregister(shortcut);
+                    listeners += 1;
+                }
             });
         });
+        listeners > 0 && this.log().debug(`Deactivated ${listeners} hotkeys listeners`);
     }
 
     protected resume() {
