@@ -42,8 +42,51 @@ export class ViewWorkspace implements AfterContentInit, OnDestroy {
             }),
         );
         this.service = getScrollAreaService(this.session);
+        this.env().subscriber.register(
+            this.service.onBound(() => {
+                this.env().subscriber.register(
+                    this.ilc().services.system.hotkeys.listen('gg', () => {
+                        this.move().top();
+                    }),
+                );
+                this.env().subscriber.register(
+                    this.ilc().services.system.hotkeys.listen('g', () => {
+                        this.move().bottom();
+                    }),
+                );
+            }),
+        );
+        this.env().subscriber.register(
+            this.ilc().services.system.hotkeys.listen('Ctrl + W', () => {
+                this.session.close();
+            }),
+        );
+        this.env().subscriber.register(
+            this.ilc().services.system.hotkeys.listen('Ctrl + F', () => {
+                this.session.switch().toolbar.search();
+            }),
+        );
+        this.env().subscriber.register(
+            this.ilc().services.system.hotkeys.listen('Shift + Ctrl + P', () => {
+                this.session.switch().toolbar.presets();
+            }),
+        );
         const bound = this.session.render.getBoundEntity();
         this.columns = bound instanceof Columns ? bound : undefined;
+    }
+
+    protected move(): {
+        top(): void;
+        bottom(): void;
+    } {
+        return {
+            top: (): void => {
+                this.session.stream.len() > 0 && this.service.scrollTo(0);
+            },
+            bottom: (): void => {
+                this.session.stream.len() > 0 && this.service.scrollTo(this.session.stream.len());
+            },
+        };
     }
 }
 export interface ViewWorkspace extends IlcInterface {}

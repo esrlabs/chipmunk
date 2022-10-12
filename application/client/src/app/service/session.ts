@@ -216,6 +216,7 @@ export class Service extends Implementation {
         base(): Base | undefined;
         session(): Session | undefined;
         unbound(): UnboundTab | undefined;
+        is(uuid: string): boolean;
     } {
         return {
             base: (): Base | undefined => {
@@ -226,6 +227,9 @@ export class Service extends Implementation {
             },
             unbound: (): UnboundTab | undefined => {
                 return this._active instanceof UnboundTab ? this._active : undefined;
+            },
+            is: (uuid: string): boolean => {
+                return this._active === undefined ? false : this._active.uuid() === uuid;
             },
         };
     }
