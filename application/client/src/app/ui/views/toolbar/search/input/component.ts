@@ -71,6 +71,11 @@ export class ViewSearchInput
                     this.progress.stop();
                 }),
         );
+        this.env().subscriber.register(
+            this.ilc().services.system.hotkeys.listen('Ctrl + F', () => {
+                this.input.focus();
+            }),
+        );
     }
 
     public ngAfterViewInit(): void {

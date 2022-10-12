@@ -11,15 +11,18 @@ import { Base } from './base';
 import { Bookmarks } from './dependencies/bookmarks';
 import { Cache } from './dependencies/cache';
 import { Exporter } from './dependencies/exporter';
+import { Subscriber } from '@platform/env/subscription';
+import { unique } from '@platform/env/sequence';
 
 import * as Requests from '@platform/ipc/request';
 
 export { Stream };
 
+const TOOLBAR_TAB_SEARCH = unique();
+const TOOLBAR_TAB_PRESET = unique();
+
 @SetupLogger()
 export class Session extends Base {
-    private _uuid!: string;
-    private _tab!: ITabAPI;
     public readonly storage: Storage = new Storage();
     public readonly stream: Stream = new Stream();
     public readonly search: Search = new Search();
@@ -29,6 +32,9 @@ export class Session extends Base {
     public readonly exporter: Exporter = new Exporter();
     public readonly render: Render<unknown>;
 
+    private _uuid!: string;
+    private _tab!: ITabAPI;
+    private readonly _subscriber: Subscriber = new Subscriber();
     private readonly _toolbar: TabsService = new TabsService();
     private readonly _sidebar: TabsService = new TabsService({
         options: new TabsOptions({ direction: ETabsListDirection.left }),
@@ -39,6 +45,7 @@ export class Session extends Base {
         super();
         this.render = render;
         this._toolbar.add({
+            uuid: TOOLBAR_TAB_SEARCH,
             name: 'Search',
             active: true,
             closable: false,
@@ -50,6 +57,7 @@ export class Session extends Base {
             },
         });
         this._toolbar.add({
+            uuid: TOOLBAR_TAB_PRESET,
             name: 'Presets / History',
             active: false,
             closable: false,
@@ -120,6 +128,7 @@ export class Session extends Base {
         this.cursor.destroy();
         this.cache.destroy();
         this.exporter.destroy();
+        this._subscriber.unsubscribe();
         if (!this.inited) {
             return Promise.resolve();
         }
@@ -157,8 +166,30 @@ export class Session extends Base {
         return this._toolbar;
     }
 
+    public switch(): {
+        toolbar: {
+            search(): void;
+            presets(): void;
+        };
+    } {
+        return {
+            toolbar: {
+                search: (): void => {
+                    this._toolbar.setActive(TOOLBAR_TAB_SEARCH);
+                },
+                presets: (): void => {
+                    this._toolbar.setActive(TOOLBAR_TAB_PRESET);
+                },
+            },
+        };
+    }
+
     public isBound(): boolean {
         return true;
+    }
+
+    public close(): void {
+        this._tab.close();
     }
 }
 export interface Session extends LoggerInterface {}

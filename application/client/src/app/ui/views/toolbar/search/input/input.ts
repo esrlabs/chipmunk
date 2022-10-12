@@ -46,6 +46,10 @@ export class SearchInput {
         this._panel = panel;
     }
 
+    public focus() {
+        this.ref.focus();
+    }
+
     public isEmpty(): boolean {
         return this.value.trim() === '';
     }
