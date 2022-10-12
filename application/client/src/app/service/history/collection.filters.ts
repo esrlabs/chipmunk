@@ -5,6 +5,7 @@ import { Equal } from '@platform/types/env/types';
 import { Session } from '@service/session/session';
 import { Definition } from './definition';
 import { Subscriber } from '@platform/env/subscription';
+import { StoredEntity } from '../session/dependencies/search/store';
 
 export class FiltersCollection
     extends Collection<FilterRequest>
@@ -19,7 +20,8 @@ export class FiltersCollection
             session.search
                 .store()
                 .filters()
-                .subjects.update.subscribe(() => {
+                .subjects.get()
+                .any.subscribe(() => {
                     this.update(session.search.store().filters().get());
                     this.updated.emit();
                 }),
@@ -27,7 +29,10 @@ export class FiltersCollection
     }
 
     public applyTo(session: Session, _definitions: Definition[]): AfterApplyCallback {
-        session.search.store().filters().overwrite(this.as().elements(), true);
+        session.search
+            .store()
+            .filters()
+            .overwrite(this.as().elements() as StoredEntity<FilterRequest>[], true);
         return () => {
             session.search.store().filters().refresh();
         };

@@ -5,6 +5,7 @@ import { Equal } from '@platform/types/env/types';
 import { Session } from '@service/session/session';
 import { Definition } from './definition';
 import { Subscriber } from '@platform/env/subscription';
+import { StoredEntity } from '../session/dependencies/search/store';
 
 export class DisabledCollection
     extends Collection<DisabledRequest>
@@ -19,7 +20,8 @@ export class DisabledCollection
             session.search
                 .store()
                 .disabled()
-                .subjects.update.subscribe(() => {
+                .subjects.get()
+                .any.subscribe(() => {
                     this.update(session.search.store().disabled().get());
                     this.updated.emit();
                 }),
@@ -27,7 +29,10 @@ export class DisabledCollection
     }
 
     public applyTo(session: Session, _definitions: Definition[]): AfterApplyCallback {
-        session.search.store().disabled().overwrite(this.as().elements(), true);
+        session.search
+            .store()
+            .disabled()
+            .overwrite(this.as().elements() as StoredEntity<DisabledRequest>[], true);
         return () => {
             session.search.store().disabled().refresh();
         };

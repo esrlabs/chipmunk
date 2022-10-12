@@ -1,4 +1,4 @@
-import { Key, Store } from '../store';
+import { Key, Store, StoredEntity } from '../store';
 import { DisabledRequest } from './request';
 import { DisableConvertable } from './converting';
 
@@ -10,6 +10,8 @@ export class DisableStore extends Store<DisabledRequest> {
     }
 
     public addFromEntity(entities: DisableConvertable[]) {
-        return this.update(entities.map((en) => new DisabledRequest(en)));
+        return this.update(
+            entities.map((en) => new DisabledRequest(en) as StoredEntity<DisabledRequest>),
+        );
     }
 }
