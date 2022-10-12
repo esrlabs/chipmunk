@@ -69,6 +69,16 @@ export class Layout extends ChangesDetector implements AfterViewInit {
             });
         });
         this.env().subscriber.register(
+            this.ilc().services.system.hotkeys.listen('Ctrl + B', () => {
+                this.toggle().sidebar();
+            }),
+        );
+        this.env().subscriber.register(
+            this.ilc().services.system.hotkeys.listen('Ctrl + J', () => {
+                this.toggle().toolbar();
+            }),
+        );
+        this.env().subscriber.register(
             this.resizes.toolbar.subscribe((height: number) => {
                 this.toolbar.set(height);
                 this.detectChanges();
@@ -122,6 +132,29 @@ export class Layout extends ChangesDetector implements AfterViewInit {
     public ngSidebarStyle(): { [key: string]: string } {
         return {
             width: `${this.sidebar.value}px`,
+        };
+    }
+
+    protected toggle(): {
+        sidebar(): void;
+        toolbar(): void;
+    } {
+        const session = this.ilc().services.system.session.active().base();
+        return {
+            sidebar: (): void => {
+                if (session === undefined) {
+                    return;
+                }
+                this.sidebar.toggle();
+                this.detectChanges();
+            },
+            toolbar: (): void => {
+                if (session === undefined) {
+                    return;
+                }
+                this.toolbar.toggle();
+                this.detectChanges();
+            },
         };
     }
 

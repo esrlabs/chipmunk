@@ -3,6 +3,7 @@ export class LimittedValue {
     public max: number;
     public value: number;
     private _alias: string;
+    private _prev: number = -1;
 
     constructor(alias: string, min: number, max: number, value: number) {
         if (isNaN(value) || !isFinite(value)) {
@@ -18,6 +19,7 @@ export class LimittedValue {
         this.max = max;
         this.min = min;
         this.value = value;
+        this._prev = -1;
     }
 
     public set(value: number): boolean {
@@ -50,5 +52,14 @@ export class LimittedValue {
         }
         this.max = value;
         this.set(this.value);
+    }
+
+    public toggle(): void {
+        if (this.value === this.min) {
+            this._prev !== -1 && this.set(this._prev);
+        } else {
+            this._prev = this.value;
+            this.set(this.min);
+        }
     }
 }

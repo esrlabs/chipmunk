@@ -82,7 +82,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
     public readonly keyboard: Keyboard = new Keyboard();
     public selectionDirection = SelectionDirection;
 
-    constructor(changeDetectorRef: ChangeDetectorRef) {
+    constructor(changeDetectorRef: ChangeDetectorRef, private elRef: ElementRef<HTMLElement>) {
         super(changeDetectorRef);
     }
 
@@ -97,7 +97,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
     public ngAfterViewInit(): void {
         this.holder.bind(this._nodeHolder);
         this.frame.bind(this.service, this.holder);
-        this.service.bind(this.frame);
+        this.service.bind(this.frame, this.elRef.nativeElement);
         this.selecting.bind(this._nodeHolder.nativeElement, this.frame);
         this.keyboard.bind(this.frame);
         this._subscriber.register(

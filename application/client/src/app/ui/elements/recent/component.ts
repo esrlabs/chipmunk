@@ -29,7 +29,7 @@ export class RecentActions extends ChangesDetector implements AfterContentInit {
         this.state = new State(this);
         this.env().subscriber.register(
             this.state.update.subscribe(() => {
-                this.markChangesForCheck();
+                this.detectChanges();
             }),
         );
     }

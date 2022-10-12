@@ -33,6 +33,7 @@ export class Service implements Destroy {
     public readonly getItemHeight: () => number;
 
     protected frame!: Frame;
+    protected elRef!: HTMLElement;
 
     private _focus: boolean = false;
     private readonly _subjects: {
@@ -40,11 +41,15 @@ export class Service implements Destroy {
         refresh: Subject<void>;
         len: Subject<number>;
         bound: Subject<void>;
+        focus: Subject<void>;
+        blur: Subject<void>;
     } = {
         rows: new Subject(),
         refresh: new Subject(),
         len: new Subject(),
         bound: new Subject(),
+        focus: new Subject(),
+        blur: new Subject(),
     };
     private _cursor: number = 0;
 
@@ -75,8 +80,9 @@ export class Service implements Destroy {
         this.getItemHeight = api.getItemHeight;
     }
 
-    public bind(frame: Frame) {
+    public bind(frame: Frame, elRef: HTMLElement) {
         this.frame = frame;
+        this.elRef = elRef;
         this._subjects.bound.emit();
     }
 
@@ -89,6 +95,8 @@ export class Service implements Destroy {
         this._subjects.len.destroy();
         this._subjects.refresh.destroy();
         this._subjects.bound.destroy();
+        this._subjects.focus.destroy();
+        this._subjects.blur.destroy();
     }
 
     public setLen(len: number) {
@@ -127,6 +135,14 @@ export class Service implements Destroy {
         return this._subjects.refresh.subscribe(handler);
     }
 
+    public onFocus(handler: () => void): Subscription {
+        return this._subjects.focus.subscribe(handler);
+    }
+
+    public onBlur(handler: () => void): Subscription {
+        return this._subjects.blur.subscribe(handler);
+    }
+
     public getCursor(): number {
         return this._cursor;
     }
@@ -139,6 +155,7 @@ export class Service implements Destroy {
         get(): boolean;
         in(): void;
         out(): void;
+        set(): void;
     } {
         return {
             get: (): boolean => {
@@ -149,12 +166,17 @@ export class Service implements Destroy {
                     return;
                 }
                 this._focus = true;
+                this._subjects.focus.emit();
             },
             out: (): void => {
                 if (!this._focus) {
                     return;
                 }
                 this._focus = false;
+                this._subjects.blur.emit();
+            },
+            set: (): void => {
+                this.elRef !== undefined && this.elRef.focus();
             },
         };
     }
