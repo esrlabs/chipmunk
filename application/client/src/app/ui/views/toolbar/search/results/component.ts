@@ -95,6 +95,21 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                         this.move().prev();
                     }),
                 );
+                this.env().subscriber.register(
+                    this.ilc().services.system.hotkeys.listen('gg', () => {
+                        this.move().top();
+                    }),
+                );
+                this.env().subscriber.register(
+                    this.ilc().services.system.hotkeys.listen('g', () => {
+                        this.move().bottom();
+                    }),
+                );
+                this.env().subscriber.register(
+                    this.ilc().services.system.hotkeys.listen('Ctrl + 2', () => {
+                        this.service.focus().set();
+                    }),
+                );
             }),
         );
         const bound = this.session.render.getBoundEntity();
@@ -104,6 +119,8 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
     protected move(): {
         next(): void;
         prev(): void;
+        top(): void;
+        bottom(): void;
     } {
         const frame = this.service.getFrame();
         const rows = frame.getRows();
@@ -163,6 +180,14 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                     this.service.scrollTo(this.navigation.pending);
                     return;
                 }
+            },
+            top: (): void => {
+                this.service.getLen() > 0 && this.service.focus().get() && this.service.scrollTo(0);
+            },
+            bottom: (): void => {
+                this.service.getLen() > 0 &&
+                    this.service.focus().get() &&
+                    this.service.scrollTo(this.service.getLen());
             },
         };
     }

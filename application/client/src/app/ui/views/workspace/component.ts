@@ -54,6 +54,11 @@ export class ViewWorkspace implements AfterContentInit, OnDestroy {
                         this.move().bottom();
                     }),
                 );
+                this.env().subscriber.register(
+                    this.ilc().services.system.hotkeys.listen('Ctrl + 1', () => {
+                        this.service.focus().set();
+                    }),
+                );
             }),
         );
         this.env().subscriber.register(
@@ -71,6 +76,11 @@ export class ViewWorkspace implements AfterContentInit, OnDestroy {
                 this.session.switch().toolbar.presets();
             }),
         );
+        this.env().subscriber.register(
+            this.ilc().services.system.hotkeys.listen('Ctrl + 2', () => {
+                this.session.switch().toolbar.search();
+            }),
+        );
         const bound = this.session.render.getBoundEntity();
         this.columns = bound instanceof Columns ? bound : undefined;
     }
@@ -81,10 +91,12 @@ export class ViewWorkspace implements AfterContentInit, OnDestroy {
     } {
         return {
             top: (): void => {
-                this.session.stream.len() > 0 && this.service.scrollTo(0);
+                this.service.getLen() > 0 && this.service.focus().get() && this.service.scrollTo(0);
             },
             bottom: (): void => {
-                this.session.stream.len() > 0 && this.service.scrollTo(this.session.stream.len());
+                this.service.getLen() > 0 &&
+                    this.service.focus().get() &&
+                    this.service.scrollTo(this.service.getLen());
             },
         };
     }
