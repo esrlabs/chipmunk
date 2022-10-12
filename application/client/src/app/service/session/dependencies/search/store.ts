@@ -1,5 +1,6 @@
 import { Hash, Recognizable } from '@platform/types/storage/entry';
-import { Subject, Subscriber } from '@platform/env/subscription';
+import { Subject, Subscriber, Subjects } from '@platform/env/subscription';
+import { EntityUpdateEvent } from './store.update';
 
 export enum Key {
     filters = 'filters',
@@ -8,18 +9,26 @@ export enum Key {
     disabled = 'disabled',
 }
 
-export interface Updatable<T> {
-    updated: Subject<T> | undefined;
+export interface Updatable<E> {
+    updated: Subject<E> | undefined;
 }
 
-export abstract class Store<T> extends Subscriber {
-    public subjects: {
-        update: Subject<Array<T & Hash & Recognizable & Updatable<any>>>;
-    } = {
-        update: new Subject(),
-    };
+export type StoredEntity<T> = T & Hash & Recognizable & Updatable<EntityUpdateEvent<any, T>>;
 
-    private _entities: Map<string, T & Hash & Recognizable & Updatable<any>> = new Map();
+export abstract class Store<T> extends Subscriber {
+    public subjects: Subjects<{
+        highlights: Subject<StoredEntity<T>[]>;
+        value: Subject<StoredEntity<T>[]>;
+        inner: Subject<StoredEntity<T>[]>;
+        any: Subject<StoredEntity<T>[]>;
+    }> = new Subjects({
+        highlights: new Subject<StoredEntity<T>[]>(),
+        value: new Subject<StoredEntity<T>[]>(),
+        inner: new Subject<StoredEntity<T>[]>(),
+        any: new Subject<StoredEntity<T>[]>(),
+    });
+
+    private _entities: Map<string, StoredEntity<T>> = new Map();
     private _hash: string = '';
     private _uuid: string;
 
@@ -29,13 +38,11 @@ export abstract class Store<T> extends Subscriber {
     }
 
     public destroy() {
+        this.subjects.destroy();
         this.unsubscribe();
     }
 
-    public overwrite(
-        items: Array<T & Hash & Recognizable & Updatable<any>>,
-        silence: boolean = false,
-    ): Store<T> {
+    public overwrite(items: StoredEntity<T>[], silence: boolean = false): Store<T> {
         this._entities = new Map();
         items.forEach((item) => {
             this._entities.set(item.uuid(), item);
@@ -49,7 +56,7 @@ export abstract class Store<T> extends Subscriber {
         return this;
     }
 
-    public update(items: Array<T & Hash & Recognizable & Updatable<any>>): Store<T> {
+    public update(items: StoredEntity<T>[]): Store<T> {
         items.forEach((item) => {
             this._entities.set(item.uuid(), item);
         });
@@ -64,28 +71,19 @@ export abstract class Store<T> extends Subscriber {
         this._update();
     }
 
-    public get(): Array<T & Hash & Recognizable & Updatable<any>> {
+    public get(): StoredEntity<T>[] {
         return Array.from(this._entities.values());
     }
-    /*
-        const filter: FilterRequest = this._stored[params.prev];
-        this._stored = this._stored.filter((i: FilterRequest, index: number) => {
-            return index !== params.prev;
-        });
-        this._stored.splice(params.curt, 0, filter);
-        this._subjects.updated.next({ requests: this._stored, updated: undefined });
-*/
+
     public reorder(params: { prev: number; curt: number }) {
-        let entities: Array<T & Hash & Recognizable & Updatable<any>> = this.get();
+        let entities: StoredEntity<T>[] = this.get();
         const prev = entities[params.prev];
         if (prev === undefined) {
             return;
         }
-        entities = entities.filter(
-            (_entity: T & Hash & Recognizable & Updatable<any>, index: number) => {
-                return index !== params.prev;
-            },
-        );
+        entities = entities.filter((_entity: StoredEntity<T>, index: number) => {
+            return index !== params.prev;
+        });
         entities.splice(params.curt, 0, prev);
         this.overwrite(entities);
     }
@@ -108,18 +106,30 @@ export abstract class Store<T> extends Subscriber {
         const prev = this._hash;
         this._hash = Array.from(this._entities.keys()).join('_');
         if (prev !== this._hash) {
-            this.subjects.update.emit(Array.from(this._entities.values()));
+            this.subjects.get().value.emit(Array.from(this._entities.values()));
+            this.subjects.get().any.emit(Array.from(this._entities.values()));
         }
         this.unsubscribe();
         this._entities.forEach((entity) => {
             let hash = entity.hash();
             entity.updated !== undefined &&
                 this.register(
-                    entity.updated.subscribe(() => {
+                    entity.updated.subscribe((event) => {
                         const updated_hash = entity.hash();
                         if (hash !== updated_hash) {
                             hash = updated_hash;
-                            this.subjects.update.emit(Array.from(this._entities.values()));
+                            if (event.consequence().highlights) {
+                                this.subjects
+                                    .get()
+                                    .highlights.emit(Array.from(this._entities.values()));
+                            }
+                            if (event.consequence().inner) {
+                                this.subjects.get().inner.emit(Array.from(this._entities.values()));
+                            }
+                            if (event.consequence().value) {
+                                this.subjects.get().value.emit(Array.from(this._entities.values()));
+                            }
+                            this.subjects.get().any.emit(Array.from(this._entities.values()));
                         }
                     }),
                 );

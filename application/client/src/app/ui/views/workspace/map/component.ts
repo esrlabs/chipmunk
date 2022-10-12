@@ -43,7 +43,8 @@ export class ViewContentMapComponent extends ChangesDetector implements AfterVie
             this.session.search
                 .store()
                 .filters()
-                .subjects.update.subscribe(() => {
+                .subjects.get()
+                .highlights.subscribe(() => {
                     this.state.draw();
                 }),
         );

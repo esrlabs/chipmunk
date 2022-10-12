@@ -9,6 +9,7 @@ import { error } from '@platform/env/logger';
 import { Key } from '../store';
 import { Equal } from '@platform/types/env/types';
 import { Updatable } from '../store';
+import { UpdateEvent } from './store.update';
 
 import * as regexFilters from '@platform/env/filters';
 import * as regex from '@platform/env/regex';
@@ -44,16 +45,6 @@ export interface UpdateRequest {
     color?: string;
     background?: string;
     active?: boolean;
-}
-
-export interface UpdateEvent {
-    filter: FilterRequest;
-    updated: {
-        filter: boolean;
-        state: boolean;
-        colors: boolean;
-        stat: boolean;
-    };
 }
 
 export class FilterRequest
@@ -183,127 +174,69 @@ export class FilterRequest
     } {
         return {
             from: (desc: UpdateRequest): boolean => {
-                const event: UpdateEvent = {
-                    updated: {
-                        filter: false,
-                        colors: false,
-                        state: false,
-                        stat: false,
-                    },
-                    filter: this,
-                };
+                const event = new UpdateEvent(this);
                 if (typeof desc.filter === 'string' && this.set(true).filter(desc.filter)) {
-                    event.updated.filter = true;
+                    event.on().filter();
                 }
                 if (typeof desc.flags === 'string' && this.set(true).flags(desc.flags)) {
-                    event.updated.filter = true;
+                    event.on().filter();
                 }
                 if (typeof desc.active === 'boolean' && this.set(true).state(desc.active)) {
-                    event.updated.state = true;
+                    event.on().state();
                 }
                 if (typeof desc.color === 'string' && this.set(true).color(desc.color)) {
-                    event.updated.colors = true;
+                    event.on().colors();
                 }
                 if (
                     typeof desc.background === 'string' &&
                     this.set(true).background(desc.background)
                 ) {
-                    event.updated.colors = true;
+                    event.on().colors();
                 }
-                const hasToBeEmitted: boolean =
-                    event.updated.filter || event.updated.state || event.updated.colors;
-                if (hasToBeEmitted && this.update()) {
+                if (event.changed() && this.update()) {
                     this.updated.emit(event);
                 }
-                return hasToBeEmitted;
+                return event.changed();
             },
             color: (color: string): boolean => {
                 this.definition.colors.color = color;
                 if (!silence && this.update()) {
-                    this.updated.emit({
-                        updated: {
-                            filter: false,
-                            colors: true,
-                            state: false,
-                            stat: false,
-                        },
-                        filter: this,
-                    });
+                    this.updated.emit(new UpdateEvent(this).on().colors());
                 }
                 return true;
             },
             background: (background: string): boolean => {
                 this.definition.colors.background = background;
                 if (!silence && this.update()) {
-                    this.updated.emit({
-                        updated: {
-                            filter: false,
-                            colors: true,
-                            state: false,
-                            stat: false,
-                        },
-                        filter: this,
-                    });
+                    this.updated.emit(new UpdateEvent(this).on().colors());
                 }
                 return true;
             },
             state: (active: boolean): boolean => {
                 this.definition.active = active;
                 if (!silence && this.update()) {
-                    this.updated.emit({
-                        updated: {
-                            filter: false,
-                            colors: false,
-                            state: true,
-                            stat: false,
-                        },
-                        filter: this,
-                    });
+                    this.updated.emit(new UpdateEvent(this).on().state());
                 }
                 return true;
             },
             flags: (flags: IFilterFlags): boolean => {
                 this.definition.filter.flags = Object.assign({}, flags);
                 if (!silence && this.update()) {
-                    this.updated.emit({
-                        updated: {
-                            filter: true,
-                            colors: false,
-                            state: false,
-                            stat: false,
-                        },
-                        filter: this,
-                    });
+                    this.updated.emit(new UpdateEvent(this).on().filter());
                 }
                 return true;
             },
             filter: (filter: string): boolean => {
                 this.definition.filter.filter = filter;
                 if (!silence && this.update()) {
-                    this.updated.emit({
-                        updated: {
-                            filter: true,
-                            colors: false,
-                            state: false,
-                            stat: false,
-                        },
-                        filter: this,
-                    });
+                    this.updated.emit(new UpdateEvent(this).on().filter());
                 }
                 return true;
             },
             found: (found: number): boolean => {
                 this.found = found;
                 if (!silence && this.update()) {
-                    this.updated.emit({
-                        updated: {
-                            filter: false,
-                            colors: false,
-                            state: false,
-                            stat: true,
-                        },
-                        filter: this,
-                    });
+                    this.updated.emit(new UpdateEvent(this).on().stat());
                 }
                 return true;
             },

@@ -20,7 +20,8 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
             this.session.search
                 .store()
                 .disabled()
-                .subjects.update.subscribe(() => {
+                .subjects.get()
+                .value.subscribe(() => {
                     super.change();
                     this.select().drop();
                 }),

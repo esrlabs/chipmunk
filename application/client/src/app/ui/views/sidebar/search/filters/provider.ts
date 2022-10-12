@@ -21,7 +21,8 @@ export class ProviderFilters extends Provider<FilterRequest> {
             this.session.search
                 .store()
                 .filters()
-                .subjects.update.subscribe(() => {
+                .subjects.get()
+                .value.subscribe(() => {
                     super.change();
                     this.session.search
                         .state()
@@ -29,7 +30,6 @@ export class ProviderFilters extends Provider<FilterRequest> {
                         .catch((err: Error) => {
                             console.log(err);
                         });
-                    // this.select().drop();
                 }),
         );
         this.subscriber.register(

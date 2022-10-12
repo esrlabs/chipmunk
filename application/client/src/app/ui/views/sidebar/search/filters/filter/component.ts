@@ -63,13 +63,13 @@ export class Filter extends ChangesDetector implements AfterContentInit {
         );
         this.env().subscriber.register(
             this.entity.extract().updated.subscribe((event) => {
-                if (event.updated.filter) {
+                if (event.inner().filter) {
                     this.state.update().filter();
-                } else if (event.updated.colors) {
+                } else if (event.inner().colors) {
                     this.state.update().colors();
-                } else if (event.updated.state) {
+                } else if (event.inner().state) {
                     this.state.update().state();
-                } else if (event.updated.stat) {
+                } else if (event.inner().stat) {
                     this.state.update().stat();
                 }
                 this.update();

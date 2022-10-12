@@ -1,4 +1,4 @@
-import { Key, Store } from '../store';
+import { Key, Store, StoredEntity } from '../store';
 import { FilterRequest } from './request';
 import { IFilter } from '@platform/types/filter';
 import { DisableConvertable } from '../disabled/converting';
@@ -12,12 +12,12 @@ export class FiltersStore extends Store<FilterRequest> {
 
     public addFromFilter(filter: IFilter): void {
         const request = new FilterRequest({ filter });
-        this.update([request]);
+        this.update([request as StoredEntity<FilterRequest>]);
     }
 
     public tryRestore(smth: DisableConvertable): boolean {
         if (smth instanceof FilterRequest) {
-            this.update([smth]);
+            this.update([smth as StoredEntity<FilterRequest>]);
             return true;
         } else {
             return false;
