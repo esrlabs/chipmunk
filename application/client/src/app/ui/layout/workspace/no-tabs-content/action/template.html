@@ -1,0 +1,6 @@
+<button mat-menu-item (click)="action.apply()">
+  <div class="wrapper">
+    <span class="left">{{action.caption()}}</span>
+    <mat-icon [attr.data-pinned]="isPinned() ? 'yes' : 'no'" (click)="onPin($event)">star</mat-icon>  
+  </div>
+</button> 

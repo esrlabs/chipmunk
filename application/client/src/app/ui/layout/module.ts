@@ -4,12 +4,14 @@ import { ContainersModule } from '@elements/containers/module';
 import { AppDirectiviesModule } from '@directives/module';
 import { ElementsModule } from '@elements/module';
 import { RecentActionsModule } from '@elements/recent/module';
+import { LayoutHomeModule } from './workspace/no-tabs-content/module';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { Layout } from './component';
 import { LayoutStatusBar } from './statusbar/component';
@@ -20,7 +22,6 @@ import { LayoutSidebarCaption } from './sidebar/caption/component';
 import { LayoutSidebarControls } from './sidebar/controls/component';
 import { LayoutWorkspace } from './workspace/component';
 import { LayoutWorkspaceControls } from './workspace/controls/component';
-import { LayoutWorkspaceNoContent } from './workspace/no-tabs-content/component';
 import { LayoutToolbar } from './toolbar/component';
 import { LayoutToolbarControls } from './toolbar/controls/component';
 import { LayoutPopups } from './popups/component';
@@ -44,7 +45,6 @@ const entryComponents = [
     LayoutSidebarControls,
     LayoutWorkspace,
     LayoutWorkspaceControls,
-    LayoutWorkspaceNoContent,
     LayoutToolbar,
     LayoutToolbarControls,
     LayoutPopups,
@@ -65,12 +65,15 @@ const entryComponents = [
         MatDividerModule,
         MatSnackBarModule,
         MatIconModule,
+        MatMenuModule,
         JobsModule,
         SessionModule,
         RecentActionsModule,
+        LayoutHomeModule,
         OverlayModule,
     ],
     declarations: [...entryComponents],
     exports: [...entryComponents, AppDirectiviesModule],
+    bootstrap: [...entryComponents, LayoutHomeModule],
 })
 export class LayoutModule {}

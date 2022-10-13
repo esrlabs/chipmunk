@@ -1,6 +1,6 @@
 import { Component, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { TabsService } from '@elements/tabs/service';
-import { LayoutWorkspaceNoContent } from './no-tabs-content/component';
+import { LayoutHome } from './no-tabs-content/component';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { components } from '@env/decorators/initial';
@@ -15,6 +15,7 @@ const WELCOME_TAB_UUID = 'welcome';
 @Ilc()
 export class LayoutWorkspace extends ChangesDetector implements AfterViewInit {
     public tabs: TabsService;
+    
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
         this.tabs = this.ilc().services.system.session.getTabsService();
@@ -29,7 +30,7 @@ export class LayoutWorkspace extends ChangesDetector implements AfterViewInit {
                 toolbar: false,
                 tab: {
                     content: {
-                        factory: LayoutWorkspaceNoContent,
+                        factory: LayoutHome,
                     },
                     active: true,
                     name: '',

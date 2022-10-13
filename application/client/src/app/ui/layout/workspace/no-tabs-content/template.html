@@ -2,17 +2,36 @@
   <div class="preset-container-content">
     <div class="left">
       <mat-card>
-        <mat-card-title>Quick Actions</mat-card-title>
-        <mat-card-subtitle>Select and open data source</mat-card-subtitle>
+        <mat-card-content class="menu-buttons">
+          <button class="menu-button" mat-stroked-button [matMenuTriggerFor]="open_file_menu">
+            <mat-icon>insert_drive_file</mat-icon>
+            <span class="t-small">Open File(s)</span>
+          </button>
+          <button class="menu-button" mat-stroked-button [matMenuTriggerFor]="open_stream_menu">
+            <mat-icon>cast_connected</mat-icon>
+            <span class="t-small">Stream(s)</span>
+          </button>
+          <button class="menu-button" mat-stroked-button>
+            <mat-icon>settings</mat-icon>
+            <span class="t-small">Settings</span>
+          </button>
+        </mat-card-content>
+      </mat-card>
+      <mat-card *ngIf="pinned.length > 0">
+        <mat-card-title>Favorited Actions</mat-card-title>
+        <mat-card-subtitle>Add/remove favorited actions</mat-card-subtitle>
         <mat-card-content>
-          <button mat-stroked-button (click)="ngOpenFile(FileType.Any)">Open File(s)</button>
-          <button mat-stroked-button (click)="ngOpenFile(FileType.Dlt)">Open Dlt File</button>
-          <button mat-stroked-button (click)="ngOpenFile(FileType.Pcap)">Open Pcap File</button>
-          <button mat-stroked-button>Open Folder</button>
+          <ng-container *ngFor="let item of pinned">
+            <ng-container *ngIf="item === null">
+              <mat-divider></mat-divider>
+            </ng-container>
+            <app-home-action *ngIf="item !== null" [action]="item" [actions]="actions"></app-home-action>  
+          </ng-container>
+          <!-- <button mat-stroked-button >Open File(s)</button>
           <button mat-stroked-button (click)="ngStreaming(FileType.Dlt)">DLT Streaming</button>
           <button mat-stroked-button (click)="ngStreaming(FileType.Text)">Text Streaming</button>
           <button mat-stroked-button>Connect to Serial Port</button>
-          <button mat-stroked-button>Run shell command</button>
+          <button mat-stroked-button>Run shell command</button> -->
         </mat-card-content>
       </mat-card>
       <mat-card>
@@ -46,3 +65,21 @@
     </div>
   </div>
 </div>
+
+<mat-menu #open_file_menu="matMenu">
+  <ng-container *ngFor="let item of menu.file">
+    <ng-container *ngIf="item === null">
+      <mat-divider></mat-divider>
+    </ng-container>
+    <app-home-action *ngIf="item !== null" [action]="item" [actions]="actions"></app-home-action>  
+  </ng-container>
+</mat-menu>
+
+<mat-menu #open_stream_menu="matMenu">
+  <ng-container *ngFor="let item of menu.stream">
+    <ng-container *ngIf="item === null">
+      <mat-divider></mat-divider>
+    </ng-container>
+    <app-home-action *ngIf="item !== null" [action]="item" [actions]="actions"></app-home-action>  
+  </ng-container>
+</mat-menu>
