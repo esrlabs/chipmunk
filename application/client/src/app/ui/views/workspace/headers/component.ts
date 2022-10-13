@@ -76,12 +76,10 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
         };
     }
 
-    public ngResize(width: number, header: RenderedHeader) {
+    public ngResize(width: number, header: RenderedHeader, index: number) {
         header.resize(width);
         this.markChangesForCheck();
-        setTimeout(() => {
-            this.controller.update.emit();
-        });
+        this.controller.subjects.get().resized.emit(index);
     }
 }
 export interface ColumnsHeaders extends IlcInterface {}

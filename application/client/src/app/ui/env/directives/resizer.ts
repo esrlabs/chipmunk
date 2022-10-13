@@ -71,7 +71,9 @@ export class ResizerDirective implements AfterViewInit, OnDestroy {
         if (this.resized !== undefined) {
             this.resized.emit(this.size);
         } else {
-            this.changesize.emit(this.size);
+            setTimeout(() => {
+                this.changesize.emit(this.size);
+            });
         }
     }
 

@@ -164,8 +164,11 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
     }
 
     public ngGetSignatureWidth(): { [key: string]: string } {
+        const width = `${this.row.session.stream.rank.width()}px`;
         return {
-            width: `${this.row.session.stream.rank.width()}px`,
+            width: width,
+            minWidth: width,
+            maxWidth: width,
         };
     }
 

@@ -1,9 +1,16 @@
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Columns } from '@schema/render/columns';
 
+export interface Update {
+    styles(): Update;
+    content(content: string): Update;
+    visability(): Update;
+}
 export class Cell {
     public content: string;
-    public html: SafeHtml;
+    public html!: SafeHtml;
+    public styles: { [key: string]: string } = {};
+    public visible: boolean = true;
     public readonly index: number;
 
     private readonly _sanitizer: DomSanitizer;
@@ -14,19 +21,28 @@ export class Cell {
         this._controller = controller;
         this.content = content;
         this.index = index;
-        this.html = this._sanitizer.bypassSecurityTrustHtml(content);
+        this.update().content(content).visability().styles();
     }
 
-    public update(content: string) {
-        this.content = content;
-        this.html = this._sanitizer.bypassSecurityTrustHtml(content);
-    }
-
-    public styles(): { [key: string]: string } {
-        return this._controller.getStyle(this.index);
-    }
-
-    public visible(): boolean {
-        return this._controller.visible(this.index);
+    public update(): Update {
+        const update = {
+            styles: (): Update => {
+                this.styles = this._controller.getStyle(this.index);
+                return update;
+            },
+            content: (content: string): Update => {
+                if (this.content === content && this.html !== undefined) {
+                    return update;
+                }
+                this.content = content;
+                this.html = this._sanitizer.bypassSecurityTrustHtml(content);
+                return update;
+            },
+            visability: (): Update => {
+                this.visible = this._controller.visible(this.index);
+                return update;
+            },
+        };
+        return update;
     }
 }

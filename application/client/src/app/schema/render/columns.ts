@@ -1,4 +1,4 @@
-import { Subject } from '@platform/env/subscription';
+import { Subject, Subjects } from '@platform/env/subscription';
 import { LimittedValue } from '@ui/env/entities/value.limited';
 
 export interface Header {
@@ -11,11 +11,16 @@ export interface Header {
 export class Columns {
     public readonly headers: Header[];
     protected styles: Array<{ [key: string]: string }> = [];
-    private readonly _uuid: string;
-    private: number = 0;
+
+    public subjects: Subjects<{
+        resized: Subject<number>;
+        visibility: Subject<void>;
+    }> = new Subjects({
+        resized: new Subject(),
+        visibility: new Subject(),
+    });
 
     constructor(
-        uuid: string,
         headers: {
             caption: string;
             desc: string;
@@ -33,7 +38,6 @@ export class Columns {
             max instanceof Array ? max : Array.from({ length: headers.length }, () => max);
         const minWidths =
             min instanceof Array ? min : Array.from({ length: headers.length }, () => min);
-        this._uuid = uuid;
         this.headers = headers.map((header, i) => {
             return {
                 caption: header.caption,
@@ -56,8 +60,6 @@ export class Columns {
         });
     }
 
-    public update: Subject<void> = new Subject<void>();
-
     public visible(column: number): boolean {
         if (this.headers[column] === undefined) {
             throw new Error(`Invalid index of column`);
@@ -71,7 +73,7 @@ export class Columns {
         }
         const value = this.headers[column].width;
         value !== undefined && value.set(width);
-        this.update.emit();
+        this.subjects.get().resized.emit(column);
     }
 
     public getWidth(column: number): number | undefined {
