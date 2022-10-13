@@ -18,6 +18,8 @@
             width: 16px;
             height: 16px;
             font-size: 16px;
+            opacity: 0.01;
+            transition: opacity ease-in-out 150ms;
             &[data-pinned="no"] {
                 color: @scheme-color-3;
             }
@@ -28,6 +30,13 @@
                 color: @scheme-color-0;
                 cursor: default;
             }
+        }
+    }
+    &:hover {
+        & div.wrapper {
+            & mat-icon {
+                opacity: 1;
+            }    
         }
     }
 }

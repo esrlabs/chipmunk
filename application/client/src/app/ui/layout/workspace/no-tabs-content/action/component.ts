@@ -14,6 +14,7 @@ import { stop } from '@ui/env/dom';
 export class ActionComponent extends ChangesDetector implements AfterViewInit {
     @Input() public action!: Base;
     @Input() public actions!: ActionsStorage;
+    @Input() public menu!: boolean; 
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
