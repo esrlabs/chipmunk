@@ -24,6 +24,7 @@ export class Columns extends ChangesDetector implements AfterContentInit {
 
     public cells: Cell[] = [];
     public controller!: ColumnsController;
+    public visible: Cell[] = [];
 
     private _sanitizer: DomSanitizer;
 
@@ -45,9 +46,11 @@ export class Columns extends ChangesDetector implements AfterContentInit {
         this.cells = this.row.columns.map((s, i) => {
             return new Cell(this._sanitizer, this.controller, s, i);
         });
+        this.visible = this.cells.filter((c) => c.visible);
         this.env().subscriber.register(
-            this.controller.update.subscribe(() => {
-                this.markChangesForCheck();
+            this.controller.subjects.get().resized.subscribe((column) => {
+                this.cells[column].update().styles();
+                this.detectChanges();
             }),
         );
         this.env().subscriber.register(
@@ -57,17 +60,14 @@ export class Columns extends ChangesDetector implements AfterContentInit {
                         this.log().error(`Column ${i} doesn't exist`);
                         return;
                     }
-                    this.cells[i].update(s);
+                    this.cells[i].update().content(s);
                 });
                 this.background = this.row.background === undefined ? '' : this.row.background;
                 this.color = this.row.color === undefined ? '' : this.row.color;
-                this.markChangesForCheck();
+                this.detectChanges();
             }),
         );
     }
 
-    public visible(): Cell[] {
-        return this.cells.filter((c) => c.visible());
-    }
 }
 export interface Columns extends IlcInterface {}

@@ -1,10 +1,10 @@
 <span class="offset" [ngStyle]="ngGetOffsetStyle()"></span>
 <span class="header" 
-      *ngFor="let header of headers"
+      *ngFor="let header of headers; let i = index"
       [ngStyle]="header.styles">{{header.caption}}<span *ngIf="header.width !== undefined" class="resizer" appResizer
-            [min]="header.width.min"
-            [max]="header.width.max"
-            [size]="header.width.value"
-            [direction]="Direction.Horizontal"
-            [corrector]="-1"
-            (changesize)="ngResize($event, header)"></span></span>
+      [min]="header.width.min"
+      [max]="header.width.max"
+      [size]="header.width.value"
+      [direction]="Direction.Horizontal"
+      [corrector]="-1"
+      (changesize)="ngResize($event, header, i)"></span></span>

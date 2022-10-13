@@ -57,7 +57,6 @@ export class Implementation extends Render<Columns> {
         super();
         this.setBoundEntity(
             new Columns(
-                'DLT_COLUMNS_VIEW',
                 Implementation.HEADERS,
                 true,
                 [150, 20, 20, 20, 20, 20, 20, 20, 20, 20, -1],
