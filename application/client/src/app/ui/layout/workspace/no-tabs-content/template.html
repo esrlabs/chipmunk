@@ -25,13 +25,8 @@
             <ng-container *ngIf="item === null">
               <mat-divider></mat-divider>
             </ng-container>
-            <app-home-action *ngIf="item !== null" [action]="item" [actions]="actions"></app-home-action>  
+            <app-home-action *ngIf="item !== null" [action]="item" [actions]="actions" [menu]="false"></app-home-action>  
           </ng-container>
-          <!-- <button mat-stroked-button >Open File(s)</button>
-          <button mat-stroked-button (click)="ngStreaming(FileType.Dlt)">DLT Streaming</button>
-          <button mat-stroked-button (click)="ngStreaming(FileType.Text)">Text Streaming</button>
-          <button mat-stroked-button>Connect to Serial Port</button>
-          <button mat-stroked-button>Run shell command</button> -->
         </mat-card-content>
       </mat-card>
       <mat-card>
@@ -71,7 +66,7 @@
     <ng-container *ngIf="item === null">
       <mat-divider></mat-divider>
     </ng-container>
-    <app-home-action *ngIf="item !== null" [action]="item" [actions]="actions"></app-home-action>  
+    <app-home-action *ngIf="item !== null" [action]="item" [actions]="actions" [menu]="true"></app-home-action>  
   </ng-container>
 </mat-menu>
 
@@ -80,6 +75,6 @@
     <ng-container *ngIf="item === null">
       <mat-divider></mat-divider>
     </ng-container>
-    <app-home-action *ngIf="item !== null" [action]="item" [actions]="actions"></app-home-action>  
+    <app-home-action *ngIf="item !== null" [action]="item" [actions]="actions" [menu]="true"></app-home-action>  
   </ng-container>
 </mat-menu>
