@@ -1,6 +1,6 @@
 @import '../../../styles/variables.less';
 
-:host {
+app-layout-area-no-tabs-content {
     position: absolute;
     display: block;
     top: 0;
@@ -26,11 +26,32 @@
     h1 {
         font-size: 14px;
     }
-    button {
+    & button {
         position: relative;
         display: block;
         margin: 6px 0;
         width: 100%;
+    }
+    & mat-card-content.menu-buttons {
+        text-align: center;
+    }
+    & button.menu-button {
+        width: 78px;
+        display: inline-block;
+        margin: 6px 6px;
+        padding: 6px;
+        & span.mat-button-wrapper{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            & mat-icon {
+                display: block;
+            }
+            & span {
+                display: block;
+            }
+    
+        }
     }
     & div.left {
         position: absolute;

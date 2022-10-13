@@ -1,102 +1,77 @@
-import { Component } from '@angular/core';
+import {
+    Component,
+    ViewEncapsulation,
+    AfterViewInit,
+    OnDestroy,
+    ChangeDetectorRef,
+} from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
-import { FileType, File } from '@platform/types/files';
-import { TabSourceMultipleFiles } from '@tabs/sources/multiplefiles/component';
+import { Storage as ActionsStorage } from './actions/storage';
+import { Base as Action } from './actions/action';
+import { ChangesDetector } from '@ui/env/extentions/changes';
+
+import * as actions from './actions';
 
 @Component({
     selector: 'app-layout-area-no-tabs-content',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    encapsulation: ViewEncapsulation.None,
 })
 @Ilc()
-export class LayoutWorkspaceNoContent {
-    public readonly FileType = FileType;
+export class LayoutHome extends ChangesDetector implements AfterViewInit, OnDestroy {
+    public readonly menu = {
+        file: [
+            new actions.FileText.Action(),
+            new actions.FileDlt.Action(),
+            new actions.FilePcap.Action(),
+            null,
+            new actions.FileAny.Action(),
+        ],
+        stream: [
+            new actions.StreamTextOnCustom.Action(),
+            new actions.StreamDltOnCustom.Action(),
+            null,
+        ],
+        settings: [],
+    };
+    public actions: ActionsStorage = new ActionsStorage();
+    public pinned: Array<Action | null> = [];
 
-    public ngStreaming(target: FileType) {
-        switch (target) {
-            case FileType.Dlt:
-                this.ilc()
-                    .services.system.opener.stream()
-                    .dlt()
-                    .catch((err: Error) => {
-                        this.log().error(`Fail to open DLT stream; error: ${err.message}`);
-                    });
-                break;
-            case FileType.Text:
-                this.ilc()
-                    .services.system.opener.stream()
-                    .text()
-                    .catch((err: Error) => {
-                        this.log().error(`Fail to open text stream; error: ${err.message}`);
-                    });
-                break;
-            default:
-                break;
-        }
+    constructor(cdRef: ChangeDetectorRef) {
+        super(cdRef);
     }
 
-    public ngOpenFile(target: FileType) {
-        const select = this.ilc().services.system.bridge.files().select;
-        (() => {
-            switch (target) {
-                case FileType.Any:
-                    return select.any();
-                case FileType.Text:
-                    return select.text();
-                case FileType.Dlt:
-                    return select.dlt();
-                case FileType.Pcap:
-                    return select.pcap();
-                default:
-                    return Promise.reject(new Error(`Unsupported file type`));
+    public ngOnDestroy(): void {
+        this.actions.destroy();
+    }
+
+    public ngAfterViewInit(): void {
+        this.actions.load();
+        this.env().subscriber.register(
+            this.actions.updated.subscribe(() => {
+                this.update();
+            }),
+        );
+        this.update();
+    }
+
+    protected update() {
+        const actions = this.actions.get().sort((a, b) => (a.group() > b.group() ? -1 : 1));
+        const pinned: Array<Action | null> = [];
+        let group = -1;
+        actions.forEach((action) => {
+            if (group === -1) {
+                group = action.group();
             }
-        })()
-            .then((files: File[]) => {
-                if (files.length === 0) {
-                    return;
-                } else if (files.length === 1) {
-                    files.forEach((file: File) => {
-                        switch (file.type) {
-                            case FileType.Any:
-                            case FileType.Text:
-                                this.ilc()
-                                    .services.system.opener.file(file)
-                                    .text()
-                                    .catch((err: Error) => {
-                                        this.log().error(
-                                            `Fail to open text file; error: ${err.message}`,
-                                        );
-                                    });
-                                break;
-                            case FileType.Dlt:
-                                this.ilc()
-                                    .services.system.opener.file(file)
-                                    .dlt()
-                                    .catch((err: Error) => {
-                                        this.log().error(
-                                            `Fail to open dlt file; error: ${err.message}`,
-                                        );
-                                    });
-                                break;
-                        }
-                    });
-                } else {
-                    this.ilc()
-                        .services.system.session.add()
-                        .tab({
-                            name: 'Multiple Files',
-                            active: true,
-                            closable: true,
-                            content: {
-                                factory: TabSourceMultipleFiles,
-                                inputs: { files: files },
-                            },
-                        });
-                }
-            })
-            .catch((err: Error) => {
-                this.log().error(`Fail to open file: ${err.message}`);
-            });
+            if (group !== action.group()) {
+                pinned.push(null);
+                group = action.group();
+            }
+            pinned.push(action);
+        });
+        this.pinned = pinned;
+        this.detectChanges();
     }
 }
-export interface LayoutWorkspaceNoContent extends IlcInterface {}
+export interface LayoutHome extends IlcInterface {}

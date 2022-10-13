@@ -1,0 +1,33 @@
+@import '../../../../styles/variables.less';
+
+:host {
+    display: block;
+    width: 100%;
+    & div.wrapper {
+        position: relative;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        width: 100%;
+        & span.left {
+            flex: auto;
+        }
+        & mat-icon {
+            margin-left: 12px;
+            margin-right: 0px;
+            width: 16px;
+            height: 16px;
+            font-size: 16px;
+            &[data-pinned="no"] {
+                color: @scheme-color-3;
+            }
+            &[data-pinned="yes"] {
+                color: @scheme-color-1;
+            }
+            &:hover {
+                color: @scheme-color-0;
+                cursor: default;
+            }
+        }
+    }
+}
