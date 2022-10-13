@@ -40,7 +40,7 @@ export interface KeyDescription {
 export const KeysMap: KeyDescription[] = [
     // {
     //     alias: 'Ctrl + T',
-    //     shortkeys: { darwin: ['⌘ + T'], others: ['Ctrl + T'] },
+    //     shortkeys: { darwin: ['Cmd + T'], others: ['Ctrl + T'] },
     //     description: 'Open new tab',
     //     category: Category.Tabs,
     //     required: [],
@@ -49,7 +49,7 @@ export const KeysMap: KeyDescription[] = [
     // },
     {
         alias: 'Ctrl + W',
-        shortkeys: { darwin: ['⌘ + W'], others: ['Ctrl + W'] },
+        shortkeys: { darwin: ['Cmd + W'], others: ['Ctrl + W'] },
         description: 'Close active tab',
         category: Category.Tabs,
         required: [],
@@ -58,7 +58,7 @@ export const KeysMap: KeyDescription[] = [
     },
     {
         alias: 'Ctrl + Tab',
-        shortkeys: { darwin: ['⌘ + Tab'], others: ['Ctrl + Tab'] },
+        shortkeys: { darwin: ['Cmd + Tab'], others: ['Ctrl + Tab'] },
         description: 'Next tab',
         category: Category.Tabs,
         required: [],
@@ -67,7 +67,7 @@ export const KeysMap: KeyDescription[] = [
     },
     {
         alias: 'Shift + Ctrl + Tab',
-        shortkeys: { darwin: ['Shift + ⌘ + Tab'], others: ['Shift + Ctrl + Tab'] },
+        shortkeys: { darwin: ['Shift + Cmd + Tab'], others: ['Shift + Ctrl + Tab'] },
         description: 'Previous tab',
         category: Category.Tabs,
         required: [],
@@ -76,7 +76,7 @@ export const KeysMap: KeyDescription[] = [
     },
     {
         alias: 'Ctrl + P',
-        shortkeys: { darwin: ['⌘ + P'], others: ['Ctrl + P'] },
+        shortkeys: { darwin: ['Cmd + P'], others: ['Ctrl + P'] },
         description: 'Open recent files',
         category: Category.Files,
         required: [],
@@ -85,7 +85,7 @@ export const KeysMap: KeyDescription[] = [
     },
     {
         alias: 'Shift + Ctrl + P',
-        shortkeys: { darwin: ['Shift + ⌘ + P'], others: ['Shift + Ctrl + P'] },
+        shortkeys: { darwin: ['Shift + Cmd + P'], others: ['Shift + Ctrl + P'] },
         description: 'Open recent filters and presets',
         category: Category.Files,
         required: [Requirement.Session],
@@ -94,7 +94,7 @@ export const KeysMap: KeyDescription[] = [
     },
     {
         alias: 'Ctrl + O',
-        shortkeys: { darwin: ['⌘ + O'], others: ['Ctrl + O'] },
+        shortkeys: { darwin: ['Cmd + O'], others: ['Ctrl + O'] },
         description: 'Recent actions (Home)',
         category: Category.Files,
         required: [],
@@ -103,7 +103,7 @@ export const KeysMap: KeyDescription[] = [
     },
     // {
     //     alias: 'Shift + Ctrl + F',
-    //     shortkeys: { darwin: ['Shift + ⌘ + F'], others: ['Shift + Ctrl + F'] },
+    //     shortkeys: { darwin: ['Shift + Cmd + F'], others: ['Shift + Ctrl + F'] },
     //     description: 'Show filters tab',
     //     category: Category.Areas,
     //     required: [Requirement.Session],
@@ -166,7 +166,7 @@ export const KeysMap: KeyDescription[] = [
     },
     {
         alias: 'Ctrl + F',
-        shortkeys: { darwin: ['⌘ + F', '/'], others: ['Ctrl + F', '/'] },
+        shortkeys: { darwin: ['Cmd + F', '/'], others: ['Ctrl + F', '/'] },
         description: 'Focus on search input',
         category: Category.Focus,
         required: [Requirement.Session],
@@ -175,7 +175,7 @@ export const KeysMap: KeyDescription[] = [
     },
     {
         alias: 'Ctrl + 1',
-        shortkeys: { darwin: ['⌘ + 1'], others: ['Ctrl + 1'] },
+        shortkeys: { darwin: ['Cmd + 1'], others: ['Ctrl + 1'] },
         description: 'Focus on main output',
         category: Category.Focus,
         required: [Requirement.Session],
@@ -184,7 +184,7 @@ export const KeysMap: KeyDescription[] = [
     },
     {
         alias: 'Ctrl + 2',
-        shortkeys: { darwin: ['⌘ + 2'], others: ['Ctrl + 2'] },
+        shortkeys: { darwin: ['Cmd + 2'], others: ['Ctrl + 2'] },
         description: 'Focus on search results output',
         category: Category.Focus,
         required: [Requirement.Session],
@@ -193,7 +193,7 @@ export const KeysMap: KeyDescription[] = [
     },
     {
         alias: 'Ctrl + B',
-        shortkeys: { darwin: ['⌘ + B'], others: ['Ctrl + B'] },
+        shortkeys: { darwin: ['Cmd + B'], others: ['Ctrl + B'] },
         description: 'Toggle sidebar',
         category: Category.Areas,
         required: [Requirement.Session],
@@ -202,7 +202,7 @@ export const KeysMap: KeyDescription[] = [
     },
     {
         alias: 'Ctrl + J',
-        shortkeys: { darwin: ['⌘ + J'], others: ['Ctrl + J'] },
+        shortkeys: { darwin: ['Cmd + J'], others: ['Ctrl + J'] },
         description: 'Toggle toolbar',
         category: Category.Areas,
         required: [Requirement.Session],
@@ -211,7 +211,7 @@ export const KeysMap: KeyDescription[] = [
     },
     // {
     //     alias: 'Ctrl + ,',
-    //     shortkeys: { darwin: ['⌘ + ,'], others: ['Ctrl + ,'] },
+    //     shortkeys: { darwin: ['Cmd + ,'], others: ['Ctrl + ,'] },
     //     description: 'Show settings',
     //     category: Category.Other,
     //     required: [],
