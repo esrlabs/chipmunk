@@ -22,6 +22,11 @@ No installation is necessary, just download, unpack and execute.
 
 Move `chipmunk.app` to your application folder.
 
+Or using Homebrew
+```
+brew install --cask chipmunk
+```
+
 ### Windows
 
 Unpack chipmunk to a folder of your choosing. Use the `chipmunk.exe` to start chipmunk.
