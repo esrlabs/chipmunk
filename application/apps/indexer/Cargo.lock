@@ -1022,6 +1022,7 @@ dependencies = [
  "merging",
  "parsers",
  "processor",
+ "rand 0.8.5",
  "rustyline",
  "serde",
  "serde_json",
