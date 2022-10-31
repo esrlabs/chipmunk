@@ -34,6 +34,16 @@ pub trait Parser<T> {
     ) -> Result<(&'a [u8], Option<T>), Error>;
 }
 
+impl<T: LogMessage, P: Parser<T> + ?Sized> Parser<T> for Box<P> {
+    fn parse<'a>(
+        &mut self,
+        input: &'a [u8],
+        timestamp: Option<u64>,
+    ) -> Result<(&'a [u8], Option<T>), Error> {
+        (**self).parse(input, timestamp)
+    }
+}
+
 pub trait LineFormat {
     fn format_line(&self) -> String;
 }

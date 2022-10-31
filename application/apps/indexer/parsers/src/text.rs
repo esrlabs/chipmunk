@@ -23,7 +23,10 @@ impl LogMessage for StringMessage {
     }
 }
 
-impl Parser<StringMessage> for StringTokenizer {
+impl Parser<StringMessage> for StringTokenizer
+where
+    StringMessage: LogMessage,
+{
     fn parse<'b>(
         &mut self,
         input: &'b [u8],

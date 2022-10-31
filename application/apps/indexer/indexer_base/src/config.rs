@@ -102,7 +102,7 @@ impl SocketConfig {
 /// system should join the
 /// multicast group. If it's equal to `INADDR_ANY` then an appropriate
 /// interface is chosen by the system.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct MulticastInfo {
     pub multiaddr: String,
     pub interface: Option<String>,

@@ -3,18 +3,18 @@ use crate::{
     operations,
     operations::Operation,
     state,
-    state::SessionStateAPI,
+    state::{SessionStateAPI, SourceDefinition},
     tracker,
     tracker::OperationTrackerAPI,
 };
 use indexer_base::progress::Severity;
 use log::{debug, error};
 use processor::{
-    grabber::{GrabbedContent, LineRange},
+    grabber::{GrabbedElement, LineRange},
     search::SearchFilter,
 };
 use serde::Serialize;
-use sources::factory::SourceType;
+use sources::factory::ObserveOptions;
 use std::{ops::RangeInclusive, path::PathBuf};
 use tokio::{
     join,
@@ -95,14 +95,17 @@ impl Session {
         self.state.clone()
     }
 
-    pub async fn grab(&self, range: LineRange) -> Result<GrabbedContent, ComputationError> {
+    pub async fn grab(&self, range: LineRange) -> Result<Vec<GrabbedElement>, ComputationError> {
         self.state
             .grab(range)
             .await
             .map_err(ComputationError::NativeError)
     }
 
-    pub async fn grab_search(&self, range: LineRange) -> Result<GrabbedContent, ComputationError> {
+    pub async fn grab_search(
+        &self,
+        range: LineRange,
+    ) -> Result<Vec<GrabbedElement>, ComputationError> {
         self.state
             .grab_search(range)
             .await
@@ -171,14 +174,21 @@ impl Session {
     pub fn observe(
         &self,
         operation_id: Uuid,
-        source_type: SourceType,
+        options: ObserveOptions,
     ) -> Result<(), ComputationError> {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
-                operations::OperationKind::Observe(source_type),
+                operations::OperationKind::Observe(options),
             ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
+    }
+
+    pub async fn get_sources(&self) -> Result<Vec<SourceDefinition>, ComputationError> {
+        self.state
+            .get_sources_definitions()
+            .await
+            .map_err(ComputationError::NativeError)
     }
 
     pub fn export(

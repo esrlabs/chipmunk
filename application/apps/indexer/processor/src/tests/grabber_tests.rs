@@ -48,7 +48,7 @@ mod tests {
         #[test]
         fn produced_metadata_is_consistent(v in prop::collection::vec(LINE_REGEX, 0..500)) {
             let p = write_content_to_tmp_file(&v);
-            let source = TextFileSource::new(&p, "sourceA");
+            let source = TextFileSource::new(&p);
             if let Ok(grabber) = Grabber::new(source) {
                 let metadata = grabber.metadata.expect("metadata was not created");
                 assert!(is_consistent(&v, &metadata));
@@ -152,10 +152,9 @@ mod tests {
                 writeln!(file, "{}", s).expect("could not write to file");
             }
             let p = file.into_temp_path();
-            let source = TextFileSource::new(&p, "sourceA");
+            let source = TextFileSource::new(&p);
             let line_count = source.count_lines()? as u64;
             let grabber = Grabber::new(source)?;
-
             if let Some(metadata) = &grabber.metadata {
                 for line_index in 0..line_count {
                     assert_eq!(
@@ -184,7 +183,7 @@ mod tests {
                 writeln!(file, "{}", s).expect("could not write to file");
             }
             let p = file.into_temp_path();
-            let source = TextFileSource::new(&p, "sourceA");
+            let source = TextFileSource::new(&p);
             let line_count = source.count_lines()? as u64;
             // println!("----------> file has {} lines", line_count);
             let grabber = Grabber::new(source)?;
@@ -206,15 +205,10 @@ mod tests {
         let mut file = NamedTempFile::new().expect("could not create tmp file");
         write!(file, "a").expect("could not write to file");
         let p = file.into_temp_path();
-        let source = TextFileSource::new(&p, "sourceA");
+        let source = TextFileSource::new(&p);
         let grabber = Grabber::new(source)?;
         let single_line_range = LineRange::single_line(0);
-        let naive = grabber
-            .get_entries(&single_line_range)?
-            .grabbed_elements
-            .into_iter()
-            .map(|e| e.content)
-            .collect::<Vec<String>>();
+        let naive = grabber.get_entries(&single_line_range)?;
         let expected: Vec<String> = vec!["a".to_owned()];
         assert_eq!(naive, expected);
         Ok(())
@@ -224,16 +218,10 @@ mod tests {
         let entries: Vec<String> = str_entries.iter().map(|s| s.to_string()).collect();
         let entries_len = entries.len();
         let p = write_content_to_tmp_file(&entries);
-        let source = TextFileSource::new(&p, "sourceA");
+        let source = TextFileSource::new(&p);
         if let Ok(grabber) = Grabber::new(source) {
             let r = LineRange::from(0..=((entries_len - 1) as u64));
-            let naive = grabber
-                .get_entries(&r)
-                .expect("entries not grabbed")
-                .grabbed_elements
-                .into_iter()
-                .map(|e| e.content)
-                .collect::<Vec<String>>();
+            let naive = grabber.get_entries(&r).expect("entries not grabbed");
             assert_eq!(naive, entries);
         }
         Ok(())
@@ -286,15 +274,10 @@ mod tests {
         let mut file = NamedTempFile::new().expect("could not create tmp file");
         write!(file, "ABC").expect("could not write to file");
         let p = file.into_temp_path();
-        let source = TextFileSource::new(&p, "sourceA");
+        let source = TextFileSource::new(&p);
         let grabber = Grabber::new(source)?;
         let one_line_range = LineRange::single_line(0);
-        let c1 = grabber
-            .get_entries(&one_line_range)?
-            .grabbed_elements
-            .into_iter()
-            .map(|e| e.content)
-            .collect::<Vec<String>>();
+        let c1 = grabber.get_entries(&one_line_range)?;
         let c2: Vec<String> = vec!["ABC".to_owned()];
         assert_eq!(c1, c2);
         Ok(())
@@ -316,17 +299,11 @@ mod tests {
         writeln!(file, " 9 testblah").expect("could not write to file");
         write!(file, "10 testblah").expect("could not write to file");
         let p = file.into_temp_path();
-        let source = TextFileSource::new(&p, "sourceA");
+        let source = TextFileSource::new(&p);
         let grabber = Grabber::new(source)?;
 
         fn grabbed_lines(grabber: &Grabber, r: &LineRange) -> Vec<String> {
-            grabber
-                .get_entries(r)
-                .expect("Could not get entries")
-                .grabbed_elements
-                .into_iter()
-                .map(|e| e.content)
-                .collect()
+            grabber.get_entries(r).expect("Could not get entries")
         }
 
         for i in 0..9 {
@@ -349,15 +326,10 @@ mod tests {
         writeln!(file).expect("could not write to file");
         let p = file.into_temp_path();
 
-        let source = TextFileSource::new(&p, "sourceA");
+        let source = TextFileSource::new(&p);
         let grabber = Grabber::new(source)?;
         let one_line_range = LineRange::single_line(0);
-        let c1 = grabber
-            .get_entries(&one_line_range)?
-            .grabbed_elements
-            .into_iter()
-            .map(|e| e.content)
-            .collect::<Vec<String>>();
+        let c1 = grabber.get_entries(&one_line_range)?;
         let c2: Vec<String> = vec!["".to_owned()];
         assert_eq!(c1, c2);
         Ok(())

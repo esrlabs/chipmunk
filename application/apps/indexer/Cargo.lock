@@ -621,8 +621,7 @@ dependencies = [
 [[package]]
 name = "dlt-core"
 version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57b970e8827f8935a66397cf99263448a7a37fd606ac16a6616d699978b0c646"
+source = "git+https://github.com/DmitryAstafyev/dlt-core.git#e5d0319cc8a942d9031f9a82916a5d04425bd7b9"
 dependencies = [
  "buf_redux 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder",
@@ -2345,6 +2344,7 @@ dependencies = [
  "tokio-serial",
  "tokio-stream",
  "tokio-util",
+ "uuid",
 ]
 
 [[package]]

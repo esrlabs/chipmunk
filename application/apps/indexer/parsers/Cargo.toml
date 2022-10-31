@@ -9,7 +9,7 @@ byteorder = "1.4"
 crossbeam-channel = "0.5"
 chrono = "0.4"
 chrono-tz = "0.6"
-dlt-core = "0.14"
+dlt-core = { git = "https://github.com/DmitryAstafyev/dlt-core.git" }
 # dlt-core = { path = "../../../../../dlt-core.git" }
 humantime = "2.1"
 lazy_static = "1.4"

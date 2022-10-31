@@ -33,18 +33,13 @@ pub enum GrabError {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GrabbedElement {
     #[serde(rename = "id")]
-    pub source_id: String,
+    pub source_id: u8,
     #[serde(rename = "c")]
     pub content: String,
     #[serde(rename = "r")]
-    pub row: Option<usize>,
+    pub row: usize,
     #[serde(rename = "p")]
-    pub pos: Option<usize>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct GrabbedContent {
-    pub grabbed_elements: Vec<GrabbedElement>,
+    pub pos: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -174,7 +169,7 @@ impl Grabber {
         }
     }
 
-    pub fn grab_content(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError> {
+    pub fn grab_content(&self, line_range: &LineRange) -> Result<Vec<String>, GrabError> {
         self.get_entries(line_range)
     }
 
@@ -198,14 +193,14 @@ impl Grabber {
     pub fn update_from_file(
         &mut self,
         shutdown_token: Option<CancellationToken>,
-    ) -> Result<(), GrabError> {
-        if let ComputationResult::Item(metadata) = self
+    ) -> Result<Option<RangeInclusive<u64>>, GrabError> {
+        let (result, range) = self
             .source
-            .from_file(self.metadata.take(), shutdown_token)?
-        {
+            .from_file(self.metadata.take(), shutdown_token)?;
+        if let ComputationResult::Item(metadata) = result {
             self.metadata = Some(metadata)
         }
-        Ok(())
+        Ok(range)
     }
 }
 
@@ -226,13 +221,16 @@ impl Grabber {
     pub fn create_metadata(
         &mut self,
         shutdown_token: Option<CancellationToken>,
-    ) -> Result<(), GrabError> {
+    ) -> Result<Option<RangeInclusive<u64>>, GrabError> {
         if self.metadata.is_none() {
-            if let ComputationResult::Item(md) = self.source.from_file(None, shutdown_token)? {
+            let (result, range) = self.source.from_file(None, shutdown_token)?;
+            if let ComputationResult::Item(md) = result {
                 self.metadata = Some(md)
             }
+            Ok(range)
+        } else {
+            Ok(None)
         }
-        Ok(())
     }
 
     /// Create a new Grabber by deviding the file content into slots
@@ -246,8 +244,9 @@ impl Grabber {
         if input_file_size == 0 {
             return Err(GrabError::Config("Cannot grab empty file".to_string()));
         }
+        let (result, _) = source.from_file(None, None)?;
 
-        let metadata = match source.from_file(None, None)? {
+        let metadata = match result {
             ComputationResult::Item(md) => Ok(Some(md)),
             ComputationResult::Stopped => Err(GrabError::Interrupted),
         }?;
@@ -273,7 +272,7 @@ impl Grabber {
         Ok(self)
     }
 
-    pub fn get_entries(&self, line_range: &LineRange) -> Result<GrabbedContent, GrabError> {
+    pub fn get_entries(&self, line_range: &LineRange) -> Result<Vec<String>, GrabError> {
         match &self.metadata {
             None => Err(GrabError::NotInitialize),
             Some(md) => {

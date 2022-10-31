@@ -5,7 +5,7 @@ use processor::grabber::LineRange;
 use rustyline::{error::ReadlineError, Editor};
 use session::session::Session;
 use sources::{
-    factory::{DltParserSettings, ParserType, SourceType},
+    factory::{DltParserSettings, ObserveOptions, ParserType},
     producer::MessageProducer,
     socket::udp::UdpSource,
 };
@@ -71,17 +71,15 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                         start = Instant::now();
                         let uuid = Uuid::new_v4();
                         let file_path = input.clone().expect("input must be present");
-                        let source = SourceType::File(file_path.clone(), ParserType::Text);
-                        session.observe(uuid, source).expect("observe failed");
+                        session.observe(uuid, ObserveOptions::file(file_path.clone(), ParserType::Text)).expect("observe failed");
                     }
                     Some(Command::Dlt) => {
                         println!("dlt command received");
                         start = Instant::now();
                         let uuid = Uuid::new_v4();
                         let file_path = input.clone().expect("input must be present");
-                        let dlt_parser_settings = DltParserSettings { filter_config: None, fibex_file_paths: None, with_storage_header: true};
-                        let source = SourceType::File(file_path.clone(), ParserType::Dlt(dlt_parser_settings));
-                        session.observe(uuid, source).expect("observe failed");
+                        let dlt_parser_settings = DltParserSettings { filter_config: None, fibex_file_paths: None, with_storage_header: true, fibex_metadata: None };
+                        session.observe(uuid, ObserveOptions::file(file_path.clone(), ParserType::Dlt(dlt_parser_settings))).expect("observe failed");
                         println!("dlt session was destroyed");
                     }
                     Some(Command::Grab) => {
@@ -89,9 +87,9 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                         start = Instant::now();
                         let start_op = Instant::now();
                         let content = session.grab(LineRange::from(0u64..=1000)).await.expect("grab failed");
-                        let len = content.grabbed_elements.len();
+                        let len = content.len();
                         println!("content has {} elemenst", len);
-                        for elem in content.grabbed_elements {
+                        for elem in content {
                             println!("{:?}", elem);
                         }
                         duration_report(start_op, format!("grabbing {} lines", len));

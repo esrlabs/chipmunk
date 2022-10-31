@@ -105,7 +105,10 @@ impl<'m> DltParser<'m> {
     }
 }
 
-impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
+impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m>
+where
+    FormattableMessage<'m>: LogMessage,
+{
     fn parse<'b>(
         &mut self,
         input: &'b [u8],

@@ -1,15 +1,13 @@
 use crate::{
     events::{CallbackEvent, NativeError, NativeErrorKind},
-    paths,
     tracker::OperationTrackerAPI,
 };
 use indexer_base::progress::Severity;
 use log::{debug, error};
 use processor::{
-    grabber::{GrabbedContent, Grabber, LineRange},
+    grabber::{GrabbedElement, LineRange},
     map::{FilterMatch, FiltersStats, NearestPosition, ScaledDistribution, SearchMap},
     search::{SearchHolder, SearchResults},
-    text_source::TextFileSource,
 };
 use std::{
     collections::HashMap,
@@ -17,7 +15,6 @@ use std::{
     fs::File,
     io::{BufWriter, Write},
     path::PathBuf,
-    time::Instant,
 };
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
@@ -26,6 +23,12 @@ use tokio::sync::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
+mod observing;
+mod session_file;
+
+pub use observing::SourceDefinition;
+pub use session_file::{SessionFile, SessionFileState};
+
 pub const NOTIFY_IN_MS: u128 = 250;
 
 #[derive(Debug)]
@@ -33,12 +36,6 @@ pub enum SearchHolderState {
     Available(SearchHolder),
     InUse,
     NotInited,
-}
-
-#[derive(Debug)]
-pub enum SessionFile {
-    Existed(PathBuf),
-    ToBeCreated,
 }
 
 impl SearchHolderState {
@@ -55,11 +52,13 @@ impl SearchHolderState {
 }
 
 pub enum Api {
-    SetSessionFile((SessionFile, oneshot::Sender<Result<(), NativeError>>)),
+    SetSessionFile((Option<PathBuf>, oneshot::Sender<Result<(), NativeError>>)),
     GetSessionFile(oneshot::Sender<Result<PathBuf, NativeError>>),
-    WriteSessionFile((String, oneshot::Sender<Result<bool, NativeError>>)),
-    FlushSessionFile(oneshot::Sender<Result<(), NativeError>>),
-    UpdateSession(oneshot::Sender<Result<bool, NativeError>>),
+    WriteSessionFile((u8, String, oneshot::Sender<Result<bool, NativeError>>)),
+    FlushSessionFile((u8, oneshot::Sender<Result<(), NativeError>>)),
+    UpdateSession((u8, oneshot::Sender<Result<bool, NativeError>>)),
+    AddSource((String, oneshot::Sender<u8>)),
+    GetSourcesDefinitions(oneshot::Sender<Vec<SourceDefinition>>),
     ExportSession {
         out_path: PathBuf,
         ranges: Vec<std::ops::RangeInclusive<u64>>,
@@ -76,7 +75,7 @@ pub enum Api {
     Grab(
         (
             LineRange,
-            oneshot::Sender<Result<GrabbedContent, NativeError>>,
+            oneshot::Sender<Result<Vec<GrabbedElement>, NativeError>>,
         ),
     ),
     GetStreamLen(oneshot::Sender<Result<usize, NativeError>>),
@@ -93,7 +92,7 @@ pub enum Api {
     GrabSearch(
         (
             LineRange,
-            oneshot::Sender<Result<GrabbedContent, NativeError>>,
+            oneshot::Sender<Result<Vec<GrabbedElement>, NativeError>>,
         ),
     ),
     GetNearestPosition((u64, oneshot::Sender<Option<NearestPosition>>)),
@@ -123,6 +122,8 @@ impl Display for Api {
                 Self::WriteSessionFile(_) => "WriteSessionFile",
                 Self::FlushSessionFile(_) => "FlushSessionFile",
                 Self::UpdateSession(_) => "UpdateSession",
+                Self::AddSource(_) => "AddSource",
+                Self::GetSourcesDefinitions(_) => "GetSourcesDefinitions",
                 Self::ExportSession { .. } => "ExportSession",
                 Self::ExportSearch { .. } => "ExportSearch",
                 Self::FileRead(_) => "FileRead",
@@ -154,50 +155,16 @@ pub enum Status {
 
 #[derive(Debug)]
 pub struct SessionState {
-    pub session_file: Option<PathBuf>,
-    pub session_writer: Option<BufWriter<File>>,
-    pub session_has_updates: bool,
-    pub last_message_timestamp: Instant,
+    pub session_file: SessionFile,
     pub search_map: SearchMap,
     pub search_holder: SearchHolderState,
-    pub content_grabber: Option<Box<Grabber>>,
     pub cancelling_operations: HashMap<Uuid, bool>,
     pub status: Status,
     pub debug: bool,
 }
 
 impl SessionState {
-    fn handle_set_session_file(&mut self, session_file: SessionFile) -> Result<(), NativeError> {
-        if self.content_grabber.is_none() {
-            let file = match session_file {
-                SessionFile::Existed(session_file) => session_file,
-                SessionFile::ToBeCreated => {
-                    let streams = paths::get_streams_dir()?;
-                    let file = streams.join(format!("{}.session", Uuid::new_v4()));
-                    File::create(&file).map_err(|e| NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Io,
-                        message: Some(format!(
-                            "Fail to create session file {}: {}",
-                            file.to_string_lossy(),
-                            e
-                        )),
-                    })?;
-                    file
-                }
-            };
-            debug!("Session file setup: {}", file.to_string_lossy());
-            self.session_file = Some(file.clone());
-            Ok(
-                Grabber::lazy(TextFileSource::new(&file, &file.to_string_lossy()))
-                    .map(|g| self.content_grabber = Some(Box::new(g)))?,
-            )
-        } else {
-            Ok(())
-        }
-    }
-
-    fn handle_grab_search(&mut self, range: LineRange) -> Result<GrabbedContent, NativeError> {
+    fn handle_grab_search(&mut self, range: LineRange) -> Result<Vec<GrabbedElement>, NativeError> {
         let indexes = self
             .search_map
             .indexes(&range.range)
@@ -206,9 +173,7 @@ impl SessionState {
                 kind: NativeErrorKind::Grabber,
                 message: Some(format!("{}", e)),
             })?;
-        let mut search_grabbed: GrabbedContent = GrabbedContent {
-            grabbed_elements: vec![],
-        };
+        let mut elements: Vec<GrabbedElement> = vec![];
         let mut ranges = vec![];
         let mut from_pos: u64 = 0;
         let mut to_pos: u64 = 0;
@@ -227,124 +192,55 @@ impl SessionState {
             ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
         }
         let mut row: usize = range.start() as usize;
-        let grabber = &mut (self.content_grabber.as_ref().ok_or(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
-            message: Some(String::from("Grabber isn't inited")),
-        })?);
         for range in ranges.iter() {
-            let mut session_grabbed = grabber.grab_content(&LineRange::from(range.clone()))?;
+            let mut session_elements = self.session_file.grab(&LineRange::from(range.clone()))?;
             let start = *range.start() as usize;
-            for (j, element) in session_grabbed.grabbed_elements.iter_mut().enumerate() {
-                element.pos = Some(start + j);
-                element.row = Some(row);
+            for (j, element) in session_elements.iter_mut().enumerate() {
+                element.pos = start + j;
+                element.row = row;
                 row += 1;
             }
-            search_grabbed
-                .grabbed_elements
-                .append(&mut session_grabbed.grabbed_elements);
+            elements.append(&mut session_elements);
         }
-        Ok(search_grabbed)
+        Ok(elements)
     }
 
-    fn handle_get_stream_len(&mut self) -> Result<usize, NativeError> {
-        if let Some(ref grabber) = self.content_grabber {
-            if let Some(md) = grabber.get_metadata() {
-                Ok(md.line_count)
-            } else {
-                Err(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Grabber,
-                    message: Some(String::from("Metadata isn't inited yet")),
-                })
-            }
-        } else {
-            Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
-                message: Some(String::from("Grabber isn't inited")),
-            })
-        }
-    }
-
+    // TODO: do we need bool as output
     async fn handle_write_session_file(
         &mut self,
+        source_id: u8,
         state_cancellation_token: CancellationToken,
         tx_callback_events: UnboundedSender<CallbackEvent>,
         msg: String,
     ) -> Result<bool, NativeError> {
-        if self.session_writer.is_none() && self.session_file.is_none() {
-            return Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
-                message: Some(String::from("Session file isn't assigned yet")),
-            });
+        if matches!(
+            self.session_file
+                .write(source_id, state_cancellation_token.clone(), msg)
+                .await?,
+            SessionFileState::Changed
+        ) {
+            self.update_search(state_cancellation_token, tx_callback_events)
+                .await?;
+            Ok(true)
+        } else {
+            Ok(false)
         }
-        if self.session_writer.is_none() {
-            if let Some(ref session_file) = self.session_file {
-                self.session_writer =
-                    Some(BufWriter::new(File::create(session_file).map_err(|e| {
-                        NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::Io,
-                            message: Some(format!(
-                                "Fail to create session writer for {}: {}",
-                                session_file.to_string_lossy(),
-                                e
-                            )),
-                        }
-                    })?));
-            }
-        }
-        if let Some(session_writer) = self.session_writer.as_mut() {
-            session_writer
-                .write(msg.as_bytes())
-                .map_err(|e| NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Io,
-                    message: Some(e.to_string()),
-                })?;
-            if self.last_message_timestamp.elapsed().as_millis() > NOTIFY_IN_MS {
-                session_writer.flush().map_err(|e| NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Io,
-                    message: Some(e.to_string()),
-                })?;
-                self.last_message_timestamp = Instant::now();
-                return self
-                    .handle_update_session(state_cancellation_token, tx_callback_events)
-                    .await;
-            } else {
-                self.session_has_updates = true;
-            }
-        }
-        Ok(false)
     }
 
+    // TODO: do we need bool as output
     async fn handle_flush_session_file(
         &mut self,
+        source_id: u8,
         state_cancellation_token: CancellationToken,
         tx_callback_events: UnboundedSender<CallbackEvent>,
     ) -> Result<(), NativeError> {
-        if self.session_writer.is_none() && self.session_file.is_none() {
-            return Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
-                message: Some(String::from("Session file isn't assigned yet")),
-            });
-        }
-        if !self.session_has_updates {
-            return Ok(());
-        }
-        if let Some(session_writer) = self.session_writer.as_mut() {
-            session_writer.flush().map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Io,
-                message: Some(e.to_string()),
-            })?;
-            self.last_message_timestamp = Instant::now();
-            self.session_has_updates = false;
-            self.handle_update_session(state_cancellation_token, tx_callback_events)
+        if matches!(
+            self.session_file
+                .flush(source_id, state_cancellation_token.clone(),)
+                .await?,
+            SessionFileState::Changed
+        ) {
+            self.update_search(state_cancellation_token, tx_callback_events)
                 .await?;
         }
         Ok(())
@@ -352,45 +248,50 @@ impl SessionState {
 
     async fn handle_update_session(
         &mut self,
+        source_id: u8,
         state_cancellation_token: CancellationToken,
         tx_callback_events: UnboundedSender<CallbackEvent>,
     ) -> Result<bool, NativeError> {
-        if let Some(ref mut grabber) = self.content_grabber {
-            let prev = grabber.log_entry_count().unwrap_or(0) as u64;
-            grabber.update_from_file(Some(state_cancellation_token.clone()))?;
-            let current = grabber.log_entry_count().unwrap_or(0) as u64;
-            if prev != current {
-                self.search_map.set_stream_len(current);
-                tx_callback_events.send(CallbackEvent::StreamUpdated(current))?;
-                match self
-                    .search_holder
-                    .execute_search(current, state_cancellation_token)
-                {
-                    Some(Ok((_processed, mut matches, stats))) => {
-                        let found = self.search_map.append(&mut matches) as u64;
-                        self.search_map.append_stats(stats);
-                        tx_callback_events.send(CallbackEvent::search_results(
-                            found,
-                            self.search_map.get_stats(),
-                        ))?;
-                        tx_callback_events.send(CallbackEvent::SearchMapUpdated(Some(
-                            SearchMap::map_as_str(&matches),
-                        )))?;
-                    }
-                    Some(Err(err)) => error!("Fail to append search: {}", err),
-                    None => (),
-                }
-                Ok(true)
-            } else {
-                Ok(false)
-            }
+        if let SessionFileState::Changed = self
+            .session_file
+            .update(source_id, state_cancellation_token.clone())
+            .await?
+        {
+            self.update_search(state_cancellation_token, tx_callback_events)
+                .await?;
+            Ok(true)
         } else {
-            Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
-                message: Some(String::from("Grabber isn't inited")),
-            })
+            Ok(false)
         }
+    }
+
+    async fn update_search(
+        &mut self,
+        state_cancellation_token: CancellationToken,
+        tx_callback_events: UnboundedSender<CallbackEvent>,
+    ) -> Result<(), NativeError> {
+        let len = self.session_file.len()? as u64;
+        self.search_map.set_stream_len(len);
+        tx_callback_events.send(CallbackEvent::StreamUpdated(len))?;
+        match self
+            .search_holder
+            .execute_search(len, state_cancellation_token)
+        {
+            Some(Ok((_processed, mut matches, stats))) => {
+                let found = self.search_map.append(&mut matches) as u64;
+                self.search_map.append_stats(stats);
+                tx_callback_events.send(CallbackEvent::search_results(
+                    found,
+                    self.search_map.get_stats(),
+                ))?;
+                tx_callback_events.send(CallbackEvent::SearchMapUpdated(Some(
+                    SearchMap::map_as_str(&matches),
+                )))?;
+            }
+            Some(Err(err)) => error!("Fail to append search: {}", err),
+            None => (),
+        }
+        Ok(())
     }
 
     async fn handle_export_session(
@@ -399,11 +300,6 @@ impl SessionState {
         ranges: Vec<std::ops::RangeInclusive<u64>>,
         cancel: CancellationToken,
     ) -> Result<bool, NativeError> {
-        let grabber = &mut (self.content_grabber.as_ref().ok_or(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
-            message: Some(String::from("Grabber isn't inited")),
-        })?);
         let mut writer = BufWriter::new(File::create(&out_path).map_err(|e| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Io,
@@ -414,7 +310,8 @@ impl SessionState {
             )),
         })?);
         for (i, range) in ranges.iter().enumerate() {
-            grabber.copy_content(&mut writer, &LineRange::from(range.clone()))?;
+            self.session_file
+                .copy_content(&mut writer, &LineRange::from(range.clone()))?;
             if i != ranges.len() - 1 {
                 writer.write(b"\n").map_err(|e| NativeError {
                     severity: Severity::ERROR,
@@ -444,11 +341,6 @@ impl SessionState {
         ranges: Vec<std::ops::RangeInclusive<u64>>,
         cancel: CancellationToken,
     ) -> Result<bool, NativeError> {
-        let grabber = &mut (self.content_grabber.as_ref().ok_or(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
-            message: Some(String::from("Grabber isn't inited")),
-        })?);
         let mut indexes: Vec<u64> = self.search_map.matches.iter().map(|el| el.index).collect();
         for range in ranges.iter() {
             (*range.start()..=*range.end()).for_each(|i| {
@@ -485,7 +377,8 @@ impl SessionState {
             )),
         })?);
         for (i, range) in ranges.iter().enumerate() {
-            grabber.copy_content(&mut writer, &LineRange::from(range.clone()))?;
+            self.session_file
+                .copy_content(&mut writer, &LineRange::from(range.clone()))?;
             if i != ranges.len() - 1 {
                 writer.write(b"\n").map_err(|e| NativeError {
                     severity: Severity::ERROR,
@@ -527,14 +420,9 @@ impl SessionState {
             }
             SearchHolderState::InUse => Err(NativeError::channel("Search holder is in use")),
             SearchHolderState::NotInited => {
-                if let Some(session_file) = self.session_file.as_ref() {
-                    self.search_holder = SearchHolderState::InUse;
-                    Ok(SearchHolder::new(session_file, vec![].iter(), uuid))
-                } else {
-                    Err(NativeError::channel(
-                        "Cannot create search holder without session file.",
-                    ))
-                }
+                let filename = self.session_file.filename()?;
+                self.search_holder = SearchHolderState::InUse;
+                Ok(SearchHolder::new(&filename, vec![].iter(), uuid))
             }
         }
     }
@@ -575,13 +463,13 @@ impl SessionStateAPI {
         })
     }
 
-    pub async fn grab(&self, range: LineRange) -> Result<GrabbedContent, NativeError> {
+    pub async fn grab(&self, range: LineRange) -> Result<Vec<GrabbedElement>, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::Grab((range.clone(), tx)), rx)
             .await?
     }
 
-    pub async fn grab_search(&self, range: LineRange) -> Result<GrabbedContent, NativeError> {
+    pub async fn grab_search(&self, range: LineRange) -> Result<Vec<GrabbedElement>, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GrabSearch((range, tx)), rx)
             .await?
@@ -616,9 +504,9 @@ impl SessionStateAPI {
             .await
     }
 
-    pub async fn set_session_file(&self, session_file: SessionFile) -> Result<(), NativeError> {
+    pub async fn set_session_file(&self, filename: Option<PathBuf>) -> Result<(), NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::SetSessionFile((session_file, tx)), rx)
+        self.exec_operation(Api::SetSessionFile((filename, tx)), rx)
             .await?
     }
 
@@ -627,20 +515,38 @@ impl SessionStateAPI {
         self.exec_operation(Api::GetSessionFile(tx), rx).await?
     }
 
-    pub async fn write_session_file(&self, msg: String) -> Result<bool, NativeError> {
+    pub async fn write_session_file(
+        &self,
+        source_id: u8,
+        msg: String,
+    ) -> Result<bool, NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::WriteSessionFile((msg, tx)), rx)
+        self.exec_operation(Api::WriteSessionFile((source_id, msg, tx)), rx)
             .await?
     }
 
-    pub async fn flush_session_file(&self) -> Result<(), NativeError> {
+    pub async fn flush_session_file(&self, source_id: u8) -> Result<(), NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::FlushSessionFile(tx), rx).await?
+        self.exec_operation(Api::FlushSessionFile((source_id, tx)), rx)
+            .await?
     }
 
-    pub async fn update_session(&self) -> Result<bool, NativeError> {
+    pub async fn update_session(&self, source_id: u8) -> Result<bool, NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::UpdateSession(tx), rx).await?
+        self.exec_operation(Api::UpdateSession((source_id, tx)), rx)
+            .await?
+    }
+
+    pub async fn add_source(&self, uuid: &str) -> Result<u8, NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::AddSource((uuid.to_owned(), tx)), rx)
+            .await
+    }
+
+    pub async fn get_sources_definitions(&self) -> Result<Vec<SourceDefinition>, NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GetSourcesDefinitions(tx), rx)
+            .await
     }
 
     pub async fn export_session(
@@ -768,13 +674,9 @@ pub async fn run(
     tx_callback_events: UnboundedSender<CallbackEvent>,
 ) -> Result<(), NativeError> {
     let mut state = SessionState {
-        session_file: None,
-        session_writer: None,
-        session_has_updates: false,
-        last_message_timestamp: Instant::now(),
+        session_file: SessionFile::new(),
         search_map: SearchMap::new(),
         search_holder: SearchHolderState::NotInited,
-        content_grabber: None,
         status: Status::Open,
         cancelling_operations: HashMap::new(),
         debug: false,
@@ -784,28 +686,23 @@ pub async fn run(
     while let Some(msg) = rx_api.recv().await {
         match msg {
             Api::SetSessionFile((session_file, tx_response)) => {
-                let res = state.handle_set_session_file(session_file);
-                tx_response.send(res).map_err(|_| {
-                    NativeError::channel("Failed to response to Api::SetSessionFile")
-                })?;
+                tx_response
+                    .send(state.session_file.init(session_file))
+                    .map_err(|_| {
+                        NativeError::channel("Failed to response to Api::SetSessionFile")
+                    })?;
             }
             Api::GetSessionFile(tx_response) => {
-                let res = if let Some(ref session_file) = state.session_file {
-                    Ok(session_file.clone())
-                } else {
-                    Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Grabber,
-                        message: Some(String::from("Session file isn't assigned yet")),
-                    })
-                };
-                tx_response.send(res).map_err(|_| {
-                    NativeError::channel("Failed to respond to Api::GetSessionFile")
-                })?;
+                tx_response
+                    .send(state.session_file.filename())
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::GetSessionFile")
+                    })?;
             }
-            Api::WriteSessionFile((msg, tx_response)) => {
+            Api::WriteSessionFile((source_id, msg, tx_response)) => {
                 let res = state
                     .handle_write_session_file(
+                        source_id,
                         state_cancellation_token.clone(),
                         tx_callback_events.clone(),
                         msg,
@@ -815,9 +712,10 @@ pub async fn run(
                     NativeError::channel("Failed to respond to Api::WriteSessionFile")
                 })?;
             }
-            Api::FlushSessionFile(tx_response) => {
+            Api::FlushSessionFile((source_id, tx_response)) => {
                 let res = state
                     .handle_flush_session_file(
+                        source_id,
                         state_cancellation_token.clone(),
                         tx_callback_events.clone(),
                     )
@@ -826,9 +724,10 @@ pub async fn run(
                     NativeError::channel("Failed to respond to Api::WriteSessionFile")
                 })?;
             }
-            Api::UpdateSession(tx_response) => {
+            Api::UpdateSession((source_id, tx_response)) => {
                 let res = state
                     .handle_update_session(
+                        source_id,
                         state_cancellation_token.clone(),
                         tx_callback_events.clone(),
                     )
@@ -836,6 +735,18 @@ pub async fn run(
                 tx_response
                     .send(res)
                     .map_err(|_| NativeError::channel("Failed to respond to Api::UpdateSession"))?;
+            }
+            Api::AddSource((uuid, tx_response)) => {
+                tx_response
+                    .send(state.session_file.observing.add_source(uuid))
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::AddSource"))?;
+            }
+            Api::GetSourcesDefinitions(tx_response) => {
+                tx_response
+                    .send(state.session_file.observing.get_sources_definitions())
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::GetSourcesDefinitions")
+                    })?;
             }
             Api::ExportSession {
                 out_path,
@@ -860,33 +771,14 @@ pub async fn run(
                     .map_err(|_| NativeError::channel("Failed to respond to Api::ExportSearch"))?;
             }
             Api::Grab((range, tx_response)) => {
-                let result = if let Some(ref mut grabber) = state.content_grabber {
-                    if let Ok(content) = grabber.grab_content(&range) {
-                        Ok(content)
-                    } else {
-                        Err(NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::Grabber,
-                            message: Some(String::from("Failed to grab content")),
-                        })
-                    }
-                } else {
-                    Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Grabber,
-                        message: Some(String::from("Grabber isn't inited")),
-                    })
-                };
                 tx_response
-                    .send(result)
+                    .send(state.session_file.grab(&range))
                     .map_err(|_| NativeError::channel("Failed to respond to Api::Grab"))?;
             }
             Api::GrabSearch((range, tx_response)) => {
                 tx_response
                     .send(state.handle_grab_search(range))
-                    .map_err(|_| {
-                        NativeError::channel("Failed to respond to Api::GrabbedContent")
-                    })?;
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::GrabSearch"))?;
             }
             Api::GetNearestPosition((position, tx_response)) => {
                 tx_response
@@ -908,7 +800,7 @@ pub async fn run(
             }
             Api::GetStreamLen(tx_response) => {
                 tx_response
-                    .send(state.handle_get_stream_len())
+                    .send(state.session_file.len())
                     .map_err(|_| NativeError::channel("Failed to respond to Api::GetStreamLen"))?;
             }
             Api::GetSearchResultLen(tx_response) => {
@@ -1000,18 +892,7 @@ pub async fn run(
             }
         }
     }
-    if state.session_writer.is_some() {
-        if let Some(session_file) = state.session_file.take() {
-            debug!("cleaning up files: {:?}", session_file);
-            if session_file.exists() {
-                std::fs::remove_file(session_file).map_err(|e| NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Io,
-                    message: Some(e.to_string()),
-                })?;
-            }
-        }
-    }
+    state.session_file.cleanup()?;
     debug!("task is finished");
     Ok(())
 }

@@ -3,7 +3,7 @@ use crate::{
     text_source::TextFileSource,
 };
 use serde::Serialize;
-use std::path::Path;
+use std::{ops::RangeInclusive, path::Path};
 use tokio_util::sync::CancellationToken;
 
 #[derive(Debug, Serialize, Clone)]
@@ -32,10 +32,10 @@ pub fn get_supported_file_type(path: &Path) -> Result<SupportedFileType, GrabErr
     }
 }
 
-pub fn create_lazy_grabber(input_p: &Path, source_id: &str) -> Result<Grabber, GrabError> {
+pub fn create_lazy_grabber(input_p: &Path) -> Result<Grabber, GrabError> {
     match get_supported_file_type(input_p)? {
         SupportedFileType::Text => {
-            let source = TextFileSource::new(input_p, source_id);
+            let source = TextFileSource::new(input_p);
             let grabber = Grabber::lazy(source).map_err(|e| {
                 let err_msg = format!("Could not create grabber: {}", e);
                 warn!("{}", err_msg);
@@ -48,12 +48,11 @@ pub fn create_lazy_grabber(input_p: &Path, source_id: &str) -> Result<Grabber, G
 
 pub fn create_metadata_for_source(
     file_path: &Path,
-    source_id: String,
     cancellation_token: CancellationToken,
-) -> Result<ComputationResult<GrabMetadata>, GrabError> {
+) -> Result<(ComputationResult<GrabMetadata>, Option<RangeInclusive<u64>>), GrabError> {
     match get_supported_file_type(file_path)? {
         SupportedFileType::Text => {
-            let mut source = TextFileSource::new(file_path, &source_id);
+            let mut source = TextFileSource::new(file_path);
             source.from_file(None, Some(cancellation_token))
         }
     }

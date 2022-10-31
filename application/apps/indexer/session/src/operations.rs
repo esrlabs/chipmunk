@@ -10,14 +10,14 @@ use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
 use processor::search::SearchFilter;
 use serde::Serialize;
 use sources::{
-    factory::SourceType,
+    factory::ObserveOptions,
     producer::{SdeReceiver, SdeSender},
 };
 use std::{
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
 };
-//use thiserror::Error;
+
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::spawn,
@@ -79,7 +79,7 @@ impl Operation {
 
 #[derive(Debug)]
 pub enum OperationKind {
-    Observe(SourceType),
+    Observe(ObserveOptions),
     Search {
         filters: Vec<SearchFilter>,
     },
@@ -278,9 +278,9 @@ impl OperationAPI {
         spawn(async move {
             let operation_str = &format!("{}", operation.kind);
             match operation.kind {
-                OperationKind::Observe(source) => {
+                OperationKind::Observe(options) => {
                     api.finish(
-                        handlers::observe::handle(api.clone(), state, source, rx_sde).await,
+                        handlers::observe::handle(api.clone(), state, options, rx_sde).await,
                         operation_str,
                     )
                     .await;
