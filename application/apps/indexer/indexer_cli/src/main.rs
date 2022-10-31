@@ -204,6 +204,8 @@ enum Chip {
             help = "json file that defines dlt filter settings"
         )]
         filter_config: Option<PathBuf>,
+        #[structopt(short = "n", long, help = "do not use storage header")]
+        no_storage_header: bool,
     },
     #[structopt(about = "dlt from pcap files")]
     DltPcap {
@@ -394,7 +396,20 @@ pub async fn main() -> Result<()> {
             append,
             output,
             filter_config,
-        } => handle_dlt_subcommand(&input, output, tag, filter_config, fibex, append, start).await,
+            no_storage_header,
+        } => {
+            handle_dlt_subcommand(
+                &input,
+                output,
+                tag,
+                filter_config,
+                fibex,
+                append,
+                start,
+                no_storage_header,
+            )
+            .await
+        }
         Chip::DltPcap {
             input,
             tag,
@@ -851,6 +866,7 @@ pub async fn main() -> Result<()> {
         std::process::exit(0)
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn handle_dlt_subcommand(
         file_path: &Path,
         out_path: Option<PathBuf>,
@@ -859,6 +875,7 @@ pub async fn main() -> Result<()> {
         fibex: Option<String>,
         append: bool,
         start: std::time::Instant,
+        no_storage_header: bool,
     ) {
         debug!("handle_dlt_subcommand");
         {
@@ -897,8 +914,11 @@ pub async fn main() -> Result<()> {
             } else {
                 None
             };
-            let dlt_parser =
-                DltParser::new(filter_conf.map(|f| f.into()), fibex_metadata.as_ref(), true);
+            let dlt_parser = DltParser::new(
+                filter_conf.map(|f| f.into()),
+                fibex_metadata.as_ref(),
+                !no_storage_header,
+            );
             let in_file = File::open(file_path).unwrap();
             let reader = BufReader::new(&in_file);
             let out_file = File::create(&out_path).expect("could not create file");
