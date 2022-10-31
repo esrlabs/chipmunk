@@ -51,7 +51,7 @@ use parsers::{
     LogMessage, MessageStreamItem,
 };
 use processor::{
-    grabber::{GrabError, GrabbedContent, Grabber},
+    grabber::{GrabError, Grabber},
     text_source::TextFileSource,
 };
 use sources::{
@@ -482,9 +482,9 @@ pub async fn main() -> Result<()> {
             println!("dlt grabbing not supported anymore");
             std::process::exit(0);
         }
-        let res: Result<(GrabbedContent, Instant), GrabError> = {
+        let res: Result<(Vec<String>, Instant), GrabError> = {
             type GrabberType = processor::grabber::Grabber;
-            let source = TextFileSource::new(&input_p, "sourceA");
+            let source = TextFileSource::new(&input_p);
             let start_op = Instant::now();
             let grabber = match metadata {
                 Some(metadata_path) => {
@@ -521,15 +521,15 @@ pub async fn main() -> Result<()> {
                 duration_report(start_op, format!("grabbing {} lines", length));
                 let mut i = start_index;
                 let cap_after = 150;
-                for (cnt, s) in v.grabbed_elements.iter().enumerate() {
-                    if s.content.len() > cap_after {
-                        println!("[{}]--> {}", i + 1, &s.content[..cap_after]);
+                for (cnt, s) in v.iter().enumerate() {
+                    if s.len() > cap_after {
+                        println!("[{}]--> {}", i + 1, &s[..cap_after]);
                     } else {
-                        println!("[{}]--> {}", i + 1, &s.content);
+                        println!("[{}]--> {}", i + 1, &s);
                     }
                     i += 1;
                     if cnt > 15 {
-                        println!("...{} more lines", v.grabbed_elements.len() - 15);
+                        println!("...{} more lines", v.len() - 15);
                         break;
                     }
                 }
@@ -883,14 +883,13 @@ pub async fn main() -> Result<()> {
             } else {
                 0
             };
-            let mut grabber =
-                match Grabber::lazy(TextFileSource::new(file_path, &file_path.to_string_lossy())) {
-                    Ok(grabber) => Some(grabber),
-                    Err(err) => {
-                        report_error(format!("could not create grabber {:?}", err));
-                        std::process::exit(2)
-                    }
-                };
+            let mut grabber = match Grabber::lazy(TextFileSource::new(file_path)) {
+                Ok(grabber) => Some(grabber),
+                Err(err) => {
+                    report_error(format!("could not create grabber {:?}", err));
+                    std::process::exit(2)
+                }
+            };
             let fibex_metadata: Option<FibexMetadata> = if let Some(fibex_path) = fibex {
                 gather_fibex_data(FibexConfig {
                     fibex_file_paths: vec![fibex_path],

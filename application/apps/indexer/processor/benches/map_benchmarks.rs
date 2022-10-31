@@ -11,7 +11,7 @@ fn scaled_benchmark(c: &mut Criterion) {
         v.push(FilterMatch::new(i, vec![0]));
         v.push(FilterMatch::new(i + 22, vec![0, 1]));
     }
-    example_map.set(Some(v));
+    example_map.set(Some(v), None);
 
     c.bench_function("calculate_scaled_map", move |b| {
         for input in [

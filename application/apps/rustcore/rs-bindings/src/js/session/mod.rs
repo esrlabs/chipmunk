@@ -4,7 +4,7 @@ use crate::{
     js::{
         converting::{
             concat::WrappedConcatenatorInput, filter::WrappedSearchFilter,
-            merge::WrappedFileMergeOptions,
+            merge::WrappedFileMergeOptions, source::WrappedSourceDefinition,
         },
         session::events::ComputationErrorWrapper,
     },
@@ -16,7 +16,7 @@ use node_bindgen::derive::node_bindgen;
 use processor::grabber::LineRange;
 use session::{
     events::{CallbackEvent, ComputationError, NativeError},
-    factory::SourceType,
+    factory::ObserveOptions,
     operations,
     session::Session,
 };
@@ -260,15 +260,15 @@ impl RustSession {
     #[node_bindgen]
     async fn observe(
         &self,
-        source: String,
+        options: String,
         operation_id: String,
     ) -> Result<(), ComputationErrorWrapper> {
-        let source: SourceType = serde_json::from_str(&source).map_err(|e| {
+        let options: ObserveOptions = serde_json::from_str(&options).map_err(|e| {
             ComputationError::Process(format!("Cannot parse source settings: {}", e))
         })?;
         if let Some(ref session) = self.session {
             session
-                .observe(operations::uuid_from_str(&operation_id)?, source)
+                .observe(operations::uuid_from_str(&operation_id)?, options)
                 .map_err(ComputationErrorWrapper)
         } else {
             Err(ComputationErrorWrapper(
@@ -307,6 +307,25 @@ impl RustSession {
     async fn drop_search(&self) -> Result<bool, ComputationErrorWrapper> {
         if let Some(ref session) = self.session {
             session.drop_search().await.map_err(ComputationErrorWrapper)
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
+    async fn get_sources_definitions(
+        &self,
+    ) -> Result<Vec<WrappedSourceDefinition>, ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            Ok(session
+                .get_sources()
+                .await
+                .map_err(ComputationErrorWrapper)?
+                .iter()
+                .map(|s| WrappedSourceDefinition(s.clone()))
+                .collect::<Vec<WrappedSourceDefinition>>())
         } else {
             Err(ComputationErrorWrapper(
                 ComputationError::SessionUnavailable,

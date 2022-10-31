@@ -1,12 +1,13 @@
 use crate::grabber::{
-    identify_byte_range, ByteRange, FilePart, GrabError, GrabMetadata, GrabbedContent,
-    GrabbedElement, LineRange, Slot,
+    identify_byte_range, ByteRange, FilePart, GrabError, GrabMetadata, LineRange, Slot,
 };
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use indexer_base::progress::ComputationResult;
 use std::{
+    collections::HashMap,
     fs,
     io::{Read, SeekFrom},
+    ops::RangeInclusive,
     path::{Path, PathBuf},
 };
 use tokio_util::sync::CancellationToken;
@@ -15,15 +16,18 @@ const REDUX_READER_CAPACITY: usize = 1024 * 32;
 const REDUX_MIN_BUFFER_SPACE: usize = 10 * 1024;
 
 #[derive(Debug)]
+pub struct SourcesMap {
+    pub map: HashMap<u8, Vec<RangeInclusive<u64>>>,
+}
+
+#[derive(Debug)]
 pub struct TextFileSource {
-    source_id: String,
     path: PathBuf,
 }
 
 impl TextFileSource {
-    pub fn new(p: &Path, id: &str) -> Self {
+    pub fn new(p: &Path) -> Self {
         Self {
-            source_id: id.to_string(),
             path: PathBuf::from(p),
         }
     }
@@ -49,10 +53,6 @@ impl TextFileSource {
 }
 
 impl TextFileSource {
-    pub fn source_id(&self) -> String {
-        self.source_id.clone()
-    }
-
     /// the path of the file that is the source for the content
     pub fn path(&self) -> &Path {
         &self.path
@@ -96,9 +96,9 @@ impl TextFileSource {
 
     pub fn from_file(
         &mut self,
-        mut base: Option<GrabMetadata>,
+        base: Option<GrabMetadata>,
         shutdown_token: Option<CancellationToken>,
-    ) -> Result<ComputationResult<GrabMetadata>, GrabError> {
+    ) -> Result<(ComputationResult<GrabMetadata>, Option<RangeInclusive<u64>>), GrabError> {
         use std::io::prelude::*;
         let file_metadata = fs::metadata(&self.path).map_err(|_| {
             GrabError::IoOperation(format!("Could not get metadata for file {:?}", &self.path))
@@ -109,43 +109,32 @@ impl TextFileSource {
                 self.path.to_string_lossy()
             )));
         }
-        let (mut slots, last) = if let Some(mut base) = base.take() {
-            let last = if let Some(last) = base.slots.pop() {
-                last
+        let (mut slots, (mut byte_offset, mut log_msg_cnt)) = if let Some(base) = base {
+            let last = if let Some(last) = base.slots.last() {
+                (last.bytes.end() + 1, last.lines.end() + 1)
             } else {
-                Slot {
-                    bytes: ByteRange::from(0..=0),
-                    lines: LineRange::from(0..=0),
-                }
+                (0, 0)
             };
             (base.slots, last)
         } else {
-            (
-                Vec::<Slot>::new(),
-                Slot {
-                    bytes: ByteRange::from(0..=0),
-                    lines: LineRange::from(0..=0),
-                },
-            )
+            (Vec::<Slot>::new(), (0, 0))
         };
+        let from = log_msg_cnt;
         let mut f = fs::File::open(&self.path)
             .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", &self.path)))?;
-        f.seek(SeekFrom::Start(last.bytes.start())).map_err(|_| {
+        f.seek(SeekFrom::Start(byte_offset)).map_err(|_| {
             GrabError::IoOperation(format!(
                 "Could not seek file {:?} to {}",
-                &self.path,
-                last.bytes.start()
+                &self.path, byte_offset
             ))
         })?;
-        let mut byte_offset = last.bytes.start();
-        let mut log_msg_cnt = last.lines.start();
         let mut reader = ReduxReader::with_capacity(REDUX_READER_CAPACITY, f)
             .set_policy(MinBuffered(REDUX_MIN_BUFFER_SPACE));
         let mut pending: Option<Slot> = None;
         loop {
             if let Some(shutdown_token) = &shutdown_token {
                 if shutdown_token.is_cancelled() {
-                    return Ok(ComputationResult::Stopped);
+                    return Ok((ComputationResult::Stopped, None));
                 }
             }
             match reader.fill_buf() {
@@ -204,10 +193,18 @@ impl TextFileSource {
             slots.push(slot);
             log_msg_cnt += 1;
         }
-        Ok(ComputationResult::Item(GrabMetadata {
-            slots,
-            line_count: log_msg_cnt as usize,
-        }))
+        let processed = if log_msg_cnt != from {
+            Some(RangeInclusive::new(from, log_msg_cnt - 1))
+        } else {
+            None
+        };
+        Ok((
+            ComputationResult::Item(GrabMetadata {
+                slots,
+                line_count: log_msg_cnt as usize,
+            }),
+            processed,
+        ))
     }
 
     pub fn read_file_segment(
@@ -268,19 +265,13 @@ impl TextFileSource {
         &self,
         metadata: &GrabMetadata,
         line_range: &LineRange,
-    ) -> Result<GrabbedContent, GrabError> {
+    ) -> Result<Vec<String>, GrabError> {
         let (read_buf, file_part) = self.read_file_segment(metadata, line_range)?;
-        let grabbed_elements = self
+        Ok(self
             .clear_lines(&read_buf, &file_part)?
             .iter()
-            .map(|s| GrabbedElement {
-                source_id: self.source_id.clone(),
-                content: s.to_string(),
-                row: None,
-                pos: None,
-            })
-            .collect::<Vec<GrabbedElement>>();
-        Ok(GrabbedContent { grabbed_elements })
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>())
     }
 
     pub fn write_to<W: std::io::Write>(
