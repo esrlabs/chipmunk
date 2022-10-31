@@ -18,24 +18,24 @@
         <div class="right">
             <mat-card>
                 <mat-card-title>Info</mat-card-title>
-                <mat-card-subtitle>File info</mat-card-subtitle>
+                <mat-card-subtitle>File(s) info</mat-card-subtitle>
                 <mat-card-content>
                     <table class="table-fill">
                         <tr class="info">
                             <td class="caption t-medium color-scheme-3">Name</td>
-                            <td class="value t-medium color-scheme-2">{{file.name}}</td>
+                            <td class="value t-medium color-scheme-2">{{getFilesStat().name}}</td>
                         </tr>
                         <tr class="info">
                             <td class="caption t-medium color-scheme-3">Size</td>
-                            <td class="value t-medium color-scheme-2">{{size(file.stat.size)}}</td>
+                            <td class="value t-medium color-scheme-2">{{getFilesStat().size}}</td>
                         </tr>
-                        <tr class="info">
+                        <tr class="info" *ngIf="getFilesStat().created !== undefined">
                             <td class="caption t-medium color-scheme-3">Created</td>
-                            <td class="value t-medium color-scheme-2">{{datetime(file.stat.ctimeMs)}}</td>
+                            <td class="value t-medium color-scheme-2">{{getFilesStat().created}}</td>
                         </tr>
-                        <tr class="info">
+                        <tr class="info" *ngIf="getFilesStat().changed !== undefined">
                             <td class="caption t-medium color-scheme-3">Changed</td>
-                            <td class="value t-medium color-scheme-2">{{datetime(file.stat.mtimeMs)}}</td>
+                            <td class="value t-medium color-scheme-2">{{getFilesStat().changed}}</td>
                         </tr>
                     </table>
                 </mat-card-content>

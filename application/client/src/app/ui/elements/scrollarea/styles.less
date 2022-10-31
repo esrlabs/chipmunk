@@ -46,6 +46,18 @@
             margin: 0;
             user-select: text;
         }
+        & li[data-on-border="true"] {
+            &::after {
+                display: block;
+                position: absolute;
+                content: '';
+                top: 0;
+                left: 0;
+                width: 100%;
+                border-top: thin dashed;
+                border-top-color: @scheme-color-accent;
+            }
+        }
     }
     & .selection-detector {
         position: absolute;

@@ -4,12 +4,12 @@ import * as validator from '../../../env/obj';
 
 @Define({ name: 'DltStatRequest' })
 export class Request extends SignatureRequirement {
-    public filename: string;
+    public files: string[];
 
-    constructor(input: { filename: string }) {
+    constructor(input: { files: string[] }) {
         super();
         validator.isObject(input);
-        this.filename = validator.getAsNotEmptyString(input, 'filename');
+        this.files = validator.getAsArray(input, 'files');
     }
 }
 export interface Request extends Interface {}

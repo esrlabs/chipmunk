@@ -1,33 +1,31 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { TargetFile } from '../../../types/files';
+import { ObservedSourceLink } from '../../../types/observe';
 
 import * as validator from '../../../env/obj';
 
-@Define({ name: 'OpenFileRequest' })
+@Define({ name: 'SourcesListRequest' })
 export class Request extends SignatureRequirement {
-    public file?: TargetFile;
     public session: string;
 
-    constructor(input: { session: string; file?: TargetFile }) {
+    constructor(input: { session: string }) {
         super();
         validator.isObject(input);
-        this.file = validator.getAsObj(input, 'file');
         this.session = validator.getAsNotEmptyString(input, 'session');
-
     }
 }
+
 export interface Request extends Interface {}
 
-@Define({ name: 'OpenFileResponse' })
+@Define({ name: 'SourcesListResponse' })
 export class Response extends SignatureRequirement {
-    public error?: string;
     public session: string;
+    public sources: ObservedSourceLink[];
 
-    constructor(input: { session: string; error?: string }) {
+    constructor(input: { session: string; sources: ObservedSourceLink[] }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
-        this.error = validator.getAsNotEmptyStringOrAsUndefined(input, 'error');
+        this.sources = validator.getAsArray<ObservedSourceLink>(input, 'sources');
     }
 }
 

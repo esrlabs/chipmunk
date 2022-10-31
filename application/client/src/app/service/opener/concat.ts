@@ -29,21 +29,12 @@ export abstract class FileOpener<Options, NamedOptions> extends Base<
 
     abstract getNamedOptions(options: Options): NamedOptions;
 
-    public async open(file: File | string, options?: Options): Promise<void> {
-        const target: File = (
-            await this.services.system.bridge
-                .files()
-                .getByPath(typeof file === 'string' ? [file] : [file.filename])
-        )[0];
-        if (target === undefined) {
-            return Promise.reject(
-                new Error(
-                    `Fail to get info about file: ${
-                        typeof file === 'string' ? file : file.filename
-                    }`,
-                ),
-            );
-        }
+    public async open(files: File[] | string[], options?: Options): Promise<void> {
+        const targets: File[] = await this.services.system.bridge.files().getByPath(
+            files.map((file) => {
+                return typeof file === 'string' ? file : file.filename;
+            }),
+        );
         const open = (options?: Options): Promise<void> => {
             if (this.session !== undefined) {
                 const matching = isRenderMatch(this.session, this.getRender());
@@ -55,44 +46,56 @@ export abstract class FileOpener<Options, NamedOptions> extends Base<
                         new Error(`Combination of renders in the scope of session isn't supported`),
                     );
                 }
-                return this.session.stream.file({
-                    filename: target.filename,
-                    name: target.name,
-                    type: target.type,
-                    options: options === undefined ? {} : (this.getNamedOptions(options) as {}),
-                });
+                return this.session.stream.concat(
+                    files.map((_file, i) => {
+                        return {
+                            filename: targets[i].filename,
+                            name: targets[i].name,
+                            type: targets[i].type,
+                            options:
+                                options === undefined ? {} : (this.getNamedOptions(options) as {}),
+                        };
+                    }),
+                );
             } else {
                 const progress = lockers.lock(
-                    new Locker(true, 'indexing file...').set().group(target.filename).end(),
+                    new Locker(true, 'indexing file...')
+                        .set()
+                        .group(targets.map((t) => t.filename).join('|'))
+                        .end(),
                     {
                         closable: false,
                     },
                 );
                 return this.services.system.session
                     .add()
-                    .file(
-                        {
-                            filename: target.filename,
-                            name: target.name,
-                            type: target.type,
-                            options:
-                                options === undefined ? {} : (this.getNamedOptions(options) as {}),
-                        },
+                    .concat(
+                        files.map((_file, i) => {
+                            return {
+                                filename: targets[i].filename,
+                                name: targets[i].name,
+                                type: targets[i].type,
+                                options:
+                                    options === undefined
+                                        ? {}
+                                        : (this.getNamedOptions(options) as {}),
+                            };
+                        }),
                         this.getRender(),
                     )
                     .then(() => {
                         progress.popup.close();
-                        this.services.system.recent
-                            .add()
-                            .file(
-                                target,
-                                options === undefined ? {} : (this.getNamedOptions(options) as {}),
-                            )
-                            .catch((err: Error) => {
-                                this.logger.error(
-                                    `Fail to add recent action; error: ${err.message}`,
-                                );
-                            });
+                        // this.services.system.recent
+                        //     .add()
+                        //     .file(
+                        //         target,
+                        //         options === undefined ? {} : (this.getNamedOptions(options) as {}),
+                        //     )
+                        //     .catch((err: Error) => {
+                        //         this.logger.error(
+                        //             `Fail to add recent action; error: ${err.message}`,
+                        //         );
+                        //     });
                         return Promise.resolve(undefined);
                     })
                     .catch((err: Error) => {
@@ -112,7 +115,7 @@ export abstract class FileOpener<Options, NamedOptions> extends Base<
                         factory: components.get(settings.component),
                         inputs: {
                             getTabApi: () => api,
-                            files: [target],
+                            files: targets,
                             done: (opt?: Options) => {
                                 open(opt).then(resolve).catch(reject);
                             },

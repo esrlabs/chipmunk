@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Input, ViewChild } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, ViewChild, AfterContentInit } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Session } from '@service/session/session';
@@ -10,6 +10,7 @@ import {
     AutocompleteInput,
 } from '@elements/autocomplete/component';
 import { Subject } from '@platform/env/subscription';
+import { DataSource } from '@platform/types/observe';
 
 @Component({
     selector: 'app-transport-process-details',
@@ -17,12 +18,14 @@ import { Subject } from '@platform/env/subscription';
     styleUrls: ['./styles.less'],
 })
 @Ilc()
-export class TransportProcess extends ChangesDetector {
+export class TransportProcess extends ChangesDetector implements AfterContentInit {
     @Input() public observe!: ObserveOperation | undefined;
-    @Input() public source!: ProcessTransportSettings;
+    @Input() public source!: DataSource;
     @Input() public session!: Session;
 
     @ViewChild('stdin') public input!: AutocompleteInput;
+
+    public process!: ProcessTransportSettings;
 
     public readonly options: AutocompleteOptions = {
         name: 'CommandsRecentSentDataList',
@@ -32,16 +35,29 @@ export class TransportProcess extends ChangesDetector {
         label: 'Enter data to send',
         recent: new Subject<void>(),
     };
+
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
 
+    public ngAfterContentInit(): void {
+        const stream = this.source.asStream();
+        if (stream === undefined) {
+            throw new Error(`DataSource isn't bound to stream`);
+        }
+        const process = stream.process();
+        if (process === undefined) {
+            throw new Error(`DataSource isn't bound to Process stream`);
+        }
+        this.process = process;
+    }
+
     public ngFullCommand(): string {
-        return `${this.source.command} ${this.source.args.join(' ')}`;
+        return `${this.process.command} ${this.process.args.join(' ')}`;
     }
 
     public ngCwd(): string {
-        return `${this.source.cwd === '' ? 'not defined' : this.source.cwd}`;
+        return `${this.process.cwd === '' ? 'not defined' : this.process.cwd}`;
     }
 
     public ngEnter(event: string): void {

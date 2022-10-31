@@ -5,6 +5,7 @@ import { Session } from '@service/session/session';
 import { File } from '@platform/types/files';
 import { bytesToStr, timestampToUTC } from '@env/str';
 import { ObserveOperation } from '@service/session/dependencies/observe/operation';
+import { DataSource } from '@platform/types/observe';
 
 @Component({
     selector: 'app-transport-file-details',
@@ -14,7 +15,7 @@ import { ObserveOperation } from '@service/session/dependencies/observe/operatio
 @Ilc()
 export class TransportFile extends ChangesDetector implements AfterViewInit {
     @Input() public observe!: ObserveOperation | undefined;
-    @Input() public source!: string;
+    @Input() public source!: DataSource;
     @Input() public session!: Session;
 
     public file: File | undefined;
@@ -26,9 +27,13 @@ export class TransportFile extends ChangesDetector implements AfterViewInit {
     }
 
     public ngAfterViewInit(): void {
+        const filename = this.source.asFile();
+        if (filename === undefined) {
+            throw new Error(`DataSource isn't bound with single file`);
+        }
         this.ilc()
             .services.system.bridge.files()
-            .getByPath([this.source])
+            .getByPath([filename])
             .then((result) => {
                 if (result.length !== 1) {
                     this.log().error(`Invalid file stat info`);

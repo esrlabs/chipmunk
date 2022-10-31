@@ -182,16 +182,17 @@ export class Action {
                                     if (files.length !== 1) {
                                         return;
                                     }
+                                    const file = files[0];
                                     session.add().tab({
                                         name: `Opening DLT file`,
                                         content: {
                                             factory: components.get('app-tabs-source-dltfile'),
                                             inputs: {
-                                                file: files[0],
+                                                files: [file],
                                                 options,
                                                 done: (opt: IDLTOptions) => {
                                                     opener
-                                                        .file(files[0])
+                                                        .file(file)
                                                         .dlt(opt)
                                                         .catch((err: Error) => {
                                                             console.error(
@@ -219,16 +220,17 @@ export class Action {
                                     if (files.length !== 1) {
                                         return;
                                     }
+                                    const file = files[0];
                                     session.add().tab({
                                         name: `Opening DLT file`,
                                         content: {
                                             factory: components.get('app-tabs-source-dltfile'),
                                             inputs: {
-                                                file: files[0],
+                                                files: [file],
                                                 options,
                                                 done: (opt: IDLTOptions) => {
                                                     opener
-                                                        .file(files[0])
+                                                        .file(file)
                                                         .dlt(opt)
                                                         .catch((err: Error) => {
                                                             console.error(

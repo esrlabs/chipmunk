@@ -21,7 +21,10 @@ export function getScrollAreaService(session: Session): Service {
                                 content: row.content,
                                 session,
                                 owner: Owner.Output,
-                                source: 0,
+                                source:
+                                    typeof row.source_id === 'string'
+                                        ? parseInt(row.source_id, 10)
+                                        : row.source_id,
                             });
                         }),
                         range,

@@ -20,6 +20,7 @@ import { Type, Source, NativeError } from '../interfaces/errors';
 import { v4 as uuidv4 } from 'uuid';
 import { getValidNum } from '../util/numbers';
 import { IRange } from 'platform/types/range';
+import { ObservedSourceLink } from 'platform/types/observe';
 
 export type RustSessionConstructorImpl<T> = new (
     uuid: string,
@@ -59,6 +60,12 @@ export abstract class RustSession extends RustSessionRequiered {
      * TODO: @return needs interface. It should not be a string
      */
     public abstract grabMatchesChunk(start: number, len: number): string[] | NativeError;
+
+    /**
+     * Returns list of observed sources.
+     * @returns { string }
+     */
+    public abstract getSourcesDefinitions(): Promise<ObservedSourceLink[]>;
 
     public abstract getUuid(): string;
 
@@ -171,7 +178,11 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract export(dest: string, ranges: IRange[], operationUuid: string): Promise<void>;
 
-    public abstract exportSearch(dest: string, ranges: IRange[], operationUuid: string): Promise<void>;
+    public abstract exportSearch(
+        dest: string,
+        ranges: IRange[],
+        operationUuid: string,
+    ): Promise<void>;
 
     public abstract detect(options: IDetectOptions): string | NativeError;
 
@@ -237,6 +248,8 @@ export abstract class RustSessionNative {
 
     public abstract getStreamLen(): Promise<number>;
 
+    public abstract getSourcesDefinitions(): Promise<ObservedSourceLink[]>;
+
     public abstract grab(start: number, len: number): Promise<string>;
 
     public abstract grabSearch(start: number, len: number): Promise<string>;
@@ -245,7 +258,11 @@ export abstract class RustSessionNative {
 
     public abstract export(dest: string, ranges: number[][], operationUuid: string): Promise<void>;
 
-    public abstract exportSearch(dest: string, ranges: number[][], operationUuid: string): Promise<void>;
+    public abstract exportSearch(
+        dest: string,
+        ranges: number[][],
+        operationUuid: string,
+    ): Promise<void>;
 
     public abstract applySearchFilters(
         filters: Array<{
@@ -376,6 +393,26 @@ export class RustSessionWrapper extends RustSession {
         return this._native.getUuid();
     }
 
+    public getSourcesDefinitions(): Promise<ObservedSourceLink[]> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('getSourcesDefinitions');
+            this._native
+                .getSourcesDefinitions()
+                .then((sources: ObservedSourceLink[]) => {
+                    resolve(sources);
+                })
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            NativeError.from(err),
+                            Type.GrabbingContent,
+                            Source.GetSourcesDefinitions,
+                        ),
+                    );
+                });
+        });
+    }
+
     public grabStreamChunk(start: number, len: number): Promise<IGrabbedElement[]> {
         return new Promise((resolve, reject) => {
             this._provider.debug().emit.operation('grab');
@@ -383,20 +420,18 @@ export class RustSessionWrapper extends RustSession {
                 .grab(start, len)
                 .then((grabbed: string) => {
                     try {
-                        const result: {
-                            grabbed_elements: Array<{
-                                c: string;
-                                id: string;
-                                r: unknown;
-                                p: unknown;
-                            }>;
-                        } = JSON.parse(grabbed);
+                        const result: Array<{
+                            c: string;
+                            id: number;
+                            r: unknown;
+                            p: unknown;
+                        }> = JSON.parse(grabbed);
                         resolve(
-                            result.grabbed_elements.map(
+                            result.map(
                                 (
                                     item: {
                                         c: string;
-                                        id: string;
+                                        id: number;
                                         r: unknown;
                                         p: unknown;
                                     },
@@ -446,20 +481,18 @@ export class RustSessionWrapper extends RustSession {
                 .grabSearch(start, len)
                 .then((grabbed: string) => {
                     try {
-                        const result: {
-                            grabbed_elements: Array<{
-                                c: string;
-                                id: string;
-                                r: unknown;
-                                p: unknown;
-                            }>;
-                        } = JSON.parse(grabbed);
+                        const result: Array<{
+                            c: string;
+                            id: number;
+                            r: unknown;
+                            p: unknown;
+                        }> = JSON.parse(grabbed);
                         resolve(
-                            result.grabbed_elements.map(
+                            result.map(
                                 (
                                     item: {
                                         c: string;
-                                        id: string;
+                                        id: number;
                                         r: unknown;
                                         p: unknown;
                                     },

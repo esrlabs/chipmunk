@@ -1,5 +1,5 @@
 <div class="signature" [ngStyle]="ngGetSignatureWidth()">
-    <span class="source-alias"></span>
+    <span *ngIf="source.color !== undefined" class="source-alias" [ngStyle]="{'background': source.color}"></span>
     <span class="number" [attr.data-bookmarked]="bookmarked" (click)="onNumberClick()">
         <span class="filler">{{ngGetRankFiller(row.position.stream)}}</span>{{row.position.stream}}
     </span>

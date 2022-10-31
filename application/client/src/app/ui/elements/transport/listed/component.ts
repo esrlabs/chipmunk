@@ -13,31 +13,29 @@ import { ObserveOperation } from '@service/session/dependencies/observe/operatio
 })
 @Ilc()
 export class Transport extends ChangesDetector implements AfterContentInit {
-    @Input() public source!: DataSource | ObserveOperation;
+    @Input() public source!: DataSource;
+    @Input() public observer!: ObserveOperation | undefined;
     @Input() public session!: Session;
     @Input() public finished!: boolean;
 
     @HostListener('contextmenu', ['$event']) onContextMenu(event: MouseEvent) {
         const items: IMenuItem[] = [];
         const source = this.source;
-        const sourceDef =
-            source instanceof DataSource
-                ? source.asSourceDefinition()
-                : source.asSource().asSourceDefinition();
-        const dataSource = source instanceof DataSource ? source : source.asSource();
-        if (dataSource.File !== undefined) {
-            if (dataSource.File[1].Text !== undefined) {
+        const observer = this.observer;
+        const sourceDef = source.asSourceDefinition();
+        if (source.asFile() !== undefined) {
+            if (source.parser.Text !== undefined) {
                 // Text file can be opened just once per session
                 return;
             }
         }
-        if (source instanceof ObserveOperation) {
+        if (observer !== undefined) {
             items.push(
                 ...[
                     {
                         caption: 'Stop',
                         handler: () => {
-                            source
+                            observer
                                 .abort()
                                 .catch((err: Error) => {
                                     this.log().error(
@@ -52,7 +50,7 @@ export class Transport extends ChangesDetector implements AfterContentInit {
                     {
                         caption: 'Restart',
                         handler: () => {
-                            source
+                            observer
                                 .restart()
                                 .catch((err: Error) => {
                                     this.log().error(
@@ -66,7 +64,7 @@ export class Transport extends ChangesDetector implements AfterContentInit {
                     },
                 ],
             );
-        } else if (source instanceof DataSource) {
+        } else if (observer === undefined) {
             !(sourceDef instanceof Error) &&
                 items.push(
                     ...[
@@ -108,7 +106,6 @@ export class Transport extends ChangesDetector implements AfterContentInit {
                     },
                 ],
             );
-
         contextmenu.show({
             items: items,
             x: event.pageX,

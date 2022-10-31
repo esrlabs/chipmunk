@@ -8,6 +8,12 @@ import { error } from '../env/logger';
 import { SerialTransportSettings } from './transport/serial';
 import { filename, basefolder } from '../env/str';
 import { SourceDefinition, Source as SourceRef } from './transport/index';
+import { unique } from '../env/sequence';
+
+export interface ObservedSourceLink {
+    id: number;
+    alias: string;
+}
 
 export enum ParserName {
     Dlt = 'Dlt',
@@ -31,13 +37,15 @@ export interface Transport {
     UDP?: UDPTransportSettings;
 }
 
-export interface Source extends Transport {
-    File?: string;
+export interface IOrigin {
+    File?: [string, string];
+    Concat?: Array<[string, string]>;
+    Stream?: [string, Transport];
 }
 
 export interface ISource {
-    File?: [string, Parser];
-    Stream?: [Transport, Parser];
+    origin: IOrigin;
+    parser: Parser;
 }
 
 export interface SourcesFactory {
@@ -56,42 +64,95 @@ export interface SourceDescription {
         stopped: string;
     };
 }
-
 export class DataSource {
-    public File?: [string, Parser];
-    public Stream?: [Transport, Parser];
-
-    constructor(opt: ISource) {
-        this.File = opt.File;
-        this.Stream = opt.Stream;
-    }
+    public readonly origin: IOrigin = {};
+    public readonly parser: Parser;
+    public readonly childs: DataSource[];
+    public readonly parent: DataSource | undefined;
+    public readonly uuid: string = unique();
 
     public static from(jsonStr: string): Error | DataSource {
         try {
-            const parsed = JSON.parse(jsonStr);
-            const target = parsed.File === undefined ? parsed.Stream : parsed.File;
-            if (target === undefined) {
-                throw new Error(`No "File" or "Stream" fields aren't found`);
+            const parsed: ISource = JSON.parse(jsonStr);
+            if (parsed.parser === undefined) {
+                throw new Error(`Fail to find parser in source definition`);
             }
-            if (!(target instanceof Array) || target.length !== 2) {
-                throw new Error(`Invalid count of items in "File" or "Stream"`);
+            if (parsed.origin === undefined) {
+                throw new Error(`Fail to find origins in source definition`);
             }
-            return new DataSource(parsed);
+            if (
+                parsed.origin.File !== undefined ||
+                parsed.origin.Concat instanceof Array ||
+                parsed.origin.Stream !== undefined
+            ) {
+                return new DataSource(parsed);
+            }
+            throw new Error(`No "File", "Concat" or "Stream" fields aren't found`);
         } catch (err) {
             return new Error(error(err));
         }
     }
 
-    public static file(filename: string): SourcesFactory {
+    public static file(file: string): SourcesFactory {
         return {
             dlt: (settings: DltParserSettings): DataSource => {
-                return new DataSource({ File: [filename, { Dlt: settings }] });
+                return new DataSource({
+                    origin: {
+                        File: [unique(), file],
+                    },
+                    parser: { Dlt: settings },
+                });
             },
             pcap: (settings: PcapParserSettings): DataSource => {
-                return new DataSource({ File: [filename, { Pcap: settings }] });
+                return new DataSource({
+                    origin: {
+                        File: [unique(), file],
+                    },
+                    parser: { Pcap: settings },
+                });
             },
             text: (): DataSource => {
-                return new DataSource({ File: [filename, { Text: null }] });
+                return new DataSource({
+                    origin: {
+                        File: [unique(), file],
+                    },
+                    parser: { Text: null },
+                });
+            },
+        };
+    }
+
+    public static concat(files: string[]): SourcesFactory {
+        return {
+            dlt: (settings: DltParserSettings): DataSource => {
+                return new DataSource({
+                    origin: {
+                        Concat: files.map((f) => {
+                            return [unique(), f];
+                        }),
+                    },
+                    parser: { Dlt: settings },
+                });
+            },
+            pcap: (settings: PcapParserSettings): DataSource => {
+                return new DataSource({
+                    origin: {
+                        Concat: files.map((f) => {
+                            return [unique(), f];
+                        }),
+                    },
+                    parser: { Pcap: settings },
+                });
+            },
+            text: (): DataSource => {
+                return new DataSource({
+                    origin: {
+                        Concat: files.map((f) => {
+                            return [unique(), f];
+                        }),
+                    },
+                    parser: { Text: null },
+                });
             },
         };
     }
@@ -104,66 +165,179 @@ export class DataSource {
     } {
         return {
             serial: (Serial: SerialTransportSettings): SourcesFactory => {
+                const origin: IOrigin = { Stream: [unique(), { Serial }] };
                 return {
                     dlt: (settings: DltParserSettings): DataSource => {
-                        return new DataSource({ Stream: [{ Serial }, { Dlt: settings }] });
+                        return new DataSource({
+                            origin,
+                            parser: { Dlt: settings },
+                        });
                     },
                     pcap: (settings: PcapParserSettings): DataSource => {
-                        return new DataSource({ Stream: [{ Serial }, { Pcap: settings }] });
+                        return new DataSource({
+                            origin,
+                            parser: { Pcap: settings },
+                        });
                     },
                     text: (): DataSource => {
-                        return new DataSource({ Stream: [{ Serial }, { Text: null }] });
+                        return new DataSource({
+                            origin,
+                            parser: { Text: null },
+                        });
                     },
                 };
             },
             process: (Process: ProcessTransportSettings): SourcesFactory => {
+                const origin: IOrigin = { Stream: [unique(), { Process }] };
                 return {
                     dlt: (settings: DltParserSettings): DataSource => {
-                        return new DataSource({ Stream: [{ Process }, { Dlt: settings }] });
+                        return new DataSource({
+                            origin,
+                            parser: { Dlt: settings },
+                        });
                     },
                     pcap: (settings: PcapParserSettings): DataSource => {
-                        return new DataSource({ Stream: [{ Process }, { Pcap: settings }] });
+                        return new DataSource({
+                            origin,
+                            parser: { Pcap: settings },
+                        });
                     },
                     text: (): DataSource => {
-                        return new DataSource({ Stream: [{ Process }, { Text: null }] });
+                        return new DataSource({
+                            origin,
+                            parser: { Text: null },
+                        });
                     },
                 };
             },
             upd: (UDP: UDPTransportSettings): SourcesFactory => {
+                const origin: IOrigin = { Stream: [unique(), { UDP }] };
                 return {
                     dlt: (settings: DltParserSettings): DataSource => {
-                        return new DataSource({ Stream: [{ UDP }, { Dlt: settings }] });
+                        return new DataSource({
+                            origin,
+                            parser: { Dlt: settings },
+                        });
                     },
                     pcap: (settings: PcapParserSettings): DataSource => {
-                        return new DataSource({ Stream: [{ UDP }, { Pcap: settings }] });
+                        return new DataSource({
+                            origin,
+                            parser: { Pcap: settings },
+                        });
                     },
                     text: (): DataSource => {
-                        return new DataSource({ Stream: [{ UDP }, { Text: null }] });
+                        return new DataSource({
+                            origin,
+                            parser: { Text: null },
+                        });
                     },
                 };
             },
             tcp: (TCP: TCPTransportSettings): SourcesFactory => {
+                const origin: IOrigin = { Stream: [unique(), { TCP }] };
                 return {
                     dlt: (settings: DltParserSettings): DataSource => {
-                        return new DataSource({ Stream: [{ TCP }, { Dlt: settings }] });
+                        return new DataSource({
+                            origin,
+                            parser: { Dlt: settings },
+                        });
                     },
                     pcap: (settings: PcapParserSettings): DataSource => {
-                        return new DataSource({ Stream: [{ TCP }, { Pcap: settings }] });
+                        return new DataSource({
+                            origin,
+                            parser: { Pcap: settings },
+                        });
                     },
                     text: (): DataSource => {
-                        return new DataSource({ Stream: [{ TCP }, { Text: null }] });
+                        return new DataSource({
+                            origin,
+                            parser: { Text: null },
+                        });
                     },
                 };
             },
         };
     }
 
+    constructor(opt: ISource, parent?: DataSource) {
+        this.origin = opt.origin;
+        this.parser = opt.parser;
+        this.parent = parent;
+        this.childs = this.getChilds();
+    }
+
+    public is(): {
+        file: boolean;
+        concat: boolean;
+        tcp: boolean;
+        udp: boolean;
+        process: boolean;
+        serial: boolean;
+    } {
+        const file = this.asFile();
+        const concat = this.asConcatedFiles();
+        const stream = this.asStream();
+        const streams = stream !== undefined ? stream.all() : undefined;
+        return {
+            file: file !== undefined,
+            concat: concat !== undefined,
+            tcp: streams === undefined ? false : streams.TCP !== undefined,
+            udp: streams === undefined ? false : streams.UDP !== undefined,
+            process: streams === undefined ? false : streams.Process !== undefined,
+            serial: streams === undefined ? false : streams.Serial !== undefined,
+        };
+    }
+
+    public asFile(): string | undefined {
+        if (this.origin.File === undefined) {
+            return undefined;
+        }
+        return this.origin.File[1];
+    }
+
+    public asConcatedFiles(): string[] | undefined {
+        if (this.origin.Concat === undefined) {
+            return undefined;
+        }
+        return this.origin.Concat.map((f) => f[1]);
+    }
+
+    public asStream():
+        | {
+              serial(): SerialTransportSettings | undefined;
+              udp(): UDPTransportSettings | undefined;
+              tcp(): TCPTransportSettings | undefined;
+              process(): ProcessTransportSettings | undefined;
+              all(): Transport;
+          }
+        | undefined {
+        const stream = this.origin.Stream;
+        if (stream === undefined) {
+            return undefined;
+        }
+        return {
+            serial: (): SerialTransportSettings | undefined => {
+                return stream[1].Serial;
+            },
+            udp: (): UDPTransportSettings | undefined => {
+                return stream[1].UDP;
+            },
+            tcp: (): TCPTransportSettings | undefined => {
+                return stream[1].TCP;
+            },
+            process: (): ProcessTransportSettings | undefined => {
+                return stream[1].Process;
+            },
+            all: (): Transport => {
+                return stream[1];
+            },
+        };
+    }
+
     public getParserName(): ParserName | Error {
         const parser: Parser | Error = (() => {
-            if (this.File !== undefined) {
-                return this.File[1];
-            } else if (this.Stream !== undefined) {
-                return this.Stream[1];
+            if (this.parser !== undefined) {
+                return this.parser;
             } else {
                 return new Error(`Not File, not Stream aren't defined in DataSource`);
             }
@@ -184,62 +358,64 @@ export class DataSource {
         }
     }
 
-    public getSource(): Source | Error {
-        if (this.File !== undefined) {
-            return {
-                File: this.File[0],
-            };
-        }
-        if (this.Stream === undefined) {
-            return new Error(`Source isn't defined`);
-        }
-        return this.Stream[0];
-    }
-
     public asSourceDefinition(): SourceDefinition | Error {
-        if (this.File !== undefined) {
+        const stream = this.asStream();
+        if (stream === undefined) {
             return new Error(
                 `DataSource bound with File. SourceDefinition is available only for streams`,
             );
         }
-        if (this.Stream === undefined) {
-            return new Error(`SourceDefinition is available only for streams`);
-        }
         return {
-            serial: this.Stream[0].Serial !== undefined ? this.Stream[0].Serial : undefined,
-            process: this.Stream[0].Process !== undefined ? this.Stream[0].Process : undefined,
-            tcp: this.Stream[0].TCP !== undefined ? this.Stream[0].TCP : undefined,
-            udp: this.Stream[0].UDP !== undefined ? this.Stream[0].UDP : undefined,
+            serial: stream.serial(),
+            process: stream.process(),
+            tcp: stream.tcp(),
+            udp: stream.udp(),
         };
     }
 
     public asSourceRef(): SourceRef | Error {
-        if (this.File !== undefined) {
+        const stream = this.asStream();
+        if (stream === undefined) {
             return new Error(
-                `DataSource bound with File. SourceRef is available only for streams`,
+                `DataSource bound with File. SourceDefinition is available only for streams`,
             );
         }
-        if (this.Stream === undefined) {
-            return new Error(`SourceDefinition is available only for streams`);
-        }
-        if (this.Stream[0].Serial !== undefined) {
+        if (stream.serial() !== undefined) {
             return SourceRef.Serial;
-        } else if (this.Stream[0].Process !== undefined) {
+        } else if (stream.process() !== undefined) {
             return SourceRef.Process;
-        } else if (this.Stream[0].TCP !== undefined) {
+        } else if (stream.tcp() !== undefined) {
             return SourceRef.Tcp;
-        } else if (this.Stream[0].UDP !== undefined) {
+        } else if (stream.udp() !== undefined) {
             return SourceRef.Udp;
         } else {
             return new Error(`Unknown source`);
         }
     }
 
+    protected getChilds(): DataSource[] {
+        if (this.origin.Concat !== undefined) {
+            return this.origin.Concat.map((file) => {
+                return new DataSource(
+                    {
+                        origin: { File: file },
+                        parser: this.parser,
+                    },
+                    this,
+                );
+            });
+        }
+        return [];
+    }
+
     public desc(): SourceDescription | Error {
-        if (this.File !== undefined) {
+        const file = this.asFile();
+        const concat = this.asConcatedFiles();
+        const stream = this.asStream();
+        if (file !== undefined) {
             return {
-                major: filename(this.File[0]),
-                minor: basefolder(this.File[0]),
+                major: filename(file),
+                minor: basefolder(file),
                 icon: 'insert_drive_file',
                 type: 'file',
                 state: {
@@ -248,15 +424,26 @@ export class DataSource {
                 },
             };
         }
-        if (this.Stream === undefined) {
-            return new Error(`Source isn't defined`);
-        } else if (this.Stream[0].Process !== undefined) {
+        if (concat !== undefined) {
             return {
-                major: `${this.Stream[0].Process.command} ${this.Stream[0].Process.args.join(' ')}`,
-                minor:
-                    this.Stream[0].Process.cwd === ''
-                        ? 'no defined cwd'
-                        : this.Stream[0].Process.cwd,
+                major: `Concating ${concat.length} files`,
+                minor: basefolder(concat[0]),
+                icon: 'insert_drive_file',
+                type: 'file',
+                state: {
+                    running: 'processing',
+                    stopped: '',
+                },
+            };
+        }
+        if (stream === undefined) {
+            return new Error(`Source isn't defined`);
+        }
+        const streaming = stream.all();
+        if (streaming.Process !== undefined) {
+            return {
+                major: `${streaming.Process.command} ${streaming.Process.args.join(' ')}`,
+                minor: streaming.Process.cwd === '' ? 'no defined cwd' : streaming.Process.cwd,
                 icon: 'web_asset',
                 type: 'command',
                 state: {
@@ -264,13 +451,13 @@ export class DataSource {
                     stopped: '',
                 },
             };
-        } else if (this.Stream[0].UDP !== undefined) {
+        } else if (streaming.UDP !== undefined) {
             return {
-                major: this.Stream[0].UDP.bind_addr,
+                major: streaming.UDP.bind_addr,
                 minor:
-                    this.Stream[0].UDP.multicast.length === 0
+                    streaming.UDP.multicast.length === 0
                         ? ''
-                        : this.Stream[0].UDP.multicast.map((m) => m.multiaddr).join(', '),
+                        : streaming.UDP.multicast.map((m) => m.multiaddr).join(', '),
                 icon: 'network_wifi_3_bar',
                 type: 'net',
                 state: {
@@ -278,9 +465,9 @@ export class DataSource {
                     stopped: '',
                 },
             };
-        } else if (this.Stream[0].TCP !== undefined) {
+        } else if (streaming.TCP !== undefined) {
             return {
-                major: this.Stream[0].TCP.bind_addr,
+                major: streaming.TCP.bind_addr,
                 minor: '',
                 icon: 'network_wifi_3_bar',
                 type: 'net',
@@ -289,10 +476,10 @@ export class DataSource {
                     stopped: '',
                 },
             };
-        } else if (this.Stream[0].Serial !== undefined) {
+        } else if (streaming.Serial !== undefined) {
             return {
-                major: this.Stream[0].Serial.path,
-                minor: `Baud Rate: ${this.Stream[0].Serial.baud_rate}`,
+                major: streaming.Serial.path,
+                minor: `Baud Rate: ${streaming.Serial.baud_rate}`,
                 icon: 'import_export',
                 type: 'serial',
                 state: {
@@ -306,8 +493,8 @@ export class DataSource {
 
     public toJSON(): string {
         return JSON.stringify({
-            File: this.File,
-            Stream: this.Stream,
+            origin: this.origin,
+            parser: this.parser,
         });
     }
 }

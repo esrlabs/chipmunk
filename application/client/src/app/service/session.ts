@@ -93,6 +93,7 @@ export class Service extends Implementation {
     public add(bind = true): {
         empty: (render: Render<unknown>) => Promise<Session>;
         file: (file: TargetFile, render: Render<unknown>) => Promise<Session>;
+        concat: (files: TargetFile[], render: Render<unknown>) => Promise<Session>;
         unbound: (opts: {
             tab: ITab;
             sidebar?: boolean;
@@ -142,6 +143,39 @@ export class Service extends Implementation {
                                 .file(file)
                                 .then(() => {
                                     binding(session.uuid(), session, file.name);
+                                    resolve(session);
+                                })
+                                .catch((err: Error) => {
+                                    this.log().error(`Fail to open file; error: ${err.message}`);
+                                    reject(err);
+                                });
+                        })
+                        .catch((err: Error) => {
+                            this.log().error(`Fail to add session; error: ${err.message}`);
+                            session
+                                .destroy()
+                                .catch((err) =>
+                                    this.log().warn(`Fail to destroy session: ${err.message}`),
+                                );
+                            reject(err);
+                        });
+                });
+            },
+            concat: (files: TargetFile[], render: Render<unknown>): Promise<Session> => {
+                if (this._locker.isLocked()) {
+                    return Promise.reject(new Error(`Sessions aren't available yet`));
+                }
+                return new Promise((resolve, reject) => {
+                    this.create(render)
+                        .then((session: Session) => {
+                            session.stream
+                                .concat(files)
+                                .then(() => {
+                                    binding(
+                                        session.uuid(),
+                                        session,
+                                        `Concat ${files.length} files`,
+                                    );
                                     resolve(session);
                                 })
                                 .catch((err: Error) => {

@@ -1,5 +1,6 @@
 import { FileDesc, IFileDesc } from './definition.file';
 import { StreamDesc, IStreamDesc } from './definition.stream';
+import { ConcatDesc } from './definition.concat';
 import { DataSource, ParserName } from '@platform/types/observe';
 import { unique } from '@platform/env/sequence';
 import { EntryConvertable, Entry } from '@platform/types/storage/entry';
@@ -13,6 +14,7 @@ import * as obj from '@platform/env/obj';
 export interface IDefinition {
     stream?: IStreamDesc;
     file?: IFileDesc;
+    concat?: IFileDesc[];
     parser: ParserName;
     uuid: string;
 }
@@ -30,16 +32,36 @@ export class Definition implements EntryConvertable, Equal<Definition> {
         if (parser instanceof Error) {
             throw parser;
         }
-        const desc: IDefinition = {
-            file: await FileDesc.fromDataSource(source),
-            stream: await StreamDesc.fromDataSource(source),
-            parser,
-            uuid: unique(),
-        };
-        if (desc.file === undefined && desc.stream === undefined) {
+        const file = await FileDesc.fromDataSource(source);
+        const concat = await ConcatDesc.fromDataSource(source);
+        const stream = await StreamDesc.fromDataSource(source);
+        if (file !== undefined) {
+            return new Definition({
+                file,
+                stream: undefined,
+                concat: undefined,
+                parser,
+                uuid: unique(),
+            });
+        } else if (concat !== undefined) {
+            return new Definition({
+                file: undefined,
+                stream: undefined,
+                concat,
+                parser,
+                uuid: unique(),
+            });
+        } else if (stream !== undefined) {
+            return new Definition({
+                file: undefined,
+                concat: undefined,
+                stream,
+                parser,
+                uuid: unique(),
+            });
+        } else {
             throw new Error(`Cannot detect a source of data. Not File, not Stream aren't defined`);
         }
-        return new Definition(desc);
     }
     static fromMinifiedStr(src: { [key: string]: number | string }): Definition {
         const def = new Definition({
@@ -56,6 +78,7 @@ export class Definition implements EntryConvertable, Equal<Definition> {
 
     public stream?: StreamDesc;
     public file?: FileDesc;
+    public concat?: ConcatDesc;
     public parser: ParserName;
     public uuid: string;
 
@@ -63,6 +86,8 @@ export class Definition implements EntryConvertable, Equal<Definition> {
         this.stream =
             definition.stream === undefined ? undefined : new StreamDesc(definition.stream);
         this.file = definition.file === undefined ? undefined : new FileDesc(definition.file);
+        this.concat =
+            definition.concat === undefined ? undefined : new ConcatDesc(definition.concat);
         this.parser = definition.parser;
         this.uuid = definition.uuid;
     }
@@ -70,6 +95,7 @@ export class Definition implements EntryConvertable, Equal<Definition> {
     public overwrite(definition: Definition) {
         this.stream = definition.stream;
         this.file = definition.file;
+        this.concat = definition.concat;
         this.parser = definition.parser;
         this.uuid = definition.uuid;
     }
@@ -83,6 +109,9 @@ export class Definition implements EntryConvertable, Equal<Definition> {
         }
         if (definition.file !== undefined && this.file !== undefined) {
             return this.file.isSame(definition.file);
+        }
+        if (definition.concat !== undefined && this.concat !== undefined) {
+            return this.concat.isSame(definition.concat);
         }
         return false;
     }
@@ -139,6 +168,7 @@ export class Definition implements EntryConvertable, Equal<Definition> {
         const def = {
             stream: this.stream,
             file: this.file,
+            concat: this.concat === undefined ? undefined : this.concat.files,
             parser: this.parser,
             uuid: this.uuid,
         };
@@ -160,11 +190,17 @@ export class Definition implements EntryConvertable, Equal<Definition> {
     }
 
     public minify(): {
-        [key: string]: number | string | { [key: string]: string | number } | undefined;
+        [key: string]:
+            | number
+            | string
+            | { [key: string]: string | number }
+            | Array<{ [key: string]: string | number }>
+            | undefined;
     } {
         return {
             s: this.stream?.minify(),
             f: this.file?.minify(),
+            c: this.concat?.minify(),
             p: this.parser,
             u: this.uuid,
         };

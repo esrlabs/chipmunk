@@ -107,7 +107,7 @@ function StreamChunkRequest(packaged: Package<Requests.Stream.Chunk.Request>) {
     for (let i = request.from; i < request.to; i += 1) {
         rows.push({
             content: `___${i}___`.repeat(20),
-            source_id: '',
+            source_id: 0,
             row: i,
             position: i,
         });

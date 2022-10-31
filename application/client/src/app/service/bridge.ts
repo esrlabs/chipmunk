@@ -136,15 +136,15 @@ export class Service extends Implementation {
     }
 
     public dlt(): {
-        stat(filename: string): Promise<StatisticInfo>;
+        stat(files: string[]): Promise<StatisticInfo>;
     } {
         return {
-            stat: (filename: string): Promise<StatisticInfo> => {
+            stat: (files: string[]): Promise<StatisticInfo> => {
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(
                         Requests.Dlt.Stat.Response,
                         new Requests.Dlt.Stat.Request({
-                            filename,
+                            files,
                         }),
                     )
                         .then((response) => {

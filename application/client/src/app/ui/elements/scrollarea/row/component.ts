@@ -13,6 +13,7 @@ import { Row } from '@schema/content/row';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Locker, Level } from '@ui/service/lockers';
+import { getSourceColor } from '@ui/styles/colors';
 
 @Component({
     selector: 'app-scrollarea-row',
@@ -27,6 +28,11 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
     public render: number = 1;
     public bookmarked: boolean = false;
     public selected: boolean = false;
+    public source: {
+        color: string | undefined;
+    } = {
+        color: undefined,
+    };
 
     @HostBinding('attr.data-selected') get dataSelectedAttr() {
         return this.selected;
@@ -140,23 +146,28 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         this.render = this.row.session.render.delimiter() === undefined ? 1 : 2;
         this.env().subscriber.register(
             this.row.session.stream.subjects.get().rank.subscribe(() => {
-                this._update();
+                this.update();
             }),
         );
-        this.env().subscriber.register(this.row.change.subscribe(this._update.bind(this)));
+        this.env().subscriber.register(
+            this.row.session.stream.subjects.get().sources.subscribe(() => {
+                this.update();
+            }),
+        );
+        this.env().subscriber.register(this.row.change.subscribe(this.update.bind(this)));
         this.env().subscriber.register(
             this.row.session.bookmarks.subjects
                 .get()
-                .updated.subscribe(this._update.bind(this, false)),
+                .updated.subscribe(this.update.bind(this, false)),
         );
         this.env().subscriber.register(
-            this.row.session.cursor.subjects.get().updated.subscribe(this._update.bind(this)),
+            this.row.session.cursor.subjects.get().updated.subscribe(this.update.bind(this)),
         );
-        this._update();
+        this.update();
     }
 
     public ngAfterViewInit(): void {
-        this._update();
+        this.update();
     }
 
     public ngGetRankFiller(position: number): string {
@@ -176,11 +187,20 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         this.row.bookmark().toggle();
     }
 
-    private _update() {
-        const prev = `${this.bookmarked}.${this.selected}`;
+    protected hash(): string {
+        return `${this.bookmarked}.${this.selected}.${this.source.color}`;
+    }
+
+    protected update() {
+        const prev = this.hash();
         this.bookmarked = this.row.bookmark().is();
+        if (this.row.session.stream.observe().descriptions.count() > 1) {
+            this.source.color = getSourceColor(this.row.source);
+        } else {
+            this.source.color = undefined;
+        }
         this.selected = this.row.select().is();
-        if (prev !== `${this.bookmarked}.${this.selected}`) {
+        if (prev !== this.hash()) {
             this.detectChanges();
         }
     }

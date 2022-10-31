@@ -1,5 +1,5 @@
 import { DataSource } from '@platform/types/observe';
-import { getFileExtention, getFileName, getParentFolder } from '@platform/types/files';
+import { getParentFolder } from '@platform/types/files';
 import { bridge } from '@service/bridge';
 
 import * as obj from '@platform/env/obj';
@@ -15,21 +15,24 @@ export interface IFileDesc {
 
 export class FileDesc implements IFileDesc {
     static async fromDataSource(source: DataSource): Promise<IFileDesc | undefined> {
-        if (source.File === undefined) {
+        const filename = source.asFile();
+        if (filename === undefined) {
             return undefined;
         }
-        const file = await bridge.files().getByPath([source.File[0]]);
-        if (file.length !== 1) {
-            throw new Error(`Fail to get file stat info`);
+        return FileDesc.fromFilename(filename);
+    }
+    static async fromFilename(filename: string): Promise<IFileDesc | undefined> {
+        const file = (await bridge.files().getByPath([filename]))[0];
+        if (file === undefined) {
+            throw new Error(`Fail to get file(s) stat info`);
         }
-        const stat = file[0].stat;
         return {
-            checksum: await bridge.files().checksum(source.File[0]),
-            extention: getFileExtention(source.File[0]).toLowerCase(),
-            filename: getFileName(source.File[0]).toLowerCase(),
-            parent: getParentFolder(source.File[0]).toLowerCase(),
-            created: stat.ctimeMs,
-            size: stat.size,
+            checksum: await bridge.files().checksum(file.filename),
+            extention: file.ext.toLowerCase(),
+            filename: file.name.toLowerCase(),
+            parent: getParentFolder(file.filename).toLowerCase(),
+            created: file.stat.ctimeMs,
+            size: file.stat.size,
         };
     }
     static fromMinifiedStr(
@@ -65,6 +68,17 @@ export class FileDesc implements IFileDesc {
 
     public isSame(file: FileDesc): boolean {
         return file.checksum === this.checksum;
+    }
+
+    public asDesc(): IFileDesc {
+        return {
+            checksum: this.checksum,
+            extention: this.extention,
+            filename: this.filename,
+            parent: this.parent,
+            size: this.size,
+            created: this.created,
+        };
     }
 
     public minify(): { [key: string]: number | string } {

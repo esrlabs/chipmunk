@@ -1,24 +1,25 @@
 <mat-card class="list">
     <mat-card-title>Observing</mat-card-title>
     <mat-card-content>
-        <p *ngIf="observed.running.size === 0" class="info t-medium">No running observe operations</p>
-        <app-transport-review *ngFor="let source of observed.running | keyvalue"
-            [attr.class]="ngGetCssClass(source.key)"
-            [source]="source.value"
+        <p *ngIf="observed.running.length === 0" class="info t-medium">No running observe operations</p>
+        <app-transport-review *ngFor="let holder of observed.running"
+            [attr.class]="ngGetCssClass(holder)"
+            [source]="holder.source"
+            [observer]="holder.observer"
             [session]="session"
             [finished]="false"
-            (click)="ngSelect(source.key, source.value)"></app-transport-review>
+            (click)="ngSelect(holder)"></app-transport-review>
     </mat-card-content>
 </mat-card>
-<mat-card class="list" *ngIf="observed.done.size > 0">
+<mat-card class="list" *ngIf="observed.done.length > 0">
     <mat-card-title>Finished</mat-card-title>
     <mat-card-content>
-        <app-transport-review *ngFor="let source of observed.done | keyvalue"
-            [attr.class]="ngGetCssClass(source.key)"
-            [source]="source.value"
+        <app-transport-review *ngFor="let holder of observed.done"
+            [attr.class]="ngGetCssClass(holder)"
+            [source]="holder.source"
             [session]="session"
             [finished]="true"
-            (click)="ngSelect(source.key, source.value)"></app-transport-review>
+            (click)="ngSelect(holder)"></app-transport-review>
     </mat-card-content>
 </mat-card>
 <mat-card *ngIf="selected !== undefined">
@@ -26,10 +27,11 @@
     <mat-card-content>
         <app-transport-details
             [source]="selected.source"
+            [observer]="selected.observer"
             [session]="session"></app-transport-details>
     </mat-card-content>
 </mat-card>
 <div class="controlls">
-    <button mat-stroked-button [disabled]="isTextFile()" (click)="ngAttachStream()">Attach New</button>
+    <button mat-stroked-button [disabled]="isAttachingDisabled()" (click)="ngAttachStream()">Attach New</button>
 </div>
 
