@@ -210,6 +210,15 @@ namespace :test do
       end
     end
 
+    desc 'run concat tests'
+    task :concat do
+      Bindings.new(false).build
+      Reporter.print
+      Shell.chdir(Paths::TS_BINDINGS) do
+        sh "#{test_runner} spec/session.concat.spec.ts"
+      end
+    end
+
     desc 'run cancel tests'
     task :cancel do
       Bindings.new(false).build
@@ -263,7 +272,7 @@ namespace :test do
     end
   end
   desc 'run all test'
-  task all: ['test:binding:observe', 'test:binding:search', 'test:binding:cancel', 'test:binding:errors',
+  task all: ['test:binding:observe', 'test:binding:concat', 'test:binding:search', 'test:binding:cancel', 'test:binding:errors',
              'test:matcher:karma', 'test:matcher:rust', 'test:ansi:karma', 'test:ansi:rust']
 end
 
