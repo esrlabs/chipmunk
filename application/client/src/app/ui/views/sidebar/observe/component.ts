@@ -6,6 +6,7 @@ import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { DataSource } from '@platform/types/observe';
 import { Alias, getRenderAlias } from '@schema/render/tools';
+import { SourceHolder } from './holder';
 
 @Component({
     selector: 'app-views-observe-list',
@@ -18,42 +19,63 @@ export class ObserveList extends ChangesDetector implements AfterContentInit {
     @Input() session!: Session;
 
     public observed: {
-        running: Map<string, ObserveOperation>;
-        done: Map<string, DataSource>;
+        running: SourceHolder[];
+        done: SourceHolder[];
     } = {
-        running: new Map(),
-        done: new Map(),
+        running: [],
+        done: [],
     };
-    public selected: { uuid: string; source: DataSource | ObserveOperation } | undefined;
+    public selected: SourceHolder | undefined;
 
     constructor(cdRef: ChangeDetectorRef, private _self: ElementRef) {
         super(cdRef);
     }
 
+    protected update() {
+        this.observed.running = [];
+        this.observed.done = [];
+        Array.from(this.session.stream.observed.running.values()).forEach(
+            (observed: ObserveOperation) => {
+                const source = observed.asSource();
+                if (source.childs.length !== 0) {
+                    this.observed.running.push(
+                        ...source.childs.map((s) => new SourceHolder(s, observed)),
+                    );
+                } else {
+                    this.observed.running.push(new SourceHolder(source, observed));
+                }
+            },
+        );
+        Array.from(this.session.stream.observed.done.values()).forEach((source: DataSource) => {
+            if (source.childs.length !== 0) {
+                this.observed.done.push(...source.childs.map((s) => new SourceHolder(s)));
+            } else {
+                this.observed.done.push(new SourceHolder(source));
+            }
+        });
+        this.detectChanges();
+    }
+
     public ngAfterContentInit(): void {
         this.env().subscriber.register(
             this.session.stream.subjects.get().observe.subscribe(() => {
-                this.observed = this.session.stream.observed;
-                if (this.selected !== undefined && this.observed.done.has(this.selected.uuid)) {
-                    this.selected.source = this.observed.done.get(this.selected.uuid) as DataSource;
-                }
-                this.detectChanges();
+                this.update();
             }),
         );
-        this.observed = this.session.stream.observed;
+        this.update();
     }
 
-    public ngSelect(uuid: string, source: DataSource | ObserveOperation): void {
-        if (this.selected !== undefined && this.selected.uuid === uuid) {
+    public ngSelect(holder: SourceHolder): void {
+        if (this.selected !== undefined && this.selected.source.uuid === holder.uuid()) {
             this.selected = undefined;
         } else {
-            this.selected = { uuid, source };
+            this.selected = holder;
         }
         this.detectChanges();
     }
 
-    public ngGetCssClass(uuid: string): string {
-        if (this.selected !== undefined && this.selected.uuid === uuid) {
+    public ngGetCssClass(holder: SourceHolder): string {
+        if (this.selected !== undefined && this.selected.source.uuid === holder.uuid()) {
             return 'selected';
         } else {
             return '';
@@ -116,13 +138,12 @@ export class ObserveList extends ChangesDetector implements AfterContentInit {
         });
     }
 
-    public isTextFile(): boolean {
-        const running = Array.from(this.observed.running.values());
-        if (running.length !== 1) {
+    public isAttachingDisabled(): boolean {
+        if (this.observed.running.length !== 1) {
             return false;
         }
-        const source = running[0].asSource();
-        return source.File !== undefined && source.File[1].Text !== undefined ? true : false;
+        const source = this.observed.running[0].source;
+        return source.asFile() !== undefined && source.parser.Text === undefined;
     }
 }
 export interface ObserveList extends IlcInterface {}

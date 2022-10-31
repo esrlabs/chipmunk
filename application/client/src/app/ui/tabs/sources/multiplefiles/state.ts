@@ -62,9 +62,9 @@ export class State {
             }
         });
         this._selectedSize = bytesToStr(size);
-
-        this._openable = !this._selectedTypes.includes(FileType.Dlt);
-        this._concatable =
-            this._selectedTypes.length === 1 && this._selectedTypes.includes(FileType.Text);
+        this._concatable = this._selectedTypes.length === 1;
+        // this._openable = !this._selectedTypes.includes(FileType.Dlt);
+        // this._concatable =
+        //     this._selectedTypes.length === 1 && this._selectedTypes.includes(FileType.Text);
     }
 }

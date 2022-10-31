@@ -50,6 +50,20 @@
                 }
             }
         },
+        "concat": {
+            "regular": {
+                "execute_only": [],
+                "list": {
+                    "1": "Test 1. Concat and grab content (text)",
+                    "2": "Test 2. Concat and grab content (pcapng)",
+                    "3": "Test 3. Concat and grab content (dlt)"
+                },
+                "files": {
+                    "pcapng": "/storage/projects/esrlabs/logs-examples/test.pcapng",
+                    "dlt": ["/storage/projects/esrlabs/logs-examples/dlt_receive_2.dlt", "/storage/projects/esrlabs/logs-examples/FzgProg_SPss.dlt"]    
+                }
+            }
+        },
         "search": {
             "regular": {
                 "execute_only": [],

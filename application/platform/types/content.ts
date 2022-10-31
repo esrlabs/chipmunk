@@ -7,7 +7,7 @@ export interface IGrabbedContent {
  * (application/apps/rustcore/ts/src/native/native.session.ts)
  */
 export interface IGrabbedElement {
-    source_id: string;
+    source_id: number;
     content: string;
     position: number;
     row: number;

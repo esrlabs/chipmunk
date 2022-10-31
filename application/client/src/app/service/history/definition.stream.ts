@@ -11,31 +11,29 @@ export interface IStreamDesc {
 
 export class StreamDesc implements IStreamDesc {
     static async fromDataSource(source: DataSource): Promise<IStreamDesc | undefined> {
-        if (source.Stream === undefined) {
+        const stream = source.asStream();
+        if (stream === undefined) {
             return undefined;
         }
+        const def = stream.all();
         let sourceRef: Source;
         let major: string = '';
         let minor: string = '';
-        if (source.Stream[0].Serial !== undefined) {
-            major = source.Stream[0].Serial.path;
-            minor = `${source.Stream[0].Serial.baud_rate}.${source.Stream[0].Serial.data_bits}.${source.Stream[0].Serial.stop_bits}`;
+        if (def.Serial !== undefined) {
+            major = def.Serial.path;
+            minor = `${def.Serial.baud_rate}.${def.Serial.data_bits}.${def.Serial.stop_bits}`;
             sourceRef = Source.Serial;
-        } else if (source.Stream[0].Process !== undefined) {
-            major = `${source.Stream[0].Process.command} ${source.Stream[0].Process.args.join(
-                ',',
-            )}`;
+        } else if (def.Process !== undefined) {
+            major = `${def.Process.command} ${def.Process.args.join(',')}`;
             minor = '';
             sourceRef = Source.Process;
-        } else if (source.Stream[0].TCP !== undefined) {
-            major = source.Stream[0].TCP.bind_addr;
+        } else if (def.TCP !== undefined) {
+            major = def.TCP.bind_addr;
             minor = '';
             sourceRef = Source.Tcp;
-        } else if (source.Stream[0].UDP !== undefined) {
-            major = source.Stream[0].UDP.bind_addr;
-            minor = source.Stream[0].UDP.multicast
-                .map((m) => `${m.multiaddr}-${m.interface}`)
-                .join(',');
+        } else if (def.UDP !== undefined) {
+            major = def.UDP.bind_addr;
+            minor = def.UDP.multicast.map((m) => `${m.multiaddr}-${m.interface}`).join(',');
             sourceRef = Source.Udp;
         } else {
             throw new Error(`Unknown source`);

@@ -62,6 +62,18 @@ export class TabSourceMultipleFiles extends Holder implements AfterContentInit, 
     }
 
     public ngConcat() {
+        if (this.files.length === 0) {
+            return;
+        }
+        switch (this.files[0].type) {
+            case FileType.Text:
+            case FileType.Any:
+                this.ilc().services.system.opener.concat(this.files).text();
+                return;
+            case FileType.Dlt:
+                this.ilc().services.system.opener.concat(this.files).dlt();
+                return;
+        }
         // TODO - Concatenate files
         // TODO - Close tab - if DLT new Tab
     }

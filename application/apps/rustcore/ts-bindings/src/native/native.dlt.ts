@@ -4,11 +4,11 @@ import { Types } from '../interfaces/dlt';
 
 export { Types };
 
-export function stats(filename: string): Promise<Types.StatisticInfo> {
+export function stats(files: string[]): Promise<Types.StatisticInfo> {
     const DltRef = getNativeModule().Dlt;
     const dlt = new DltRef();
     return new Promise((resolve, reject) => {
-        dlt.stats(filename)
+        dlt.stats(files)
             .then((stat: string) => {
                 try {
                     resolve(JSON.parse(stat));

@@ -28,7 +28,7 @@ import { components } from '@env/decorators/initial';
 @Ilc()
 export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, AfterContentInit {
     @Input() done!: (options: IDLTOptions | undefined) => void;
-    @Input() file!: File;
+    @Input() files!: File[];
     @Input() options: IDLTOptions | undefined;
     @Input() tab!: TabControls;
 
@@ -43,8 +43,6 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
         }
     }
 
-    public size: (s: number) => string = bytesToStr;
-    public datetime: (ts: number) => string = timestampToUTC;
     public state: State;
     public logLevels: Array<{ value: string; caption: string }> = [
         { value: EMTIN.DLT_LOG_FATAL, caption: 'Fatal' },
@@ -78,12 +76,18 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
         if (this.state.isStatLoaded()) {
             return;
         }
-        this.tab.setTitle(`${this.file.name} (scanning)`);
+        this.tab.setTitle(
+            `${
+                this.files.length === 1 ? this.files[0].name : `${this.files.length} DLT files`
+            } (scanning)`,
+        );
         this.ilc()
             .services.system.bridge.dlt()
-            .stat(this.file.filename)
+            .stat(this.files.map((f) => f.filename))
             .then((stat) => {
-                this.tab.setTitle(this.file.name);
+                this.tab.setTitle(
+                    this.files.length === 1 ? this.files[0].name : `${this.files.length} DLT files`,
+                );
                 this.state.stat = stat;
                 this.state
                     .struct()
@@ -93,6 +97,24 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
             .catch((err: Error) => {
                 this.log().error(`Fail to get DLT stat info: ${err.message}`);
             });
+    }
+
+    public getFilesStat(): {
+        size: string;
+        name: string;
+        created: string | undefined;
+        changed: string | undefined;
+    } {
+        return {
+            size: bytesToStr(
+                this.files.map((f) => f.stat.size).reduce((partialSum, a) => partialSum + a, 0),
+            ),
+            name: this.files.length !== 1 ? `${this.files.length} files` : this.files[0].name,
+            created:
+                this.files.length !== 1 ? undefined : timestampToUTC(this.files[0].stat.ctimeMs),
+            changed:
+                this.files.length !== 1 ? undefined : timestampToUTC(this.files[0].stat.mtimeMs),
+        };
     }
 
     public ngOnOpen() {

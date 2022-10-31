@@ -7,8 +7,9 @@ import { File } from '@platform/types/files';
 import { SourceDefinition } from '@platform/types/transport';
 import { IDLTOptions, parserSettingsToOptions } from '@platform/types/parsers/dlt';
 
-import * as Files from './opener/files';
-import * as Streams from './opener/streams';
+import * as Files from './opener/file/index';
+import * as Concat from './opener/concat/index';
+import * as Streams from './opener/stream/index';
 import { DataSource } from './session/dependencies/stream';
 
 export { Session, TabControls };
@@ -57,12 +58,12 @@ export class Service extends Implementation {
                 return out;
             },
             source: (src: DataSource): Promise<void> => {
-                if (src.Stream === undefined) {
+                if (src.origin.Stream === undefined) {
                     return Promise.reject(new Error(`Operation is available only for streams`));
                 }
-                if (src.Stream[1].Dlt !== undefined) {
-                    return out.dlt(parserSettingsToOptions(src.Stream[1].Dlt));
-                } else if (src.Stream[1].Text !== undefined) {
+                if (src.parser.Dlt !== undefined) {
+                    return out.dlt(parserSettingsToOptions(src.parser.Dlt));
+                } else if (src.parser.Text !== undefined) {
                     return out.text();
                 }
                 return Promise.reject(new Error(`Unsupported type of source`));
@@ -81,6 +82,27 @@ export class Service extends Implementation {
             },
             dlt: (options?: IDLTOptions): Promise<void> => {
                 return new Files.Dlt(this._services, this.log()).assign(scope).open(file, options);
+            },
+            assign: (session: Session | undefined): FileOpenFuncs => {
+                scope = session;
+                return out;
+            },
+        };
+        return out;
+    }
+
+    public concat(files: File[] | string[]): FileOpenFuncs {
+        let scope: Session | undefined;
+        const out = {
+            text: (): Promise<void> => {
+                return new Concat.Text(this._services, this.log())
+                    .assign(scope)
+                    .open(files, undefined);
+            },
+            dlt: (options?: IDLTOptions): Promise<void> => {
+                return new Concat.Dlt(this._services, this.log())
+                    .assign(scope)
+                    .open(files, options);
             },
             assign: (session: Session | undefined): FileOpenFuncs => {
                 scope = session;

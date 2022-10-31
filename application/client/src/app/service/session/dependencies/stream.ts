@@ -4,7 +4,7 @@ import { Range, IRange } from '@platform/types/range';
 import { cutUuid } from '@log/index';
 import { Rank } from './rank';
 import { IGrabbedElement } from '@platform/types/content';
-import { DataSource } from '@platform/types/observe';
+import { DataSource, ObservedSourceLink } from '@platform/types/observe';
 import { ObserveOperation } from './observe/operation';
 import { error } from '@platform/env/logger';
 import { SourceDefinition } from '@platform/types/transport';
@@ -19,14 +19,21 @@ export { ObserveOperation, DataSource };
 @SetupLogger()
 export class Stream extends Subscriber {
     public readonly subjects: Subjects<{
+        // Stream is updated (new rows came)
         updated: Subject<number>;
+        // List of observing operations is changed
         observe: Subject<Map<string, ObserveOperation>>;
+        // New observe operation is started
         source: Subject<DataSource>;
+        // List of sources (observed operations has been changed)
+        sources: Subject<void>;
+        // Session rank is changed
         rank: Subject<number>;
     }> = new Subjects({
         updated: new Subject<number>(),
         observe: new Subject<Map<string, ObserveOperation>>(),
         source: new Subject<DataSource>(),
+        sources: new Subject<void>(),
         rank: new Subject<number>(),
     });
     private _len: number = 0;
@@ -35,9 +42,11 @@ export class Stream extends Subscriber {
     public readonly observed: {
         running: Map<string, ObserveOperation>;
         done: Map<string, DataSource>;
+        map: Map<number, ObservedSourceLink>;
     } = {
         running: new Map(),
         done: new Map(),
+        map: new Map(),
     };
     public readonly rank: Rank = new Rank();
 
@@ -76,6 +85,19 @@ export class Stream extends Subscriber {
                         this.observe().abort,
                     ),
                 );
+                this.observe()
+                    .descriptions.request()
+                    .then((sources) => {
+                        sources.forEach((source) => {
+                            if (!this.observed.map.has(source.id)) {
+                                this.observed.map.set(source.id, source);
+                                this.subjects.get().sources.emit();
+                            }
+                        });
+                    })
+                    .catch((err: Error) => {
+                        this.log().error(`Fail get sources description: ${err.message}`);
+                    });
                 this.subjects.get().observe.emit(this.observed.running);
                 this.subjects.get().source.emit(source);
             }),
@@ -106,6 +128,23 @@ export class Stream extends Subscriber {
             Requests.IpcRequest.send<Requests.File.Open.Response>(
                 Requests.File.Open.Response,
                 new Requests.File.Open.Request({ session: this._uuid, file }),
+            )
+                .then((response) => {
+                    if (typeof response.error === 'string' && response.error !== '') {
+                        reject(new Error(response.error));
+                    } else {
+                        resolve(undefined);
+                    }
+                })
+                .catch(reject);
+        });
+    }
+
+    public concat(files: TargetFile[]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            Requests.IpcRequest.send<Requests.File.Concat.Response>(
+                Requests.File.Concat.Response,
+                new Requests.File.Concat.Request({ session: this._uuid, files }),
             )
                 .then((response) => {
                     if (typeof response.error === 'string' && response.error !== '') {
@@ -157,12 +196,13 @@ export class Stream extends Subscriber {
                 });
             },
             source: (src: DataSource): Promise<void> => {
-                if (src.Stream === undefined) {
+                const stream = src.asStream();
+                if (stream === undefined) {
                     return Promise.reject(new Error(`Operation is available only for streams`));
                 }
-                if (src.Stream[1].Dlt !== undefined) {
-                    return this.connect(source).dlt(parserSettingsToOptions(src.Stream[1].Dlt));
-                } else if (src.Stream[1].Text !== undefined) {
+                if (src.parser.Dlt !== undefined) {
+                    return this.connect(source).dlt(parserSettingsToOptions(src.parser.Dlt));
+                } else if (src.parser.Text !== undefined) {
                     return this.connect(source).text();
                 }
                 return Promise.reject(new Error(`Unsupported type of source`));
@@ -179,6 +219,11 @@ export class Stream extends Subscriber {
         restart(uuid: string, source: DataSource): Promise<void>;
         list(): Promise<Map<string, DataSource>>;
         sources(): DataSource[];
+        descriptions: {
+            get(id: number): ObservedSourceLink | undefined;
+            request(): Promise<ObservedSourceLink[]>;
+            count(): number;
+        };
         sde<T, R>(uuid: string, msg: T): Promise<R>;
     } {
         return {
@@ -252,6 +297,28 @@ export class Stream extends Subscriber {
                 return Array.from(this.observed.running.values())
                     .map((o) => o.asSource())
                     .concat(Array.from(this.observed.done.values()));
+            },
+            descriptions: {
+                get: (id: number): ObservedSourceLink | undefined => {
+                    return this.observed.map.get(id);
+                },
+                request: (): Promise<ObservedSourceLink[]> => {
+                    return new Promise((resolve, reject) => {
+                        Requests.IpcRequest.send(
+                            Requests.Observe.SourcesDefinitionsList.Response,
+                            new Requests.Observe.SourcesDefinitionsList.Request({
+                                session: this._uuid,
+                            }),
+                        )
+                            .then((response: Requests.Observe.SourcesDefinitionsList.Response) => {
+                                resolve(response.sources);
+                            })
+                            .catch(reject);
+                    });
+                },
+                count: (): number => {
+                    return this.observed.map.size;
+                },
             },
             sde: <T, R>(uuid: string, msg: T): Promise<R> => {
                 return new Promise((resolve, reject) => {

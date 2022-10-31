@@ -161,6 +161,12 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
         return this.frame.get().from;
     }
 
+    public isSourceSwitched(i: number): boolean {
+        return this.rows[i - 1] === undefined
+            ? false
+            : this.rows[i - 1].source !== this.rows[i].source;
+    }
+
     public onScrolling(position: number) {
         this.frame.moveTo(position, ChangesInitiator.Scrolling);
     }

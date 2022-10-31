@@ -21,6 +21,7 @@ import {
 import { IConcatResults } from './executors/session.stream.concat.executor';
 import { IMergeResults } from './executors/session.stream.merge.executor';
 import { IRange } from 'platform/types/range';
+import { ObservedSourceLink } from 'platform/types/observe';
 
 export {
     IFileMergeOptions,
@@ -74,6 +75,10 @@ export class SessionStream {
 
     public getFileOptionsRequirements(filename: string): EFileOptionsRequirements {
         return this._session.getFileOptionsRequirements(filename);
+    }
+
+    public getSourcesDefinitions(): Promise<ObservedSourceLink[]> {
+        return this._session.getSourcesDefinitions();
     }
 
     public observe(source: Observe.DataSource): ICancelablePromise<void> {

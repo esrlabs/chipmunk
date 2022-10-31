@@ -91,7 +91,10 @@ class State {
                     content: el.content,
                     session: this._session,
                     owner: Owner.Search,
-                    source: 0,
+                    source:
+                        typeof el.source_id === 'string'
+                            ? parseInt(el.source_id, 10)
+                            : el.source_id,
                 }),
         );
     }

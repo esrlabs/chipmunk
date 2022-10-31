@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Input, ViewChild } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, ViewChild, AfterContentInit } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Session } from '@service/session/session';
@@ -10,6 +10,7 @@ import {
     AutocompleteInput,
 } from '@elements/autocomplete/component';
 import { Subject } from '@platform/env/subscription';
+import { DataSource } from '@platform/types/observe';
 
 @Component({
     selector: 'app-transport-serial-details',
@@ -17,12 +18,14 @@ import { Subject } from '@platform/env/subscription';
     styleUrls: ['./styles.less'],
 })
 @Ilc()
-export class TransportSerial extends ChangesDetector {
+export class TransportSerial extends ChangesDetector implements AfterContentInit {
     @Input() public observe!: ObserveOperation | undefined;
-    @Input() public source!: SerialTransportSettings;
+    @Input() public source!: DataSource;
     @Input() public session!: Session;
 
     @ViewChild('message') public input!: AutocompleteInput;
+
+    public serial!: SerialTransportSettings;
 
     public readonly options: AutocompleteOptions = {
         name: 'SerialRecentSentMessageList',
@@ -35,6 +38,18 @@ export class TransportSerial extends ChangesDetector {
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
+    }
+
+    public ngAfterContentInit(): void {
+        const stream = this.source.asStream();
+        if (stream === undefined) {
+            throw new Error(`DataSource isn't bound to stream`);
+        }
+        const serial = stream.serial();
+        if (serial === undefined) {
+            throw new Error(`DataSource isn't bound to Serial stream`);
+        }
+        this.serial = serial;
     }
 
     public ngEnter(event: string): void {

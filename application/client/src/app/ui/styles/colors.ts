@@ -232,3 +232,19 @@ export const CShortColors = ['#fbe961', '#a1eefd', '#a2fa91', '#f4b5b4', '#9fb6f
 export function getBasicColors(): string[] {
     return CColors.slice(3, CColors.length);
 }
+
+const sourceColors: string[] = [];
+
+export function getSourceColor(id: number): string {
+    if (sourceColors.length === 0) {
+        const colors = getBasicColors();
+        sourceColors.push(colors[Math.floor(Math.random() * (colors.length - 1))]);
+    }
+    if (id >= sourceColors.length) {
+        const toGenerate = id - (sourceColors.length - 1);
+        for (let i = toGenerate; i >= 0; i -= 1) {
+            sourceColors.push(getUniqueColorTo(sourceColors));
+        }
+    }
+    return sourceColors[id];
+}

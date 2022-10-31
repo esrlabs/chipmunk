@@ -41,7 +41,6 @@ export class Row extends Subscriber {
     public html!: string;
     public color: string | undefined;
     public background: string | undefined;
-
     public columns: string[] = [];
 
     protected readonly delimiter: string | undefined;
@@ -103,7 +102,7 @@ export class Row extends Subscriber {
             grabbed: (row: number): IGrabbedElement => {
                 return {
                     position: this.position.stream,
-                    source_id: this.source.toString(),
+                    source_id: this.source,
                     content: this.content,
                     row,
                 };

@@ -20,7 +20,7 @@ export const handler = Requests.InjectLogger<
                     pinned: false,
                 })
                 .start();
-            dlt.stats(request.filename)
+            dlt.stats(request.files)
                 .then((stat: dlt.Types.StatisticInfo) => {
                     resolve(
                         new Requests.Dlt.Stat.Response({

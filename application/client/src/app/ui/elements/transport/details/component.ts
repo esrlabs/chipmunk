@@ -7,10 +7,9 @@ import {
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { DataSource, Source } from '@platform/types/observe';
+import { DataSource } from '@platform/types/observe';
 import { Session } from '@service/session/session';
 import { ObserveOperation } from '@service/session/dependencies/observe/operation';
-// import { SdeRequest, SdeResponse } from '@platform/types/sde/processes';
 
 @Component({
     selector: 'app-transport-details',
@@ -19,10 +18,10 @@ import { ObserveOperation } from '@service/session/dependencies/observe/operatio
 })
 @Ilc()
 export class Transport extends ChangesDetector implements AfterContentInit, AfterContentChecked {
-    @Input() public source!: DataSource | ObserveOperation;
+    @Input() public source!: DataSource;
+    @Input() public observer!: ObserveOperation | undefined;
     @Input() public session!: Session;
 
-    public verified: Source = {};
     public stopped: boolean = false;
 
     constructor(cdRef: ChangeDetectorRef) {
@@ -57,10 +56,7 @@ export class Transport extends ChangesDetector implements AfterContentInit, Afte
     }
 
     public ngRestart(): void {
-        const sourceDef =
-            this.source instanceof DataSource
-                ? this.source.asSourceDefinition()
-                : this.source.asSource().asSourceDefinition();
+        const sourceDef = this.source.asSourceDefinition();
         if (sourceDef instanceof Error) {
             return;
         }
@@ -80,10 +76,7 @@ export class Transport extends ChangesDetector implements AfterContentInit, Afte
     }
 
     public ngClone(): void {
-        const sourceDef =
-            this.source instanceof DataSource
-                ? this.source.asSourceDefinition()
-                : this.source.asSource().asSourceDefinition();
+        const sourceDef = this.source.asSourceDefinition();
         if (sourceDef instanceof Error) {
             return;
         }
@@ -97,21 +90,11 @@ export class Transport extends ChangesDetector implements AfterContentInit, Afte
     }
 
     public isTextFile(): boolean {
-        const source =
-            this.source instanceof ObserveOperation ? this.source.asSource() : this.source;
-        return source.File !== undefined && source.File[1].Text !== undefined ? true : false;
+        return this.source.asFile() !== undefined && this.source.parser.Text === undefined;
     }
 
     protected update() {
-        const source = (
-            this.source instanceof ObserveOperation ? this.source.asSource() : this.source
-        ).getSource();
         this.stopped = !(this.source instanceof ObserveOperation);
-        if (source instanceof Error) {
-            this.log().error(`Invalid source: ${source.message}`);
-            return;
-        }
-        this.verified = source;
     }
 }
 export interface Transport extends IlcInterface {}

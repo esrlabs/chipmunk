@@ -35,6 +35,6 @@ export class Action extends Base {
             });
             return Promise.resolve();
         }
-        return opener.file(files[0]).text();
+        return opener.concat(files).text();
     }
 }

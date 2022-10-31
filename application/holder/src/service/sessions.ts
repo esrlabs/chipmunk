@@ -139,6 +139,15 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
+                    Requests.Observe.SourcesDefinitionsList.Request,
+                    RequestHandlers.Observe.Sources.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
                     Requests.Search.Map.Request,
                     RequestHandlers.Search.Map.handler,
                 ),

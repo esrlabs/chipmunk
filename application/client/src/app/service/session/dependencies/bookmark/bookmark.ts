@@ -44,7 +44,7 @@ export class Bookmark extends Json<Bookmark> implements Recognizable, Equal<Book
             grabbed: (row: number): IGrabbedElement => {
                 return {
                     position: this.row.stream,
-                    source_id: this.row.source.toString(),
+                    source_id: this.row.source,
                     content: this.row.content,
                     row,
                 };
