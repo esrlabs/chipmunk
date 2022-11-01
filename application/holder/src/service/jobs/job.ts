@@ -15,9 +15,9 @@ export class Job {
     public uuid: string;
     public progress = 0;
     public session: string;
+    public name?: string;
     public desc?: string;
     public icon?: string;
-    public pinned: boolean;
 
     private _canceled = false;
     private _created: number = Date.now();
@@ -26,14 +26,15 @@ export class Job {
     constructor(job: {
         uuid?: string;
         session?: string;
+        name?: string;
         desc?: string;
         progress?: number;
-        pinned?: boolean;
         icon?: string;
         done: (job: Job) => void;
     }) {
         this.uuid = job.uuid !== undefined ? job.uuid : unique();
         this.session = validator.getAsNotEmptyStringOrAsUndefined(job, 'session');
+        this.name = validator.getAsNotEmptyStringOrAsUndefined(job, 'name');
         this.desc = validator.getAsNotEmptyStringOrAsUndefined(job, 'desc');
         this.icon = validator.getAsNotEmptyStringOrAsUndefined(job, 'icon');
         this.progress = validator.getAsValidNumber(job, 'progress', {
@@ -41,7 +42,6 @@ export class Job {
             max: 100,
             min: 0,
         });
-        this.pinned = validator.getAsBool(job, 'pinned', false);
         this.session = this.session === undefined ? GLOBAL_JOBS : this.session;
         this._done = job.done;
     }
@@ -58,9 +58,9 @@ export class Job {
             new Events.State.Job.Event({
                 uuid: this.uuid,
                 session: this.session,
+                name: this.name,
                 desc: this.desc,
                 progress: this.progress,
-                pinned: this.pinned,
                 icon: this.icon,
             }),
         );
@@ -80,65 +80,44 @@ export class Job {
             new Events.State.Job.Event({
                 uuid: this.uuid,
                 session: this.session,
+                name: this.name,
                 desc: this.desc,
                 progress: this.progress,
-                pinned: this.pinned,
                 icon: this.icon,
             }),
         );
         return this;
     }
 
-    public done(): Job {
+    public done(inputs?: {
+        name: string | undefined;
+        desc: string | undefined;
+        icon: string | undefined;
+    }): Job {
         if (this.isCanceled()) {
             return this;
         }
         if (this.progress === 100) {
             throw new Error(`Operation ${this.uuid} has been done already. Desc: ${this.desc}`);
         }
+        const update: {
+            name?: string;
+            desc?: string;
+            icon?: string;
+        } = inputs === undefined ? {} : inputs;
+        this.name = update.name !== undefined ? update.name : this.name;
+        this.desc =
+            update.desc !== undefined ? update.desc : this.desc === undefined ? 'done' : this.desc;
+        this.icon = typeof update.icon === 'string' ? update.icon : this.icon;
         this.progress = 100;
+        this.desc = `[${((Date.now() - this._created) / 1000).toFixed(2)}s] ${this.desc}`;
         Events.IpcEvent.emit(
             new Events.State.Job.Event({
                 uuid: this.uuid,
                 session: this.session,
+                name: this.name,
                 desc: this.desc,
                 progress: this.progress,
-                pinned: this.pinned,
-                icon: this.icon,
-            }),
-        );
-        this._done(this);
-        return this;
-    }
-
-    public doneAndPinStatus(inputs: { desc: string | undefined; icon: string | undefined }): Job {
-        if (this.isCanceled()) {
-            return this;
-        }
-        if (this.progress === 100) {
-            throw new Error(`Operation ${this.uuid} has been done already. Desc: ${this.desc}`);
-        }
-        this.progress = 100;
-        this.pinned = true;
-        this.icon = typeof inputs.icon === 'string' ? inputs.icon : this.icon;
-        if (this.icon !== undefined) {
-            this.desc = `${typeof inputs.desc === 'string' ? inputs.desc : 'done'} in ${(
-                (Date.now() - this._created) /
-                1000
-            ).toFixed(2)}s`;
-        } else {
-            this.desc = `${typeof inputs.desc === 'string' ? inputs.desc : this.desc} in ${(
-                (Date.now() - this._created) /
-                1000
-            ).toFixed(2)}s`;
-        }
-        Events.IpcEvent.emit(
-            new Events.State.Job.Event({
-                uuid: this.uuid,
-                session: this.session,
-                desc: this.desc,
-                progress: this.progress,
-                pinned: this.pinned,
                 icon: this.icon,
             }),
         );

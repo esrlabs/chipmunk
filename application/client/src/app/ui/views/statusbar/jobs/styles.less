@@ -41,7 +41,7 @@ app-statusbar-jobs {
             padding-right: 6px;
         }
     }
-    & span.desc{
+    & span.name{
         font-size: 10px;
         color: @scheme-color-2;
     }
@@ -53,5 +53,41 @@ app-statusbar-jobs {
         border-radius: 4px;
         background-color: @scheme-color-accent;
         margin-right: 6px;
+    }
+
+}
+
+& div.status-bar-jobs-list {
+    position: relative;
+    max-height: 300px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 12px;
+    & div.job{
+        position: relative;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        padding: 3px 0;
+        & mat-icon {
+            height: 16px;
+            width: 16px;
+            color: @scheme-color-0;
+            font-size: 16px;
+            padding-right: 6px;
+        }
+        & span.description{
+            flex:auto;
+            & span.name {
+                position: relative;
+                display: block;
+                color: @scheme-color-0;
+            }
+            & span.desc {
+                position: relative;
+                display: block;    
+                color: @scheme-color-2;
+            }    
+        }
     }
 }

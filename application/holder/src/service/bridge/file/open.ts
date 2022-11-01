@@ -26,8 +26,8 @@ export const handler = Requests.InjectLogger<
                     .create({
                         uuid: aliases.getFileReadingJobUuid(request.session),
                         session: request.session,
-                        desc: 'reading',
-                        pinned: false,
+                        name: 'reading',
+                        desc: `file: ${request.file.name}`,
                     })
                     .start();
                 switch (request.file.type) {
@@ -35,10 +35,7 @@ export const handler = Requests.InjectLogger<
                     case FileType.Text:
                         stored
                             .observe()
-                            .start(
-                                Observe.DataSource.file(request.file.filename).text(),
-                                'tail text',
-                            )
+                            .start(Observe.DataSource.file(request.file.filename).text())
                             .then(() => {
                                 resolve(
                                     new Requests.File.Open.Response({
@@ -69,7 +66,6 @@ export const handler = Requests.InjectLogger<
                                               0,
                                           ),
                                 ),
-                                'tail DLT',
                             )
                             .then(() => {
                                 resolve(

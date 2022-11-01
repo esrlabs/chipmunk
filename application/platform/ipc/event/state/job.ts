@@ -7,15 +7,15 @@ export class Event extends SignatureRequirement {
     public uuid: string;
     public progress: number;
     public session?: string;
+    public name?: string;
     public desc?: string;
-    public pinned: boolean;
     public icon?: string;
 
     constructor(input: {
         uuid: string;
-        pinned: boolean;
         progress: number;
         session?: string;
+        name?: string;
         desc?: string;
         icon?: string;
     }) {
@@ -24,9 +24,9 @@ export class Event extends SignatureRequirement {
         this.progress = validator.getAsValidNumber(input, 'progress', { min: 0, max: 100 });
         this.uuid = validator.getAsNotEmptyString(input, 'uuid');
         this.session = validator.getAsNotEmptyStringOrAsUndefined(input, 'session');
+        this.name = validator.getAsNotEmptyStringOrAsUndefined(input, 'name');
         this.desc = validator.getAsNotEmptyStringOrAsUndefined(input, 'desc');
         this.icon = validator.getAsNotEmptyStringOrAsUndefined(input, 'icon');
-        this.pinned = validator.getAsBool(input, 'pinned', false);
     }
 }
 

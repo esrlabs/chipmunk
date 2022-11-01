@@ -26,8 +26,8 @@ export const handler = Requests.InjectLogger<
                     .create({
                         uuid: aliases.getFileReadingJobUuid(request.session),
                         session: request.session,
-                        desc: 'reading',
-                        pinned: false,
+                        name: 'concating',
+                        desc: `${request.files.length} files`,
                     })
                     .start();
                 switch (request.files[0].type) {
@@ -39,7 +39,6 @@ export const handler = Requests.InjectLogger<
                                 Observe.DataSource.concat(
                                     request.files.map((f) => f.filename),
                                 ).text(),
-                                'tail text',
                             )
                             .then(() => {
                                 resolve(
@@ -71,7 +70,6 @@ export const handler = Requests.InjectLogger<
                                               0,
                                           ),
                                 ),
-                                'tail DLT',
                             )
                             .then(() => {
                                 resolve(

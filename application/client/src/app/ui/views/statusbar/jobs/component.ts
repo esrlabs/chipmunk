@@ -19,21 +19,19 @@ import { Job } from '@service/jobs';
 @Ilc()
 export class Jobs extends ChangesDetector implements AfterViewInit {
     private _session: string | undefined;
-    public list: {
+    public done: {
         globals: Job[];
         session: Job[];
-        pinned: Job[];
     } = {
         globals: [],
         session: [],
-        pinned: [],
     };
     public actual: {
-        globals: Job | undefined;
-        session: Job | undefined;
+        globals: Job[];
+        session: Job[];
     } = {
-        globals: undefined,
-        session: undefined,
+        globals: [],
+        session: [],
     };
 
     constructor(cdRef: ChangeDetectorRef) {
@@ -53,22 +51,16 @@ export class Jobs extends ChangesDetector implements AfterViewInit {
 
     private _update() {
         if (this._session === undefined) {
-            this.list.session = [];
-            this.actual.session = undefined;
+            this.done.session = [];
+            this.actual.session = [];
         } else {
-            this.list.session = this.ilc().services.system.jobs.session(this._session);
+            const all = this.ilc().services.system.jobs.session(this._session);
+            this.actual.session = all.filter((j) => !j.isDone());
+            this.done.session = all.filter((j) => j.isDone());
         }
-        this.list.globals = this.ilc().services.system.jobs.globals();
-        this.list.pinned = this.list.globals.filter((j) => j.pinned);
-        this.list.pinned = this.list.pinned.concat(this.list.session.filter((j) => j.pinned));
-        const regular = {
-            session: this.list.session.filter((j) => !j.pinned),
-            globals: this.list.globals.filter((j) => !j.pinned),
-        };
-        this.actual.session =
-            regular.session.length > 0 ? regular.session[regular.session.length - 1] : undefined;
-        this.actual.globals =
-            regular.globals.length > 0 ? regular.globals[regular.globals.length - 1] : undefined;
+        const all = this.ilc().services.system.jobs.globals();
+        this.actual.globals = all.filter((j) => !j.isDone());
+        this.done.globals = all.filter((j) => j.isDone());
         this.detectChanges();
     }
 }

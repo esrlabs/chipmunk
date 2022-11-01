@@ -64,6 +64,13 @@ export interface SourceDescription {
         stopped: string;
     };
 }
+
+export interface JobDescription {
+    name: string;
+    desc: string;
+    icon: string | undefined;
+}
+
 export class DataSource {
     public readonly origin: IOrigin = {};
     public readonly parser: Parser;
@@ -486,6 +493,59 @@ export class DataSource {
                     running: 'listening',
                     stopped: '',
                 },
+            };
+        }
+        return new Error(`Unknown source`);
+    }
+
+    public asJob(): JobDescription | Error {
+        const file = this.asFile();
+        const concat = this.asConcatedFiles();
+        const stream = this.asStream();
+        if (file !== undefined) {
+            return {
+                name: 'tail',
+                desc: filename(file),
+                icon: 'insert_drive_file',
+            };
+        }
+        if (concat !== undefined) {
+            return {
+                name: 'concating',
+                desc: `concating ${concat.length} files`,
+                icon: 'insert_drive_file',
+            };
+        }
+        if (stream === undefined) {
+            return new Error(`Source isn't defined`);
+        }
+        const streaming = stream.all();
+        if (streaming.Process !== undefined) {
+            return {
+                name: `${streaming.Process.command}`,
+                desc: `${streaming.Process.command} ${streaming.Process.args.join(' ')}`,
+                icon: 'web_asset',
+            };
+        } else if (streaming.UDP !== undefined) {
+            return {
+                name: `UPD: ${streaming.UDP.bind_addr}`,
+                desc:
+                    streaming.UDP.multicast.length === 0
+                        ? ''
+                        : streaming.UDP.multicast.map((m) => m.multiaddr).join(', '),
+                icon: 'network_wifi_3_bar',
+            };
+        } else if (streaming.TCP !== undefined) {
+            return {
+                name: `TCP: ${streaming.TCP.bind_addr}`,
+                desc: '',
+                icon: 'network_wifi_3_bar',
+            };
+        } else if (streaming.Serial !== undefined) {
+            return {
+                name: `Serial: ${streaming.Serial.path}`,
+                desc: `Baud Rate: ${streaming.Serial.baud_rate}`,
+                icon: 'import_export',
             };
         }
         return new Error(`Unknown source`);

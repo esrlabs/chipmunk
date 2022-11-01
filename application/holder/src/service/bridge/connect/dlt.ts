@@ -26,7 +26,6 @@ export const handler = Requests.InjectLogger<
                         Observe.DataSource.stream()
                             .upd(request.source.udp)
                             .dlt(optionsToParserSettings(request.options, false, 0, 0)),
-                        'DLT on UDP',
                     )
                     .then(() => {
                         resolve(
@@ -50,7 +49,6 @@ export const handler = Requests.InjectLogger<
                         Observe.DataSource.stream()
                             .tcp(request.source.tcp)
                             .dlt(optionsToParserSettings(request.options, false, 0, 0)),
-                        'DLT on TCP',
                     )
                     .then(() => {
                         resolve(
@@ -74,7 +72,6 @@ export const handler = Requests.InjectLogger<
                         Observe.DataSource.stream()
                             .serial(request.source.serial)
                             .dlt(optionsToParserSettings(request.options, false, 0, 0)),
-                        'DLT on serial',
                     )
                     .then(() => {
                         resolve(
@@ -98,7 +95,6 @@ export const handler = Requests.InjectLogger<
                         Observe.DataSource.stream()
                             .process(request.source.process)
                             .dlt(optionsToParserSettings(request.options, false, 0, 0)),
-                        'DLT on process',
                     )
                     .then(() => {
                         resolve(

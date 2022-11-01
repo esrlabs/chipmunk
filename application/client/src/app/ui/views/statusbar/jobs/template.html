@@ -1,15 +1,44 @@
-<div class="global" *ngIf="actual.globals !== undefined">
+<!-- <div class="global" *ngIf="actual.globals !== undefined">
     <mat-spinner [diameter]="12"></mat-spinner>
     <span class="desc">{{actual.globals?.desc}}</span>
 </div>
 <div class="session" *ngIf="actual.session !== undefined">
     <mat-spinner [diameter]="12"></mat-spinner>
     <span class="desc">{{actual.session?.desc}}</span>
-</div>
-<div class="pinned" *ngIf="list.pinned.length > 0">
-    <span class="pinned-job" *ngFor="let job of list.pinned">
+</div> -->
+<div class="globals pinned" *ngIf="actual.globals.length > 0">
+    <span class="pinned-job" *ngFor="let job of actual.globals">
         <span class="indicator" *ngIf="job.icon === undefined"></span>
         <mat-icon *ngIf="job.icon !== undefined">{{job.icon}}</mat-icon>
-        <span class="desc">{{job.desc}}</span>
+        <span class="name">{{job.name}}</span>
     </span>
 </div>
+<div class="session pinned" *ngIf="actual.session.length > 0">
+    <span class="pinned-job" *ngFor="let job of actual.session">
+        <span class="indicator" *ngIf="job.icon === undefined"></span>
+        <mat-icon *ngIf="job.icon !== undefined">{{job.icon}}</mat-icon>
+        <span class="name">{{job.name}}</span>
+    </span>
+</div>
+<button class="tray-icon" *ngIf="done.globals.length + done.session.length > 0" mat-icon-button color="accent" [matMenuTriggerFor]="menu">
+    <mat-icon>menu</mat-icon>
+</button>
+<mat-menu #menu="matMenu">
+    <div class="status-bar-jobs-list">
+        <div class="job" *ngFor="let job of done.globals">
+            <mat-icon *ngIf="job.icon !== undefined">{{job.icon}}</mat-icon>
+            <span class="description">
+                <span class="name t-small">{{job.name}}</span>
+                <span class="desc t-small">{{job.desc}}</span>
+            </span>
+        </div>
+        <mat-divider *ngIf="done.globals.length > 0 && done.session.length > 0"></mat-divider>
+        <div class="job" *ngFor="let job of done.session">
+            <mat-icon *ngIf="job.icon !== undefined">{{job.icon}}</mat-icon>
+            <span class="description">
+                <span class="name t-small">{{job.name}}</span>
+                <span class="desc t-small">{{job.desc}}</span>
+            </span>
+        </div>
+    </div>
+</mat-menu>
