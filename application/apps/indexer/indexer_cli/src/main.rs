@@ -51,6 +51,7 @@ use parsers::{
     LogMessage, MessageStreamItem,
 };
 use processor::{
+    export::export_raw,
     grabber::{GrabError, Grabber},
     text_source::TextFileSource,
 };
@@ -833,16 +834,26 @@ pub async fn main() -> Result<()> {
         // let was_session_file: bool = matches.is_present("is_session_file");
         // let old_way: bool = matches.is_present("legacy");
         // let sections_string: String = matches.value_of_t_or_exit("sections");
-        let sections: Vec<IndexSection> = sections_string
-            .split('|')
-            .map(|s| to_pair(s).expect("could not parse section pair"))
-            .collect();
+        let sections: Vec<IndexSection> = if sections_string.is_empty() {
+            vec![]
+        } else {
+            sections_string
+                .split('|')
+                .map(|s| to_pair(s).expect("could not parse section pair"))
+                .collect()
+        };
 
         let ending = &file_path.extension().expect("could not get extension");
         let in_file = File::open(file_path).unwrap();
         let _reader = BufReader::new(&in_file);
         if ending.to_str() == Some("dlt") {
-            todo!("use grabber for export");
+            let dlt_parser = DltParser::new(None, None, true);
+            let reader = BufReader::new(&in_file);
+            let source = BinaryByteSource::new(reader);
+            let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source, None);
+            export_raw(Box::pin(dlt_msg_producer.as_stream()), &out_path, sections)
+                .await
+                .expect("export_raw failed");
         } else {
             trace!("was regular file");
             if old_way {
