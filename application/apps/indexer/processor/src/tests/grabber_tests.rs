@@ -10,7 +10,6 @@ mod tests {
         text_source::TextFileSource,
     };
     use pretty_assertions::assert_eq;
-    use proptest::prelude::*;
     use std::ops::RangeInclusive;
 
     fn write_content_to_tmp_file(content: &[String]) -> tempfile::TempPath {
@@ -31,30 +30,6 @@ mod tests {
         }
         let ff = writer.into_inner().expect("could not get at file anymore");
         ff.into_temp_path()
-    }
-
-    fn is_consistent(content: &[String], metadata: &GrabMetadata) -> bool {
-        println!(
-            "slots: {:?}, line_count: {}, content-len: {}",
-            metadata.slots,
-            metadata.line_count,
-            content.len()
-        );
-        true
-    }
-
-    static LINE_REGEX: &str = r"[a-z]{0,200}";
-    proptest! {
-        #[test]
-        fn produced_metadata_is_consistent(v in prop::collection::vec(LINE_REGEX, 0..500)) {
-            let p = write_content_to_tmp_file(&v);
-            let source = TextFileSource::new(&p);
-            if let Ok(grabber) = Grabber::new(source) {
-                let metadata = grabber.metadata.expect("metadata was not created");
-                assert!(is_consistent(&v, &metadata));
-            }
-
-        }
     }
 
     fn identify_range_simple(slots: &[Slot], line_index: u64) -> Option<(Slot, usize)> {
