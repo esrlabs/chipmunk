@@ -130,7 +130,6 @@
                 }
             }
             &.top {
-                border-bottom: inset thin @scheme-color-5;
                 box-sizing: content-box !important;
                 &.arrows-offset {
                     padding: 0 0 0 1rem;
@@ -150,18 +149,6 @@
                         transform: translateY(-16px);
                         vertical-align: top;
                     }
-                    &:not(.active) {
-                        border-left: thin inset @background;
-                    }
-                    &:first-child {
-                        border-left: thin solid rgba(0, 0, 0, 0);
-                    }
-                    &.active + li.tab {
-                        border-left: none;
-                    }
-                    &:last-child {
-                        border-right: thin outset @background;
-                    }
                     &:hover {
                         & mat-icon.close {
                             transform: translateY(0);
@@ -169,7 +156,6 @@
                     }
                     &.active {
                         box-sizing: content-box !important;
-                        border-bottom: none;
                         background: @scheme-color-5;
                         &::after {
                             width: 100%;
@@ -184,7 +170,6 @@
                 }
             }
             &.left {
-                border-right: inset thin @scheme-color-5;
                 white-space: normal;
                 box-sizing: content-box !important;
                 & li.tab {
@@ -210,18 +195,6 @@
                         transform: translateY(-16px);
                         pointer-events: none;
                     }
-                    &:not(.active) {
-                        border-top: thin inset @background;
-                    }
-                    &:first-child {
-                        border-top: thin solid rgba(0, 0, 0, 0);
-                    }
-                    &.active + li.tab {
-                        border-top: none;
-                    }
-                    &:last-child {
-                        border-bottom: thin outset @background;
-                    }
                     &:hover {
                         & mat-icon.close {
                             transform: translateY(0);
@@ -229,8 +202,6 @@
                         }
                     }
                     &.active {
-                        border-right: none;
-                        border-bottom: none;
                         background: @scheme-color-5;
                         &::after {
                             width: 100%;
