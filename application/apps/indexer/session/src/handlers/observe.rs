@@ -29,7 +29,7 @@ pub async fn handle(
             .await
         }
         Sources::Concat(files) => {
-            if files.len() == 0 {
+            if files.is_empty() {
                 Err(NativeError {
                     severity: Severity::ERROR,
                     kind: NativeErrorKind::NotYetImplemented,

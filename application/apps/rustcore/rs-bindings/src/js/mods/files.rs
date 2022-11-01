@@ -16,7 +16,7 @@ impl Files {
     }
     #[node_bindgen]
     async fn checksum(&self, filename: String) -> Result<String, String> {
-        let mut file = File::open(&filename).map_err(|e| format!("{}", e))?;
+        let mut file = File::open(filename).map_err(|e| format!("{}", e))?;
         let mut hasher = blake3::Hasher::new();
         let mut buffer = [0; 65536];
         loop {

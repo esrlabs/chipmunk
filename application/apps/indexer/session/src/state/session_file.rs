@@ -220,7 +220,7 @@ impl SessionFile {
                 GrabbedElement {
                     source_id: mapped_ranges.source(pos as u64).unwrap_or(0),
                     content,
-                    pos: pos,
+                    pos,
                     row: pos,
                 }
             })

@@ -35,7 +35,7 @@ pub(crate) struct ComputationErrorWrapper(pub ComputationError);
 
 impl TryIntoJs for ComputationErrorWrapper {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        let value = serde_json::to_value(&self.0).map_err(|e| NjError::Other(format!("{}", e)))?;
+        let value = serde_json::to_value(self.0).map_err(|e| NjError::Other(format!("{}", e)))?;
         value.try_to_js(js_env)
     }
 }
