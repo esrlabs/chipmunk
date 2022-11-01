@@ -78,6 +78,7 @@ impl Operation {
 }
 
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum OperationKind {
     Observe(ObserveOptions),
     Search {

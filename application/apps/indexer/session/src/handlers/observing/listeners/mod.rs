@@ -29,12 +29,12 @@ pub mod concat;
 pub mod file;
 pub mod stream;
 
-pub async fn run<'a, S: ByteSource>(
+pub async fn run<S: ByteSource>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     source: S,
     source_id: u8,
-    parser: &'a ParserType,
+    parser: &ParserType,
     rx_sde: Option<SdeReceiver>,
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
@@ -58,7 +58,7 @@ pub async fn run<'a, S: ByteSource>(
         }
         ParserType::Dlt(settings) => {
             let producer = MessageProducer::new(
-                super::parsers::dlt(&settings, settings.fibex_metadata.as_ref())?,
+                super::parsers::dlt(settings, settings.fibex_metadata.as_ref())?,
                 source,
                 rx_sde,
             );
