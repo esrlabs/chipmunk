@@ -74,8 +74,9 @@ export const handler = Requests.InjectLogger<
                                 .then((len: number) => {
                                     const job = jobs.find(aliases.getFileReadingJobUuid(uuid));
                                     job !== undefined &&
-                                        job.doneAndPinStatus({
+                                        job.done({
                                             icon: 'file_download',
+                                            name: 'reading',
                                             desc: 'read',
                                         });
 

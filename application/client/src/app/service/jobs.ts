@@ -21,9 +21,9 @@ export class Service extends Implementation {
                     job = new Job({
                         session: event.session,
                         uuid: event.uuid,
+                        name: event.name,
                         desc: event.desc,
                         progress: event.progress,
-                        pinned: event.pinned,
                     });
                 } else {
                     job.update(event);
@@ -32,11 +32,7 @@ export class Service extends Implementation {
                 if (jobs === undefined) {
                     jobs = new Map();
                 }
-                if (job.isDone() && !job.pinned) {
-                    jobs.delete(job.uuid);
-                } else {
-                    jobs.set(job.uuid, job);
-                }
+                jobs.set(job.uuid, job);
                 this._jobs.set(job.session, jobs);
                 this._emitter.backend.job(job);
             }),

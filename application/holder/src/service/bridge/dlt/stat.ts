@@ -16,8 +16,11 @@ export const handler = Requests.InjectLogger<
         return new CancelablePromise((resolve, reject) => {
             const scanning = jobs
                 .create({
-                    desc: 'scanning dlt',
-                    pinned: false,
+                    name: 'scanning dlt',
+                    desc:
+                        request.files.length === 1
+                            ? `file: ${request.files[0]}`
+                            : `${request.files.length} for files`,
                 })
                 .start();
             dlt.stats(request.files)

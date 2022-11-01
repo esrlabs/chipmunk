@@ -67,10 +67,11 @@ export class Definition implements EntryConvertable, Equal<Definition> {
         const def = new Definition({
             file: FileDesc.fromMinifiedStr(obj.getAsObjOrUndefined(src, 'f')),
             stream: StreamDesc.fromMinifiedStr(obj.getAsObjOrUndefined(src, 's')),
+            concat: ConcatDesc.fromMinifiedStr(obj.getAsObjOrUndefined(src, 'c'))?.files,
             parser: obj.getAsNotEmptyString(src, 'p') as ParserName,
             uuid: obj.getAsNotEmptyString(src, 'u'),
         });
-        if (def.file === undefined && def.stream === undefined) {
+        if (def.file === undefined && def.stream === undefined && def.concat === undefined) {
             throw new Error(`Definition doesn't have description not for stream, not for file`);
         }
         return def;

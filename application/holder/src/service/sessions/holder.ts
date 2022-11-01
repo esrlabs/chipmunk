@@ -64,20 +64,30 @@ export class Holder {
     }
 
     public observe(): {
-        start(source: Observe.DataSource, jobName: string): Promise<void>;
+        start(source: Observe.DataSource): Promise<void>;
         cancel(uuid: string): Promise<void>;
         list(): { [key: string]: string };
     } {
         return {
-            start: (source: Observe.DataSource, jobName: string): Promise<void> => {
+            start: (source: Observe.DataSource): Promise<void> => {
                 if (this._shutdown) {
                     return Promise.reject(new Error(`Session is closing`));
+                }
+                let jobDesc = source.asJob();
+                if (jobDesc instanceof Error) {
+                    this._logger.error(`Fail to get job description: ${jobDesc.message}`);
+                    jobDesc = {
+                        name: 'unknown',
+                        desc: 'unknown',
+                        icon: undefined,
+                    };
                 }
                 const observe = jobs
                     .create({
                         session: this.session.getUUID(),
-                        desc: jobName,
-                        pinned: true,
+                        name: jobDesc.name,
+                        desc: jobDesc.desc,
+                        icon: jobDesc.icon,
                     })
                     .start();
                 return new Promise((resolve, reject) => {

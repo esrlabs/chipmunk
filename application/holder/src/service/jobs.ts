@@ -27,16 +27,18 @@ export class Service extends Implementation {
     }
 
     public create(inputs: {
-        pinned: boolean;
         uuid?: string;
         session?: string;
+        name?: string;
         desc?: string;
+        icon?: string;
     }): Job {
         const job = new Job({
             uuid: inputs.uuid,
             session: inputs.session,
+            name: inputs.name,
             desc: inputs.desc,
-            pinned: inputs.pinned,
+            icon: inputs.icon,
             done: (job: Job) => {
                 const jobs = this._jobs.get(job.session);
                 if (jobs === undefined) {

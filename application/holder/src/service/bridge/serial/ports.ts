@@ -17,8 +17,8 @@ export const handler = Requests.InjectLogger<
             log.info(request);
             const scanning = jobs
                 .create({
-                    desc: 'fetching serial ports',
-                    pinned: false,
+                    name: 'scan ports',
+                    desc: 'fetching serial ports data',
                 })
                 .start();
             serial

@@ -21,10 +21,7 @@ export const handler = Requests.InjectLogger<
             if (request.source.udp !== undefined) {
                 stored
                     .observe()
-                    .start(
-                        Observe.DataSource.stream().upd(request.source.udp).text(),
-                        'text on UDP',
-                    )
+                    .start(Observe.DataSource.stream().upd(request.source.udp).text())
                     .then(() => {
                         resolve(
                             new Requests.Connect.Text.Response({
@@ -43,10 +40,7 @@ export const handler = Requests.InjectLogger<
             } else if (request.source.tcp !== undefined) {
                 stored
                     .observe()
-                    .start(
-                        Observe.DataSource.stream().tcp(request.source.tcp).text(),
-                        'text on TCP',
-                    )
+                    .start(Observe.DataSource.stream().tcp(request.source.tcp).text())
                     .then(() => {
                         resolve(
                             new Requests.Connect.Text.Response({
@@ -65,10 +59,7 @@ export const handler = Requests.InjectLogger<
             } else if (request.source.serial !== undefined) {
                 stored
                     .observe()
-                    .start(
-                        Observe.DataSource.stream().serial(request.source.serial).text(),
-                        'text on serial',
-                    )
+                    .start(Observe.DataSource.stream().serial(request.source.serial).text())
                     .then(() => {
                         resolve(
                             new Requests.Connect.Text.Response({
@@ -92,10 +83,7 @@ export const handler = Requests.InjectLogger<
             } else if (request.source.process !== undefined) {
                 stored
                     .observe()
-                    .start(
-                        Observe.DataSource.stream().process(request.source.process).text(),
-                        'text on process',
-                    )
+                    .start(Observe.DataSource.stream().process(request.source.process).text())
                     .then(() => {
                         resolve(
                             new Requests.Connect.Text.Response({
