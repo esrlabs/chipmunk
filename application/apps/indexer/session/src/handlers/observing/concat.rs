@@ -1,6 +1,5 @@
 use crate::{
     events::{NativeError, NativeErrorKind},
-    handlers::observing,
     operations::{OperationAPI, OperationResult},
     state::SessionStateAPI,
 };
@@ -17,7 +16,7 @@ pub async fn listen<'a>(
 ) -> OperationResult<()> {
     for file in files.iter() {
         let (uuid, filename) = file;
-        let source_id = observing::sources::get_source_id(&state, uuid).await?;
+        let source_id = state.add_source(uuid).await?;
         let input_file = File::open(filename).map_err(|e| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Io,

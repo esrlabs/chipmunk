@@ -19,14 +19,7 @@ pub async fn handle(
 ) -> OperationResult<()> {
     match &options.origin {
         Sources::File(uuid, filename) => {
-            observing::listeners::file::listen(
-                operation_api,
-                state,
-                uuid,
-                filename,
-                &options.parser,
-            )
-            .await
+            observing::file::listen(operation_api, state, uuid, filename, &options.parser).await
         }
         Sources::Concat(files) => {
             if files.is_empty() {
@@ -36,12 +29,11 @@ pub async fn handle(
                     message: Some(String::from("No files are defined for Concat operation")),
                 })
             } else {
-                observing::listeners::concat::listen(operation_api, state, files, &options.parser)
-                    .await
+                observing::concat::listen(operation_api, state, files, &options.parser).await
             }
         }
         Sources::Stream(uuid, transport) => {
-            observing::listeners::stream::listen(
+            observing::stream::listen(
                 operation_api,
                 state,
                 uuid,

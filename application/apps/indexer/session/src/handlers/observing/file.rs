@@ -1,16 +1,12 @@
 use crate::{
     events::{NativeError, NativeErrorKind},
-    handlers::observing,
     operations::{OperationAPI, OperationResult},
     state::SessionStateAPI,
     tail,
 };
 use indexer_base::progress::Severity;
 use sources::{factory::ParserType, pcap::file::PcapngByteSource, raw::binary::BinaryByteSource};
-use std::{
-    fs::File,
-    path::{Path, PathBuf},
-};
+use std::{fs::File, path::Path};
 use tokio::{
     join, select,
     sync::mpsc::{channel, Receiver, Sender},
@@ -21,17 +17,17 @@ pub async fn listen<'a>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     uuid: &str,
-    filename: &PathBuf,
+    filename: &Path,
     parser: &'a ParserType,
 ) -> OperationResult<()> {
-    let source_id = observing::sources::get_source_id(&state, uuid).await?;
+    let source_id = state.add_source(uuid).await?;
     let (tx_tail, mut rx_tail): (
         Sender<Result<(), tail::Error>>,
         Receiver<Result<(), tail::Error>>,
     ) = channel(1);
     match parser {
         ParserType::Text => {
-            state.set_session_file(Some(filename.clone())).await?;
+            state.set_session_file(Some(filename.to_path_buf())).await?;
             // Grab main file content
             state.update_session(source_id).await?;
             // Confirm: main file content has been read
