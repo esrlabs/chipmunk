@@ -6,7 +6,7 @@ use crate::{
 };
 use indexer_base::progress::Severity;
 use log::trace;
-use parsers::{LogMessage, MessageStreamItem, Parser};
+use parsers::{dlt::DltParser, text::StringTokenizer, LogMessage, MessageStreamItem, Parser};
 use sources::{
     factory::ParserType,
     producer::{MessageProducer, SdeReceiver},
@@ -45,23 +45,25 @@ pub async fn run<S: ByteSource>(
             message: Some(String::from("SomeIP parser not yet supported")),
         }),
         ParserType::Text => {
-            let producer = MessageProducer::new(super::parsers::text()?, source, rx_sde);
+            let producer = MessageProducer::new(StringTokenizer {}, source, rx_sde);
             listen(operation_api, state, source_id, producer, rx_tail).await
         }
         ParserType::Pcap(settings) => {
-            let producer = MessageProducer::new(
-                super::parsers::dlt(&settings.dlt, settings.dlt.fibex_metadata.as_ref())?,
-                source,
-                rx_sde,
+            let parser = DltParser::new(
+                settings.dlt.filter_config.as_ref().map(|f| f.into()),
+                settings.dlt.fibex_metadata.as_ref(),
+                settings.dlt.with_storage_header,
             );
+            let producer = MessageProducer::new(parser, source, rx_sde);
             listen(operation_api, state, source_id, producer, rx_tail).await
         }
         ParserType::Dlt(settings) => {
-            let producer = MessageProducer::new(
-                super::parsers::dlt(settings, settings.fibex_metadata.as_ref())?,
-                source,
-                rx_sde,
+            let dlt_parser = DltParser::new(
+                settings.filter_config.as_ref().map(|f| f.into()),
+                settings.fibex_metadata.as_ref(),
+                settings.with_storage_header,
             );
+            let producer = MessageProducer::new(dlt_parser, source, rx_sde);
             listen(operation_api, state, source_id, producer, rx_tail).await
         }
     }

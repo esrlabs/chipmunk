@@ -49,6 +49,16 @@ impl From<std::io::Error> for NativeError {
     }
 }
 
+impl From<sources::Error> for NativeError {
+    fn from(err: sources::Error) -> Self {
+        NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::ComputationFailed,
+            message: Some(format!("Fail create source: {}", err)),
+        }
+    }
+}
+
 impl From<tokio::sync::mpsc::error::SendError<CallbackEvent>> for NativeError {
     fn from(err: tokio::sync::mpsc::error::SendError<CallbackEvent>) -> Self {
         NativeError {
