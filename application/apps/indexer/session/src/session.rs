@@ -3,16 +3,13 @@ use crate::{
     operations,
     operations::Operation,
     state,
-    state::{SessionStateAPI, SourceDefinition},
+    state::{GrabbedElement, SessionStateAPI, SourceDefinition},
     tracker,
     tracker::OperationTrackerAPI,
 };
 use indexer_base::progress::Severity;
 use log::{debug, error};
-use processor::{
-    grabber::{GrabbedElement, LineRange},
-    search::SearchFilter,
-};
+use processor::{grabber::LineRange, search::SearchFilter};
 use serde::Serialize;
 use sources::factory::ObserveOptions;
 use std::{ops::RangeInclusive, path::PathBuf};

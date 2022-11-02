@@ -5,10 +5,11 @@ use crate::{
 use indexer_base::progress::Severity;
 use log::{debug, error};
 use processor::{
-    grabber::{GrabbedElement, LineRange},
+    grabber::LineRange,
     map::{FilterMatch, FiltersStats, NearestPosition, ScaledDistribution, SearchMap},
     search::{SearchHolder, SearchResults},
 };
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fmt::Display,
@@ -30,6 +31,18 @@ pub use observing::SourceDefinition;
 pub use session_file::{SessionFile, SessionFileState};
 
 pub const NOTIFY_IN_MS: u128 = 250;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GrabbedElement {
+    #[serde(rename = "id")]
+    pub source_id: u8,
+    #[serde(rename = "c")]
+    pub content: String,
+    #[serde(rename = "r")]
+    pub row: usize,
+    #[serde(rename = "p")]
+    pub pos: usize,
+}
 
 #[derive(Debug)]
 pub enum SearchHolderState {

@@ -31,18 +31,6 @@ pub enum GrabError {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct GrabbedElement {
-    #[serde(rename = "id")]
-    pub source_id: u8,
-    #[serde(rename = "c")]
-    pub content: String,
-    #[serde(rename = "r")]
-    pub row: usize,
-    #[serde(rename = "p")]
-    pub pos: usize,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ByteIdentifier;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -190,6 +178,12 @@ impl Grabber {
         self.source.path().to_path_buf()
     }
 
+    /// Updates metadata of related file from recent position.
+    /// Optionally takes cancellation token to interrupt operation.
+    /// Returning a range of recently detected lines.
+    ///
+    /// #Errors
+    /// In case of cancellation will return error GrabError::Interrupted
     pub fn update_from_file(
         &mut self,
         shutdown_token: Option<CancellationToken>,
@@ -218,6 +212,7 @@ impl Grabber {
 
     /// If a grabber was created lazily, the metadata can be created with this
     /// function.
+    /// Returning a range of recently detected lines if metadata has been inited.
     pub fn create_metadata(
         &mut self,
         shutdown_token: Option<CancellationToken>,

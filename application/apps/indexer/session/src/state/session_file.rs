@@ -2,11 +2,12 @@ use super::observing::Observing;
 use crate::{
     events::{NativeError, NativeErrorKind},
     paths,
+    state::GrabbedElement,
 };
 use indexer_base::progress::Severity;
 use log::debug;
 use processor::{
-    grabber::{GrabbedElement, Grabber, LineRange},
+    grabber::{Grabber, LineRange},
     text_source::TextFileSource,
 };
 use std::{

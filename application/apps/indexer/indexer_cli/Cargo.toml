@@ -11,8 +11,7 @@ bytes = "1.0"
 chrono = "0.4"
 crossbeam-channel = "0.5.1"
 dirs = "4.0"
-dlt-core = { git = "https://github.com/DmitryAstafyev/dlt-core.git" }
-# dlt-core = { path = "../../../../../dlt-core.git" }
+dlt-core = "0.14"
 env_logger = "0.9"
 futures = "0.3"
 indexer_base = { path = "../indexer_base" }
