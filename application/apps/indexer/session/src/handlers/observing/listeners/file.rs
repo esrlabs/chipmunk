@@ -2,12 +2,15 @@ use crate::{
     events::{NativeError, NativeErrorKind},
     handlers::observing,
     operations::{OperationAPI, OperationResult},
-    state::{SessionStateAPI},
+    state::SessionStateAPI,
     tail,
 };
 use indexer_base::progress::Severity;
-use sources::factory::ParserType;
-use std::path::PathBuf;
+use sources::{factory::ParserType, pcap::file::PcapngByteSource, raw::binary::BinaryByteSource};
+use std::{
+    fs::File,
+    path::{Path, PathBuf},
+};
 use tokio::{
     join, select,
     sync::mpsc::{channel, Receiver, Sender},
@@ -22,65 +25,110 @@ pub async fn listen<'a>(
     parser: &'a ParserType,
 ) -> OperationResult<()> {
     let source_id = observing::sources::get_source_id(&state, uuid).await?;
-    if let ParserType::Text = parser {
-        state.set_session_file(Some(filename.clone())).await?;
-        let (tx_tail, mut rx_tail): (
-            Sender<Result<(), tail::Error>>,
-            Receiver<Result<(), tail::Error>>,
-        ) = channel(1);
-        // Grab main file content
-        state.update_session(source_id).await?;
-        // Confirm: main file content has been read
-        state.file_read().await?;
-        // Switching to tail
-        let cancel = operation_api.cancellation_token();
-        operation_api.started();
-        let (result, tracker) = join!(
-            async {
-                let result = select! {
-                    res = async move {
-                        while let Some(update) = rx_tail.recv().await {
-                            update.map_err(|err| NativeError {
-                                severity: Severity::ERROR,
-                                kind: NativeErrorKind::Interrupted,
-                                message: Some(err.to_string()),
-                            })?;
-                            state.update_session(source_id).await?;
-                        }
-                        Ok(())
-                    } => res,
-                    _ = cancel.cancelled() => Ok(())
-                };
-                result
-            },
-            tail::track(filename, tx_tail, operation_api.cancellation_token()),
-        );
-        result
-            .and_then(|_| {
-                tracker.map_err(|e| NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Interrupted,
-                    message: Some(format!("Tailing error: {}", e)),
+    let (tx_tail, mut rx_tail): (
+        Sender<Result<(), tail::Error>>,
+        Receiver<Result<(), tail::Error>>,
+    ) = channel(1);
+    match parser {
+        ParserType::Text => {
+            state.set_session_file(Some(filename.clone())).await?;
+            // Grab main file content
+            state.update_session(source_id).await?;
+            // Confirm: main file content has been read
+            state.file_read().await?;
+            // Switching to tail
+            let cancel = operation_api.cancellation_token();
+            operation_api.started();
+            let (result, tracker) = join!(
+                async {
+                    let result = select! {
+                        res = async move {
+                            while let Some(update) = rx_tail.recv().await {
+                                update.map_err(|err| NativeError {
+                                    severity: Severity::ERROR,
+                                    kind: NativeErrorKind::Interrupted,
+                                    message: Some(err.to_string()),
+                                })?;
+                                state.update_session(source_id).await?;
+                            }
+                            Ok(())
+                        } => res,
+                        _ = cancel.cancelled() => Ok(())
+                    };
+                    result
+                },
+                tail::track(filename, tx_tail, operation_api.cancellation_token()),
+            );
+            result
+                .and_then(|_| {
+                    tracker.map_err(|e| NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::Interrupted,
+                        message: Some(format!("Tailing error: {}", e)),
+                    })
                 })
-            })
-            .map(|_| None)
-    } else {
-        let (tx_tail, rx_tail): (
-            Sender<Result<(), tail::Error>>,
-            Receiver<Result<(), tail::Error>>,
-        ) = channel(1);
-        let (_, listening) = join!(
-            tail::track(filename, tx_tail, operation_api.cancellation_token()),
-            super::run(
-                operation_api,
-                state,
-                observing::sources::file(parser, filename)?,
-                source_id,
-                parser,
-                None,
-                Some(rx_tail)
-            )
-        );
-        listening
+                .map(|_| None)
+        }
+        ParserType::Dlt(_) => {
+            let source = BinaryByteSource::new(input_file(filename)?);
+            let (_, listening) = join!(
+                tail::track(filename, tx_tail, operation_api.cancellation_token()),
+                super::run(
+                    operation_api,
+                    state,
+                    source,
+                    source_id,
+                    parser,
+                    None,
+                    Some(rx_tail)
+                )
+            );
+            listening
+        }
+
+        ParserType::Pcap(_) => {
+            let source = PcapngByteSource::new(input_file(filename)?)?;
+            let (_, listening) = join!(
+                tail::track(filename, tx_tail, operation_api.cancellation_token()),
+                super::run(
+                    operation_api,
+                    state,
+                    source,
+                    source_id,
+                    parser,
+                    None,
+                    Some(rx_tail)
+                )
+            );
+            listening
+        }
+        ParserType::SomeIP(_) => {
+            let source = BinaryByteSource::new(input_file(filename)?);
+            let (_, listening) = join!(
+                tail::track(filename, tx_tail, operation_api.cancellation_token()),
+                super::run(
+                    operation_api,
+                    state,
+                    source,
+                    source_id,
+                    parser,
+                    None,
+                    Some(rx_tail)
+                )
+            );
+            listening
+        }
     }
+}
+
+fn input_file(filename: &Path) -> Result<File, NativeError> {
+    File::open(filename).map_err(|e| NativeError {
+        severity: Severity::ERROR,
+        kind: NativeErrorKind::Io,
+        message: Some(format!(
+            "Fail open file {}: {}",
+            filename.to_string_lossy(),
+            e
+        )),
+    })
 }
