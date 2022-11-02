@@ -86,11 +86,7 @@ impl SessionFile {
                 Ok(0)
             }
         } else {
-            Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
-                message: Some(String::from("Grabber isn't inited")),
-            })
+            Ok(0)
         }
     }
 
