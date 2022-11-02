@@ -17,84 +17,7 @@ describe('Errors', () => {
         const logger = getLogger('Errors. Test 1');
         Session.create()
             .then((session: Session) => {
-                // Set provider into debug mode
-                session.debug(true, 'Test 1. Error: Stream len before observe');
-                const stream: SessionStream = session.getStream();
-                if (stream instanceof Error) {
-                    return finish(session, done, stream);
-                }
-                stream
-                    .len()
-                    .then((len: number) => {
-                        finish(
-                            session,
-                            done,
-                            new Error(`Length of stream should not be available`),
-                        );
-                    })
-                    .catch((err: Error) => {
-                        logger.debug(`Expected error: ${err.message}`);
-                        finish(session, done);
-                    });
-            })
-            .catch((err: Error) => {
-                finish(
-                    undefined,
-                    done,
-                    new Error(
-                        `Fail to create session due error: ${
-                            err instanceof Error ? err.message : err
-                        }`,
-                    ),
-                );
-            });
-    });
-    it(config.regular.list[2], (done) => {
-        const logger = getLogger('Errors. Test 2');
-        Session.create()
-            .then((session: Session) => {
-                // Set provider into debug mode
-                session.debug(true, 'Test 2. Error: Search len before observe');
-                const search = session.getSearch();
-                if (search instanceof Error) {
-                    return finish(session, done, search);
-                }
-                search
-                    .len()
-                    .then((len: number) => {
-                        expect(len).toEqual(0);
-                        session
-                            .getNativeSession()
-                            .getSearchLen()
-                            .then((count: number) => {
-                                expect(count).toEqual(0);
-                                finish(session, done);
-                            })
-                            .catch((err: Error) => {
-                                finish(session, done, err);
-                            });
-                    })
-                    .catch((err: Error) => {
-                        finish(session, done, err);
-                    });
-            })
-            .catch((err: Error) => {
-                finish(
-                    undefined,
-                    done,
-                    new Error(
-                        `Fail to create session due error: ${
-                            err instanceof Error ? err.message : err
-                        }`,
-                    ),
-                );
-            });
-    });
-    it(config.regular.list[3], (done) => {
-        const logger = getLogger('Errors. Test 3');
-        Session.create()
-            .then((session: Session) => {
-                session.debug(true, 'Test 3. Error: search before observe');
+                session.debug(true, 'Test 1. Error: search before observe');
                 const search = session.getSearch();
                 if (search instanceof Error) {
                     return finish(session, done, search);
@@ -126,11 +49,11 @@ describe('Errors', () => {
                 );
             });
     });
-    it(config.regular.list[4], (done) => {
-        const logger = getLogger('Errors. Test 4');
+    it(config.regular.list[2], (done) => {
+        const logger = getLogger('Errors. Test 2');
         Session.create()
             .then((session: Session) => {
-                session.debug(true, 'Test 4. Error: Assign fake file');
+                session.debug(true, 'Test 2. Error: Assign fake file');
                 const stream = session.getStream();
                 if (stream instanceof Error) {
                     return finish(session, done, stream);
@@ -162,11 +85,11 @@ describe('Errors', () => {
                 );
             });
     });
-    it(config.regular.list[5], (done) => {
-        const logger = getLogger('Errors. Test 5');
+    it(config.regular.list[3], (done) => {
+        const logger = getLogger('Errors. Test 3');
         Session.create()
             .then((session: Session) => {
-                session.debug(true, 'Test 5. Assign and grab invalid range');
+                session.debug(true, 'Test 3. Assign and grab invalid range');
                 const stream = session.getStream();
                 if (stream instanceof Error) {
                     return finish(session, done, stream);
@@ -213,11 +136,11 @@ describe('Errors', () => {
                 );
             });
     });
-    it(config.regular.list[6], (done) => {
-        const logger = getLogger('Errors. Test 6');
+    it(config.regular.list[4], (done) => {
+        const logger = getLogger('Errors. Test 4');
         Session.create()
             .then((session: Session) => {
-                session.debug(true, 'Test 6. Assign & single and grab invalid range');
+                session.debug(true, 'Test 4. Assign & single and grab invalid range');
                 const stream: SessionStream = session.getStream();
                 if (stream instanceof Error) {
                     return finish(session, done, stream);
@@ -286,11 +209,11 @@ describe('Errors', () => {
                 );
             });
     });
-    it(config.regular.list[7], (done) => {
-        const logger = getLogger('Errors. Test 7');
+    it(config.regular.list[5], (done) => {
+        const logger = getLogger('Errors. Test 5');
         Session.create()
             .then((session: Session) => {
-                session.debug(true, 'Test 7. Grab lines with negative length');
+                session.debug(true, 'Test 5. Grab lines with negative length');
                 const stream: SessionStream = session.getStream();
                 if (stream instanceof Error) {
                     return finish(session, done, stream);
@@ -336,8 +259,8 @@ describe('Errors', () => {
                 );
             });
     });
-    it(config.regular.list[8], (done) => {
-        const logger = getLogger('Errors. Test 8');
+    it(config.regular.list[6], (done) => {
+        const logger = getLogger('Errors. Test 6');
         Session.create()
             .then((session: Session) => {
                 const stream: SessionStream = session.getStream();

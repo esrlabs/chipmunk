@@ -77,14 +77,12 @@
             "regular": {
                 "execute_only": [],
                 "list": {
-                    "1": "Test 1. Error: Stream len before observe",
-                    "2": "Test 2. Error: Search len before observe",
-                    "3": "Test 3. Error: search before observe",
-                    "4": "Test 4. Error: Assign fake file",
-                    "5": "Test 5. Error: Assign and grab invalid range",
-                    "6": "Test 6. Error: Assign & single and grab invalid range",
-                    "7": "Test 7. Error: Grab lines with negative length",
-                    "8": "Test 8. Error: Grab lines with negative start"
+                    "1": "Test 1. Error: search before observe",
+                    "2": "Test 2. Error: Assign fake file",
+                    "3": "Test 3. Error: Assign and grab invalid range",
+                    "4": "Test 4. Error: Assign & single and grab invalid range",
+                    "5": "Test 5. Error: Grab lines with negative length",
+                    "6": "Test 6. Error: Grab lines with negative start"
                 }
             }
         }
