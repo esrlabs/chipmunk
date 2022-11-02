@@ -21,8 +21,7 @@ pub async fn listen<'a>(
     parser: &'a ParserType,
     rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
-    let source_id = observing::sources::get_source_id(&state, uuid).await?;
-
+    let source_id = state.add_source(uuid).await?;
     match transport {
         Transport::UDP(settings) => {
             let udp_source = UdpSource::new(&settings.bind_addr, settings.multicast.clone())
@@ -32,7 +31,7 @@ pub async fn listen<'a>(
                     kind: NativeErrorKind::Interrupted,
                     message: Some(format!("Fail to create socket due error: {:?}", e)),
                 })?;
-            observing::listeners::run(
+            observing::run(
                 operation_api,
                 state,
                 udp_source,
@@ -51,7 +50,7 @@ pub async fn listen<'a>(
                     kind: NativeErrorKind::Interrupted,
                     message: Some(format!("Fail to create socket due error: {:?}", e)),
                 })?;
-            observing::listeners::run(
+            observing::run(
                 operation_api,
                 state,
                 tcp_source,
@@ -71,7 +70,7 @@ pub async fn listen<'a>(
                     e
                 )),
             })?;
-            observing::listeners::run(
+            observing::run(
                 operation_api,
                 state,
                 serial_source,
@@ -94,7 +93,7 @@ pub async fn listen<'a>(
                 kind: NativeErrorKind::Interrupted,
                 message: Some(format!("Fail to create process source due error: {:?}", e)),
             })?;
-            observing::listeners::run(
+            observing::run(
                 operation_api,
                 state,
                 process_source,
