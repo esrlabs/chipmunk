@@ -41,7 +41,7 @@ pub async fn run<S: ByteSource>(
     match parser {
         ParserType::SomeIP(_) => Err(NativeError {
             severity: Severity::ERROR,
-            kind: NativeErrorKind::FileNotFound,
+            kind: NativeErrorKind::UnsupportedFileType,
             message: Some(String::from("SomeIP parser not yet supported")),
         }),
         ParserType::Text => {

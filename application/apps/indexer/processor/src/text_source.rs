@@ -4,7 +4,6 @@ use crate::grabber::{
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use indexer_base::progress::ComputationResult;
 use std::{
-    collections::HashMap,
     fs,
     io::{Read, SeekFrom},
     ops::RangeInclusive,
@@ -14,11 +13,6 @@ use tokio_util::sync::CancellationToken;
 
 const REDUX_READER_CAPACITY: usize = 1024 * 32;
 const REDUX_MIN_BUFFER_SPACE: usize = 10 * 1024;
-
-#[derive(Debug)]
-pub struct SourcesMap {
-    pub map: HashMap<u8, Vec<RangeInclusive<u64>>>,
-}
 
 #[derive(Debug)]
 pub struct TextFileSource {
@@ -94,6 +88,20 @@ impl TextFileSource {
         Ok(input_file_size)
     }
 
+    /// Updates metadata for the related file. The file will be read from
+    /// the recent position to the end.
+    ///
+    /// Optionally takes existing related metadata and extends it with
+    /// recently detected data. If metadata isn't provided, it will be
+    /// generated and the file will be read from the beginning.
+    ///
+    /// Returning updated/generated metadata and range of recently detected
+    /// lines.
+    ///
+    /// Optionally takes cancellation token to interrupt operation.
+    ///
+    /// #Errors
+    /// In case of cancellation will return error GrabError::Interrupted
     pub fn from_file(
         &mut self,
         base: Option<GrabMetadata>,

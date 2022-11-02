@@ -10,7 +10,6 @@ use sources::{
     producer::SdeReceiver,
 };
 
-#[allow(clippy::type_complexity)]
 pub async fn handle(
     operation_api: OperationAPI,
     state: SessionStateAPI,
@@ -25,7 +24,7 @@ pub async fn handle(
             if files.is_empty() {
                 Err(NativeError {
                     severity: Severity::ERROR,
-                    kind: NativeErrorKind::NotYetImplemented,
+                    kind: NativeErrorKind::Configuration,
                     message: Some(String::from("No files are defined for Concat operation")),
                 })
             } else {
