@@ -43,7 +43,7 @@ impl From<std::io::Error> for NativeError {
     fn from(err: std::io::Error) -> Self {
         NativeError {
             severity: Severity::ERROR,
-            kind: NativeErrorKind::ComputationFailed,
+            kind: NativeErrorKind::Io,
             message: Some(err.to_string()),
         }
     }

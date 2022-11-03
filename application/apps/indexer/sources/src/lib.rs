@@ -122,34 +122,3 @@ pub trait ByteSource: Send + Sync {
         Ok(String::new())
     }
 }
-
-#[async_trait]
-impl<T: ByteSource + ?Sized> ByteSource for Box<T> {
-    fn consume(&mut self, offset: usize) {
-        (**self).consume(offset)
-    }
-
-    fn current_slice(&self) -> &[u8] {
-        (**self).current_slice()
-    }
-
-    fn len(&self) -> usize {
-        (**self).len()
-    }
-
-    async fn reload(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error> {
-        (**self).reload(filter).await
-    }
-
-    fn is_empty(&self) -> bool {
-        (**self).is_empty()
-    }
-
-    async fn cancel(&mut self) -> Result<(), Error> {
-        (**self).cancel().await
-    }
-
-    async fn income(&mut self, msg: String) -> Result<String, String> {
-        (**self).income(msg).await
-    }
-}

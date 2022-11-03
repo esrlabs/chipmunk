@@ -6,7 +6,7 @@ use crate::{
 };
 use indexer_base::progress::Severity;
 use sources::{
-    factory::{ObserveOptions, Sources},
+    factory::{ObserveOptions, ObserveOrigin},
     producer::SdeReceiver,
 };
 
@@ -17,10 +17,10 @@ pub async fn handle(
     rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
     match &options.origin {
-        Sources::File(uuid, filename) => {
+        ObserveOrigin::File(uuid, filename) => {
             observing::file::listen(operation_api, state, uuid, filename, &options.parser).await
         }
-        Sources::Concat(files) => {
+        ObserveOrigin::Concat(files) => {
             if files.is_empty() {
                 Err(NativeError {
                     severity: Severity::ERROR,
@@ -31,7 +31,7 @@ pub async fn handle(
                 observing::concat::listen(operation_api, state, files, &options.parser).await
             }
         }
-        Sources::Stream(uuid, transport) => {
+        ObserveOrigin::Stream(uuid, transport) => {
             observing::stream::listen(
                 operation_api,
                 state,
