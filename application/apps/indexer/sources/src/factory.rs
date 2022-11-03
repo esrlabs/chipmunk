@@ -105,7 +105,7 @@ pub struct UDPTransportConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Sources {
+pub enum ObserveOrigin {
     File(String, PathBuf),
     Concat(Vec<(String, PathBuf)>),
     Stream(String, Transport),
@@ -113,14 +113,14 @@ pub enum Sources {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ObserveOptions {
-    pub origin: Sources,
+    pub origin: ObserveOrigin,
     pub parser: ParserType,
 }
 
 impl ObserveOptions {
     pub fn file(filename: PathBuf, parser: ParserType) -> Self {
         ObserveOptions {
-            origin: Sources::File(Uuid::new_v4().to_string(), filename),
+            origin: ObserveOrigin::File(Uuid::new_v4().to_string(), filename),
             parser,
         }
     }

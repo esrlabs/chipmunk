@@ -78,15 +78,15 @@ impl SessionFile {
     }
 
     #[allow(clippy::len_without_is_empty)]
-    pub fn len(&mut self) -> Result<usize, NativeError> {
+    pub fn len(&mut self) -> usize {
         if let Some(ref grabber) = self.grabber {
             if let Some(md) = grabber.get_metadata() {
-                Ok(md.line_count)
+                md.line_count
             } else {
-                Ok(0)
+                0
             }
         } else {
-            Ok(0)
+            0
         }
     }
 
@@ -96,46 +96,33 @@ impl SessionFile {
         state_cancellation_token: CancellationToken,
         msg: String,
     ) -> Result<SessionFileState, NativeError> {
-        if self.writer.is_none() && self.filename.is_none() {
-            return Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
-                message: Some(String::from("Session file isn't assigned yet")),
-            });
-        }
-        if self.writer.is_none() {
-            if let Some(ref filename) = self.filename {
-                self.writer = Some(BufWriter::new(File::create(filename).map_err(|e| {
-                    NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Io,
-                        message: Some(format!(
-                            "Fail to create session writer for {}: {}",
-                            filename.to_string_lossy(),
-                            e
-                        )),
-                    }
-                })?));
+        let writer = match (&mut self.writer, &self.filename) {
+            (None, None) => {
+                return Err(NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Grabber,
+                    message: Some(String::from("Session file isn't assigned yet")),
+                });
             }
-        }
-        let writer = &mut (self.writer.as_mut().ok_or(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
-            message: Some(String::from("Session file writer wasn't created")),
-        })?);
-        writer.write(msg.as_bytes()).map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Io,
-            message: Some(e.to_string()),
-        })?;
+            (None, Some(ref filename)) => {
+                let writer = BufWriter::new(File::create(filename).map_err(|e| NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Io,
+                    message: Some(format!(
+                        "Fail to create session writer for {}: {}",
+                        filename.to_string_lossy(),
+                        e
+                    )),
+                })?);
+                self.writer.insert(writer)
+            }
+            (Some(writer), _) => writer,
+        };
+        writer.write_all(msg.as_bytes())?;
         if self.observing.is_source_changed(source_id)
             || self.last_message_timestamp.elapsed().as_millis() > NOTIFY_IN_MS
         {
-            writer.flush().map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Io,
-                message: Some(e.to_string()),
-            })?;
+            writer.flush()?;
             self.last_message_timestamp = Instant::now();
             self.update(source_id, state_cancellation_token).await
         } else {
@@ -149,29 +136,21 @@ impl SessionFile {
         source_id: u8,
         state_cancellation_token: CancellationToken,
     ) -> Result<SessionFileState, NativeError> {
-        if self.writer.is_none() {
-            return Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
-                message: Some(String::from("Session file isn't assigned yet")),
-            });
-        }
         if !self.has_updates {
             return Ok(SessionFileState::NoChanges);
         }
-        let writer = &mut (self.writer.as_mut().ok_or(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
-            message: Some(String::from("Session file writer wasn't created")),
-        })?);
-        writer.flush().map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Io,
-            message: Some(e.to_string()),
-        })?;
-        self.last_message_timestamp = Instant::now();
-        self.has_updates = false;
-        self.update(source_id, state_cancellation_token).await
+        if let Some(writer) = &mut self.writer {
+            writer.flush()?;
+            self.last_message_timestamp = Instant::now();
+            self.has_updates = false;
+            self.update(source_id, state_cancellation_token).await
+        } else {
+            Err(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Grabber,
+                message: Some(String::from("Session file isn't assigned yet")),
+            })
+        }
     }
 
     pub async fn update(

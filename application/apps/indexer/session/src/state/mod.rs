@@ -91,7 +91,7 @@ pub enum Api {
             oneshot::Sender<Result<Vec<GrabbedElement>, NativeError>>,
         ),
     ),
-    GetStreamLen(oneshot::Sender<Result<usize, NativeError>>),
+    GetStreamLen(oneshot::Sender<usize>),
     GetSearchResultLen(oneshot::Sender<usize>),
     GetSearchHolder((Uuid, oneshot::Sender<Result<SearchHolder, NativeError>>)),
     SetSearchHolder(
@@ -283,7 +283,7 @@ impl SessionState {
         state_cancellation_token: CancellationToken,
         tx_callback_events: UnboundedSender<CallbackEvent>,
     ) -> Result<(), NativeError> {
-        let len = self.session_file.len()? as u64;
+        let len = self.session_file.len() as u64;
         self.search_map.set_stream_len(len);
         tx_callback_events.send(CallbackEvent::StreamUpdated(len))?;
         match self
@@ -490,7 +490,7 @@ impl SessionStateAPI {
 
     pub async fn get_stream_len(&self) -> Result<usize, NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::GetStreamLen(tx), rx).await?
+        self.exec_operation(Api::GetStreamLen(tx), rx).await
     }
 
     pub async fn get_search_result_len(&self) -> Result<usize, NativeError> {
