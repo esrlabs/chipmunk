@@ -1,11 +1,11 @@
 import { Collection, AfterApplyCallback } from './collection';
-import { FilterRequest } from '../session/dependencies/search/filters/request';
+import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { Extractor } from '@platform/types/storage/json';
 import { Equal } from '@platform/types/env/types';
 import { Session } from '@service/session/session';
 import { Definition } from './definition';
 import { Subscriber } from '@platform/env/subscription';
-import { StoredEntity } from '../session/dependencies/search/store';
+import { StoredEntity } from '@service/session/dependencies/search/store';
 
 export class FiltersCollection
     extends Collection<FilterRequest>

@@ -14,7 +14,7 @@ export interface IRustModuleExports {
 
 export function getNativeModule(): IRustModuleExports {
     const modulePath = path.resolve(module.path, './index.node');
-    Logs.getLogger('Native module getter').debug(`Target: ${modulePath}`);
+    Logs.getLogger('Native module getter').verbose(`Target: ${modulePath}`);
     return require(modulePath);
 }
 

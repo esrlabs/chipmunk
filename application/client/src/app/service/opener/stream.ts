@@ -29,7 +29,7 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
         source?: SourceDefinition,
         options?: Options,
         openPresetSettings?: boolean,
-    ): Promise<void> {
+    ): Promise<string> {
         const getProgress = (uuid: string) => {
             return lockers.lock(new Locker(true, 'creating stream...').set().group(uuid).end(), {});
         };
@@ -58,6 +58,7 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
                         .add(bind)
                         .empty(this.getRender())
                         .then((created) => {
+                            this.assign(created);
                             session = created;
                             this.binding(session, used.source, used.options)
                                 .then(() => {
@@ -79,7 +80,11 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
             if (source !== undefined && options !== undefined && openPresetSettings !== true) {
                 open(true, { source, options })
                     .then(() => {
-                        resolve();
+                        if (this.session === undefined) {
+                            reject(new Error(`Streaming handler: session isn't created.`));
+                        } else {
+                            resolve(this.session.uuid());
+                        }
                     })
                     .catch(reject);
             } else {
@@ -111,7 +116,15 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
                                             })
                                             .finally(() => {
                                                 cb(undefined);
-                                                resolve();
+                                                if (this.session === undefined) {
+                                                    reject(
+                                                        new Error(
+                                                            `Streaming handler: session isn't created.`,
+                                                        ),
+                                                    );
+                                                } else {
+                                                    resolve(this.session.uuid());
+                                                }
                                             });
                                     })
                                     .catch((err: Error) => {

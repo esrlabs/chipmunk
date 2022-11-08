@@ -1,4 +1,9 @@
-import { Component, ChangeDetectorRef, AfterContentInit, Input } from '@angular/core';
+import {
+    Component,
+    ChangeDetectorRef,
+    AfterContentInit,
+    Input,
+} from '@angular/core';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ProviderFilters } from '../provider';
@@ -29,6 +34,7 @@ export class FiltersList extends ChangesDetector implements AfterContentInit {
         this.env().subscriber.register(
             this.provider.subjects.change.subscribe(() => {
                 this.entries = this.provider.entities();
+                this.detectChanges();
             }),
         );
     }

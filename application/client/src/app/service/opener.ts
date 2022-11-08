@@ -15,15 +15,15 @@ import { DataSource } from './session/dependencies/stream';
 export { Session, TabControls };
 
 export interface StreamConnectFuncs {
-    dlt(options?: IDLTOptions): Promise<void>;
-    text(options?: {}): Promise<void>;
-    source(src: DataSource): Promise<void>;
+    dlt(options?: IDLTOptions): Promise<string>;
+    text(options?: {}): Promise<string>;
+    source(src: DataSource): Promise<string>;
     assign(session: Session | undefined): StreamConnectFuncs;
 }
 
 export interface FileOpenFuncs {
-    text(): Promise<void>;
-    dlt(options?: IDLTOptions): Promise<void>;
+    text(): Promise<string>;
+    dlt(options?: IDLTOptions): Promise<string>;
     assign(session: Session | undefined): FileOpenFuncs;
 }
 
@@ -43,12 +43,12 @@ export class Service extends Implementation {
     public stream(source?: SourceDefinition, openPresetSettings?: boolean): StreamConnectFuncs {
         let scope: Session | undefined;
         const out = {
-            text: (options?: {}): Promise<void> => {
+            text: (options?: {}): Promise<string> => {
                 return new Streams.Text(this._services, this.log())
                     .assign(scope)
                     .stream(source, options, openPresetSettings);
             },
-            dlt: (options?: IDLTOptions): Promise<void> => {
+            dlt: (options?: IDLTOptions): Promise<string> => {
                 return new Streams.Dlt(this._services, this.log())
                     .assign(scope)
                     .stream(source, options, openPresetSettings);
@@ -57,7 +57,7 @@ export class Service extends Implementation {
                 scope = session;
                 return out;
             },
-            source: (src: DataSource): Promise<void> => {
+            source: (src: DataSource): Promise<string> => {
                 if (src.origin.Stream === undefined) {
                     return Promise.reject(new Error(`Operation is available only for streams`));
                 }
@@ -75,12 +75,12 @@ export class Service extends Implementation {
     public file(file: File | string): FileOpenFuncs {
         let scope: Session | undefined;
         const out = {
-            text: (): Promise<void> => {
+            text: (): Promise<string> => {
                 return new Files.Text(this._services, this.log())
                     .assign(scope)
                     .open(file, undefined);
             },
-            dlt: (options?: IDLTOptions): Promise<void> => {
+            dlt: (options?: IDLTOptions): Promise<string> => {
                 return new Files.Dlt(this._services, this.log()).assign(scope).open(file, options);
             },
             assign: (session: Session | undefined): FileOpenFuncs => {
@@ -94,12 +94,12 @@ export class Service extends Implementation {
     public concat(files: File[] | string[]): FileOpenFuncs {
         let scope: Session | undefined;
         const out = {
-            text: (): Promise<void> => {
+            text: (): Promise<string> => {
                 return new Concat.Text(this._services, this.log())
                     .assign(scope)
                     .open(files, undefined);
             },
-            dlt: (options?: IDLTOptions): Promise<void> => {
+            dlt: (options?: IDLTOptions): Promise<string> => {
                 return new Concat.Dlt(this._services, this.log())
                     .assign(scope)
                     .open(files, options);

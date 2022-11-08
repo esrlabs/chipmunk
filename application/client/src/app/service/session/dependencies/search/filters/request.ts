@@ -1,5 +1,5 @@
 import { Subject } from '@platform/env/subscription';
-import { getContrastColor, scheme_color_accent } from '@styles/colors';
+import { getContrastColor, scheme_color_accent, getNextColor } from '@styles/colors';
 import { DisableConvertable } from '../disabled/converting';
 import { IFilter, IFilterFlags } from '@platform/types/filter';
 import { Hash, Recognizable } from '@platform/types/storage/entry';
@@ -85,6 +85,17 @@ export class FilterRequest
             return false;
         }
         return true;
+    }
+
+    static defaults(value: string): FilterRequest {
+        const color = getNextColor();
+        return new FilterRequest({
+            filter: { filter: value, flags: { reg: true, word: false, cases: false } },
+            colors: {
+                background: color,
+                color: getContrastColor(color, true),
+            },
+        });
     }
 
     constructor(def: OptionalDefinition) {
