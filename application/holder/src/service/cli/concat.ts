@@ -1,4 +1,4 @@
-import { CLIAction } from './action';
+import { CLIAction, Type } from './action';
 import { Service } from '@service/cli';
 
 import * as fs from 'fs';
@@ -17,31 +17,39 @@ export class Action extends CLIAction {
             keys: ARGS.join(' '),
             desc: `Concatenate the given list of files. Files with different types would be concatenated in separate tabs (sessions). As input can be used mask`,
             examples: [
-                `-C /path/file_name_a /path/file_name_b`,
-                `-C *.log`,
-                `-C /path/*.log /path/file_name.log`,
+                `cm -C /path/file_name_a /path/file_name_b`,
+                `cm -C *.log`,
+                `cm -C /path/*.log /path/file_name.log`,
             ],
         };
     }
+
+    public name(): string {
+        return 'Concat files';
+    }
+
     public execute(cli: Service, args: string[]): Promise<string[]> {
         const checked = this.find(args);
         if (checked.files.length === 0) {
             return Promise.resolve(args);
         }
         const files = this.validate(cli.cwd, checked.files);
-        if (files.length === 0) {
+        if (files.invalid.length !== 0) {
+            return Promise.reject(new Error(`Invalid files: ${files.invalid.join(', ')}`));
+        }
+        if (files.valid.length === 0) {
             return Promise.resolve(checked.args);
         }
         return new Promise((resolve, _reject) => {
             Requests.IpcRequest.send(
                 Requests.Cli.Concat.Response,
-                new Requests.Cli.Concat.Request({ files }),
+                new Requests.Cli.Concat.Request({ files: files.valid }),
             )
                 .then((response) => {
                     if (response.sessions === undefined) {
                         return;
                     }
-                    cli.setSessions(response.sessions);
+                    cli.state().sessions(response.sessions);
                 })
                 .catch((err: Error) => {
                     cli.log().error(`Fail apply CLI.Concat: ${err.message}`);
@@ -50,6 +58,23 @@ export class Action extends CLIAction {
                     resolve(checked.args);
                 });
         });
+    }
+
+    public test(cwd: string, args: string[]): string[] | Error {
+        const checked = this.find(args);
+        if (checked.files.length === 0) {
+            return args;
+        }
+        const files = this.validate(cwd, checked.files);
+        if (files.invalid.length === 0) {
+            return checked.args;
+        } else {
+            return new Error(`Invalid paths: \n${files.invalid.join('\n\t')}`);
+        }
+    }
+
+    public type(): Type {
+        return Type.Action;
     }
 
     protected find(args: string[]): { args: string[]; files: string[] } {
@@ -80,17 +105,22 @@ export class Action extends CLIAction {
         };
     }
 
-    protected validate(cwd: string, files: string[]): string[] {
-        return files
-            .map((file) => {
-                if (fs.existsSync(file)) {
-                    return file;
-                }
-                if (fs.existsSync(path.resolve(cwd, file))) {
-                    return path.resolve(cwd, file);
-                }
-                return undefined;
-            })
-            .filter((f) => f !== undefined) as string[];
+    protected validate(cwd: string, files: string[]): { valid: string[]; invalid: string[] } {
+        const result: { valid: string[]; invalid: string[] } = {
+            valid: [],
+            invalid: [],
+        };
+        files.forEach((file) => {
+            if (fs.existsSync(file)) {
+                result.valid.push(file);
+                return;
+            }
+            if (fs.existsSync(path.resolve(cwd, file))) {
+                result.valid.push(path.resolve(cwd, file));
+                return;
+            }
+            result.invalid.push(file);
+        });
+        return result;
     }
 }

@@ -11,6 +11,7 @@ import { paths } from '@service/paths';
 import { environment } from '@service/environment';
 import { DEV_EXECUTOR_PATH } from '@loader/cli';
 import { exec } from 'sudo-prompt';
+import { ParserName } from 'platform/types/observe';
 
 import * as Actions from './cli/index';
 import * as Events from 'platform/ipc/event';
@@ -27,9 +28,15 @@ export class Service extends Implementation {
     public readonly cwd: string = process.cwd();
 
     protected args: string[] = [];
-    protected sessions: string[] = [];
 
     private _available: boolean | undefined;
+    private readonly _state: {
+        sessions: string[];
+        parser: ParserName;
+    } = {
+        sessions: [],
+        parser: ParserName.Text,
+    };
 
     public override ready(): Promise<void> {
         this.log().debug(`Incoming arguments:\n\t${process.argv.join('\n\t')}`);
@@ -80,12 +87,24 @@ export class Service extends Implementation {
         return Promise.resolve();
     }
 
-    public setSessions(sessions: string[]): void {
-        this.sessions = sessions;
-    }
-
-    public getSessions(): string[] {
-        return this.sessions;
+    public state(): {
+        sessions(sessions?: string[]): string[];
+        parser(parser?: ParserName): ParserName;
+    } {
+        return {
+            sessions: (sessions?: string[]): string[] => {
+                if (sessions !== undefined) {
+                    this._state.sessions = sessions;
+                }
+                return this._state.sessions;
+            },
+            parser: (parser?: ParserName): ParserName => {
+                if (parser !== undefined) {
+                    this._state.parser = parser;
+                }
+                return this._state.parser;
+            },
+        };
     }
 
     public support(): {
@@ -238,7 +257,15 @@ export class Service extends Implementation {
     }
 
     protected async check(): Promise<void> {
-        const actions = [new Actions.OpenFile(), new Actions.ConcatFiles(), new Actions.Search()];
+        const actions = [
+            new Actions.OpenFile(),
+            new Actions.ConcatFiles(),
+            new Actions.Stdout(),
+            new Actions.Udp(),
+            new Actions.Tcp(),
+            new Actions.Serial(),
+            new Actions.Search(),
+        ];
         for (const action of actions) {
             this.args = await action.execute(this, this.args);
         }

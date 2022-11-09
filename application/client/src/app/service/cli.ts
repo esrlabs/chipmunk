@@ -55,6 +55,19 @@ export class Service extends Implementation {
                     },
                 ),
         );
+        this.register(
+            api
+                .transport()
+                .respondent(
+                    this.getName(),
+                    Requests.Cli.Stdout.Request,
+                    (
+                        request: Requests.Cli.Stdout.Request,
+                    ): CancelablePromise<Requests.Cli.Stdout.Response> => {
+                        return handlers.stdout(this, request);
+                    },
+                ),
+        );
         return Promise.resolve();
     }
 }
