@@ -8,24 +8,28 @@ import {
 import { services } from '@register/services';
 import { electron } from '@service/electron';
 import { paths } from '@service/paths';
+import { environment } from '@service/environment';
 import { DEV_EXECUTOR_PATH } from '@loader/cli';
+import { exec } from 'sudo-prompt';
+
 import * as Actions from './cli/index';
-
 import * as Events from 'platform/ipc/event';
+import * as fs from 'fs';
 
+const UNIX_LOCAL_BIN = '/usr/local/bin';
+const UNIX_SYMLINK_PATH = `${UNIX_LOCAL_BIN}/cm`;
+
+@DependOn(environment)
 @DependOn(paths)
 @DependOn(electron)
 @SetupService(services['cli'])
 export class Service extends Implementation {
-    public readonly cwd: string;
+    public readonly cwd: string = process.cwd();
 
     protected args: string[] = [];
     protected sessions: string[] = [];
 
-    constructor() {
-        super();
-        this.cwd = process.cwd();
-    }
+    private _available: boolean | undefined;
 
     public override ready(): Promise<void> {
         this.log().debug(`Incoming arguments:\n\t${process.argv.join('\n\t')}`);
@@ -84,9 +88,157 @@ export class Service extends Implementation {
         return this.sessions;
     }
 
+    public support(): {
+        install(): Promise<void>;
+        uninstall(): Promise<void>;
+        toggle(): Promise<void>;
+        exists(): Promise<boolean>;
+        available(): Promise<boolean>;
+    } {
+        return {
+            install: async (): Promise<void> => {
+                if (await this.support().exists()) {
+                    return Promise.resolve();
+                }
+                if (paths.isElectron()) {
+                    return Promise.reject(
+                        new Error(`No way to setup CLI because chipmunk is running via electron`),
+                    );
+                }
+                return new Promise((resolve, reject) => {
+                    const options = {
+                        name: 'Chipmunk Command Line Tool',
+                    };
+                    const command: string = ((): string => {
+                        switch (process.platform) {
+                            case 'win32':
+                                this.log().debug(
+                                    `Would call: ${`setx PATH "%PATH%;${paths.getExec()}"`}`,
+                                );
+                                return `setx PATH "%PATH%;${paths.getExec()}"`;
+                            default:
+                                return `ln -s ${paths.getExec()} ${UNIX_SYMLINK_PATH}`;
+                        }
+                    })();
+                    this.log().debug(`Would call: ${command} to setup CLI support`);
+                    exec(
+                        command,
+                        options,
+                        (
+                            error: NodeJS.ErrnoException | null | undefined,
+                            _stdout: unknown,
+                            _stderr: unknown,
+                        ) => {
+                            if (error) {
+                                return reject(
+                                    new Error(
+                                        this.log().warn(
+                                            `Fail install command tool line due error: ${error.message}`,
+                                        ),
+                                    ),
+                                );
+                            }
+                            resolve();
+                        },
+                    );
+                });
+            },
+            uninstall: async (): Promise<void> => {
+                if (await !this.support().exists()) {
+                    return Promise.resolve();
+                }
+                if (paths.isElectron()) {
+                    return Promise.reject(
+                        new Error(
+                            `No way to remove CLI support because chipmunk is running via electron`,
+                        ),
+                    );
+                }
+                return new Promise((resolve, reject) => {
+                    const options = {
+                        name: 'Chipmunk Command Line Tool',
+                    };
+                    const command: string | Error = ((): string | Error => {
+                        switch (process.platform) {
+                            case 'win32':
+                                // Unfortunately on windows "setx" doesn't have option to delete variable.
+                                // but overwriting doesn't give expecting result.
+                                // One possible option to use reg delete HKCU\Environment /F /V PATH
+                                // and after setup it again with setx, but it's dangerous
+                                // Well temporary we wouldn't have uninstall for windows.
+                                return new Error(
+                                    `Isn't available on windows. Please remove path to chipmunk manualy from $PATH`,
+                                );
+                            default:
+                                return `rm ${UNIX_SYMLINK_PATH}`;
+                        }
+                    })();
+                    if (command instanceof Error) {
+                        return reject(command);
+                    }
+                    exec(
+                        command,
+                        options,
+                        (
+                            error: NodeJS.ErrnoException | null | undefined,
+                            _stdout: unknown,
+                            _stderr: unknown,
+                        ) => {
+                            if (error) {
+                                return reject(
+                                    new Error(
+                                        this.log().warn(
+                                            `Fail uninstall command tool line due error: ${error.message}`,
+                                        ),
+                                    ),
+                                );
+                            }
+                            resolve();
+                        },
+                    );
+                });
+            },
+            toggle: async (): Promise<void> => {
+                if (await this.support().exists()) {
+                    return this.support().uninstall();
+                } else {
+                    return this.support().install();
+                }
+            },
+            exists: async (): Promise<boolean> => {
+                const vars = environment.getOS();
+                switch (process.platform) {
+                    case 'win32':
+                        return (
+                            Object.keys(vars).find((key) => {
+                                return typeof vars[key] === 'string'
+                                    ? vars[key]?.indexOf(paths.getExec()) !== -1
+                                    : false;
+                            }) !== undefined
+                        );
+                    default:
+                        return await fs.promises
+                            .lstat(UNIX_SYMLINK_PATH)
+                            .then((_) => true)
+                            .catch((_err) => false);
+                }
+            },
+            available: (): Promise<boolean> => {
+                if (this._available !== undefined) {
+                    return Promise.resolve(this._available);
+                }
+                if (process.platform === 'win32') {
+                    this._available = true;
+                    return Promise.resolve(this._available);
+                }
+                this._available = fs.existsSync(UNIX_LOCAL_BIN);
+                return Promise.resolve(this._available);
+            },
+        };
+    }
+
     protected async check(): Promise<void> {
         const actions = [new Actions.OpenFile(), new Actions.ConcatFiles(), new Actions.Search()];
-        console.log(actions);
         for (const action of actions) {
             this.args = await action.execute(this, this.args);
         }

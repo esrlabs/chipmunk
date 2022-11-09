@@ -36,8 +36,6 @@ export class Service extends Implementation {
     private _bin = '';
     private _root = '';
     private _exec = '';
-    private _launcher = '';
-    private _cli = '';
     private _appModules = '';
     private _resources = '';
     private _downloads = '';
@@ -81,14 +79,6 @@ export class Service extends Implementation {
                     return path.resolve(this._app, './Resources/bin');
                 }
             })();
-            this._launcher = path.resolve(
-                path.dirname(this._exec),
-                `chipmunk${os.platform() === 'win32' ? '.exe' : ''}`,
-            );
-            this._cli = path.resolve(
-                this._root,
-                `apps/cm${os.platform() === 'win32' ? '.exe' : ''}`,
-            );
             this._appModules = path.resolve(this._root, '../../node_modules');
             this._createHomeFolder()
                 .then(() => {
@@ -114,8 +104,6 @@ export class Service extends Implementation {
 \tapp: ${this._app}
 \tbin: ${this._bin}
 \texec ${this._exec}
-\tlauncher ${this._launcher}
-\tcli ${this._cli}
 \tresources ${this._resources}
 \tclient ${this.getClient()}
 \tprealod ${this.getPreload()}
@@ -210,30 +198,14 @@ export class Service extends Implementation {
      */
     public getExec(holder = false): string {
         if (os.platform() === 'darwin' && holder) {
-            return path.resolve(path.dirname(this._exec), '../../')
+            return path.resolve(path.dirname(this._exec), '../../');
         } else {
             return this._exec;
         }
     }
 
-    /**
-     * Returns path to launcher executable file
-     * @returns string
-     */
-    public getLauncher(): string {
-        return this._launcher;
-    }
-
-    /**
-     * Returns path to CLI executable file
-     * @returns string
-     */
-    public getCLI(): string {
-        return this._cli;
-    }
-
-    public getCLIPath(): string {
-        return path.dirname(this._cli);
+    public isElectron(): boolean {
+        return this._exec.trim().endsWith('electron');
     }
 
     /**

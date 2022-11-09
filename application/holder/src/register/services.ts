@@ -58,4 +58,8 @@ export const services: { [key: string]: Inputs } = {
         name: 'cli',
         uuid: v4(),
     },
+    menu: {
+        name: 'menu',
+        uuid: v4(),
+    },
 };
