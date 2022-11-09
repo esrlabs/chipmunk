@@ -7,7 +7,7 @@ import {
 } from 'platform/entity/service';
 import { services } from '@register/services';
 import { cli } from '@service/cli';
-import { app, Menu } from 'electron';
+import { app, Menu, MenuItem } from 'electron';
 import { notifications } from '@service/notifications';
 import { unique } from 'platform/env/sequence';
 
@@ -29,7 +29,7 @@ export class Service extends Implementation {
         Menu.setApplicationMenu(menu);
     }
 
-    protected async generate(): Promise<any> {
+    protected async generate(): Promise<MenuItem[]> {
         const cliSupported = await cli.support().available();
         const cliInstalled = await cli.support().exists();
         return [
@@ -241,7 +241,7 @@ export class Service extends Implementation {
                         : [{ role: 'close' }]),
                 ],
             },
-        ];
+        ] as unknown as MenuItem[];
     }
 }
 export interface Service extends Interface {}
