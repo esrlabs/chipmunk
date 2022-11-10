@@ -65,6 +65,9 @@ export class Action extends CLIAction {
     }
 
     public test(cwd: string, args: string[]): string[] | Error {
+        if (args.filter(a => ARGS.includes(a)).length > 1) {
+            return new Error(`"${ARGS.join(', ')}" key(s) is defined multiple times.`);
+        }
         let checked = this.findWithKey(args);
         if (checked.files.length === 0) {
             checked = this.findWithoutKey(args);

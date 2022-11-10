@@ -66,6 +66,9 @@ export class Action extends CLIAction {
     }
 
     public test(cwd: string, args: string[]): string[] | Error {
+        if (args.filter((a) => ARGS.includes(a)).length > 1) {
+            return new Error(`"${ARGS.join(', ')}" key(s) is defined multiple times.`);
+        }
         const checked = this.find(args);
         if (checked.filters.length === 0) {
             return args;

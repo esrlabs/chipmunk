@@ -265,10 +265,17 @@ export class Service extends Implementation {
             new Actions.Tcp(),
             new Actions.Serial(),
             new Actions.Search(),
+            new Actions.Parser(),
         ];
-        for (const action of actions) {
-            this.args = await action.execute(this, this.args);
-        }
+        const runner = async (actions: Actions.CLIAction[]): Promise<void> => {
+            for (const action of actions) {
+                this.args = await action.execute(this, this.args);
+            }
+        };
+        await runner(actions.filter((a) => a.type() === Actions.Type.StateModifier));
+        await runner(actions.filter((a) => a.type() === Actions.Type.Action));
+        await runner(actions.filter((a) => a.type() === Actions.Type.AfterActions));
+        Events.IpcEvent.emit(new Events.Cli.Done.Event());
     }
 }
 export interface Service extends Interface {}

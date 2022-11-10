@@ -1,8 +1,6 @@
-import { opener } from '@service/opener';
 import { CancelablePromise } from '@platform/env/promise';
 import { Service } from '@service/cli';
 import { ParserName } from '@platform/types/observe';
-import { session as sessions } from '@service/session';
 import { ProcessTransportSettings } from '@platform/types/transport/process';
 
 import * as Requests from '@platform/ipc/request';
@@ -38,51 +36,12 @@ export async function action(
     cli: Service,
     request: Requests.Cli.Stdout.Request,
 ): Promise<string[]> {
-    const first = request.commands.shift();
-    if (first === undefined) {
+    if (request.commands.length === 0) {
         return [];
     }
-    let uuid: string | undefined;
-    const source = {
-        process: getSettings(first, request.cwd),
-    };
-    switch (request.parser) {
-        case ParserName.Dlt:
-            uuid = await opener
-                .stream(source, false)
-                .dlt({
-                    logLevel: 0,
-                    filters: {},
-                    fibex: [],
-                })
-                .catch((err: Error) => {
-                    cli.log().warn(
-                        `Fail to apply action (Events.Cli.Stdout.Event): ${err.message}`,
-                    );
-                    return undefined;
-                });
-            break;
-        case ParserName.Pcap:
-        case ParserName.Someip:
-            throw new Error(`Pcap / SomeIp isn't supported for streaming.`);
-        case ParserName.Text:
-        default:
-            uuid = await opener
-                .stream(source, false)
-                .text({})
-                .catch((err: Error) => {
-                    cli.log().warn(
-                        `Fail to apply action (Events.Cli.Stdout.Event): ${err.message}`,
-                    );
-                    return undefined;
-                });
-    }
-    if (uuid === undefined) {
-        throw new Error(`Fail to create base session.`);
-    }
-    const session = sessions.get(uuid);
+    const session = await cli.state().stream(request.parser);
     if (session === undefined) {
-        throw new Error(`Fail to find created base session.`);
+        throw new Error(`Fail to create/get base session.`);
     }
     for (const command of request.commands) {
         const connector = session.stream.connect({

@@ -95,9 +95,9 @@ export function check() {
             checking = args;
         }
     });
-    if (checking.length !== 0) {
-        hasErrors = true;
+    if (checking.length !== 0 && !hasErrors && !help) {
         output(`Unknown arguments: \n- ${checking.join('\n- ')}`, 0);
+        hasErrors = true;
     }
     process.stdin.end();
     process.stdin.destroy();
