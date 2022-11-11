@@ -4,43 +4,62 @@ import { SerialTransportSettings } from 'platform/types/transport/serial';
 
 import * as Requests from 'platform/ipc/request';
 
-const ARGS = ['--serial'];
-
 export class Action extends CLIAction {
-    static help(): {
-        keys: string;
-        desc: string;
-        examples: string[];
-    } {
-        return {
-            keys: ARGS.join(' '),
-            desc: `Will connect to serial port using given settings. If argument -p (--parser) isn't used, would be used plaint text parser.`,
-            examples: [
-                `syntaxt: cm --serial "path;baud_rate;data_bits;flow_control;parity;stop_bits"`,
-                `cm --serial "0.0.0.0:8888|234.2.2.2,0.0.0.0"`,
-                `cm --serial "0.0.0.0:8888|234.2.2.2,0.0.0.0;234.2.2.3,0.0.0.0" -S "error"`,
-            ],
-        };
-    }
+    // static help(): {
+    //     keys: string;
+    //     desc: string;
+    //     examples: string[];
+    // } {
+    //     return {
+    //         keys: ARGS.join(' '),
+    //         desc: `Will connect to serial port using given settings. If argument -p (--parser) isn't used, would be used plaint text parser.`,
+    //         examples: [
+    //             `syntaxt: cm --serial "path;baud_rate;data_bits;flow_control;parity;stop_bits"`,
+    //             `cm --serial "0.0.0.0:8888|234.2.2.2,0.0.0.0"`,
+    //             `cm --serial "0.0.0.0:8888|234.2.2.2,0.0.0.0;234.2.2.3,0.0.0.0" -S "error"`,
+    //         ],
+    //     };
+    // }
+
+    protected settings: SerialTransportSettings | undefined;
+    protected error: Error[] = [];
 
     public name(): string {
         return 'Serial port connecting';
     }
 
-    public execute(cli: Service, args: string[]): Promise<string[]> {
-        const checked = this.find(args);
-        if (checked.settings === undefined) {
-            return Promise.resolve(checked.args);
+    public argument(_cwd: string, arg: string): string {
+        const settings = this.extract(arg);
+        if (settings instanceof Error) {
+            this.error.push(new Error(`Fail to parse settings "${arg}":  ${settings.message}`));
+            return '';
         }
-        const source = this.extract(checked.settings);
-        if (source instanceof Error) {
-            return Promise.reject(source);
+        this.settings = settings;
+        return arg;
+    }
+
+    public errors(): Error[] {
+        return this.error;
+    }
+
+    public execute(cli: Service): Promise<void> {
+        if (this.error.length > 0) {
+            return Promise.reject(
+                new Error(
+                    `Handler cannot be executed, because errors: \n${this.error
+                        .map((e) => e.message)
+                        .join('\n')}`,
+                ),
+            );
         }
         return new Promise((resolve, _reject) => {
+            if (this.settings === undefined) {
+                return resolve();
+            }
             Requests.IpcRequest.send(
                 Requests.Cli.Serial.Response,
                 new Requests.Cli.Serial.Request({
-                    source,
+                    source: this.settings,
                     parser: cli.state().parser(),
                 }),
             )
@@ -53,47 +72,16 @@ export class Action extends CLIAction {
                 .catch((err: Error) => {
                     cli.log().error(`Fail apply CLI.Serial: ${err.message}`);
                 })
-                .finally(() => {
-                    resolve(checked.args);
-                });
+                .finally(resolve);
         });
-    }
-
-    public test(_cwd: string, args: string[]): string[] | Error {
-        if (args.filter(a => ARGS.includes(a)).length > 1) {
-            return new Error(`"${ARGS.join(', ')}" key(s) is defined multiple times.`);
-        }
-        const checked = this.find(args);
-        if (checked.settings === undefined) {
-            return checked.args;
-        }
-        const source = this.extract(checked.settings);
-        if (source instanceof Error) {
-            return source;
-        }
-        return checked.args;
     }
 
     public type(): Type {
         return Type.Action;
     }
 
-    protected find(args: string[]): { args: string[]; settings: string | undefined } {
-        const flag = args.findIndex((arg) => ARGS.includes(arg));
-        if (flag === -1) {
-            return { args, settings: undefined };
-        }
-        if (flag === args.length - 1) {
-            args.pop();
-            return { args, settings: undefined };
-        }
-        const settings = args[flag + 1];
-        if (settings.trim().startsWith('-')) {
-            args.pop();
-            return { args, settings: undefined };
-        }
-        args.splice(flag, 2);
-        return { args, settings };
+    public defined(): boolean {
+        return this.settings !== undefined;
     }
 
     protected extract(settings: string): SerialTransportSettings | Error {

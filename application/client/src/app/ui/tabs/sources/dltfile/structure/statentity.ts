@@ -1,6 +1,7 @@
 import { LevelDistribution } from '@platform/types/parsers/dlt';
-import { Matcher } from '@matcher/matcher';
 import { Matchee } from '@module/matcher';
+
+import * as wasm from '@loader/wasm';
 
 export class StatEntity extends Matchee {
     public selected: boolean = false;
@@ -15,7 +16,7 @@ export class StatEntity extends Matchee {
     public log_verbose: number;
     public log_invalid: number;
 
-    constructor(id: string, parent: string, from: LevelDistribution, matcher: Matcher) {
+    constructor(id: string, parent: string, from: LevelDistribution, matcher: wasm.Matcher) {
         super(matcher, { id: id });
         this.id = id;
         this.parent = parent;

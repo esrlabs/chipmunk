@@ -1,34 +1,104 @@
 import { tools } from 'rustcore';
+import { program as cli, Option } from 'commander';
+import { CLIAction } from '@service/cli/action';
 
 import * as handlers from '@service/cli/index';
 
 export const DEV_EXECUTOR_PATH = 'node_modules/electron/dist/electron';
 
-function output(str: string, from: number, offsetFromSecond = false) {
-    const offset = ' '.repeat(from);
-    const columns = process.stdout.columns < 20 ? 20 : process.stdout.columns;
-    let out = str;
-    let interation = 0;
-    while (out.length > 0) {
-        if ((interation === 0 && !offsetFromSecond) || interation > 0) {
-            out = `${offset}${out}`;
-        }
-        if (out.length > columns) {
-            process.stdout.write(`${out.substring(0, columns)}\n`);
-            out = out.substring(columns, out.length);
-        } else {
-            process.stdout.write(out);
-            out = '';
-        }
-        interation += 1;
-    }
+const CLI_HANDLERS: { [key: string]: CLIAction } = {
+    open: new handlers.OpenFile(),
+    concat: new handlers.ConcatFiles(),
+    stdout: new handlers.Stdout(),
+    tcp: new handlers.Tcp(),
+    udp: new handlers.Udp(),
+    serial: new handlers.Serial(),
+    search: new handlers.Search(),
+    parser: new handlers.Parser(),
+};
+
+export function getActions(): CLIAction[] {
+    return Object.keys(CLI_HANDLERS).map((k) => CLI_HANDLERS[k]);
 }
 
-export function check() {
+function collectErrors(): Error[] {
+    const errors: Error[] = [];
+    Object.keys(CLI_HANDLERS).forEach((key: string) => {
+        errors.push(...CLI_HANDLERS[key].errors());
+    });
+    return errors;
+}
+
+function parser(handler: CLIAction): (value: string, prev: string) => string {
+    return handler.argument.bind(handler, process.cwd()) as unknown as (
+        value: string,
+        prev: string,
+    ) => string;
+}
+
+function setup() {
+    cli.addOption(
+        new Option(
+            '-p, --parser <parser>',
+            'Setup defaul parser, which would be used for all stream session.',
+        )
+            .choices(['dlt', 'text'])
+            .argParser(parser(CLI_HANDLERS['parser'])),
+    );
+    cli.addOption(
+        new Option(
+            '-s, --search <regexp...>',
+            'Collection of filters, which would be applied to each opened session (tab). Ex: cm files -o /path/file_name -s "error" "warning"',
+        ).argParser(parser(CLI_HANDLERS['search'])),
+    );
+    const files = cli
+        .command('files', { isDefault: true })
+        .description('Opens file(s) or concat files');
+    files.option(
+        '-o, --open <filename...>',
+        'Opens file(s) in separated sessions (tabs). Ex: cm -o /path/file_name_a /path/file_name_b',
+        parser(CLI_HANDLERS['open']),
+    );
+    files.option(
+        '-c, --concat <filename...>',
+        'Concat file(s). Files will be grouped by type and each type would be opened in separated sessions (tabs)',
+        parser(CLI_HANDLERS['concat']),
+    );
+    const streams = cli
+        .command('streams')
+        .description('Listens diffrent sources of data and posts its output');
+    streams.addOption(
+        new Option(
+            '--tcp <addr:port>',
+            'Creates TCP connection with given address. Ex: cm --tcp "0.0.0.0:8888"',
+        ).argParser(parser(CLI_HANDLERS['tcp'])),
+    );
+    streams.addOption(
+        new Option(
+            '--udp <addr:port|multicast,interface;>',
+            'Creates UDP connection with given address and multicasts. Ex: cm --udp "0.0.0.0:8888|234.2.2.2,0.0.0.0"',
+        ).argParser(parser(CLI_HANDLERS['udp'])),
+    );
+    streams.addOption(
+        new Option(
+            '--serial <path;baud_rate;data_bits;flow_control;parity;stop_bits>',
+            'Creates serial port connection with given parameters. Ex: cm --serial "/dev/port_a;960000;8;1;0;1"',
+        ).argParser(parser(CLI_HANDLERS['serial'])),
+    );
+    streams.addOption(
+        new Option(
+            '--stdout <command...>',
+            'Executes given commands in the scope of one session (tab) and shows mixed output. Ex: cm --stdout "journalctl -r" "adb logcat"',
+        ).argParser(parser(CLI_HANDLERS['stdout'])),
+    );
+    cli.parse();
+}
+
+function check() {
     // TODO:
     // - send as argument PID of current process
     // - check and kill previous process by given PID
-
+    setup();
     if (!process.stdout.isTTY) {
         // Application runs out of terminal. No needs to do any with CLI
         return;
@@ -43,69 +113,18 @@ export function check() {
         // Developing mode
         return;
     }
-    const help = args.find((a) => ['-h', '-H', '-?', '--help'].includes(a)) !== undefined;
-    if (help) {
-        const fill = (str: string, width: number): string => {
-            if (str.length >= width) {
-                return str;
-            }
-            return `${str}${' '.repeat(width - str.length)}`;
-        };
-        const list = [
-            handlers.OpenFile.help(),
-            handlers.ConcatFiles.help(),
-            handlers.Stdout.help(),
-            handlers.Tcp.help(),
-            handlers.Udp.help(),
-            handlers.Serial.help(),
-            handlers.Search.help(),
-            handlers.Parser.help(),
-        ];
-        let keysWidth = 0;
-        list.forEach((desc) => {
-            if (desc.keys.length > keysWidth) {
-                keysWidth = desc.keys.length;
-            }
+    const errors = collectErrors();
+    if (errors.length > 0) {
+        errors.forEach((err) => {
+            process.stdout.write(`${err.message}\n`);
         });
-        keysWidth += 4;
-        list.forEach((desc) => {
-            output(`${fill(desc.keys, keysWidth)}${desc.desc}\n`, keysWidth, true);
-            desc.examples.forEach((ex) => {
-                output(`${fill('', keysWidth)}${ex}\n`, keysWidth, true);
-            });
-        });
+        process.stdin.end();
+        process.stdin.destroy();
+        process.exit(0);
     }
-    let checking = args.slice();
-    let hasErrors = false;
-    [
-        new handlers.OpenFile(),
-        new handlers.ConcatFiles(),
-        new handlers.Stdout(),
-        new handlers.Tcp(),
-        new handlers.Udp(),
-        new handlers.Serial(),
-        new handlers.Search(),
-        new handlers.Parser(),
-    ].forEach((handler) => {
-        const args = handler.test(process.cwd(), checking);
-        if (args instanceof Error) {
-            hasErrors = true;
-            output(`${handler.name()}:: ${args.message}`, 0);
-        } else {
-            checking = args;
-        }
+    tools.execute(executor, args).catch((err: Error) => {
+        console.log(`Fail to detach application process: ${err.message}`);
     });
-    if (checking.length !== 0 && !hasErrors && !help) {
-        output(`Unknown arguments: \n- ${checking.join('\n- ')}`, 0);
-        hasErrors = true;
-    }
-    process.stdin.end();
-    process.stdin.destroy();
-    !help &&
-        !hasErrors &&
-        tools.execute(executor, args).catch((err: Error) => {
-            console.log(`Fail to detach application process: ${err.message}`);
-        });
     process.exit(0);
 }
 

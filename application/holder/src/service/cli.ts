@@ -12,6 +12,7 @@ import { environment } from '@service/environment';
 import { DEV_EXECUTOR_PATH } from '@loader/cli';
 import { exec } from 'sudo-prompt';
 import { ParserName } from 'platform/types/observe';
+import { getActions } from '@loader/cli';
 
 import * as Actions from './cli/index';
 import * as Events from 'platform/ipc/event';
@@ -257,19 +258,10 @@ export class Service extends Implementation {
     }
 
     protected async check(): Promise<void> {
-        const actions = [
-            new Actions.OpenFile(),
-            new Actions.ConcatFiles(),
-            new Actions.Stdout(),
-            new Actions.Udp(),
-            new Actions.Tcp(),
-            new Actions.Serial(),
-            new Actions.Search(),
-            new Actions.Parser(),
-        ];
+        const actions = getActions();
         const runner = async (actions: Actions.CLIAction[]): Promise<void> => {
             for (const action of actions) {
-                this.args = await action.execute(this, this.args);
+                await action.execute(this);
             }
         };
         await runner(actions.filter((a) => a.type() === Actions.Type.StateModifier));

@@ -2,87 +2,76 @@ import { CLIAction, Type } from './action';
 import { Service } from '@service/cli';
 import { ParserName } from 'platform/types/observe';
 
-const ARGS = ['-P', '--parser'];
-
 export class Action extends CLIAction {
-    static help(): {
-        keys: string;
-        desc: string;
-        examples: string[];
-    } {
-        return {
-            keys: ARGS.join(' '),
-            desc: `Will apply setup parser, which would be used to decode content. By default would be used plaint text parser (no decoding).`,
-            examples: [
-                `syntaxt: cm --parser dlt|text|pcap`,
-                `cm --parser dlt --tcp "0.0.0.0:8888"`,
-                `cm -P dlt --tcp "0.0.0.0:8888" -S "error"`,
-            ],
-        };
-    }
+    static parsers = ['dlt', 'pcap', 'text'];
+
+    protected parser: ParserName | undefined;
+    protected error: Error[] = [];
+
+    // static help(): {
+    //     keys: string;
+    //     desc: string;
+    //     examples: string[];
+    // } {
+    //     return {
+    //         keys: ARGS.join(' '),
+    //         desc: `Will apply setup parser, which would be used to decode content. By default would be used plaint text parser (no decoding).`,
+    //         examples: [
+    //             `syntaxt: cm --parser dlt|text|pcap`,
+    //             `cm --parser dlt --tcp "0.0.0.0:8888"`,
+    //             `cm -P dlt --tcp "0.0.0.0:8888" -S "error"`,
+    //         ],
+    //     };
+    // }
 
     public name(): string {
         return 'Definition of parser';
     }
 
-    public execute(cli: Service, args: string[]): Promise<string[]> {
-        const checked = this.find(args);
-        if (checked.parser === undefined) {
-            return Promise.resolve(checked.args);
-        }
-        if (checked.parser instanceof Error) {
-            return Promise.reject(checked.parser);
-        }
-        switch (checked.parser) {
+    public argument(_cwd: string, arg: string): string {
+        switch (arg) {
             case 'dlt':
-                cli.state().parser(ParserName.Dlt);
-                break;
+                this.parser = ParserName.Dlt;
+                return arg;
             case 'pcap':
-                cli.state().parser(ParserName.Pcap);
-                break;
+                this.parser = ParserName.Pcap;
+                return arg;
             case 'text':
-                cli.state().parser(ParserName.Text);
-                break;
+                this.parser = ParserName.Text;
+                return arg;
         }
-        return Promise.resolve(checked.args);
+        this.error.push(
+            new Error(`Invalid value of parser: ${arg}. Available: ${Action.parsers.join(', ')}.`),
+        );
+        return '';
     }
 
-    public test(_cwd: string, args: string[]): string[] | Error {
-        if (args.filter((a) => ARGS.includes(a)).length > 1) {
-            return new Error(`"${ARGS.join(', ')}" key(s) is defined multiple times.`);
+    public errors(): Error[] {
+        return this.error;
+    }
+
+    public execute(cli: Service): Promise<void> {
+        if (this.error.length > 0) {
+            return Promise.reject(
+                new Error(
+                    `Handler cannot be executed, because errors: \n${this.error
+                        .map((e) => e.message)
+                        .join('\n')}`,
+                ),
+            );
         }
-        const checked = this.find(args);
-        if (checked.parser instanceof Error) {
-            return checked.parser;
+        if (this.parser === undefined) {
+            return Promise.resolve();
         }
-        return checked.args;
+        cli.state().parser(this.parser);
+        return Promise.resolve();
     }
 
     public type(): Type {
         return Type.StateModifier;
     }
 
-    protected find(args: string[]): { args: string[]; parser: string | Error | undefined } {
-        const flag = args.findIndex((arg) => ARGS.includes(arg));
-        if (flag === -1) {
-            return { args, parser: undefined };
-        }
-        if (flag === args.length - 1) {
-            args.pop();
-            return {
-                args,
-                parser: new Error(`Parser value isn't defined, even parser flag has been found`),
-            };
-        }
-        const parser = args[flag + 1];
-        if (parser.trim().startsWith('-')) {
-            args.pop();
-            return { args, parser: new Error(`Parser value is skipped`) };
-        }
-        if (!['dlt', 'pcap', 'text'].includes(parser)) {
-            return { args, parser: new Error(`Invalid value of parser`) };
-        }
-        args.splice(flag, 2);
-        return { args, parser };
+    public defined(): boolean {
+        return this.parser !== undefined;
     }
 }

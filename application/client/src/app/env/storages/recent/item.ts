@@ -2,10 +2,10 @@ import { SafeHtml } from '@angular/platform-browser';
 import { getDomSanitizer } from '@ui/env/globals';
 import { Entry, EntryConvertable } from '@platform/types/storage/entry';
 import { error } from '@platform/env/logger';
-import { Matcher } from '@matcher/matcher';
 import { Matchee } from '@module/matcher';
 
 import * as obj from '@platform/env/obj';
+import * as wasm from '@loader/wasm';
 
 export class Recent extends Matchee implements EntryConvertable {
     public value: string = '';
@@ -13,7 +13,7 @@ export class Recent extends Matchee implements EntryConvertable {
 
     private _htmlValue: string = '';
 
-    constructor(value: string, matcher: Matcher) {
+    constructor(value: string, matcher: wasm.Matcher) {
         super(matcher, value !== '' ? { value: value } : undefined);
         this.value = value;
     }

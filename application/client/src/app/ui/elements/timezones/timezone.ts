@@ -1,5 +1,6 @@
 import * as moment_timezone from 'moment-timezone';
-import { Matcher } from '@matcher/matcher';
+import * as wasm from '@loader/wasm';
+
 import { Matchee } from '@module/matcher';
 
 export class Timezone extends Matchee {
@@ -7,9 +8,9 @@ export class Timezone extends Matchee {
     public readonly utc: string;
     public readonly offset: number;
 
-    static matcher: Matcher;
+    static matcher: wasm.Matcher;
 
-    constructor(name: string, utc: string, offset: number, matcher: Matcher) {
+    constructor(name: string, utc: string, offset: number, matcher: wasm.Matcher) {
         super(matcher, { name: name, utc: utc });
         Timezone.matcher = matcher;
         this.name = name;
