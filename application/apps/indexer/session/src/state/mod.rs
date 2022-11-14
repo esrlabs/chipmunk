@@ -68,7 +68,7 @@ pub enum Api {
     SetSessionFile((Option<PathBuf>, oneshot::Sender<Result<(), NativeError>>)),
     GetSessionFile(oneshot::Sender<Result<PathBuf, NativeError>>),
     WriteSessionFile((u8, String, oneshot::Sender<Result<bool, NativeError>>)),
-    FlushSessionFile((u8, oneshot::Sender<Result<(), NativeError>>)),
+    FlushSessionFile(oneshot::Sender<Result<(), NativeError>>),
     UpdateSession((u8, oneshot::Sender<Result<bool, NativeError>>)),
     AddSource((String, oneshot::Sender<u8>)),
     GetSourcesDefinitions(oneshot::Sender<Vec<SourceDefinition>>),
@@ -243,13 +243,12 @@ impl SessionState {
     // TODO: do we need bool as output
     async fn handle_flush_session_file(
         &mut self,
-        source_id: u8,
         state_cancellation_token: CancellationToken,
         tx_callback_events: UnboundedSender<CallbackEvent>,
     ) -> Result<(), NativeError> {
         if matches!(
             self.session_file
-                .flush(source_id, state_cancellation_token.clone(),)
+                .flush(state_cancellation_token.clone(),)
                 .await?,
             SessionFileState::Changed
         ) {
@@ -538,10 +537,9 @@ impl SessionStateAPI {
             .await?
     }
 
-    pub async fn flush_session_file(&self, source_id: u8) -> Result<(), NativeError> {
+    pub async fn flush_session_file(&self) -> Result<(), NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::FlushSessionFile((source_id, tx)), rx)
-            .await?
+        self.exec_operation(Api::FlushSessionFile(tx), rx).await?
     }
 
     pub async fn update_session(&self, source_id: u8) -> Result<bool, NativeError> {
@@ -725,10 +723,9 @@ pub async fn run(
                     NativeError::channel("Failed to respond to Api::WriteSessionFile")
                 })?;
             }
-            Api::FlushSessionFile((source_id, tx_response)) => {
+            Api::FlushSessionFile(tx_response) => {
                 let res = state
                     .handle_flush_session_file(
-                        source_id,
                         state_cancellation_token.clone(),
                         tx_callback_events.clone(),
                     )

@@ -3,6 +3,7 @@ use crate::grabber::{
 };
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use indexer_base::progress::ComputationResult;
+use log::{error, debug};
 use std::{
     fs,
     io::{Read, SeekFrom},
@@ -199,7 +200,6 @@ impl TextFileSource {
         if let Some(slot) = pending.take() {
             // In case if "long" line was last, we add it with the end of file
             slots.push(slot);
-            log_msg_cnt += 1;
         }
         let processed = if log_msg_cnt != from {
             Some(RangeInclusive::new(from, log_msg_cnt - 1))
@@ -228,6 +228,8 @@ impl TextFileSource {
         }
         use std::io::prelude::*;
         let file_part = identify_byte_range(&metadata.slots, line_range).ok_or_else(|| {
+            error!("Error identifying byte range for range {:?}", line_range);
+            debug!("Available slots: {:?}", metadata.slots);
             GrabError::InvalidRange {
                 range: line_range.clone(),
                 context: format!("Error identifying byte range for range {:?}", line_range),
