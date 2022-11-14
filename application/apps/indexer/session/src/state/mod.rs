@@ -67,7 +67,7 @@ impl SearchHolderState {
 pub enum Api {
     SetSessionFile((Option<PathBuf>, oneshot::Sender<Result<(), NativeError>>)),
     GetSessionFile(oneshot::Sender<Result<PathBuf, NativeError>>),
-    WriteSessionFile((u8, String, oneshot::Sender<Result<bool, NativeError>>)),
+    WriteSessionFile((u8, String, oneshot::Sender<Result<(), NativeError>>)),
     FlushSessionFile(oneshot::Sender<Result<(), NativeError>>),
     UpdateSession((u8, oneshot::Sender<Result<bool, NativeError>>)),
     AddSource((String, oneshot::Sender<u8>)),
@@ -218,14 +218,13 @@ impl SessionState {
         Ok(elements)
     }
 
-    // TODO: do we need bool as output
     async fn handle_write_session_file(
         &mut self,
         source_id: u8,
         state_cancellation_token: CancellationToken,
         tx_callback_events: UnboundedSender<CallbackEvent>,
         msg: String,
-    ) -> Result<bool, NativeError> {
+    ) -> Result<(), NativeError> {
         if matches!(
             self.session_file
                 .write(source_id, state_cancellation_token.clone(), msg)
@@ -234,10 +233,8 @@ impl SessionState {
         ) {
             self.update_search(state_cancellation_token, tx_callback_events)
                 .await?;
-            Ok(true)
-        } else {
-            Ok(false)
         }
+        Ok(())
     }
 
     // TODO: do we need bool as output
@@ -527,11 +524,7 @@ impl SessionStateAPI {
         self.exec_operation(Api::GetSessionFile(tx), rx).await?
     }
 
-    pub async fn write_session_file(
-        &self,
-        source_id: u8,
-        msg: String,
-    ) -> Result<bool, NativeError> {
+    pub async fn write_session_file(&self, source_id: u8, msg: String) -> Result<(), NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::WriteSessionFile((source_id, msg, tx)), rx)
             .await?
@@ -711,17 +704,20 @@ pub async fn run(
                     })?;
             }
             Api::WriteSessionFile((source_id, msg, tx_response)) => {
-                let res = state
-                    .handle_write_session_file(
-                        source_id,
-                        state_cancellation_token.clone(),
-                        tx_callback_events.clone(),
-                        msg,
+                tx_response
+                    .send(
+                        state
+                            .handle_write_session_file(
+                                source_id,
+                                state_cancellation_token.clone(),
+                                tx_callback_events.clone(),
+                                msg,
+                            )
+                            .await,
                     )
-                    .await;
-                tx_response.send(res).map_err(|_| {
-                    NativeError::channel("Failed to respond to Api::WriteSessionFile")
-                })?;
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::WriteSessionFile")
+                    })?;
             }
             Api::FlushSessionFile(tx_response) => {
                 let res = state
