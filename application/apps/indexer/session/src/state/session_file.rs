@@ -57,30 +57,21 @@ impl SessionFile {
             } else {
                 let streams = paths::get_streams_dir()?;
                 let filename = streams.join(format!("{}.session", Uuid::new_v4()));
-                File::create(&filename).map_err(|e| NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Io,
-                    message: Some(format!(
-                        "Fail to create session file {}: {}",
-                        filename.to_string_lossy(),
-                        e
-                    )),
-                })?;
+                debug!("Session file setup: {}", filename.to_string_lossy());
+                self.writer = Some(BufWriter::new(File::create(&filename).map_err(|e| {
+                    NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::Io,
+                        message: Some(format!(
+                            "Fail to create session writer for {}: {}",
+                            filename.to_string_lossy(),
+                            e
+                        )),
+                    }
+                })?));
                 filename
             };
-            debug!("Session file setup: {}", filename.to_string_lossy());
             self.filename = Some(filename.clone());
-            self.writer = Some(BufWriter::new(File::create(&filename).map_err(|e| {
-                NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Io,
-                    message: Some(format!(
-                        "Fail to create session writer for {}: {}",
-                        filename.to_string_lossy(),
-                        e
-                    )),
-                }
-            })?));
             Ok(Grabber::lazy(TextFileSource::new(&filename))
                 .map(|g| self.grabber = Some(Box::new(g)))?)
         } else {
