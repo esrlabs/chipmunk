@@ -21,7 +21,7 @@
     "@typescript-eslint/eslint-plugin": "^5.28.0",
     "@typescript-eslint/parser": "^5.28.0",
     "custom.stdout": "^1.0.2",
-    "electron": "^18.0.4",
+    "electron": "^21.2.3",
     "electron-build-env": "0.2.0",
     "electron-rebuild": "^3.2.5",
     "eslint": "8.13.0",
@@ -37,6 +37,6 @@
   },
   "dependencies": {
     "platform": "file:../../../platform",
-    "uuid": "^8.3.2"
+    "uuid": "^9.0.0"
   }
 }
