@@ -50,6 +50,15 @@
                 }
             }
         },
+        "extract": {
+            "regular": {
+                "execute_only": [],
+                "list": {
+                    "1": "Test 1. Assign & extract data",
+                    "2": "Test 2. Assign & extract multiple data"
+                }
+            }
+        },
         "cancel": {
             "regular": {
                 "execute_only": [1],
