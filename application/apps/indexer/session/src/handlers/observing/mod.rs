@@ -108,7 +108,7 @@ pub async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                     }
                     MessageStreamItem::Done => {
                         trace!("observe, message stream is done");
-                        state.flush_session_file(source_id).await?;
+                        state.flush_session_file().await?;
                         state.file_read().await?;
                     }
                     // MessageStreamItem::FileRead => {
@@ -127,7 +127,7 @@ pub async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
             }
             Next::Timeout => {
                 if !state.is_closing() {
-                    state.flush_session_file(source_id).await?;
+                    state.flush_session_file().await?;
                 }
             }
             Next::Waiting => {
