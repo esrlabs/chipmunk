@@ -58,6 +58,10 @@ export const services: { [key: string]: Inputs } = {
         name: 'History',
         uuid: v4(),
     },
+    cli: {
+        name: 'Cli',
+        uuid: v4(),
+    },
 };
 
 export const ui: { [key: string]: Inputs } = {

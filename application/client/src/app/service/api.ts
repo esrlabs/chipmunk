@@ -12,6 +12,10 @@ export class Service extends Implementation {
         scope.setTransport(this._transport);
         return Promise.resolve();
     }
+
+    public transport(): Transport {
+        return this._transport;
+    }
 }
 export interface Service extends Interface {}
-export const production = register(new Service());
+export const api = register(new Service());

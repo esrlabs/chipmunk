@@ -133,7 +133,6 @@ class Application implements IApplication {
             // );
         } else if (exitcase instanceof cases.Restart) {
             this.logger.debug(`Application will be closed with RESTART case.`);
-            //
         } else {
             this.logger.debug(`Application will be closed with REGULAR case.`);
         }

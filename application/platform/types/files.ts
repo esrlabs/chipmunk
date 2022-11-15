@@ -92,3 +92,14 @@ export function getFileExtention(filename: string): string {
     FILE_EXT_REG.lastIndex = 0;
     return match[0];
 }
+
+export function getFileTypeByExt(filename: string): FileType {
+    const normalized = filename.toLowerCase().trim();
+    if (normalized.endsWith('.dlt')) {
+        return FileType.Dlt;
+    } else if (normalized.endsWith('.pcapng')) {
+        return FileType.Pcap;
+    } else {
+        return FileType.Any;
+    }
+}
