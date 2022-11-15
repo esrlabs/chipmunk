@@ -58,109 +58,115 @@ describe('Search', function () {
                 );
                 stream
                     .observe(Observe.DataSource.file(tmpobj.name).text())
-                    .catch(finish.bind(null, session, done));
-                let searchStreamUpdated = false;
-                events.SearchUpdated.subscribe((event) => {
-                    searchStreamUpdated = true;
-                });
-                search
-                    .search([
-                        {
-                            filter: 'match',
-                            flags: { reg: true, word: false, cases: false },
-                        },
-                    ])
-                    .then((_) => {
+                    .on('confirmed', () => {
                         search
-                            .getMap(54)
-                            .then((map) => {
-                                logger.verbose(map);
+                            .search([
+                                {
+                                    filter: 'match',
+                                    flags: { reg: true, word: false, cases: false },
+                                },
+                            ])
+                            .then((_) => {
                                 search
-                                    .grab(0, 11)
-                                    .then((result: IGrabbedElement[]) => {
-                                        expect(result.map((i) => i.content)).toEqual([
-                                            '[0]:: some match line data',
-                                            '[1]:: some match line data',
-                                            '[2]:: some match line data',
-                                            '[3]:: some match line data',
-                                            '[4]:: some match line data',
-                                            '[5]:: some match line data',
-                                            '[100]:: some match line data',
-                                            '[200]:: some match line data',
-                                            '[300]:: some match line data',
-                                            '[400]:: some match line data',
-                                            '[500]:: some match line data',
-                                        ]);
-                                        expect(result.map((i) => i.row)).toEqual([
-                                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-                                        ]);
-                                        expect(result.map((i) => i.position)).toEqual([
-                                            0, // 0
-                                            1, // 1
-                                            2, // 2
-                                            3, // 3
-                                            4, // 4
-                                            5, // 5
-                                            100, // 6
-                                            200, // 7
-                                            300, // 8
-                                            400, // 9
-                                            500, // 10
-                                        ]);
-                                        Promise.allSettled(
-                                            [
-                                                [10, 5, 5],
-                                                [110, 6, 100],
-                                                [390, 9, 400],
-                                                [600, 11, 600],
-                                            ].map((data) => {
-                                                return search
-                                                    .getNearest(data[0])
-                                                    .then((nearest) => {
-                                                        expect(typeof nearest).toEqual('object');
-                                                        expect((nearest as any).index).toEqual(
-                                                            data[1],
-                                                        );
-                                                        expect((nearest as any).position).toEqual(
-                                                            data[2],
-                                                        );
-                                                    })
-                                                    .catch((err: Error) => {
-                                                        fail(err);
-                                                    });
-                                            }),
-                                        )
-                                            .then(() => {
-                                                search
-                                                    .len()
-                                                    .then((len: number) => {
-                                                        expect(len).toEqual(55);
-                                                        expect(searchStreamUpdated).toEqual(true);
-                                                        finish(session, done);
+                                    .getMap(54)
+                                    .then((map) => {
+                                        logger.verbose(map);
+                                        search
+                                            .grab(0, 11)
+                                            .then((result: IGrabbedElement[]) => {
+                                                expect(result.map((i) => i.content)).toEqual([
+                                                    '[0]:: some match line data',
+                                                    '[1]:: some match line data',
+                                                    '[2]:: some match line data',
+                                                    '[3]:: some match line data',
+                                                    '[4]:: some match line data',
+                                                    '[5]:: some match line data',
+                                                    '[100]:: some match line data',
+                                                    '[200]:: some match line data',
+                                                    '[300]:: some match line data',
+                                                    '[400]:: some match line data',
+                                                    '[500]:: some match line data',
+                                                ]);
+                                                expect(result.map((i) => i.row)).toEqual([
+                                                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                                                ]);
+                                                expect(result.map((i) => i.position)).toEqual([
+                                                    0, // 0
+                                                    1, // 1
+                                                    2, // 2
+                                                    3, // 3
+                                                    4, // 4
+                                                    5, // 5
+                                                    100, // 6
+                                                    200, // 7
+                                                    300, // 8
+                                                    400, // 9
+                                                    500, // 10
+                                                ]);
+                                                Promise.allSettled(
+                                                    [
+                                                        [10, 5, 5],
+                                                        [110, 6, 100],
+                                                        [390, 9, 400],
+                                                        [600, 11, 600],
+                                                    ].map((data) => {
+                                                        return search
+                                                            .getNearest(data[0])
+                                                            .then((nearest) => {
+                                                                expect(typeof nearest).toEqual(
+                                                                    'object',
+                                                                );
+                                                                expect(
+                                                                    (nearest as any).index,
+                                                                ).toEqual(data[1]);
+                                                                expect(
+                                                                    (nearest as any).position,
+                                                                ).toEqual(data[2]);
+                                                            })
+                                                            .catch((err: Error) => {
+                                                                fail(err);
+                                                            });
+                                                    }),
+                                                )
+                                                    .then(() => {
+                                                        search
+                                                            .len()
+                                                            .then((len: number) => {
+                                                                expect(len).toEqual(55);
+                                                                expect(searchStreamUpdated).toEqual(
+                                                                    true,
+                                                                );
+                                                                finish(session, done);
+                                                            })
+                                                            .catch((err: Error) => {
+                                                                finish(session, done, err);
+                                                            });
                                                     })
                                                     .catch((err: Error) => {
                                                         finish(session, done, err);
                                                     });
                                             })
                                             .catch((err: Error) => {
-                                                finish(session, done, err);
+                                                finish(
+                                                    session,
+                                                    done,
+                                                    new Error(
+                                                        `Fail to grab data due error: ${
+                                                            err instanceof Error ? err.message : err
+                                                        }`,
+                                                    ),
+                                                );
                                             });
                                     })
-                                    .catch((err: Error) => {
-                                        finish(
-                                            session,
-                                            done,
-                                            new Error(
-                                                `Fail to grab data due error: ${
-                                                    err instanceof Error ? err.message : err
-                                                }`,
-                                            ),
-                                        );
-                                    });
+                                    .catch(finish.bind(null, session, done));
                             })
                             .catch(finish.bind(null, session, done));
                     })
                     .catch(finish.bind(null, session, done));
+                let searchStreamUpdated = false;
+                events.SearchUpdated.subscribe((event) => {
+                    searchStreamUpdated = true;
+                });
             })
             .catch((err: Error) => {
                 finish(
@@ -210,100 +216,106 @@ describe('Search', function () {
                 );
                 stream
                     .observe(Observe.DataSource.file(tmpobj.name).text())
-                    .catch(finish.bind(null, session, done));
-                search
-                    .search([
-                        {
-                            filter: 'match A',
-                            flags: { reg: true, word: false, cases: false },
-                        },
-                        {
-                            filter: 'match B',
-                            flags: { reg: true, word: false, cases: false },
-                        },
-                        {
-                            filter: '666',
-                            flags: { reg: true, word: false, cases: false },
-                        },
-                    ])
-                    .then((result) => {
+                    .on('confirmed', () => {
                         search
-                            .grab(0, 11)
-                            .then((result: IGrabbedElement[]) => {
-                                expect(result.map((i) => i.content)).toEqual([
-                                    '[0]:: some match A line data',
-                                    '[1]:: some match A line data',
-                                    '[2]:: some match A line data',
-                                    '[3]:: some match A line data',
-                                    '[4]:: some match A line data',
-                                    '[5]:: some match A line data',
-                                    '[9]:: some 666 line data',
-                                    '[50]:: some match B line data',
-                                    '[100]:: some match A line data',
-                                    '[150]:: some match B line data',
-                                    '[200]:: some match A line data',
-                                ]);
-                                expect(result.map((i) => i.row)).toEqual([
-                                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-                                ]);
-                                expect(result.map((i) => i.position)).toEqual([
-                                    0, // 0
-                                    1, // 1
-                                    2, // 2
-                                    3, // 3
-                                    4, // 4
-                                    5, // 5
-                                    9, // 6
-                                    50, // 7
-                                    100, // 8
-                                    150, // 9
-                                    200, // 10
-                                ]);
-                                Promise.allSettled(
-                                    [
-                                        [5, 5, 5],
-                                        [10, 6, 9],
-                                        [55, 7, 50],
-                                        [190, 10, 200],
-                                    ].map((data) => {
-                                        return search
-                                            .getNearest(data[0])
-                                            .then((nearest) => {
-                                                expect(typeof nearest).toEqual('object');
-                                                expect((nearest as any).index).toEqual(data[1]);
-                                                expect((nearest as any).position).toEqual(data[2]);
-                                            })
-                                            .catch((err: Error) => {
-                                                fail(err);
-                                            });
-                                    }),
-                                )
-                                    .then(() => {
-                                        search
-                                            .len()
-                                            .then((len: number) => {
-                                                expect(len).toEqual(111);
-                                                finish(session, done);
+                            .search([
+                                {
+                                    filter: 'match A',
+                                    flags: { reg: true, word: false, cases: false },
+                                },
+                                {
+                                    filter: 'match B',
+                                    flags: { reg: true, word: false, cases: false },
+                                },
+                                {
+                                    filter: '666',
+                                    flags: { reg: true, word: false, cases: false },
+                                },
+                            ])
+                            .then((result) => {
+                                search
+                                    .grab(0, 11)
+                                    .then((result: IGrabbedElement[]) => {
+                                        expect(result.map((i) => i.content)).toEqual([
+                                            '[0]:: some match A line data',
+                                            '[1]:: some match A line data',
+                                            '[2]:: some match A line data',
+                                            '[3]:: some match A line data',
+                                            '[4]:: some match A line data',
+                                            '[5]:: some match A line data',
+                                            '[9]:: some 666 line data',
+                                            '[50]:: some match B line data',
+                                            '[100]:: some match A line data',
+                                            '[150]:: some match B line data',
+                                            '[200]:: some match A line data',
+                                        ]);
+                                        expect(result.map((i) => i.row)).toEqual([
+                                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                                        ]);
+                                        expect(result.map((i) => i.position)).toEqual([
+                                            0, // 0
+                                            1, // 1
+                                            2, // 2
+                                            3, // 3
+                                            4, // 4
+                                            5, // 5
+                                            9, // 6
+                                            50, // 7
+                                            100, // 8
+                                            150, // 9
+                                            200, // 10
+                                        ]);
+                                        Promise.allSettled(
+                                            [
+                                                [5, 5, 5],
+                                                [10, 6, 9],
+                                                [55, 7, 50],
+                                                [190, 10, 200],
+                                            ].map((data) => {
+                                                return search
+                                                    .getNearest(data[0])
+                                                    .then((nearest) => {
+                                                        expect(typeof nearest).toEqual('object');
+                                                        expect((nearest as any).index).toEqual(
+                                                            data[1],
+                                                        );
+                                                        expect((nearest as any).position).toEqual(
+                                                            data[2],
+                                                        );
+                                                    })
+                                                    .catch((err: Error) => {
+                                                        fail(err);
+                                                    });
+                                            }),
+                                        )
+                                            .then(() => {
+                                                search
+                                                    .len()
+                                                    .then((len: number) => {
+                                                        expect(len).toEqual(111);
+                                                        finish(session, done);
+                                                    })
+                                                    .catch((err: Error) => {
+                                                        finish(session, done, err);
+                                                    });
                                             })
                                             .catch((err: Error) => {
                                                 finish(session, done, err);
                                             });
                                     })
                                     .catch((err: Error) => {
-                                        finish(session, done, err);
+                                        finish(
+                                            session,
+                                            done,
+                                            new Error(
+                                                `Fail to grab data due error: ${
+                                                    err instanceof Error ? err.message : err
+                                                }`,
+                                            ),
+                                        );
                                     });
                             })
-                            .catch((err: Error) => {
-                                finish(
-                                    session,
-                                    done,
-                                    new Error(
-                                        `Fail to grab data due error: ${
-                                            err instanceof Error ? err.message : err
-                                        }`,
-                                    ),
-                                );
-                            });
+                            .catch(finish.bind(null, session, done));
                     })
                     .catch(finish.bind(null, session, done));
             })
@@ -347,17 +359,19 @@ describe('Search', function () {
                 );
                 stream
                     .observe(Observe.DataSource.file(tmpobj.name).text())
-                    .catch(finish.bind(null, session, done));
-                search
-                    .search([
-                        {
-                            filter: 'not relevant search',
-                            flags: { reg: true, word: false, cases: false },
-                        },
-                    ])
-                    .then((found) => {
-                        expect(found).toEqual(0);
-                        finish(session, done);
+                    .on('confirmed', () => {
+                        search
+                            .search([
+                                {
+                                    filter: 'not relevant search',
+                                    flags: { reg: true, word: false, cases: false },
+                                },
+                            ])
+                            .then((found) => {
+                                expect(found).toEqual(0);
+                                finish(session, done);
+                            })
+                            .catch(finish.bind(null, session, done));
                     })
                     .catch(finish.bind(null, session, done));
             })
@@ -404,100 +418,104 @@ describe('Search', function () {
                 );
                 stream
                     .observe(Observe.DataSource.file(tmpobj.name).text())
-                    .catch(finish.bind(null, session, done));
-                search
-                    .search([
-                        {
-                            filter: 'match',
-                            flags: { reg: true, word: false, cases: false },
-                        },
-                    ])
-                    .then((_) => {
-                        // search results available on rust side
+                    .on('confirmed', () => {
                         search
-                            .getMap(54)
-                            .then((map) => {
+                            .search([
+                                {
+                                    filter: 'match',
+                                    flags: { reg: true, word: false, cases: false },
+                                },
+                            ])
+                            .then((_) => {
+                                // search results available on rust side
                                 search
-                                    .grab(0, 11)
-                                    .then((result: IGrabbedElement[]) => {
-                                        expect(result.map((i) => i.content)).toEqual([
-                                            '[0]:: some mAtCh line data',
-                                            '[1]:: some mAtCh line data',
-                                            '[2]:: some mAtCh line data',
-                                            '[3]:: some mAtCh line data',
-                                            '[4]:: some mAtCh line data',
-                                            '[5]:: some mAtCh line data',
-                                            '[100]:: some mAtCh line data',
-                                            '[200]:: some mAtCh line data',
-                                            '[300]:: some mAtCh line data',
-                                            '[400]:: some mAtCh line data',
-                                            '[500]:: some mAtCh line data',
-                                        ]);
-                                        expect(result.map((i) => i.row)).toEqual([
-                                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-                                        ]);
-                                        expect(result.map((i) => i.position)).toEqual([
-                                            0, // 0
-                                            1, // 1
-                                            2, // 2
-                                            3, // 3
-                                            4, // 4
-                                            5, // 5
-                                            100, // 6
-                                            200, // 7
-                                            300, // 8
-                                            400, // 9
-                                            500, // 10
-                                        ]);
-                                        Promise.allSettled(
-                                            [
-                                                [10, 5, 5],
-                                                [110, 6, 100],
-                                                [390, 9, 400],
-                                                [600, 11, 600],
-                                            ].map((data) => {
-                                                return search
-                                                    .getNearest(data[0])
-                                                    .then((nearest) => {
-                                                        expect(typeof nearest).toEqual('object');
-                                                        expect((nearest as any).index).toEqual(
-                                                            data[1],
-                                                        );
-                                                        expect((nearest as any).position).toEqual(
-                                                            data[2],
-                                                        );
-                                                    })
-                                                    .catch((err: Error) => {
-                                                        fail(err);
-                                                    });
-                                            }),
-                                        )
-                                            .then(() => {
-                                                search
-                                                    .len()
-                                                    .then((len: number) => {
-                                                        expect(len).toEqual(55);
-                                                        finish(session, done);
+                                    .getMap(54)
+                                    .then((map) => {
+                                        search
+                                            .grab(0, 11)
+                                            .then((result: IGrabbedElement[]) => {
+                                                expect(result.map((i) => i.content)).toEqual([
+                                                    '[0]:: some mAtCh line data',
+                                                    '[1]:: some mAtCh line data',
+                                                    '[2]:: some mAtCh line data',
+                                                    '[3]:: some mAtCh line data',
+                                                    '[4]:: some mAtCh line data',
+                                                    '[5]:: some mAtCh line data',
+                                                    '[100]:: some mAtCh line data',
+                                                    '[200]:: some mAtCh line data',
+                                                    '[300]:: some mAtCh line data',
+                                                    '[400]:: some mAtCh line data',
+                                                    '[500]:: some mAtCh line data',
+                                                ]);
+                                                expect(result.map((i) => i.row)).toEqual([
+                                                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                                                ]);
+                                                expect(result.map((i) => i.position)).toEqual([
+                                                    0, // 0
+                                                    1, // 1
+                                                    2, // 2
+                                                    3, // 3
+                                                    4, // 4
+                                                    5, // 5
+                                                    100, // 6
+                                                    200, // 7
+                                                    300, // 8
+                                                    400, // 9
+                                                    500, // 10
+                                                ]);
+                                                Promise.allSettled(
+                                                    [
+                                                        [10, 5, 5],
+                                                        [110, 6, 100],
+                                                        [390, 9, 400],
+                                                        [600, 11, 600],
+                                                    ].map((data) => {
+                                                        return search
+                                                            .getNearest(data[0])
+                                                            .then((nearest) => {
+                                                                expect(typeof nearest).toEqual(
+                                                                    'object',
+                                                                );
+                                                                expect(
+                                                                    (nearest as any).index,
+                                                                ).toEqual(data[1]);
+                                                                expect(
+                                                                    (nearest as any).position,
+                                                                ).toEqual(data[2]);
+                                                            })
+                                                            .catch((err: Error) => {
+                                                                fail(err);
+                                                            });
+                                                    }),
+                                                )
+                                                    .then(() => {
+                                                        search
+                                                            .len()
+                                                            .then((len: number) => {
+                                                                expect(len).toEqual(55);
+                                                                finish(session, done);
+                                                            })
+                                                            .catch((err: Error) => {
+                                                                finish(session, done, err);
+                                                            });
                                                     })
                                                     .catch((err: Error) => {
                                                         finish(session, done, err);
                                                     });
                                             })
                                             .catch((err: Error) => {
-                                                finish(session, done, err);
+                                                finish(
+                                                    session,
+                                                    done,
+                                                    new Error(
+                                                        `Fail to grab data due error: ${
+                                                            err instanceof Error ? err.message : err
+                                                        }`,
+                                                    ),
+                                                );
                                             });
                                     })
-                                    .catch((err: Error) => {
-                                        finish(
-                                            session,
-                                            done,
-                                            new Error(
-                                                `Fail to grab data due error: ${
-                                                    err instanceof Error ? err.message : err
-                                                }`,
-                                            ),
-                                        );
-                                    });
+                                    .catch(finish.bind(null, session, done));
                             })
                             .catch(finish.bind(null, session, done));
                     })
@@ -548,100 +566,104 @@ describe('Search', function () {
                 );
                 stream
                     .observe(Observe.DataSource.file(tmpobj.name).text())
-                    .catch(finish.bind(null, session, done));
-                search
-                    .search([
-                        {
-                            filter: 'match',
-                            flags: { reg: true, word: true, cases: false },
-                        },
-                    ])
-                    .then((_) => {
-                        // search results available on rust side
+                    .on('confirmed', () => {
                         search
-                            .getMap(54)
-                            .then((map) => {
+                            .search([
+                                {
+                                    filter: 'match',
+                                    flags: { reg: true, word: true, cases: false },
+                                },
+                            ])
+                            .then((_) => {
+                                // search results available on rust side
                                 search
-                                    .grab(0, 11)
-                                    .then((result: IGrabbedElement[]) => {
-                                        expect(result.map((i) => i.content)).toEqual([
-                                            '[0]:: some match line data',
-                                            '[1]:: some match line data',
-                                            '[2]:: some match line data',
-                                            '[3]:: some match line data',
-                                            '[4]:: some match line data',
-                                            '[5]:: some match line data',
-                                            '[100]:: some match line data',
-                                            '[200]:: some match line data',
-                                            '[300]:: some match line data',
-                                            '[400]:: some match line data',
-                                            '[500]:: some match line data',
-                                        ]);
-                                        expect(result.map((i) => i.row)).toEqual([
-                                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-                                        ]);
-                                        expect(result.map((i) => i.position)).toEqual([
-                                            0, // 0
-                                            1, // 1
-                                            2, // 2
-                                            3, // 3
-                                            4, // 4
-                                            5, // 5
-                                            100, // 6
-                                            200, // 7
-                                            300, // 8
-                                            400, // 9
-                                            500, // 10
-                                        ]);
-                                        Promise.allSettled(
-                                            [
-                                                [10, 5, 5],
-                                                [110, 6, 100],
-                                                [390, 9, 400],
-                                                [600, 11, 600],
-                                            ].map((data) => {
-                                                return search
-                                                    .getNearest(data[0])
-                                                    .then((nearest) => {
-                                                        expect(typeof nearest).toEqual('object');
-                                                        expect((nearest as any).index).toEqual(
-                                                            data[1],
-                                                        );
-                                                        expect((nearest as any).position).toEqual(
-                                                            data[2],
-                                                        );
-                                                    })
-                                                    .catch((err: Error) => {
-                                                        fail(err);
-                                                    });
-                                            }),
-                                        )
-                                            .then(() => {
-                                                search
-                                                    .len()
-                                                    .then((len: number) => {
-                                                        expect(len).toEqual(55);
-                                                        finish(session, done);
+                                    .getMap(54)
+                                    .then((map) => {
+                                        search
+                                            .grab(0, 11)
+                                            .then((result: IGrabbedElement[]) => {
+                                                expect(result.map((i) => i.content)).toEqual([
+                                                    '[0]:: some match line data',
+                                                    '[1]:: some match line data',
+                                                    '[2]:: some match line data',
+                                                    '[3]:: some match line data',
+                                                    '[4]:: some match line data',
+                                                    '[5]:: some match line data',
+                                                    '[100]:: some match line data',
+                                                    '[200]:: some match line data',
+                                                    '[300]:: some match line data',
+                                                    '[400]:: some match line data',
+                                                    '[500]:: some match line data',
+                                                ]);
+                                                expect(result.map((i) => i.row)).toEqual([
+                                                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                                                ]);
+                                                expect(result.map((i) => i.position)).toEqual([
+                                                    0, // 0
+                                                    1, // 1
+                                                    2, // 2
+                                                    3, // 3
+                                                    4, // 4
+                                                    5, // 5
+                                                    100, // 6
+                                                    200, // 7
+                                                    300, // 8
+                                                    400, // 9
+                                                    500, // 10
+                                                ]);
+                                                Promise.allSettled(
+                                                    [
+                                                        [10, 5, 5],
+                                                        [110, 6, 100],
+                                                        [390, 9, 400],
+                                                        [600, 11, 600],
+                                                    ].map((data) => {
+                                                        return search
+                                                            .getNearest(data[0])
+                                                            .then((nearest) => {
+                                                                expect(typeof nearest).toEqual(
+                                                                    'object',
+                                                                );
+                                                                expect(
+                                                                    (nearest as any).index,
+                                                                ).toEqual(data[1]);
+                                                                expect(
+                                                                    (nearest as any).position,
+                                                                ).toEqual(data[2]);
+                                                            })
+                                                            .catch((err: Error) => {
+                                                                fail(err);
+                                                            });
+                                                    }),
+                                                )
+                                                    .then(() => {
+                                                        search
+                                                            .len()
+                                                            .then((len: number) => {
+                                                                expect(len).toEqual(55);
+                                                                finish(session, done);
+                                                            })
+                                                            .catch((err: Error) => {
+                                                                finish(session, done, err);
+                                                            });
                                                     })
                                                     .catch((err: Error) => {
                                                         finish(session, done, err);
                                                     });
                                             })
                                             .catch((err: Error) => {
-                                                finish(session, done, err);
+                                                finish(
+                                                    session,
+                                                    done,
+                                                    new Error(
+                                                        `Fail to grab data due error: ${
+                                                            err instanceof Error ? err.message : err
+                                                        }`,
+                                                    ),
+                                                );
                                             });
                                     })
-                                    .catch((err: Error) => {
-                                        finish(
-                                            session,
-                                            done,
-                                            new Error(
-                                                `Fail to grab data due error: ${
-                                                    err instanceof Error ? err.message : err
-                                                }`,
-                                            ),
-                                        );
-                                    });
+                                    .catch(finish.bind(null, session, done));
                             })
                             .catch(finish.bind(null, session, done));
                     })
