@@ -1,13 +1,14 @@
-import { Matcher } from '@matcher/matcher';
 import { Matchee } from '@module/matcher';
 import { bytesToStr } from '@env/str';
 import { FileType, File } from '@platform/types/files';
+
+import * as wasm from '@loader/wasm';
 
 export class FileHolder extends Matchee {
     private _file: File;
     private _selected: boolean = true;
 
-    constructor(matcher: Matcher, file: File) {
+    constructor(matcher: wasm.Matcher, file: File) {
         super(matcher, { name: file.name, path: file.path });
         this._file = file;
     }

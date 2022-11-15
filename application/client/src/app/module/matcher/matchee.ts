@@ -1,10 +1,10 @@
-import { Matcher } from '@matcher/matcher';
+import * as wasm from '@loader/wasm';
 
 export abstract class Matchee {
     private _index: number | undefined;
-    private _matcher: Matcher;
+    private _matcher: wasm.Matcher;
 
-    constructor(matcher: Matcher, item: object | undefined) {
+    constructor(matcher: wasm.Matcher, item: object | undefined) {
         this._matcher = matcher;
         if (item !== undefined) {
             this._index = this._matcher.set_item(JSON.stringify(item));
