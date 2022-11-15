@@ -1,11 +1,12 @@
-import { Matcher } from '@matcher/matcher';
 import { Matchee } from '@module/matcher';
 import { Action } from '@service/recent/action';
+
+import * as wasm from '@loader/wasm';
 
 export class WrappedAction extends Matchee {
     public readonly action: Action;
 
-    constructor(action: Action, matcher: Matcher) {
+    constructor(action: Action, matcher: wasm.Matcher) {
         super(matcher, {
             major: action.description().major,
             minor: action.description().minor,

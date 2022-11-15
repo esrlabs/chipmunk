@@ -1,9 +1,10 @@
-import { convert } from '@ansi/ansi';
 import { error } from '@platform/env/logger';
+
+import * as wasm from '@loader/wasm';
 
 export function ansiToHtml(input: string): string | Error {
     try {
-        return convert(input);
+        return wasm.getAnsi().convert(input);
     } catch (e) {
         return new Error(error(e));
     }

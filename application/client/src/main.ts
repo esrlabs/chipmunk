@@ -8,17 +8,20 @@ import { AppModule } from './app/app.module';
 import { environment } from './environments/environment';
 import { system } from '@platform/modules/system';
 
+import * as wasm from '@loader/wasm';
+
 if (environment.production) {
     enableProdMode();
 }
-
-system.init().then(() => {
-    platformBrowserDynamic()
-        .bootstrapModule(AppModule)
-        .catch((err) => console.error(err));
-    // system.destroy().then(() => {
-    //     platformBrowserDynamic()
-    //         .bootstrapModule(AppModule)
-    //         .catch((err) => console.error(err));
-    // });
+wasm.load().then(() => {
+    system.init().then(() => {
+        platformBrowserDynamic()
+            .bootstrapModule(AppModule)
+            .catch((err) => console.error(err));
+        // system.destroy().then(() => {
+        //     platformBrowserDynamic()
+        //         .bootstrapModule(AppModule)
+        //         .catch((err) => console.error(err));
+        // });
+    });
 });

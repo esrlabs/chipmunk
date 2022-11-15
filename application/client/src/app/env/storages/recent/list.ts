@@ -5,8 +5,9 @@ import { Entry, EntryConvertable } from '@platform/types/storage/entry';
 import { error } from '@platform/env/logger';
 import { Storage } from '@env/fsstorage';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
-import { Matcher } from '@matcher/matcher';
 import { Recent } from './item';
+
+import * as wasm from '@loader/wasm';
 
 @SetupLogger()
 export class List extends Storage implements EntryConvertable {
@@ -15,7 +16,7 @@ export class List extends Storage implements EntryConvertable {
     public observer: Observable<Recent[]>;
 
     protected readonly control: FormControl;
-    protected readonly matcher: Matcher = Matcher.new();
+    protected readonly matcher: wasm.Matcher = wasm.getMatcher().Matcher.new();
     protected readonly filealias: string;
 
     constructor(control: FormControl, name: string, filealias: string) {
