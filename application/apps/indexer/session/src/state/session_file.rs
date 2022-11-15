@@ -57,18 +57,20 @@ impl SessionFile {
             } else {
                 let streams = paths::get_streams_dir()?;
                 let filename = streams.join(format!("{}.session", Uuid::new_v4()));
-                File::create(&filename).map_err(|e| NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Io,
-                    message: Some(format!(
-                        "Fail to create session file {}: {}",
-                        filename.to_string_lossy(),
-                        e
-                    )),
-                })?;
+                debug!("Session file setup: {}", filename.to_string_lossy());
+                self.writer = Some(BufWriter::new(File::create(&filename).map_err(|e| {
+                    NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::Io,
+                        message: Some(format!(
+                            "Fail to create session writer for {}: {}",
+                            filename.to_string_lossy(),
+                            e
+                        )),
+                    }
+                })?));
                 filename
             };
-            debug!("Session file setup: {}", filename.to_string_lossy());
             self.filename = Some(filename.clone());
             Ok(Grabber::lazy(TextFileSource::new(&filename))
                 .map(|g| self.grabber = Some(Box::new(g)))?)
@@ -96,44 +98,31 @@ impl SessionFile {
         state_cancellation_token: CancellationToken,
         msg: String,
     ) -> Result<SessionFileState, NativeError> {
-        let writer = match (&mut self.writer, &self.filename) {
-            (None, None) => {
-                return Err(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Grabber,
-                    message: Some(String::from("Session file isn't assigned yet")),
-                });
+        if !self.observing.is_source_same(source_id) {
+            self.flush(state_cancellation_token.clone()).await?;
+        }
+        if let Some(writer) = &mut self.writer {
+            writer.write_all(msg.as_bytes())?;
+            self.observing.source_update(source_id);
+            if self.last_message_timestamp.elapsed().as_millis() > NOTIFY_IN_MS {
+                self.flush(state_cancellation_token.clone()).await
+            } else {
+                self.has_updates = true;
+                Ok(SessionFileState::MaybeChanged)
             }
-            (None, Some(ref filename)) => {
-                let writer = BufWriter::new(File::create(filename).map_err(|e| NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Io,
-                    message: Some(format!(
-                        "Fail to create session writer for {}: {}",
-                        filename.to_string_lossy(),
-                        e
-                    )),
-                })?);
-                self.writer.insert(writer)
-            }
-            (Some(writer), _) => writer,
-        };
-        writer.write_all(msg.as_bytes())?;
-        if self.observing.is_source_changed(source_id)
-            || self.last_message_timestamp.elapsed().as_millis() > NOTIFY_IN_MS
-        {
-            writer.flush()?;
-            self.last_message_timestamp = Instant::now();
-            self.update(source_id, state_cancellation_token).await
         } else {
-            self.has_updates = true;
-            Ok(SessionFileState::MaybeChanged)
+            Err(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Grabber,
+                message: Some(String::from(
+                    "Session file isn't assigned yet, cannot flush",
+                )),
+            })
         }
     }
 
     pub async fn flush(
         &mut self,
-        source_id: u8,
         state_cancellation_token: CancellationToken,
     ) -> Result<SessionFileState, NativeError> {
         if !self.has_updates {
@@ -143,12 +132,18 @@ impl SessionFile {
             writer.flush()?;
             self.last_message_timestamp = Instant::now();
             self.has_updates = false;
-            self.update(source_id, state_cancellation_token).await
+            self.update(
+                self.observing.get_recent_source_id(),
+                state_cancellation_token,
+            )
+            .await
         } else {
             Err(NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::Grabber,
-                message: Some(String::from("Session file isn't assigned yet")),
+                message: Some(String::from(
+                    "Session file isn't assigned yet, cannot flush",
+                )),
             })
         }
     }

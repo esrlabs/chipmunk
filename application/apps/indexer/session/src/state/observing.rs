@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, ops::RangeInclusive};
-
 pub struct MappedRanges<'a> {
     ranges: Vec<&'a (RangeInclusive<u64>, u8)>,
 }
@@ -49,16 +48,31 @@ impl Observing {
         key
     }
 
-    pub fn is_source_changed(&mut self, source_id: u8) -> bool {
+    pub fn is_source_same(&self, source_id: u8) -> bool {
+        if let Some(id) = self.recent {
+            id == source_id
+        } else {
+            true
+        }
+    }
+
+    pub fn source_update(&mut self, source_id: u8) {
         let changed = if let Some(id) = self.recent {
             id != source_id
         } else {
-            true
+            false
         };
-        if changed {
+        if changed || self.recent.is_none() {
             self.recent = Some(source_id);
         }
-        changed
+    }
+
+    pub fn get_recent_source_id(&self) -> u8 {
+        if let Some(id) = self.recent {
+            id
+        } else {
+            self.sources.len() as u8
+        }
     }
 
     pub fn get_sources_definitions(&self) -> Vec<SourceDefinition> {
@@ -69,10 +83,6 @@ impl Observing {
                 alias: alias.to_string(),
             })
             .collect::<Vec<SourceDefinition>>()
-    }
-
-    pub fn current_source_id(&self) -> u8 {
-        self.sources.len() as u8
     }
 
     pub fn add_range(&mut self, range: RangeInclusive<u64>, source_id: u8) {
