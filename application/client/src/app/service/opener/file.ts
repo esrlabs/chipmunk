@@ -6,6 +6,7 @@ import { File } from '@platform/types/files';
 import { Base } from './base';
 import { isRenderMatch } from '@schema/render/tools';
 import { lockers, Locker, Level } from '@ui/service/lockers';
+import { Session } from '@service/session';
 
 export abstract class FileOpener<Options, NamedOptions> extends Base<
     FileOpener<Options, NamedOptions>
@@ -29,7 +30,7 @@ export abstract class FileOpener<Options, NamedOptions> extends Base<
 
     abstract getNamedOptions(options: Options): NamedOptions;
 
-    public async open(file: File | string, options?: Options): Promise<void> {
+    public async open(file: File | string, options?: Options): Promise<string> {
         const target: File = (
             await this.services.system.bridge
                 .files()
@@ -80,7 +81,8 @@ export abstract class FileOpener<Options, NamedOptions> extends Base<
                         },
                         this.getRender(),
                     )
-                    .then(() => {
+                    .then((session: Session) => {
+                        this.assign(session);
                         progress.popup.close();
                         this.services.system.recent
                             .add()
@@ -104,7 +106,15 @@ export abstract class FileOpener<Options, NamedOptions> extends Base<
         return new Promise((resolve, reject) => {
             const settings = this.getSettings();
             if (options !== undefined || settings === undefined) {
-                open(options).then(resolve).catch(reject);
+                open(options)
+                    .then(() => {
+                        if (this.session === undefined) {
+                            reject(new Error(`Open file handler: session isn't created.`));
+                        } else {
+                            resolve(this.session.uuid());
+                        }
+                    })
+                    .catch(reject);
             } else {
                 const api = this.services.system.session.add().tab({
                     name: settings.name,
@@ -114,7 +124,19 @@ export abstract class FileOpener<Options, NamedOptions> extends Base<
                             getTabApi: () => api,
                             files: [target],
                             done: (opt?: Options) => {
-                                open(opt).then(resolve).catch(reject);
+                                open(opt)
+                                    .then(() => {
+                                        if (this.session === undefined) {
+                                            reject(
+                                                new Error(
+                                                    `Open file handler: session isn't created.`,
+                                                ),
+                                            );
+                                        } else {
+                                            resolve(this.session.uuid());
+                                        }
+                                    })
+                                    .catch(reject);
                             },
                         },
                     },

@@ -54,4 +54,12 @@ export const services: { [key: string]: Inputs } = {
         name: 'hotkeys',
         uuid: v4(),
     },
+    cli: {
+        name: 'cli',
+        uuid: v4(),
+    },
+    menu: {
+        name: 'menu',
+        uuid: v4(),
+    },
 };

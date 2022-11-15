@@ -15,3 +15,5 @@ import '@service/updater';
 import '@service/notifications';
 import '@service/env';
 import '@service/hotkeys';
+import '@service/cli';
+import '@service/menu';

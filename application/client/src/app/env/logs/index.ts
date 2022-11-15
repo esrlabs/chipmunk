@@ -15,6 +15,7 @@ export function error(err: Error | unknown): string {
 
 export class Logger extends Instance {
     public static maxNameLength = 0;
+    public static tm: number = Date.now();
     private _signature = '';
     private _parameters: LoggerParameters = new LoggerParameters({});
 
@@ -140,7 +141,10 @@ export class Logger extends Instance {
 
     private _getTime(): string {
         const time: Date = new Date();
-        return `${time.toJSON()}`;
+        const tm = Date.now();
+        const msg = `${time.toJSON()}[+${(tm - Logger.tm).toFixed(2)}ms]`;
+        Logger.tm = tm;
+        return msg;
     }
 
     private _log(original: string, level: Level) {

@@ -16,6 +16,6 @@ export class Action extends Base {
     }
 
     public async apply(): Promise<void> {
-        return opener.stream().text();
+        return opener.stream().text() as unknown as Promise<void>;
     }
 }

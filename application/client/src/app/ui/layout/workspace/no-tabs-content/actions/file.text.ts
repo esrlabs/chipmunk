@@ -21,6 +21,6 @@ export class Action extends Base {
         if (files.length !== 1) {
             return Promise.resolve();
         }
-        return opener.file(files[0]).text();
+        return opener.file(files[0]).text() as unknown as Promise<void>;
     }
 }

@@ -268,6 +268,11 @@ export class Service extends Implementation {
         };
     }
 
+    public get(uuid: string): Session | undefined {
+        const smth = this._sessions.get(uuid);
+        return smth instanceof Session ? smth : undefined;
+    }
+
     protected create(render: Render<unknown>): Promise<Session> {
         const session = new Session(render);
         return session.init().then((_uuid: string) => {

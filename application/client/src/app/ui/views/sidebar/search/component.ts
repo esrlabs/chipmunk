@@ -117,7 +117,7 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
         );
         this.env().subscriber.register(
             this._providers.subjects.change.subscribe(() => {
-                // this.detectChanges();
+                this.detectChanges();
             }),
         );
         window.addEventListener('keyup', this._onGlobalKeyUp);

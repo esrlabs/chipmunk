@@ -233,6 +233,21 @@ export function getBasicColors(): string[] {
     return CColors.slice(3, CColors.length);
 }
 
+export function shuffledBasicColors(): string[] {
+    return getBasicColors()
+        .map((value) => ({ value, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ value }) => value);
+}
+
+let nextColorIndex = 0;
+const shufled = shuffledBasicColors();
+
+export function getNextColor(): string {
+    nextColorIndex = nextColorIndex >= shufled.length ? 0 : nextColorIndex + 1;
+    return shufled[nextColorIndex];
+}
+
 const sourceColors: string[] = [];
 
 export function getSourceColor(id: number): string {
