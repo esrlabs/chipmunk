@@ -3,16 +3,18 @@ use crate::{
     operations::{OperationAPI, OperationResult},
     state::SessionStateAPI,
 };
-use indexer_base::config::IndexSection;
-use indexer_base::progress::Severity;
+use indexer_base::{config::IndexSection, progress::Severity};
 use log::debug;
-use parsers::{dlt::DltParser, text::StringTokenizer};
+use parsers::{dlt::DltParser, text::StringTokenizer, LogMessage, MessageStreamItem};
 use processor::export::{export_raw, ExportError};
 use sources::{
     factory::ParserType, pcap::file::PcapngByteSource, producer::MessageProducer,
     raw::binary::BinaryByteSource,
 };
-use std::{fs::File, path::PathBuf};
+use std::{
+    fs::File,
+    path::{Path, PathBuf},
+};
 use tokio_util::sync::CancellationToken;
 
 pub async fn handle(
@@ -55,7 +57,7 @@ pub async fn handle(
 
 async fn export(
     src: &PathBuf,
-    dest: &PathBuf,
+    dest: &Path,
     parser: &ParserType,
     sections: &Vec<IndexSection>,
     cancel: &CancellationToken,
@@ -78,19 +80,7 @@ async fn export(
                 settings.dlt.with_storage_header,
             );
             let mut producer = MessageProducer::new(parser, PcapngByteSource::new(src_file)?, None);
-            export_raw(Box::pin(producer.as_stream()), &dest, sections, cancel)
-                .await
-                .map_or_else(
-                    |e| match e {
-                        ExportError::Cancelled => Ok(None),
-                        _ => Err(NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::UnsupportedFileType,
-                            message: Some(format!("{e}")),
-                        }),
-                    },
-                    |(_, total)| Ok(Some(total)),
-                )
+            export_runner(Box::pin(producer.as_stream()), dest, sections, cancel).await
         }
         ParserType::Dlt(settings) => {
             let parser = DltParser::new(
@@ -99,36 +89,35 @@ async fn export(
                 settings.with_storage_header,
             );
             let mut producer = MessageProducer::new(parser, BinaryByteSource::new(src_file), None);
-            export_raw(Box::pin(producer.as_stream()), &dest, sections, cancel)
-                .await
-                .map_or_else(
-                    |e| match e {
-                        ExportError::Cancelled => Ok(None),
-                        _ => Err(NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::UnsupportedFileType,
-                            message: Some(format!("{e}")),
-                        }),
-                    },
-                    |(_, total)| Ok(Some(total)),
-                )
+            export_runner(Box::pin(producer.as_stream()), dest, sections, cancel).await
         }
         ParserType::Text => {
             let mut producer =
                 MessageProducer::new(StringTokenizer {}, BinaryByteSource::new(src_file), None);
-            export_raw(Box::pin(producer.as_stream()), &dest, sections, cancel)
-                .await
-                .map_or_else(
-                    |e| match e {
-                        ExportError::Cancelled => Ok(None),
-                        _ => Err(NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::UnsupportedFileType,
-                            message: Some(format!("{e}")),
-                        }),
-                    },
-                    |(_, total)| Ok(Some(total)),
-                )
+            export_runner(Box::pin(producer.as_stream()), dest, sections, cancel).await
         }
     }
+}
+
+pub async fn export_runner<S, T>(
+    s: S,
+    dest: &Path,
+    sections: &Vec<IndexSection>,
+    cancel: &CancellationToken,
+) -> Result<Option<usize>, NativeError>
+where
+    T: LogMessage + Sized,
+    S: futures::Stream<Item = (usize, MessageStreamItem<T>)> + Unpin,
+{
+    export_raw(s, dest, sections, cancel).await.map_or_else(
+        |err| match err {
+            ExportError::Cancelled => Ok(None),
+            _ => Err(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::UnsupportedFileType,
+                message: Some(format!("{err}")),
+            }),
+        },
+        |(_, total)| Ok(Some(total)),
+    )
 }
