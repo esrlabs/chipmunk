@@ -1,6 +1,8 @@
 pub mod concat;
 pub mod export;
+pub mod export_raw;
 pub mod export_search;
+pub mod export_search_raw;
 pub mod extract;
 pub mod merge;
 pub mod observe;

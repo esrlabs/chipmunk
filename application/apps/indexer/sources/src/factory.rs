@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ParserType {
     Dlt(DltParserSettings),
     Pcap(PcapParserSettings),
@@ -12,7 +12,7 @@ pub enum ParserType {
     Text,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DltParserSettings {
     pub filter_config: Option<dlt::DltFilterConfig>,
     pub fibex_file_paths: Option<Vec<String>>,
@@ -59,15 +59,15 @@ impl DltParserSettings {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PcapParserSettings {
     pub dlt: DltParserSettings,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SomeIPParserSettings {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Transport {
     Process(ProcessTransportConfig),
     TCP(TCPTransportConfig),
@@ -75,7 +75,7 @@ pub enum Transport {
     Serial(SerialTransportConfig),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ProcessTransportConfig {
     pub cwd: PathBuf,
     pub command: String,
@@ -83,7 +83,7 @@ pub struct ProcessTransportConfig {
     pub envs: HashMap<String, String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SerialTransportConfig {
     pub path: String,
     pub baud_rate: u32,
@@ -93,7 +93,7 @@ pub struct SerialTransportConfig {
     pub stop_bits: u8,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TCPTransportConfig {
     pub bind_addr: String,
 }
@@ -104,14 +104,14 @@ pub struct UDPTransportConfig {
     pub multicast: Vec<MulticastInfo>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ObserveOrigin {
     File(String, PathBuf),
     Concat(Vec<(String, PathBuf)>),
     Stream(String, Transport),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ObserveOptions {
     pub origin: ObserveOrigin,
     pub parser: ParserType,

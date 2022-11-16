@@ -27,13 +27,13 @@ pub struct SourceDefinition {
 }
 
 #[derive(Debug)]
-pub struct Observing {
+pub struct SourceIDs {
     pub sources: HashMap<u8, String>,
     pub map: Vec<(RangeInclusive<u64>, u8)>,
     pub recent: Option<u8>,
 }
 
-impl Observing {
+impl SourceIDs {
     pub fn new() -> Self {
         Self {
             sources: HashMap::new(),
@@ -104,7 +104,7 @@ impl Observing {
     }
 }
 
-impl Default for Observing {
+impl Default for SourceIDs {
     fn default() -> Self {
         Self::new()
     }

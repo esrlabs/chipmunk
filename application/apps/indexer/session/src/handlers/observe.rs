@@ -5,6 +5,7 @@ use crate::{
     state::SessionStateAPI,
 };
 use indexer_base::progress::Severity;
+use log::error;
 use sources::{
     factory::{ObserveOptions, ObserveOrigin},
     producer::SdeReceiver,
@@ -16,6 +17,9 @@ pub async fn handle(
     options: ObserveOptions,
     rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
+    if let Err(err) = state.add_executed_observe(options.clone()).await {
+        error!("Fail to store observe options: {:?}", err);
+    }
     match &options.origin {
         ObserveOrigin::File(uuid, filename) => {
             observing::file::listen(operation_api, state, uuid, filename, &options.parser).await

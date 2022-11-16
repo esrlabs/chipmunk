@@ -12,6 +12,7 @@
 use serde::{Deserialize, Serialize};
 use std::{
     net::{IpAddr, SocketAddr},
+    ops::RangeInclusive,
     path,
 };
 use thiserror::Error;
@@ -44,7 +45,27 @@ impl IndexSection {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.len() == 0 || (self.last_line == 0 && self.first_line == 0)
+    }
+
+    pub fn left(&mut self, offset: usize) {
+        self.first_line = if self.first_line < offset {
+            0
+        } else {
+            self.first_line - offset
+        };
+        self.last_line = if self.last_line < offset {
+            0
+        } else {
+            self.last_line - offset
+        };
+    }
+
+    pub fn from(range: &RangeInclusive<u64>) -> Self {
+        Self {
+            first_line: (*range.start()) as usize,
+            last_line: (*range.end()) as usize,
+        }
     }
 }
 

@@ -1,4 +1,5 @@
-use super::observing::Observing;
+use super::observed::Observed;
+use super::source_ids::SourceIDs;
 use crate::{
     events::{NativeError, NativeErrorKind},
     paths,
@@ -35,7 +36,8 @@ pub struct SessionFile {
     pub writer: Option<BufWriter<File>>,
     pub last_message_timestamp: Instant,
     pub has_updates: bool,
-    pub observing: Observing,
+    pub sources: SourceIDs,
+    pub observing: Observed,
 }
 
 impl SessionFile {
@@ -46,7 +48,8 @@ impl SessionFile {
             writer: None,
             last_message_timestamp: Instant::now(),
             has_updates: false,
-            observing: Observing::new(),
+            sources: SourceIDs::new(),
+            observing: Observed::new(),
         }
     }
 
@@ -98,12 +101,12 @@ impl SessionFile {
         state_cancellation_token: CancellationToken,
         msg: String,
     ) -> Result<SessionFileState, NativeError> {
-        if !self.observing.is_source_same(source_id) {
+        if !self.sources.is_source_same(source_id) {
             self.flush(state_cancellation_token.clone()).await?;
         }
         if let Some(writer) = &mut self.writer {
             writer.write_all(msg.as_bytes())?;
-            self.observing.source_update(source_id);
+            self.sources.source_update(source_id);
             if self.last_message_timestamp.elapsed().as_millis() > NOTIFY_IN_MS {
                 self.flush(state_cancellation_token.clone()).await
             } else {
@@ -133,7 +136,7 @@ impl SessionFile {
             self.last_message_timestamp = Instant::now();
             self.has_updates = false;
             self.update(
-                self.observing.get_recent_source_id(),
+                self.sources.get_recent_source_id(),
                 state_cancellation_token,
             )
             .await
@@ -160,7 +163,7 @@ impl SessionFile {
         })?);
         let prev = grabber.log_entry_count().unwrap_or(0) as u64;
         if let Some(range) = grabber.update_from_file(Some(state_cancellation_token))? {
-            self.observing.add_range(range, source_id);
+            self.sources.add_range(range, source_id);
         }
         let current = grabber.log_entry_count().unwrap_or(0) as u64;
         Ok(if prev != current {
@@ -181,7 +184,7 @@ impl SessionFile {
             kind: NativeErrorKind::Grabber,
             message: Some(format!("{e}")),
         })?;
-        let mapped_ranges = self.observing.get_mapped_ranges(&range.range);
+        let mapped_ranges = self.sources.get_mapped_ranges(&range.range);
         let from = *range.range.start() as usize;
         Ok(rows
             .into_iter()

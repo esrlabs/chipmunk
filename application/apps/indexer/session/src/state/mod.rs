@@ -10,6 +10,7 @@ use processor::{
     search::{SearchHolder, SearchResults},
 };
 use serde::{Deserialize, Serialize};
+use sources::factory::ObserveOptions;
 use std::{
     collections::HashMap,
     fmt::Display,
@@ -24,11 +25,13 @@ use tokio::sync::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-mod observing;
+mod observed;
 mod session_file;
+mod source_ids;
 
-pub use observing::SourceDefinition;
+use observed::Observed;
 pub use session_file::{SessionFile, SessionFileState};
+pub use source_ids::SourceDefinition;
 
 pub const NOTIFY_IN_MS: u128 = 250;
 
@@ -72,6 +75,15 @@ pub enum Api {
     UpdateSession((u8, oneshot::Sender<Result<bool, NativeError>>)),
     AddSource((String, oneshot::Sender<u8>)),
     GetSourcesDefinitions(oneshot::Sender<Vec<SourceDefinition>>),
+    MapSearchRanges(
+        (
+            Vec<std::ops::RangeInclusive<u64>>,
+            oneshot::Sender<Vec<std::ops::RangeInclusive<u64>>>,
+        ),
+    ),
+    #[allow(clippy::large_enum_variant)]
+    AddExecutedObserve((ObserveOptions, oneshot::Sender<()>)),
+    GetExecutedHolder(oneshot::Sender<Observed>),
     ExportSession {
         out_path: PathBuf,
         ranges: Vec<std::ops::RangeInclusive<u64>>,
@@ -137,6 +149,9 @@ impl Display for Api {
                 Self::UpdateSession(_) => "UpdateSession",
                 Self::AddSource(_) => "AddSource",
                 Self::GetSourcesDefinitions(_) => "GetSourcesDefinitions",
+                Self::MapSearchRanges(_) => "MapSearchRanges",
+                Self::AddExecutedObserve(_) => "AddExecutedObserve",
+                Self::GetExecutedHolder(_) => "GetExecutedHolder",
                 Self::ExportSession { .. } => "ExportSession",
                 Self::ExportSearch { .. } => "ExportSearch",
                 Self::FileRead(_) => "FileRead",
@@ -169,6 +184,7 @@ pub enum Status {
 #[derive(Debug)]
 pub struct SessionState {
     pub session_file: SessionFile,
+    pub observed: Observed,
     pub search_map: SearchMap,
     pub search_holder: SearchHolderState,
     pub cancelling_operations: HashMap<Uuid, bool>,
@@ -344,12 +360,10 @@ impl SessionState {
         Ok(true)
     }
 
-    async fn handle_export_search(
-        &mut self,
-        out_path: PathBuf,
+    pub fn map_search_ranges(
+        &self,
         ranges: Vec<std::ops::RangeInclusive<u64>>,
-        cancel: CancellationToken,
-    ) -> Result<bool, NativeError> {
+    ) -> Vec<std::ops::RangeInclusive<u64>> {
         let mut indexes: Vec<u64> = self.search_map.matches.iter().map(|el| el.index).collect();
         for range in ranges.iter() {
             (*range.start()..=*range.end()).for_each(|i| {
@@ -376,39 +390,17 @@ impl SessionState {
         {
             ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
         }
-        let mut writer = BufWriter::new(File::create(&out_path).map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Io,
-            message: Some(format!(
-                "Fail to create writer for {}: {}",
-                out_path.to_string_lossy(),
-                e
-            )),
-        })?);
-        for (i, range) in ranges.iter().enumerate() {
-            self.session_file
-                .copy_content(&mut writer, &LineRange::from(range.clone()))?;
-            if i != ranges.len() - 1 {
-                writer.write(b"\n").map_err(|e| NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Io,
-                    message: Some(format!(
-                        "Fail to write to file {}: {}",
-                        out_path.to_string_lossy(),
-                        e
-                    )),
-                })?;
-            }
-            if cancel.is_cancelled() {
-                return Ok(false);
-            }
-        }
-        writer.flush().map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Io,
-            message: Some(format!("Fail to write into file: {:?}", e)),
-        })?;
-        Ok(true)
+        ranges
+    }
+
+    async fn handle_export_search(
+        &mut self,
+        out_path: PathBuf,
+        ranges: Vec<std::ops::RangeInclusive<u64>>,
+        cancel: CancellationToken,
+    ) -> Result<bool, NativeError> {
+        let ranges = self.map_search_ranges(ranges);
+        self.handle_export_session(out_path, ranges, cancel).await
     }
 
     fn handle_get_search_holder(&mut self, uuid: Uuid) -> Result<SearchHolder, NativeError> {
@@ -553,6 +545,26 @@ impl SessionStateAPI {
             .await
     }
 
+    pub async fn map_search_ranges(
+        &self,
+        ranges: Vec<std::ops::RangeInclusive<u64>>,
+    ) -> Result<Vec<std::ops::RangeInclusive<u64>>, NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::MapSearchRanges((ranges, tx)), rx)
+            .await
+    }
+
+    pub async fn add_executed_observe(&self, options: ObserveOptions) -> Result<(), NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::AddExecutedObserve((options, tx)), rx)
+            .await
+    }
+
+    pub async fn get_executed_holder(&self) -> Result<Observed, NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GetExecutedHolder(tx), rx).await
+    }
+
     pub async fn export_session(
         &self,
         out_path: PathBuf,
@@ -679,6 +691,7 @@ pub async fn run(
 ) -> Result<(), NativeError> {
     let mut state = SessionState {
         session_file: SessionFile::new(),
+        observed: Observed::new(),
         search_map: SearchMap::new(),
         search_holder: SearchHolderState::NotInited,
         status: Status::Open,
@@ -744,15 +757,33 @@ pub async fn run(
             }
             Api::AddSource((uuid, tx_response)) => {
                 tx_response
-                    .send(state.session_file.observing.add_source(uuid))
+                    .send(state.session_file.sources.add_source(uuid))
                     .map_err(|_| NativeError::channel("Failed to respond to Api::AddSource"))?;
             }
             Api::GetSourcesDefinitions(tx_response) => {
                 tx_response
-                    .send(state.session_file.observing.get_sources_definitions())
+                    .send(state.session_file.sources.get_sources_definitions())
                     .map_err(|_| {
                         NativeError::channel("Failed to respond to Api::GetSourcesDefinitions")
                     })?;
+            }
+            Api::MapSearchRanges((ranges, tx_response)) => {
+                tx_response
+                    .send(state.map_search_ranges(ranges))
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::GetSourcesDefinitions")
+                    })?;
+            }
+            Api::AddExecutedObserve((options, tx_response)) => {
+                state.observed.add(options);
+                tx_response.send(()).map_err(|_| {
+                    NativeError::channel("Failed to respond to Api::AddExecutedObserve")
+                })?;
+            }
+            Api::GetExecutedHolder(tx_response) => {
+                tx_response.send(state.observed.clone()).map_err(|_| {
+                    NativeError::channel("Failed to respond to Api::GetExecutedHolder")
+                })?;
             }
             Api::ExportSession {
                 out_path,
