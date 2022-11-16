@@ -1,0 +1,134 @@
+use crate::{
+    events::{NativeError, NativeErrorKind},
+    operations::{OperationAPI, OperationResult},
+    state::SessionStateAPI,
+};
+use indexer_base::config::IndexSection;
+use indexer_base::progress::Severity;
+use log::debug;
+use parsers::{dlt::DltParser, text::StringTokenizer};
+use processor::export::{export_raw, ExportError};
+use sources::{
+    factory::ParserType, pcap::file::PcapngByteSource, producer::MessageProducer,
+    raw::binary::BinaryByteSource,
+};
+use std::{fs::File, path::PathBuf};
+use tokio_util::sync::CancellationToken;
+
+pub async fn handle(
+    operation_api: &OperationAPI,
+    state: SessionStateAPI,
+    out_path: PathBuf,
+    ranges: Vec<std::ops::RangeInclusive<u64>>,
+) -> OperationResult<bool> {
+    debug!("RUST: ExportRaw operation is requested");
+    let observed = state.get_executed_holder().await?;
+    if !observed.is_file_based_export_possible() {
+        return Err(NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Configuration,
+            message: Some(String::from(
+                "For current collection of observing operation raw export isn't possible.",
+            )),
+        });
+    }
+    let mut indexes = ranges
+        .iter()
+        .map(IndexSection::from)
+        .collect::<Vec<IndexSection>>();
+    let cancel = operation_api.cancellation_token();
+    for (parser, filename) in observed.get_files().iter() {
+        let read =
+            if let Some(read) = export(filename, &out_path, parser, &indexes, &cancel).await? {
+                read
+            } else {
+                return Ok(Some(false));
+            };
+        indexes.iter_mut().for_each(|index| index.left(read));
+        indexes = indexes
+            .into_iter()
+            .filter(|index| index.is_empty())
+            .collect::<Vec<IndexSection>>();
+    }
+    Ok(Some(true))
+}
+
+async fn export(
+    src: &PathBuf,
+    dest: &PathBuf,
+    parser: &ParserType,
+    sections: &Vec<IndexSection>,
+    cancel: &CancellationToken,
+) -> Result<Option<usize>, NativeError> {
+    let src_file = File::open(src).map_err(|e| NativeError {
+        severity: Severity::ERROR,
+        kind: NativeErrorKind::Io,
+        message: Some(format!("Fail open file {}: {}", src.to_string_lossy(), e)),
+    })?;
+    match parser {
+        ParserType::SomeIP(_) => Err(NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::UnsupportedFileType,
+            message: Some(String::from("SomeIP parser not yet supported")),
+        }),
+        ParserType::Pcap(settings) => {
+            let parser = DltParser::new(
+                settings.dlt.filter_config.as_ref().map(|f| f.into()),
+                settings.dlt.fibex_metadata.as_ref(),
+                settings.dlt.with_storage_header,
+            );
+            let mut producer = MessageProducer::new(parser, PcapngByteSource::new(src_file)?, None);
+            export_raw(Box::pin(producer.as_stream()), &dest, sections, cancel)
+                .await
+                .map_or_else(
+                    |e| match e {
+                        ExportError::Cancelled => Ok(None),
+                        _ => Err(NativeError {
+                            severity: Severity::ERROR,
+                            kind: NativeErrorKind::UnsupportedFileType,
+                            message: Some(format!("{e}")),
+                        }),
+                    },
+                    |(_, total)| Ok(Some(total)),
+                )
+        }
+        ParserType::Dlt(settings) => {
+            let parser = DltParser::new(
+                settings.filter_config.as_ref().map(|f| f.into()),
+                settings.fibex_metadata.as_ref(),
+                settings.with_storage_header,
+            );
+            let mut producer = MessageProducer::new(parser, BinaryByteSource::new(src_file), None);
+            export_raw(Box::pin(producer.as_stream()), &dest, sections, cancel)
+                .await
+                .map_or_else(
+                    |e| match e {
+                        ExportError::Cancelled => Ok(None),
+                        _ => Err(NativeError {
+                            severity: Severity::ERROR,
+                            kind: NativeErrorKind::UnsupportedFileType,
+                            message: Some(format!("{e}")),
+                        }),
+                    },
+                    |(_, total)| Ok(Some(total)),
+                )
+        }
+        ParserType::Text => {
+            let mut producer =
+                MessageProducer::new(StringTokenizer {}, BinaryByteSource::new(src_file), None);
+            export_raw(Box::pin(producer.as_stream()), &dest, sections, cancel)
+                .await
+                .map_or_else(
+                    |e| match e {
+                        ExportError::Cancelled => Ok(None),
+                        _ => Err(NativeError {
+                            severity: Severity::ERROR,
+                            kind: NativeErrorKind::UnsupportedFileType,
+                            message: Some(format!("{e}")),
+                        }),
+                    },
+                    |(_, total)| Ok(Some(total)),
+                )
+        }
+    }
+}

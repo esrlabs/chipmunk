@@ -851,9 +851,15 @@ pub async fn main() -> Result<()> {
             let reader = BufReader::new(&in_file);
             let source = BinaryByteSource::new(reader);
             let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source, None);
-            export_raw(Box::pin(dlt_msg_producer.as_stream()), &out_path, sections)
-                .await
-                .expect("export_raw failed");
+            let cancel = CancellationToken::new();
+            export_raw(
+                Box::pin(dlt_msg_producer.as_stream()),
+                &out_path,
+                &sections,
+                &cancel,
+            )
+            .await
+            .expect("export_raw failed");
         } else {
             trace!("was regular file");
             if old_way {

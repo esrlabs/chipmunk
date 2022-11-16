@@ -4,6 +4,7 @@ use futures::StreamExt;
 use indexer_base::config::IndexSection;
 use parsers::{LogMessage, MessageStreamItem};
 use thiserror::Error;
+use tokio_util::sync::CancellationToken;
 
 #[derive(Error, Debug)]
 pub enum ExportError {
@@ -11,19 +12,26 @@ pub enum ExportError {
     Config(String),
     #[error("IO error: {0:?}")]
     Io(#[from] std::io::Error),
+    #[error("Cancelled")]
+    Cancelled,
 }
 
+/// Exporting data as raw into given destination. Would be exported only data
+/// defined in selections as indexes of rows (messages).
+/// Returns (usize, usize) - (exported_count, read_count)
+/// read_count is equal to total count of messages (rows) in source.
 pub async fn export_raw<S, T>(
     mut s: S,
     destination_path: &Path,
-    sections: Vec<IndexSection>,
-) -> Result<usize, ExportError>
+    sections: &Vec<IndexSection>,
+    cancel: &CancellationToken,
+) -> Result<(usize, usize), ExportError>
 where
     T: LogMessage + Sized,
     S: futures::Stream<Item = (usize, MessageStreamItem<T>)> + Unpin,
 {
     trace!("export_raw, sections: {sections:?}");
-    if !sections_valid(&sections) {
+    if !sections_valid(sections) {
         return Err(ExportError::Config("Invalid sections".to_string()));
     }
     let out_file = std::fs::File::create(destination_path)?;
@@ -36,6 +44,9 @@ where
         debug!("no sections configured");
         // export everything
         while let Some((_, item)) = s.next().await {
+            if cancel.is_cancelled() {
+                return Err(ExportError::Cancelled);
+            }
             match item {
                 MessageStreamItem::Item(i) => {
                     i.to_writer(&mut out_writer)?;
@@ -47,10 +58,13 @@ where
                 MessageStreamItem::Done => break,
             }
         }
-        return Ok(exported);
+        return Ok((exported, exported));
     }
 
     while let Some((_, item)) = s.next().await {
+        if cancel.is_cancelled() {
+            return Err(ExportError::Cancelled);
+        }
         if !inside {
             if sections[section_index].first_line == current_index {
                 inside = true;
@@ -84,8 +98,8 @@ where
             }
         }
     }
-    println!("export_raw done ({exported} messages)");
-    Ok(exported)
+    debug!("export_raw done ({exported} messages)");
+    Ok((exported, current_index))
 }
 
 fn sections_valid(sections: &[IndexSection]) -> bool {

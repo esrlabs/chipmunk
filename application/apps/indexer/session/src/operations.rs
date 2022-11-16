@@ -92,6 +92,14 @@ pub enum OperationKind {
         out_path: PathBuf,
         ranges: Vec<std::ops::RangeInclusive<u64>>,
     },
+    ExportRaw {
+        out_path: PathBuf,
+        ranges: Vec<std::ops::RangeInclusive<u64>>,
+    },
+    ExportSearchRaw {
+        out_path: PathBuf,
+        ranges: Vec<std::ops::RangeInclusive<u64>>,
+    },
     Extract {
         filters: Vec<SearchFilter>,
     },
@@ -129,6 +137,8 @@ impl std::fmt::Display for OperationKind {
                 OperationKind::Search { .. } => "Search",
                 OperationKind::Export { .. } => "Export",
                 OperationKind::ExportSearch { .. } => "ExportSearch",
+                OperationKind::ExportRaw { .. } => "Export",
+                OperationKind::ExportSearchRaw { .. } => "ExportSearch",
                 OperationKind::Extract { .. } => "Extract",
                 OperationKind::Map { .. } => "Map",
                 OperationKind::Concat { .. } => "Concat",
@@ -303,6 +313,20 @@ impl OperationAPI {
                 OperationKind::ExportSearch { out_path, ranges } => {
                     api.finish(
                         handlers::export_search::handle(&api, state, out_path, ranges).await,
+                        operation_str,
+                    )
+                    .await;
+                }
+                OperationKind::ExportRaw { out_path, ranges } => {
+                    api.finish(
+                        handlers::export_raw::handle(&api, state, out_path, ranges).await,
+                        operation_str,
+                    )
+                    .await;
+                }
+                OperationKind::ExportSearchRaw { out_path, ranges } => {
+                    api.finish(
+                        handlers::export_search_raw::handle(&api, state, out_path, ranges).await,
                         operation_str,
                     )
                     .await;
