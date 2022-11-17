@@ -210,6 +210,15 @@ namespace :test do
       end
     end
 
+    desc 'run exporting tests'
+    task :exporting do
+      Bindings.new(false).build
+      Reporter.print
+      Shell.chdir(Paths::TS_BINDINGS) do
+        sh "#{test_runner} spec/session.exporting.spec.ts"
+      end
+    end
+
     desc 'run observe tests'
     task :observe do
       Bindings.new(false).build
@@ -281,7 +290,7 @@ namespace :test do
     end
   end
   desc 'run all test'
-  task all: ['test:binding:observe', 'test:binding:concat', 'test:binding:extract', 'test:binding:search', 'test:binding:cancel', 'test:binding:errors',
+  task all: ['test:binding:observe', 'test:binding:concat', 'test:binding:extract', 'test:binding:exporting', 'test:binding:search', 'test:binding:cancel', 'test:binding:errors',
              'test:matcher:karma', 'test:matcher:rust', 'test:ansi:karma', 'test:ansi:rust']
 end
 

@@ -176,13 +176,14 @@ module Screens
       { name: 'Test binding observe [rake test:binding:observe]', value: 2 },
       { name: 'Test binding concat [rake test:binding:concat]', value: 3 },
       { name: 'Test binding extract [rake test:binding:extract]', value: 4 },
-      { name: 'Test binding cancel [rake test:binding:cancel]', value: 5 },
-      { name: 'Test binding errors [rake test:binding:errors]', value: 6 },
-      { name: 'Test matcher karma [rake test:matcher:karma]', value: 7 },
-      { name: 'Test matcher rust [rake test:matcher:rust', value: 8 },
-      { name: 'Test all [rake test:all', value: 9 },
-      { name: 'back', value: 10 },
-      { name: 'exit', value: 11 }
+      { name: 'Test binding exporting [rake test:binding:exporting]', value: 5 },
+      { name: 'Test binding cancel [rake test:binding:cancel]', value: 6 },
+      { name: 'Test binding errors [rake test:binding:errors]', value: 7 },
+      { name: 'Test matcher karma [rake test:matcher:karma]', value: 8 },
+      { name: 'Test matcher rust [rake test:matcher:rust', value: 9 },
+      { name: 'Test all [rake test:all', value: 10 },
+      { name: 'back', value: 11 },
+      { name: 'exit', value: 12 }
     ]
     case prompt.select('Actions groups', choices)
     when 1
@@ -194,16 +195,18 @@ module Screens
     when 4
       Rake::Task['test:binding:extract'].invoke
     when 5
-      Rake::Task['test:binding:cancel'].invoke
+      Rake::Task['test:binding:exporting'].invoke
     when 6
-      Rake::Task['test:binding:errors'].invoke
+      Rake::Task['test:binding:cancel'].invoke
     when 7
-      Rake::Task['test:matcher:karma'].invoke
+      Rake::Task['test:binding:errors'].invoke
     when 8
-      Rake::Task['test:matcher:rust'].invoke
+      Rake::Task['test:matcher:karma'].invoke
     when 9
-      Rake::Task['test:all'].invoke
+      Rake::Task['test:matcher:rust'].invoke
     when 10
+      Rake::Task['test:all'].invoke
+    when 11
       Screens.checks(prompt)
     else
       puts 'Goodbuy!'

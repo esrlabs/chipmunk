@@ -59,6 +59,16 @@
                 }
             }
         },
+        "exporting": {
+            "regular": {
+                "execute_only": [],
+                "list": {
+                    "1": "Test 1. Assign & export",
+                    "2": "Test 2. Concat & export",
+                    "3": "Test 3. Assign & export search"
+                }
+            }
+        },
         "cancel": {
             "regular": {
                 "execute_only": [1],

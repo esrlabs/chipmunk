@@ -23,8 +23,6 @@ const enum Arch {
 let processArch: Arch;
 switch (process.arch) {
     case 'ia32':
-        processArch = Arch.x86;
-        break;
     case 'arm':
     case 'arm64':
         processArch = Arch.ARM;
