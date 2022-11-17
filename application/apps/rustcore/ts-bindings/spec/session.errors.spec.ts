@@ -163,37 +163,40 @@ describe('Errors', () => {
                 );
                 stream
                     .observe(Observe.DataSource.file(tmpobj.name).text())
-                    .catch(finish.bind(null, session, done));
-                // metadata was created
-                search
-                    .search([
-                        {
-                            filter: 'match',
-                            flags: { reg: true, word: false, cases: false },
-                        },
-                    ])
-                    .then((found: number) => {
+                    .on('confirmed', () => {
                         search
-                            .len()
-                            .then((len: number) => {
-                                expect(len).toEqual(55);
+                            .search([
+                                {
+                                    filter: 'match',
+                                    flags: { reg: true, word: false, cases: false },
+                                },
+                            ])
+                            .then((found: number) => {
                                 search
-                                    .grab(6000, 1000)
-                                    .then((result: IGrabbedElement[]) => {
-                                        finish(
-                                            session,
-                                            done,
-                                            new Error(`search grabber should not return results`),
-                                        );
+                                    .len()
+                                    .then((len: number) => {
+                                        expect(len).toEqual(55);
+                                        search
+                                            .grab(6000, 1000)
+                                            .then((result: IGrabbedElement[]) => {
+                                                finish(
+                                                    session,
+                                                    done,
+                                                    new Error(
+                                                        `search grabber should not return results`,
+                                                    ),
+                                                );
+                                            })
+                                            .catch((err: Error) => {
+                                                logger.debug(`Expected error: ${err.message}`);
+                                                finish(session, done);
+                                            });
                                     })
                                     .catch((err: Error) => {
-                                        logger.debug(`Expected error: ${err.message}`);
-                                        finish(session, done);
+                                        finish(session, done, err);
                                     });
                             })
-                            .catch((err: Error) => {
-                                finish(session, done, err);
-                            });
+                            .catch(finish.bind(null, session, done));
                     })
                     .catch(finish.bind(null, session, done));
             })
