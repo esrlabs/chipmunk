@@ -65,7 +65,13 @@
                 "list": {
                     "1": "Test 1. Assign & export",
                     "2": "Test 2. Concat & export",
-                    "3": "Test 3. Assign & export search"
+                    "3": "Test 3. Assign & export search",
+                    "4": "Test 4. DLT: Assign & export",
+                    "5": "Test 5. DLT: Assign & export raw"
+                },
+                "files": {
+                    "pcapng": "/storage/projects/esrlabs/logs-examples/test.pcapng",
+                    "dlt": ["/storage/projects/esrlabs/logs-examples/dlt_receive_2.dlt", "/storage/projects/esrlabs/logs-examples/FzgProg_SPss.dlt"]    
                 }
             }
         },
