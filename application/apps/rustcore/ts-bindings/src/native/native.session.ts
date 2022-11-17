@@ -9,13 +9,10 @@ import {
     IGrabbedElement,
     IExtractDTFormatResult,
     IExtractDTFormatOptions,
-    IConcatFile,
-    IFileMergeOptions,
     Observe,
 } from '../interfaces/index';
 import { getNativeModule } from '../native/native';
 import { EFileOptionsRequirements } from '../api/executors/session.stream.observe.executor';
-import { IDetectOptions } from '../api/executors/session.stream.timeformat.detect.executor';
 import { Type, Source, NativeError } from '../interfaces/errors';
 import { v4 as uuidv4 } from 'uuid';
 import { getValidNum } from '../util/numbers';
@@ -146,36 +143,6 @@ export abstract class RustSession extends RustSessionRequiered {
      */
     public abstract observe(source: Observe.DataSource, operationUuid: string): Promise<void>;
 
-    /**
-     * Concat files and assigns it with session. After this operation, @method observe, @method merge cannot be used
-     * and should return @error NativeError.
-     * @param emitter { TEventEmitter } emitter to handle event related to lifecircle of this method only
-     * @param files { string[] } file to be concat
-     * @returns { string | NativeError } - callback, which can be called on NodeJS level to cancel
-     * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
-     * confirm cancelation.
-     */
-    public abstract concat(
-        files: IConcatFile[],
-        append: boolean,
-        operationUuid: string,
-    ): Promise<void>;
-
-    /**
-     * Merge files and assigns it with session. After this operation, @method observe, @method concat cannot be used
-     * and should return @error NativeError.
-     * @param emitter { TEventEmitter } emitter to handle event related to lifecircle of this method only
-     * @param files { IFileToBeMerged[] } file to be merge
-     * @returns { string | NativeError } - callback, which can be called on NodeJS level to cancel
-     * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
-     * confirm cancelation.
-     */
-    public abstract merge(
-        files: IFileMergeOptions[],
-        append: boolean,
-        operationUuid: string,
-    ): Promise<void>;
-
     public abstract export(dest: string, ranges: IRange[], operationUuid: string): Promise<void>;
 
     public abstract exportSearch(
@@ -184,7 +151,15 @@ export abstract class RustSession extends RustSessionRequiered {
         operationUuid: string,
     ): Promise<void>;
 
-    public abstract detect(options: IDetectOptions): string | NativeError;
+    public abstract exportRaw(dest: string, ranges: IRange[], operationUuid: string): Promise<void>;
+
+    public abstract exportSearchRaw(
+        dest: string,
+        ranges: IRange[],
+        operationUuid: string,
+    ): Promise<void>;
+
+    public abstract isRawExportAvailable(): Promise<boolean>;
 
     /**
      * This operation is sync.
@@ -234,18 +209,6 @@ export abstract class RustSessionNative {
 
     public abstract observe(source: string, operationUuid: string): Promise<void>;
 
-    public abstract concat(
-        files: IConcatFile[],
-        append: boolean,
-        operationUuid: string,
-    ): Promise<void>;
-
-    public abstract merge(
-        files: IFileMergeOptions[],
-        append: boolean,
-        operationUuid: string,
-    ): Promise<void>;
-
     public abstract getStreamLen(): Promise<number>;
 
     public abstract getSourcesDefinitions(): Promise<ObservedSourceLink[]>;
@@ -263,6 +226,20 @@ export abstract class RustSessionNative {
         ranges: number[][],
         operationUuid: string,
     ): Promise<void>;
+
+    public abstract exportRaw(
+        dest: string,
+        ranges: number[][],
+        operationUuid: string,
+    ): Promise<void>;
+
+    public abstract exportSearchRaw(
+        dest: string,
+        ranges: number[][],
+        operationUuid: string,
+    ): Promise<void>;
+
+    public abstract isRawExportAvailable(): Promise<boolean>;
 
     public abstract applySearchFilters(
         filters: Array<{
@@ -604,42 +581,6 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
-    public concat(files: IConcatFile[], append: boolean, operationUuid: string): Promise<void> {
-        return new Promise((resolve, reject) => {
-            try {
-                this._provider.debug().emit.operation('concat', operationUuid);
-                this._native
-                    .concat(files, append, operationUuid)
-                    .then(resolve)
-                    .catch((err: Error) => {
-                        reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
-                    });
-            } catch (err) {
-                return reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
-            }
-        });
-    }
-
-    public merge(
-        files: IFileMergeOptions[],
-        append: boolean,
-        operationUuid: string,
-    ): Promise<void> {
-        return new Promise((resolve, reject) => {
-            try {
-                this._provider.debug().emit.operation('merge', operationUuid);
-                this._native
-                    .merge(files, append, operationUuid)
-                    .then(resolve)
-                    .catch((err: Error) => {
-                        reject(new NativeError(NativeError.from(err), Type.Other, Source.Merge));
-                    });
-            } catch (err) {
-                return reject(new NativeError(NativeError.from(err), Type.Other, Source.Merge));
-            }
-        });
-    }
-
     public export(dest: string, ranges: IRange[], operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
@@ -680,8 +621,56 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
-    public detect(options: IDetectOptions): string | NativeError {
-        return new NativeError(new Error('Not implemented yet'), Type.Other, Source.Detect);
+    public exportRaw(dest: string, ranges: IRange[], operationUuid: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            try {
+                this._provider.debug().emit.operation('exportRaw', operationUuid);
+                this._native
+                    .exportRaw(
+                        dest,
+                        ranges.map((r) => [r.from, r.to]),
+                        operationUuid,
+                    )
+                    .then(resolve)
+                    .catch((err: Error) => {
+                        reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
+                    });
+            } catch (err) {
+                return reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
+            }
+        });
+    }
+
+    public exportSearchRaw(dest: string, ranges: IRange[], operationUuid: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            try {
+                this._provider.debug().emit.operation('exportSearchRaw', operationUuid);
+                this._native
+                    .exportSearchRaw(
+                        dest,
+                        ranges.map((r) => [r.from, r.to]),
+                        operationUuid,
+                    )
+                    .then(resolve)
+                    .catch((err: Error) => {
+                        reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
+                    });
+            } catch (err) {
+                return reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
+            }
+        });
+    }
+
+    public isRawExportAvailable(): Promise<boolean> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('isRawExportAvailable');
+            this._native
+                .isRawExportAvailable()
+                .then(resolve)
+                .catch((err) => {
+                    reject(new NativeError(NativeError.from(err), Type.Other, Source.GetSearchLen));
+                });
+        });
     }
 
     public extract(options: IExtractDTFormatOptions): IExtractDTFormatResult | NativeError {

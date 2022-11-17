@@ -84,6 +84,7 @@ pub enum Api {
     #[allow(clippy::large_enum_variant)]
     AddExecutedObserve((ObserveOptions, oneshot::Sender<()>)),
     GetExecutedHolder(oneshot::Sender<Observed>),
+    IsRawExportAvailable(oneshot::Sender<bool>),
     ExportSession {
         out_path: PathBuf,
         ranges: Vec<std::ops::RangeInclusive<u64>>,
@@ -152,6 +153,7 @@ impl Display for Api {
                 Self::MapSearchRanges(_) => "MapSearchRanges",
                 Self::AddExecutedObserve(_) => "AddExecutedObserve",
                 Self::GetExecutedHolder(_) => "GetExecutedHolder",
+                Self::IsRawExportAvailable(_) => "IsRawExportAvailable",
                 Self::ExportSession { .. } => "ExportSession",
                 Self::ExportSearch { .. } => "ExportSearch",
                 Self::FileRead(_) => "FileRead",
@@ -565,6 +567,12 @@ impl SessionStateAPI {
         self.exec_operation(Api::GetExecutedHolder(tx), rx).await
     }
 
+    pub async fn is_raw_export_available(&self) -> Result<bool, NativeError> {
+        let (tx_response, rx) = oneshot::channel();
+        self.exec_operation(Api::IsRawExportAvailable(tx_response), rx)
+            .await
+    }
+
     pub async fn export_session(
         &self,
         out_path: PathBuf,
@@ -784,6 +792,13 @@ pub async fn run(
                 tx_response.send(state.observed.clone()).map_err(|_| {
                     NativeError::channel("Failed to respond to Api::GetExecutedHolder")
                 })?;
+            }
+            Api::IsRawExportAvailable(tx_response) => {
+                tx_response
+                    .send(state.observed.is_file_based_export_possible())
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::IsRawExportAvailable")
+                    })?;
             }
             Api::ExportSession {
                 out_path,

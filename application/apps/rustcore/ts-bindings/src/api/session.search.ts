@@ -156,6 +156,13 @@ export class SessionSearch {
         });
     }
 
+    public exportRaw(dest: string, ranges: IRange[]): ICancelablePromise<boolean> {
+        return Executors.exportRawSearch(this._session, this._provider, this._logger, {
+            dest,
+            ranges,
+        });
+    }
+
     public extract(filters: IFilter[]): ICancelablePromise<TExtractedValues> {
         // TODO: field "filters" of IResultSearchElement cannot be empty, at least 1 filter
         // should be present there always. This is a right place for check of it

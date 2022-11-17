@@ -14,8 +14,6 @@ export {
     IExtractDTFormatResult,
     IMatchEntity,
     IMapEntity,
-    IConcatFile,
-    IFileMergeOptions,
     INearest,
 } from 'platform/interfaces/interface.rust.api.general';
 export { Logger, TLogFunc, IChipmunkNodeGlobal } from 'platform/interfaces/interface.node.global';
