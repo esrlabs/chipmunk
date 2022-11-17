@@ -2,10 +2,7 @@ pub mod events;
 
 use crate::{
     js::{
-        converting::{
-            concat::WrappedConcatenatorInput, filter::WrappedSearchFilter,
-            merge::WrappedFileMergeOptions, source::WrappedSourceDefinition,
-        },
+        converting::{filter::WrappedSearchFilter, source::WrappedSourceDefinition},
         session::events::ComputationErrorWrapper,
     },
     logging::targets,
@@ -208,6 +205,72 @@ impl RustSession {
                 )
                 .map_err(ComputationErrorWrapper)?;
             Ok(())
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
+    async fn export_raw(
+        &self,
+        out_path: String,
+        ranges: Vec<(i64, i64)>,
+        operation_id: String,
+    ) -> Result<(), ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            session
+                .export_raw(
+                    operations::uuid_from_str(&operation_id)?,
+                    PathBuf::from(out_path),
+                    ranges
+                        .iter()
+                        .map(|(s, e)| RangeInclusive::<u64>::new(*s as u64, *e as u64))
+                        .collect::<Vec<RangeInclusive<u64>>>(),
+                )
+                .map_err(ComputationErrorWrapper)?;
+            Ok(())
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
+    async fn export_search_raw(
+        &self,
+        out_path: String,
+        ranges: Vec<(i64, i64)>,
+        operation_id: String,
+    ) -> Result<(), ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            session
+                .export_search_raw(
+                    operations::uuid_from_str(&operation_id)?,
+                    PathBuf::from(out_path),
+                    ranges
+                        .iter()
+                        .map(|(s, e)| RangeInclusive::<u64>::new(*s as u64, *e as u64))
+                        .collect::<Vec<RangeInclusive<u64>>>(),
+                )
+                .map_err(ComputationErrorWrapper)?;
+            Ok(())
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
+    async fn is_raw_export_available(&self) -> Result<bool, ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            session
+                .is_raw_export_available()
+                .await
+                .map_err(ComputationErrorWrapper)
         } else {
             Err(ComputationErrorWrapper(
                 ComputationError::SessionUnavailable,
@@ -440,130 +503,6 @@ impl RustSession {
                 ComputationError::SessionUnavailable,
             ))
         }
-    }
-
-    #[node_bindgen]
-    async fn concat(
-        &self,
-        _files: Vec<WrappedConcatenatorInput>,
-        _append: bool,
-        _operation_id: String,
-    ) -> Result<(), ComputationErrorWrapper> {
-        // if !self.0.is_opened() {
-        //     return Err(ComputationError::SessionUnavailable.into());
-        // }
-        // //TODO: out_path should be gererics by some settings.
-        // let (out_path, out_path_str) = if files.is_empty() {
-        //     return Err(ComputationError::InvalidData.into());
-        // } else {
-        //     let filename = PathBuf::from(&files[0].as_concatenator_input().path);
-        //     if let Some(parent) = filename.parent() {
-        //         if let Some(file_name) = filename.file_name() {
-        //             let path = parent.join(format!("{}.concat", file_name.to_string_lossy()));
-        //             (path.clone(), path.to_string_lossy().to_string())
-        //         } else {
-        //             return Err(ComputationError::InvalidData.into());
-        //         }
-        //     } else {
-        //         return Err(ComputationError::InvalidData.into());
-        //     }
-        // };
-        // let _ = OpenOptions::new()
-        //     .read(true)
-        //     .write(true)
-        //     .create(true)
-        //     .open(&out_path)
-        //     .map_err(|_| {
-        //         ComputationError::IoOperation(format!(
-        //             "Could not create/open file {}",
-        //             &out_path_str
-        //         ))
-        //     })?;
-        // let boxed_grabber =
-        //     create_lazy_grabber(&out_path, &out_path_str).map_err(ComputationError::from)?;
-        // self.0.content_grabber = Some(boxed_grabber);
-        // match self.0.tx_operations.send((
-        //     operations::uuid_from_str(&operation_id)?,
-        //     operations::Operation::Concat {
-        //         files: files
-        //             .iter()
-        //             .map(|file| file.as_concatenator_input())
-        //             .collect(),
-        //         out_path,
-        //         append,
-        //         source_id: out_path_str,
-        //     },
-        // )) {
-        //     Ok(_) => Ok(()),
-        //     Err(e) => Err(ComputationError::Process(format!(
-        //         "Could not send operation on channel. Error: {}",
-        //         e
-        //     ))
-        //     .into()),
-        // }
-        Ok(())
-    }
-
-    #[node_bindgen]
-    async fn merge(
-        &self,
-        _files: Vec<WrappedFileMergeOptions>,
-        _append: bool,
-        _operation_id: String,
-    ) -> Result<(), ComputationErrorWrapper> {
-        // if !self.0.is_opened() {
-        //     return Err(ComputationError::SessionUnavailable.into());
-        // }
-        // //TODO: out_path should be gererics by some settings.
-        // let (out_path, out_path_str) = if files.is_empty() {
-        //     return Err(ComputationError::InvalidData.into());
-        // } else {
-        //     let filename = PathBuf::from(&files[0].as_file_merge_options().path);
-        //     if let Some(parent) = filename.parent() {
-        //         if let Some(file_name) = filename.file_name() {
-        //             let path = parent.join(format!("{}.merged", file_name.to_string_lossy()));
-        //             (path.clone(), path.to_string_lossy().to_string())
-        //         } else {
-        //             return Err(ComputationError::InvalidData.into());
-        //         }
-        //     } else {
-        //         return Err(ComputationError::InvalidData.into());
-        //     }
-        // };
-        // let _ = OpenOptions::new()
-        //     .read(true)
-        //     .write(true)
-        //     .create(true)
-        //     .open(&out_path)
-        //     .map_err(|_| {
-        //         ComputationError::IoOperation(format!(
-        //             "Could not create/open file {}",
-        //             &out_path_str
-        //         ))
-        //     })?;
-        // let boxed_grabber =
-        //     create_lazy_grabber(&out_path, &out_path_str).map_err(ComputationError::from)?;
-        // self.0.content_grabber = Some(boxed_grabber);
-        // match self.0.tx_operations.send((
-        //     operations::uuid_from_str(&operation_id)?,
-        //     operations::Operation::Merge {
-        //         files: files
-        //             .iter()
-        //             .map(|file| file.as_file_merge_options())
-        //             .collect(),
-        //         out_path,
-        //         append,
-        //         source_id: out_path_str,
-        //     },
-        // )) {
-        //     Ok(_) => Ok(()),
-        //     Err(e) => Err(ComputationError::Process(format!(
-        //         "Could not send operation on channel. Error: {}",
-        //         e
-        //     ))
-        //     .into()),
-        // }
-        Ok(())
     }
 
     #[node_bindgen]

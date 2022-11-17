@@ -4,33 +4,18 @@ import { RustSession } from '../native/native.session';
 import { ICancelablePromise } from 'platform/env/promise';
 import { SdeResult } from 'platform/types/sde/common';
 import { EventProvider } from '../api/session.provider';
-import {
-    IDetectDTFormatResult,
-    IDetectOptions,
-} from './executors/session.stream.timeformat.detect.executor';
 import { Executors } from './executors/session.stream.executors';
 import { EFileOptionsRequirements } from './executors/session.stream.observe.executor';
 import {
     IGrabbedElement,
     IExtractDTFormatOptions,
     IExtractDTFormatResult,
-    IConcatFile,
-    IFileMergeOptions,
     Observe,
 } from '../interfaces/index';
-import { IConcatResults } from './executors/session.stream.concat.executor';
-import { IMergeResults } from './executors/session.stream.merge.executor';
 import { IRange } from 'platform/types/range';
 import { ObservedSourceLink } from 'platform/types/observe';
 
-export {
-    IFileMergeOptions,
-    IDetectDTFormatResult,
-    IDetectOptions,
-    IExtractDTFormatOptions,
-    IExtractDTFormatResult,
-    Observe,
-};
+export { IExtractDTFormatOptions, IExtractDTFormatResult, Observe };
 
 // abstract class Connector<T> {
 //     public abstract disconnect(): Promise<void>; // Equal to destroy
@@ -107,20 +92,12 @@ export class SessionStream {
         });
     }
 
-    public concat(files: IConcatFile[], append: boolean): ICancelablePromise<IConcatResults> {
-        return Executors.concat(this._session, this._provider, this._logger, { files, append });
-    }
-
-    public merge(files: IFileMergeOptions[], append: boolean): ICancelablePromise<IMergeResults> {
-        return Executors.merge(this._session, this._provider, this._logger, { files, append });
-    }
-
     public export(dest: string, ranges: IRange[]): ICancelablePromise<boolean> {
         return Executors.export(this._session, this._provider, this._logger, { dest, ranges });
     }
 
-    public detectTimeformat(options: IDetectOptions): ICancelablePromise<IDetectDTFormatResult> {
-        return Executors.timeformatDetect(this._session, this._provider, this._logger, options);
+    public exportRaw(dest: string, ranges: IRange[]): ICancelablePromise<boolean> {
+        return Executors.exportRaw(this._session, this._provider, this._logger, { dest, ranges });
     }
 
     public extractTimeformat(options: IExtractDTFormatOptions): IExtractDTFormatResult | Error {

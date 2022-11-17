@@ -216,6 +216,41 @@ impl Session {
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
+    pub fn export_raw(
+        &self,
+        operation_id: Uuid,
+        out_path: PathBuf,
+        ranges: Vec<RangeInclusive<u64>>,
+    ) -> Result<(), ComputationError> {
+        self.tx_operations
+            .send(Operation::new(
+                operation_id,
+                operations::OperationKind::ExportRaw { out_path, ranges },
+            ))
+            .map_err(|e| ComputationError::Communication(e.to_string()))
+    }
+
+    pub fn export_search_raw(
+        &self,
+        operation_id: Uuid,
+        out_path: PathBuf,
+        ranges: Vec<RangeInclusive<u64>>,
+    ) -> Result<(), ComputationError> {
+        self.tx_operations
+            .send(Operation::new(
+                operation_id,
+                operations::OperationKind::ExportSearchRaw { out_path, ranges },
+            ))
+            .map_err(|e| ComputationError::Communication(e.to_string()))
+    }
+
+    pub async fn is_raw_export_available(&self) -> Result<bool, ComputationError> {
+        self.state
+            .is_raw_export_available()
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
     pub fn apply_search_filters(
         &self,
         operation_id: Uuid,
