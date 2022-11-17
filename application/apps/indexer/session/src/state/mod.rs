@@ -366,11 +366,13 @@ impl SessionState {
         &self,
         ranges: Vec<std::ops::RangeInclusive<u64>>,
     ) -> Vec<std::ops::RangeInclusive<u64>> {
-        let mut indexes: Vec<u64> = self.search_map.matches.iter().map(|el| el.index).collect();
+        let stream_possitions: Vec<u64> =
+            self.search_map.matches.iter().map(|el| el.index).collect();
+        let mut indexes: Vec<u64> = vec![];
         for range in ranges.iter() {
-            (*range.start()..=*range.end()).for_each(|i| {
-                if !indexes.iter().any(|s| s == &i) {
-                    indexes.push(i);
+            (*range.start()..*range.end()).for_each(|i| {
+                if let Some(stream_pos) = stream_possitions.get(i as usize) {
+                    indexes.push(*stream_pos);
                 }
             });
         }
