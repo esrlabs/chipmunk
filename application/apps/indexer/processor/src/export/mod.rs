@@ -16,9 +16,26 @@ pub enum ExportError {
     Cancelled,
 }
 
-/// Exporting data as raw into given destination. Would be exported only data
+/// Exporting data as raw into a given destination. Would be exported only data
 /// defined in selections as indexes of rows (messages).
+///
 /// Returns usize - count of read messages (not exported, but read messages)
+///
+/// # Arguments
+/// * `s` - instance of MessageProducer stream
+/// * `destination_path` - destination path to a target file. If the file doesn't
+/// exist it would be created; if exists - it will be opened to append new
+/// content to the end of the file
+/// * `sections` - an array of ranges, which should be written into destination
+/// file
+/// * `read_to_end` - in "true" will continue iterating stream after all ranges
+/// are processed; in "false" will stop listening to a stream as soon as all ranges
+/// are processed. It should be used in "true" for example if exporting applied
+/// to concatenated files.
+/// * `cancel` - cancellation token to stop operation
+///
+/// # Errors
+/// In case of cancellation will return ExportError::Cancelled
 pub async fn export_raw<S, T>(
     mut s: S,
     destination_path: &Path,
