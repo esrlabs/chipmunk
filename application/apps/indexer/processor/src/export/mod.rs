@@ -18,14 +18,14 @@ pub enum ExportError {
 
 /// Exporting data as raw into given destination. Would be exported only data
 /// defined in selections as indexes of rows (messages).
-/// Returns (usize, usize) - (exported_count, read_count)
-/// read_count is equal to total count of messages (rows) in source.
+/// Returns usize - count of read messages (not exported, but read messages)
 pub async fn export_raw<S, T>(
     mut s: S,
     destination_path: &Path,
     sections: &Vec<IndexSection>,
+    read_to_end: bool,
     cancel: &CancellationToken,
-) -> Result<(usize, usize), ExportError>
+) -> Result<usize, ExportError>
 where
     T: LogMessage + Sized,
     S: futures::Stream<Item = (usize, MessageStreamItem<T>)> + Unpin,
@@ -34,7 +34,14 @@ where
     if !sections_valid(sections) {
         return Err(ExportError::Config("Invalid sections".to_string()));
     }
-    let out_file = std::fs::File::create(destination_path)?;
+    let out_file = if destination_path.exists() {
+        std::fs::OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open(destination_path)?
+    } else {
+        std::fs::File::create(destination_path)?
+    };
     let mut out_writer = BufWriter::new(out_file);
     let mut section_index = 0usize;
     let mut current_index = 0usize;
@@ -58,7 +65,7 @@ where
                 MessageStreamItem::Done => break,
             }
         }
-        return Ok((exported, exported));
+        return Ok(exported);
     }
 
     while let Some((_, item)) = s.next().await {
@@ -74,7 +81,9 @@ where
             section_index += 1;
             if sections.len() <= section_index {
                 // no more sections
-                break;
+                if !read_to_end {
+                    break;
+                }
             }
             // check if we are in next section again
             if sections[section_index].first_line == current_index {
@@ -93,13 +102,13 @@ where
             MessageStreamItem::Incomplete => {}
             MessageStreamItem::Empty => {}
             MessageStreamItem::Done => {
-                println!("No more messages to export");
+                debug!("No more messages to export");
                 break;
             }
         }
     }
     debug!("export_raw done ({exported} messages)");
-    Ok((exported, current_index))
+    Ok(current_index)
 }
 
 fn sections_valid(sections: &[IndexSection]) -> bool {

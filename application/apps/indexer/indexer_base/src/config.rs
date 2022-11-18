@@ -45,7 +45,7 @@ impl IndexSection {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.len() == 0 || (self.last_line == 0 && self.first_line == 0)
+        (self.len() == 0) || ((self.last_line + self.first_line) == 0)
     }
 
     pub fn left(&mut self, offset: usize) {

@@ -856,6 +856,7 @@ pub async fn main() -> Result<()> {
                 Box::pin(dlt_msg_producer.as_stream()),
                 &out_path,
                 &sections,
+                false,
                 &cancel,
             )
             .await
