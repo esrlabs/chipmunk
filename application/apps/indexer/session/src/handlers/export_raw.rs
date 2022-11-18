@@ -39,17 +39,29 @@ pub async fn handle(
         .map(IndexSection::from)
         .collect::<Vec<IndexSection>>();
     let cancel = operation_api.cancellation_token();
-    for (parser, filename) in observed.get_files().iter() {
-        let read =
-            if let Some(read) = export(filename, &out_path, parser, &indexes, &cancel).await? {
-                read
-            } else {
-                return Ok(Some(false));
-            };
+    let count = observed.get_files().len();
+    for (i, (parser, filename)) in observed.get_files().iter().enumerate() {
+        if indexes.is_empty() {
+            break;
+        }
+        let read = if let Some(read) = export(
+            filename,
+            &out_path,
+            parser,
+            &indexes,
+            i != (count - 1),
+            &cancel,
+        )
+        .await?
+        {
+            read
+        } else {
+            return Ok(Some(false));
+        };
         indexes.iter_mut().for_each(|index| index.left(read));
         indexes = indexes
             .into_iter()
-            .filter(|index| index.is_empty())
+            .filter(|index| !index.is_empty())
             .collect::<Vec<IndexSection>>();
     }
     Ok(Some(true))
@@ -60,6 +72,7 @@ async fn export(
     dest: &Path,
     parser: &ParserType,
     sections: &Vec<IndexSection>,
+    read_to_end: bool,
     cancel: &CancellationToken,
 ) -> Result<Option<usize>, NativeError> {
     let src_file = File::open(src).map_err(|e| NativeError {
@@ -80,7 +93,14 @@ async fn export(
                 settings.dlt.with_storage_header,
             );
             let mut producer = MessageProducer::new(parser, PcapngByteSource::new(src_file)?, None);
-            export_runner(Box::pin(producer.as_stream()), dest, sections, cancel).await
+            export_runner(
+                Box::pin(producer.as_stream()),
+                dest,
+                sections,
+                read_to_end,
+                cancel,
+            )
+            .await
         }
         ParserType::Dlt(settings) => {
             let parser = DltParser::new(
@@ -89,12 +109,26 @@ async fn export(
                 settings.with_storage_header,
             );
             let mut producer = MessageProducer::new(parser, BinaryByteSource::new(src_file), None);
-            export_runner(Box::pin(producer.as_stream()), dest, sections, cancel).await
+            export_runner(
+                Box::pin(producer.as_stream()),
+                dest,
+                sections,
+                read_to_end,
+                cancel,
+            )
+            .await
         }
         ParserType::Text => {
             let mut producer =
                 MessageProducer::new(StringTokenizer {}, BinaryByteSource::new(src_file), None);
-            export_runner(Box::pin(producer.as_stream()), dest, sections, cancel).await
+            export_runner(
+                Box::pin(producer.as_stream()),
+                dest,
+                sections,
+                read_to_end,
+                cancel,
+            )
+            .await
         }
     }
 }
@@ -103,21 +137,24 @@ pub async fn export_runner<S, T>(
     s: S,
     dest: &Path,
     sections: &Vec<IndexSection>,
+    read_to_end: bool,
     cancel: &CancellationToken,
 ) -> Result<Option<usize>, NativeError>
 where
     T: LogMessage + Sized,
     S: futures::Stream<Item = (usize, MessageStreamItem<T>)> + Unpin,
 {
-    export_raw(s, dest, sections, cancel).await.map_or_else(
-        |err| match err {
-            ExportError::Cancelled => Ok(None),
-            _ => Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::UnsupportedFileType,
-                message: Some(format!("{err}")),
-            }),
-        },
-        |(_, total)| Ok(Some(total)),
-    )
+    export_raw(s, dest, sections, read_to_end, cancel)
+        .await
+        .map_or_else(
+            |err| match err {
+                ExportError::Cancelled => Ok(None),
+                _ => Err(NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::UnsupportedFileType,
+                    message: Some(format!("{err}")),
+                }),
+            },
+            |read| Ok(Some(read)),
+        )
 }
