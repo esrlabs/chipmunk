@@ -620,8 +620,9 @@ dependencies = [
 
 [[package]]
 name = "dlt-core"
-version = "0.14.2"
-source = "git+https://github.com/DmitryAstafyev/dlt-core.git#f89725016e0b723d763b3096c64e3ef0188d4102"
+version = "0.14.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "902bd951126cd91fa2942f330d1c37d845417dd0f4cbdbe08a259abed8442b65"
 dependencies = [
  "buf_redux 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder",
