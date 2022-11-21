@@ -10,6 +10,7 @@ import { Filter } from '@ui/env/entities/filter';
 import { TabControls } from '@service/session';
 import { EContextActionType, IContextAction } from './structure/component';
 import { FileDropped } from '@ui/env/directives/dragdrop.file';
+// import { Locker, Level } from '@ui/service/lockers';
 
 @Component({
     selector: 'app-tabs-source-multiple-files',
@@ -65,17 +66,34 @@ export class TabSourceMultipleFiles extends Holder implements AfterContentInit, 
         if (this.files.length === 0) {
             return;
         }
-        switch (this.files[0].type) {
-            case FileType.Text:
-            case FileType.Any:
-                this.ilc().services.system.opener.concat(this.files).text();
-                return;
-            case FileType.Dlt:
-                this.ilc().services.system.opener.concat(this.files).dlt();
-                return;
-        }
-        // TODO - Concatenate files
-        // TODO - Close tab - if DLT new Tab
+        (() => {
+            switch (this.files[0].type) {
+                case FileType.Text:
+                case FileType.Any:
+                    return this.ilc().services.system.opener.concat(this.files).text();
+                case FileType.Dlt:
+                    return this.ilc().services.system.opener.concat(this.files).dlt();
+                default:
+                    return Promise.reject(new Error(`Unsupported type ${this.files[0].type}`));
+            }
+        })()
+            .then(() => {
+                this.tab.close();
+            })
+            .catch((_err: Error) => {
+                // TODO: notification about errors
+                // this.ilc().services.ui.lockers.lock(
+                //     new Locker(true, err.message)
+                //         .set()
+                //         .message(err.message)
+                //         .type(Level.error)
+                //         .spinner(false)
+                //         .end(),
+                //     {
+                //         closable: true,
+                //     },
+                // );
+            });
     }
 
     public ngOnDestination() {
