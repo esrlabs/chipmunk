@@ -82,13 +82,13 @@ export class HistorySession extends Subscriber {
         return {
             related: (): boolean => {
                 const related = this.find().related();
-                if (related.length === 1) {
-                    this.setCollection(related[0]);
+                if (related !== undefined) {
+                    this.setCollection(related);
                     this.collections.applyTo(this.session, this.definitions.list());
-                } else if (related.length > 0) {
+                } else {
                     this.subjects.get().suitable.emit(new Suitable());
                 }
-                return related.length > 0;
+                return related !== undefined;
             },
             suitable: (): void => {
                 this.subjects.get().suitable.emit(this.find().suitable());
@@ -122,14 +122,16 @@ export class HistorySession extends Subscriber {
     }
 
     public find(): {
-        related(): Collections[];
+        related(): Collections | undefined;
         suitable(): Suitable;
         all(): Collections[];
         named(): Collections[];
     } {
         return {
-            related: (): Collections[] => {
-                return this.storage.collections.find(this.definitions.list()).related();
+            related: (): Collections | undefined => {
+                const related = this.storage.collections.find(this.definitions.list()).related();
+                related.sort((a, b) => (a.last < b.last ? 1 : -1));
+                return related.length === 0 ? undefined : related[0];
             },
             suitable: (): Suitable => {
                 return this.storage.collections.find(this.definitions.list()).suitable();
