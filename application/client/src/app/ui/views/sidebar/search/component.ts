@@ -117,6 +117,13 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
         );
         this.env().subscriber.register(
             this._providers.subjects.change.subscribe(() => {
+                if (this.selected === undefined) {
+                    return;
+                }
+                if (this.selected.select().getEntities().length !== 0) {
+                    return;
+                }
+                this.selected = undefined;
                 this.detectChanges();
             }),
         );

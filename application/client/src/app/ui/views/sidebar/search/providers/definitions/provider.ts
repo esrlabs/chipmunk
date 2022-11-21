@@ -196,7 +196,7 @@ export abstract class Provider<T> {
             this.subjects.selection.emit({
                 provider: this,
                 entity: entity,
-                guids: this._selection.current,
+                guids: this.select().get(),
                 sender: selection.sender,
             });
         };
@@ -275,7 +275,7 @@ export abstract class Provider<T> {
                 this.subjects.selection.emit({
                     provider: this,
                     entity: undefined,
-                    guids: this._selection.current,
+                    guids: this.select().get(),
                     sender: sender,
                 });
             },
@@ -285,7 +285,7 @@ export abstract class Provider<T> {
                 this.subjects.selection.emit({
                     provider: this,
                     entity: undefined,
-                    guids: this._selection.current,
+                    guids: this.select().get(),
                     sender: sender,
                 });
             },
