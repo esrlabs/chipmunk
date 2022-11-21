@@ -36,14 +36,16 @@ export class Action extends Base {
             });
             return Promise.resolve();
         } else {
-            switch (files[0].type) {
-                case FileType.Dlt:
-                    return opener.file(files[0]).dlt();
-                case FileType.Pcap:
-                    throw new Error(`Not supported`);
-                default:
-                    return opener.file(files[0]).text();
-            }
+            return (() => {
+                switch (files[0].type) {
+                    case FileType.Dlt:
+                        return opener.file(files[0]).dlt();
+                    case FileType.Pcap:
+                        throw new Error(`Not supported`);
+                    default:
+                        return opener.file(files[0]).text();
+                }
+            })().then((_) => Promise.resolve());
         }
     }
 }
