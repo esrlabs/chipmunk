@@ -82,14 +82,18 @@ export class Map extends Subscriber {
             return position;
         }
         let distance = Infinity;
+        let detected = false;
         this._matches.forEach((s, i) => {
-            const dis = Math.abs(s - stream);
-            if (s > stream) {
+            if (detected) {
                 return;
             }
+            const dis = Math.abs(s - stream);
             if (dis < distance) {
                 distance = dis;
                 position = i;
+            }
+            if (dis > distance) {
+                detected = true;
             }
         });
         if (position === -1) {
