@@ -108,6 +108,7 @@ export abstract class Store<T> extends Subscriber {
         if (prev !== this._hash) {
             this.subjects.get().value.emit(Array.from(this._entities.values()));
             this.subjects.get().any.emit(Array.from(this._entities.values()));
+            this.subjects.get().highlights.emit(Array.from(this._entities.values()));
         }
         this.unsubscribe();
         this._entities.forEach((entity) => {
