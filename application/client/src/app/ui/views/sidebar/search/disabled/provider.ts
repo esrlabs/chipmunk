@@ -153,9 +153,6 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
             .map((entity: Entity<any>) => {
                 return entity.extract();
             });
-        // const match = disableds.find((entity) => {
-        //     return entity.entity().matches !== undefined;
-        // });
         const items: IMenuItem[] = [];
         if (entities.length > 0 && disableds.length === 0) {
             items.push({
