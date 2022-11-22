@@ -7,7 +7,7 @@
 </div>
 <div class="content" *ngIf="origin !== undefined">
     <p class="t-small color-scheme-3 caption" *ngIf="origin !== undefined && parsed !== undefined">Origin</p>
-    <p class="t-normal color-scheme-0" [innerHTML]="origin"></p>
+    <p class="color-scheme-0 value noreset" [innerHTML]="origin"></p>
     <p class="t-small color-scheme-3 caption" *ngIf="parsed !== undefined">Parsed</p>
-    <p class="t-normal color-scheme-0" id="parsed_content_holder" *ngIf="parsed !== undefined" [innerHTML]="parsed"></p>
+    <p class="color-scheme-0 value noreset" id="parsed_content_holder" *ngIf="parsed !== undefined" [innerHTML]="parsed"></p>
 </div>
