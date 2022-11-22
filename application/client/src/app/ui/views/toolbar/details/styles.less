@@ -1,0 +1,36 @@
+@import '../../../styles/variables.less';
+
+:host {
+    top: 6px;
+    left: 6px;
+    bottom: 6px;
+    right: 6px;
+    position: absolute;
+    overflow: hidden;
+    div.summary {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 24px;
+        width: 100%;
+        overflow: hidden;
+        display: flex;
+        flex-direction: row;
+        vertical-align: middle;
+        align-items: center;
+        & span.filler {
+            flex: auto;
+        }
+    }
+    div.content {
+        position: absolute;
+        top:24px;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        overflow: auto;
+        & p.caption{
+            margin: 6px 0px 3px 0;
+        }
+    }
+}
