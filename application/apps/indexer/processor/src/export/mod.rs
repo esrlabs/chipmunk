@@ -98,9 +98,10 @@ where
             section_index += 1;
             if sections.len() <= section_index {
                 // no more sections
-                if !read_to_end {
-                    break;
+                if matches!(item, MessageStreamItem::Item(_)) {
+                    current_index += 1;
                 }
+                break;
             }
             // check if we are in next section again
             if sections[section_index].first_line == current_index {
@@ -111,7 +112,6 @@ where
             MessageStreamItem::Item(i) => {
                 if inside {
                     i.to_writer(&mut out_writer)?;
-                    exported += 1;
                 }
                 current_index += 1;
             }
@@ -124,7 +124,23 @@ where
             }
         }
     }
-    debug!("export_raw done ({exported} messages)");
+    if read_to_end {
+        while let Some((_, item)) = s.next().await {
+            if cancel.is_cancelled() {
+                return Err(ExportError::Cancelled);
+            }
+            match item {
+                MessageStreamItem::Item(_) => {
+                    current_index += 1;
+                }
+                MessageStreamItem::Done => {
+                    break;
+                }
+                _ => {}
+            }
+        }
+    }
+    debug!("export_raw done ({current_index} messages)");
     Ok(current_index)
 }
 

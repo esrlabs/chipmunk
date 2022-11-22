@@ -69,7 +69,9 @@
                     "4": "Test 4. DLT: Assign & export",
                     "5": "Test 5. DLT: Assign & export raw",
                     "6": "Test 6. DLT: Concat & export",
-                    "7": "Test 7. DLT: Concat & export raw"
+                    "7": "Test 7. DLT: Concat & export raw",
+                    "8": "Test 8. DLT: Concat & export raw (multiple ranges)"
+
                 },
                 "files": {
                     "pcapng": "/storage/projects/esrlabs/logs-examples/test.pcapng",

@@ -1010,5 +1010,216 @@ describe('Exporting', function () {
                     );
                 });
         });
+
+        it(config.regular.list[8], function (done) {
+            const testName = config.regular.list[8];
+            if (ingore(1, done)) {
+                return;
+            }
+            console.log(`\nStarting: ${testName}`);
+            const logger = getLogger(testName);
+            Session.create()
+                .then((session: Session) => {
+                    // Set provider into debug mode
+                    session.debug(true, testName);
+                    const stream = session.getStream();
+                    if (stream instanceof Error) {
+                        finish(session, done, stream);
+                        return;
+                    }
+                    const events = session.getEvents();
+                    if (events instanceof Error) {
+                        finish(session, done, events);
+                        return;
+                    }
+                    stream
+                        .observe(
+                            Observe.DataSource.concat([
+                                config.regular.files['dlt'][1],
+                                config.regular.files['dlt'][1],
+                            ]).dlt({
+                                fibex_file_paths: [],
+                                filter_config: undefined,
+                                with_storage_header: true,
+                            }),
+                        )
+                        .catch(finish.bind(null, session, done));
+                    let gotten: boolean = false;
+                    events.StreamUpdated.subscribe((rows: number) => {
+                        if (rows < 200 || gotten) {
+                            return;
+                        }
+                        const ranges = [
+                            {
+                                from: 50,
+                                to: 60,
+                            },
+                            {
+                                from: 150,
+                                to: 160,
+                            },
+                        ];
+                        gotten = true;
+                        Promise.all(ranges.map((r) => stream.grab(r.from, r.to - r.from)))
+                            .then((results) => {
+                                let grabbed: IGrabbedElement[] = [];
+                                results.forEach((g) => (grabbed = grabbed.concat(g)));
+                                grabbed.sort((a, b) => (a.row > b.row ? 1 : -1));
+                                const output = path.resolve(os.tmpdir(), `${v4()}.logs`);
+                                stream
+                                    .exportRaw(
+                                        output,
+                                        ranges.map((r) => {
+                                            return { from: r.from, to: r.to - 1 };
+                                        }),
+                                    )
+                                    .then(() => {
+                                        session
+                                            .destroy()
+                                            .then(() => {
+                                                Session.create()
+                                                    .then((session: Session) => {
+                                                        session.debug(true, testName);
+                                                        const stream = session.getStream();
+                                                        if (stream instanceof Error) {
+                                                            finish(session, done, stream);
+                                                            return;
+                                                        }
+                                                        stream
+                                                            .observe(
+                                                                Observe.DataSource.file(output).dlt(
+                                                                    {
+                                                                        fibex_file_paths: [],
+                                                                        filter_config: undefined,
+                                                                        with_storage_header: true,
+                                                                    },
+                                                                ),
+                                                            )
+                                                            .catch(
+                                                                finish.bind(null, session, done),
+                                                            );
+                                                        const events = session.getEvents();
+                                                        if (events instanceof Error) {
+                                                            finish(session, done, events);
+                                                            return;
+                                                        }
+                                                        gotten = false;
+                                                        events.StreamUpdated.subscribe(
+                                                            (rows: number) => {
+                                                                if (rows < 20 || gotten) {
+                                                                    return;
+                                                                }
+                                                                gotten = true;
+                                                                stream
+                                                                    .grab(0, 20)
+                                                                    .then((rows) => {
+                                                                        expect(rows.length).toEqual(
+                                                                            grabbed.length,
+                                                                        );
+                                                                        for (
+                                                                            let i = 0;
+                                                                            i < rows.length;
+                                                                            i += 1
+                                                                        ) {
+                                                                            expect(
+                                                                                rows[i].content,
+                                                                            ).toEqual(
+                                                                                grabbed[i].content,
+                                                                            );
+                                                                            if (
+                                                                                rows[i].content !==
+                                                                                grabbed[i].content
+                                                                            ) {
+                                                                                console.log(
+                                                                                    `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                                                );
+                                                                                return finish(
+                                                                                    session,
+                                                                                    done,
+                                                                                );
+                                                                            }
+                                                                        }
+                                                                        finish(session, done);
+                                                                    })
+                                                                    .catch((err: Error) => {
+                                                                        finish(
+                                                                            undefined,
+                                                                            done,
+                                                                            new Error(
+                                                                                `Fail to grab due error: ${
+                                                                                    err instanceof
+                                                                                    Error
+                                                                                        ? err.message
+                                                                                        : err
+                                                                                }`,
+                                                                            ),
+                                                                        );
+                                                                    });
+                                                            },
+                                                        );
+                                                    })
+                                                    .catch((err: Error) => {
+                                                        finish(
+                                                            undefined,
+                                                            done,
+                                                            new Error(
+                                                                `Fail to create session due error: ${
+                                                                    err instanceof Error
+                                                                        ? err.message
+                                                                        : err
+                                                                }`,
+                                                            ),
+                                                        );
+                                                    });
+                                            })
+                                            .catch((err: Error) => {
+                                                finish(
+                                                    undefined,
+                                                    done,
+                                                    new Error(
+                                                        `Fail to destroy session due error: ${
+                                                            err instanceof Error ? err.message : err
+                                                        }`,
+                                                    ),
+                                                );
+                                            });
+                                    })
+                                    .catch((err: Error) => {
+                                        finish(
+                                            session,
+                                            done,
+                                            new Error(
+                                                `Fail to export data due error: ${
+                                                    err instanceof Error ? err.message : err
+                                                }`,
+                                            ),
+                                        );
+                                    });
+                            })
+                            .catch((err: Error) => {
+                                finish(
+                                    undefined,
+                                    done,
+                                    new Error(
+                                        `Fail to grab due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                );
+                            });
+                    });
+                })
+                .catch((err: Error) => {
+                    finish(
+                        undefined,
+                        done,
+                        new Error(
+                            `Fail to create session due error: ${
+                                err instanceof Error ? err.message : err
+                            }`,
+                        ),
+                    );
+                });
+        });
     }
 });
