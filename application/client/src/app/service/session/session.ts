@@ -20,6 +20,7 @@ export { Stream };
 
 const TOOLBAR_TAB_SEARCH = unique();
 const TOOLBAR_TAB_PRESET = unique();
+const TOOLBAR_TAB_DETAILS = unique();
 
 @SetupLogger()
 export class Session extends Base {
@@ -51,6 +52,18 @@ export class Session extends Base {
             closable: false,
             content: {
                 factory: components.get('app-views-search'),
+                inputs: {
+                    session: this,
+                },
+            },
+        });
+        this._toolbar.add({
+            uuid: TOOLBAR_TAB_DETAILS,
+            name: 'Details',
+            active: false,
+            closable: false,
+            content: {
+                factory: components.get('app-views-details'),
                 inputs: {
                     session: this,
                 },
