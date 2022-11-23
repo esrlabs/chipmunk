@@ -88,7 +88,9 @@ export class ObserveList extends ChangesDetector implements AfterContentInit {
             this.log().error(render.message);
             return;
         }
-        const assigned = this.ilc().services.system.opener.stream().assign(this.session);
+        const assigned = this.ilc()
+            .services.system.opener.stream(undefined, undefined, undefined)
+            .assign(this.session);
         switch (render) {
             case Alias.dlt:
                 assigned.dlt().catch((err: Error) => {

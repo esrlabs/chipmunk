@@ -17,7 +17,7 @@ export class Action extends Base {
     }
 
     public caption(): string {
-        return 'Open PCAP File';
+        return 'Open Folder with PCAP';
     }
 
     public async apply(): Promise<void> {
@@ -43,6 +43,11 @@ export class Action extends Base {
             });
             return Promise.resolve();
         }
-        return opener.file(files[0]).pcap() as unknown as Promise<void>;
+        return opener
+            .file(files[0])
+            .pcap()
+            .then(() => {
+                return Promise.resolve();
+            });
     }
 }

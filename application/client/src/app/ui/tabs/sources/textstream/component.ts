@@ -5,7 +5,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { File } from '@platform/types/files';
 import { TabControls } from '@service/session';
 import { State } from './state';
-import { SourceDefinition } from '@platform/types/transport';
+import { SourceDefinition, Source as SourceRef } from '@platform/types/transport';
 import { Action } from '../common/actions/action';
 
 @Component({
@@ -22,7 +22,9 @@ export class TabSourceTextStream extends ChangesDetector implements AfterContent
     ) => void;
     @Input() file!: File;
     @Input() tab!: TabControls;
-    @Input() options: { source: SourceDefinition } | undefined;
+    @Input() options:
+        | { source: SourceDefinition | undefined; preselected: SourceRef | undefined }
+        | undefined;
 
     public state: State = new State();
     public group: string | undefined;

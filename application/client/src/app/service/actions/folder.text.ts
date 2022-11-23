@@ -17,7 +17,7 @@ export class Action extends Base {
     }
 
     public caption(): string {
-        return 'Open Text File';
+        return 'Open Folder with Any';
     }
 
     public async apply(): Promise<void> {
@@ -43,6 +43,11 @@ export class Action extends Base {
             });
             return Promise.resolve();
         }
-        return opener.file(files[0]).text() as unknown as Promise<void>;
+        return opener
+            .file(files[0])
+            .text()
+            .then(() => {
+                return Promise.resolve();
+            });
     }
 }

@@ -35,6 +35,11 @@ export class Action extends Base {
             });
             return Promise.resolve();
         }
-        return opener.file(files[0]).dlt() as unknown as Promise<void>;
+        return opener
+            .file(files[0])
+            .dlt()
+            .then(() => {
+                return Promise.resolve();
+            });
     }
 }

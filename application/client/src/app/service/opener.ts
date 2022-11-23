@@ -4,7 +4,7 @@ import { ilc, Emitter, Channel, Services } from '@service/ilc';
 import { Session } from './session/session';
 import { TabControls } from './session/tab';
 import { File } from '@platform/types/files';
-import { SourceDefinition } from '@platform/types/transport';
+import { SourceDefinition, Source as SourceRef } from '@platform/types/transport';
 import { IDLTOptions, parserSettingsToOptions } from '@platform/types/parsers/dlt';
 
 import * as Files from './opener/file/index';
@@ -41,18 +41,22 @@ export class Service extends Implementation {
         return Promise.resolve();
     }
 
-    public stream(source?: SourceDefinition, openPresetSettings?: boolean): StreamConnectFuncs {
+    public stream(
+        source: SourceDefinition | undefined,
+        openPresetSettings: boolean | undefined,
+        preselected: SourceRef | undefined,
+    ): StreamConnectFuncs {
         let scope: Session | undefined;
         const out = {
             text: (options?: {}): Promise<string> => {
                 return new Streams.Text(this._services, this.log())
                     .assign(scope)
-                    .stream(source, options, openPresetSettings);
+                    .stream(source, options, openPresetSettings, preselected);
             },
             dlt: (options?: IDLTOptions): Promise<string> => {
                 return new Streams.Dlt(this._services, this.log())
                     .assign(scope)
-                    .stream(source, options, openPresetSettings);
+                    .stream(source, options, openPresetSettings, preselected);
             },
             assign: (session: Session | undefined): StreamConnectFuncs => {
                 scope = session;

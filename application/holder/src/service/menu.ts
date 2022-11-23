@@ -11,6 +11,8 @@ import { app, Menu, MenuItem } from 'electron';
 import { notifications } from '@service/notifications';
 import { unique } from 'platform/env/sequence';
 import { FileType } from 'platform/types/files';
+import { ParserName } from 'platform/types/observe';
+import { Source } from 'platform/types/transport';
 
 import * as Actions from './actions';
 
@@ -134,43 +136,79 @@ export class Service extends Implementation {
                             {
                                 label: 'Text Streaming',
                                 click: async () => {
-                                    /* todo */
+                                    Actions.stream(ParserName.Text).catch((err: Error) => {
+                                        this.log().error(`Fail call action Stream: ${err.message}`);
+                                    });
                                 },
                             },
                             {
                                 label: 'DLT Streaming',
                                 click: async () => {
-                                    /* todo */
+                                    Actions.stream(ParserName.Dlt).catch((err: Error) => {
+                                        this.log().error(`Fail call action Stream: ${err.message}`);
+                                    });
                                 },
                             },
-                        ],
-                    },
-                    { type: 'separator' },
-                    {
-                        label: 'Sources',
-                        submenu: [
+                            { type: 'separator' },
                             {
-                                label: 'Stdout',
+                                label: 'DLT on UDP',
                                 click: async () => {
-                                    /* todo */
-                                },
-                            },
-                            {
-                                label: 'Serial',
-                                click: async () => {
-                                    /* todo */
+                                    Actions.stream(ParserName.Dlt, Source.Udp).catch(
+                                        (err: Error) => {
+                                            this.log().error(
+                                                `Fail call action Stream: ${err.message}`,
+                                            );
+                                        },
+                                    );
                                 },
                             },
                             {
-                                label: 'TCP Connection',
+                                label: 'DLT on TCP',
                                 click: async () => {
-                                    /* todo */
+                                    Actions.stream(ParserName.Dlt, Source.Tcp).catch(
+                                        (err: Error) => {
+                                            this.log().error(
+                                                `Fail call action Stream: ${err.message}`,
+                                            );
+                                        },
+                                    );
                                 },
                             },
                             {
-                                label: 'UDP Connection',
+                                label: 'DLT on Serial Port',
                                 click: async () => {
-                                    /* todo */
+                                    Actions.stream(ParserName.Dlt, Source.Serial).catch(
+                                        (err: Error) => {
+                                            this.log().error(
+                                                `Fail call action Stream: ${err.message}`,
+                                            );
+                                        },
+                                    );
+                                },
+                            },
+                            { type: 'separator' },
+                            {
+                                label: 'Read from Serial Port',
+                                click: async () => {
+                                    Actions.stream(ParserName.Text, Source.Serial).catch(
+                                        (err: Error) => {
+                                            this.log().error(
+                                                `Fail call action Stream: ${err.message}`,
+                                            );
+                                        },
+                                    );
+                                },
+                            },
+                            {
+                                label: 'Read from Stdout',
+                                click: async () => {
+                                    Actions.stream(ParserName.Text, Source.Process).catch(
+                                        (err: Error) => {
+                                            this.log().error(
+                                                `Fail call action Stream: ${err.message}`,
+                                            );
+                                        },
+                                    );
                                 },
                             },
                         ],

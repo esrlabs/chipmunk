@@ -17,7 +17,7 @@ export class Action extends Base {
     }
 
     public caption(): string {
-        return 'Open DLT File';
+        return 'Open Folder with DLT';
     }
 
     public async apply(): Promise<void> {
@@ -43,6 +43,11 @@ export class Action extends Base {
             });
             return Promise.resolve();
         }
-        return opener.file(files[0]).dlt() as unknown as Promise<void>;
+        return opener
+            .file(files[0])
+            .dlt()
+            .then(() => {
+                return Promise.resolve();
+            });
     }
 }
