@@ -135,6 +135,47 @@ export class Service extends Implementation {
         };
     }
 
+    public folders(): {
+        any(): Promise<File[]>;
+        dlt(): Promise<File[]>;
+        pcap(): Promise<File[]>;
+        text(): Promise<File[]>;
+        custom(ext: string): Promise<File[]>;
+    } {
+        const request = (target: FileType, ext?: string): Promise<File[]> => {
+            return new Promise((resolve, reject) => {
+                Requests.IpcRequest.send(
+                    Requests.Folder.Select.Response,
+                    new Requests.Folder.Select.Request({
+                        target,
+                        ext,
+                    }),
+                )
+                    .then((response) => {
+                        resolve(response.files);
+                    })
+                    .catch(reject);
+            });
+        };
+        return {
+            any: (): Promise<File[]> => {
+                return request(FileType.Any);
+            },
+            dlt: (): Promise<File[]> => {
+                return request(FileType.Dlt);
+            },
+            pcap: (): Promise<File[]> => {
+                return request(FileType.Pcap);
+            },
+            text: (): Promise<File[]> => {
+                return request(FileType.Any);
+            },
+            custom: (ext: string): Promise<File[]> => {
+                return request(FileType.Any, ext);
+            },
+        };
+    }
+
     public dlt(): {
         stat(files: string[]): Promise<StatisticInfo>;
     } {

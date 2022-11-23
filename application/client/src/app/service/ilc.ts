@@ -23,6 +23,7 @@ import { sidebar } from '@ui/service/sidebar';
 import { bridge } from '@service/bridge';
 import { hotkeys } from '@service/hotkeys';
 import { cli } from '@service/cli';
+import { actions } from '@service/actions';
 
 import { Subscriber } from '@platform/env/subscription';
 
@@ -63,6 +64,7 @@ export interface IlcInterface {
 @DependOn(bridge)
 @DependOn(hotkeys)
 @DependOn(cli)
+@DependOn(actions)
 // UI services
 @DependOn(sidebar)
 @DependOn(toolbar)

@@ -6,11 +6,11 @@ import {
     ChangeDetectorRef,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
-import { Storage as ActionsStorage } from './actions/storage';
-import { Base as Action } from './actions/action';
+import { Storage as ActionsStorage } from '../../../../service/actions/storage';
+import { Base as Action } from '../../../../service/actions/action';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 
-import * as actions from './actions';
+import * as actions from '@service/actions/index';
 
 @Component({
     selector: 'app-layout-area-no-tabs-content',

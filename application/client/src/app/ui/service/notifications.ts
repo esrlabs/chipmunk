@@ -6,7 +6,7 @@ import { Level } from './notification/index';
 
 import * as Events from '@platform/ipc/event';
 
-export { Level };
+export { Level, Notification };
 
 @SetupService(ui['notifications'])
 export class Service extends Implementation {
