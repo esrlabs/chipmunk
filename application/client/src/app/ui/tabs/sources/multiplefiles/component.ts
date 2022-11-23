@@ -73,6 +73,8 @@ export class TabSourceMultipleFiles extends Holder implements AfterContentInit, 
                     return this.ilc().services.system.opener.concat(this.files).text();
                 case FileType.Dlt:
                     return this.ilc().services.system.opener.concat(this.files).dlt();
+                case FileType.Pcap:
+                    return this.ilc().services.system.opener.concat(this.files).pcap();
                 default:
                     return Promise.reject(new Error(`Unsupported type ${this.files[0].type}`));
             }

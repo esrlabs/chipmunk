@@ -83,6 +83,38 @@ export const handler = Requests.InjectLogger<
                                 );
                             });
                         break;
+                    case FileType.Pcap:
+                        stored
+                            .observe()
+                            .start(
+                                Observe.DataSource.file(request.file.filename).pcap({
+                                    dlt:
+                                        request.file.options.dlt === undefined
+                                            ? defaultParserSettings(false)
+                                            : optionsToParserSettings(
+                                                  request.file.options.dlt,
+                                                  false,
+                                                  0,
+                                                  0,
+                                              ),
+                                }),
+                            )
+                            .then(() => {
+                                resolve(
+                                    new Requests.File.Open.Response({
+                                        session: stored.session.getUUID(),
+                                    }),
+                                );
+                            })
+                            .catch((err: Error) => {
+                                resolve(
+                                    new Requests.File.Open.Response({
+                                        session: stored.session.getUUID(),
+                                        error: err.message,
+                                    }),
+                                );
+                            });
+                        break;
                     default:
                         reading.done();
                         return reject(new Error(`Not supported file type`));

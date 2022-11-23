@@ -24,6 +24,7 @@ export interface StreamConnectFuncs {
 export interface FileOpenFuncs {
     text(): Promise<string>;
     dlt(options?: IDLTOptions): Promise<string>;
+    pcap(options?: IDLTOptions): Promise<string>;
     assign(session: Session | undefined): FileOpenFuncs;
 }
 
@@ -83,6 +84,9 @@ export class Service extends Implementation {
             dlt: (options?: IDLTOptions): Promise<string> => {
                 return new Files.Dlt(this._services, this.log()).assign(scope).open(file, options);
             },
+            pcap: (options?: IDLTOptions): Promise<string> => {
+                return new Files.Pcap(this._services, this.log()).assign(scope).open(file, options);
+            },
             assign: (session: Session | undefined): FileOpenFuncs => {
                 scope = session;
                 return out;
@@ -101,6 +105,11 @@ export class Service extends Implementation {
             },
             dlt: (options?: IDLTOptions): Promise<string> => {
                 return new Concat.Dlt(this._services, this.log())
+                    .assign(scope)
+                    .open(files, options);
+            },
+            pcap: (options?: IDLTOptions): Promise<string> => {
+                return new Concat.Pcap(this._services, this.log())
                     .assign(scope)
                     .open(files, options);
             },
