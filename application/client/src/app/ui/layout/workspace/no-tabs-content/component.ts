@@ -22,16 +22,24 @@ import * as actions from '@service/actions/index';
 export class LayoutHome extends ChangesDetector implements AfterViewInit, OnDestroy {
     public readonly menu = {
         file: [
-            new actions.FileText.Action(),
+            new actions.FileAny.Action(),
             new actions.FileDlt.Action(),
             new actions.FilePcap.Action(),
             null,
-            new actions.FileAny.Action(),
+            new actions.FolderText.Action(),
+            new actions.FolderDlt.Action(),
+            new actions.FolderPcap.Action(),
         ],
         stream: [
             new actions.StreamTextOnCustom.Action(),
             new actions.StreamDltOnCustom.Action(),
             null,
+            new actions.SerialText.Action(),
+            new actions.StdoutText.Action(),
+            null,
+            new actions.UdpDlt.Action(),
+            new actions.TcpDlt.Action(),
+            new actions.SerialDlt.Action(),
         ],
         settings: [],
     };

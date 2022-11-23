@@ -261,7 +261,7 @@ export class Action {
                     caption: 'Open connection preset',
                     handler: () => {
                         opener
-                            .stream(opt.source, true)
+                            .stream(opt.source, true, undefined)
                             .dlt(opt.options)
                             .catch((err: Error) => {
                                 console.error(`Fail to open stream; error: ${err.message}`);
@@ -280,7 +280,7 @@ export class Action {
                     caption: 'Open start parameters',
                     handler: () => {
                         opener
-                            .stream(opt.source, true)
+                            .stream(opt.source, true, undefined)
                             .text()
                             .catch((err: Error) => {
                                 console.error(`Fail to open stream; error: ${err.message}`);
@@ -303,9 +303,11 @@ export class Action {
                     return Promise.reject(new Error(`Opener for file action isn't found`));
                 }
             } else if (this.dlt_stream !== undefined) {
-                return opener.stream(this.dlt_stream.source).dlt(this.dlt_stream.options);
+                return opener
+                    .stream(this.dlt_stream.source, undefined, undefined)
+                    .dlt(this.dlt_stream.options);
             } else if (this.text_stream !== undefined) {
-                return opener.stream(this.text_stream.source).text({});
+                return opener.stream(this.text_stream.source, undefined, undefined).text({});
             } else {
                 return Promise.reject(new Error(`Opener for action isn't found`));
             }

@@ -35,6 +35,11 @@ export class Action extends Base {
             });
             return Promise.resolve();
         }
-        return opener.file(files[0]).pcap() as unknown as Promise<void>;
+        return opener
+            .file(files[0])
+            .pcap()
+            .then(() => {
+                return Promise.resolve();
+            });
     }
 }

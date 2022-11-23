@@ -8,7 +8,7 @@ import {
     NUM_LOGS_LEVELS,
 } from '@platform/types/parsers/dlt';
 import { Timezone } from '@elements/timezones/timezone';
-import { SourceDefinition } from '@platform/types/transport';
+import { SourceDefinition, Source as SourceRef } from '@platform/types/transport';
 import { bridge } from '@service/bridge';
 import { State as TransportState } from '@elements/transport/setup/state';
 
@@ -48,6 +48,7 @@ export class State {
     public fromOptions(opt: {
         source: SourceDefinition | undefined;
         options: IDLTOptions | undefined;
+        preselected: SourceRef | undefined;
     }) {
         if (opt.options !== undefined) {
             this.logLevel = NUM_LOGS_LEVELS[opt.options.logLevel] as EMTIN;
@@ -67,6 +68,8 @@ export class State {
         }
         if (opt.source !== undefined) {
             this.transport.from(opt.source);
+        } else if (opt.preselected !== undefined) {
+            this.transport.switch(opt.preselected);
         }
     }
 

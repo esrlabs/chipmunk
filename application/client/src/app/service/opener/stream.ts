@@ -4,7 +4,7 @@ import { Instance as Logger } from '@platform/env/logger';
 import { Locker, Level, lockers } from '@ui/service/lockers';
 import { components } from '@env/decorators/initial';
 import { Session } from '../session/session';
-import { SourceDefinition } from '@platform/types/transport';
+import { SourceDefinition, Source as SourceRef } from '@platform/types/transport';
 import { Base } from './base';
 import { isRenderMatch } from '@schema/render/tools';
 
@@ -26,9 +26,10 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
     abstract getStreamSettingsTabName(): string;
 
     public stream(
-        source?: SourceDefinition,
-        options?: Options,
-        openPresetSettings?: boolean,
+        source: SourceDefinition | undefined,
+        options: Options | undefined,
+        openPresetSettings: boolean | undefined,
+        preselected: SourceRef | undefined,
     ): Promise<string> {
         const getProgress = (uuid: string) => {
             return lockers.lock(new Locker(true, 'creating stream...').set().group(uuid).end(), {});
@@ -94,7 +95,7 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
                         factory: components.get(this.getSettingsComponentName()),
                         inputs: {
                             getTabApi: () => api,
-                            options: { source, options },
+                            options: { source, options, preselected },
                             done: (
                                 redefined: { source: SourceDefinition; options: Options },
                                 cb: (err: Error | undefined) => void,

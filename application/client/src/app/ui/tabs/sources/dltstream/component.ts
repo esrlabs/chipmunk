@@ -10,7 +10,7 @@ import { State, ConnectionType } from './state';
 import { components } from '@env/decorators/initial';
 import { LockToken } from '@platform/env/lock.token';
 import { Timezone } from '@elements/timezones/timezone';
-import { SourceDefinition } from '@platform/types/transport';
+import { SourceDefinition, Source as SourceRef } from '@platform/types/transport';
 import { Action } from '../common/actions/action';
 
 @Component({
@@ -24,12 +24,21 @@ export class TabSourceDltStream extends ChangesDetector implements AfterContentI
     public readonly ConnectionType = ConnectionType;
 
     @Input() done!: (
-        options: { source: SourceDefinition; options: IDLTOptions },
+        options: {
+            source: SourceDefinition;
+            options: IDLTOptions;
+        },
         cb: (err: Error | undefined) => void,
     ) => void;
     @Input() file!: File;
     @Input() tab!: TabControls;
-    @Input() options: { source: SourceDefinition; options: IDLTOptions } | undefined;
+    @Input() options:
+        | {
+              source: SourceDefinition | undefined;
+              options: IDLTOptions | undefined;
+              preselected: SourceRef | undefined;
+          }
+        | undefined;
 
     public size: (s: number) => string = bytesToStr;
     public datetime: (ts: number) => string = timestampToUTC;

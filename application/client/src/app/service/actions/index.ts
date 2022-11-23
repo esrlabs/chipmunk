@@ -8,6 +8,12 @@ import * as FolderPcap from './folder.pcap';
 import * as FolderAny from './folder.any';
 import * as StreamDltOnCustom from './stream.dlt.custom';
 import * as StreamTextOnCustom from './stream.text.custom';
+import * as UdpDlt from './udp.dlt';
+import * as TcpDlt from './tcp.dlt';
+import * as SerialDlt from './serial.dlt';
+import * as SerialText from './serial.text';
+import * as StdoutText from './stdout.text';
+
 import { Base } from './action';
 
 export * as FileDlt from './file.dlt';
@@ -20,6 +26,11 @@ export * as FolderPcap from './folder.pcap';
 export * as FolderAny from './folder.any';
 export * as StreamDltOnCustom from './stream.dlt.custom';
 export * as StreamTextOnCustom from './stream.text.custom';
+export * as UdpDlt from './udp.dlt';
+export * as TcpDlt from './tcp.dlt';
+export * as SerialDlt from './serial.dlt';
+export * as SerialText from './serial.text';
+export * as StdoutText from './stdout.text';
 
 export { Base } from './action';
 
@@ -34,6 +45,11 @@ export const all = [
     [FolderAny.ACTION_UUID, FolderAny.Action],
     [StreamDltOnCustom.ACTION_UUID, StreamDltOnCustom.Action],
     [StreamTextOnCustom.ACTION_UUID, StreamTextOnCustom.Action],
+    [UdpDlt.ACTION_UUID, UdpDlt.Action],
+    [TcpDlt.ACTION_UUID, TcpDlt.Action],
+    [SerialDlt.ACTION_UUID, SerialDlt.Action],
+    [SerialText.ACTION_UUID, SerialText.Action],
+    [StdoutText.ACTION_UUID, StdoutText.Action],
 ];
 export function getActionByUuid(uuid: string): Base | undefined {
     const action = all.find((d) => d[0] === uuid);
