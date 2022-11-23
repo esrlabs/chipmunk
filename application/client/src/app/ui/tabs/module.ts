@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TabSourceDltFileModule } from '@tabs/sources/dltfile/module';
+import { TabSourcePcapFileModule } from '@tabs/sources/pcapfile/module';
 import { TabSourceDltStreamModule } from '@tabs/sources/dltstream/module';
 import { TabSourceTextStreamModule } from '@tabs/sources/textstream/module';
 import { TimezoneSelectorModule } from '@elements/timezones/module';
@@ -13,6 +14,7 @@ import { DialogsModule } from '@ui/views/dialogs/module';
     declarations: [],
     exports: [
         TabSourceDltFileModule,
+        TabSourcePcapFileModule,
         TabSourceDltStreamModule,
         TimezoneSelectorModule,
         TabSourceTextStreamModule,
@@ -20,6 +22,7 @@ import { DialogsModule } from '@ui/views/dialogs/module';
     ],
     bootstrap: [
         TabSourceDltFileModule,
+        TabSourcePcapFileModule,
         TabSourceDltStreamModule,
         TimezoneSelectorModule,
         TabSourceTextStreamModule,

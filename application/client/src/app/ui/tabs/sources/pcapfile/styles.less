@@ -1,0 +1,128 @@
+@import '../../../styles/variables.less';
+
+
+:host {
+    position: absolute;
+    display: block;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    & mat-card {
+        margin: 12px 6px 12px 12px;
+        & mat-card-title {
+            color: @scheme-color-1;
+            font-size: 16px;
+        }
+        & mat-card-subtitle {
+            color: @scheme-color-3;
+            font-size: 12px;
+        }
+
+        &.no-left-margin {
+            margin-left: 6px;
+        }
+    }
+    & mat-card.controlls {
+        & mat-card-content {
+            text-align: right;
+        }
+    }
+    & div.controlls {
+        text-align: right;
+    }
+    & mat-card.sticky {
+        padding-top: 0;
+    }
+    & h1 {
+        font-size: 14px;
+    }
+    & button {
+        position: relative;
+        display: inline-block;
+        margin: 6px 0 6px 6px;
+    }
+    & div.left {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 330px;
+        overflow: hidden;
+        justify-content: stretch;
+        justify-items: stretch;
+        & div.filter {
+            position: absolute;
+            z-index: 1000;
+            padding: 6px 12px;
+            background: @scheme-color-warning-light;
+            top: 6px;
+            right: 6px;
+            box-shadow: 3px 3px 3px rgb(0 0 0 / 40%);
+            border-radius: 3px;
+        }
+        & .fill {
+            overflow: auto;
+        }
+        & .section {
+            padding-top: 12px;
+            & mat-divider {
+                margin-top: -12px;
+            }
+            & .mat-standard-chip{
+                min-height: 24px;
+            }
+        }
+    }
+    & div.right {
+        position: absolute;
+        width: 320px;
+        right: 6px;
+        bottom: 0;
+        top: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+        & .mat-form-field{
+            width: 100%;
+        }
+        & mat-divider.fibex-divider {
+            margin-top: 12px;
+        }
+        & div.fibex-controlls{
+            position: relative;
+            width: 100%;
+            margin-top: 19px;
+            text-align: right;
+        }
+        & div.spacer{
+            flex: auto;
+        }
+    }
+    & .table-fill {
+        width: 100%;
+    }
+    & .info {
+        & .caption {
+            text-align: left;
+            padding-right: 12px;
+        }
+        & .value {
+            text-align: left;
+        }
+    }
+
+    & div.progress {
+        margin-top: 24px;
+        & p {
+            text-align: center;
+        }
+    }
+    & .mat-progress-bar-fill::after {
+        background-color: @scheme-color-accent;
+    }
+}

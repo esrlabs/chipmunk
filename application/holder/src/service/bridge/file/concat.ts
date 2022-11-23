@@ -87,6 +87,40 @@ export const handler = Requests.InjectLogger<
                                 );
                             });
                         break;
+                    case FileType.Pcap:
+                        stored
+                            .observe()
+                            .start(
+                                Observe.DataSource.concat(
+                                    request.files.map((f) => f.filename),
+                                ).pcap({
+                                    dlt:
+                                        request.files[0].options.dlt === undefined
+                                            ? defaultParserSettings(false)
+                                            : optionsToParserSettings(
+                                                  request.files[0].options.dlt,
+                                                  false,
+                                                  0,
+                                                  0,
+                                              ),
+                                }),
+                            )
+                            .then(() => {
+                                resolve(
+                                    new Requests.File.Concat.Response({
+                                        session: stored.session.getUUID(),
+                                    }),
+                                );
+                            })
+                            .catch((err: Error) => {
+                                resolve(
+                                    new Requests.File.Concat.Response({
+                                        session: stored.session.getUUID(),
+                                        error: err.message,
+                                    }),
+                                );
+                            });
+                        break;
                     default:
                         reading.done();
                         return reject(new Error(`Not supported file type`));
