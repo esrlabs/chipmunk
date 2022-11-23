@@ -29,6 +29,14 @@ export class Dialogs extends Implementation {
             });
     }
 
+    public async openFolder(): Promise<string[]> {
+        const result = await dialog.showOpenDialog(this._window, {
+            title: 'Opening a folder',
+            properties: ['openDirectory', 'multiSelections'],
+        });
+        return Promise.resolve(result.canceled ? [] : result.filePaths);
+    }
+
     public openFile(): {
         any(ext?: string): Promise<string[]>;
         dlt(): Promise<string[]>;

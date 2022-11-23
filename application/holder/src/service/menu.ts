@@ -10,6 +10,9 @@ import { cli } from '@service/cli';
 import { app, Menu, MenuItem } from 'electron';
 import { notifications } from '@service/notifications';
 import { unique } from 'platform/env/sequence';
+import { FileType } from 'platform/types/files';
+
+import * as Actions from './actions';
 
 @DependOn(notifications)
 @DependOn(cli)
@@ -58,21 +61,33 @@ export class Service extends Implementation {
                         label: 'Files',
                         submenu: [
                             {
-                                label: 'Open Any File',
+                                label: 'Open Any File(s)',
                                 click: async () => {
-                                    /* todo */
+                                    Actions.openFile(FileType.Any).catch((err: Error) => {
+                                        this.log().error(
+                                            `Fail call action OpenFile: ${err.message}`,
+                                        );
+                                    });
                                 },
                             },
                             {
-                                label: 'Open DLT File',
+                                label: 'Open DLT File(s)',
                                 click: async () => {
-                                    /* todo */
+                                    Actions.openFile(FileType.Dlt).catch((err: Error) => {
+                                        this.log().error(
+                                            `Fail call action OpenFile: ${err.message}`,
+                                        );
+                                    });
                                 },
                             },
                             {
-                                label: 'Open PCAP File',
+                                label: 'Open PCAP File(s)',
                                 click: async () => {
-                                    /* todo */
+                                    Actions.openFile(FileType.Pcap).catch((err: Error) => {
+                                        this.log().error(
+                                            `Fail call action OpenFile: ${err.message}`,
+                                        );
+                                    });
                                 },
                             },
                         ],
@@ -81,15 +96,33 @@ export class Service extends Implementation {
                         label: 'Folders',
                         submenu: [
                             {
-                                label: 'Concat Files',
+                                label: 'Concat Any Files',
                                 click: async () => {
-                                    /* todo */
+                                    Actions.openFolder(FileType.Any).catch((err: Error) => {
+                                        this.log().error(
+                                            `Fail call action OpenFolder: ${err.message}`,
+                                        );
+                                    });
                                 },
                             },
                             {
-                                label: 'Merge Files',
+                                label: 'Concat DLT Files',
                                 click: async () => {
-                                    /* todo */
+                                    Actions.openFolder(FileType.Dlt).catch((err: Error) => {
+                                        this.log().error(
+                                            `Fail call action OpenFolder: ${err.message}`,
+                                        );
+                                    });
+                                },
+                            },
+                            {
+                                label: 'Concat PCAP Files',
+                                click: async () => {
+                                    Actions.openFolder(FileType.Pcap).catch((err: Error) => {
+                                        this.log().error(
+                                            `Fail call action OpenFolder: ${err.message}`,
+                                        );
+                                    });
                                 },
                             },
                         ],

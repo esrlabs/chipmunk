@@ -14,3 +14,5 @@ export * as Cwd from './cwd';
 export * as Env from './env';
 export * as Hotkey from './hotkey';
 export * as Cli from './cli';
+export * as Actions from './actions';
+export * as Folder from './folder';

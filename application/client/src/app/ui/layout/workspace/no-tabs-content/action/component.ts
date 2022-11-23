@@ -1,7 +1,7 @@
 import { Component, Input, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
-import { Base } from '../actions/action';
-import { Storage as ActionsStorage } from '../actions/storage';
+import { Base } from '../../../../../service/actions/action';
+import { Storage as ActionsStorage } from '../../../../../service/actions/storage';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { stop } from '@ui/env/dom';
 
@@ -14,7 +14,7 @@ import { stop } from '@ui/env/dom';
 export class ActionComponent extends ChangesDetector implements AfterViewInit {
     @Input() public action!: Base;
     @Input() public actions!: ActionsStorage;
-    @Input() public menu!: boolean; 
+    @Input() public menu!: boolean;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
