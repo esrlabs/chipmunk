@@ -27,6 +27,11 @@ export class DynamicDatabase {
         this.roots = roots;
     }
 
+    public destroy() {
+        this.roots = [];
+        this.structure.clear();
+    }
+
     public initialData(): DynamicFlatNode[] {
         return this.roots.map(
             (root: string) =>
@@ -109,8 +114,8 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
         return merge(collectionViewer.viewChange, this.dataChange).pipe(map(() => this.data));
     }
 
-    public disconnect(collectionViewer: CollectionViewer): void {
-        console.log(`Not implemented: ${collectionViewer}`);
+    public disconnect(_collectionViewer: CollectionViewer): void {
+        this._database.destroy();
     }
 
     public handleTreeControl(change: SelectionChange<DynamicFlatNode>) {
