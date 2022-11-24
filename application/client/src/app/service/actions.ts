@@ -164,6 +164,28 @@ export class Service extends Implementation {
                     },
                 ),
         );
+        this.register(
+            api
+                .transport()
+                .respondent(
+                    this.getName(),
+                    Requests.Actions.About.Request,
+                    (
+                        _request: Requests.Actions.About.Request,
+                    ): CancelablePromise<Requests.Actions.About.Response> => {
+                        return new CancelablePromise((resolve, _reject) => {
+                            new handlers.About.Action()
+                                .apply()
+                                .catch((err: Error) => {
+                                    this.log().error(`Fail to call About action: ${err.message}`);
+                                })
+                                .finally(() => {
+                                    resolve(new Requests.Actions.About.Response());
+                                });
+                        });
+                    },
+                ),
+        );
         return Promise.resolve();
     }
 }

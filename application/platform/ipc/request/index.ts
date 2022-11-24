@@ -16,3 +16,4 @@ export * as Hotkey from './hotkey';
 export * as Cli from './cli';
 export * as Actions from './actions';
 export * as Folder from './folder';
+export * as App from './app';
