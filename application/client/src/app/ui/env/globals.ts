@@ -31,6 +31,10 @@ export function getNgZone(): NgZone {
     return store.ngZone;
 }
 
+export function getNgZoneSafly(): NgZone | undefined {
+    return store.ngZone;
+}
+
 export function setNgZone(ngZone: NgZone): void {
     if (store.ngZone !== undefined) {
         throw new Error(`NgZone has been setup already`);

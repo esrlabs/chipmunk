@@ -12,6 +12,7 @@ import { Subject, Subscription } from '@platform/env/subscription';
 import { IPC, isAvailable } from '@module/ipc';
 import { Logger } from '@log/index';
 import { emulation } from './emulation';
+import { getNgZoneSafly } from '@ui/env/globals';
 
 import * as events from '@platform/ipc/setup/channels';
 
@@ -152,6 +153,11 @@ export class Implementation extends Transport {
         return this._sequence++;
     }
 
+    private _zone(handler: () => void) {
+        const ngZone = getNgZoneSafly();
+        ngZone === undefined ? handler() : ngZone.run(handler);
+    }
+
     private _onHostEvent(_event: unknown, message: Packed) {
         const pack = Package.from(message);
         if (pack instanceof Error) {
@@ -174,7 +180,9 @@ export class Implementation extends Transport {
             return;
         }
         this._log.info(`Event ${signature} has been gotten and successfully constructed.`);
-        desc.subject.emit(payload);
+        this._zone(() => {
+            desc.subject.emit(payload);
+        });
     }
 
     private _onHostRequest(_event: unknown, message: Packed) {
@@ -203,26 +211,28 @@ export class Implementation extends Transport {
         this._log.info(
             `Request ${signature} (seq: ${pack.getSequence()}) has been gotten and successfully constructed.`,
         );
-        respondent
-            .respond(payload)
-            .then((response: ISignatureRequirement) => {
-                ipc().send(
-                    events.RENDER_RESPONSE_NAME,
-                    new Package(pack.getSequence()).payload(response).packed(),
-                );
-            })
-            .canceled(() => {
-                ipc().send(
-                    events.RENDER_RESPONSE_NAME,
-                    new Package(pack.getSequence()).abort().packed(),
-                );
-            })
-            .catch((err: Error) => {
-                ipc().send(
-                    events.RENDER_RESPONSE_NAME,
-                    new Package(pack.getSequence()).error(error(err)).packed(),
-                );
-            });
+        this._zone(() => {
+            respondent
+                .respond(payload)
+                .then((response: ISignatureRequirement) => {
+                    ipc().send(
+                        events.RENDER_RESPONSE_NAME,
+                        new Package(pack.getSequence()).payload(response).packed(),
+                    );
+                })
+                .canceled(() => {
+                    ipc().send(
+                        events.RENDER_RESPONSE_NAME,
+                        new Package(pack.getSequence()).abort().packed(),
+                    );
+                })
+                .catch((err: Error) => {
+                    ipc().send(
+                        events.RENDER_RESPONSE_NAME,
+                        new Package(pack.getSequence()).error(error(err)).packed(),
+                    );
+                });
+        });
     }
 
     private _onHostResponse(_event: unknown, message: Packed) {
@@ -256,6 +266,8 @@ export class Implementation extends Transport {
             desc.rejector(payload);
             return;
         }
-        desc.resolver(payload);
+        this._zone(() => {
+            desc.resolver(payload);
+        });
     }
 }
