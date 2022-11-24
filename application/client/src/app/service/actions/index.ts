@@ -13,6 +13,7 @@ import * as TcpDlt from './tcp.dlt';
 import * as SerialDlt from './serial.dlt';
 import * as SerialText from './serial.text';
 import * as StdoutText from './stdout.text';
+import * as About from './about';
 
 import { Base } from './action';
 
@@ -31,6 +32,7 @@ export * as TcpDlt from './tcp.dlt';
 export * as SerialDlt from './serial.dlt';
 export * as SerialText from './serial.text';
 export * as StdoutText from './stdout.text';
+export * as About from './about';
 
 export { Base } from './action';
 
@@ -50,6 +52,7 @@ export const all = [
     [SerialDlt.ACTION_UUID, SerialDlt.Action],
     [SerialText.ACTION_UUID, SerialText.Action],
     [StdoutText.ACTION_UUID, StdoutText.Action],
+    [About.ACTION_UUID, About.Action],
 ];
 export function getActionByUuid(uuid: string): Base | undefined {
     const action = all.find((d) => d[0] === uuid);

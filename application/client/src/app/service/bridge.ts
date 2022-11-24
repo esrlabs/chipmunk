@@ -330,6 +330,28 @@ export class Service extends Implementation {
         };
     }
 
+    public app(): {
+        version(): Promise<string>;
+    } {
+        return {
+            version: (): Promise<string> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.App.Version.Response,
+                        new Requests.App.Version.Request(),
+                    )
+                        .then((response) => {
+                            if (response.error !== undefined) {
+                                return reject(new Error(response.error));
+                            }
+                            resolve(response.version);
+                        })
+                        .catch(reject);
+                });
+            },
+        };
+    }
+
     public entries(dest: { key?: string; file?: string }): {
         get(): Promise<Entry[]>;
         /**

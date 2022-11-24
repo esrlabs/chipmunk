@@ -43,8 +43,6 @@ export class Service extends Implementation {
                       {
                           label: app.name,
                           submenu: [
-                              { role: 'about' },
-                              { type: 'separator' },
                               { role: 'services' },
                               { type: 'separator' },
                               { role: 'hide' },
@@ -280,6 +278,16 @@ export class Service extends Implementation {
                             },
                         ],
                     },
+                    { type: 'separator' },
+                    {
+                        label: 'About',
+                        click: async () => {
+                            Actions.about().catch((err: Error) => {
+                                this.log().error(`Fail call action About: ${err.message}`);
+                            });
+                        },
+                    },
+                    { type: 'separator' },
                     this.isMac ? { role: 'close' } : { role: 'quit' },
                 ],
             },
