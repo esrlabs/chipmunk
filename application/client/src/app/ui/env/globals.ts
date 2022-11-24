@@ -1,10 +1,13 @@
+import { NgZone } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import * as regex from '@platform/env/regex';
 
 const store: {
     sanitizer: DomSanitizer | undefined;
+    ngZone: NgZone | undefined;
 } = {
     sanitizer: undefined,
+    ngZone: undefined,
 };
 
 export function getDomSanitizer(): DomSanitizer {
@@ -19,6 +22,20 @@ export function setDomSanitizer(sanitizer: DomSanitizer): void {
         throw new Error(`DomSanitizer has been setup already`);
     }
     store.sanitizer = sanitizer;
+}
+
+export function getNgZone(): NgZone {
+    if (store.ngZone === undefined) {
+        throw new Error(`No NgZone has been setup`);
+    }
+    return store.ngZone;
+}
+
+export function setNgZone(ngZone: NgZone): void {
+    if (store.ngZone !== undefined) {
+        throw new Error(`NgZone has been setup already`);
+    }
+    store.ngZone = ngZone;
 }
 
 export function wrapMatchesToHtml(matcher: string, str: string, tag: string = 'span'): string {
