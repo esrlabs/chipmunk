@@ -1,8 +1,8 @@
-import { Component, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import { Component, AfterViewInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { DomSanitizer } from '@angular/platform-browser';
-import { setDomSanitizer } from '@ui/env/globals';
+import { setDomSanitizer, setNgZone } from '@ui/env/globals';
 
 @Component({
     selector: 'app-root',
@@ -11,16 +11,13 @@ import { setDomSanitizer } from '@ui/env/globals';
 })
 @Ilc()
 export class AppComponent extends ChangesDetector implements AfterViewInit {
-    constructor(cdRef: ChangeDetectorRef, sanitizer: DomSanitizer) {
+    constructor(cdRef: ChangeDetectorRef, sanitizer: DomSanitizer, private ngZone: NgZone) {
         super(cdRef);
         setDomSanitizer(sanitizer);
-        // This solution doesn't work. It breaks some angular lifecycle
-        // this.ilc().channel.system.ready(() => {
-        //     this.ilc().services.system.state.setClientAsReady();
-        // });
     }
 
     public ngAfterViewInit(): void {
+        setNgZone(this.ngZone);
         this.ilc().services.system.state.setClientAsReady();
     }
 }
