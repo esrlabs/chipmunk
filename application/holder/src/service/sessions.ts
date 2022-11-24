@@ -58,8 +58,35 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
+                    Requests.Session.ExportRaw.Request,
+                    RequestHandlers.Session.ExportRaw.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
                     Requests.Search.Export.Request,
                     RequestHandlers.Search.Export.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Search.ExportRaw.Request,
+                    RequestHandlers.Search.ExportRaw.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Session.IsExportRawAvailable.Request,
+                    RequestHandlers.Session.IsExportRawAvailable.handler,
                 ),
         );
         this.register(

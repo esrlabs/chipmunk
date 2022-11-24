@@ -374,29 +374,83 @@ export class Stream extends Subscriber {
         });
     }
 
-    public export(dest: string, ranges: IRange[]): Promise<boolean> {
-        if (this._len === 0) {
-            return Promise.resolve(true);
-        }
-        return new Promise((resolve, reject) => {
-            Requests.IpcRequest.send(
-                Requests.Session.Export.Response,
-                new Requests.Session.Export.Request({
-                    session: this._uuid,
-                    dest,
-                    ranges,
-                }),
-            )
-                .then((response: Requests.Session.Export.Response) => {
-                    if (response.error !== undefined) {
-                        return reject(new Error(response.error));
-                    }
-                    resolve(response.complete);
-                })
-                .catch((error: Error) => {
-                    this.log().error(`Fail to export content: ${error.message}`);
+    public export(): {
+        text(dest: string, ranges: IRange[]): Promise<boolean>;
+        raw(dest: string, ranges: IRange[]): Promise<boolean>;
+        isRawAvailable(): Promise<boolean>;
+    } {
+        return {
+            text: (dest: string, ranges: IRange[]): Promise<boolean> => {
+                if (this._len === 0) {
+                    return Promise.resolve(true);
+                }
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Session.Export.Response,
+                        new Requests.Session.Export.Request({
+                            session: this._uuid,
+                            dest,
+                            ranges,
+                        }),
+                    )
+                        .then((response: Requests.Session.Export.Response) => {
+                            if (response.error !== undefined) {
+                                return reject(new Error(response.error));
+                            }
+                            resolve(response.complete);
+                        })
+                        .catch((error: Error) => {
+                            this.log().error(`Fail to export content: ${error.message}`);
+                        });
                 });
-        });
+            },
+            raw: (dest: string, ranges: IRange[]): Promise<boolean> => {
+                if (this._len === 0) {
+                    return Promise.resolve(true);
+                }
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Session.ExportRaw.Response,
+                        new Requests.Session.ExportRaw.Request({
+                            session: this._uuid,
+                            dest,
+                            ranges,
+                        }),
+                    )
+                        .then((response: Requests.Session.ExportRaw.Response) => {
+                            if (response.error !== undefined) {
+                                return reject(new Error(response.error));
+                            }
+                            resolve(response.complete);
+                        })
+                        .catch((error: Error) => {
+                            this.log().error(`Fail to export raw: ${error.message}`);
+                        });
+                });
+            },
+            isRawAvailable: (): Promise<boolean> => {
+                if (this._len === 0) {
+                    return Promise.resolve(false);
+                }
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Session.IsExportRawAvailable.Response,
+                        new Requests.Session.IsExportRawAvailable.Request({
+                            session: this._uuid,
+                        }),
+                    )
+                        .then((response: Requests.Session.IsExportRawAvailable.Response) => {
+                            if (response.error !== undefined) {
+                                return reject(new Error(response.error));
+                            }
+                            resolve(response.available);
+                        })
+                        .catch((error: Error) => {
+                            this.log().error(`Fail to check state export raw: ${error.message}`);
+                        });
+                });
+            },
+        };
     }
 }
 export interface Stream extends LoggerInterface {}

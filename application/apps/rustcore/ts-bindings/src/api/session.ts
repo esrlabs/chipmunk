@@ -185,6 +185,10 @@ export class Session {
         return this._session.getSocketPath();
     }
 
+    public async isRawExportAvailable(): Promise<boolean> {
+        return await this._session.isRawExportAvailable();
+    }
+
     public getNativeSession(): RustSession {
         return this._session;
     }
