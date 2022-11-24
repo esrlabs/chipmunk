@@ -45,7 +45,11 @@ export class Exporter {
         //
     }
 
-    public export(): {
+    public isRawAvailable(): Promise<boolean> {
+        return this._stream.export().isRawAvailable();
+    }
+
+    public export(asRaw: boolean): {
         stream(): Promise<boolean>;
         search(): Promise<boolean>;
     } {
@@ -74,10 +78,15 @@ export class Exporter {
                     }
                     prev = row;
                 });
-                return this._stream.export(
-                    dest,
-                    ranges.map((r) => r.get()),
-                );
+                return asRaw
+                    ? this._stream.export().raw(
+                          dest,
+                          ranges.map((r) => r.get()),
+                      )
+                    : this._stream.export().text(
+                          dest,
+                          ranges.map((r) => r.get()),
+                      );
             },
             search: async (): Promise<boolean> => {
                 const selected = this.getAllSelected();
@@ -103,10 +112,15 @@ export class Exporter {
                     }
                     prev = row;
                 });
-                return this._search.export(
-                    dest,
-                    ranges.map((r) => r.get()),
-                );
+                return asRaw
+                    ? this._search.export().raw(
+                          dest,
+                          ranges.map((r) => r.get()),
+                      )
+                    : this._search.export().text(
+                          dest,
+                          ranges.map((r) => r.get()),
+                      );
             },
         };
     }
