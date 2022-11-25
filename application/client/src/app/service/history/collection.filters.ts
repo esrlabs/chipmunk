@@ -60,4 +60,9 @@ export class FiltersCollection
             },
         };
     }
+
+    public applicableOnlyToOrigin(): boolean {
+        return false;
+    }
+
 }

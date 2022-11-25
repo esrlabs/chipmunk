@@ -60,4 +60,8 @@ export class DisabledCollection
             },
         };
     }
+
+    public applicableOnlyToOrigin(): boolean {
+        return false;
+    }
 }
