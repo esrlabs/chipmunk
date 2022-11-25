@@ -54,9 +54,15 @@ class State {
             return this.convert(rows);
         }
         const filtered: number[] = [];
+        const streamLen = this._session.stream.len();
         const injections = this._session.cache
             .getRows()
-            .concat(this._session.bookmarks.get().map((b, i) => b.as().grabbed(i)))
+            .concat(
+                this._session.bookmarks
+                    .get()
+                    .filter((b) => b.stream() < streamLen)
+                    .map((b, i) => b.as().grabbed(i)),
+            )
             .filter((r) => {
                 if (
                     r.position < first ||
