@@ -1,28 +1,10 @@
 import { CancelablePromise } from 'platform/env/promise';
-import { Instance as Logger, error } from 'platform/env/logger';
+import { Instance as Logger } from 'platform/env/logger';
 import { electron } from '@service/electron';
 import { File, FileType } from 'platform/types/files';
-import { getFileEntity } from '@env/fs';
+import { getFileEntities } from '@env/fs';
 
 import * as Requests from 'platform/ipc/request';
-
-export function getEntities(files: string[]): File[] | Error {
-    if (files.length === 0) {
-        return [];
-    } else {
-        try {
-            return files.map((filename: string) => {
-                const entity = getFileEntity(filename);
-                if (entity instanceof Error) {
-                    throw entity;
-                }
-                return entity;
-            });
-        } catch (e) {
-            return new Error(error(e));
-        }
-    }
-}
 
 function any(ext?: string): Promise<File[]> {
     return new Promise((resolve, reject) => {
@@ -31,7 +13,7 @@ function any(ext?: string): Promise<File[]> {
             .openFile()
             .any(ext)
             .then((files: string[]) => {
-                const entities = getEntities(files);
+                const entities = getFileEntities(files);
                 if (entities instanceof Error) {
                     reject(entities);
                 } else {
@@ -49,7 +31,7 @@ function dlt(): Promise<File[]> {
             .openFile()
             .dlt()
             .then((files: string[]) => {
-                const entities = getEntities(files);
+                const entities = getFileEntities(files);
                 if (entities instanceof Error) {
                     reject(entities);
                 } else {
@@ -67,7 +49,7 @@ function pcap(): Promise<File[]> {
             .openFile()
             .pcap()
             .then((files: string[]) => {
-                const entities = getEntities(files);
+                const entities = getFileEntities(files);
                 if (entities instanceof Error) {
                     reject(entities);
                 } else {

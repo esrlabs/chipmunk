@@ -1,6 +1,6 @@
 import { CancelablePromise } from 'platform/env/promise';
 import { Instance as Logger } from 'platform/env/logger';
-import { getEntities } from './select';
+import { getFileEntities, getFolders, getFilesFromFolder } from '@env/fs';
 
 import * as Requests from 'platform/ipc/request';
 
@@ -13,16 +13,23 @@ export const handler = Requests.InjectLogger<
         request: Requests.File.File.Request,
     ): CancelablePromise<Requests.File.File.Response> => {
         return new CancelablePromise((resolve, reject) => {
-            const files = getEntities(request.filename);
-            if (files instanceof Error) {
-                reject(files);
-            } else {
-                resolve(
-                    new Requests.File.File.Response({
-                        files,
-                    }),
-                );
+            const folders = getFolders(request.filename);
+            if (folders instanceof Error) {
+                return reject(folders);
             }
+            getFilesFromFolder(folders, [])
+                .then((paths: string[]) => {
+                    const files = getFileEntities(request.filename.concat(paths));
+                    if (files instanceof Error) {
+                        return reject(files);
+                    }
+                    resolve(
+                        new Requests.File.File.Response({
+                            files,
+                        }),
+                    );
+                })
+                .catch(reject);
         });
     },
 );

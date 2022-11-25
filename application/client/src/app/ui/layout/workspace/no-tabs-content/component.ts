@@ -9,7 +9,8 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Storage as ActionsStorage } from '../../../../service/actions/storage';
 import { Base as Action } from '../../../../service/actions/action';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-
+import { File } from '@platform/types/files';
+import { Action as FileAnyAction } from '@service/actions/file.any';
 import * as actions from '@service/actions/index';
 
 @Component({
@@ -62,6 +63,18 @@ export class LayoutHome extends ChangesDetector implements AfterViewInit, OnDest
             }),
         );
         this.update();
+    }
+
+    public onDropFile(files: File[]) {
+        if (files.length === 0) {
+            return;
+        }
+        const action = new FileAnyAction();
+        if (files.length === 1) {
+            action.from(files[0]);
+        } else {
+            action.multiple(files);
+        }
     }
 
     protected update() {
