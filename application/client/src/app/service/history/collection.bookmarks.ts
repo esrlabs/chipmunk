@@ -62,4 +62,8 @@ export class BookmarksCollection
             },
         };
     }
+
+    public applicableOnlyToOrigin(): boolean {
+        return true;
+    }
 }

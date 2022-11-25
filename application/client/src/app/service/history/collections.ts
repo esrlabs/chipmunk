@@ -23,6 +23,7 @@ export interface ICollection {
     preset: boolean;
     relations: string[];
     entries: JsonSet;
+    origin: string | undefined;
 }
 
 @SetupLogger()
@@ -42,6 +43,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
                     uuid: smth.uuid(),
                     preset: false,
                     relations: [],
+                    origin: undefined,
                     entries: filters
                         .map((f) => f.asJsonField())
                         .concat(disabled.map((d) => d.asJsonField()))
@@ -68,6 +70,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
             preset: obj.getAsBool(src, 'p'),
             uuid: obj.getAsNotEmptyString(src, 'uu'),
             relations: obj.getAsArray(src, 'r'),
+            origin: obj.getAsNotEmptyStringOrAsUndefined(src, 'o'),
             entries: obj.getAsObj(src, 'e'),
         };
     }
@@ -81,6 +84,8 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
     public uuid: string;
     public preset: boolean;
     public relations: string[];
+    public origin: string | undefined;
+
     public readonly collections: {
         filters: FiltersCollection;
         disabled: DisabledCollection;
@@ -100,6 +105,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         this.created = definition.created;
         this.uuid = definition.uuid;
         this.relations = definition.relations;
+        this.origin = definition.origin;
         this.preset = definition.preset;
         this.storage = storage;
         this.load(definition.entries);
@@ -123,6 +129,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
                 relations: this.relations,
                 preset: this.preset,
                 last: this.last,
+                origin: this.origin,
                 entries: this.asCollectionsArray()
                     .map((c) => c.as().jsonSet())
                     .flat(),
@@ -136,11 +143,23 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
     }
 
     public bind(definition: Definition): void {
+        if (this.origin === undefined) {
+            // Origin source - it's first source for collection.
+            this.origin = definition.uuid;
+        }
         this.relations.indexOf(definition.uuid) === -1 && this.relations.push(definition.uuid);
     }
 
     public applyTo(session: Session, definitions: Definition[]): void {
-        const after = this.asCollectionsArray().map((c) => c.applyTo(session, definitions));
+        const origin = (() => {
+            if (definitions.length === 1 && definitions[0].uuid === this.origin) {
+                return true;
+            }
+            return false;
+        })();
+        const after = this.asCollectionsArray()
+            .filter((c) => (origin ? true : !c.applicableOnlyToOrigin()))
+            .map((c) => c.applyTo(session, definitions));
         after.forEach((cb) => cb());
     }
 
@@ -181,6 +200,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         this.created = definition.created;
         this.uuid = definition.uuid;
         this.relations = definition.relations;
+        this.origin = definition.origin;
         this.preset = definition.preset;
         this.load(definition.entries);
     }
@@ -216,6 +236,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
             l: this.last,
             uu: this.uuid,
             r: this.relations,
+            o: this.origin,
             e: this.asCollectionsArray()
                 .map((c) => c.as().jsonSet())
                 .flat(),
