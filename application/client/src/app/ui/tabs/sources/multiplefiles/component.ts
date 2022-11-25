@@ -9,8 +9,6 @@ import { State } from './state';
 import { Filter } from '@ui/env/entities/filter';
 import { TabControls } from '@service/session';
 import { EContextActionType, IContextAction } from './structure/component';
-import { FileDropped } from '@ui/env/directives/dragdrop.file';
-// import { Locker, Level } from '@ui/service/lockers';
 
 @Component({
     selector: 'app-tabs-source-multiple-files',
@@ -102,30 +100,18 @@ export class TabSourceMultipleFiles extends Holder implements AfterContentInit, 
         // TODO - Open file explorer to select path
     }
 
-    public ngOnDrop(files: FileDropped[] | DragEvent) {
-        if (files instanceof DragEvent) {
-            return;
-        }
-        this.ilc()
-            .services.system.bridge.files()
-            .getByPath(files.map((file: FileDropped) => file.path))
-            .then((results: File[]) => {
-                results.forEach((result: File) => {
-                    if (
-                        this.state.files.find(
-                            (file: FileHolder) => file.filename === result.filename,
-                        ) !== undefined
-                    ) {
-                        return;
-                    }
-                    this.state.files.push(new FileHolder(this.matcher, result));
-                    this.filesUpdate.emit(this.state.files);
-                    this.state.countAndCheck();
-                });
-            })
-            .catch((err: Error) => {
-                this.log().error(`Fail to get file info: ${err.message}`);
-            });
+    public ngOnDrop(files: File[]) {
+        files.forEach((result: File) => {
+            if (
+                this.state.files.find((file: FileHolder) => file.filename === result.filename) !==
+                undefined
+            ) {
+                return;
+            }
+            this.state.files.push(new FileHolder(this.matcher, result));
+            this.filesUpdate.emit(this.state.files);
+            this.state.countAndCheck();
+        });
     }
 
     public ngOpenEach(files?: FileHolder[]) {

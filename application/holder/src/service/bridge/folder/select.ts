@@ -1,59 +1,24 @@
 import { CancelablePromise } from 'platform/env/promise';
-import { Instance as Logger, error } from 'platform/env/logger';
+import { Instance as Logger } from 'platform/env/logger';
 import { electron } from '@service/electron';
-import { File, FileType, getFileExtention } from 'platform/types/files';
-import { getFileEntity } from '@env/fs';
+import { File, FileType } from 'platform/types/files';
+import { getFileEntities, getFilesFromFolder } from '@env/fs';
 
 import * as Requests from 'platform/ipc/request';
-import * as fs from 'fs';
-import * as path from 'path';
-
-export function getEntities(files: string[]): File[] | Error {
-    if (files.length === 0) {
-        return [];
-    } else {
-        try {
-            return files.map((filename: string) => {
-                const entity = getFileEntity(filename);
-                if (entity instanceof Error) {
-                    throw entity;
-                }
-                return entity;
-            });
-        } catch (e) {
-            return new Error(error(e));
-        }
-    }
-}
 
 async function collect(exts: string[]): Promise<string[]> {
     const folders = await electron.dialogs().openFolder();
     if (folders.length === 0) {
         return Promise.resolve([]);
     }
-    let files: string[] = [];
-    for (const folder of folders) {
-        files = files.concat(
-            (await fs.promises.readdir(folder, { withFileTypes: true }))
-                .filter((f) => f.isFile())
-                .map((f) => path.resolve(folder, f.name)),
-        );
-    }
-    return files.filter((file) => {
-        const ext = getFileExtention(file).toLowerCase();
-        if (exts.length === 0) {
-            return true;
-        } else {
-            return exts.indexOf(ext) !== -1;
-        }
-    });
+    return getFilesFromFolder(folders, exts);
 }
 
 function any(ext?: string): Promise<File[]> {
     return new Promise((resolve, reject) => {
         collect(ext !== undefined ? [ext] : [])
             .then((files: string[]) => {
-                const entities = getEntities(files);
+                const entities = getFileEntities(files);
                 if (entities instanceof Error) {
                     reject(entities);
                 } else {
@@ -68,7 +33,7 @@ function dlt(): Promise<File[]> {
     return new Promise((resolve, reject) => {
         collect(['dlt'])
             .then((files: string[]) => {
-                const entities = getEntities(files);
+                const entities = getFileEntities(files);
                 if (entities instanceof Error) {
                     reject(entities);
                 } else {
@@ -83,7 +48,7 @@ function pcap(): Promise<File[]> {
     return new Promise((resolve, reject) => {
         collect(['pcap', 'pcapng'])
             .then((files: string[]) => {
-                const entities = getEntities(files);
+                const entities = getFileEntities(files);
                 if (entities instanceof Error) {
                     reject(entities);
                 } else {

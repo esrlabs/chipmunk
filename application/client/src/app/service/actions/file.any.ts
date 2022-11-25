@@ -3,7 +3,7 @@ import { bridge } from '@service/bridge';
 import { opener } from '@service/opener';
 import { session } from '@service/session';
 import { TabSourceMultipleFiles } from '@tabs/sources/multiplefiles/component';
-import { FileType } from '@platform/types/files';
+import { FileType, File } from '@platform/types/files';
 
 export const ACTION_UUID = 'open_any_file';
 
@@ -25,27 +25,35 @@ export class Action extends Base {
             return Promise.resolve();
         }
         if (files.length > 1) {
-            session.add().tab({
-                name: 'Multiple Files',
-                active: true,
-                closable: true,
-                content: {
-                    factory: TabSourceMultipleFiles,
-                    inputs: { files: files },
-                },
-            });
+            this.multiple(files);
             return Promise.resolve();
         } else {
-            return (() => {
-                switch (files[0].type) {
-                    case FileType.Dlt:
-                        return opener.file(files[0]).dlt();
-                    case FileType.Pcap:
-                        throw new Error(`Not supported`);
-                    default:
-                        return opener.file(files[0]).text();
-                }
-            })().then((_) => Promise.resolve());
+            return this.from(files[0]);
         }
+    }
+
+    public from(file: File): Promise<void> {
+        return (() => {
+            switch (file.type) {
+                case FileType.Dlt:
+                    return opener.file(file).dlt();
+                case FileType.Pcap:
+                    return opener.file(file).pcap();
+                default:
+                    return opener.file(file).text();
+            }
+        })().then((_) => Promise.resolve());
+    }
+
+    public multiple(files: File[]) {
+        session.add().tab({
+            name: 'Multiple Files',
+            active: true,
+            closable: true,
+            content: {
+                factory: TabSourceMultipleFiles,
+                inputs: { files: files },
+            },
+        });
     }
 }
