@@ -9,7 +9,6 @@ import { Render } from '@schema/render';
 import { components } from '@env/decorators/initial';
 import { Base } from './base';
 import { Bookmarks } from './dependencies/bookmarks';
-import { Cache } from './dependencies/cache';
 import { Exporter } from './dependencies/exporter';
 import { Subscriber } from '@platform/env/subscription';
 import { unique } from '@platform/env/sequence';
@@ -30,7 +29,6 @@ export class Session extends Base {
     public readonly search: Search = new Search();
     public readonly bookmarks: Bookmarks = new Bookmarks();
     public readonly cursor: Cursor = new Cursor();
-    public readonly cache: Cache = new Cache();
     public readonly exporter: Exporter = new Exporter();
     public readonly render: Render<unknown>;
 
@@ -130,8 +128,7 @@ export class Session extends Base {
                     this.stream.init(this._uuid);
                     this.cursor.init(this._uuid);
                     this.bookmarks.init(this._uuid, this.cursor);
-                    this.cache.init(this._uuid, this.cursor, this.stream);
-                    this.search.init(this._uuid, this.bookmarks, this.cache);
+                    this.search.init(this._uuid, this.stream, this.bookmarks, this.cursor);
                     this.exporter.init(
                         this._uuid,
                         this.cursor,
@@ -152,7 +149,6 @@ export class Session extends Base {
         this.stream.destroy();
         this.bookmarks.destroy();
         this.cursor.destroy();
-        this.cache.destroy();
         this.exporter.destroy();
         this._subscriber.unsubscribe();
         if (!this.inited) {

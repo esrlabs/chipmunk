@@ -35,15 +35,19 @@ export class Standard extends ChangesDetector implements AfterContentInit {
     @HostBinding('innerHTML') html: SafeHtml | string = '';
 
     public ngAfterContentInit() {
-        this.html = this._sanitizer.bypassSecurityTrustHtml(this.row.html);
+        this.update();
         this.env().subscriber.register(
             this.row.change.subscribe(() => {
-                this.html = this._sanitizer.bypassSecurityTrustHtml(this.row.html);
-                this.background = this.row.background === undefined ? '' : this.row.background;
-                this.color = this.row.color === undefined ? '' : this.row.color;
+                this.update();
                 this.markChangesForCheck();
             }),
         );
+    }
+
+    protected update() {
+        this.html = this._sanitizer.bypassSecurityTrustHtml(this.row.html);
+        this.background = this.row.background === undefined ? '' : this.row.background;
+        this.color = this.row.color === undefined ? '' : this.row.color;
     }
 }
 export interface Standard extends IlcInterface {}

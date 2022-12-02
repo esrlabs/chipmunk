@@ -244,17 +244,17 @@ impl SearchMap {
         self.stats = stats.map_or(FiltersStats::default(), |s| s);
     }
 
+    pub fn append(&mut self, matches: &mut Vec<FilterMatch>) -> usize {
+        self.matches.append(matches);
+        self.matches.len()
+    }
+
     pub fn get_stats(&self) -> HashMap<String, u64> {
         self.stats.stats.clone()
     }
 
     pub fn set_stream_len(&mut self, len: u64) {
         self.stream_len = len;
-    }
-
-    pub fn append(&mut self, matches: &mut Vec<FilterMatch>) -> usize {
-        self.matches.append(matches);
-        self.matches.len()
     }
 
     pub fn append_stats(&mut self, stats: FiltersStats) {

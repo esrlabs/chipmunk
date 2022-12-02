@@ -103,8 +103,8 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
-                    Requests.Search.Chunk.Request,
-                    RequestHandlers.Search.Chunk.handler,
+                    Requests.Stream.Ranges.Request,
+                    RequestHandlers.Stream.Ranges.handler,
                 ),
         );
         this.register(

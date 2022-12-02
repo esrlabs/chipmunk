@@ -177,14 +177,15 @@ module Screens
       { name: 'Test binding concat [rake test:binding:concat]', value: 3 },
       { name: 'Test binding extract [rake test:binding:extract]', value: 4 },
       { name: 'Test binding exporting [rake test:binding:exporting]', value: 5 },
-      { name: 'Test binding cancel [rake test:binding:cancel]', value: 6 },
-      { name: 'Test binding errors [rake test:binding:errors]', value: 7 },
-      { name: 'Test binding map [rake test:binding:map]', value: 8 },
-      { name: 'Test matcher karma [rake test:matcher:karma]', value: 9 },
-      { name: 'Test matcher rust [rake test:matcher:rust', value: 10 },
-      { name: 'Test all [rake test:all', value: 11 },
-      { name: 'back', value: 12 },
-      { name: 'exit', value: 13 }
+      { name: 'Test binding ranges [rake test:binding:ranges]', value: 6 },
+      { name: 'Test binding cancel [rake test:binding:cancel]', value: 7 },
+      { name: 'Test binding errors [rake test:binding:errors]', value: 8 },
+      { name: 'Test binding map [rake test:binding:map]', value: 9 },
+      { name: 'Test matcher karma [rake test:matcher:karma]', value: 10 },
+      { name: 'Test matcher rust [rake test:matcher:rust', value: 11 },
+      { name: 'Test all [rake test:all', value: 12 },
+      { name: 'back', value: 13 },
+      { name: 'exit', value: 14 }
     ]
     case prompt.select('Actions groups', choices)
     when 1
@@ -198,18 +199,20 @@ module Screens
     when 5
       Rake::Task['test:binding:exporting'].invoke
     when 6
-      Rake::Task['test:binding:cancel'].invoke
+      Rake::Task['test:binding:ranges'].invoke
     when 7
-      Rake::Task['test:binding:errors'].invoke
+      Rake::Task['test:binding:cancel'].invoke
     when 8
-      Rake::Task['test:binding:map'].invoke
+      Rake::Task['test:binding:errors'].invoke
     when 9
-      Rake::Task['test:matcher:karma'].invoke
+      Rake::Task['test:binding:map'].invoke
     when 10
-      Rake::Task['test:matcher:rust'].invoke
+      Rake::Task['test:matcher:karma'].invoke
     when 11
-      Rake::Task['test:all'].invoke
+      Rake::Task['test:matcher:rust'].invoke
     when 12
+      Rake::Task['test:all'].invoke
+    when 13
       Screens.checks(prompt)
     else
       puts 'Goodbye!'

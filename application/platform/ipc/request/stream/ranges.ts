@@ -1,37 +1,32 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
 import { IGrabbedElement } from '../../../types/content';
+import { IRange } from '../../../types/range';
 
 import * as validator from '../../../env/obj';
 
-@Define({ name: 'SearchChunkRequest' })
+@Define({ name: 'StreamRangesChunkRequest' })
 export class Request extends SignatureRequirement {
     public session: string;
-    public from: number;
-    public to: number;
+    public ranges: IRange[];
 
-    constructor(input: { session: string; from: number; to: number }) {
+    constructor(input: { session: string; ranges: IRange[] }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
-        this.from = validator.getAsValidNumber(input, 'from');
-        this.to = validator.getAsValidNumber(input, 'to');
+        this.ranges = validator.getAsArray(input, 'ranges');
     }
 }
 
 export interface Request extends Interface {}
 
-@Define({ name: 'SearchChunkResponse' })
+@Define({ name: 'StreamRangesChunkResponse' })
 export class Response extends SignatureRequirement {
     public session: string;
     public rows: IGrabbedElement[];
-    public from: number;
-    public to: number;
-    constructor(input: { session: string; from: number; to: number; rows: IGrabbedElement[] }) {
+    constructor(input: { session: string; rows: IGrabbedElement[] }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
-        this.from = validator.getAsValidNumber(input, 'from');
-        this.to = validator.getAsValidNumber(input, 'to');
         this.rows = validator.getAsArray<IGrabbedElement>(input, 'rows');
     }
 }

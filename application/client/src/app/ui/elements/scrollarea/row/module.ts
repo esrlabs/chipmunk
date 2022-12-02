@@ -8,10 +8,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { RowComponent } from './component';
 import { Standard } from './standard/component';
 import { Columns } from './columns/component';
+import { Separator } from './separator/component';
 
 import { ContainersModule } from '@elements/containers/module';
 
-const components = [RowComponent, Standard, Columns];
+const components = [RowComponent, Standard, Columns, Separator];
 
 @NgModule({
     entryComponents: [...components],

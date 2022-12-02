@@ -42,26 +42,26 @@ export class Bookmarks extends Subscriber {
     public overwrite(bookmarks: Bookmark[], silence: boolean = false) {
         this.bookmarks = bookmarks;
         this.bookmarks.sort((a, b) => {
-            return a.stream() < b.stream() ? -1 : 1;
+            return a.position < b.position ? -1 : 1;
         });
         !silence && this.update();
     }
 
     public bookmark(row: Row) {
-        const exist = this.bookmarks.find((b) => b.stream() === row.position.stream);
+        const exist = this.bookmarks.find((b) => b.position === row.position);
         if (exist) {
-            this.bookmarks = this.bookmarks.filter((b) => b.stream() !== row.position.stream);
+            this.bookmarks = this.bookmarks.filter((b) => b.position !== row.position);
         } else {
-            this.bookmarks.push(new Bookmark(row.as().inputs()));
+            this.bookmarks.push(new Bookmark(row.position));
         }
         this.bookmarks.sort((a, b) => {
-            return a.stream() < b.stream() ? -1 : 1;
+            return a.position < b.position ? -1 : 1;
         });
         this.update();
     }
 
     public is(stream: number): boolean {
-        return this.bookmarks.find((b) => b.stream() === stream) !== undefined;
+        return this.bookmarks.find((b) => b.position === stream) !== undefined;
     }
 
     public count(): number {
@@ -72,12 +72,12 @@ export class Bookmarks extends Subscriber {
         if (range === undefined) {
             return this.bookmarks;
         } else {
-            return this.bookmarks.filter((b) => range.in(b.stream()));
+            return this.bookmarks.filter((b) => range.in(b.position));
         }
     }
 
     public getRowsPositions(): number[] {
-        return this.bookmarks.map((b) => b.stream());
+        return this.bookmarks.map((b) => b.position);
     }
 
     public update(): void {
@@ -92,12 +92,12 @@ export class Bookmarks extends Subscriber {
             if (this.bookmarks.length === 0) {
                 return undefined;
             }
-            const single = this.cursor.getSingle();
+            const single = this.cursor.getSingle().position();
             if (single === undefined) {
-                this.cursor.select(this.bookmarks[0].as().row(0), Owner.Bookmark);
+                this.cursor.select(this.bookmarks[0].position, Owner.Bookmark);
                 return undefined;
             }
-            return this.bookmarks.findIndex((b) => b.stream() === single.position.stream);
+            return this.bookmarks.findIndex((b) => b.position === single);
         })();
         return {
             next: (): void => {
@@ -105,13 +105,13 @@ export class Bookmarks extends Subscriber {
                     return;
                 }
                 if (selected === -1) {
-                    this.cursor.select(this.bookmarks[0].as().row(0), Owner.Bookmark);
+                    this.cursor.select(this.bookmarks[0].position, Owner.Bookmark);
                     return;
                 }
                 if (selected === this.bookmarks.length - 1) {
                     return;
                 }
-                this.cursor.select(this.bookmarks[selected + 1].as().row(0), Owner.Bookmark);
+                this.cursor.select(this.bookmarks[selected + 1].position, Owner.Bookmark);
             },
             prev: (): void => {
                 if (selected === undefined) {
@@ -119,7 +119,7 @@ export class Bookmarks extends Subscriber {
                 }
                 if (selected === -1) {
                     this.cursor.select(
-                        this.bookmarks[this.bookmarks.length - 1].as().row(0),
+                        this.bookmarks[this.bookmarks.length - 1].position,
                         Owner.Bookmark,
                     );
                     return;
@@ -127,7 +127,7 @@ export class Bookmarks extends Subscriber {
                 if (selected === 0) {
                     return;
                 }
-                this.cursor.select(this.bookmarks[selected - 1].as().row(0), Owner.Bookmark);
+                this.cursor.select(this.bookmarks[selected - 1].position, Owner.Bookmark);
             },
         };
     }

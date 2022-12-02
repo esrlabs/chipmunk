@@ -14,19 +14,6 @@ export interface IRowsPacket {
 
 export type CursorCorrectorHandler = () => number;
 
-// export interface IAPI {
-//     setFrame: (range: IRange) => void;
-//     getStorageInfo: () => IStorageInformation;
-//     getItemHeight: () => number;
-//     onStorageUpdated: Observable<IStorageInformation>;
-//     onScrollTo: Subject<number>;
-//     onScrollUntil: Subject<number>;
-//     onRows: Observable<IRowsPacket>;
-//     onSourceUpdated: Subject<void>;
-//     onRerequest: Subject<void>;
-//     onRedraw: Subject<void>;
-// }
-
 export class Service implements Destroy {
     public readonly setFrame: (range: SafeRange) => void;
     public readonly getLen: () => number;
@@ -53,27 +40,9 @@ export class Service implements Destroy {
     };
     private _cursor: number = 0;
 
-    constructor(api: {
-        setFrame(
-            range: IRange,
-            cursor: number,
-            setCursor: (value: number) => void,
-            getFrameLength: () => number,
-        ): void;
-        getLen(): number;
-        getItemHeight(): number;
-    }) {
+    constructor(api: { setFrame(range: IRange): void; getLen(): number; getItemHeight(): number }) {
         this.setFrame = (range: SafeRange) => {
-            api.setFrame(
-                range,
-                this._cursor,
-                (value: number) => {
-                    this._cursor = value;
-                },
-                () => {
-                    return this.frame.getFrameLen();
-                },
-            );
+            api.setFrame(range);
             this._cursor = range.from;
         };
         this.getLen = api.getLen;

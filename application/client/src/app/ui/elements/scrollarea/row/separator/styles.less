@@ -1,0 +1,59 @@
+@import '../../../../styles/variables.less';
+@import '../../../../styles/support.less';
+
+:host {
+    display: block;
+    position: relative;
+    margin: 1px 0;
+    height: 14px;
+    max-height: 14px;
+    color: @scheme-color-0;
+    font-weight: 500;
+    user-select: none;
+    padding: 0 32px;
+    border-radius: 3px;
+    border: 1px solid @scheme-color-4;
+    left: 32px;
+    &::after {
+        position: absolute;
+        display: block;
+        width: 100%;
+        content: '';
+        height: 1px;
+        border-top: thin dashed @scheme-color-4;
+        top: 7px;
+        left:100%;
+    }
+    &::before {
+        position: absolute;
+        display: block;
+        width: 24px;
+        content: '';
+        height: 1px;
+        border-top: thin dashed @scheme-color-4;
+        top: 7px;
+        left:-24px;
+    }
+    & span.button {
+        display: inline-block;
+        position: relative;
+        font-size: 13px;
+        line-height: 15px;
+        padding: 0 32px;
+        cursor: pointer;
+        user-select: none;
+        &.disabled {
+            color: @scheme-color-4;
+            cursor: default;
+        }
+    }
+    & span.number {
+        display: inline-block;
+        position: relative;
+        font-size: 12px;
+        line-height: 13px;
+        font-family: 'primary';
+        font-variant-numeric: tabular-nums;
+        user-select: none;
+    }
+}

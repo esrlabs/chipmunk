@@ -16,6 +16,7 @@ use std::{
     fmt::Display,
     fs::File,
     io::{BufWriter, Write},
+    ops::RangeInclusive,
     path::PathBuf,
 };
 use tokio::sync::{
@@ -41,8 +42,6 @@ pub struct GrabbedElement {
     pub source_id: u8,
     #[serde(rename = "c")]
     pub content: String,
-    #[serde(rename = "r")]
-    pub row: usize,
     #[serde(rename = "p")]
     pub pos: usize,
 }
@@ -104,6 +103,19 @@ pub enum Api {
             oneshot::Sender<Result<Vec<GrabbedElement>, NativeError>>,
         ),
     ),
+    GrabSearch(
+        (
+            LineRange,
+            oneshot::Sender<Result<Vec<GrabbedElement>, NativeError>>,
+        ),
+    ),
+    #[allow(clippy::type_complexity)]
+    GrabRanges(
+        (
+            Vec<RangeInclusive<u64>>,
+            oneshot::Sender<Result<Vec<GrabbedElement>, NativeError>>,
+        ),
+    ),
     GetStreamLen(oneshot::Sender<usize>),
     GetSearchResultLen(oneshot::Sender<usize>),
     GetSearchHolder((Uuid, oneshot::Sender<Result<SearchHolder, NativeError>>)),
@@ -115,12 +127,6 @@ pub enum Api {
         ),
     ),
     DropSearch(oneshot::Sender<bool>),
-    GrabSearch(
-        (
-            LineRange,
-            oneshot::Sender<Result<Vec<GrabbedElement>, NativeError>>,
-        ),
-    ),
     GetNearestPosition((u64, oneshot::Sender<Option<NearestPosition>>)),
     GetScaledMap((u16, Option<(u64, u64)>, oneshot::Sender<ScaledDistribution>)),
     SetMatches(
@@ -164,6 +170,7 @@ impl Display for Api {
                 Self::SetSearchHolder(_) => "SetSearchHolder",
                 Self::DropSearch(_) => "DropSearch",
                 Self::GrabSearch(_) => "GrabSearch",
+                Self::GrabRanges(_) => "GrabRanges",
                 Self::GetNearestPosition(_) => "GetNearestPosition",
                 Self::GetScaledMap(_) => "GetScaledMap",
                 Self::SetMatches(_) => "SetMatches",
@@ -222,20 +229,24 @@ impl SessionState {
         {
             ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
         }
-        let mut row: usize = range.start() as usize;
         for range in ranges.iter() {
             let mut session_elements = self.session_file.grab(&LineRange::from(range.clone()))?;
-            let start = *range.start() as usize;
-            for (j, element) in session_elements.iter_mut().enumerate() {
-                element.pos = start + j;
-                element.row = row;
-                row += 1;
-            }
             elements.append(&mut session_elements);
         }
         Ok(elements)
     }
 
+    fn handle_grab_ranges(
+        &mut self,
+        ranges: Vec<RangeInclusive<u64>>,
+    ) -> Result<Vec<GrabbedElement>, NativeError> {
+        let mut elements: Vec<GrabbedElement> = vec![];
+        for range in ranges.iter() {
+            let mut session_elements = self.session_file.grab(&LineRange::from(range.clone()))?;
+            elements.append(&mut session_elements);
+        }
+        Ok(elements)
+    }
     async fn handle_write_session_file(
         &mut self,
         source_id: u8,
@@ -477,6 +488,15 @@ impl SessionStateAPI {
     pub async fn grab_search(&self, range: LineRange) -> Result<Vec<GrabbedElement>, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GrabSearch((range, tx)), rx)
+            .await?
+    }
+
+    pub async fn grab_ranges(
+        &self,
+        ranges: Vec<RangeInclusive<u64>>,
+    ) -> Result<Vec<GrabbedElement>, NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GrabRanges((ranges, tx)), rx)
             .await?
     }
 
@@ -832,6 +852,11 @@ pub async fn run(
             Api::GrabSearch((range, tx_response)) => {
                 tx_response
                     .send(state.handle_grab_search(range))
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::GrabSearch"))?;
+            }
+            Api::GrabRanges((ranges, tx_response)) => {
+                tx_response
+                    .send(state.handle_grab_ranges(ranges))
                     .map_err(|_| NativeError::channel("Failed to respond to Api::GrabSearch"))?;
             }
             Api::GetNearestPosition((position, tx_response)) => {
