@@ -119,3 +119,34 @@ export class Range {
         return true;
     }
 }
+
+export function fromIndexes(indexes: number[]): IRange[] {
+    if (indexes.length === 0) {
+        return [];
+    }
+    const ranges: IRange[] = [];
+    indexes.sort((a, b) => (a >= b ? 1 : -1));
+    let from: number = -1;
+    let to = -1;
+    indexes.forEach((i) => {
+        if (i < 0 || isNaN(i) || !isFinite(i)) {
+            throw new Error(`Invalid index: ${i}`);
+        }
+        if (to === -1) {
+            to = i;
+        }
+        if (from === -1) {
+            from = i;
+            return;
+        }
+        if (i === to + 1) {
+            to = i;
+            return;
+        }
+        ranges.push({ from, to });
+        from = i;
+        to = i;
+    });
+    from !== -1 && ranges.push({ from, to: indexes[indexes.length - 1] });
+    return ranges;
+}

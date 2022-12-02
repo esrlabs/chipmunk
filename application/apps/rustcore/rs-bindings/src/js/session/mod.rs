@@ -321,6 +321,29 @@ impl RustSession {
     }
 
     #[node_bindgen]
+    async fn grab_ranges(
+        &self,
+        ranges: Vec<(i64, i64)>,
+    ) -> Result<String, ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            let grabbed = session
+                .grab_ranges(
+                    ranges
+                        .iter()
+                        .map(|(s, e)| RangeInclusive::<u64>::new(*s as u64, *e as u64))
+                        .collect::<Vec<RangeInclusive<u64>>>(),
+                )
+                .await
+                .map_err(ComputationErrorWrapper)?;
+            Ok(serde_json::to_string(&grabbed)?)
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
     async fn observe(
         &self,
         options: String,

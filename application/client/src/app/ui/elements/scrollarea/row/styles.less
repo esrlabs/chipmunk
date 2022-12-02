@@ -53,6 +53,21 @@
         display: inline-block;
         position: relative;
         white-space: nowrap;
+        & span.next-match-distance {
+            position: relative;
+            display: inline-block;
+            user-select: none;
+            margin-left: -7px;
+            & span.codicon {
+                font-size: 14px;
+                padding-top: 2px;
+                color: @scheme-color-0;
+                cursor: default;
+                &:hover{
+                    color: @scheme-color-accent;
+                }
+            }
+        }
         & span.error {
             position: absolute;
             display: inline-block;

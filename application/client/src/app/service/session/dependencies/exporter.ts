@@ -34,7 +34,7 @@ export class Exporter {
         let selected = this._cursor.get().slice();
         const bookmarks = this._bookmarks
             .get()
-            .map((b) => b.stream())
+            .map((b) => b.position)
             .filter((b) => selected.indexOf(b) === -1);
         selected = selected.concat(bookmarks);
         selected.sort((a, b) => (a > b ? 1 : -1));

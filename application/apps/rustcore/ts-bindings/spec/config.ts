@@ -47,6 +47,9 @@ export interface IConfiguration {
         search: {
             regular: IRegularTests;
         };
+        ranges: {
+            regular: IRegularTests;
+        };
         extract: {
             regular: IRegularTests;
         };

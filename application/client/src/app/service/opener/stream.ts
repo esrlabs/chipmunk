@@ -34,7 +34,6 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
         const getProgress = (uuid: string) => {
             return lockers.lock(new Locker(true, 'creating stream...').set().group(uuid).end(), {});
         };
-        let session: Session | undefined;
         const open = (
             bind: boolean,
             used: { source: SourceDefinition; options: Options },
@@ -60,8 +59,7 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
                         .empty(this.getRender())
                         .then((created) => {
                             this.assign(created);
-                            session = created;
-                            this.binding(session, used.source, used.options)
+                            this.binding(this.getSession(), used.source, used.options)
                                 .then(() => {
                                     resolve(created.uuid());
                                 })
@@ -104,11 +102,10 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
                                 open(false, redefined)
                                     .then((uuid: string) => {
                                         progress.popup.close();
-                                        this.session === undefined &&
-                                            this.services.system.session.bind(
-                                                uuid,
-                                                this.getStreamTabName(),
-                                            );
+                                        this.services.system.session.bind(
+                                            uuid,
+                                            this.getStreamTabName(),
+                                        );
                                         this.after(redefined.source, redefined.options)
                                             .catch((err: Error) => {
                                                 this.logger.error(
@@ -134,8 +131,8 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
                                             .message(err.message)
                                             .type(Level.error)
                                             .spinner(false);
-                                        session !== undefined &&
-                                            this.services.system.session.kill(session.uuid());
+                                        this.session !== undefined &&
+                                            this.services.system.session.kill(this.session.uuid());
                                         // We do not reject, but let component know - we are not able to observe
                                         cb(err);
                                     });

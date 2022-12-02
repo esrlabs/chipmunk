@@ -1,8 +1,9 @@
-<div class="signature" [ngStyle]="ngGetSignatureWidth()">
+<div class="signature" [ngStyle]="ngGetSignatureWidth()" *ngIf="!row.separator">
     <span *ngIf="source.color !== undefined" class="source-alias" [ngStyle]="{'background': source.color}"></span>
     <span class="number" [attr.data-bookmarked]="bookmarked" (click)="onNumberClick()">
-        <span class="filler">{{ngGetRankFiller(row.position.stream)}}</span>{{row.position.stream}}
+        <span class="filler">{{ngGetRankFiller(row.position)}}</span>{{row.position}}
     </span>
 </div>
-<app-scrollarea-row-standard *ngIf="render === 1" [row]="row"></app-scrollarea-row-standard>
-<app-scrollarea-row-columns *ngIf="render === 2" [row]="row"></app-scrollarea-row-columns>
+<app-scrollarea-rows-separator *ngIf="row.separator" [row]="row"></app-scrollarea-rows-separator>
+<app-scrollarea-row-standard *ngIf="render === 1 && !row.separator" [row]="row"></app-scrollarea-row-standard>
+<app-scrollarea-row-columns *ngIf="render === 2 && !row.separator" [row]="row"></app-scrollarea-row-columns>

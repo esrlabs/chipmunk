@@ -63,4 +63,21 @@
     <span class="t-small color-scheme-2" *ngIf="progress.visible()">{{progress.summary()}}</span>
     <mat-spinner *ngIf="progress.working" [diameter]="20"></mat-spinner>
 </div>
+<div class="modes">
+    <span
+        tabindex="14"
+        (click)="map.modes().toggle().bookmarks()"
+        [attr.class]="'small-icon-button codicon codicon-bookmark ' + (map.modes().bookmarks() ? 'active' : 'inactive')"
+    ></span>
+    <span
+        tabindex="15"
+        (click)="map.modes().toggle().selections()"
+        [attr.class]="'small-icon-button codicon codicon-checklist ' + (map.modes().selections() ? 'active' : 'inactive')"
+    ></span>
+    <span
+        tabindex="16"
+        (click)="map.modes().toggle().breadcrumbs()"
+        [attr.class]="'small-icon-button codicon codicon-list-tree ' + (map.modes().breadcrumbs() ? 'active' : 'inactive')"
+    ></span>
+</div>
 

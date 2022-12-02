@@ -159,8 +159,8 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         this.row.select().toggle();
     }
 
-    constructor(@SkipSelf() selfCdRef: ChangeDetectorRef) {
-        super(selfCdRef);
+    constructor(@SkipSelf() selfCdRef: ChangeDetectorRef, cdRef: ChangeDetectorRef) {
+        super([selfCdRef, cdRef]);
     }
 
     public ngAfterContentInit(): void {
@@ -183,6 +183,11 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         );
         this.env().subscriber.register(
             this.row.session.cursor.subjects.get().updated.subscribe(this.update.bind(this)),
+        );
+        this.env().subscriber.register(
+            this.row.change.subscribe(() => {
+                this.detectChanges();
+            }),
         );
         this.update();
     }

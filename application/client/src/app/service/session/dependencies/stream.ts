@@ -374,6 +374,28 @@ export class Stream extends Subscriber {
         });
     }
 
+    public grab(ranges: IRange[]): Promise<IGrabbedElement[]> {
+        if (this._len === 0) {
+            // TODO: Grabber is crash session in this case... should be prevented on grabber level
+            return Promise.resolve([]);
+        }
+        return new Promise((resolve) => {
+            Requests.IpcRequest.send(
+                Requests.Stream.Ranges.Response,
+                new Requests.Stream.Ranges.Request({
+                    session: this._uuid,
+                    ranges,
+                }),
+            )
+                .then((response: Requests.Stream.Ranges.Response) => {
+                    resolve(response.rows);
+                })
+                .catch((error: Error) => {
+                    this.log().error(`Fail to grab content: ${error.message}`);
+                });
+        });
+    }
+
     public export(): {
         text(dest: string, ranges: IRange[]): Promise<boolean>;
         raw(dest: string, ranges: IRange[]): Promise<boolean>;

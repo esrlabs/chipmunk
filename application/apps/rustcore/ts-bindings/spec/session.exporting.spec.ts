@@ -1064,7 +1064,7 @@ describe('Exporting', function () {
                             .then((results) => {
                                 let grabbed: IGrabbedElement[] = [];
                                 results.forEach((g) => (grabbed = grabbed.concat(g)));
-                                grabbed.sort((a, b) => (a.row > b.row ? 1 : -1));
+                                grabbed.sort((a, b) => (a.position > b.position ? 1 : -1));
                                 const output = path.resolve(os.tmpdir(), `${v4()}.logs`);
                                 stream
                                     .exportRaw(

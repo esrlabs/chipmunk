@@ -109,6 +109,16 @@ impl Session {
             .map_err(ComputationError::NativeError)
     }
 
+    pub async fn grab_ranges(
+        &self,
+        ranges: Vec<RangeInclusive<u64>>,
+    ) -> Result<Vec<GrabbedElement>, ComputationError> {
+        self.state
+            .grab_ranges(ranges)
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
     pub fn abort(&self, operation_id: Uuid, target: Uuid) -> Result<(), ComputationError> {
         self.tx_operations
             .send(Operation::new(

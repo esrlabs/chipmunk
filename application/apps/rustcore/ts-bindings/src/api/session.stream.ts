@@ -58,6 +58,10 @@ export class SessionStream {
         return this._session.grabStreamChunk(start, len);
     }
 
+    public grabRanges(ranges: IRange[]): Promise<IGrabbedElement[]> {
+        return this._session.grabStreamRanges(ranges);
+    }
+
     public getFileOptionsRequirements(filename: string): EFileOptionsRequirements {
         return this._session.getFileOptionsRequirements(filename);
     }

@@ -108,7 +108,6 @@ function StreamChunkRequest(packaged: Package<Requests.Stream.Chunk.Request>) {
         rows.push({
             content: `___${i}___`.repeat(20),
             source_id: 0,
-            row: i,
             position: i,
         });
     }

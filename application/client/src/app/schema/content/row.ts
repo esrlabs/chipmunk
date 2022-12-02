@@ -3,11 +3,6 @@ import { Subject, Subscriber } from '@platform/env/subscription';
 import { IGrabbedElement } from '@platform/types/content';
 import { ansiToHtml } from '@module/ansi';
 
-export interface Position {
-    stream: number;
-    view: number;
-}
-
 export enum Owner {
     Output = 'Output',
     Search = 'Search',
@@ -17,23 +12,17 @@ export enum Owner {
 
 export interface RowInputs {
     content: string;
-    position: Position;
+    position: number;
     owner: Owner;
     source: number;
     session: Session;
-}
-
-export interface StaticRowInputs {
-    content: string;
-    stream: number;
-    source: number;
 }
 
 const MAX_ROW_LENGTH_LIMIT = 10000;
 
 export class Row extends Subscriber {
     public content: string;
-    public position: Position;
+    public position: number;
     public owner: Owner;
     public source: number;
     public session: Session;
@@ -43,6 +32,7 @@ export class Row extends Subscriber {
     public color: string | undefined;
     public background: string | undefined;
     public columns: string[] = [];
+    public separator: boolean = false;
 
     protected readonly delimiter: string | undefined;
 
@@ -58,13 +48,13 @@ export class Row extends Subscriber {
         this.owner = inputs.owner;
         this.source = inputs.source;
         this.delimiter = this.session.render.delimiter();
-        this._update();
+        this.update();
         this.register(
             this.session.search
                 .highlights()
                 .subjects.get()
                 .update.subscribe(() => {
-                    this._update();
+                    this.update();
                     this.change.emit();
                 }),
         );
@@ -78,34 +68,28 @@ export class Row extends Subscriber {
     public from(row: Row) {
         if (this.content !== row.content) {
             this.content = row.content;
-            this._update();
+            this.update();
         }
+        this.color !== row.color && (this.color = row.color);
+        this.background !== row.background && (this.background = row.background);
         this.position !== row.position && (this.position = row.position);
         this.owner !== row.owner && (this.owner = row.owner);
         this.source !== row.source && (this.source = row.source);
         this.session !== row.session && (this.session = row.session);
         this.cropped !== row.cropped && (this.cropped = row.cropped);
+        this.separator !== row.separator && (this.separator = row.separator);
         this.change.emit();
     }
 
     public as(): {
-        inputs(): StaticRowInputs;
-        grabbed(row: number): IGrabbedElement;
+        grabbed(): IGrabbedElement;
     } {
         return {
-            inputs: (): StaticRowInputs => {
+            grabbed: (): IGrabbedElement => {
                 return {
-                    content: this.content,
-                    stream: this.position.stream,
-                    source: this.source,
-                };
-            },
-            grabbed: (row: number): IGrabbedElement => {
-                return {
-                    position: this.position.stream,
+                    position: this.position,
                     source_id: this.source,
                     content: this.content,
-                    row,
                 };
             },
         };
@@ -117,7 +101,7 @@ export class Row extends Subscriber {
     } {
         return {
             is: (): boolean => {
-                return this.session.bookmarks.is(this.position.stream);
+                return this.session.bookmarks.is(this.position);
             },
             toggle: (): void => {
                 this.session.bookmarks.bookmark(this);
@@ -131,15 +115,29 @@ export class Row extends Subscriber {
     } {
         return {
             is: (): boolean => {
-                return this.session.cursor.isSelected(this.position.stream);
+                return this.session.cursor.isSelected(this.position);
             },
             toggle: (): void => {
-                this.session.cursor.select(this, this.owner);
+                this.session.cursor.select(this.position, this.owner, this);
             },
         };
     }
 
-    private _update() {
+    public extending(): {
+        before(): void;
+        after(): void;
+    } {
+        return {
+            before: (): void => {
+                this.session.search.map.extending(this.position, true);
+            },
+            after: (): void => {
+                this.session.search.map.extending(this.position, false);
+            },
+        };
+    }
+
+    protected update() {
         if (this.delimiter === undefined) {
             const parsed = this.session.search.highlights().parse(this.content, this.owner, false);
             const ansi = ansiToHtml(parsed.html);
@@ -166,6 +164,9 @@ export class Row extends Subscriber {
                 }
                 return parsed.html;
             });
+        }
+        if (this.owner === Owner.Search && this.session.search.map.modes().breadcrumbs()) {
+            this.separator = this.session.search.map.breadcrumbs.isSeparator(this.position);
         }
     }
 }

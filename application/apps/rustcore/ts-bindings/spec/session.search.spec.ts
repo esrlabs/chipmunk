@@ -87,9 +87,6 @@ describe('Search', function () {
                                                     '[400]:: some match line data',
                                                     '[500]:: some match line data',
                                                 ]);
-                                                expect(result.map((i) => i.row)).toEqual([
-                                                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-                                                ]);
                                                 expect(result.map((i) => i.position)).toEqual([
                                                     0, // 0
                                                     1, // 1
@@ -248,9 +245,6 @@ describe('Search', function () {
                                             '[100]:: some match A line data',
                                             '[150]:: some match B line data',
                                             '[200]:: some match A line data',
-                                        ]);
-                                        expect(result.map((i) => i.row)).toEqual([
-                                            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
                                         ]);
                                         expect(result.map((i) => i.position)).toEqual([
                                             0, // 0
@@ -447,9 +441,6 @@ describe('Search', function () {
                                                     '[400]:: some mAtCh line data',
                                                     '[500]:: some mAtCh line data',
                                                 ]);
-                                                expect(result.map((i) => i.row)).toEqual([
-                                                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-                                                ]);
                                                 expect(result.map((i) => i.position)).toEqual([
                                                     0, // 0
                                                     1, // 1
@@ -594,9 +585,6 @@ describe('Search', function () {
                                                     '[300]:: some match line data',
                                                     '[400]:: some match line data',
                                                     '[500]:: some match line data',
-                                                ]);
-                                                expect(result.map((i) => i.row)).toEqual([
-                                                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
                                                 ]);
                                                 expect(result.map((i) => i.position)).toEqual([
                                                     0, // 0

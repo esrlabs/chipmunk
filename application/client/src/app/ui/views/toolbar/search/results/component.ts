@@ -42,17 +42,13 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
     public ngAfterContentInit(): void {
         this.service = getScrollAreaService(this.session);
         this.env().subscriber.register(
-            this.session.search.subjects.get().updated.subscribe((event) => {
-                this.service.setLen(event.found);
-            }),
-        );
-        this.env().subscriber.register(
             this.session.search.map.updated.subscribe((_event) => {
-                const single = this.session.cursor.getSingle();
+                this.service.setLen(this.session.search.map.len());
+                const single = this.session.cursor.getSingle().position();
                 if (this.session.search.len() > 0 && single !== undefined) {
                     // if (event.initiator === Owner.Search || single === undefined) {
                     this.session.search
-                        .nearest(single.position.stream)
+                        .nearest(single)
                         .then((location) => {
                             this.service.scrollTo(
                                 location.position - 2 < 0 ? 0 : location.position - 2,
@@ -77,12 +73,12 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                         const frame = this.service.getFrame();
                         const pending = frame
                             .getRows()
-                            .find((r) => r.position.view === this.navigation.pending);
+                            .find((r) => r.position === this.navigation.pending);
                         if (pending === undefined) {
                             return;
                         }
                         this.navigation.pending = -1;
-                        this.session.cursor.select(pending, Owner.Search);
+                        this.session.cursor.select(pending.position, Owner.Search);
                     }),
                 );
                 this.env().subscriber.register(
@@ -131,12 +127,12 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
             if (rows.length === 0) {
                 return undefined;
             }
-            const single = this.session.cursor.getSingle();
+            const single = this.session.cursor.getSingle().position();
             if (single === undefined) {
-                this.session.cursor.select(rows[0], Owner.Search);
+                this.session.cursor.select(rows[0].position, Owner.Search);
                 return undefined;
             }
-            const selected = rows.findIndex((r) => r.position.stream === single.position.stream);
+            const selected = rows.findIndex((r) => r.position === single);
             return selected !== -1 ? selected : undefined;
         })();
         return {
@@ -145,19 +141,19 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                     return;
                 }
                 if (selected < rows.length - 1) {
-                    this.session.cursor.select(rows[selected + 1], Owner.Search);
+                    this.session.cursor.select(rows[selected + 1].position, Owner.Search);
                     return;
                 }
                 if (selected === rows.length - 1) {
                     const last = rows[rows.length - 1];
-                    if (last.position.view === this.service.getLen() - 1) {
+                    if (last.position === this.service.getLen() - 1) {
                         // Last match
                         return;
                     }
                     const target = rows[1];
                     if (target !== undefined) {
-                        this.navigation.pending = last.position.view + 1;
-                        this.service.scrollTo(target.position.view);
+                        this.navigation.pending = last.position + 1;
+                        this.service.scrollTo(target.position);
                     }
                     return;
                 }
@@ -167,16 +163,16 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                     return;
                 }
                 if (selected > 0) {
-                    this.session.cursor.select(rows[selected - 1], Owner.Search);
+                    this.session.cursor.select(rows[selected - 1].position, Owner.Search);
                     return;
                 }
                 if (selected === 0) {
                     const first = rows[0];
-                    if (first.position.view === 0) {
+                    if (first.position === 0) {
                         // First match
                         return;
                     }
-                    this.navigation.pending = first.position.view - 1;
+                    this.navigation.pending = first.position - 1;
                     this.service.scrollTo(this.navigation.pending);
                     return;
                 }

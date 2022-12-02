@@ -14,10 +14,7 @@ export function getScrollAreaService(session: Session): Service {
                     service.setRows({
                         rows: rows.map((row) => {
                             return new Row({
-                                position: {
-                                    stream: row.position,
-                                    view: row.row,
-                                },
+                                position: row.position,
                                 content: row.content,
                                 session,
                                 owner: Owner.Output,

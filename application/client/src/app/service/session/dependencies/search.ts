@@ -2,17 +2,16 @@ import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { ISearchUpdated } from '@platform/types/filter';
 import { ISearchMap } from '@platform/interfaces/interface.rust.api.general';
-import { Range } from '@platform/types/range';
 import { cutUuid } from '@log/index';
 import { IFilter } from '@platform/types/filter';
-import { IGrabbedElement } from '@platform/types/content';
 import { FiltersStore } from './search/filters/store';
 import { DisableStore } from './search/disabled/store';
 import { Highlights } from './search/highlights';
 import { State } from './search/state';
 import { Map } from './search/map';
 import { Bookmarks } from './bookmarks';
-import { Cache } from './cache';
+import { Cursor } from './cursor';
+import { Stream } from './stream';
 import { IRange } from '@platform/types/range';
 
 import * as Requests from '@platform/ipc/request';
@@ -37,10 +36,10 @@ export class Search extends Subscriber {
     private _highlights!: Highlights;
     private _state!: State;
 
-    public init(uuid: string, bookmarks: Bookmarks, cache: Cache) {
+    public init(uuid: string, stream: Stream, bookmarks: Bookmarks, cursor: Cursor) {
         this.setLoggerName(`Search: ${cutUuid(uuid)}`);
         this._uuid = uuid;
-        this.map.init(bookmarks, cache);
+        this.map.init(stream, bookmarks, cursor);
         this.register(
             Events.IpcEvent.subscribe(Events.Search.Updated.Event, (event) => {
                 if (event.session !== this._uuid) {
@@ -139,32 +138,6 @@ export class Search extends Subscriber {
                     resolve(undefined);
                 })
                 .catch(reject);
-        });
-    }
-
-    public chunk(range: Range): Promise<IGrabbedElement[]> {
-        const len = this._len;
-        if (len === 0) {
-            // TODO: Grabber is crash session in this case... should be prevented on grabber level
-            return Promise.resolve([]);
-        }
-        return new Promise((resolve) => {
-            Requests.IpcRequest.send(
-                Requests.Search.Chunk.Response,
-                new Requests.Search.Chunk.Request({
-                    session: this._uuid,
-                    from: range.from,
-                    to: range.to,
-                }),
-            )
-                .then((response: Requests.Search.Chunk.Response) => {
-                    resolve(response.rows);
-                })
-                .catch((error: Error) => {
-                    this.log().error(
-                        `Fail to grab content (actual len: ${this._len}; len on request: ${len}): ${error.message}`,
-                    );
-                });
         });
     }
 

@@ -1,6 +1,6 @@
 import { Chart } from 'chart.js';
 import { IPosition, IPositionChange } from '../service';
-import { Owner, Row } from '@schema/content/row';
+import { Owner } from '@schema/content/row';
 import { getPropByPath } from '@platform/env/obj';
 import { IRange } from '@platform/types/range';
 import { AdvancedState, EChartName } from '../abstract/advanced';
@@ -66,19 +66,7 @@ export class State extends AdvancedState {
                 position = Math.floor(offsetX / rate) + this._range.from;
             }
         }
-        this._session.cursor.select(
-            new Row({
-                content: '',
-                session: this._session,
-                owner: Owner.Chart,
-                position: {
-                    view: -1,
-                    stream: position,
-                },
-                source: -1,
-            }),
-            Owner.Chart,
-        );
+        this._session.cursor.select(position, Owner.Chart);
     }
 
     protected _resize() {

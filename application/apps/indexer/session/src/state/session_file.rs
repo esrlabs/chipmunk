@@ -1,5 +1,4 @@
-use super::observed::Observed;
-use super::source_ids::SourceIDs;
+use super::{observed::Observed, source_ids::SourceIDs};
 use crate::{
     events::{NativeError, NativeErrorKind},
     paths,
@@ -195,7 +194,6 @@ impl SessionFile {
                     source_id: mapped_ranges.source(pos as u64).unwrap_or(0),
                     content,
                     pos,
-                    row: pos,
                 }
             })
             .collect())

@@ -66,7 +66,7 @@ export class Details extends ChangesDetector implements AfterViewInit {
             this.origin = undefined;
             this.parsed = undefined;
         } else {
-            this.row = this.session.cursor.getSingle();
+            this.row = this.session.cursor.getSingle().row();
             this.origin =
                 this.row !== undefined
                     ? this.sanitizer.bypassSecurityTrustHtml(this.row.content)

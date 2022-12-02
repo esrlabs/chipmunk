@@ -531,14 +531,14 @@ export class DataSource {
                 name: `UPD: ${streaming.UDP.bind_addr}`,
                 desc:
                     streaming.UDP.multicast.length === 0
-                        ? ''
+                        ? `Connecting to ${streaming.UDP.bind_addr} via UDP (no multicasts)`
                         : streaming.UDP.multicast.map((m) => m.multiaddr).join(', '),
                 icon: 'network_wifi_3_bar',
             };
         } else if (streaming.TCP !== undefined) {
             return {
                 name: `TCP: ${streaming.TCP.bind_addr}`,
-                desc: '',
+                desc: `Connecting to ${streaming.TCP.bind_addr} via TCP`,
                 icon: 'network_wifi_3_bar',
             };
         } else if (streaming.Serial !== undefined) {
