@@ -34,7 +34,6 @@ pub struct SessionFile {
     pub filename: Option<PathBuf>,
     pub writer: Option<BufWriter<File>>,
     pub last_message_timestamp: Instant,
-    pub has_updates: bool,
     pub sources: SourceIDs,
     pub observing: Observed,
 }
@@ -46,7 +45,6 @@ impl SessionFile {
             filename: None,
             writer: None,
             last_message_timestamp: Instant::now(),
-            has_updates: false,
             sources: SourceIDs::new(),
             observing: Observed::new(),
         }
@@ -109,7 +107,6 @@ impl SessionFile {
             if self.last_message_timestamp.elapsed().as_millis() > NOTIFY_IN_MS {
                 self.flush(state_cancellation_token.clone()).await
             } else {
-                self.has_updates = true;
                 Ok(SessionFileState::MaybeChanged)
             }
         } else {
@@ -127,13 +124,9 @@ impl SessionFile {
         &mut self,
         state_cancellation_token: CancellationToken,
     ) -> Result<SessionFileState, NativeError> {
-        if !self.has_updates {
-            return Ok(SessionFileState::NoChanges);
-        }
+        self.last_message_timestamp = Instant::now();
         if let Some(writer) = &mut self.writer {
             writer.flush()?;
-            self.last_message_timestamp = Instant::now();
-            self.has_updates = false;
             self.update(
                 self.sources.get_recent_source_id(),
                 state_cancellation_token,
