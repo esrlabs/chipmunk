@@ -225,19 +225,21 @@ export class Service extends Implementation {
         if (session === undefined) {
             return new Error(`Session doesn't exist`);
         }
-        session.bind(
-            this._tabs.add({
-                uuid: uuid,
-                content: {
-                    factory: components.get('app-views-workspace'),
-                    inputs: {
-                        session: session,
+        if (!this._tabs.has(uuid)) {
+            session.bind(
+                this._tabs.add({
+                    uuid: uuid,
+                    content: {
+                        factory: components.get('app-views-workspace'),
+                        inputs: {
+                            session: session,
+                        },
                     },
-                },
-                name: caption,
-                active: true,
-            }),
-        );
+                    name: caption,
+                    active: true,
+                }),
+            );
+        }
         makeActive && this._emitter.session.change(uuid);
         return undefined;
     }
