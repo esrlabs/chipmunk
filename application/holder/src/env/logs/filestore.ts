@@ -9,31 +9,21 @@ export class FileStore {
     protected pending = '';
     protected stream: StreamController | undefined;
 
-    public bind(filename: string) {
+    public async bind(filename: string): Promise<void> {
         const logger = scope.getLogger('LogFileStore');
         const bind = () => {
             this.stream = new StreamController(filename).init();
             logger.debug(`bound with file: ${filename}`);
         };
-        fs.promises
-            .stat(filename)
-            .then((stat) => {
-                if (stat.size > FileStore.SIZE_LIMIT) {
-                    fs.promises
-                        .unlink(filename)
-                        .then(() => {
-                            bind();
-                        })
-                        .catch((err: Error) => {
-                            logger.error(`fail to drop file store (${filename}): ${err.message}`);
-                        });
-                } else {
-                    bind();
-                }
-            })
-            .catch((err: Error) => {
-                logger.error(`fail to bind store (${filename}): ${err.message}`);
-            });
+        if (!fs.existsSync(filename)) {
+            await fs.promises.writeFile(filename, '');
+        }
+        const stat = await fs.promises.stat(filename);
+        if (stat.size > FileStore.SIZE_LIMIT) {
+            await fs.promises.unlink(filename);
+        }
+        bind();
+        return Promise.resolve();
     }
 
     public write(content: string) {
