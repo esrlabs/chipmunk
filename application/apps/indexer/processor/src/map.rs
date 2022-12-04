@@ -86,6 +86,9 @@ impl SearchMap {
     /// Returns scaled search results map. As soon as we are limited with screen/frame size (dataset_len).
     pub fn scaled(&self, dataset_len: u16, range: Option<(u64, u64)>) -> ScaledDistribution {
         let mut map: ScaledDistribution = vec![];
+        if self.stream_len == 0 {
+            return map;
+        }
         if let Some((from, to)) = range {
             let range_len = to - from;
             let rate: f64 = (range_len as f64) / (dataset_len as f64);
