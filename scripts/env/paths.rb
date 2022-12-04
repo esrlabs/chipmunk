@@ -40,8 +40,8 @@ module Paths
   INDEXER = 'application/apps/indexer'
   PLATFORM = 'application/platform'
   PLATFORM_DIST = 'application/platform/dist'
-  CLIPPY_NIGHTLY = 'cargo +nightly clippy --all --all-features -- -D warnings'
-  CLIPPY_STABLE = 'cargo clippy --all --all-features -- -D warnings'
+  CLIPPY_NIGHTLY = 'cargo +nightly clippy --all --all-features -- -D warnings -A clippy::uninlined_format_args'
+  CLIPPY_STABLE = 'cargo clippy --all --all-features -- -D warnings -A clippy::uninlined_format_args'
   TSC = "#{ELECTRON}/node_modules/.bin/tsc"
   CONFIG = 'scripts/config.json'
   MATCHER = 'application/apps/webassembly/matcher'
