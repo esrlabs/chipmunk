@@ -109,8 +109,11 @@ export class Service extends Implementation {
 \tprealod ${this.getPreload()}
 \tmodules ${this._appModules}`,
                             );
-                            setHomePath(this._home);
-                            resolve();
+                            setHomePath(this._home)
+                                .catch((err: Error) => {
+                                    `Fail to setup home logs path: ${err.message}`;
+                                })
+                                .finally(resolve);
                         })
                         .catch((error: Error) => {
                             this.log().error(

@@ -10,8 +10,8 @@ const LOG_LEVEL_MAX = 7;
 
 const store = new FileStore();
 
-export function setHomePath(home: string) {
-    store.bind(path.resolve(home, `chipmunk.log`));
+export function setHomePath(home: string): Promise<void> {
+    return store.bind(path.resolve(home, `chipmunk.log`));
 }
 
 export function unbind(): Promise<void> {
