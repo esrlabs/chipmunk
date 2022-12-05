@@ -127,6 +127,13 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
                 this.detectChanges();
             }),
         );
+        this.env().subscriber.register(
+            this._providers.subjects.edit.subscribe((guid: string | undefined) => {
+                setTimeout(() => {
+                    guid === undefined && (this._self.nativeElement as HTMLElement).focus();
+                });
+            }),
+        );
         window.addEventListener('keyup', this._onGlobalKeyUp);
     }
 

@@ -26,11 +26,13 @@ export class Providers {
         context: Subject<IContextMenuEvent>;
         doubleclick: Subject<IDoubleclickEvent>;
         change: Subject<void>;
+        edit: Subject<string | undefined>;
     } = {
         select: new Subject(),
         context: new Subject(),
         doubleclick: new Subject(),
         change: new Subject(),
+        edit: new Subject(),
     };
     public readonly session: Session;
     public readonly logger: Logger;
@@ -75,6 +77,7 @@ export class Providers {
         provider.subjects.doubleclick.subscribe(this._onDoubleclickEvent.bind(this));
         provider.subjects.change.subscribe(this._onChange.bind(this));
         provider.subjects.reload.subscribe(this._onReload.bind(this));
+        provider.subjects.edit.subscribe(this._onEdit.bind(this));
         provider.init();
         this._providers.set(name, provider);
         return true;
@@ -514,5 +517,9 @@ export class Providers {
 
     private _onReload(provider: string) {
         this._store().restore(provider);
+    }
+
+    private _onEdit(guid: string | undefined) {
+        this.subjects.edit.emit(guid);
     }
 }
