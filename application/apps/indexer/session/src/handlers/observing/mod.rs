@@ -103,7 +103,7 @@ pub async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                 match item {
                     MessageStreamItem::Item(item) => {
                         state
-                            .write_session_file(source_id, format!("{}\n", item))
+                            .write_session_file(source_id, format!("{item}\n"))
                             .await?;
                     }
                     MessageStreamItem::Done => {
