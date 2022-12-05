@@ -9,6 +9,7 @@ import { IGrabbedElement } from '../src/interfaces/index';
 import { createSampleFile, finish, performanceReport, setMeasurement } from './common';
 import { getLogger } from '../src/util/logging';
 import { readConfigurationFile } from './config';
+import { fromIndexes } from 'platform/types/range';
 import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -294,8 +295,11 @@ describe('Exporting', function () {
                                 search
                                     .grab(range.from, range.to)
                                     .then((grabbed: IGrabbedElement[]) => {
-                                        search
-                                            .export(output, [range])
+                                        stream
+                                            .export(
+                                                output,
+                                                fromIndexes(grabbed.map((el) => el.position)),
+                                            )
                                             .then((_done) => {
                                                 fs.promises
                                                     .readFile(output, { encoding: 'utf-8' })

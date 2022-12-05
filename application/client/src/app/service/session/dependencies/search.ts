@@ -12,7 +12,6 @@ import { Map } from './search/map';
 import { Bookmarks } from './bookmarks';
 import { Cursor } from './cursor';
 import { Stream } from './stream';
-import { IRange } from '@platform/types/range';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -181,83 +180,5 @@ export class Search extends Subscriber {
         return this._highlights;
     }
 
-    public export(): {
-        text(dest: string, ranges: IRange[]): Promise<boolean>;
-        raw(dest: string, ranges: IRange[]): Promise<boolean>;
-        isRawAvailable(): Promise<boolean>;
-    } {
-        return {
-            text: (dest: string, ranges: IRange[]): Promise<boolean> => {
-                if (this._len === 0) {
-                    return Promise.resolve(true);
-                }
-                return new Promise((resolve, reject) => {
-                    Requests.IpcRequest.send(
-                        Requests.Search.Export.Response,
-                        new Requests.Search.Export.Request({
-                            session: this._uuid,
-                            dest,
-                            ranges,
-                        }),
-                    )
-                        .then((response: Requests.Search.Export.Response) => {
-                            if (response.error !== undefined) {
-                                return reject(new Error(response.error));
-                            }
-                            resolve(response.complete);
-                        })
-                        .catch((error: Error) => {
-                            this.log().error(`Fail to export content: ${error.message}`);
-                        });
-                });
-            },
-            raw: (dest: string, ranges: IRange[]): Promise<boolean> => {
-                if (this._len === 0) {
-                    return Promise.resolve(true);
-                }
-                return new Promise((resolve, reject) => {
-                    Requests.IpcRequest.send(
-                        Requests.Search.ExportRaw.Response,
-                        new Requests.Search.ExportRaw.Request({
-                            session: this._uuid,
-                            dest,
-                            ranges,
-                        }),
-                    )
-                        .then((response: Requests.Search.ExportRaw.Response) => {
-                            if (response.error !== undefined) {
-                                return reject(new Error(response.error));
-                            }
-                            resolve(response.complete);
-                        })
-                        .catch((error: Error) => {
-                            this.log().error(`Fail to export raw: ${error.message}`);
-                        });
-                });
-            },
-            isRawAvailable: (): Promise<boolean> => {
-                if (this._len === 0) {
-                    return Promise.resolve(false);
-                }
-                return new Promise((resolve, reject) => {
-                    Requests.IpcRequest.send(
-                        Requests.Session.IsExportRawAvailable.Response,
-                        new Requests.Session.IsExportRawAvailable.Request({
-                            session: this._uuid,
-                        }),
-                    )
-                        .then((response: Requests.Session.IsExportRawAvailable.Response) => {
-                            if (response.error !== undefined) {
-                                return reject(new Error(response.error));
-                            }
-                            resolve(response.available);
-                        })
-                        .catch((error: Error) => {
-                            this.log().error(`Fail to check state export raw: ${error.message}`);
-                        });
-                });
-            },
-        };
-    }
 }
 export interface Search extends LoggerInterface {}

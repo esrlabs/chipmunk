@@ -147,19 +147,7 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract export(dest: string, ranges: IRange[], operationUuid: string): Promise<void>;
 
-    public abstract exportSearch(
-        dest: string,
-        ranges: IRange[],
-        operationUuid: string,
-    ): Promise<void>;
-
     public abstract exportRaw(dest: string, ranges: IRange[], operationUuid: string): Promise<void>;
-
-    public abstract exportSearchRaw(
-        dest: string,
-        ranges: IRange[],
-        operationUuid: string,
-    ): Promise<void>;
 
     public abstract isRawExportAvailable(): Promise<boolean>;
 
@@ -225,19 +213,7 @@ export abstract class RustSessionNative {
 
     public abstract export(dest: string, ranges: number[][], operationUuid: string): Promise<void>;
 
-    public abstract exportSearch(
-        dest: string,
-        ranges: number[][],
-        operationUuid: string,
-    ): Promise<void>;
-
     public abstract exportRaw(
-        dest: string,
-        ranges: number[][],
-        operationUuid: string,
-    ): Promise<void>;
-
-    public abstract exportSearchRaw(
         dest: string,
         ranges: number[][],
         operationUuid: string,
@@ -664,52 +640,12 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
-    public exportSearch(dest: string, ranges: IRange[], operationUuid: string): Promise<void> {
-        return new Promise((resolve, reject) => {
-            try {
-                this._provider.debug().emit.operation('exportSearch', operationUuid);
-                this._native
-                    .exportSearch(
-                        dest,
-                        ranges.map((r) => [r.from, r.to]),
-                        operationUuid,
-                    )
-                    .then(resolve)
-                    .catch((err: Error) => {
-                        reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
-                    });
-            } catch (err) {
-                return reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
-            }
-        });
-    }
-
     public exportRaw(dest: string, ranges: IRange[], operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
                 this._provider.debug().emit.operation('exportRaw', operationUuid);
                 this._native
                     .exportRaw(
-                        dest,
-                        ranges.map((r) => [r.from, r.to]),
-                        operationUuid,
-                    )
-                    .then(resolve)
-                    .catch((err: Error) => {
-                        reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
-                    });
-            } catch (err) {
-                return reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
-            }
-        });
-    }
-
-    public exportSearchRaw(dest: string, ranges: IRange[], operationUuid: string): Promise<void> {
-        return new Promise((resolve, reject) => {
-            try {
-                this._provider.debug().emit.operation('exportSearchRaw', operationUuid);
-                this._native
-                    .exportSearchRaw(
                         dest,
                         ranges.map((r) => [r.from, r.to]),
                         operationUuid,
