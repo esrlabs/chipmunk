@@ -23,12 +23,14 @@ export class SearchInput {
         accept: Subject<string>;
         recent: Subject<void>;
         edit: Subject<void>;
+        reaccept: Subject<void>;
     } = {
         drop: new Subject(),
         clear: new Subject(),
         accept: new Subject(),
         recent: new Subject(),
         edit: new Subject(),
+        reaccept: new Subject(),
     };
     private _prev: string = '';
     private _panel!: MatAutocompleteTrigger;
@@ -94,6 +96,27 @@ export class SearchInput {
             this._panel.openPanel();
             this.actions.recent.emit();
         }
+    }
+
+    public onFlag(): {
+        caseSensitive(): void;
+        wholeWord(): void;
+        regex(): void;
+    } {
+        return {
+            caseSensitive: () => {
+                this.flags.cases = !this.flags.cases;
+                this.actions.reaccept.emit();
+            },
+            wholeWord: () => {
+                this.flags.word = !this.flags.word;
+                this.actions.reaccept.emit();
+            },
+            regex: () => {
+                this.flags.reg = !this.flags.reg;
+                this.actions.reaccept.emit();
+            },
+        };
     }
 
     public drop() {
