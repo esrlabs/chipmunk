@@ -42,6 +42,7 @@ export class SearchInput {
     }
 
     public bind(ref: HTMLInputElement, panel: MatAutocompleteTrigger) {
+        this.control.setValue('');
         this.ref = ref;
         this._panel = panel;
     }
