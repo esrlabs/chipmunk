@@ -130,7 +130,7 @@ export class Map extends Subscriber {
             this.breadcrumbs.drop();
         } else {
             try {
-                const matches = JSON.parse(str);
+                const matches: number[] = JSON.parse(str);
                 if (!(matches instanceof Array)) {
                     throw new Error(`Map of matches should be an array`);
                 }

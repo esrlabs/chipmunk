@@ -302,15 +302,14 @@ impl SessionState {
             .execute_search(len, state_cancellation_token)
         {
             Some(Ok((_processed, mut matches, stats))) => {
+                let map_updates = SearchMap::map_as_str(&matches);
                 let found = self.search_map.append(&mut matches) as u64;
                 self.search_map.append_stats(stats);
                 tx_callback_events.send(CallbackEvent::search_results(
                     found,
                     self.search_map.get_stats(),
                 ))?;
-                tx_callback_events.send(CallbackEvent::SearchMapUpdated(Some(
-                    SearchMap::map_as_str(&matches),
-                )))?;
+                tx_callback_events.send(CallbackEvent::SearchMapUpdated(Some(map_updates)))?;
             }
             Some(Err(err)) => error!("Fail to append search: {}", err),
             None => (),
