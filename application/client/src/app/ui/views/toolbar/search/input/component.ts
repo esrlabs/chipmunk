@@ -93,6 +93,9 @@ export class ViewSearchInput
                     this.active = new ActiveSearch(filter);
                     this.input.drop();
                 })
+                .catch((err: Error) => {
+                    this.log().error(`Fail to accept search: ${err.message}`);
+                })
                 .finally(() => {
                     this.markChangesForCheck();
                 });
@@ -111,11 +114,33 @@ export class ViewSearchInput
         this.input.actions.recent.subscribe(() => {
             this.markChangesForCheck();
         });
+        this.input.actions.reaccept.subscribe(this.reaccept.bind(this));
         const active = this.session.search.state().getActive();
         if (active !== undefined) {
             this.active = new ActiveSearch(active);
             this.input.drop();
         }
+    }
+
+    public reaccept() {
+        const active = this.active;
+        if (active === undefined) {
+            return;
+        }
+        active.filter.flags = this.input.flags;
+        this.session.search
+            .state()
+            .setActive(active.filter)
+            .then(() => {
+                this.active = new ActiveSearch(active.filter);
+                this.input.drop();
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to reaccept search: ${err.message}`);
+            })
+            .finally(() => {
+                this.markChangesForCheck();
+            });
     }
 
     public drop() {
