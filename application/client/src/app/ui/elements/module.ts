@@ -38,5 +38,16 @@ import { ComTooltipComponent } from '@elements/tooltip/component';
         TransportReviewModule,
         AutocompleteModule,
     ],
+    bootstrap: [
+        ContainersModule,
+        ScrollAreaModule,
+        TabsModule,
+        RecentActionsModule,
+        RecentActionsMiniModule,
+        TreeModule,
+        LocksHistoryModule,
+        TransportReviewModule,
+        AutocompleteModule,
+    ],
 })
 export class ElementsModule {}
