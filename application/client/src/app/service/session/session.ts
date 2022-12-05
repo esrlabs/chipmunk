@@ -11,17 +11,12 @@ import { Base } from './base';
 import { Bookmarks } from './dependencies/bookmarks';
 import { Exporter } from './dependencies/exporter';
 import { Subscriber } from '@platform/env/subscription';
-import { unique } from '@platform/env/sequence';
 import { IRange, fromIndexes } from '@platform/types/range';
 
+import * as ids from '@schema/ids';
 import * as Requests from '@platform/ipc/request';
 
 export { Stream };
-
-const TOOLBAR_TAB_SEARCH = unique();
-const TOOLBAR_TAB_PRESET = unique();
-const TOOLBAR_TAB_DETAILS = unique();
-const TOOLBAR_TAB_CHART = unique();
 
 @SetupLogger()
 export class Session extends Base {
@@ -46,7 +41,7 @@ export class Session extends Base {
         super();
         this.render = render;
         this._toolbar.add({
-            uuid: TOOLBAR_TAB_SEARCH,
+            uuid: ids.TOOLBAR_TAB_SEARCH,
             name: 'Search',
             active: true,
             closable: false,
@@ -58,7 +53,7 @@ export class Session extends Base {
             },
         });
         this._toolbar.add({
-            uuid: TOOLBAR_TAB_DETAILS,
+            uuid: ids.TOOLBAR_TAB_DETAILS,
             name: 'Details',
             active: false,
             closable: false,
@@ -70,7 +65,7 @@ export class Session extends Base {
             },
         });
         this._toolbar.add({
-            uuid: TOOLBAR_TAB_PRESET,
+            uuid: ids.TOOLBAR_TAB_PRESET,
             name: 'Presets / History',
             active: false,
             closable: false,
@@ -82,7 +77,7 @@ export class Session extends Base {
             },
         });
         this._toolbar.add({
-            uuid: TOOLBAR_TAB_CHART,
+            uuid: ids.TOOLBAR_TAB_CHART,
             name: 'Chart',
             active: false,
             closable: false,
@@ -94,6 +89,7 @@ export class Session extends Base {
             },
         });
         this._sidebar.add({
+            uuid: ids.SIDEBAR_TAB_OBSERVING,
             name: 'Observing',
             active: false,
             closable: false,
@@ -105,6 +101,7 @@ export class Session extends Base {
             },
         });
         this._sidebar.add({
+            uuid: ids.SIDEBAR_TAB_FILTERS,
             name: 'Filters',
             active: true,
             closable: false,
@@ -192,10 +189,10 @@ export class Session extends Base {
         return {
             toolbar: {
                 search: (): void => {
-                    this._toolbar.setActive(TOOLBAR_TAB_SEARCH);
+                    this._toolbar.setActive(ids.TOOLBAR_TAB_SEARCH);
                 },
                 presets: (): void => {
-                    this._toolbar.setActive(TOOLBAR_TAB_PRESET);
+                    this._toolbar.setActive(ids.TOOLBAR_TAB_PRESET);
                 },
             },
         };

@@ -5,7 +5,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { components } from '@env/decorators/initial';
 
-const WELCOME_TAB_UUID = 'welcome';
+import * as ids from '@schema/ids';
 
 @Component({
     selector: 'app-layout-workspace',
@@ -15,7 +15,7 @@ const WELCOME_TAB_UUID = 'welcome';
 @Ilc()
 export class LayoutWorkspace extends ChangesDetector implements AfterViewInit {
     public tabs: TabsService;
-    
+
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
         this.tabs = this.ilc().services.system.session.getTabsService();
@@ -25,7 +25,7 @@ export class LayoutWorkspace extends ChangesDetector implements AfterViewInit {
         this.ilc()
             .services.system.session.add()
             .unbound({
-                uuid: WELCOME_TAB_UUID,
+                uuid: ids.WORKSPACE_TAB_HOME,
                 sidebar: true,
                 toolbar: false,
                 tab: {
@@ -59,7 +59,12 @@ export class LayoutWorkspace extends ChangesDetector implements AfterViewInit {
         );
         this.env().subscriber.register(
             this.ilc().services.system.hotkeys.listen('Ctrl + O', () => {
-                this.tabs.setActive(WELCOME_TAB_UUID);
+                this.tabs.setActive(ids.WORKSPACE_TAB_HOME);
+            }),
+        );
+        this.env().subscriber.register(
+            this.ilc().services.system.hotkeys.listen('Ctrl + T', () => {
+                this.tabs.setActive(ids.WORKSPACE_TAB_HOME);
             }),
         );
     }

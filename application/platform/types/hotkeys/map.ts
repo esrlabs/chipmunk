@@ -38,15 +38,15 @@ export interface KeyDescription {
 }
 
 export const KeysMap: KeyDescription[] = [
-    // {
-    //     alias: 'Ctrl + T',
-    //     shortkeys: { darwin: ['Cmd + T'], others: ['Ctrl + T'] },
-    //     description: 'Open new tab',
-    //     category: Category.Tabs,
-    //     required: [],
-    //     uuid: 'Ctrl + T',
-    //     client: undefined,
-    // },
+    {
+        alias: 'Ctrl + T',
+        shortkeys: { darwin: ['Cmd + T'], others: ['Ctrl + T'] },
+        description: 'Home',
+        category: Category.Tabs,
+        required: [],
+        uuid: 'Ctrl + T',
+        client: undefined,
+    },
     {
         alias: 'Ctrl + W',
         shortkeys: { darwin: ['Cmd + W'], others: ['Ctrl + W'] },
