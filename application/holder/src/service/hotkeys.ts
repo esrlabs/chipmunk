@@ -7,7 +7,7 @@ import {
 } from 'platform/entity/service';
 import { services } from '@register/services';
 import { KeysMap, KeyDescription } from 'platform/types/hotkeys/map';
-import { app, globalShortcut, powerMonitor } from 'electron';
+import { app, globalShortcut, powerMonitor, BrowserWindow } from 'electron';
 import { electron } from '@service/electron';
 import { CancelablePromise } from 'platform/env/promise';
 
@@ -17,14 +17,10 @@ import * as Requests from 'platform/ipc/request';
 @DependOn(electron)
 @SetupService(services['hotkeys'])
 export class Service extends Implementation {
+    protected window!: BrowserWindow;
+
     public override ready(): Promise<void> {
-        this.bind = this.bind.bind(this);
-        this.resume = this.resume.bind(this);
-        this.unbind = this.unbind.bind(this);
-        powerMonitor.on('resume', this.resume);
-        powerMonitor.on('shutdown', this.unbind);
-        app.on('browser-window-blur', this.unbind);
-        app.on('browser-window-focus', this.bind);
+        this.listener().bind();
         this.register(
             electron
                 .ipc()
@@ -61,12 +57,41 @@ export class Service extends Implementation {
     }
 
     public override destroy(): Promise<void> {
-        app.removeListener('browser-window-blur', this.unbind);
-        app.removeListener('browser-window-focus', this.bind);
-        powerMonitor.removeListener('shutdown', this.unbind);
-        powerMonitor.removeListener('resume', this.resume);
+        this.listener().unbind();
         this.unbind();
         return Promise.resolve();
+    }
+
+    protected listener(): {
+        bind(): void;
+        unbind(): void;
+    } {
+        return {
+            bind: (): void => {
+                this.bind = this.bind.bind(this);
+                this.resume = this.resume.bind(this);
+                this.unbind = this.unbind.bind(this);
+                powerMonitor.addListener('resume', this.resume);
+                powerMonitor.addListener('shutdown', this.unbind);
+                app.addListener('browser-window-blur', this.unbind);
+                app.addListener('browser-window-focus', this.bind);
+                app.addListener('before-quit', () => {
+                    this.listener().unbind();
+                    this.unbind();
+                });
+                this.window = electron.window().instance().get();
+                this.window.addListener('blur', this.unbind);
+                this.window.addListener('focus', this.resume);
+            },
+            unbind: (): void => {
+                app.removeListener('browser-window-blur', this.unbind);
+                app.removeListener('browser-window-focus', this.bind);
+                powerMonitor.removeListener('shutdown', this.unbind);
+                powerMonitor.removeListener('resume', this.resume);
+                this.window.removeListener('blur', this.unbind);
+                this.window.removeListener('focus', this.resume);
+            },
+        };
     }
 
     protected bind(): void {
