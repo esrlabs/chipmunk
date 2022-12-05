@@ -9,7 +9,7 @@ import {
     ChangeDetectionStrategy,
     SkipSelf,
 } from '@angular/core';
-import { Row } from '@schema/content/row';
+import { Owner, Row } from '@schema/content/row';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Locker, Level } from '@ui/service/lockers';
@@ -69,7 +69,7 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
             );
             this.row.session.exporter
                 .export(raw)
-                .stream()
+                .stream(this.row.session.selection().ranges())
                 .then(() => {
                     progress.popup.close();
                     confirmToUser();
@@ -90,7 +90,7 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                 },
             );
             this.row.session.exporter
-                .export(false)
+                .export(raw)
                 .search()
                 .then(() => {
                     progress.popup.close();
@@ -119,33 +119,40 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
             ...[
                 {
                     caption: 'Export Selected',
-                    disabled: this.row.session.cursor.get().length === 0,
+                    disabled: this.row.session.selection().indexes().length === 0,
                     handler: () => {
                         exportSelected(false);
                     },
                 },
                 {
                     caption: 'Export Selected as Raw',
-                    disabled: this.row.session.cursor.get().length === 0 || !isRawAvailable,
+                    disabled:
+                        !isRawAvailable || this.row.session.selection().indexes().length === 0,
                     handler: () => {
                         exportSelected(true);
                     },
                 },
-                {},
-                {
-                    caption: 'Export All Search Result',
-                    disabled: this.row.session.search.len() === 0,
-                    handler: () => {
-                        exportSearch(false);
-                    },
-                },
-                {
-                    caption: 'Export All Search Result as Raw',
-                    disabled: this.row.session.search.len() === 0 || !isRawAvailable,
-                    handler: () => {
-                        exportSearch(true);
-                    },
-                },
+                ...(this.row.owner === Owner.Search
+                    ? [
+                          {},
+                          {
+                              caption: 'Export All Search Result',
+                              disabled: this.row.session.search.map.get().all().length === 0,
+                              handler: () => {
+                                  exportSearch(false);
+                              },
+                          },
+                          {
+                              caption: 'Export All Search Result as Raw',
+                              disabled:
+                                  !isRawAvailable ||
+                                  this.row.session.search.map.get().all().length === 0,
+                              handler: () => {
+                                  exportSearch(true);
+                              },
+                          },
+                      ]
+                    : []),
             ],
         );
         this.ilc().emitter.ui.contextmenu.open({

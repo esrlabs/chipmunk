@@ -74,23 +74,11 @@ pub enum Api {
     UpdateSession((u8, oneshot::Sender<Result<bool, NativeError>>)),
     AddSource((String, oneshot::Sender<u8>)),
     GetSourcesDefinitions(oneshot::Sender<Vec<SourceDefinition>>),
-    MapSearchRanges(
-        (
-            Vec<std::ops::RangeInclusive<u64>>,
-            oneshot::Sender<Vec<std::ops::RangeInclusive<u64>>>,
-        ),
-    ),
     #[allow(clippy::large_enum_variant)]
     AddExecutedObserve((ObserveOptions, oneshot::Sender<()>)),
     GetExecutedHolder(oneshot::Sender<Observed>),
     IsRawExportAvailable(oneshot::Sender<bool>),
     ExportSession {
-        out_path: PathBuf,
-        ranges: Vec<std::ops::RangeInclusive<u64>>,
-        cancel: CancellationToken,
-        tx_response: oneshot::Sender<Result<bool, NativeError>>,
-    },
-    ExportSearch {
         out_path: PathBuf,
         ranges: Vec<std::ops::RangeInclusive<u64>>,
         cancel: CancellationToken,
@@ -156,12 +144,10 @@ impl Display for Api {
                 Self::UpdateSession(_) => "UpdateSession",
                 Self::AddSource(_) => "AddSource",
                 Self::GetSourcesDefinitions(_) => "GetSourcesDefinitions",
-                Self::MapSearchRanges(_) => "MapSearchRanges",
                 Self::AddExecutedObserve(_) => "AddExecutedObserve",
                 Self::GetExecutedHolder(_) => "GetExecutedHolder",
                 Self::IsRawExportAvailable(_) => "IsRawExportAvailable",
                 Self::ExportSession { .. } => "ExportSession",
-                Self::ExportSearch { .. } => "ExportSearch",
                 Self::FileRead(_) => "FileRead",
                 Self::Grab(_) => "Grab",
                 Self::GetStreamLen(_) => "GetStreamLen",
@@ -373,51 +359,6 @@ impl SessionState {
         Ok(true)
     }
 
-    pub fn map_search_ranges(
-        &self,
-        ranges: Vec<std::ops::RangeInclusive<u64>>,
-    ) -> Vec<std::ops::RangeInclusive<u64>> {
-        let stream_possitions: Vec<u64> =
-            self.search_map.matches.iter().map(|el| el.index).collect();
-        let mut indexes: Vec<u64> = vec![];
-        for range in ranges.iter() {
-            (*range.start()..*range.end()).for_each(|i| {
-                if let Some(stream_pos) = stream_possitions.get(i as usize) {
-                    indexes.push(*stream_pos);
-                }
-            });
-        }
-        indexes.sort_unstable();
-        let mut ranges = vec![];
-        let mut from_pos: u64 = 0;
-        let mut to_pos: u64 = 0;
-        for (i, index) in indexes.iter().enumerate() {
-            if i == 0 {
-                from_pos = *index;
-            } else if to_pos + 1 != *index {
-                ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
-                from_pos = *index;
-            }
-            to_pos = *index;
-        }
-        if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from_pos)
-            || (ranges.is_empty() && !indexes.is_empty())
-        {
-            ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
-        }
-        ranges
-    }
-
-    async fn handle_export_search(
-        &mut self,
-        out_path: PathBuf,
-        ranges: Vec<std::ops::RangeInclusive<u64>>,
-        cancel: CancellationToken,
-    ) -> Result<bool, NativeError> {
-        let ranges = self.map_search_ranges(ranges);
-        self.handle_export_session(out_path, ranges, cancel).await
-    }
-
     fn handle_get_search_holder(&mut self, uuid: Uuid) -> Result<SearchHolder, NativeError> {
         match self.search_holder {
             SearchHolderState::Available(_) => {
@@ -569,15 +510,6 @@ impl SessionStateAPI {
             .await
     }
 
-    pub async fn map_search_ranges(
-        &self,
-        ranges: Vec<std::ops::RangeInclusive<u64>>,
-    ) -> Result<Vec<std::ops::RangeInclusive<u64>>, NativeError> {
-        let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::MapSearchRanges((ranges, tx)), rx)
-            .await
-    }
-
     pub async fn add_executed_observe(&self, options: ObserveOptions) -> Result<(), NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::AddExecutedObserve((options, tx)), rx)
@@ -604,25 +536,6 @@ impl SessionStateAPI {
         let (tx_response, rx) = oneshot::channel();
         self.exec_operation(
             Api::ExportSession {
-                out_path,
-                ranges,
-                tx_response,
-                cancel,
-            },
-            rx,
-        )
-        .await?
-    }
-
-    pub async fn export_search(
-        &self,
-        out_path: PathBuf,
-        ranges: Vec<std::ops::RangeInclusive<u64>>,
-        cancel: CancellationToken,
-    ) -> Result<bool, NativeError> {
-        let (tx_response, rx) = oneshot::channel();
-        self.exec_operation(
-            Api::ExportSearch {
                 out_path,
                 ranges,
                 tx_response,
@@ -797,13 +710,6 @@ pub async fn run(
                         NativeError::channel("Failed to respond to Api::GetSourcesDefinitions")
                     })?;
             }
-            Api::MapSearchRanges((ranges, tx_response)) => {
-                tx_response
-                    .send(state.map_search_ranges(ranges))
-                    .map_err(|_| {
-                        NativeError::channel("Failed to respond to Api::GetSourcesDefinitions")
-                    })?;
-            }
             Api::AddExecutedObserve((options, tx_response)) => {
                 state.observed.add(options);
                 tx_response.send(()).map_err(|_| {
@@ -832,17 +738,6 @@ pub async fn run(
                 tx_response
                     .send(res)
                     .map_err(|_| NativeError::channel("Failed to respond to Api::ExportSession"))?;
-            }
-            Api::ExportSearch {
-                out_path,
-                ranges,
-                cancel,
-                tx_response,
-            } => {
-                let res = state.handle_export_search(out_path, ranges, cancel).await;
-                tx_response
-                    .send(res)
-                    .map_err(|_| NativeError::channel("Failed to respond to Api::ExportSearch"))?;
             }
             Api::Grab((range, tx_response)) => {
                 tx_response

@@ -47,16 +47,26 @@ export class Map extends Subscriber {
         this.unsubscribe();
     }
 
-    public getRanges(range: IRange): IRange[] {
-        if (range.from > this._mixed.length - 1) {
-            return [];
-        }
-        const to = range.to < this._mixed.length - 1 ? range.to : this._mixed.length - 1;
-        const indexes = [];
-        for (let i = range.from; i <= to; i += 1) {
-            indexes.push(this._mixed[i]);
-        }
-        return fromIndexes(indexes);
+    public get(): {
+        ranges(range: IRange): IRange[];
+        all(): IRange[];
+    } {
+        return {
+            ranges: (range: IRange): IRange[] => {
+                if (range.from > this._mixed.length - 1) {
+                    return [];
+                }
+                const to = range.to < this._mixed.length - 1 ? range.to : this._mixed.length - 1;
+                const indexes = [];
+                for (let i = range.from; i <= to; i += 1) {
+                    indexes.push(this._mixed[i]);
+                }
+                return fromIndexes(indexes);
+            },
+            all: (): IRange[] => {
+                return fromIndexes(this._mixed);
+            },
+        };
     }
 
     public extending(position: number, before: boolean): void {

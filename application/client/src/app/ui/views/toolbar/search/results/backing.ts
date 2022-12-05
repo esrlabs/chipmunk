@@ -12,7 +12,7 @@ export function getScrollAreaService(session: Session): Service {
         const service = new Service({
             setFrame: (range: Range) => {
                 session.stream
-                    .grab(map.getRanges(range.get()))
+                    .grab(map.get().ranges(range.get()))
                     .then((elements) => {
                         service.setRows({
                             rows: elements.map((el) => {

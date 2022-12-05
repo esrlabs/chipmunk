@@ -12,6 +12,7 @@ import { Bookmarks } from './dependencies/bookmarks';
 import { Exporter } from './dependencies/exporter';
 import { Subscriber } from '@platform/env/subscription';
 import { unique } from '@platform/env/sequence';
+import { IRange, fromIndexes } from '@platform/types/range';
 
 import * as Requests from '@platform/ipc/request';
 
@@ -129,13 +130,7 @@ export class Session extends Base {
                     this.cursor.init(this._uuid);
                     this.bookmarks.init(this._uuid, this.cursor);
                     this.search.init(this._uuid, this.stream, this.bookmarks, this.cursor);
-                    this.exporter.init(
-                        this._uuid,
-                        this.cursor,
-                        this.bookmarks,
-                        this.stream,
-                        this.search,
-                    );
+                    this.exporter.init(this._uuid, this.stream, this.search);
                     this.inited = true;
                     resolve(this._uuid);
                 })
@@ -212,6 +207,27 @@ export class Session extends Base {
 
     public close(): void {
         this._tab.close();
+    }
+
+    public selection(): {
+        indexes(): number[];
+        ranges(): IRange[];
+    } {
+        return {
+            indexes: (): number[] => {
+                let selected = this.cursor.get().slice();
+                const bookmarks = this.bookmarks
+                    .get()
+                    .map((b) => b.position)
+                    .filter((b) => selected.indexOf(b) === -1);
+                selected = selected.concat(bookmarks);
+                selected.sort((a, b) => (a > b ? 1 : -1));
+                return selected;
+            },
+            ranges: (): IRange[] => {
+                return fromIndexes(this.selection().indexes());
+            },
+        };
     }
 }
 export interface Session extends LoggerInterface {}

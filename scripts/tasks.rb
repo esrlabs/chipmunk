@@ -359,21 +359,21 @@ namespace :clippy do
   desc 'Clippy rs-bindings'
   task :rs_bindings do
     Shell.chdir(Paths::RS_BINDINGS) do
-      sh Paths::CLIPPY_STABLE
+      sh Paths::CLIPPY_NIGHTLY
     end
   end
 
   desc 'Clippy matcher'
   task :matcher do
     Shell.chdir("#{Paths::MATCHER}/src") do
-      sh Paths::CLIPPY_STABLE
+      sh Paths::CLIPPY_NIGHTLY
     end
   end
 
   desc 'Clippy ansi'
   task :ansi do
     Shell.chdir("#{Paths::ANSI}/src") do
-      sh Paths::CLIPPY_STABLE
+      sh Paths::CLIPPY_NIGHTLY
     end
   end
 
