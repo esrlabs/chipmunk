@@ -74,6 +74,6 @@ const entryComponents = [
     ],
     declarations: [...entryComponents],
     exports: [...entryComponents, AppDirectiviesModule],
-    bootstrap: [...entryComponents, LayoutHomeModule],
+    bootstrap: [...entryComponents, LayoutHomeModule, ElementsModule],
 })
 export class LayoutModule {}
