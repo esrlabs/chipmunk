@@ -11,11 +11,13 @@ export class State {
         collection: Subject<FilterRequest[]>;
         start: Subject<void>;
         finish: Subject<number>;
+        showMatches: Subject<IFilter>;
     }> = new Subjects({
         active: new Subject<IFilter | undefined>(),
         collection: new Subject<FilterRequest[]>(),
         start: new Subject<void>(),
         finish: new Subject<number>(),
+        showMatches: new Subject<IFilter>(),
     });
 
     private _search: Search;
@@ -115,5 +117,9 @@ export class State {
         this._hash = undefined;
         this.subjects.get().active.emit(undefined);
         return this.filters();
+    }
+
+    public showMatches(filter: IFilter) {
+        this.subjects.get().showMatches.emit(filter);
     }
 }
