@@ -32,7 +32,9 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
         preselected: SourceRef | undefined,
     ): Promise<string> {
         const getProgress = (uuid: string) => {
-            return lockers.lock(new Locker(true, 'creating stream...').set().group(uuid).end(), {});
+            return lockers.lock(new Locker(true, 'creating stream...').set().group(uuid).end(), {
+                closable: true,
+            });
         };
         const open = (
             bind: boolean,
