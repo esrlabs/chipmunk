@@ -192,10 +192,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
     }
 
     public search(entity: Entity<FilterRequest>) {
-        console.log(`Not implemented: ${entity}`);
-        // this.session.search.state().active(entity.extract().definition.filter).catch((error: Error) => {
-        //     this.logger.error(`Fail to make search: ${error.message}`);
-        // });
+        this.session.search.state().showMatches(entity.extract().definition.filter);
     }
 
     public actions(

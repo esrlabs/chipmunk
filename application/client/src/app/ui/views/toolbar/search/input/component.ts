@@ -17,6 +17,7 @@ import { Progress } from './progress';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { ActiveSearch } from './active';
 import { Map } from '@service/session/dependencies/search/map';
+import { IFilter } from '@platform/types/filter';
 
 @Component({
     selector: 'app-views-search-input',
@@ -79,6 +80,14 @@ export class ViewSearchInput
                 this.input.focus();
             }),
         );
+        this.env().subscriber.register(
+            this.session.search
+                .state()
+                .subjects.get()
+                .showMatches.subscribe((filter: IFilter) => {
+                    this._updateSearch(filter);
+                }),
+        );
     }
 
     public ngAfterViewInit(): void {
@@ -114,33 +123,15 @@ export class ViewSearchInput
         this.input.actions.recent.subscribe(() => {
             this.markChangesForCheck();
         });
-        this.input.actions.reaccept.subscribe(this.reaccept.bind(this));
+        this.input.actions.reaccept.subscribe(() => {
+            this._updateSearch(undefined);
+        });
+
         const active = this.session.search.state().getActive();
         if (active !== undefined) {
             this.active = new ActiveSearch(active);
             this.input.drop();
         }
-    }
-
-    public reaccept() {
-        const active = this.active;
-        if (active === undefined) {
-            return;
-        }
-        active.filter.flags = this.input.flags;
-        this.session.search
-            .state()
-            .setActive(active.filter)
-            .then(() => {
-                this.active = new ActiveSearch(active.filter);
-                this.input.drop();
-            })
-            .catch((err: Error) => {
-                this.log().error(`Fail to reaccept search: ${err.message}`);
-            })
-            .finally(() => {
-                this.markChangesForCheck();
-            });
     }
 
     public drop() {
@@ -163,6 +154,32 @@ export class ViewSearchInput
         }
         this.session.search.store().filters().addFromFilter(this.active.filter);
         this.drop();
+    }
+
+    private _updateSearch(filter: IFilter | undefined) {
+        if (filter === undefined) {
+            filter = this.active?.filter;
+            if (filter === undefined) {
+                return;
+            }
+            filter.flags = this.input.flags;
+        }
+        this.session.search
+            .state()
+            .setActive(filter)
+            .then(() => {
+                if (filter === undefined) {
+                    return;
+                }
+                this.active = new ActiveSearch(filter);
+                this.input.drop();
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to update search: ${err.message}`);
+            })
+            .finally(() => {
+                this.markChangesForCheck();
+            });
     }
 }
 export interface ViewSearchInput extends IlcInterface {}
