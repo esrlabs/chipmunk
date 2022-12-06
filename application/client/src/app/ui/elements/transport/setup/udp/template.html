@@ -24,11 +24,7 @@
     <mat-divider></mat-divider>
     <p class="t-medium">Multicasts</p>
 </div>
-<app-transport-udp-multicast *ngFor="let multicast of state.multicasts"
-    [multicast]="multicast.fields"
-    [errors]="multicast.errors"
-    (clean)="ngOnRemoveMulticast()"></app-transport-udp-multicast>
+<app-transport-udp-multicast *ngFor="let multicast of state.multicasts; let i = index" [multicast]="multicast" (clean)="ngOnRemoveMulticast(i)"></app-transport-udp-multicast>
 <div class="controlls">
     <button mat-stroked-button (click)="ngAddMulticast()">Add Multicast</button>
 </div>
-

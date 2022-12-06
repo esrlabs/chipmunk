@@ -73,17 +73,8 @@ export class State extends Base<UDPTransportSettings> {
         });
     }
 
-    public cleanMulticast() {
-        this.multicasts = this.multicasts.filter((m) => {
-            if (
-                m.fields.multiaddr.trim() === '' &&
-                m.fields.interface !== undefined &&
-                m.fields.interface.trim() === ''
-            ) {
-                return false;
-            }
-            return true;
-        });
+    public cleanMulticast(index: number) {
+        index > -1 && this.multicasts.splice(index, 1);
     }
 
     public asSourceDefinition(): UDPTransportSettings {
