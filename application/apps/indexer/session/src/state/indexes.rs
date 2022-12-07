@@ -226,6 +226,21 @@ impl Indexes {
         min_distance: u64,
         min_offset: u64,
     ) -> Result<(), NativeError> {
+        if self.stream_len == 0 {
+            return Ok(());
+        }
+        self.remove_range(
+            RangeInclusive::new(0, self.stream_len - 1),
+            &Nature::Breadcrumb,
+        );
+        self.remove_range(
+            RangeInclusive::new(0, self.stream_len - 1),
+            &Nature::BreadcrumbSeporator,
+        );
+        self.remove_range(
+            RangeInclusive::new(0, self.stream_len - 1),
+            &Nature::Selection,
+        );
         let keys: Vec<u64> = self.indexes.keys().copied().collect::<Vec<u64>>();
         let keys_ref = keys.iter().collect::<Vec<&u64>>();
         if keys.is_empty() {
