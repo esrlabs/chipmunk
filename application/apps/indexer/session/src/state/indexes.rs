@@ -3,7 +3,7 @@ use crate::{
     state::GrabbedElement,
 };
 use indexer_base::progress::Severity;
-use std::{collections::BTreeMap, ops::RangeInclusive};
+use std::{cmp, collections::BTreeMap, ops::RangeInclusive};
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -66,6 +66,10 @@ impl Index {
 
     pub fn get_natures(&self) -> Vec<u8> {
         self.natures.iter().map(|n| n.as_u8()).collect()
+    }
+
+    pub fn includes(&self, nature: &Nature) -> bool {
+        self.natures.iter().any(|n| n == nature)
     }
 }
 
@@ -296,6 +300,76 @@ impl Indexes {
         Ok(())
     }
 
+    pub fn extend_breadcrumbs(
+        &mut self,
+        seporator: u64,
+        offset: u64,
+        above: bool,
+    ) -> Result<(), NativeError> {
+        let sep_index = self.indexes.get(&seporator).ok_or(NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Grabber,
+            message: Some(format!("Index {seporator} cannot be found.",)),
+        })?;
+        if !sep_index.includes(&Nature::BreadcrumbSeporator) {
+            return Err(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Grabber,
+                message: Some(format!(
+                    "Index {seporator} isn't Nature::BreadcrumbSeporator.",
+                )),
+            });
+        }
+        let (before, after) = self.get_arround_indexes(&seporator)?;
+        let mut self_check = false;
+        if above && before.is_some() {
+            let before_pos = Option::unwrap(before).position;
+            if before_pos != seporator - 1 {
+                let min = cmp::min(seporator - 1, before_pos + offset);
+                self.insert_range(
+                    RangeInclusive::new(before_pos + 1, min),
+                    &Nature::Breadcrumb,
+                );
+                self_check = min == seporator - 1;
+            }
+        } else if !above && after.is_some() {
+            let after_pos = Option::unwrap(after).position;
+            if after_pos != seporator + 1 {
+                let max = cmp::max(
+                    seporator + 1,
+                    if after_pos >= offset {
+                        after_pos - offset
+                    } else {
+                        0
+                    },
+                );
+                self.insert_range(RangeInclusive::new(max, after_pos - 1), &Nature::Breadcrumb);
+                self_check = max == seporator + 1;
+            }
+        }
+        if self_check {
+            let (before, after) = self.get_arround_indexes(&seporator)?;
+            let clear = if before.is_some() && after.is_some() {
+                let before_pos = Option::unwrap(before).position;
+                let after_pos = Option::unwrap(after).position;
+                after_pos - 1 == seporator && seporator == before_pos + 1
+            } else if before.is_some() && after.is_none() {
+                let before_pos = Option::unwrap(before).position;
+                seporator == before_pos + 1
+            } else if before.is_none() && after.is_some() {
+                let after_pos = Option::unwrap(after).position;
+                after_pos - 1 == seporator
+            } else {
+                true
+            };
+            if clear {
+                self.remove(&vec![seporator][..], &Nature::BreadcrumbSeporator);
+                self.insert(&vec![seporator][..], &Nature::Breadcrumb);
+            }
+        }
+        Ok(())
+    }
+
     fn get_by_index(&self, keys: &Vec<&u64>, index: usize) -> Result<&Index, NativeError> {
         if index >= keys.len() {
             return Err(NativeError {
@@ -318,15 +392,35 @@ impl Indexes {
         })
     }
 
-    fn get_by_key(&self, key: &u64) -> Result<&Index, NativeError> {
-        self.indexes.get(key).ok_or(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
-            message: Some(format!(
-                "Key value {key} doesn't exist. Indexes len: {};",
-                self.indexes.len()
-            )),
-        })
+    fn get_key_position(&self, key: &u64) -> Result<usize, NativeError> {
+        self.indexes
+            .keys()
+            .position(|k| k == key)
+            .ok_or(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Grabber,
+                message: Some(format!(
+                    "Key value {key} doesn't exist. Indexes len: {};",
+                    self.indexes.len()
+                )),
+            })
+    }
+
+    fn get_arround_indexes(
+        &self,
+        key: &u64,
+    ) -> Result<(Option<&Index>, Option<&Index>), NativeError> {
+        let mut before: Option<&Index> = None;
+        let mut after: Option<&Index> = None;
+        let sep_index_pos = self.get_key_position(key)?;
+        let keys = self.indexes.keys().collect::<Vec<&u64>>();
+        if sep_index_pos > 0 {
+            before = self.indexes.get(keys[sep_index_pos - 1]);
+        }
+        if sep_index_pos < keys.len() - 1 {
+            after = self.indexes.get(keys[sep_index_pos + 1]);
+        }
+        Ok((before, after))
     }
 
     pub fn clean(&mut self, nature: &Nature) {
@@ -513,9 +607,6 @@ fn test_breadcrumbs_basic() {
         assert_eq!(*pos, i.position);
         assert_eq!(*nature, *i.natures.first().unwrap());
     });
-    // map.indexes.iter().for_each(|(n, i)| {
-    //     println!("{i:?}");
-    // });
 }
 
 #[test]
@@ -774,4 +865,375 @@ fn test_breadcrumbs_borders_g() {
     // Insert breadcrumbs
     map.insert_breadcrumbs(4, 2).unwrap();
     assert_eq!(map.len(), 0);
+}
+
+#[test]
+fn test_breadcrumbs_borders_j() {
+    let mut map = Indexes::new();
+    map.set_stream_len(20);
+    let search_matches = vec![20];
+    // Add into map search matches
+    map.insert(&search_matches, &Nature::Search);
+    assert_eq!(map.len(), 1);
+    // Add into map bookmarks
+    map.insert(&vec![10], &Nature::Bookmark);
+    assert_eq!(map.len(), 2);
+    // Insert breadcrumbs
+    map.insert_breadcrumbs(4, 2).unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Nature)> = vec![
+        (0, Nature::Breadcrumb),
+        (1, Nature::Breadcrumb),
+        (4, Nature::BreadcrumbSeporator),
+        (8, Nature::Breadcrumb),
+        (9, Nature::Breadcrumb),
+        (10, Nature::Bookmark),
+        (11, Nature::Breadcrumb),
+        (12, Nature::Breadcrumb),
+        (15, Nature::BreadcrumbSeporator),
+        (18, Nature::Breadcrumb),
+        (19, Nature::Breadcrumb),
+        (20, Nature::Search),
+    ];
+    assert_eq!(control.len(), map.len());
+    // Take whole frame of map
+    let frame = map
+        .frame(&mut RangeInclusive::new(0, (map.len() - 1) as u64))
+        .unwrap();
+    assert_eq!(frame.len(), map.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, nature) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        assert_eq!(*nature, *i.natures.first().unwrap());
+    });
+}
+
+#[test]
+fn test_breadcrumbs_extending_a() {
+    let mut map = Indexes::new();
+    map.set_stream_len(51);
+    let search_matches = vec![10, 20, 50];
+    // Add into map search matches
+    map.insert(&search_matches, &Nature::Search);
+    assert_eq!(map.len(), 3);
+    // Insert breadcrumbs
+    map.insert_breadcrumbs(4, 2).unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Nature)> = vec![
+        (0, Nature::Breadcrumb),
+        (1, Nature::Breadcrumb),
+        (4, Nature::BreadcrumbSeporator),
+        (8, Nature::Breadcrumb),
+        (9, Nature::Breadcrumb),
+        (10, Nature::Search),
+        (11, Nature::Breadcrumb),
+        (12, Nature::Breadcrumb),
+        (15, Nature::BreadcrumbSeporator),
+        (18, Nature::Breadcrumb),
+        (19, Nature::Breadcrumb),
+        (20, Nature::Search),
+        (21, Nature::Breadcrumb),
+        (22, Nature::Breadcrumb),
+        (35, Nature::BreadcrumbSeporator),
+        (48, Nature::Breadcrumb),
+        (49, Nature::Breadcrumb),
+        (50, Nature::Search),
+    ];
+    assert_eq!(control.len(), map.len());
+    // Take whole frame of map
+    let frame = map
+        .frame(&mut RangeInclusive::new(0, (map.len() - 1) as u64))
+        .unwrap();
+    assert_eq!(frame.len(), map.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, nature) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        assert_eq!(*nature, *i.natures.first().unwrap());
+    });
+    // Extend breadcrumbs above
+    map.extend_breadcrumbs(35, 10, true).unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Nature)> = vec![
+        (0, Nature::Breadcrumb),
+        (1, Nature::Breadcrumb),
+        (4, Nature::BreadcrumbSeporator),
+        (8, Nature::Breadcrumb),
+        (9, Nature::Breadcrumb),
+        (10, Nature::Search),
+        (11, Nature::Breadcrumb),
+        (12, Nature::Breadcrumb),
+        (15, Nature::BreadcrumbSeporator),
+        (18, Nature::Breadcrumb),
+        (19, Nature::Breadcrumb),
+        (20, Nature::Search),
+        (21, Nature::Breadcrumb),
+        (22, Nature::Breadcrumb),
+        (23, Nature::Breadcrumb),
+        (24, Nature::Breadcrumb),
+        (25, Nature::Breadcrumb),
+        (26, Nature::Breadcrumb),
+        (27, Nature::Breadcrumb),
+        (28, Nature::Breadcrumb),
+        (29, Nature::Breadcrumb),
+        (30, Nature::Breadcrumb),
+        (31, Nature::Breadcrumb),
+        (32, Nature::Breadcrumb),
+        (35, Nature::BreadcrumbSeporator),
+        (48, Nature::Breadcrumb),
+        (49, Nature::Breadcrumb),
+        (50, Nature::Search),
+    ];
+    assert_eq!(control.len(), map.len());
+    // Take whole frame of map
+    let frame = map
+        .frame(&mut RangeInclusive::new(0, (map.len() - 1) as u64))
+        .unwrap();
+    assert_eq!(frame.len(), map.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, nature) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        assert_eq!(*nature, *i.natures.first().unwrap());
+    });
+    // Extend all breadcrumbs above
+    map.extend_breadcrumbs(35, 10, true).unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Nature)> = vec![
+        (0, Nature::Breadcrumb),
+        (1, Nature::Breadcrumb),
+        (4, Nature::BreadcrumbSeporator),
+        (8, Nature::Breadcrumb),
+        (9, Nature::Breadcrumb),
+        (10, Nature::Search),
+        (11, Nature::Breadcrumb),
+        (12, Nature::Breadcrumb),
+        (15, Nature::BreadcrumbSeporator),
+        (18, Nature::Breadcrumb),
+        (19, Nature::Breadcrumb),
+        (20, Nature::Search),
+        (21, Nature::Breadcrumb),
+        (22, Nature::Breadcrumb),
+        (23, Nature::Breadcrumb),
+        (24, Nature::Breadcrumb),
+        (25, Nature::Breadcrumb),
+        (26, Nature::Breadcrumb),
+        (27, Nature::Breadcrumb),
+        (28, Nature::Breadcrumb),
+        (29, Nature::Breadcrumb),
+        (30, Nature::Breadcrumb),
+        (31, Nature::Breadcrumb),
+        (32, Nature::Breadcrumb),
+        (33, Nature::Breadcrumb),
+        (34, Nature::Breadcrumb),
+        (35, Nature::BreadcrumbSeporator),
+        (48, Nature::Breadcrumb),
+        (49, Nature::Breadcrumb),
+        (50, Nature::Search),
+    ];
+    assert_eq!(control.len(), map.len());
+    // Take whole frame of map
+    let frame = map
+        .frame(&mut RangeInclusive::new(0, (map.len() - 1) as u64))
+        .unwrap();
+    assert_eq!(frame.len(), map.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, nature) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        assert_eq!(*nature, *i.natures.first().unwrap());
+    });
+    // Extend all breadcrumbs after
+    map.extend_breadcrumbs(35, 15, false).unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Nature)> = vec![
+        (0, Nature::Breadcrumb),
+        (1, Nature::Breadcrumb),
+        (4, Nature::BreadcrumbSeporator),
+        (8, Nature::Breadcrumb),
+        (9, Nature::Breadcrumb),
+        (10, Nature::Search),
+        (11, Nature::Breadcrumb),
+        (12, Nature::Breadcrumb),
+        (15, Nature::BreadcrumbSeporator),
+        (18, Nature::Breadcrumb),
+        (19, Nature::Breadcrumb),
+        (20, Nature::Search),
+        (21, Nature::Breadcrumb),
+        (22, Nature::Breadcrumb),
+        (23, Nature::Breadcrumb),
+        (24, Nature::Breadcrumb),
+        (25, Nature::Breadcrumb),
+        (26, Nature::Breadcrumb),
+        (27, Nature::Breadcrumb),
+        (28, Nature::Breadcrumb),
+        (29, Nature::Breadcrumb),
+        (30, Nature::Breadcrumb),
+        (31, Nature::Breadcrumb),
+        (32, Nature::Breadcrumb),
+        (33, Nature::Breadcrumb),
+        (34, Nature::Breadcrumb),
+        (35, Nature::Breadcrumb),
+        (36, Nature::Breadcrumb),
+        (37, Nature::Breadcrumb),
+        (38, Nature::Breadcrumb),
+        (39, Nature::Breadcrumb),
+        (40, Nature::Breadcrumb),
+        (41, Nature::Breadcrumb),
+        (42, Nature::Breadcrumb),
+        (43, Nature::Breadcrumb),
+        (44, Nature::Breadcrumb),
+        (45, Nature::Breadcrumb),
+        (46, Nature::Breadcrumb),
+        (47, Nature::Breadcrumb),
+        (48, Nature::Breadcrumb),
+        (49, Nature::Breadcrumb),
+        (50, Nature::Search),
+    ];
+    assert_eq!(control.len(), map.len());
+    // map.indexes.iter().for_each(|(n, i)| {
+    //     println!("{i:?}");
+    // });
+    // Take whole frame of map
+    let frame = map
+        .frame(&mut RangeInclusive::new(0, (map.len() - 1) as u64))
+        .unwrap();
+    assert_eq!(frame.len(), map.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, nature) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        assert_eq!(*nature, *i.natures.first().unwrap());
+    });
+}
+
+#[test]
+fn test_breadcrumbs_extending_b() {
+    let mut map = Indexes::new();
+    map.set_stream_len(20);
+    let search_matches = vec![10];
+    // Add into map search matches
+    map.insert(&search_matches, &Nature::Search);
+    assert_eq!(map.len(), 1);
+    // Insert breadcrumbs
+    map.insert_breadcrumbs(4, 2).unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Nature)> = vec![
+        (0, Nature::Breadcrumb),
+        (1, Nature::Breadcrumb),
+        (4, Nature::BreadcrumbSeporator),
+        (8, Nature::Breadcrumb),
+        (9, Nature::Breadcrumb),
+        (10, Nature::Search),
+        (11, Nature::Breadcrumb),
+        (12, Nature::Breadcrumb),
+        (15, Nature::BreadcrumbSeporator),
+        (18, Nature::Breadcrumb),
+        (19, Nature::Breadcrumb),
+    ];
+    assert_eq!(control.len(), map.len());
+    // Take whole frame of map
+    let frame = map
+        .frame(&mut RangeInclusive::new(0, (map.len() - 1) as u64))
+        .unwrap();
+    assert_eq!(frame.len(), map.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, nature) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        assert_eq!(*nature, *i.natures.first().unwrap());
+    });
+    // Extend all breadcrumbs on top
+    map.extend_breadcrumbs(4, 10, true).unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Nature)> = vec![
+        (0, Nature::Breadcrumb),
+        (1, Nature::Breadcrumb),
+        (2, Nature::Breadcrumb),
+        (3, Nature::Breadcrumb),
+        (4, Nature::BreadcrumbSeporator),
+        (8, Nature::Breadcrumb),
+        (9, Nature::Breadcrumb),
+        (10, Nature::Search),
+        (11, Nature::Breadcrumb),
+        (12, Nature::Breadcrumb),
+        (15, Nature::BreadcrumbSeporator),
+        (18, Nature::Breadcrumb),
+        (19, Nature::Breadcrumb),
+    ];
+    assert_eq!(control.len(), map.len());
+    // Take whole frame of map
+    let frame = map
+        .frame(&mut RangeInclusive::new(0, (map.len() - 1) as u64))
+        .unwrap();
+    assert_eq!(frame.len(), map.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, nature) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        assert_eq!(*nature, *i.natures.first().unwrap());
+    });
+    // Extend all breadcrumbs on top after
+    map.extend_breadcrumbs(4, 10, false).unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Nature)> = vec![
+        (0, Nature::Breadcrumb),
+        (1, Nature::Breadcrumb),
+        (2, Nature::Breadcrumb),
+        (3, Nature::Breadcrumb),
+        (4, Nature::Breadcrumb),
+        (5, Nature::Breadcrumb),
+        (6, Nature::Breadcrumb),
+        (7, Nature::Breadcrumb),
+        (8, Nature::Breadcrumb),
+        (9, Nature::Breadcrumb),
+        (10, Nature::Search),
+        (11, Nature::Breadcrumb),
+        (12, Nature::Breadcrumb),
+        (15, Nature::BreadcrumbSeporator),
+        (18, Nature::Breadcrumb),
+        (19, Nature::Breadcrumb),
+    ];
+    assert_eq!(control.len(), map.len());
+    // Take whole frame of map
+    let frame = map
+        .frame(&mut RangeInclusive::new(0, (map.len() - 1) as u64))
+        .unwrap();
+    assert_eq!(frame.len(), map.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, nature) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        assert_eq!(*nature, *i.natures.first().unwrap());
+    });
+    // Extend all breadcrumbs on bottom (with invalid offset)
+    map.extend_breadcrumbs(15, 100, true).unwrap();
+    map.extend_breadcrumbs(15, 100, false).unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Nature)> = vec![
+        (0, Nature::Breadcrumb),
+        (1, Nature::Breadcrumb),
+        (2, Nature::Breadcrumb),
+        (3, Nature::Breadcrumb),
+        (4, Nature::Breadcrumb),
+        (5, Nature::Breadcrumb),
+        (6, Nature::Breadcrumb),
+        (7, Nature::Breadcrumb),
+        (8, Nature::Breadcrumb),
+        (9, Nature::Breadcrumb),
+        (10, Nature::Search),
+        (11, Nature::Breadcrumb),
+        (12, Nature::Breadcrumb),
+        (13, Nature::Breadcrumb),
+        (14, Nature::Breadcrumb),
+        (15, Nature::Breadcrumb),
+        (16, Nature::Breadcrumb),
+        (17, Nature::Breadcrumb),
+        (18, Nature::Breadcrumb),
+        (19, Nature::Breadcrumb),
+    ];
+    assert_eq!(control.len(), map.len());
+    // Take whole frame of map
+    let frame = map
+        .frame(&mut RangeInclusive::new(0, (map.len() - 1) as u64))
+        .unwrap();
+    assert_eq!(frame.len(), map.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, nature) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        assert_eq!(*nature, *i.natures.first().unwrap());
+    });
 }
