@@ -58,6 +58,18 @@ export class SessionStream {
         return this._session.grabStreamChunk(start, len);
     }
 
+    public grabIndexed(start: number, len: number): Promise<IGrabbedElement[]> {
+        return this._session.grabIndexed(start, len);
+    }
+
+    public setIndexes(nature: number, ranges: IRange[]): Promise<void> {
+        return this._session.setIndexes(nature, ranges);
+    }
+
+    public unsetIndexes(nature: number, ranges: IRange[]): Promise<void> {
+        return this._session.unsetIndexes(nature, ranges);
+    }
+
     public grabRanges(ranges: IRange[]): Promise<IGrabbedElement[]> {
         return this._session.grabStreamRanges(ranges);
     }

@@ -17,7 +17,7 @@ use session::{
     operations,
     session::Session,
 };
-use std::{ops::RangeInclusive, path::PathBuf, thread};
+use std::{convert::TryFrom, ops::RangeInclusive, path::PathBuf, thread};
 use tokio::{runtime::Runtime, sync::oneshot};
 use uuid::Uuid;
 
@@ -284,14 +284,93 @@ impl RustSession {
         start_line_index: i64,
         number_of_lines: i64,
     ) -> Result<String, ComputationErrorWrapper> {
+        let start = u64::try_from(start_line_index)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
+        let end = u64::try_from(start_line_index + number_of_lines - 1)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
         if let Some(ref session) = self.session {
             let grabbed = session
-                .grab(LineRange::from(
-                    (start_line_index as u64)..=((start_line_index + number_of_lines - 1) as u64),
-                ))
+                .grab(LineRange::from(start..=end))
                 .await
                 .map_err(ComputationErrorWrapper)?;
             Ok(serde_json::to_string(&grabbed)?)
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
+    async fn grab_indexed(
+        &self,
+        start_line_index: i64,
+        number_of_lines: i64,
+    ) -> Result<String, ComputationErrorWrapper> {
+        let start = u64::try_from(start_line_index)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
+        let end = u64::try_from(start_line_index + number_of_lines - 1)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
+        if let Some(ref session) = self.session {
+            let grabbed = session
+                .grab_indexed(RangeInclusive::<u64>::new(start, end))
+                .await
+                .map_err(ComputationErrorWrapper)?;
+            Ok(serde_json::to_string(&grabbed)?)
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
+    async fn set_indexes(
+        &self,
+        nature: i32,
+        ranges: Vec<(i64, i64)>,
+    ) -> Result<(), ComputationErrorWrapper> {
+        let nature = u8::try_from(nature)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
+        if let Some(ref session) = self.session {
+            session
+                .set_indexes(
+                    nature,
+                    ranges
+                        .iter()
+                        .map(|(s, e)| RangeInclusive::<u64>::new(*s as u64, *e as u64))
+                        .collect::<Vec<RangeInclusive<u64>>>(),
+                )
+                .await
+                .map_err(ComputationErrorWrapper)?;
+            Ok(())
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
+    async fn unset_indexes(
+        &self,
+        nature: i32,
+        ranges: Vec<(i64, i64)>,
+    ) -> Result<(), ComputationErrorWrapper> {
+        let nature = u8::try_from(nature)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
+        if let Some(ref session) = self.session {
+            session
+                .unset_indexes(
+                    nature,
+                    ranges
+                        .iter()
+                        .map(|(s, e)| RangeInclusive::<u64>::new(*s as u64, *e as u64))
+                        .collect::<Vec<RangeInclusive<u64>>>(),
+                )
+                .await
+                .map_err(ComputationErrorWrapper)?;
+            Ok(())
         } else {
             Err(ComputationErrorWrapper(
                 ComputationError::SessionUnavailable,
@@ -305,11 +384,13 @@ impl RustSession {
         start_line_index: i64,
         number_of_lines: i64,
     ) -> Result<String, ComputationErrorWrapper> {
+        let start = u64::try_from(start_line_index)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
+        let end = u64::try_from(start_line_index + number_of_lines - 1)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
         if let Some(ref session) = self.session {
             let grabbed = session
-                .grab_search(LineRange::from(
-                    (start_line_index as u64)..=((start_line_index + number_of_lines - 1) as u64),
-                ))
+                .grab_search(LineRange::from(start..=end))
                 .await
                 .map_err(ComputationErrorWrapper)?;
             Ok(serde_json::to_string(&grabbed)?)

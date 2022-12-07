@@ -26,10 +26,12 @@ use tokio::sync::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
+mod indexes;
 mod observed;
 mod session_file;
 mod source_ids;
 
+pub use indexes::{Frame, Indexes, Nature};
 use observed::Observed;
 pub use session_file::{SessionFile, SessionFileState};
 pub use source_ids::SourceDefinition;
@@ -44,6 +46,14 @@ pub struct GrabbedElement {
     pub content: String,
     #[serde(rename = "p")]
     pub pos: usize,
+    #[serde(rename = "n")]
+    pub nature: Vec<u8>,
+}
+
+impl GrabbedElement {
+    pub fn set_nature(&mut self, nature: Vec<u8>) {
+        self.nature = nature;
+    }
 }
 
 #[derive(Debug)]
@@ -101,6 +111,26 @@ pub enum Api {
         (
             LineRange,
             oneshot::Sender<Result<Vec<GrabbedElement>, NativeError>>,
+        ),
+    ),
+    GrabIndexed(
+        (
+            RangeInclusive<u64>,
+            oneshot::Sender<Result<Vec<GrabbedElement>, NativeError>>,
+        ),
+    ),
+    SetIndexes(
+        (
+            Vec<RangeInclusive<u64>>,
+            Nature,
+            oneshot::Sender<Result<(), NativeError>>,
+        ),
+    ),
+    UnsetIndexes(
+        (
+            Vec<RangeInclusive<u64>>,
+            Nature,
+            oneshot::Sender<Result<(), NativeError>>,
         ),
     ),
     GrabSearch(
@@ -170,6 +200,9 @@ impl Display for Api {
                 Self::SetSearchHolder(_) => "SetSearchHolder",
                 Self::DropSearch(_) => "DropSearch",
                 Self::GrabSearch(_) => "GrabSearch",
+                Self::GrabIndexed(_) => "GrabIndexed",
+                Self::SetIndexes(_) => "SetIndexes",
+                Self::UnsetIndexes(_) => "UnsetIndexes",
                 Self::GrabRanges(_) => "GrabRanges",
                 Self::GetNearestPosition(_) => "GetNearestPosition",
                 Self::GetScaledMap(_) => "GetScaledMap",
@@ -195,6 +228,7 @@ pub struct SessionState {
     pub session_file: SessionFile,
     pub observed: Observed,
     pub search_map: SearchMap,
+    pub indexes: Indexes,
     pub search_holder: SearchHolderState,
     pub cancelling_operations: HashMap<Uuid, bool>,
     pub status: Status,
@@ -202,6 +236,55 @@ pub struct SessionState {
 }
 
 impl SessionState {
+    fn new() -> Self {
+        Self {
+            session_file: SessionFile::new(),
+            observed: Observed::new(),
+            search_map: SearchMap::new(),
+            search_holder: SearchHolderState::NotInited,
+            indexes: Indexes::new(),
+            status: Status::Open,
+            cancelling_operations: HashMap::new(),
+            debug: false,
+        }
+    }
+
+    fn handle_grab_indexed(
+        &mut self,
+        mut range: RangeInclusive<u64>,
+    ) -> Result<Vec<GrabbedElement>, NativeError> {
+        let frame = self.indexes.frame(&mut range)?;
+        let mut elements: Vec<GrabbedElement> = vec![];
+        for range in frame.ranges().iter() {
+            let mut session_elements = self.session_file.grab(&LineRange::from(range.clone()))?;
+            elements.append(&mut session_elements);
+        }
+        frame.naturalize(&mut elements)?;
+        Ok(elements)
+    }
+
+    fn handle_set_indexex(
+        &mut self,
+        nature: Nature,
+        ranges: Vec<RangeInclusive<u64>>,
+    ) -> Result<(), NativeError> {
+        ranges
+            .iter()
+            .for_each(|range| self.indexes.insert_range(range.clone(), &nature));
+        Ok(())
+    }
+
+    fn handle_unset_indexex(
+        &mut self,
+        nature: Nature,
+        ranges: Vec<RangeInclusive<u64>>,
+    ) -> Result<(), NativeError> {
+        ranges
+            .iter()
+            .for_each(|range| self.indexes.remove_range(range.clone(), &nature));
+        Ok(())
+    }
+
     fn handle_grab_search(&mut self, range: LineRange) -> Result<Vec<GrabbedElement>, NativeError> {
         let indexes = self
             .search_map
@@ -209,7 +292,7 @@ impl SessionState {
             .map_err(|e| NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::Grabber,
-                message: Some(format!("{}", e)),
+                message: Some(format!("{e}")),
             })?;
         let mut elements: Vec<GrabbedElement> = vec![];
         let mut ranges = vec![];
@@ -308,6 +391,8 @@ impl SessionState {
         state_cancellation_token: CancellationToken,
         tx_callback_events: UnboundedSender<CallbackEvent>,
     ) -> Result<(), NativeError> {
+        // MARKER: update after search
+        println!(">>>>>>>>>>>>>>> search is updateing");
         let len = self.session_file.len() as u64;
         self.search_map.set_stream_len(len);
         tx_callback_events.send(CallbackEvent::StreamUpdated(len))?;
@@ -316,14 +401,17 @@ impl SessionState {
             .execute_search(len, state_cancellation_token)
         {
             Some(Ok((_processed, mut matches, stats))) => {
-                let map_updates = SearchMap::map_as_str(&matches);
+                self.indexes.insert(
+                    &matches.iter().map(|f| f.index).collect::<Vec<u64>>()[..],
+                    &Nature::Search,
+                );
+                println!(">>>>>>>>>>>>>>> search is done");
                 let found = self.search_map.append(&mut matches) as u64;
                 self.search_map.append_stats(stats);
                 tx_callback_events.send(CallbackEvent::search_results(
                     found,
                     self.search_map.get_stats(),
                 ))?;
-                tx_callback_events.send(CallbackEvent::SearchMapUpdated(Some(map_updates)))?;
             }
             Some(Err(err)) => error!("Fail to append search: {}", err),
             None => (),
@@ -367,7 +455,7 @@ impl SessionState {
         writer.flush().map_err(|e| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Io,
-            message: Some(format!("Fail to write into file: {:?}", e)),
+            message: Some(format!("Fail to write into file: {e:?}")),
         })?;
         Ok(true)
     }
@@ -469,18 +557,47 @@ impl SessionStateAPI {
         api: Api,
         rx_response: oneshot::Receiver<T>,
     ) -> Result<T, NativeError> {
-        let api_str = format!("{}", api);
+        let api_str = format!("{api}");
         self.tx_api.send(api).map_err(|e| {
-            NativeError::channel(&format!("Failed to send to Api::{}; error: {}", api_str, e))
+            NativeError::channel(&format!("Failed to send to Api::{api_str}; error: {e}"))
         })?;
         rx_response.await.map_err(|_| {
-            NativeError::channel(&format!("Failed to get response from Api::{}", api_str))
+            NativeError::channel(&format!("Failed to get response from Api::{api_str}"))
         })
     }
 
     pub async fn grab(&self, range: LineRange) -> Result<Vec<GrabbedElement>, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::Grab((range.clone(), tx)), rx)
+            .await?
+    }
+
+    pub async fn grab_indexed(
+        &self,
+        range: RangeInclusive<u64>,
+    ) -> Result<Vec<GrabbedElement>, NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GrabIndexed((range, tx)), rx)
+            .await?
+    }
+
+    pub async fn set_indexes(
+        &self,
+        nature: Nature,
+        ranges: Vec<RangeInclusive<u64>>,
+    ) -> Result<(), NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::SetIndexes((ranges, nature, tx)), rx)
+            .await?
+    }
+
+    pub async fn unset_indexes(
+        &self,
+        nature: Nature,
+        ranges: Vec<RangeInclusive<u64>>,
+    ) -> Result<(), NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::UnsetIndexes((ranges, nature, tx)), rx)
             .await?
     }
 
@@ -673,8 +790,7 @@ impl SessionStateAPI {
             .send(Api::NotifyCancelingOperation(uuid))
             .map_err(|e| {
                 NativeError::channel(&format!(
-                    "fail to send to Api::NotifyCancelingOperation; error: {}",
-                    e,
+                    "fail to send to Api::NotifyCancelingOperation; error: {e}"
                 ))
             })
     }
@@ -684,8 +800,7 @@ impl SessionStateAPI {
             .send(Api::NotifyCanceledOperation(uuid))
             .map_err(|e| {
                 NativeError::channel(&format!(
-                    "Failed to send to Api::NotifyCanceledOperation; error: {}",
-                    e,
+                    "Failed to send to Api::NotifyCanceledOperation; error: {e}"
                 ))
             })
     }
@@ -705,7 +820,7 @@ impl SessionStateAPI {
 
     pub fn shutdown(&self) -> Result<(), NativeError> {
         self.tx_api.send(Api::Shutdown).map_err(|e| {
-            NativeError::channel(&format!("fail to send to Api::Shutdown; error: {}", e,))
+            NativeError::channel(&format!("fail to send to Api::Shutdown; error: {e}"))
         })
     }
 
@@ -718,15 +833,7 @@ pub async fn run(
     mut rx_api: UnboundedReceiver<Api>,
     tx_callback_events: UnboundedSender<CallbackEvent>,
 ) -> Result<(), NativeError> {
-    let mut state = SessionState {
-        session_file: SessionFile::new(),
-        observed: Observed::new(),
-        search_map: SearchMap::new(),
-        search_holder: SearchHolderState::NotInited,
-        status: Status::Open,
-        cancelling_operations: HashMap::new(),
-        debug: false,
-    };
+    let mut state = SessionState::new();
     let state_cancellation_token = CancellationToken::new();
     debug!("task is started");
     while let Some(msg) = rx_api.recv().await {
@@ -848,6 +955,21 @@ pub async fn run(
                     .send(state.session_file.grab(&range))
                     .map_err(|_| NativeError::channel("Failed to respond to Api::Grab"))?;
             }
+            Api::GrabIndexed((range, tx_response)) => {
+                tx_response
+                    .send(state.handle_grab_indexed(range))
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::GrabIndexed"))?;
+            }
+            Api::SetIndexes((ranges, nature, tx_response)) => {
+                tx_response
+                    .send(state.handle_set_indexex(nature, ranges))
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::SetIndexes"))?;
+            }
+            Api::UnsetIndexes((ranges, nature, tx_response)) => {
+                tx_response
+                    .send(state.handle_unset_indexex(nature, ranges))
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::UnsetIndexes"))?;
+            }
             Api::GrabSearch((range, tx_response)) => {
                 tx_response
                     .send(state.handle_grab_search(range))
@@ -856,7 +978,7 @@ pub async fn run(
             Api::GrabRanges((ranges, tx_response)) => {
                 tx_response
                     .send(state.handle_grab_ranges(ranges))
-                    .map_err(|_| NativeError::channel("Failed to respond to Api::GrabSearch"))?;
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::GrabRanges"))?;
             }
             Api::GetNearestPosition((position, tx_response)) => {
                 tx_response
@@ -916,6 +1038,7 @@ pub async fn run(
                 } else {
                     state.search_holder = SearchHolderState::NotInited;
                     state.search_map.set(None, None);
+                    state.indexes.clean(&Nature::Search);
                     true
                 };
                 tx_callback_events.send(CallbackEvent::no_search_results())?;
@@ -925,9 +1048,17 @@ pub async fn run(
                     .map_err(|_| NativeError::channel("Failed to respond to Api::DropSearch"))?;
             }
             Api::SetMatches((matches, stats, tx_response)) => {
+                // MARKER: Initial search results
                 let update = matches
                     .as_ref()
                     .map(|matches| SearchMap::map_as_str(matches));
+                if let Some(matches) = matches.as_ref() {
+                    println!(">>>>>>>>>>>>>>>>>> initial search results gotten");
+                    state.indexes.insert(
+                        &matches.iter().map(|f| f.index).collect::<Vec<u64>>()[..],
+                        &Nature::Search,
+                    );
+                }
                 state.search_map.set(matches, stats);
                 tx_callback_events.send(CallbackEvent::SearchMapUpdated(update))?;
                 tx_callback_events.send(CallbackEvent::search_results(

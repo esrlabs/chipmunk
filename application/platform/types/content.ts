@@ -10,4 +10,5 @@ export interface IGrabbedElement {
     source_id: number;
     content: string;
     position: number;
+    nature: number[];
 }

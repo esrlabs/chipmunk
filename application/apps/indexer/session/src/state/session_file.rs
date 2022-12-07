@@ -187,6 +187,7 @@ impl SessionFile {
                     source_id: mapped_ranges.source(pos as u64).unwrap_or(0),
                     content,
                     pos,
+                    nature: vec![],
                 }
             })
             .collect())

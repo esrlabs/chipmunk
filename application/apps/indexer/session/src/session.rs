@@ -3,7 +3,7 @@ use crate::{
     operations,
     operations::Operation,
     state,
-    state::{GrabbedElement, SessionStateAPI, SourceDefinition},
+    state::{GrabbedElement, Nature, SessionStateAPI, SourceDefinition},
     tracker,
     tracker::OperationTrackerAPI,
 };
@@ -95,6 +95,44 @@ impl Session {
     pub async fn grab(&self, range: LineRange) -> Result<Vec<GrabbedElement>, ComputationError> {
         self.state
             .grab(range)
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
+    pub async fn grab_indexed(
+        &self,
+        range: RangeInclusive<u64>,
+    ) -> Result<Vec<GrabbedElement>, ComputationError> {
+        self.state
+            .grab_indexed(range)
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
+    pub async fn set_indexes(
+        &self,
+        nature: u8,
+        ranges: Vec<RangeInclusive<u64>>,
+    ) -> Result<(), ComputationError> {
+        self.state
+            .set_indexes(
+                Nature::from(nature).map_err(ComputationError::NativeError)?,
+                ranges,
+            )
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
+    pub async fn unset_indexes(
+        &self,
+        nature: u8,
+        ranges: Vec<RangeInclusive<u64>>,
+    ) -> Result<(), ComputationError> {
+        self.state
+            .unset_indexes(
+                Nature::from(nature).map_err(ComputationError::NativeError)?,
+                ranges,
+            )
             .await
             .map_err(ComputationError::NativeError)
     }

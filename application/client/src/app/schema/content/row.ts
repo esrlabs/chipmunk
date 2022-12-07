@@ -90,6 +90,7 @@ export class Row extends Subscriber {
                     position: this.position,
                     source_id: this.source,
                     content: this.content,
+                    nature: [0],
                 };
             },
         };
