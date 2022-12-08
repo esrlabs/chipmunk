@@ -7,6 +7,14 @@ import * as Errors from './error';
 const MULTICAST_ADDR = '255.255.255.255';
 const MULTUCAST_INTERFACE = '0.0.0.0';
 
+export interface IMulticastInfo {
+    fields: MulticastInfo;
+    errors: {
+        multiaddr: Errors.ErrorState;
+        interface: Errors.ErrorState;
+    };
+}
+
 export class State extends Base<UDPTransportSettings> {
     public errors: {
         bindingAddress: Errors.ErrorState;
@@ -14,13 +22,7 @@ export class State extends Base<UDPTransportSettings> {
     };
     public bindingAddress: string = '';
     public bindingPort: string = '';
-    public multicasts: {
-        fields: MulticastInfo;
-        errors: {
-            multiaddr: Errors.ErrorState;
-            interface: Errors.ErrorState;
-        };
-    }[] = [];
+    public multicasts: IMulticastInfo[] = [];
 
     constructor() {
         super();

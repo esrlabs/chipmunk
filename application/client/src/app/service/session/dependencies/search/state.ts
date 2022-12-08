@@ -1,28 +1,40 @@
-import { FilterRequest } from './filters/request';
 import { IFilter } from '@platform/types/filter';
 import { Subjects, Subject } from '@platform/env/subscription';
 import { Search } from '@service/session/dependencies/search';
 
 import * as obj from '@platform/env/obj';
 
+export interface IFinish {
+    found: number;
+    error?: string;
+}
+
+export interface ISearchInfo {
+    state: ESearchState;
+    found?: number;
+}
+
+export enum ESearchState {
+    running,
+    finished,
+    dropped,
+}
+
 export class State {
     public readonly subjects: Subjects<{
         active: Subject<IFilter | undefined>;
-        collection: Subject<FilterRequest[]>;
-        start: Subject<void>;
-        finish: Subject<number>;
-        showMatches: Subject<IFilter>;
+        start: Subject<IFilter[]>;
+        finish: Subject<IFinish>;
     }> = new Subjects({
         active: new Subject<IFilter | undefined>(),
-        collection: new Subject<FilterRequest[]>(),
-        start: new Subject<void>(),
-        finish: new Subject<number>(),
-        showMatches: new Subject<IFilter>(),
+        start: new Subject<IFilter[]>(),
+        finish: new Subject<IFinish>(),
     });
 
     private _search: Search;
     private _active: IFilter | undefined;
     private _hash: string | undefined;
+    private _searchInfo!: ISearchInfo;
 
     constructor(search: Search) {
         this._search = search;
@@ -40,22 +52,33 @@ export class State {
         return new Promise((resolve, reject) => {
             this._active = obj.clone(filter);
             this._hash = undefined;
+            if (this._searchInfo === undefined) {
+                this._searchInfo = {
+                    state: ESearchState.running,
+                };
+            } else {
+                this._searchInfo.state = ESearchState.running;
+            }
             this._search
                 .drop()
                 .then(() => {
-                    this.subjects.get().start.emit();
+                    this.subjects.get().start.emit([filter]);
                     this.subjects.get().active.emit(obj.clone(filter));
                     this._search
                         .search([filter])
                         .then((found: number) => {
-                            this.subjects.get().finish.emit(found);
+                            this.subjects.get().finish.emit({ found: found });
+                            this._searchInfo.found = found;
                             resolve(found);
                         })
                         .catch((err: Error) => {
                             this._active = undefined;
                             this.subjects.get().active.emit(undefined);
-                            this.subjects.get().finish.emit(0);
+                            this.subjects.get().finish.emit({ found: 0, error: err.message });
                             reject(err);
+                        })
+                        .finally(() => {
+                            this._searchInfo.state = ESearchState.finished;
                         });
                 })
                 .catch((err: Error) => {
@@ -87,29 +110,51 @@ export class State {
         }
         this._hash = hash;
         return new Promise((resolve, reject) => {
+            if (this._searchInfo === undefined) {
+                this._searchInfo = {
+                    state: ESearchState.running,
+                };
+            } else {
+                this._searchInfo.state = ESearchState.running;
+            }
             this._search
                 .drop()
                 .then(() => {
                     if (filters.length === 0) {
                         return resolve();
                     }
-                    this.subjects.get().start.emit();
+                    this.subjects.get().start.emit(filters);
                     this._search
                         .search(filters)
                         .then((found: number) => {
-                            this.subjects.get().finish.emit(found);
+                            this.subjects.get().finish.emit({ found: found });
+                            this._searchInfo.found = found;
                             resolve();
                         })
                         .catch((err: Error) => {
-                            this.subjects.get().finish.emit(0);
+                            this.subjects.get().finish.emit({ found: 0, error: err.message });
                             reject(err);
+                        })
+                        .finally(() => {
+                            this._searchInfo.state = ESearchState.finished;
                         });
                 })
                 .catch(reject);
         });
     }
 
+    public get searchInfo(): ISearchInfo | undefined {
+        return this._searchInfo;
+    }
+
     public reset(): Promise<void> {
+        if (this._searchInfo === undefined) {
+            this._searchInfo = {
+                state: ESearchState.dropped,
+            };
+        } else {
+            this._searchInfo.state = ESearchState.dropped;
+        }
         if (this._active === undefined) {
             return Promise.resolve();
         }
@@ -117,9 +162,5 @@ export class State {
         this._hash = undefined;
         this.subjects.get().active.emit(undefined);
         return this.filters();
-    }
-
-    public showMatches(filter: IFilter) {
-        this.subjects.get().showMatches.emit(filter);
     }
 }

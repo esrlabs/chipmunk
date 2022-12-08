@@ -20,17 +20,17 @@ export class SearchInput {
     public actions: {
         drop: Subject<void>;
         clear: Subject<void>;
-        accept: Subject<string>;
+        accept: Subject<void>;
         recent: Subject<void>;
         edit: Subject<void>;
-        reaccept: Subject<void>;
+        flags: Subject<void>;
     } = {
         drop: new Subject(),
         clear: new Subject(),
         accept: new Subject(),
         recent: new Subject(),
         edit: new Subject(),
-        reaccept: new Subject(),
+        flags: new Subject(),
     };
     private _prev: string = '';
     private _panel!: MatAutocompleteTrigger;
@@ -87,7 +87,7 @@ export class SearchInput {
                 this.actions.drop.emit();
             } else {
                 this.value = this.control.value;
-                this.actions.accept.emit(this.value);
+                this.actions.accept.emit();
             }
         } else if (event.key === 'Backspace' && this.control.value === '' && this._prev === '') {
             this.actions.edit.emit();
@@ -98,41 +98,41 @@ export class SearchInput {
         }
     }
 
-    public onFlag(): {
-        caseSensitive(): void;
-        wholeWord(): void;
-        regex(): void;
-    } {
-        return {
-            caseSensitive: () => {
-                this.flags.cases = !this.flags.cases;
-                this.actions.reaccept.emit();
-            },
-            wholeWord: () => {
-                this.flags.word = !this.flags.word;
-                this.actions.reaccept.emit();
-            },
-            regex: () => {
-                this.flags.reg = !this.flags.reg;
-                this.actions.reaccept.emit();
-            },
-        };
-    }
-
     public drop() {
         this.control.setValue('');
         this.value = '';
         this._prev = '';
     }
 
-    public set(value: string | IFilter) {
-        if (typeof value === 'string') {
-            this.control.setValue(value);
-            this._prev = value;
-        } else {
-            this.control.setValue(value.filter);
-            this.flags = obj.clone(value.flags);
-        }
+    public set(): {
+        value(value: string | IFilter): void;
+        caseSensitive(): void;
+        wholeWord(): void;
+        regex(): void;
+    } {
+        return {
+            value: (value: string | IFilter): void => {
+                if (typeof value === 'string') {
+                    this.control.setValue(value);
+                    this._prev = value;
+                } else {
+                    this.control.setValue(value.filter);
+                    this.flags = obj.clone(value.flags);
+                }
+            },
+            caseSensitive: () => {
+                this.flags.cases = !this.flags.cases;
+                this.actions.flags.emit();
+            },
+            wholeWord: () => {
+                this.flags.word = !this.flags.word;
+                this.actions.flags.emit();
+            },
+            regex: () => {
+                this.flags.reg = !this.flags.reg;
+                this.actions.flags.emit();
+            },
+        };
     }
 
     public onPanelClosed() {

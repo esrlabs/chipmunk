@@ -3,7 +3,6 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
 import { Action } from '@ui/tabs/sources/common/actions/action';
-import { MulticastInfo } from '@platform/types/transport/udp';
 
 @Component({
     selector: 'app-transport-udp',
@@ -34,8 +33,8 @@ export class TransportUdp extends ChangesDetector implements OnDestroy, AfterVie
         this.state.addMulticast();
     }
 
-    public ngOnRemoveMulticast(multicastInfo: MulticastInfo | undefined) {
-        this.state.cleanMulticast(multicastInfo);
+    public ngOnRemoveMulticast(index: number) {
+        this.state.cleanMulticast(index);
     }
 
     public verify() {
