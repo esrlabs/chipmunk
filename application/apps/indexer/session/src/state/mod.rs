@@ -31,7 +31,7 @@ mod observed;
 mod session_file;
 mod source_ids;
 
-pub use indexes::{Frame, Indexes, Nature};
+pub use indexes::{frame::Frame, map::Map, nature::Nature};
 use observed::Observed;
 pub use session_file::{SessionFile, SessionFileState};
 pub use source_ids::SourceDefinition;
@@ -228,7 +228,7 @@ pub struct SessionState {
     pub session_file: SessionFile,
     pub observed: Observed,
     pub search_map: SearchMap,
-    pub indexes: Indexes,
+    pub indexes: Map,
     pub search_holder: SearchHolderState,
     pub cancelling_operations: HashMap<Uuid, bool>,
     pub status: Status,
@@ -242,7 +242,7 @@ impl SessionState {
             observed: Observed::new(),
             search_map: SearchMap::new(),
             search_holder: SearchHolderState::NotInited,
-            indexes: Indexes::new(),
+            indexes: Map::new(),
             status: Status::Open,
             cancelling_operations: HashMap::new(),
             debug: false,
