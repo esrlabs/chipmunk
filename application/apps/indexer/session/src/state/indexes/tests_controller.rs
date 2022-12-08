@@ -1,6 +1,5 @@
 use super::{
     controller::{Controller, Mode},
-    map::Map,
     nature::Nature,
 };
 use processor::map::FilterMatch;
@@ -15,6 +14,7 @@ fn get_matches(indexes: Vec<u64>) -> Vec<FilterMatch> {
         })
         .collect::<Vec<FilterMatch>>()
 }
+
 #[test]
 fn test_a() {
     let mut controller = Controller::new(None);
@@ -567,5 +567,179 @@ fn test_a() {
         let (pos, nature) = control.get(n).unwrap();
         assert_eq!(*pos, i.position);
         assert_eq!(*nature, *i.natures.first().unwrap());
+    });
+}
+
+#[test]
+fn test_b() {
+    let mut controller = Controller::new(None);
+    controller.set_stream_len(30).unwrap();
+    let search_matches = get_matches(vec![0, 10, 20, 30]);
+    controller.append_search_results(&search_matches).unwrap();
+    assert_eq!(controller.len(), search_matches.len());
+    let frame = controller
+        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
+        .unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Vec<Nature>)> = vec![
+        (0, vec![Nature::Search]),
+        (10, vec![Nature::Search]),
+        (20, vec![Nature::Search]),
+        (30, vec![Nature::Search]),
+    ];
+    assert_eq!(frame.len(), control.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, natures) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        natures.iter().for_each(|nature| {
+            assert!(i.natures.iter().any(|n| n == nature));
+        });
+        assert_eq!(natures.len(), i.natures.len());
+    });
+    // Add bookmark
+    controller.add_bookmark(15).unwrap();
+    let frame = controller
+        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
+        .unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Vec<Nature>)> = vec![
+        (0, vec![Nature::Search]),
+        (10, vec![Nature::Search]),
+        (15, vec![Nature::Bookmark]),
+        (20, vec![Nature::Search]),
+        (30, vec![Nature::Search]),
+    ];
+    assert_eq!(frame.len(), control.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, natures) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        natures.iter().for_each(|nature| {
+            assert!(i.natures.iter().any(|n| n == nature));
+        });
+        assert_eq!(natures.len(), i.natures.len());
+    });
+    // Switch to breadcrumbs mode
+    controller.add_bookmark(20).unwrap();
+    controller.set_mode(Mode::Breadcrumbs).unwrap();
+    controller.add_bookmark(30).unwrap();
+    let frame = controller
+        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
+        .unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Vec<Nature>)> = vec![
+        (0, vec![Nature::Search]),
+        (1, vec![Nature::Breadcrumb]),
+        (2, vec![Nature::Breadcrumb]),
+        (5, vec![Nature::BreadcrumbSeporator]),
+        (8, vec![Nature::Breadcrumb]),
+        (9, vec![Nature::Breadcrumb]),
+        (10, vec![Nature::Search]),
+        (11, vec![Nature::Breadcrumb]),
+        (12, vec![Nature::Breadcrumb]),
+        (13, vec![Nature::Breadcrumb]),
+        (14, vec![Nature::Breadcrumb]),
+        (15, vec![Nature::Bookmark]),
+        (16, vec![Nature::Breadcrumb]),
+        (17, vec![Nature::Breadcrumb]),
+        (18, vec![Nature::Breadcrumb]),
+        (19, vec![Nature::Breadcrumb]),
+        (20, vec![Nature::Search, Nature::Bookmark]),
+        (21, vec![Nature::Breadcrumb]),
+        (22, vec![Nature::Breadcrumb]),
+        (25, vec![Nature::BreadcrumbSeporator]),
+        (28, vec![Nature::Breadcrumb]),
+        (29, vec![Nature::Breadcrumb]),
+        (30, vec![Nature::Search, Nature::Bookmark]),
+    ];
+    assert_eq!(frame.len(), control.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, natures) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        natures.iter().for_each(|nature| {
+            assert!(i.natures.iter().any(|n| n == nature));
+        });
+        assert_eq!(natures.len(), i.natures.len());
+    });
+    // Drop search
+    controller.drop_search().unwrap();
+    let frame = controller
+        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
+        .unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Vec<Nature>)> = vec![
+        (0, vec![Nature::Breadcrumb]),
+        (1, vec![Nature::Breadcrumb]),
+        (7, vec![Nature::BreadcrumbSeporator]),
+        (13, vec![Nature::Breadcrumb]),
+        (14, vec![Nature::Breadcrumb]),
+        (15, vec![Nature::Bookmark]),
+        (16, vec![Nature::Breadcrumb]),
+        (17, vec![Nature::Breadcrumb]),
+        (18, vec![Nature::Breadcrumb]),
+        (19, vec![Nature::Breadcrumb]),
+        (20, vec![Nature::Bookmark]),
+        (21, vec![Nature::Breadcrumb]),
+        (22, vec![Nature::Breadcrumb]),
+        (25, vec![Nature::BreadcrumbSeporator]),
+        (28, vec![Nature::Breadcrumb]),
+        (29, vec![Nature::Breadcrumb]),
+        (30, vec![Nature::Bookmark]),
+    ];
+    assert_eq!(frame.len(), control.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, natures) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        natures.iter().for_each(|nature| {
+            assert!(i.natures.iter().any(|n| n == nature));
+        });
+        assert_eq!(natures.len(), i.natures.len());
+    });
+    // Remove bookmarks
+    controller.remove_bookmark(15).unwrap();
+    controller.remove_bookmark(20).unwrap();
+    controller.remove_bookmark(30).unwrap();
+    assert_eq!(controller.len(), 0);
+    // Add bookmarks and selection
+    controller.add_bookmark(15).unwrap();
+    controller.add_bookmark(20).unwrap();
+    controller.add_bookmark(30).unwrap();
+    controller
+        .add_selection(RangeInclusive::new(10, 29))
+        .unwrap();
+    let frame = controller
+        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
+        .unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Vec<Nature>)> = vec![
+        (10, vec![Nature::Selection]),
+        (11, vec![Nature::Selection]),
+        (12, vec![Nature::Selection]),
+        (13, vec![Nature::Selection]),
+        (14, vec![Nature::Selection]),
+        (15, vec![Nature::Bookmark, Nature::Selection]),
+        (16, vec![Nature::Selection]),
+        (17, vec![Nature::Selection]),
+        (18, vec![Nature::Selection]),
+        (19, vec![Nature::Selection]),
+        (20, vec![Nature::Bookmark, Nature::Selection]),
+        (21, vec![Nature::Selection]),
+        (22, vec![Nature::Selection]),
+        (23, vec![Nature::Selection]),
+        (24, vec![Nature::Selection]),
+        (25, vec![Nature::Selection]),
+        (26, vec![Nature::Selection]),
+        (27, vec![Nature::Selection]),
+        (28, vec![Nature::Selection]),
+        (29, vec![Nature::Selection]),
+        (30, vec![Nature::Bookmark]),
+    ];
+    assert_eq!(frame.len(), control.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, natures) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        natures.iter().for_each(|nature| {
+            assert!(i.natures.iter().any(|n| n == nature));
+        });
+        assert_eq!(natures.len(), i.natures.len());
     });
 }
