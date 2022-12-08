@@ -61,6 +61,39 @@ impl Controller {
         Ok(())
     }
 
+    pub fn add_bookmark(&mut self, row: u64) -> Result<(), NativeError> {
+        self.map.insert(&[row], &Nature::Bookmark);
+        if matches!(self.mode, Mode::Breadcrumbs) {
+            self.map
+                .build_breadcrumbs(MIN_BREADCRUMBS_DISTANCE, MIN_BREADCRUMBS_OFFSET)?;
+        }
+        self.notify();
+        Ok(())
+    }
+
+    pub fn remove_bookmark(&mut self, row: u64) -> Result<(), NativeError> {
+        self.map.remove(&[row], &Nature::Bookmark);
+        if matches!(self.mode, Mode::Breadcrumbs) {
+            self.map
+                .build_breadcrumbs(MIN_BREADCRUMBS_DISTANCE, MIN_BREADCRUMBS_OFFSET)?;
+        }
+        self.notify();
+        Ok(())
+    }
+
+    pub fn add_selection(&mut self, range: RangeInclusive<u64>) -> Result<(), NativeError> {
+        self.set_mode(Mode::Selection)?;
+        self.map.insert_range(range, &Nature::Selection);
+        self.notify();
+        Ok(())
+    }
+
+    pub fn remove_selection(&mut self, range: RangeInclusive<u64>) -> Result<(), NativeError> {
+        self.map.remove_range(range, &Nature::Selection);
+        self.notify();
+        Ok(())
+    }
+
     pub fn set_stream_len(&mut self, len: u64) -> Result<(), NativeError> {
         let prev = self.map.stream_len;
         if prev == len {

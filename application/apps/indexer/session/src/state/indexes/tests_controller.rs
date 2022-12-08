@@ -345,4 +345,227 @@ fn test_a() {
         assert_eq!(*pos, i.position);
         assert_eq!(*nature, *i.natures.first().unwrap());
     });
+    // Add bookmark
+    controller.add_bookmark(60).unwrap();
+    let frame = controller
+        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
+        .unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Nature)> = vec![
+        (0, Nature::Search),
+        (1, Nature::Breadcrumb),
+        (2, Nature::Breadcrumb),
+        (5, Nature::BreadcrumbSeporator),
+        (8, Nature::Breadcrumb),
+        (9, Nature::Breadcrumb),
+        (10, Nature::Search),
+        (11, Nature::Breadcrumb),
+        (12, Nature::Breadcrumb),
+        (15, Nature::BreadcrumbSeporator),
+        (18, Nature::Breadcrumb),
+        (19, Nature::Breadcrumb),
+        (20, Nature::Search),
+        (21, Nature::Breadcrumb),
+        (22, Nature::Breadcrumb),
+        (25, Nature::BreadcrumbSeporator),
+        (28, Nature::Breadcrumb),
+        (29, Nature::Breadcrumb),
+        (30, Nature::Search),
+        (31, Nature::Breadcrumb),
+        (32, Nature::Breadcrumb),
+        (45, Nature::BreadcrumbSeporator),
+        (58, Nature::Breadcrumb),
+        (59, Nature::Breadcrumb),
+        (60, Nature::Bookmark),
+        (61, Nature::Breadcrumb),
+        (62, Nature::Breadcrumb),
+        (78, Nature::BreadcrumbSeporator),
+        (95, Nature::Breadcrumb),
+        (96, Nature::Breadcrumb),
+        (97, Nature::Search),
+        (98, Nature::Search),
+        (99, Nature::Breadcrumb),
+        (100, Nature::Breadcrumb),
+        (101, Nature::Search),
+        (102, Nature::Breadcrumb),
+        (103, Nature::Breadcrumb),
+        (104, Nature::Breadcrumb),
+        (105, Nature::Search),
+        (106, Nature::Breadcrumb),
+        (107, Nature::Breadcrumb),
+        (108, Nature::Breadcrumb),
+        (109, Nature::Breadcrumb),
+        (110, Nature::Breadcrumb),
+        (111, Nature::Search),
+        (112, Nature::Breadcrumb),
+        (113, Nature::Breadcrumb),
+        (115, Nature::BreadcrumbSeporator),
+        (118, Nature::Breadcrumb),
+        (119, Nature::Breadcrumb),
+    ];
+    assert_eq!(frame.len(), control.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, nature) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        assert_eq!(*nature, *i.natures.first().unwrap());
+    });
+    // Remove bookmark
+    controller.remove_bookmark(60).unwrap();
+    let frame = controller
+        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
+        .unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Nature)> = vec![
+        (0, Nature::Search),
+        (1, Nature::Breadcrumb),
+        (2, Nature::Breadcrumb),
+        (5, Nature::BreadcrumbSeporator),
+        (8, Nature::Breadcrumb),
+        (9, Nature::Breadcrumb),
+        (10, Nature::Search),
+        (11, Nature::Breadcrumb),
+        (12, Nature::Breadcrumb),
+        (15, Nature::BreadcrumbSeporator),
+        (18, Nature::Breadcrumb),
+        (19, Nature::Breadcrumb),
+        (20, Nature::Search),
+        (21, Nature::Breadcrumb),
+        (22, Nature::Breadcrumb),
+        (25, Nature::BreadcrumbSeporator),
+        (28, Nature::Breadcrumb),
+        (29, Nature::Breadcrumb),
+        (30, Nature::Search),
+        (31, Nature::Breadcrumb),
+        (32, Nature::Breadcrumb),
+        (63, Nature::BreadcrumbSeporator),
+        (95, Nature::Breadcrumb),
+        (96, Nature::Breadcrumb),
+        (97, Nature::Search),
+        (98, Nature::Search),
+        (99, Nature::Breadcrumb),
+        (100, Nature::Breadcrumb),
+        (101, Nature::Search),
+        (102, Nature::Breadcrumb),
+        (103, Nature::Breadcrumb),
+        (104, Nature::Breadcrumb),
+        (105, Nature::Search),
+        (106, Nature::Breadcrumb),
+        (107, Nature::Breadcrumb),
+        (108, Nature::Breadcrumb),
+        (109, Nature::Breadcrumb),
+        (110, Nature::Breadcrumb),
+        (111, Nature::Search),
+        (112, Nature::Breadcrumb),
+        (113, Nature::Breadcrumb),
+        (115, Nature::BreadcrumbSeporator),
+        (118, Nature::Breadcrumb),
+        (119, Nature::Breadcrumb),
+    ];
+    assert_eq!(frame.len(), control.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, nature) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        assert_eq!(*nature, *i.natures.first().unwrap());
+    });
+    // Set selection & add bookmark
+    controller.add_selection(RangeInclusive::new(1, 9)).unwrap();
+    controller.add_bookmark(60).unwrap();
+    let frame = controller
+        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
+        .unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Nature)> = vec![
+        (0, Nature::Search),
+        (1, Nature::Selection),
+        (2, Nature::Selection),
+        (3, Nature::Selection),
+        (4, Nature::Selection),
+        (5, Nature::Selection),
+        (6, Nature::Selection),
+        (7, Nature::Selection),
+        (8, Nature::Selection),
+        (9, Nature::Selection),
+        (10, Nature::Search),
+        (20, Nature::Search),
+        (30, Nature::Search),
+        (60, Nature::Bookmark),
+        (97, Nature::Search),
+        (98, Nature::Search),
+        (101, Nature::Search),
+        (105, Nature::Search),
+        (111, Nature::Search),
+    ];
+    assert_eq!(frame.len(), control.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, nature) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        assert_eq!(*nature, *i.natures.first().unwrap());
+    });
+    // Back to breadcrumbs
+    controller.set_mode(Mode::Breadcrumbs).unwrap();
+    let frame = controller
+        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
+        .unwrap();
+    // We are expecting to see next "picture"
+    let control: Vec<(u64, Nature)> = vec![
+        (0, Nature::Search),
+        (1, Nature::Breadcrumb),
+        (2, Nature::Breadcrumb),
+        (5, Nature::BreadcrumbSeporator),
+        (8, Nature::Breadcrumb),
+        (9, Nature::Breadcrumb),
+        (10, Nature::Search),
+        (11, Nature::Breadcrumb),
+        (12, Nature::Breadcrumb),
+        (15, Nature::BreadcrumbSeporator),
+        (18, Nature::Breadcrumb),
+        (19, Nature::Breadcrumb),
+        (20, Nature::Search),
+        (21, Nature::Breadcrumb),
+        (22, Nature::Breadcrumb),
+        (25, Nature::BreadcrumbSeporator),
+        (28, Nature::Breadcrumb),
+        (29, Nature::Breadcrumb),
+        (30, Nature::Search),
+        (31, Nature::Breadcrumb),
+        (32, Nature::Breadcrumb),
+        (45, Nature::BreadcrumbSeporator),
+        (58, Nature::Breadcrumb),
+        (59, Nature::Breadcrumb),
+        (60, Nature::Bookmark),
+        (61, Nature::Breadcrumb),
+        (62, Nature::Breadcrumb),
+        (78, Nature::BreadcrumbSeporator),
+        (95, Nature::Breadcrumb),
+        (96, Nature::Breadcrumb),
+        (97, Nature::Search),
+        (98, Nature::Search),
+        (99, Nature::Breadcrumb),
+        (100, Nature::Breadcrumb),
+        (101, Nature::Search),
+        (102, Nature::Breadcrumb),
+        (103, Nature::Breadcrumb),
+        (104, Nature::Breadcrumb),
+        (105, Nature::Search),
+        (106, Nature::Breadcrumb),
+        (107, Nature::Breadcrumb),
+        (108, Nature::Breadcrumb),
+        (109, Nature::Breadcrumb),
+        (110, Nature::Breadcrumb),
+        (111, Nature::Search),
+        (112, Nature::Breadcrumb),
+        (113, Nature::Breadcrumb),
+        (115, Nature::BreadcrumbSeporator),
+        (118, Nature::Breadcrumb),
+        (119, Nature::Breadcrumb),
+    ];
+    // frame.indexes.iter().enumerate().for_each(|(n, i)| {
+    //     println!("{i:?}");
+    // });
+    assert_eq!(frame.len(), control.len());
+    frame.indexes.iter().enumerate().for_each(|(n, i)| {
+        let (pos, nature) = control.get(n).unwrap();
+        assert_eq!(*pos, i.position);
+        assert_eq!(*nature, *i.natures.first().unwrap());
+    });
 }

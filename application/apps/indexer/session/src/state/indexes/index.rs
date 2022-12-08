@@ -18,6 +18,10 @@ impl Index {
         if self.natures.iter().any(|n| n == nature) {
             return;
         }
+        if matches!(nature, Nature::Breadcrumb) && !self.natures.is_empty() {
+            // We are define nature as breadcrumbs, only if isn't bound with any other nature
+            return;
+        }
         self.natures.push(*nature);
     }
 
