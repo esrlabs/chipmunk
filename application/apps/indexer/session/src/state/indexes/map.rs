@@ -86,43 +86,46 @@ impl Map {
         Ok(())
     }
 
-    pub fn insert_breadcrumbs(
+    fn insert_breadcrumbs(
         &mut self,
+        // from_key_index - index of key in self.indexes.keys(), but not (!) a stream-index
+        from_key_index: usize,
         min_distance: u64,
         min_offset: u64,
     ) -> Result<(), NativeError> {
-        if self.stream_len == 0 {
+        if self.stream_len == 0 || self.is_empty() {
             return Ok(());
         }
-        self.remove_range(
-            RangeInclusive::new(0, self.stream_len - 1),
-            &Nature::Breadcrumb,
-        );
-        self.remove_range(
-            RangeInclusive::new(0, self.stream_len - 1),
-            &Nature::BreadcrumbSeporator,
-        );
-        self.remove_range(
-            RangeInclusive::new(0, self.stream_len - 1),
-            &Nature::Selection,
-        );
+        if from_key_index >= self.len() {
+            return Err(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Grabber,
+                message: Some(format!(
+                    "Cannot insert breadcrumbs from {from_key_index}, because len of map {}",
+                    self.len()
+                )),
+            });
+        }
         let keys: Vec<u64> = self.indexes.keys().copied().collect::<Vec<u64>>();
         let keys_ref = keys.iter().collect::<Vec<&u64>>();
         if keys.is_empty() {
             return Ok(());
         }
-        let first = self.get_by_index(&keys_ref, 0)?;
-        if first.position > 0 {
-            if first.position <= min_distance + 2 {
-                self.insert_range(
-                    RangeInclusive::new(0, first.position - 1),
-                    &Nature::Breadcrumb,
-                );
-            } else {
-                self.insert_between(RangeInclusive::new(0, first.position - 1), min_offset)?;
+        if from_key_index == 0 {
+            let first = self.get_by_index(&keys_ref, 0)?;
+            if first.position > 0 {
+                if first.position <= min_distance + 2 {
+                    self.insert_range(
+                        RangeInclusive::new(0, first.position - 1),
+                        &Nature::Breadcrumb,
+                    );
+                } else {
+                    self.insert_between(RangeInclusive::new(0, first.position - 1), min_offset)?;
+                }
             }
         }
-        for pair in keys.windows(2) {
+        let target: &[u64] = &keys[from_key_index..];
+        for pair in target.windows(2) {
             let [from, to]: [u64; 2] = pair.try_into().unwrap();
             if from >= to {
                 return Err(NativeError {
@@ -159,6 +162,39 @@ impl Map {
             }
         }
         Ok(())
+    }
+
+    pub fn build_breadcrumbs(
+        &mut self,
+        min_distance: u64,
+        min_offset: u64,
+    ) -> Result<(), NativeError> {
+        self.clean(&Nature::Breadcrumb);
+        self.clean(&Nature::BreadcrumbSeporator);
+        self.clean(&Nature::Selection);
+        self.insert_breadcrumbs(0, min_distance, min_offset)
+    }
+
+    pub fn update_breadcrumbs(
+        &mut self,
+        from: u64,
+        min_distance: u64,
+        min_offset: u64,
+    ) -> Result<(), NativeError> {
+        if self.stream_len == 0 {
+            return Ok(());
+        }
+        let key_index = self.get_key_position(&from)?;
+        // Remove breadcrumbs from bottom
+        self.remove_range(
+            RangeInclusive::new(from, self.stream_len - 1),
+            &Nature::Breadcrumb,
+        );
+        self.remove_range(
+            RangeInclusive::new(from, self.stream_len - 1),
+            &Nature::BreadcrumbSeporator,
+        );
+        self.insert_breadcrumbs(key_index, min_distance, min_offset)
     }
 
     pub fn extend_breadcrumbs(
@@ -282,6 +318,20 @@ impl Map {
             after = self.indexes.get(keys[sep_index_pos + 1]);
         }
         Ok((before, after))
+    }
+
+    pub fn get_last_key_for_nature(&self, natures: &[Nature]) -> Option<u64> {
+        let keys = self.indexes.keys().collect::<Vec<&u64>>();
+        for n in (0..keys.len()).rev() {
+            if let Some(index) = self.indexes.get(keys[n]) {
+                for nature in natures {
+                    if index.includes(nature) {
+                        return Some(*keys[n]);
+                    }
+                }
+            }
+        }
+        None
     }
 
     pub fn clean(&mut self, nature: &Nature) {

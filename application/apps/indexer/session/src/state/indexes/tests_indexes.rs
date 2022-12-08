@@ -101,7 +101,7 @@ fn test_breadcrumbs_basic() {
     map.insert(&search_matches, &Nature::Search);
     assert_eq!(map.len(), 3);
     // Insert breadcrumbs
-    map.insert_breadcrumbs(4, 2).unwrap();
+    map.build_breadcrumbs(4, 2).unwrap();
     // We are expecting to see next "picture"
     let control: Vec<(u64, Nature)> = vec![
         (0, Nature::Search),
@@ -145,7 +145,7 @@ fn test_breadcrumbs_borders_a() {
     map.insert(&search_matches, &Nature::Search);
     assert_eq!(map.len(), 2);
     // Insert breadcrumbs
-    map.insert_breadcrumbs(4, 2).unwrap();
+    map.build_breadcrumbs(4, 2).unwrap();
     // We are expecting to see next "picture"
     let control: Vec<(u64, Nature)> = vec![
         (0, Nature::Breadcrumb),
@@ -183,7 +183,7 @@ fn test_breadcrumbs_borders_b() {
     map.insert(&search_matches, &Nature::Search);
     assert_eq!(map.len(), 3);
     // Insert breadcrumbs
-    map.insert_breadcrumbs(4, 2).unwrap();
+    map.build_breadcrumbs(4, 2).unwrap();
     // We are expecting to see next "picture"
     let control: Vec<(u64, Nature)> = vec![
         (0, Nature::Breadcrumb),
@@ -226,7 +226,7 @@ fn test_breadcrumbs_borders_c() {
     map.insert(&search_matches, &Nature::Search);
     assert_eq!(map.len(), 3);
     // Insert breadcrumbs
-    map.insert_breadcrumbs(4, 2).unwrap();
+    map.build_breadcrumbs(4, 2).unwrap();
     // We are expecting to see next "picture"
     let control: Vec<(u64, Nature)> = vec![
         (0, Nature::Breadcrumb),
@@ -273,7 +273,7 @@ fn test_breadcrumbs_borders_d() {
     map.insert(&search_matches, &Nature::Search);
     assert_eq!(map.len(), 3);
     // Insert breadcrumbs
-    map.insert_breadcrumbs(4, 2).unwrap();
+    map.build_breadcrumbs(4, 2).unwrap();
     // We are expecting to see next "picture"
     let control: Vec<(u64, Nature)> = vec![
         (0, Nature::Breadcrumb),
@@ -314,7 +314,7 @@ fn test_breadcrumbs_borders_e() {
     map.insert(&search_matches, &Nature::Search);
     assert_eq!(map.len(), 3);
     // Insert breadcrumbs
-    map.insert_breadcrumbs(4, 2).unwrap();
+    map.build_breadcrumbs(4, 2).unwrap();
     // We are expecting to see next "picture"
     let control: Vec<(u64, Nature)> = vec![
         (0, Nature::Search),
@@ -353,7 +353,7 @@ fn test_breadcrumbs_borders_f() {
     map.insert(&search_matches, &Nature::Search);
     assert_eq!(map.len(), 1);
     // Insert breadcrumbs
-    map.insert_breadcrumbs(4, 2).unwrap();
+    map.build_breadcrumbs(4, 2).unwrap();
     // We are expecting to see next "picture"
     let control: Vec<(u64, Nature)> = vec![
         (0, Nature::Breadcrumb),
@@ -390,7 +390,7 @@ fn test_breadcrumbs_borders_g() {
     map.insert(&search_matches, &Nature::Search);
     assert_eq!(map.len(), 0);
     // Insert breadcrumbs
-    map.insert_breadcrumbs(4, 2).unwrap();
+    map.build_breadcrumbs(4, 2).unwrap();
     assert_eq!(map.len(), 0);
 }
 
@@ -406,7 +406,7 @@ fn test_breadcrumbs_borders_j() {
     map.insert(&vec![10], &Nature::Bookmark);
     assert_eq!(map.len(), 2);
     // Insert breadcrumbs
-    map.insert_breadcrumbs(4, 2).unwrap();
+    map.build_breadcrumbs(4, 2).unwrap();
     // We are expecting to see next "picture"
     let control: Vec<(u64, Nature)> = vec![
         (0, Nature::Breadcrumb),
@@ -444,7 +444,7 @@ fn test_breadcrumbs_extending_a() {
     map.insert(&search_matches, &Nature::Search);
     assert_eq!(map.len(), 3);
     // Insert breadcrumbs
-    map.insert_breadcrumbs(4, 2).unwrap();
+    map.build_breadcrumbs(4, 2).unwrap();
     // We are expecting to see next "picture"
     let control: Vec<(u64, Nature)> = vec![
         (0, Nature::Breadcrumb),
@@ -639,7 +639,7 @@ fn test_breadcrumbs_extending_b() {
     map.insert(&search_matches, &Nature::Search);
     assert_eq!(map.len(), 1);
     // Insert breadcrumbs
-    map.insert_breadcrumbs(4, 2).unwrap();
+    map.build_breadcrumbs(4, 2).unwrap();
     // We are expecting to see next "picture"
     let control: Vec<(u64, Nature)> = vec![
         (0, Nature::Breadcrumb),

@@ -146,6 +146,14 @@ pub enum CallbackEvent {
         stat: HashMap<String, u64>,
     },
     /**
+     * Triggered on update of indexed map
+     * @event IndexedMapUpdated { len: u64 }
+     * len - count of rows, which can be requested with method [grabSearchResult]
+     * >> Scope: session
+     * >> Kind: repeated
+     */
+    IndexedMapUpdated { len: u64 },
+    /**
      * Triggered on update of search result data
      * @event SearchMapUpdated { Option<String> }
      * includes JSON String of Vec<u64> - map of all matches in search
@@ -214,6 +222,7 @@ impl std::fmt::Display for CallbackEvent {
             Self::StreamUpdated(len) => write!(f, "StreamUpdated({})", len),
             Self::FileRead => write!(f, "FileRead"),
             Self::SearchUpdated { found, stat: _ } => write!(f, "SearchUpdated({})", found),
+            Self::IndexedMapUpdated { len } => write!(f, "IndexedMapUpdated({})", len),
             Self::SearchMapUpdated(_) => write!(f, "SearchMapUpdated"),
             Self::Progress {
                 uuid: _,

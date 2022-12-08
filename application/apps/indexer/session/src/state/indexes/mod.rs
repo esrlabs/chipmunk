@@ -4,4 +4,6 @@ pub mod index;
 pub mod map;
 pub mod nature;
 #[cfg(test)]
-pub mod tests;
+pub mod tests_indexes;
+#[cfg(test)]
+pub mod tests_controller;
