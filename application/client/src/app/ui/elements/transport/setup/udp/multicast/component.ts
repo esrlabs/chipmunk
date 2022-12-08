@@ -1,6 +1,6 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
-import { MulticastInfo } from '@platform/types/transport/udp';
+import { IMulticastInfo } from '@elements/transport/setup/udp/state';
 
 @Component({
     selector: 'app-transport-udp-multicast',
@@ -9,17 +9,18 @@ import { MulticastInfo } from '@platform/types/transport/udp';
 })
 @Ilc()
 export class TransportUdpMulticast {
-    @Input() public multicast!: MulticastInfo;
+    @Input() public multicast!: IMulticastInfo;
     @Output() public clean: EventEmitter<void> = new EventEmitter();
 
-    public onChange() {
+    public _ng_onChanges() {
         if (
-            this.multicast.multiaddr.trim() !== '' ||
-            (this.multicast.interface !== undefined && this.multicast.interface.trim() !== '')
+            this.multicast.fields.multiaddr.trim() !== '' ||
+            (this.multicast.fields.interface !== undefined &&
+                this.multicast.fields.interface.trim() !== '')
         ) {
             return;
         }
-        this.clean.next(undefined);
+        this.clean.next();
     }
 
     public _ng_onRemove() {

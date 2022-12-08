@@ -192,7 +192,12 @@ export class ProviderFilters extends Provider<FilterRequest> {
     }
 
     public search(entity: Entity<FilterRequest>) {
-        this.session.search.state().showMatches(entity.extract().definition.filter);
+        this.session.search
+            .state()
+            .setActive(entity.extract().definition.filter)
+            .catch((error: Error) => {
+                this.logger.error(`Fail to make search: ${error.message}`);
+            });
     }
 
     public actions(

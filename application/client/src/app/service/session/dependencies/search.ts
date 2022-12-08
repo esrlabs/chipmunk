@@ -179,6 +179,5 @@ export class Search extends Subscriber {
     public highlights(): Highlights {
         return this._highlights;
     }
-
 }
 export interface Search extends LoggerInterface {}
