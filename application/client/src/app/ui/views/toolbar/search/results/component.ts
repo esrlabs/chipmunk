@@ -42,11 +42,12 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
     public ngAfterContentInit(): void {
         this.service = getScrollAreaService(this.session);
         this.env().subscriber.register(
-            this.session.search.map.updated.subscribe((_event) => {
-                this.service.setLen(this.session.search.map.len());
+            this.session.cursor.subjects.get().selected.subscribe((event) => {
+                if (event.initiator === Owner.Search) {
+                    return;
+                }
                 const single = this.session.cursor.getSingle().position();
-                if (this.session.search.len() > 0 && single !== undefined) {
-                    // if (event.initiator === Owner.Search || single === undefined) {
+                if (single !== undefined) {
                     this.session.search
                         .nearest(single)
                         .then((location) => {
@@ -58,9 +59,13 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                         .catch((err: Error) => {
                             console.error(err);
                         });
-                } else {
-                    this.service.refresh();
                 }
+            }),
+        );
+        this.env().subscriber.register(
+            this.session.search.map.updated.subscribe((_event) => {
+                this.service.setLen(this.session.search.map.len());
+                this.service.refresh();
             }),
         );
         this.env().subscriber.register(
