@@ -58,11 +58,6 @@ export class LayoutWorkspace extends ChangesDetector implements AfterViewInit {
             }),
         );
         this.env().subscriber.register(
-            this.ilc().services.system.hotkeys.listen('Ctrl + O', () => {
-                this.tabs.setActive(ids.WORKSPACE_TAB_HOME);
-            }),
-        );
-        this.env().subscriber.register(
             this.ilc().services.system.hotkeys.listen('Ctrl + T', () => {
                 this.tabs.setActive(ids.WORKSPACE_TAB_HOME);
             }),

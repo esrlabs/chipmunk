@@ -15,6 +15,7 @@ import { unique } from '@platform/env/sequence';
 import { components } from '@env/decorators/initial';
 import { Vertical, Horizontal } from '@ui/service/popup';
 import { env } from '@service/env';
+import { Action as FileAnyAction } from '@service/actions/file.any';
 
 import * as Events from '@platform/ipc/event/index';
 import * as Requests from '@platform/ipc/request';
@@ -121,6 +122,13 @@ export class Service extends Implementation {
                     },
                     closeOnKey: 'Escape',
                     width: 450,
+                });
+            }),
+        );
+        this.register(
+            this.listen('Ctrl + O', () => {
+                new FileAnyAction().apply().catch((err: Error) => {
+                    this.log().error(`Fail to call action FileAnyAction; error: ${err.message}`);
                 });
             }),
         );
