@@ -25,7 +25,7 @@ export class HighlightsModifier extends Modifier {
                 ...[
                     {
                         offset: range.start,
-                        injection: `<span class="noreset match" style="background: ${range.bgcl}; color: ${fgcl};">`,
+                        injection: `<span class="match" style="background: ${range.bgcl}; color: ${fgcl};">`,
                         type: EHTMLInjectionType.open,
                     },
                     {
