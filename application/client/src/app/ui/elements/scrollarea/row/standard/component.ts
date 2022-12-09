@@ -29,7 +29,7 @@ export class Standard extends ChangesDetector implements AfterContentInit {
         this._sanitizer = sanitizer;
     }
 
-    @HostBinding('class') classes = 'row noreset';
+    @HostBinding('class') classes = 'row';
     @HostBinding('style.background') background = '';
     @HostBinding('style.color') color = '';
     @HostBinding('innerHTML') html: SafeHtml | string = '';

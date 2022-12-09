@@ -19,7 +19,7 @@ export class ActiveFilterModifier extends Modifier {
                 ...[
                     {
                         offset: range.start,
-                        injection: `<span class="noreset match">`,
+                        injection: `<span class="match">`,
                         type: EHTMLInjectionType.open,
                     },
                     {

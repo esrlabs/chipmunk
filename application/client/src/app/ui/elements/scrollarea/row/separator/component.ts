@@ -12,7 +12,7 @@ import { stop } from '@ui/env/dom';
 export class Separator {
     @Input() public row!: Row;
 
-    @HostBinding('class') classes = 'row noreset';
+    @HostBinding('class') classes = 'row';
 
     public left(): {
         before(): number;

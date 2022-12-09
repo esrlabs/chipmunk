@@ -37,7 +37,7 @@ export class Columns extends ChangesDetector implements AfterContentInit {
         this._sanitizer = sanitizer;
     }
 
-    @HostBinding('class') classes = 'row noreset';
+    @HostBinding('class') classes = 'row';
     @HostBinding('style.background') background = '';
     @HostBinding('style.color') color = '';
 
@@ -68,6 +68,5 @@ export class Columns extends ChangesDetector implements AfterContentInit {
             }),
         );
     }
-
 }
 export interface Columns extends IlcInterface {}
