@@ -32,8 +32,6 @@ export class Frame extends Subscriber {
         change: new Subject<Row[]>(),
         position: new Subject<PositionEvent>(),
     };
-    private _to: any;
-    private _last: number = Date.now();
 
     public bind(service: Service, holder: Holder) {
         this._service = service;
