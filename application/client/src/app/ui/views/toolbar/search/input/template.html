@@ -2,11 +2,22 @@
     <mat-form-field class="outline" appearance="outline">
         <span class="active" *ngIf="active !== undefined">
             <span class="t-console t-small filter">{{active.filter.filter}}</span>
-            <button [class]="active.isPossibleToSaveAsFilter() ? 'enabled' : ''" [disabled]="!active.isPossibleToSaveAsFilter()" (click)="onSaveAsFilter()">
-                <mat-icon [class]="!active.isPossibleToSaveAsFilter() ? 'disabled' : ''">save</mat-icon>
+            <button
+                [class]="active.isPossibleToSaveAsFilter() ? 'enabled' : ''"
+                [disabled]="!active.isPossibleToSaveAsFilter()"
+                (click)="onSaveAsFilter()"
+            >
+                <mat-icon [class]="!active.isPossibleToSaveAsFilter() ? 'disabled' : ''"
+                    >save</mat-icon
+                >
             </button>
-            <button [class]="active.isPossibleToSaveAsChart() ? 'enabled' : ''" [disabled]="!active.isPossibleToSaveAsChart()">
-                <mat-icon [class]="!active.isPossibleToSaveAsChart() ? 'disabled' : ''">timeline</mat-icon>
+            <button
+                [class]="active.isPossibleToSaveAsChart() ? 'enabled' : ''"
+                [disabled]="!active.isPossibleToSaveAsChart()"
+            >
+                <mat-icon [class]="!active.isPossibleToSaveAsChart() ? 'disabled' : ''"
+                    >timeline</mat-icon
+                >
             </button>
             <button class="enabled" (click)="drop()">
                 <mat-icon>close</mat-icon>
@@ -36,11 +47,9 @@
             <mat-option
                 class="small"
                 *ngFor="let recent of recent.observer | async"
-                [value]="recent.value"                   
+                [value]="recent.value"
             >
-                <span class="t-console t-small t-subselection"
-                    [innerHTML]="recent.html()"
-                ></span>
+                <span class="t-console t-small t-subselection" [innerHTML]="recent.html()"></span>
             </mat-option>
         </mat-autocomplete>
     </mat-form-field>
@@ -63,7 +72,7 @@
     <span class="t-small color-scheme-2" *ngIf="progress.visible()">{{progress.summary()}}</span>
     <mat-spinner *ngIf="progress.working" [diameter]="20"></mat-spinner>
 </div>
-<div class="modes">
+<!-- <div class="modes">
     <span
         tabindex="14"
         (click)="map.modes().toggle().bookmarks()"
@@ -79,5 +88,4 @@
         (click)="map.modes().toggle().breadcrumbs()"
         [attr.class]="'small-icon-button codicon codicon-list-tree ' + (map.modes().breadcrumbs() ? 'active' : 'inactive')"
     ></span>
-</div>
-
+</div> -->
