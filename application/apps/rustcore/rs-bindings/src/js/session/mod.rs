@@ -17,7 +17,7 @@ use session::{
     operations,
     session::Session,
 };
-use std::{ops::RangeInclusive, path::PathBuf, thread};
+use std::{convert::TryFrom, ops::RangeInclusive, path::PathBuf, thread};
 use tokio::{runtime::Runtime, sync::oneshot};
 use uuid::Uuid;
 
@@ -232,11 +232,13 @@ impl RustSession {
         start_line_index: i64,
         number_of_lines: i64,
     ) -> Result<String, ComputationErrorWrapper> {
+        let start = u64::try_from(start_line_index)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
+        let end = u64::try_from(start_line_index + number_of_lines - 1)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
         if let Some(ref session) = self.session {
             let grabbed = session
-                .grab(LineRange::from(
-                    (start_line_index as u64)..=((start_line_index + number_of_lines - 1) as u64),
-                ))
+                .grab(LineRange::from(start..=end))
                 .await
                 .map_err(ComputationErrorWrapper)?;
             Ok(serde_json::to_string(&grabbed)?)
@@ -253,11 +255,13 @@ impl RustSession {
         start_line_index: i64,
         number_of_lines: i64,
     ) -> Result<String, ComputationErrorWrapper> {
+        let start = u64::try_from(start_line_index)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
+        let end = u64::try_from(start_line_index + number_of_lines - 1)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
         if let Some(ref session) = self.session {
             let grabbed = session
-                .grab_search(LineRange::from(
-                    (start_line_index as u64)..=((start_line_index + number_of_lines - 1) as u64),
-                ))
+                .grab_search(LineRange::from(start..=end))
                 .await
                 .map_err(ComputationErrorWrapper)?;
             Ok(serde_json::to_string(&grabbed)?)
