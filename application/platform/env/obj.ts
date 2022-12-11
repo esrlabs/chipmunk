@@ -229,3 +229,27 @@ export function from<T>(src: any, props: string[]): T {
     });
     return smth as T;
 }
+
+export function getSafeObj(dest: unknown): { [key: string]: string } | Error {
+    if (
+        typeof dest !== 'object' ||
+        dest === undefined ||
+        dest === null ||
+        dest instanceof Array ||
+        typeof dest === 'function'
+    ) {
+        return new Error(`Dest isn't any object; type = ${typeof dest}; value = ${dest}`);
+    }
+    const result: { [key: string]: string } = {};
+    Object.keys(dest).forEach((key: any) => {
+        if (typeof key !== 'string') {
+            return;
+        }
+        if (!Object.hasOwn(dest, key)) {
+            return;
+        }
+        const value = (dest as any)[key];
+        result[key] = typeof value !== 'string' ? `${value}` : value;
+    });
+    return result;
+}
