@@ -4,7 +4,20 @@ import { CLIAction } from '@service/cli/action';
 
 import * as handlers from '@service/cli/index';
 
-export const DEV_EXECUTOR_PATH = 'node_modules/electron/dist/electron';
+const DEV_EXECUTOR_PATH = 'node_modules/electron/dist/electron';
+const DEV_EXECUTOR_PATH_DARVIN = 'node_modules/electron/dist/Electron.app/Contents/MacOS/Electron';
+
+export function getDevExecutorPath(): string {
+    if (process.platform === 'darwin') {
+        return DEV_EXECUTOR_PATH_DARVIN;
+    } else {
+        return DEV_EXECUTOR_PATH;
+    }
+}
+export function isDevelopingExecuting(path: string): boolean {
+    const devPath = getDevExecutorPath();
+    return path.toLowerCase().indexOf(devPath.toLowerCase()) !== -1;
+}
 
 const CLI_HANDLERS: { [key: string]: CLIAction } = {
     open: new handlers.OpenFile(),
@@ -104,12 +117,13 @@ function check() {
         return;
     }
     const args = process.argv.slice();
+    console.log(args);
     const executor = args.shift();
     if (executor === undefined) {
         // Unexpected amount of arguments
         return;
     }
-    if (executor.indexOf(DEV_EXECUTOR_PATH) !== -1) {
+    if (isDevelopingExecuting(executor)) {
         // Developing mode
         return;
     }
@@ -127,5 +141,4 @@ function check() {
     });
     process.exit(0);
 }
-
 check();

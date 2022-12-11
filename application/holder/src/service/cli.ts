@@ -9,7 +9,7 @@ import { services } from '@register/services';
 import { electron } from '@service/electron';
 import { paths } from '@service/paths';
 import { environment } from '@service/environment';
-import { DEV_EXECUTOR_PATH } from '@loader/cli';
+import { isDevelopingExecuting } from '@loader/cli';
 import { exec } from 'sudo-prompt';
 import { ParserName } from 'platform/types/observe';
 import { getActions } from '@loader/cli';
@@ -49,7 +49,7 @@ export class Service extends Implementation {
             // Unexpected amount of arguments
             return Promise.resolve();
         }
-        if (executor.indexOf(DEV_EXECUTOR_PATH) !== -1) {
+        if (isDevelopingExecuting(executor)) {
             const mod = process.argv.findIndex((arg) => {
                 return arg.toLowerCase().endsWith('.js');
             });
