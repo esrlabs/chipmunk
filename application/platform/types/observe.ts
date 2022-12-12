@@ -22,6 +22,12 @@ export enum ParserName {
     Text = 'Text',
 }
 
+export enum Origin {
+    File = 'File',
+    Concat = 'Concat',
+    Stream = 'Stream',
+}
+
 export interface Parser {
     Dlt?: DltParserSettings;
     Pcap?: PcapParserSettings;

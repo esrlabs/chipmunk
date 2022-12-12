@@ -11,7 +11,7 @@
                 <mat-card-title>Recent</mat-card-title>
                 <mat-card-subtitle>Recently created connections</mat-card-subtitle>
                 <mat-card-content>
-                    <p class="t-medium">No recent connections</p>
+                    <app-recent-actions [parser]="ParserName.Dlt" [origin]="Origin.Stream" [after]="close"></app-recent-actions>
                 </mat-card-content>
             </mat-card>
         </div>
@@ -65,13 +65,7 @@
                 </mat-card-content>
             </mat-card>
             <div class="spacer"></div>
-            <mat-card class="controlls">
-                <mat-card-title>Actions</mat-card-title>
-                <mat-card-content>
-                  <button class="major-button" mat-stroked-button (click)="ngOnConnect()">Connect</button>
-                  <button mat-stroked-button (click)="ngOnClose()">Cancel</button>
-                </mat-card-content>
-            </mat-card>
+            <app-tabs-source-actions [action]="action"></app-tabs-source-actions>
         </div>
     </div>
 </div>

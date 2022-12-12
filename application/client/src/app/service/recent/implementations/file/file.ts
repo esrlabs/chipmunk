@@ -1,6 +1,7 @@
 import { components } from '@env/decorators/initial';
 import { RecentAction } from '../recent';
 import { IComponentDesc } from '@elements/containers/dynamic/component';
+import { ParserName } from '@platform/types/observe';
 
 import * as Files from './index';
 
@@ -16,6 +17,19 @@ export class Recent extends RecentAction {
     public text: Files.Text | undefined;
     public dlt: Files.Dlt | undefined;
     public pcap: Files.Pcap | undefined;
+
+    public isSuitable(parser: ParserName): boolean {
+        switch (parser) {
+            case ParserName.Text:
+                return this.text !== undefined;
+            case ParserName.Dlt:
+                return this.dlt !== undefined;
+            case ParserName.Someip:
+                return false;
+            case ParserName.Pcap:
+                return this.pcap !== undefined;
+        }
+    }
 
     public asComponent(): IComponentDesc {
         return {

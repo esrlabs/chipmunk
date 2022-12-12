@@ -13,15 +13,16 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatListModule } from '@angular/material/list';
 import { MatInputModule } from '@angular/material/input';
+import { RecentActionsModule } from '@elements/recent/module';
 
 import { TransportModule } from '@elements/transport/setup/module';
 import { LocksHistoryModule } from '@elements/locks.history/module';
 
 import { TabSourceTextStream } from './component';
-import { Actions } from '../common/actions/component';
+import { SourcesCommonModule } from '../common/module';
 
 @NgModule({
-    entryComponents: [TabSourceTextStream, Actions],
+    entryComponents: [TabSourceTextStream],
     imports: [
         CommonModule,
         FormsModule,
@@ -40,8 +41,10 @@ import { Actions } from '../common/actions/component';
         MatInputModule,
         TransportModule,
         LocksHistoryModule,
+        RecentActionsModule,
+        SourcesCommonModule,
     ],
-    declarations: [TabSourceTextStream, Actions],
+    declarations: [TabSourceTextStream],
     exports: [TabSourceTextStream],
     bootstrap: [TabSourceTextStream],
 })

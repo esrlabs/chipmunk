@@ -6,12 +6,13 @@ import { File } from '@platform/types/files';
 import { IDLTOptions, EMTIN } from '@platform/types/parsers/dlt';
 import { bytesToStr, timestampToUTC } from '@env/str';
 import { TabControls } from '@service/session';
-import { State, ConnectionType } from './state';
+import { State } from './state';
 import { components } from '@env/decorators/initial';
 import { LockToken } from '@platform/env/lock.token';
 import { Timezone } from '@elements/timezones/timezone';
 import { SourceDefinition, Source as SourceRef } from '@platform/types/transport';
 import { Action } from '../common/actions/action';
+import { ParserName, Origin } from '@platform/types/observe';
 
 @Component({
     selector: 'app-tabs-source-dltstream',
@@ -21,7 +22,8 @@ import { Action } from '../common/actions/action';
 @Initial()
 @Ilc()
 export class TabSourceDltStream extends ChangesDetector implements AfterContentInit {
-    public readonly ConnectionType = ConnectionType;
+    public readonly ParserName = ParserName;
+    public readonly Origin = Origin;
 
     @Input() done!: (
         options: {
@@ -52,11 +54,13 @@ export class TabSourceDltStream extends ChangesDetector implements AfterContentI
         { value: EMTIN.DLT_LOG_DEBUG, caption: 'Debug' },
         { value: EMTIN.DLT_LOG_VERBOSE, caption: 'Verbose' },
     ];
+    public group: string | undefined;
 
     private _filterLockTocken: LockToken = LockToken.simple(false);
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
+        this.close = this.close.bind(this);
     }
 
     public ngAfterContentInit(): void {
@@ -69,18 +73,34 @@ export class TabSourceDltStream extends ChangesDetector implements AfterContentI
         if (this.options !== undefined) {
             this.state.fromOptions(this.options);
         }
-    }
-
-    public ngOnConnect() {
-        this.done(this.state.asOptions(), (err: Error | undefined) => {
-            if (err === undefined) {
+        this.env().subscriber.register(
+            this.ilc().services.ui.lockers.unbound.subscribe(() => {
+                if (this.ilc().services.ui.lockers.get(this.tab.uuid).length !== 0) {
+                    this.group = this.tab.uuid;
+                } else {
+                    this.group = undefined;
+                }
+                this.detectChanges();
+            }),
+        );
+        this.env().subscriber.register(
+            this.action.subjects.get().applied.subscribe(() => {
+                this.done(this.state.asOptions(), (err: Error | undefined) => {
+                    if (err === undefined) {
+                        this.tab.close();
+                        return;
+                    }
+                });
+            }),
+        );
+        this.env().subscriber.register(
+            this.action.subjects.get().canceled.subscribe(() => {
                 this.tab.close();
-                return;
-            }
-        });
+            }),
+        );
     }
 
-    public ngOnClose() {
+    public close() {
         this.tab.close();
     }
 

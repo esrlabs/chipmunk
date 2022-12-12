@@ -28,12 +28,16 @@ export enum Codes {
     INVALID = 'INVALID',
 }
 
+export type UpdateHandler = () => void;
+
 export class ErrorState implements ErrorStateMatcher {
     readonly _alias: Field;
+    readonly _updated: UpdateHandler;
     private _code: Codes = Codes.NO_ERRORS;
 
-    constructor(alias: Field) {
+    constructor(alias: Field, updated: UpdateHandler) {
         this._alias = alias;
+        this._updated = updated;
     }
 
     public isErrorState(
@@ -50,6 +54,7 @@ export class ErrorState implements ErrorStateMatcher {
         } else {
             this._code = Codes.NO_ERRORS;
         }
+        this._updated();
         return this._code !== Codes.NO_ERRORS;
     }
 

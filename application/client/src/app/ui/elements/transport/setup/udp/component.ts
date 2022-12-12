@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Input, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, OnDestroy, AfterViewInit } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
@@ -10,7 +10,7 @@ import { Action } from '@ui/tabs/sources/common/actions/action';
     styleUrls: ['./styles.less'],
 })
 @Ilc()
-export class TransportUdp extends ChangesDetector implements OnDestroy {
+export class TransportUdp extends ChangesDetector implements OnDestroy, AfterViewInit {
     @Input() public state!: State;
     @Input() public action!: Action;
 
@@ -22,12 +22,23 @@ export class TransportUdp extends ChangesDetector implements OnDestroy {
         this.state.destroy();
     }
 
+    public ngAfterViewInit(): void {
+        this.env().subscriber.register(
+            this.state.subjects.get().updated.subscribe(this.verify.bind(this)),
+        );
+        this.verify();
+    }
+
     public ngAddMulticast() {
         this.state.addMulticast();
     }
 
     public ngOnRemoveMulticast() {
         this.state.cleanMulticast();
+    }
+
+    public verify() {
+        this.action.setDisabled(!this.state.isValid());
     }
 }
 export interface TransportUdp extends IlcInterface {}

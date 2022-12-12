@@ -14,22 +14,6 @@ import { State as TransportState } from '@elements/transport/setup/state';
 
 import * as Errors from './error';
 
-export enum ConnectionType {
-    Tcp = 'Tcp',
-    Udp = 'Udp',
-}
-export const ENTITIES = {
-    app_ids: 'app_ids',
-    context_ids: 'context_ids',
-    ecu_ids: 'ecu_ids',
-};
-
-export const NAMES: { [key: string]: string } = {
-    [ENTITIES.app_ids]: 'Applications',
-    [ENTITIES.context_ids]: 'Contexts',
-    [ENTITIES.ecu_ids]: 'ECUs',
-};
-
 export class State {
     public logLevel: EMTIN = EMTIN.DLT_LOG_VERBOSE;
     public fibex: File[] = [];
@@ -41,7 +25,6 @@ export class State {
     public transport: TransportState = new TransportState();
     public bindingAddress: string = '';
     public bindingPort: string = '';
-    public connectionType: ConnectionType = ConnectionType.Tcp;
 
     public fromOptions(opt: {
         source: SourceDefinition | undefined;

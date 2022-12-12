@@ -7,6 +7,7 @@ import { TabControls } from '@service/session';
 import { State } from './state';
 import { SourceDefinition, Source as SourceRef } from '@platform/types/transport';
 import { Action } from '../common/actions/action';
+import { ParserName, Origin } from '@platform/types/observe';
 
 @Component({
     selector: 'app-tabs-source-textstream',
@@ -16,6 +17,9 @@ import { Action } from '../common/actions/action';
 @Initial()
 @Ilc()
 export class TabSourceTextStream extends ChangesDetector implements AfterContentInit, OnDestroy {
+    public readonly ParserName = ParserName;
+    public readonly Origin = Origin;
+
     @Input() done!: (
         options: { source: SourceDefinition },
         cb: (err: Error | undefined) => void,
@@ -32,6 +36,7 @@ export class TabSourceTextStream extends ChangesDetector implements AfterContent
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
+        this.close = this.close.bind(this);
     }
 
     public ngOnDestroy(): void {
@@ -74,6 +79,10 @@ export class TabSourceTextStream extends ChangesDetector implements AfterContent
                 this.tab.close();
             }),
         );
+    }
+
+    public close() {
+        this.tab.close();
     }
 }
 export interface TabSourceTextStream extends IlcInterface {}

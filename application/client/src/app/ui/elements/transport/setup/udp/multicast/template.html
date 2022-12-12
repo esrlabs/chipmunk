@@ -1,5 +1,5 @@
 <mat-form-field class="inline">
-    <input matInput placeholder="Multicast Group Address" [(ngModel)]="multicast.multiaddr" (ngModelChange)="_ng_onChanges()" [errorStateMatcher]="errors.multiaddr">
+    <input matInput placeholder="Multicast Group Address" [(ngModel)]="multicast.multiaddr" (ngModelChange)="onChange()" [errorStateMatcher]="errors.multiaddr">
     <mat-error *ngIf="errors.multiaddr.getErrorCode() === 'INVALID'">
         Please enter a valid IPv4/IPv6 address
     </mat-error>
@@ -8,7 +8,7 @@
     </mat-error>
 </mat-form-field>
 <mat-form-field class="inline">
-    <input matInput placeholder="Network Interface" [(ngModel)]="multicast.interface" (ngModelChange)="_ng_onChanges()" [errorStateMatcher]="errors.interface">
+    <input matInput placeholder="Network Interface" [(ngModel)]="multicast.interface" (ngModelChange)="onChange()" [errorStateMatcher]="errors.interface">
     <mat-error *ngIf="errors.interface.getErrorCode() === 'INVALID'">
         Please define valid interface
     </mat-error>
