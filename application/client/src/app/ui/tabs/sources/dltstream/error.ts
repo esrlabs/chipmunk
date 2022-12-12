@@ -20,7 +20,6 @@ export enum Field {
     bindingPort = 'bindingPort',
     multicastAddress = 'multicastAddress',
     multicastInterface = 'multicastInterface',
-    ecu = 'ecu',
 }
 
 export enum Codes {
@@ -59,8 +58,6 @@ export class ErrorState implements ErrorStateMatcher {
             return false;
         }
         switch (this._alias) {
-            case Field.ecu:
-                return value.length <= 255;
             case Field.bindingAddress:
             case Field.multicastAddress:
                 return isValidIPv4(value) || isValidIPv6(value);
@@ -83,7 +80,6 @@ export class ErrorState implements ErrorStateMatcher {
             return true;
         }
         switch (this._alias) {
-            case Field.ecu:
             case Field.bindingAddress:
             case Field.bindingPort:
             case Field.multicastAddress:

@@ -35,11 +35,9 @@ export class State {
     public fibex: File[] = [];
     public timezone: Timezone | undefined;
     public errors = {
-        ecu: new Errors.ErrorState(Errors.Field.ecu),
         bindingAddress: new Errors.ErrorState(Errors.Field.bindingAddress),
         bindingPort: new Errors.ErrorState(Errors.Field.bindingPort),
     };
-    public ecu: string = '';
     public transport: TransportState = new TransportState();
     public bindingAddress: string = '';
     public bindingPort: string = '';

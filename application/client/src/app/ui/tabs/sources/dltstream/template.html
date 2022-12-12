@@ -4,15 +4,6 @@
             <mat-card class="top">
                 <mat-card-title>Connection</mat-card-title>
                 <mat-card-content>
-                    <mat-form-field class="full-width">
-                        <input matInput placeholder="Preset name" [(ngModel)]="state.ecu" [errorStateMatcher]="state.errors.ecu">
-                        <mat-error *ngIf="state.errors.ecu.getErrorCode() === 'INVALID'">
-                            Use can use not more 255 symbols
-                        </mat-error>
-                        <mat-error *ngIf="state.errors.ecu.getErrorCode() === 'REQUIRED'">
-                           <strong>required</strong>
-                        </mat-error>
-                    </mat-form-field>
                     <app-transport [state]="state.transport" [action]="action"></app-transport>
                 </mat-card-content>
             </mat-card>
