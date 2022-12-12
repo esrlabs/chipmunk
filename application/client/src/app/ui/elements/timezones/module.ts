@@ -11,4 +11,4 @@ import { MatListModule } from '@angular/material/list';
     exports: [ElementsTimezoneSelector],
     bootstrap: [ElementsTimezoneSelector],
 })
-export class ElementsModule {}
+export class TimezoneSelectorModule {}
