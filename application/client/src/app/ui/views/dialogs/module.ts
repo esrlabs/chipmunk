@@ -10,6 +10,6 @@ import { AboutModule } from './about/module';
     imports: [CommonModule, HotkeysModule, AboutModule, LockerMessageModule],
     declarations: [],
     exports: [HotkeysModule, AboutModule, LockerMessageModule],
-    bootstrap: [LockerMessageModule],
+    bootstrap: [HotkeysModule, AboutModule, LockerMessageModule],
 })
 export class DialogsModule {}

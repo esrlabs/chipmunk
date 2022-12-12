@@ -8,5 +8,6 @@ import { Hotkeys } from './component';
     imports: [CommonModule],
     declarations: [Hotkeys],
     exports: [Hotkeys],
+    bootstrap: [Hotkeys],
 })
 export class HotkeysModule {}
