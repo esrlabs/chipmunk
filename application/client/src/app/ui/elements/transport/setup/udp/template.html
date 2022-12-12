@@ -1,5 +1,7 @@
 <mat-form-field class="inline">
-    <input matInput placeholder="IP Address" [(ngModel)]="state.bindingAddress" [errorStateMatcher]="state.errors.bindingAddress">
+    <input matInput placeholder="IP Address"
+        [(ngModel)]="state.bindingAddress"
+        [errorStateMatcher]="state.errors.bindingAddress">
     <mat-error *ngIf="state.errors.bindingAddress.getErrorCode() === 'INVALID'">
         Please enter a valid IPv4/IPv6 address
     </mat-error>
@@ -8,7 +10,9 @@
     </mat-error>
 </mat-form-field>
 <mat-form-field class="inline">
-    <input matInput placeholder="Port" [(ngModel)]="state.bindingPort" [errorStateMatcher]="state.errors.bindingPort">
+    <input matInput placeholder="Port"
+        [(ngModel)]="state.bindingPort"
+        [errorStateMatcher]="state.errors.bindingPort">
     <mat-error *ngIf="state.errors.bindingPort.getErrorCode() === 'INVALID'">
         Please enter a valid port value
     </mat-error>
@@ -20,7 +24,10 @@
     <mat-divider></mat-divider>
     <p class="t-medium">Multicasts</p>
 </div>
-<app-transport-udp-multicast *ngFor="let multicast of state.multicasts" [multicast]="multicast" (clean)="ngOnRemoveMulticast()"></app-transport-udp-multicast>
+<app-transport-udp-multicast *ngFor="let multicast of state.multicasts"
+    [multicast]="multicast.fields"
+    [errors]="multicast.errors"
+    (clean)="ngOnRemoveMulticast()"></app-transport-udp-multicast>
 <div class="controlls">
     <button mat-stroked-button (click)="ngAddMulticast()">Add Multicast</button>
 </div>

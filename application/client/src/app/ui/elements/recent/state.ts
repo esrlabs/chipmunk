@@ -7,15 +7,25 @@ import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { syncHasFocusedInput } from '@ui/env/globals';
 import { Holder } from '@module/matcher';
+import { ParserName, Origin } from '@platform/types/observe';
 
 export class State extends Holder {
-    public filter: Filter;
     public actions: WrappedAction[] = [];
-    public update: Subject<void> = new Subject<void>();
 
-    constructor(ilc: IlcInterface & ChangesDetector) {
+    public readonly filter: Filter;
+    public readonly update: Subject<void> = new Subject<void>();
+    public readonly origin?: Origin;
+    public readonly parser?: ParserName;
+
+    constructor(
+        ilc: IlcInterface & ChangesDetector,
+        origin: Origin | undefined,
+        parser: ParserName | undefined,
+    ) {
         super();
         this.filter = new Filter(ilc.ilc());
+        this.origin = origin;
+        this.parser = parser;
         ilc.env().subscriber.register(
             this.filter.subjects.get().drop.subscribe(this.filtering.bind(this)),
         );
@@ -65,7 +75,9 @@ export class State extends Holder {
         recent
             .get()
             .then((actions: Action[]) => {
-                this.actions = actions.map((action) => new WrappedAction(action, this.matcher));
+                this.actions = actions
+                    .filter((action) => action.isSuitable(this.origin, this.parser))
+                    .map((action) => new WrappedAction(action, this.matcher));
                 this.update.emit();
             })
             .catch((error: Error) => {

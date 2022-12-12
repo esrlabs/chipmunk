@@ -4,12 +4,34 @@ import { Base } from '../common/state';
 import * as Errors from './error';
 
 export class State extends Base<TCPTransportSettings> {
-    public errors = {
-        bindingAddress: new Errors.ErrorState(Errors.Field.bindingAddress),
-        bindingPort: new Errors.ErrorState(Errors.Field.bindingPort),
+    public errors: {
+        bindingAddress: Errors.ErrorState;
+        bindingPort: Errors.ErrorState;
     };
     public bindingAddress: string = '';
     public bindingPort: string = '';
+
+    constructor() {
+        super();
+        this.errors = {
+            bindingAddress: new Errors.ErrorState(Errors.Field.bindingAddress, () => {
+                this.update();
+            }),
+            bindingPort: new Errors.ErrorState(Errors.Field.bindingPort, () => {
+                this.update();
+            }),
+        };
+    }
+
+    public isValid(): boolean {
+        if (!this.errors.bindingAddress.isValid()) {
+            return false;
+        }
+        if (!this.errors.bindingPort.isValid()) {
+            return false;
+        }
+        return true;
+    }
 
     public from(opt: TCPTransportSettings) {
         const pair = opt.bind_addr.split(':');

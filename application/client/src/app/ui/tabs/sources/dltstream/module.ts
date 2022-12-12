@@ -14,6 +14,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatListModule } from '@angular/material/list';
 import { MatInputModule } from '@angular/material/input';
 import { TransportModule } from '@elements/transport/setup/module';
+import { RecentActionsModule } from '@elements/recent/module';
+import { SourcesCommonModule } from '../common/module';
 
 import { TabSourceDltStream } from './component';
 
@@ -36,6 +38,8 @@ import { TabSourceDltStream } from './component';
         MatListModule,
         MatInputModule,
         TransportModule,
+        RecentActionsModule,
+        SourcesCommonModule,
     ],
     declarations: [TabSourceDltStream],
     exports: [TabSourceDltStream],

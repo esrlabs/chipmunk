@@ -14,8 +14,11 @@ import { bridge } from '@service/bridge';
 import { session } from '@service/session';
 import { components } from '@env/decorators/initial';
 import { lockers, Locker } from '@ui/service/lockers';
+import { ParserName, Origin } from '@platform/types/observe';
 
 import * as obj from '@platform/env/obj';
+
+export type AfterHandler = () => void;
 
 export class Action {
     public file: RecentFileAction | undefined;
@@ -24,6 +27,66 @@ export class Action {
 
     public uuid: string = unique();
 
+    protected readonly handlers: {
+        after: AfterHandler | undefined;
+    } = {
+        after: undefined,
+    };
+
+    public after(handler: AfterHandler | undefined): Action {
+        this.handlers.after = handler;
+        return this;
+    }
+
+    public isSuitable(origin: Origin | undefined, parser: ParserName | undefined): boolean {
+        if (origin === undefined && parser === undefined) {
+            return true;
+        }
+        if (origin !== undefined) {
+            switch (origin) {
+                case Origin.Stream:
+                    if (this.file !== undefined) {
+                        return false;
+                    }
+                    break;
+                case Origin.File:
+                    if (this.file === undefined) {
+                        return false;
+                    }
+                    break;
+                default:
+                    return false;
+            }
+        }
+        if (parser !== undefined) {
+            switch (parser) {
+                case ParserName.Text:
+                    if (this.dlt_stream !== undefined) {
+                        return false;
+                    }
+                    if (this.file !== undefined) {
+                        return this.file.isSuitable(parser);
+                    }
+                    break;
+                case ParserName.Dlt:
+                    if (this.text_stream !== undefined) {
+                        return false;
+                    }
+                    if (this.file !== undefined) {
+                        return this.file.isSuitable(parser);
+                    }
+                    break;
+                case ParserName.Someip:
+                    return false;
+                case ParserName.Pcap:
+                    if (this.file === undefined) {
+                        return false;
+                    }
+                    return this.file.isSuitable(parser);
+            }
+        }
+        return true;
+    }
     public description(): {
         major: string;
         minor: string;
@@ -204,6 +267,7 @@ export class Action {
                                         },
                                         active: true,
                                     });
+                                    this.handlers.after !== undefined && this.handlers.after();
                                 })
                                 .catch((err: Error) => {
                                     console.error(`Fail to select DLT file: ${err.message}`);
@@ -242,6 +306,7 @@ export class Action {
                                         },
                                         active: true,
                                     });
+                                    this.handlers.after !== undefined && this.handlers.after();
                                 })
                                 .catch((err: Error) => {
                                     console.error(`Fail to select DLT file: ${err.message}`);
@@ -263,6 +328,9 @@ export class Action {
                         opener
                             .stream(opt.source, true, undefined)
                             .dlt(opt.options)
+                            .then(() => {
+                                this.handlers.after !== undefined && this.handlers.after();
+                            })
                             .catch((err: Error) => {
                                 console.error(`Fail to open stream; error: ${err.message}`);
                             });
@@ -282,6 +350,9 @@ export class Action {
                         opener
                             .stream(opt.source, true, undefined)
                             .text()
+                            .then(() => {
+                                this.handlers.after !== undefined && this.handlers.after();
+                            })
                             .catch((err: Error) => {
                                 console.error(`Fail to open stream; error: ${err.message}`);
                             });
@@ -311,30 +382,34 @@ export class Action {
             } else {
                 return Promise.reject(new Error(`Opener for action isn't found`));
             }
-        })().catch((err: Error) => {
-            const message = lockers.lock(
-                new Locker(false, `Fail to apply action via error: ${err.message}`)
-                    .set()
-                    .buttons([
-                        {
-                            caption: `Remove`,
-                            handler: () => {
-                                remove([this.uuid]);
-                                message.popup.close();
+        })()
+            .then(() => {
+                this.handlers.after !== undefined && this.handlers.after();
+            })
+            .catch((err: Error) => {
+                const message = lockers.lock(
+                    new Locker(false, `Fail to apply action via error: ${err.message}`)
+                        .set()
+                        .buttons([
+                            {
+                                caption: `Remove`,
+                                handler: () => {
+                                    remove([this.uuid]);
+                                    message.popup.close();
+                                },
                             },
-                        },
-                        {
-                            caption: `Cancel`,
-                            handler: () => {
-                                message.popup.close();
+                            {
+                                caption: `Cancel`,
+                                handler: () => {
+                                    message.popup.close();
+                                },
                             },
-                        },
-                    ])
-                    .end(),
-                {
-                    closable: false,
-                },
-            );
-        });
+                        ])
+                        .end(),
+                    {
+                        closable: false,
+                    },
+                );
+            });
     }
 }
