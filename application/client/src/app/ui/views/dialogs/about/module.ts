@@ -8,5 +8,6 @@ import { About } from './component';
     imports: [CommonModule, MatButtonModule],
     declarations: [About],
     exports: [About],
+    bootstrap: [About],
 })
 export class AboutModule {}
