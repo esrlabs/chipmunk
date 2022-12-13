@@ -53,6 +53,14 @@ export class ObserveList extends ChangesDetector implements AfterContentInit {
                 this.observed.done.push(new SourceHolder(source));
             }
         });
+        if (this.selected !== undefined) {
+            const selected = this.selected;
+            this.observed.done.concat(this.observed.running).forEach((holder) => {
+                if (holder.isSame(selected)) {
+                    this.selected = holder;
+                }
+            });
+        }
         this.detectChanges();
     }
 

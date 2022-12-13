@@ -33,25 +33,20 @@ export class Transport extends ChangesDetector implements AfterContentInit, Afte
     }
 
     public ngAfterContentChecked(): void {
-        this.update();
-        this.detectChanges();
-    }
-
-    public ngGetObserveHandle(): ObserveOperation | undefined {
-        return this.source instanceof ObserveOperation ? this.source : undefined;
+        this.update().detectChanges();
     }
 
     public ngStop(): void {
-        if (!(this.source instanceof ObserveOperation)) {
+        if (this.observer === undefined) {
             return;
         }
-        this.source
+        this.observer
             .abort()
             .catch((err: Error) => {
                 this.log().error(`Fail to stop observe operation: ${err.message}`);
             })
             .finally(() => {
-                this.detectChanges();
+                this.update().detectChanges();
             });
     }
 
@@ -61,8 +56,8 @@ export class Transport extends ChangesDetector implements AfterContentInit, Afte
             return;
         }
         (() => {
-            if (this.source instanceof ObserveOperation) {
-                return this.source.restart();
+            if (this.observer !== undefined) {
+                return this.observer.restart();
             } else {
                 return this.session.stream.connect(sourceDef).source(this.source);
             }
@@ -83,18 +78,19 @@ export class Transport extends ChangesDetector implements AfterContentInit, Afte
         this.ilc()
             .services.system.opener.stream(sourceDef, undefined, undefined)
             .assign(this.session)
-            .source(this.source instanceof ObserveOperation ? this.source.asSource() : this.source);
-        if (!(this.source instanceof ObserveOperation)) {
-            return;
-        }
+            .source(this.observer !== undefined ? this.observer.asSource() : this.source)
+            .catch((err: Error) => {
+                this.log().error(`Fail to clone source: ${err.message}`);
+            });
     }
 
     public isTextFile(): boolean {
         return this.source.asFile() !== undefined && this.source.parser.Text === undefined;
     }
 
-    protected update() {
-        this.stopped = !(this.source instanceof ObserveOperation);
+    protected update(): Transport {
+        this.stopped = this.observer === undefined;
+        return this;
     }
 }
 export interface Transport extends IlcInterface {}

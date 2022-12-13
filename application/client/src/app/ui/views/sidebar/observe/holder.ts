@@ -13,4 +13,8 @@ export class SourceHolder {
     public uuid(): string {
         return this.source.uuid;
     }
+
+    public isSame(holder: SourceHolder): boolean {
+        return this.uuid() === holder.uuid();
+    }
 }
