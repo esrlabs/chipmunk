@@ -21,6 +21,11 @@ export class Map extends Subscriber {
         breadcrumbs: false,
         bookmarks: true,
     };
+    private readonly _hash: {
+        bookmarks: string;
+    } = {
+        bookmarks: '',
+    };
     public readonly breadcrumbs: Breadcrumbs = new Breadcrumbs();
     protected bookmarks!: Bookmarks;
     protected stream!: Stream;
@@ -37,7 +42,7 @@ export class Map extends Subscriber {
         );
         this.register(
             this.cursor.subjects.get().updated.subscribe(() => {
-                this.build();
+                this._modes.selections && this.build();
             }),
         );
     }
@@ -124,10 +129,14 @@ export class Map extends Subscriber {
     }
 
     public parse(str: string | null): Error | undefined {
-        if (str === null) {
+        const drop = () => {
             this._matches = [];
             this._mixed = [];
             this.breadcrumbs.drop();
+            this.build();
+        };
+        if (str === null) {
+            drop();
         } else {
             try {
                 const matches: number[] = JSON.parse(str);
@@ -135,11 +144,12 @@ export class Map extends Subscriber {
                     throw new Error(`Map of matches should be an array`);
                 }
                 this._matches = this._matches.concat(matches);
+                this.build(matches);
             } catch (e) {
+                drop();
                 return new Error(error(e));
             }
         }
-        this.build();
         return undefined;
     }
 
@@ -147,8 +157,8 @@ export class Map extends Subscriber {
         return this._mixed.length;
     }
 
-    protected build() {
-        const finish = this.log().measure(`Building map for ${this._matches.length} matches`);
+    protected build(matches?: number[]) {
+        const finish = this.log().measure(`Building map for ${this._matches.length} matches`, 50);
         if (this._modes.breadcrumbs) {
             if (this._modes.bookmarks) {
                 const matches = this.getMatchesWithBookmarks();
@@ -161,13 +171,23 @@ export class Map extends Subscriber {
                     .sort((a, b) => (a > b ? 1 : -1));
             }
         } else {
-            this._mixed = Array.from(
-                new Set(
-                    this._matches
-                        .concat(this._modes.bookmarks ? this.bookmarks.getRowsPositions() : [])
-                        .concat(this._modes.selections ? this.cursor.get() : []),
-                ).values(),
-            ).sort((a, b) => (a > b ? 1 : -1));
+            if (matches !== undefined) {
+                const bookmarks = this.bookmarks.hash();
+                if (this._hash.bookmarks !== bookmarks) {
+                    this._hash.bookmarks = bookmarks;
+                    this.build();
+                } else {
+                    this._mixed = this._mixed.concat(matches);
+                }
+            } else {
+                this._mixed = Array.from(
+                    new Set(
+                        this._matches
+                            .concat(this._modes.bookmarks ? this.bookmarks.getRowsPositions() : [])
+                            .concat(this._modes.selections ? this.cursor.get() : []),
+                    ).values(),
+                ).sort((a, b) => (a > b ? 1 : -1));
+            }
         }
         finish();
         this.updated.emit();

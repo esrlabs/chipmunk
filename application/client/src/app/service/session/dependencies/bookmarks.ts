@@ -80,6 +80,10 @@ export class Bookmarks extends Subscriber {
         return this.bookmarks.map((b) => b.position);
     }
 
+    public hash(): string {
+        return this.getRowsPositions().join(',');
+    }
+
     public update(): void {
         this.subjects.get().updated.emit();
     }
