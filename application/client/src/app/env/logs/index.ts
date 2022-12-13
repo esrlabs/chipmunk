@@ -86,14 +86,26 @@ export class Logger extends Instance {
         return this._log(this._getMessage(...args), Level.DEBUG);
     }
 
-    public measure(operation: string): () => void {
+    public measure(operation: string, warnDurationMs?: number): () => void {
         const started = Date.now();
-        this.debug(`starting "${operation}"`);
+        warnDurationMs === undefined && this.debug(`starting "${operation}"`);
         return () => {
             const duration: number = Date.now() - started;
-            this.debug(
-                `"${operation}" finished in: ${(duration / 1000).toFixed(2)} sec (${duration}ms)`,
-            );
+            if (warnDurationMs !== undefined) {
+                if (warnDurationMs <= duration) {
+                    this.warn(
+                        `"${operation}" finished in: ${(duration / 1000).toFixed(
+                            2,
+                        )} sec (${duration}ms)`,
+                    );
+                }
+            } else {
+                this.debug(
+                    `"${operation}" finished in: ${(duration / 1000).toFixed(
+                        2,
+                    )} sec (${duration}ms)`,
+                );
+            }
         };
     }
 
