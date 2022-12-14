@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fs::File,
-    io::{Seek, SeekFrom},
+    io::{Read, Seek, SeekFrom},
     ops::Range,
     path::{Path, PathBuf},
     str::FromStr,
@@ -261,9 +261,19 @@ impl SearchHolder {
     /// [(index_of_filter, count_of_matches), ...]
     pub fn execute_search(
         &mut self,
-        target_file_len: u64,
+        rows_count: u64,
+        read_bytes: u64,
         cancallation: CancellationToken,
     ) -> SearchResults {
+        if read_bytes == 0 || read_bytes == self.bytes_read {
+            return Ok((0..0, vec![], FiltersStats::default()));
+        }
+        if read_bytes < self.bytes_read {
+            return Err(SearchError::IoOperation(format!(
+                "Invalid amount of read bytes ({read_bytes}). Processed bytes {}",
+                self.bytes_read
+            )));
+        }
         if self.search_filters.is_empty() {
             return Err(SearchError::Input(
                 "Cannot search without filters".to_owned(),
@@ -275,7 +285,7 @@ impl SearchHolder {
         );
         let matcher = match RegexMatcher::new(&combined_regex) {
             Ok(regex) => regex,
-            Err(err) => return Err(SearchError::Regex(format!("{}", err))),
+            Err(err) => return Err(SearchError::Regex(format!("{err}"))),
         };
         let mut matchers: Vec<Regex> = vec![];
         let mut aliases: HashMap<usize, String> = HashMap::new();
@@ -283,7 +293,7 @@ impl SearchHolder {
             aliases.insert(pos, filter_as_alias(filter));
             matchers.push(
                 Regex::from_str(&filter_as_regex(filter))
-                    .map_err(|err| SearchError::Regex(format!("{}", err)))?,
+                    .map_err(|err| SearchError::Regex(format!("{err}")))?,
             );
         }
         let in_file = File::open(&self.file_path).map_err(|_| {
@@ -301,17 +311,18 @@ impl SearchHolder {
                     &self.file_path, self.bytes_read
                 ))
             })?;
+        let mut reader_handler = in_file_reader.take(read_bytes - self.bytes_read);
         let mut indexes: Vec<FilterMatch> = vec![];
         let mut stats = FiltersStats::default();
         // Take in account: we are counting on all levels (grabbing search, grabbing stream etc)
         // from 0 line always. But grep gives results from 1. That's why here is a point of correct:
         // lnum - 1
         let lines_read = self.lines_read;
-        self.lines_read = target_file_len;
+        self.lines_read = rows_count;
         Searcher::new()
             .search_reader(
                 &matcher,
-                &mut in_file_reader,
+                &mut reader_handler,
                 UTF8(|lnum, line| {
                     let lnum = lnum + lines_read;
                     let mut line_indexes = FilterMatch::new(lnum - 1, vec![]);
@@ -329,22 +340,11 @@ impl SearchHolder {
             )
             .map_err(|e| {
                 SearchError::IoOperation(format!(
-                    "Could not search in file {:?}; error: {}",
-                    &self.file_path, e
+                    "Could not search in file {:?}; error: {e}",
+                    &self.file_path
                 ))
             })?;
-        self.bytes_read = in_file_reader.stream_position().map_err(|e| {
-            SearchError::IoOperation(format!(
-                "Cannot detect position in file {:?}; error: {}",
-                &self.file_path, e
-            ))
-        })? + 1;
-        // self.bytes_read = in_file_reader.seek(SeekFrom::Current(0)).map_err(|e| {
-        //     SearchError::IoOperation(format!(
-        //         "Cannot detect position in file {:?}; error: {}",
-        //         &self.file_path, e
-        //     ))
-        // })? + 1;
+        self.bytes_read = read_bytes + 1;
         let processed = lines_read as usize..(lines_read as usize + indexes.len());
         Ok((processed, indexes, stats))
     }
@@ -430,9 +430,10 @@ mod tests {
         let mut tmp_file = tempfile::NamedTempFile::new()?;
         let input_file = tmp_file.as_file_mut();
         input_file.write_all(content.as_bytes())?;
+        let file_size = input_file.metadata()?.len();
         let mut holder = SearchHolder::new(tmp_file.path(), filters.iter(), Uuid::new_v4());
         let (_range, indexes, _stats) = holder
-            .execute_search(0, CancellationToken::new())
+            .execute_search(0, file_size, CancellationToken::new())
             .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {}", e)))?;
         Ok(indexes)
     }

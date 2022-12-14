@@ -159,35 +159,21 @@ export class Map extends Subscriber {
 
     protected build(matches?: number[]) {
         const finish = this.log().measure(`Building map for ${this._matches.length} matches`, 50);
-        if (this._modes.breadcrumbs) {
-            if (this._modes.bookmarks) {
-                const matches = this.getMatchesWithBookmarks();
-                this._mixed = matches
-                    .concat(this.breadcrumbs.collect(matches, this.stream.len()))
-                    .sort((a, b) => (a > b ? 1 : -1));
+        const build = () => {
+            this._mixed = Array.from(
+                new Set(this._matches.concat(this.bookmarks.getRowsPositions())).values(),
+            ).sort((a, b) => (a > b ? 1 : -1));
+        };
+        if (matches !== undefined) {
+            const bookmarks = this.bookmarks.hash();
+            if (this._hash.bookmarks !== bookmarks) {
+                this._hash.bookmarks = bookmarks;
+                build();
             } else {
-                this._mixed = this._matches
-                    .concat(this.breadcrumbs.collect(this._matches, this.stream.len()))
-                    .sort((a, b) => (a > b ? 1 : -1));
+                this._mixed = this._mixed.concat(matches);
             }
         } else {
-            if (matches !== undefined) {
-                const bookmarks = this.bookmarks.hash();
-                if (this._hash.bookmarks !== bookmarks) {
-                    this._hash.bookmarks = bookmarks;
-                    this.build();
-                } else {
-                    this._mixed = this._mixed.concat(matches);
-                }
-            } else {
-                this._mixed = Array.from(
-                    new Set(
-                        this._matches
-                            .concat(this._modes.bookmarks ? this.bookmarks.getRowsPositions() : [])
-                            .concat(this._modes.selections ? this.cursor.get() : []),
-                    ).values(),
-                ).sort((a, b) => (a > b ? 1 : -1));
-            }
+            build();
         }
         finish();
         this.updated.emit();

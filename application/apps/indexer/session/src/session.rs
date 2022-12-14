@@ -169,6 +169,7 @@ impl Session {
             .get_stream_len()
             .await
             .map_err(ComputationError::NativeError)
+            .map(|(rows, _bytes)| rows as usize)
     }
 
     pub async fn get_search_result_len(&self) -> Result<usize, ComputationError> {

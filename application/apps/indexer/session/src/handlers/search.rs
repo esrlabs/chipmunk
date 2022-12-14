@@ -27,7 +27,7 @@ pub async fn handle(
 ) -> OperationResult<u64> {
     debug!("RUST: Search operation is requested");
     state.drop_search().await?;
-    let session_file_len = state.get_stream_len().await? as u64;
+    let (rows, read_bytes) = state.get_stream_len().await?;
     if filters.is_empty() {
         debug!("RUST: Search will be dropped. Filters are empty");
         Ok(Some(0))
@@ -39,7 +39,7 @@ pub async fn handle(
         let cancel_search = operation_api.cancellation_token();
         task::spawn(async move {
             let search_results =
-                search_holder.execute_search(session_file_len, cancel_search.clone());
+                search_holder.execute_search(rows, read_bytes, cancel_search.clone());
             if !cancel_search.is_cancelled()
                 && tx_result
                     .send((search_holder, search_results))

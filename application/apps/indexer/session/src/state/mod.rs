@@ -56,11 +56,12 @@ pub enum SearchHolderState {
 impl SearchHolderState {
     pub fn execute_search(
         &mut self,
-        session_file_len: u64,
+        rows_count: u64,
+        read_bytes: u64,
         cancel_token: CancellationToken,
     ) -> Option<SearchResults> {
         match self {
-            Self::Available(h) => Some(h.execute_search(session_file_len, cancel_token)),
+            Self::Available(h) => Some(h.execute_search(rows_count, read_bytes, cancel_token)),
             _ => None,
         }
     }
@@ -104,7 +105,7 @@ pub enum Api {
             oneshot::Sender<Result<Vec<GrabbedElement>, NativeError>>,
         ),
     ),
-    GetStreamLen(oneshot::Sender<usize>),
+    GetStreamLen(oneshot::Sender<(u64, u64)>),
     GetSearchResultLen(oneshot::Sender<usize>),
     GetSearchHolder((Uuid, oneshot::Sender<Result<SearchHolder, NativeError>>)),
     SetSearchHolder(
@@ -294,12 +295,13 @@ impl SessionState {
         state_cancellation_token: CancellationToken,
         tx_callback_events: UnboundedSender<CallbackEvent>,
     ) -> Result<(), NativeError> {
-        let len = self.session_file.len() as u64;
-        self.search_map.set_stream_len(len);
-        tx_callback_events.send(CallbackEvent::StreamUpdated(len))?;
+        let rows = self.session_file.len();
+        let bytes = self.session_file.read_bytes();
+        self.search_map.set_stream_len(rows);
+        tx_callback_events.send(CallbackEvent::StreamUpdated(rows))?;
         match self
             .search_holder
-            .execute_search(len, state_cancellation_token)
+            .execute_search(rows, bytes, state_cancellation_token)
         {
             Some(Ok((_processed, mut matches, stats))) => {
                 let map_updates = SearchMap::map_as_str(&matches);
@@ -440,7 +442,7 @@ impl SessionStateAPI {
             .await?
     }
 
-    pub async fn get_stream_len(&self) -> Result<usize, NativeError> {
+    pub async fn get_stream_len(&self) -> Result<(u64, u64), NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetStreamLen(tx), rx).await
     }
@@ -773,7 +775,7 @@ pub async fn run(
             }
             Api::GetStreamLen(tx_response) => {
                 tx_response
-                    .send(state.session_file.len())
+                    .send((state.session_file.len(), state.session_file.read_bytes()))
                     .map_err(|_| NativeError::channel("Failed to respond to Api::GetStreamLen"))?;
             }
             Api::GetSearchResultLen(tx_response) => {
