@@ -18,6 +18,7 @@ import { State } from './state';
 import { LockToken } from '@platform/env/lock.token';
 import { Timezone } from '@elements/timezones/timezone';
 import { components } from '@env/decorators/initial';
+import { Action } from '../common/actions/action';
 
 @Component({
     selector: 'app-tabs-source-dltfile',
@@ -52,6 +53,7 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
         { value: EMTIN.DLT_LOG_DEBUG, caption: 'Debug' },
         { value: EMTIN.DLT_LOG_VERBOSE, caption: 'Verbose' },
     ];
+    public action: Action = new Action();
 
     private _filterLockTocken: LockToken = LockToken.simple(false);
 
@@ -70,6 +72,17 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
         if (this.options !== undefined) {
             this.state.fromOptions(this.options);
         }
+        this.env().subscriber.register(
+            this.action.subjects.get().applied.subscribe(() => {
+                this.done(this.state.asOptions());
+                this.tab.close();
+            }),
+        );
+        this.env().subscriber.register(
+            this.action.subjects.get().canceled.subscribe(() => {
+                this.tab.close();
+            }),
+        );
     }
 
     public ngAfterViewInit(): void {
@@ -115,15 +128,6 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
             changed:
                 this.files.length !== 1 ? undefined : timestampToUTC(this.files[0].stat.mtimeMs),
         };
-    }
-
-    public ngOnOpen() {
-        this.done(this.state.asOptions());
-        this.tab.close();
-    }
-
-    public ngOnClose() {
-        this.tab.close();
     }
 
     public ngOnEntitySelect(_entity: StatEntity) {

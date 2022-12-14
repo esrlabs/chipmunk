@@ -15,6 +15,7 @@ import { MatListModule } from '@angular/material/list';
 
 import { TabSourceDltFile } from './component';
 import { TabSourceDltFileStructure } from './structure/component';
+import { SourcesCommonModule } from '../common/module';
 
 const entryComponents = [TabSourceDltFile, TabSourceDltFileStructure];
 const components = [TabSourceDltFile, TabSourceDltFileStructure];
@@ -36,6 +37,7 @@ const components = [TabSourceDltFile, TabSourceDltFileStructure];
         MatFormFieldModule,
         MatSelectModule,
         MatListModule,
+        SourcesCommonModule,
     ],
     declarations: [...components],
     exports: [...components],

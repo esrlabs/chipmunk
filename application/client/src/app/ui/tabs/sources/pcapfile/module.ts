@@ -14,6 +14,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatListModule } from '@angular/material/list';
 
 import { TabSourcePcapFile } from './component';
+import { SourcesCommonModule } from '../common/module';
 
 const entryComponents = [TabSourcePcapFile];
 const components = [TabSourcePcapFile];
@@ -35,6 +36,7 @@ const components = [TabSourcePcapFile];
         MatFormFieldModule,
         MatSelectModule,
         MatListModule,
+        SourcesCommonModule,
     ],
     declarations: [...components],
     exports: [...components],
