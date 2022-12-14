@@ -80,10 +80,27 @@ impl SessionFile {
     }
 
     #[allow(clippy::len_without_is_empty)]
-    pub fn len(&mut self) -> usize {
+    pub fn len(&mut self) -> u64 {
         if let Some(ref grabber) = self.grabber {
             if let Some(md) = grabber.get_metadata() {
-                md.line_count
+                md.line_count as u64
+            } else {
+                0
+            }
+        } else {
+            0
+        }
+    }
+
+    /// Returns amount of bytes, which was processed by grabber
+    pub fn read_bytes(&mut self) -> u64 {
+        if let Some(ref grabber) = self.grabber {
+            if let Some(md) = grabber.get_metadata() {
+                if let Some(slot) = md.slots.last() {
+                    slot.bytes.end()
+                } else {
+                    0
+                }
             } else {
                 0
             }
