@@ -73,24 +73,10 @@
                     <div class="controlls">
                         <button mat-stroked-button (click)="ngTimezoneSelect()">Select</button>
                     </div>
-                    <!-- <mat-form-field appearance="legacy">
-                        <mat-label>Select required timezone</mat-label>
-                        <mat-select [(ngModel)]="state.timezone">
-                          <mat-option *ngFor="let timezone of state.timezones" [value]="timezone.name">
-                            {{timezone.fullName}}
-                          </mat-option>
-                        </mat-select>
-                    </mat-form-field> -->
                 </mat-card-content>
             </mat-card>
             <div class="spacer"></div>
-            <mat-card class="controlls">
-                <mat-card-title>Actions</mat-card-title>
-                <mat-card-content>
-                  <button class="major-button" mat-stroked-button (click)="ngOnOpen()">Open</button>
-                  <button mat-stroked-button (click)="ngOnClose()">Cancel</button>
-                </mat-card-content>
-            </mat-card>
+            <app-tabs-source-actions [action]="action"></app-tabs-source-actions>
         </div>
     </div>
 </div>

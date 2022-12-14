@@ -15,6 +15,7 @@ import { TabControls } from '@service/session';
 import { State } from './state';
 import { Timezone } from '@elements/timezones/timezone';
 import { components } from '@env/decorators/initial';
+import { Action } from '../common/actions/action';
 
 @Component({
     selector: 'app-tabs-source-pcapfile',
@@ -28,7 +29,7 @@ export class TabSourcePcapFile extends ChangesDetector implements AfterViewInit,
     @Input() files!: File[];
     @Input() options: IDLTOptions | undefined;
     @Input() tab!: TabControls;
-
+    public action: Action = new Action();
     public state: State;
     public logLevels: Array<{ value: string; caption: string }> = [
         { value: EMTIN.DLT_LOG_FATAL, caption: 'Fatal' },
@@ -54,6 +55,17 @@ export class TabSourcePcapFile extends ChangesDetector implements AfterViewInit,
         if (this.options !== undefined) {
             this.state.fromOptions(this.options);
         }
+        this.env().subscriber.register(
+            this.action.subjects.get().applied.subscribe(() => {
+                this.done(this.state.asOptions());
+                this.tab.close();
+            }),
+        );
+        this.env().subscriber.register(
+            this.action.subjects.get().canceled.subscribe(() => {
+                this.tab.close();
+            }),
+        );
     }
 
     public ngAfterViewInit(): void {
@@ -78,15 +90,6 @@ export class TabSourcePcapFile extends ChangesDetector implements AfterViewInit,
             changed:
                 this.files.length !== 1 ? undefined : timestampToUTC(this.files[0].stat.mtimeMs),
         };
-    }
-
-    public ngOnOpen() {
-        this.done(this.state.asOptions());
-        this.tab.close();
-    }
-
-    public ngOnClose() {
-        this.tab.close();
     }
 
     public ngOnFibexAdd() {
