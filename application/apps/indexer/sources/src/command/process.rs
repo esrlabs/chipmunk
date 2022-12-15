@@ -2,7 +2,7 @@ use crate::{command::sde, ByteSource, Error as SourceError, ReloadInfo, SourceFi
 use async_trait::async_trait;
 use buf_redux::Buffer;
 use futures;
-use std::{collections::HashMap, process::Stdio};
+use std::{collections::HashMap, path::PathBuf, process::Stdio};
 use thiserror::Error;
 use tokio::{
     io::AsyncWriteExt,
@@ -39,17 +39,19 @@ impl Drop for ProcessSource {
 impl ProcessSource {
     pub async fn new(
         command: String,
+        cwd: PathBuf,
         args: Vec<String>,
         envs: HashMap<String, String>,
     ) -> Result<Self, ProcessError> {
         let mut process = Command::new(command)
             .args(args)
+            .current_dir(cwd)
             .envs(envs)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .stdin(Stdio::piped())
             .spawn()
-            .map_err(|e| ProcessError::Setup(format!("{}", e)))?;
+            .map_err(|e| ProcessError::Setup(format!("{e}")))?;
         let stdout = codec::FramedRead::new(
             process
                 .stdout
@@ -111,7 +113,7 @@ impl ByteSource for ProcessSource {
             self.buffer.copy_from_slice(b"\n");
             Ok(Some(ReloadInfo::new(stored, stored, 0, None)))
         } else if let Some(Err(err)) = output {
-            Err(SourceError::Unrecoverable(format!("{}", err)))
+            Err(SourceError::Unrecoverable(format!("{err}")))
         } else {
             Ok(None)
         }
@@ -135,26 +137,26 @@ impl ByteSource for ProcessSource {
 
     async fn income(&mut self, msg: String) -> Result<String, String> {
         let request = serde_json::from_str::<sde::SdeRequest>(&msg)
-            .map_err(|e| format!("Fail to deserialize message: {}", e))?;
+            .map_err(|e| format!("Fail to deserialize message: {e}"))?;
         let response = match request {
             sde::SdeRequest::WriteText(str) => {
                 let bytes = str.as_bytes();
                 self.stdin
                     .write_all(bytes)
                     .await
-                    .map_err(|e| format!("Fail to write string into stdin: {}", e))?;
+                    .map_err(|e| format!("Fail to write string into stdin: {e}"))?;
                 sde::SdeResponse::WriteText(sde::WriteResponse { bytes: bytes.len() })
             }
             sde::SdeRequest::WriteBytes(bytes) => {
                 self.stdin
                     .write_all(&bytes)
                     .await
-                    .map_err(|e| format!("Fail to write bytes into stdin: {}", e))?;
+                    .map_err(|e| format!("Fail to write bytes into stdin: {e}"))?;
                 sde::SdeResponse::WriteBytes(sde::WriteResponse { bytes: bytes.len() })
             }
         };
         serde_json::to_string(&response)
-            .map_err(|e| format!("Fail to convert response to JSON: {}", e))
+            .map_err(|e| format!("Fail to convert response to JSON: {e}"))
     }
 }
 
@@ -168,7 +170,7 @@ async fn test_process() -> Result<(), ProcessError> {
     }
     let envs = HashMap::new();
     let args = Vec::new();
-    match ProcessSource::new(command.to_string(), args, envs).await {
+    match ProcessSource::new(command.to_string(), env::current_dir().unwrap(), args, envs).await {
         Ok(mut process_source) => {
             while process_source
                 .reload(None)
@@ -177,6 +179,10 @@ async fn test_process() -> Result<(), ProcessError> {
                 .is_some()
             {
                 assert!(!process_source.current_slice().is_empty());
+                // println!(
+                //     "{}",
+                //     std::str::from_utf8(process_source.current_slice()).unwrap()
+                // );
                 process_source.consume(process_source.current_slice().len());
             }
             Ok(())

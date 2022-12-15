@@ -55,6 +55,7 @@ export class TabSourcePcapFile extends ChangesDetector implements AfterViewInit,
         if (this.options !== undefined) {
             this.state.fromOptions(this.options);
         }
+        this.action.setCaption('Open');
         this.env().subscriber.register(
             this.action.subjects.get().applied.subscribe(() => {
                 this.done(this.state.asOptions());

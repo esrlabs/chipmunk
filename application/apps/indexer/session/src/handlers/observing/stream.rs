@@ -29,7 +29,7 @@ pub async fn listen<'a>(
                 .map_err(|e| NativeError {
                     severity: Severity::ERROR,
                     kind: NativeErrorKind::Interrupted,
-                    message: Some(format!("Fail to create socket due error: {:?}", e)),
+                    message: Some(format!("Fail to create socket due error: {e:?}")),
                 })?;
             observing::run(
                 operation_api,
@@ -48,7 +48,7 @@ pub async fn listen<'a>(
                 .map_err(|e| NativeError {
                     severity: Severity::ERROR,
                     kind: NativeErrorKind::Interrupted,
-                    message: Some(format!("Fail to create socket due error: {:?}", e)),
+                    message: Some(format!("Fail to create socket due error: {e:?}")),
                 })?;
             observing::run(
                 operation_api,
@@ -65,10 +65,7 @@ pub async fn listen<'a>(
             let serial_source = SerialSource::new(settings).map_err(|e| NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::Interrupted,
-                message: Some(format!(
-                    "Fail to create serial connection due error: {:?}",
-                    e
-                )),
+                message: Some(format!("Fail to create serial connection due error: {e:?}")),
             })?;
             observing::run(
                 operation_api,
@@ -84,6 +81,7 @@ pub async fn listen<'a>(
         Transport::Process(settings) => {
             let process_source = ProcessSource::new(
                 settings.command.clone(),
+                settings.cwd.clone(),
                 settings.args.clone(),
                 settings.envs.clone(),
             )
@@ -91,7 +89,7 @@ pub async fn listen<'a>(
             .map_err(|e| NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::Interrupted,
-                message: Some(format!("Fail to create process source due error: {:?}", e)),
+                message: Some(format!("Fail to create process source due error: {e:?}")),
             })?;
             observing::run(
                 operation_api,
