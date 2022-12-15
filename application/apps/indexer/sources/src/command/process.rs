@@ -162,6 +162,7 @@ impl ByteSource for ProcessSource {
 
 #[tokio::test]
 async fn test_process() -> Result<(), ProcessError> {
+    use std::env;
     let mut command = "";
     if cfg!(windows) {
         command = "help";
