@@ -60,7 +60,7 @@ pub async fn listen<'a>(
                     tracker.map_err(|e| NativeError {
                         severity: Severity::ERROR,
                         kind: NativeErrorKind::Interrupted,
-                        message: Some(format!("Tailing error: {}", e)),
+                        message: Some(format!("Tailing error: {e}")),
                     })
                 })
                 .map(|_| None)

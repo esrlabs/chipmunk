@@ -94,6 +94,7 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
                 this.files.length === 1 ? this.files[0].name : `${this.files.length} DLT files`
             } (scanning)`,
         );
+        this.action.setCaption('Open');
         this.ilc()
             .services.system.bridge.dlt()
             .stat(this.files.map((f) => f.filename))

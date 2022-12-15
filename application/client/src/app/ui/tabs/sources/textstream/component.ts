@@ -54,6 +54,7 @@ export class TabSourceTextStream extends ChangesDetector implements AfterContent
         if (this.options !== undefined) {
             this.state.fromOptions(this.options);
         }
+        this.action.setCaption('Connect');
         this.env().subscriber.register(
             this.ilc().services.ui.lockers.unbound.subscribe(() => {
                 if (this.ilc().services.ui.lockers.get(this.tab.uuid).length !== 0) {
