@@ -9,17 +9,6 @@ export interface IFinish {
     error?: string;
 }
 
-export interface ISearchInfo {
-    state: ESearchState;
-    found?: number;
-}
-
-export enum ESearchState {
-    running,
-    finished,
-    dropped,
-}
-
 export class State {
     public readonly subjects: Subjects<{
         active: Subject<IFilter | undefined>;
@@ -34,7 +23,7 @@ export class State {
     private _search: Search;
     private _active: IFilter | undefined;
     private _hash: string | undefined;
-    private _searchInfo!: ISearchInfo;
+    private _searching!: boolean;
 
     constructor(search: Search) {
         this._search = search;
@@ -52,13 +41,7 @@ export class State {
         return new Promise((resolve, reject) => {
             this._active = obj.clone(filter);
             this._hash = undefined;
-            if (this._searchInfo === undefined) {
-                this._searchInfo = {
-                    state: ESearchState.running,
-                };
-            } else {
-                this._searchInfo.state = ESearchState.running;
-            }
+            this._searching = true;
             this._search
                 .drop()
                 .then(() => {
@@ -68,7 +51,6 @@ export class State {
                         .search([filter])
                         .then((found: number) => {
                             this.subjects.get().finish.emit({ found: found });
-                            this._searchInfo.found = found;
                             resolve(found);
                         })
                         .catch((err: Error) => {
@@ -78,7 +60,7 @@ export class State {
                             reject(err);
                         })
                         .finally(() => {
-                            this._searchInfo.state = ESearchState.finished;
+                            this._searching = false;
                         });
                 })
                 .catch((err: Error) => {
@@ -110,13 +92,7 @@ export class State {
         }
         this._hash = hash;
         return new Promise((resolve, reject) => {
-            if (this._searchInfo === undefined) {
-                this._searchInfo = {
-                    state: ESearchState.running,
-                };
-            } else {
-                this._searchInfo.state = ESearchState.running;
-            }
+            this._searching = true;
             this._search
                 .drop()
                 .then(() => {
@@ -128,7 +104,6 @@ export class State {
                         .search(filters)
                         .then((found: number) => {
                             this.subjects.get().finish.emit({ found: found });
-                            this._searchInfo.found = found;
                             resolve();
                         })
                         .catch((err: Error) => {
@@ -136,25 +111,19 @@ export class State {
                             reject(err);
                         })
                         .finally(() => {
-                            this._searchInfo.state = ESearchState.finished;
+                            this._searching = false;
                         });
                 })
                 .catch(reject);
         });
     }
 
-    public get searchInfo(): ISearchInfo | undefined {
-        return this._searchInfo;
+    public get searching(): boolean | undefined {
+        return this._searching;
     }
 
     public reset(): Promise<void> {
-        if (this._searchInfo === undefined) {
-            this._searchInfo = {
-                state: ESearchState.dropped,
-            };
-        } else {
-            this._searchInfo.state = ESearchState.dropped;
-        }
+        this._searching = false;
         if (this._active === undefined) {
             return Promise.resolve();
         }

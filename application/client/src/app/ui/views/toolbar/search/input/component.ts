@@ -18,7 +18,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { ActiveSearch } from './active';
 import { Map } from '@service/session/dependencies/search/map';
 import { IFilter } from '@platform/types/filter';
-import { ESearchState, IFinish, ISearchInfo } from '@service/session/dependencies/search/state';
+import { IFinish } from '@service/session/dependencies/search/state';
 
 @Component({
     selector: 'app-views-search-input',
@@ -53,18 +53,14 @@ export class ViewSearchInput
 
     public ngAfterContentInit(): void {
         this.progress = new Progress(this.session);
-        const searchInfo: ISearchInfo | undefined = this.session.search.state().searchInfo;
-        if (searchInfo !== undefined) {
-            switch (searchInfo.state) {
-                case ESearchState.running:
-                    this.progress.start();
-                    break;
-                case ESearchState.finished:
-                    searchInfo.found !== undefined && this.progress.setFound(searchInfo.found);
-                    this.detectChanges();
-                    break;
-                default:
-                    break;
+        const searching: boolean | undefined = this.session.search.state().searching;
+        if (searching !== undefined) {
+            if (searching) {
+                this.progress.start();
+            } else {
+                this.progress.hidden = false;
+                this.progress.setFound(this.session.search.map.len());
+                this.detectChanges();
             }
         }
         this.map = this.session.search.map;
@@ -103,22 +99,6 @@ export class ViewSearchInput
 
     public ngAfterViewInit(): void {
         this.input.bind(this.searchInputRef.nativeElement, this.recentPanelRef);
-        this.input.actions.accept.subscribe(() => {
-            const filter = this.input.asFilter();
-            this.recent.update(filter.filter);
-            this.active = new ActiveSearch(this.session.search, filter);
-            this.active
-                .apply()
-                .then(() => {
-                    this.input.drop();
-                })
-                .catch((err: Error) => {
-                    this.log().error(`Fail to apply search: ${err.message}`);
-                })
-                .finally(() => {
-                    this.markChangesForCheck();
-                });
-        });
         this.input.actions.flags.subscribe(() => {
             if (this.active === undefined) {
                 return;
