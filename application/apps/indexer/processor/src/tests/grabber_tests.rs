@@ -4,8 +4,7 @@ mod tests {
     use crate::{
         grabber::{
             identify_byte_range, identify_end_slot_simple, identify_start_slot,
-            identify_start_slot_simple, ByteRange, FilePart, GrabError, GrabMetadata, Grabber,
-            LineRange, Slot,
+            identify_start_slot_simple, ByteRange, FilePart, GrabError, Grabber, LineRange, Slot,
         },
         text_source::TextFileSource,
     };
