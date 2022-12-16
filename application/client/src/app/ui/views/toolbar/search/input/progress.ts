@@ -3,18 +3,16 @@ import { Subject, Subscriber } from '@platform/env/subscription';
 
 export class Progress {
     public working: boolean = false;
-    public found: number = 0;
-    public hidden: boolean = true;
     public readonly updated: Subject<void> = new Subject();
 
     private _session: Session;
     private _subscriber: Subscriber = new Subscriber();
 
-    constructor(session: Session) {
+    constructor(session: Session, working: boolean) {
         this._session = session;
+        this.working = working;
         this._subscriber.register(
-            this._session.search.subjects.get().updated.subscribe((event) => {
-                this.found = event.found;
+            this._session.search.subjects.get().updated.subscribe((_event) => {
                 this.updated.emit();
             }),
         );
@@ -26,7 +24,6 @@ export class Progress {
     }
 
     public start() {
-        this.hidden = false;
         this.working = true;
     }
 
@@ -34,21 +31,22 @@ export class Progress {
         this.working = false;
     }
 
-    public hide() {
-        this.hidden = true;
-    }
-
     public visible(): boolean {
-        const total = this._session.stream.len();
-        return total > 0 && !this.hidden;
+        if (this._session.stream.len() === 0) {
+            return false;
+        }
+        if (
+            this._session.search.store().filters().getActiveCount() > 0 ||
+            this._session.search.state().hasActiveSearch()
+        ) {
+            return true;
+        }
+        return false;
     }
 
     public summary(): string {
         const total = this._session.stream.len();
-        return `${this.found} in ${total} (${((this.found / total) * 100).toFixed(2)}%)`;
-    }
-
-    public setFound(found: number) {
-        this.found = found;
+        const found = this._session.search.len();
+        return `${found} in ${total} (${((found / total) * 100).toFixed(2)}%)`;
     }
 }

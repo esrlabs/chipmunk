@@ -52,17 +52,7 @@ export class ViewSearchInput
     }
 
     public ngAfterContentInit(): void {
-        this.progress = new Progress(this.session);
-        const searching: boolean | undefined = this.session.search.state().searching;
-        if (searching !== undefined) {
-            if (searching) {
-                this.progress.start();
-            } else {
-                this.progress.hidden = false;
-                this.progress.setFound(this.session.search.map.len());
-                this.detectChanges();
-            }
-        }
+        this.progress = new Progress(this.session, this.session.search.state().isInProgress());
         this.map = this.session.search.map;
         this.env().subscriber.register(
             this.progress.updated.subscribe(() => {
@@ -73,11 +63,8 @@ export class ViewSearchInput
             this.session.search
                 .state()
                 .subjects.get()
-                .start.subscribe((filters: IFilter[]) => {
+                .start.subscribe(() => {
                     this.progress.start();
-                    if (filters.length === 1) {
-                        this.active = new ActiveSearch(this.session.search, filters[0]);
-                    }
                 }),
         );
         this.env().subscriber.register(
@@ -85,7 +72,6 @@ export class ViewSearchInput
                 .state()
                 .subjects.get()
                 .finish.subscribe((result: IFinish) => {
-                    this.progress.setFound(result.found);
                     this.progress.stop();
                     result.error !== undefined && this.log().error(result.error);
                 }),
@@ -163,7 +149,6 @@ export class ViewSearchInput
 
     public drop() {
         this.active = undefined;
-        this.progress.hide();
         this.session.search
             .state()
             .reset()

@@ -40,7 +40,6 @@ export class ErrorState implements ErrorStateMatcher {
             this.validator
                 .validate(this.entry.desc.path, this.entry.desc.key, control.value)
                 .then((error: string | undefined) => {
-                    console.log(`>>>>>>>>>>>>>>>>>>>>>> ${error}`);
                     this.error = error;
                 })
                 .catch((err: Error) => {
