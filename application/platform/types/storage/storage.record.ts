@@ -2,6 +2,9 @@ import { Mutable } from '../unity/mutable';
 import { Storage } from './storage';
 
 export abstract class Record<T extends string | number | boolean | undefined> {
+    public static fullpath(path: string, key: string): string {
+        return `${path}${path === '' ? '' : '.'}${key}`;
+    }
     public abstract validate(value: T): Error | undefined;
 
     protected value: T;
@@ -46,7 +49,7 @@ export abstract class Record<T extends string | number | boolean | undefined> {
     }
 
     public fullpath(): string {
-        return `${this.path}${this.path === '' ? '' : '.'}${this.key}`;
+        return Record.fullpath(this.path, this.key);
     }
 
     public get(): T {
@@ -69,6 +72,10 @@ export abstract class Record<T extends string | number | boolean | undefined> {
         }
         this.value = value;
         error = this.storage.put(this.path, this.key, value);
-        return error instanceof Error ? error : undefined;
+        if (error instanceof Error) {
+            return error;
+        }
+        this.storage.write();
+        return undefined;
     }
 }

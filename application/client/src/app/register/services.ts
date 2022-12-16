@@ -66,6 +66,10 @@ export const services: { [key: string]: Inputs } = {
         name: 'Actions',
         uuid: v4(),
     },
+    settings: {
+        name: 'Settings',
+        uuid: v4(),
+    },
 };
 
 export const ui: { [key: string]: Inputs } = {

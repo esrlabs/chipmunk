@@ -34,7 +34,7 @@ export class Net extends Module {
     }
 
     public getProxyURI(uri: url.URL): string | undefined {
-        const proxy = settings.get(PROXY.path, PROXY.key);
+        const proxy = settings.get().value(PROXY.path, PROXY.key);
         if (typeof proxy === 'string' && proxy.trim() !== '') {
             return proxy;
         }
@@ -54,7 +54,7 @@ export class Net extends Module {
     }
 
     public getProxyAgent(uri: url.URL): http.Agent | https.Agent | undefined {
-        const strictSSL = settings.get(STRICTSSL.path, STRICTSSL.key);
+        const strictSSL = settings.get().value(STRICTSSL.path, STRICTSSL.key);
         const proxyURL: string | undefined = this.getProxyURI(uri);
         if (!proxyURL) {
             return undefined;
@@ -89,7 +89,7 @@ export class Net extends Module {
             user: '',
         };
         // TODO: Include into settings
-        const auth = settings.get(AUTHORIZATION.path, AUTHORIZATION.key);
+        const auth = settings.get().value(AUTHORIZATION.path, AUTHORIZATION.key);
         if (headers[USER_AGENT_HEADER] === undefined) {
             headers[USER_AGENT_HEADER] = this.getUserAgent();
         }
