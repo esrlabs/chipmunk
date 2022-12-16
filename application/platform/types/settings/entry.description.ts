@@ -4,6 +4,12 @@ export enum Visibility {
     hidden = 'hidden',
 }
 
+export enum Render {
+    String = 'String',
+    Number = 'Number',
+    Bool = 'Bool',
+}
+
 export interface IDescription {
     key: string;
     path: string;
@@ -11,6 +17,7 @@ export interface IDescription {
     desc: string;
     allowEmpty: boolean;
     type: Visibility;
+    render: Render;
 }
 
 export class Description {
@@ -26,6 +33,7 @@ export class Description {
             { name: 'desc', type: 'string', canBeEmpty: false },
             { name: 'allowEmpty', type: 'boolean', canBeEmpty: false },
             { name: 'type', type: 'string', canBeEmpty: false },
+            { name: 'render', type: 'string', canBeEmpty: false },
         ].forEach((desc) => {
             if (error !== undefined) {
                 return;
@@ -54,6 +62,7 @@ export class Description {
     public readonly type: Visibility;
     public readonly path: string;
     public readonly allowEmpty: boolean;
+    public readonly render: Render;
 
     constructor(desc: IDescription) {
         const err: Error | undefined = Description.validate(desc);
@@ -65,6 +74,7 @@ export class Description {
         this.desc = desc.desc;
         this.path = desc.path;
         this.type = desc.type;
+        this.render = desc.render;
         this.allowEmpty = desc.allowEmpty;
     }
 
@@ -75,6 +85,7 @@ export class Description {
             path: this.path,
             type: this.type,
             desc: this.desc,
+            render: this.render,
             allowEmpty: this.allowEmpty,
         };
     }

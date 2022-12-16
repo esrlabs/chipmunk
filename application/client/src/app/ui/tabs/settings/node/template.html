@@ -1,0 +1,3 @@
+<p class="node" *ngIf="!node.isRoot()"><span>::{{node.path}}</span></p>
+<app-tabs-settings-entry *ngFor="let entry of node.entries" [entry]="entry"></app-tabs-settings-entry>
+<app-tabs-settings-node *ngFor="let child of node.childs" [node]="child"></app-tabs-settings-node>

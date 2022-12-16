@@ -11,6 +11,7 @@ import { Base as Action } from '../../../../service/actions/action';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { File } from '@platform/types/files';
 import { Action as FileAnyAction } from '@service/actions/file.any';
+
 import * as actions from '@service/actions/index';
 
 @Component({
@@ -42,7 +43,9 @@ export class LayoutHome extends ChangesDetector implements AfterViewInit, OnDest
             new actions.TcpDlt.Action(),
             new actions.SerialDlt.Action(),
         ],
-        settings: [],
+        settings: [
+            new actions.Settings.Action(),
+        ],
     };
     public actions: ActionsStorage = new ActionsStorage();
     public pinned: Array<Action | null> = [];

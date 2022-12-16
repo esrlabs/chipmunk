@@ -1,0 +1,8 @@
+<mat-form-field class="inline">
+    <mat-label>{{entry.desc.name}}</mat-label>
+    <input matInput [attr.placeholder]="entry.desc.name"
+        [(ngModel)]="value"
+        [errorStateMatcher]="error">
+    <mat-hint>{{entry.desc.desc}}</mat-hint>
+    <mat-error *ngIf="error.error !== undefined">{{error.error}}</mat-error>
+</mat-form-field>

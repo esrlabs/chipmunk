@@ -1,6 +1,11 @@
 import { Storage } from '../storage/storage';
 import { Record } from '../storage/storage.record';
-import { Description } from './entry.description';
+import { Description, IDescription } from './entry.description';
+
+export interface ISettingsEntry {
+    value: string | number | boolean | undefined;
+    desc: IDescription;
+}
 
 export class Entry<T extends string | number | boolean | undefined> {
     public readonly value: Record<T>;
@@ -17,5 +22,12 @@ export class Entry<T extends string | number | boolean | undefined> {
             return error;
         }
         return this.value.read();
+    }
+
+    public asObj(): ISettingsEntry {
+        return {
+            value: this.value.get(),
+            desc: this.desc.asObj(),
+        };
     }
 }

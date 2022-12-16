@@ -11,7 +11,7 @@
             <mat-icon>cast_connected</mat-icon>
             <span class="t-small">Stream(s)</span>
           </button>
-          <button class="menu-button" mat-stroked-button>
+          <button class="menu-button" mat-stroked-button [matMenuTriggerFor]="open_settings_menu">
             <mat-icon>settings</mat-icon>
             <span class="t-small">Settings</span>
           </button>
@@ -72,6 +72,15 @@
 
 <mat-menu #open_stream_menu="matMenu">
   <ng-container *ngFor="let item of menu.stream">
+    <ng-container *ngIf="item === null">
+      <mat-divider></mat-divider>
+    </ng-container>
+    <app-home-action *ngIf="item !== null" [action]="item" [actions]="actions" [menu]="true"></app-home-action>  
+  </ng-container>
+</mat-menu>
+
+<mat-menu #open_settings_menu="matMenu">
+  <ng-container *ngFor="let item of menu.settings">
     <ng-container *ngIf="item === null">
       <mat-divider></mat-divider>
     </ng-container>

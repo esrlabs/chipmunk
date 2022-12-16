@@ -7,6 +7,7 @@ import { TabSourceTextStreamModule } from '@tabs/sources/textstream/module';
 import { TimezoneSelectorModule } from '@elements/timezones/module';
 import { TabSourceMultipleFilesModule } from '@ui/tabs/sources/multiplefiles/module';
 import { DialogsModule } from '@ui/views/dialogs/module';
+import { SettingsModule } from '@ui/tabs/settings/module';
 
 @NgModule({
     entryComponents: [],
@@ -19,6 +20,7 @@ import { DialogsModule } from '@ui/views/dialogs/module';
         TimezoneSelectorModule,
         TabSourceTextStreamModule,
         TabSourceMultipleFilesModule,
+        SettingsModule,
     ],
     bootstrap: [
         TabSourceDltFileModule,
@@ -28,6 +30,7 @@ import { DialogsModule } from '@ui/views/dialogs/module';
         TabSourceTextStreamModule,
         TabSourceMultipleFilesModule,
         DialogsModule,
+        SettingsModule,
     ],
 })
 export class TabsModule {}

@@ -17,3 +17,4 @@ export * as Cli from './cli';
 export * as Actions from './actions';
 export * as Folder from './folder';
 export * as App from './app';
+export * as Settings from './settings';

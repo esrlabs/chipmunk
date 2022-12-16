@@ -58,7 +58,7 @@ export class Service extends Implementation {
     }
 
     public async check(force: boolean): Promise<void> {
-        const auto = settings.get<boolean>(AUTO.path, AUTO.key);
+        const auto = settings.get().value<boolean>(AUTO.path, AUTO.key);
         if (!auto && !force) {
             this.log().debug(`Checking of updates is skipped.`);
             return Promise.resolve();

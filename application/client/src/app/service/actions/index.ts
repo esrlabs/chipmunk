@@ -14,6 +14,7 @@ import * as SerialDlt from './serial.dlt';
 import * as SerialText from './serial.text';
 import * as StdoutText from './stdout.text';
 import * as About from './about';
+import * as Settings from './settings';
 
 import { Base } from './action';
 
@@ -33,6 +34,7 @@ export * as SerialDlt from './serial.dlt';
 export * as SerialText from './serial.text';
 export * as StdoutText from './stdout.text';
 export * as About from './about';
+export * as Settings from './settings';
 
 export { Base } from './action';
 
@@ -53,7 +55,9 @@ export const all = [
     [SerialText.ACTION_UUID, SerialText.Action],
     [StdoutText.ACTION_UUID, StdoutText.Action],
     [About.ACTION_UUID, About.Action],
+    [Settings.ACTION_UUID, Settings.Action],
 ];
+
 export function getActionByUuid(uuid: string): Base | undefined {
     const action = all.find((d) => d[0] === uuid);
     return action === undefined ? undefined : new (action[1] as { new (): Base })();

@@ -17,6 +17,7 @@ import { listener, Service as ListenerService } from '@ui/service/listener';
 import { lockers, Service as LockersService } from '@ui/service/lockers';
 import { env, Service as EnvService } from '@service/env';
 import { actions, Service as ActionsService } from '@service/actions';
+import { settings, Service as Settings } from '@service/settings';
 
 import { Instance as Logger } from '@platform/env/logger';
 
@@ -32,6 +33,7 @@ export class Services {
         history: HistoryService;
         env: EnvService;
         actions: ActionsService;
+        settings: Settings;
     };
     public readonly ui: {
         popup: UIPopupService;
@@ -62,6 +64,7 @@ export class Services {
             history,
             env,
             actions,
+            settings,
         };
         this.ui = {
             popup,
