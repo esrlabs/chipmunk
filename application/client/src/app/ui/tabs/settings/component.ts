@@ -22,9 +22,7 @@ export class Settings extends ChangesDetector implements AfterContentInit {
         this.ilc()
             .services.system.settings.get()
             .then((entries) => {
-                console.log(entries);
                 this.state.build(entries);
-                console.log(this.state);
             })
             .catch((err: Error) => {
                 this.log().error(`Fail to get settings list: ${err}`);
