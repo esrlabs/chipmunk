@@ -25,7 +25,6 @@ export class SettingsEntryString extends ChangesDetector implements AfterContent
     }
 
     public ngOnDestroy(): void {
-        console.log(`>>>>>>>>>>>>>>>>>>>>> VALUE: ${this.value}`);
         if (this.value === this.entry.value) {
             return;
         }

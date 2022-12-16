@@ -12,18 +12,18 @@ export interface IFinish {
 export class State {
     public readonly subjects: Subjects<{
         active: Subject<IFilter | undefined>;
-        start: Subject<IFilter[]>;
+        start: Subject<void>;
         finish: Subject<IFinish>;
     }> = new Subjects({
         active: new Subject<IFilter | undefined>(),
-        start: new Subject<IFilter[]>(),
+        start: new Subject<void>(),
         finish: new Subject<IFinish>(),
     });
 
     private _search: Search;
     private _active: IFilter | undefined;
     private _hash: string | undefined;
-    private _searching!: boolean;
+    private _progress: boolean = false;
 
     constructor(search: Search) {
         this._search = search;
@@ -41,11 +41,11 @@ export class State {
         return new Promise((resolve, reject) => {
             this._active = obj.clone(filter);
             this._hash = undefined;
-            this._searching = true;
+            this._progress = true;
             this._search
                 .drop()
                 .then(() => {
-                    this.subjects.get().start.emit([filter]);
+                    this.subjects.get().start.emit();
                     this.subjects.get().active.emit(obj.clone(filter));
                     this._search
                         .search([filter])
@@ -60,11 +60,12 @@ export class State {
                             reject(err);
                         })
                         .finally(() => {
-                            this._searching = false;
+                            this._progress = false;
                         });
                 })
                 .catch((err: Error) => {
                     this._active = undefined;
+                    this._progress = false;
                     reject(err);
                 });
         });
@@ -92,14 +93,15 @@ export class State {
         }
         this._hash = hash;
         return new Promise((resolve, reject) => {
-            this._searching = true;
+            this._progress = true;
             this._search
                 .drop()
                 .then(() => {
                     if (filters.length === 0) {
+                        this._progress = false;
                         return resolve();
                     }
-                    this.subjects.get().start.emit(filters);
+                    this.subjects.get().start.emit();
                     this._search
                         .search(filters)
                         .then((found: number) => {
@@ -111,19 +113,25 @@ export class State {
                             reject(err);
                         })
                         .finally(() => {
-                            this._searching = false;
+                            this._progress = false;
                         });
                 })
-                .catch(reject);
+                .catch((err: Error) => {
+                    this._progress = false;
+                    reject(err);
+                });
         });
     }
 
-    public get searching(): boolean | undefined {
-        return this._searching;
+    public isInProgress(): boolean {
+        return this._progress;
+    }
+
+    public hasActiveSearch(): boolean {
+        return this._active !== undefined;
     }
 
     public reset(): Promise<void> {
-        this._searching = false;
         if (this._active === undefined) {
             return Promise.resolve();
         }

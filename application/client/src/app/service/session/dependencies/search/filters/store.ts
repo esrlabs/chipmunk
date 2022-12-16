@@ -23,4 +23,8 @@ export class FiltersStore extends Store<FilterRequest> {
             return false;
         }
     }
+
+    public getActiveCount(): number {
+        return this.get().filter((request) => request.definition.active).length;
+    }
 }
