@@ -3,7 +3,7 @@
         #filterinput
         tabindex="1000"
         type="text"
-        placeholder="Filter recent actions"
+        [attr.placeholder]="filter.options.placeholder"
         aria-label="Filter"
         matInput
         [formControl]="input.control"

@@ -23,7 +23,9 @@ export class ElementsTreeSelector extends ChangesDetector implements AfterConten
     }
 
     public ngAfterContentInit(): void {
-        this.state.init(this.ilc().services, this.log());
+        this.state.init(this.ilc().services, this.log()).catch((err: Error) => {
+            this.log().error(`Fail to init folder's tree state: ${err.message}`);
+        });
     }
 
     public safeHtml(html: string): SafeHtml {
@@ -35,7 +37,36 @@ export class ElementsTreeSelector extends ChangesDetector implements AfterConten
     }
 
     public ngItemContextMenu(event: MouseEvent, entity: Scheme.Entity) {
+        if (entity.favourite) {
+            this.ilc().emitter.ui.contextmenu.open({
+                items: [
+                    {
+                        caption: 'Delete from favourites',
+                        handler: () => {
+                            this.state.removePlace(entity.getPath());
+                            this.detectChanges();
+                        },
+                    },
+                ],
+                x: event.x,
+                y: event.y,
+            });
+            return;
+        }
         if (entity.isFolder()) {
+            this.ilc().emitter.ui.contextmenu.open({
+                items: [
+                    {
+                        caption: 'Add to favourites',
+                        handler: () => {
+                            this.state.addPlace(entity.getPath());
+                            this.detectChanges();
+                        },
+                    },
+                ],
+                x: event.x,
+                y: event.y,
+            });
             return;
         }
         this.ilc().emitter.ui.contextmenu.open({
@@ -74,6 +105,17 @@ export class ElementsTreeSelector extends ChangesDetector implements AfterConten
         event.stopPropagation();
         event.stopImmediatePropagation();
         return false;
+    }
+
+    public add() {
+        this.ilc()
+            .services.system.bridge.folders()
+            .select()
+            .then((paths: string[]) => {
+                paths.forEach((path) => {
+                    this.state.addPlace(path);
+                });
+            });
     }
 }
 export interface ElementsTreeSelector extends IlcInterface {}

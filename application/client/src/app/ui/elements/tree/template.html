@@ -1,5 +1,6 @@
 <div class="controls">
   <app-filter-input [filter]="state.filter"></app-filter-input>
+  <span [attr.class]="'small-icon-button codicon codicon-new-folder'" (click)="add()"></span>
 </div>
 <div class="tree" (scroll)="onScrolling($event)">
   <mat-tree [dataSource]="state.scheme.source" [treeControl]="state.scheme.tree" >
@@ -16,6 +17,7 @@
     </mat-tree-node>
     <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding 
       [matTreeNodePaddingIndent]="20"
+      (contextmenu)="ngItemContextMenu($event, node.item)"
       (click)="state.select(node)"
       [attr.data-selected]="node.item.selected">
       <button mat-icon-button
