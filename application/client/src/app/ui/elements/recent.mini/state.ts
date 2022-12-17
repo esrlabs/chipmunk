@@ -18,7 +18,7 @@ export class State extends Holder {
 
     constructor(ilc: IlcInterface & ChangesDetector) {
         super();
-        this.filter = new Filter(ilc);
+        this.filter = new Filter(ilc, { placeholder: 'Recent files / sources' });
         this.filter.subjects.get().change.subscribe((value: string) => {
             this.filtering(value);
             ilc.detectChanges();

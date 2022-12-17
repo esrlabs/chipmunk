@@ -13,10 +13,12 @@ export class Entity {
     public readonly parent: string;
     public icon: string | undefined;
     public selected: boolean = false;
+    public favourite: boolean = false;
 
-    constructor(entity: IEntity, parent: string) {
+    constructor(entity: IEntity, parent: string, favourite: boolean) {
         this.entity = entity;
         this.parent = parent;
+        this.favourite = favourite;
         if (entity.details !== undefined) {
             const ext = entity.details.ext.toLowerCase();
             const icon = CACHE.get(ext);
@@ -37,7 +39,7 @@ export class Entity {
     }
 
     public getPath(): string {
-        return `${this.parent}/${this.entity.name}`;
+        return `${this.parent}${this.parent === '' ? '' : '/'}${this.entity.name}`;
     }
 
     public isFolder(): boolean {

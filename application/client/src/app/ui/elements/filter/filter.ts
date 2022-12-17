@@ -6,10 +6,11 @@ export type Handler = () => void;
 export interface Options {
     clearOnEscape?: boolean;
     clearOnEnter?: boolean;
+    placeholder: string;
 }
 
 export class Filter {
-    private readonly _options: Options;
+    public readonly options: Options;
     public readonly subjects: Subjects<{
         change: Subject<string>;
         drop: Subject<void>;
@@ -25,11 +26,11 @@ export class Filter {
     });
     private _element!: HTMLInputElement;
 
-    constructor(ilc: IlcInterface, options?: Options) {
+    constructor(ilc: IlcInterface, options: Options) {
         ilc.life().destroy(() => {
             this.subjects.destroy();
         });
-        this._options = options === undefined ? {} : options;
+        this.options = options;
     }
 
     public bind(element: HTMLInputElement) {
@@ -44,24 +45,18 @@ export class Filter {
         return this._element.value;
     }
 
-    public options(): {
+    public defaults(): {
         clearOnEscape(): boolean;
         clearOnEnter(): boolean;
     } {
         return {
             clearOnEscape: (): boolean => {
-                return this._options === undefined
-                    ? false
-                    : this._options.clearOnEscape !== undefined
-                    ? this._options.clearOnEscape
+                return this.options.clearOnEscape !== undefined
+                    ? this.options.clearOnEscape
                     : false;
             },
             clearOnEnter: (): boolean => {
-                return this._options === undefined
-                    ? false
-                    : this._options.clearOnEnter !== undefined
-                    ? this._options.clearOnEnter
-                    : false;
+                return this.options.clearOnEnter !== undefined ? this.options.clearOnEnter : false;
             },
         };
     }

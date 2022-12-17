@@ -14,11 +14,11 @@ export class FilterInput {
     }
 
     public keyup(event: KeyboardEvent) {
-        if (event.key === 'Escape' && this.filter.options().clearOnEscape()) {
+        if (event.key === 'Escape' && this.filter.defaults().clearOnEscape()) {
             this.drop();
             return true;
         }
-        if (event.key === 'Enter' && this.filter.options().clearOnEnter()) {
+        if (event.key === 'Enter' && this.filter.defaults().clearOnEnter()) {
             this.filter.subjects.get().enter.emit(this._safe());
             this.drop();
             return true;

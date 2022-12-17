@@ -7,10 +7,28 @@
     height: 100%;
     div.controls {
         position: absolute;
+        display: flex;
+        flex-direction: row;
         top: 0;
         left: 0;
         height: 32px;
         width: ~"calc(100% - 2px)";
+        & app-filter-input {
+            flex: auto;
+        }
+        & span.small-icon-button {
+            display: inline-block;
+            height: 24px;
+            width: 24px;
+            color: @scheme-color-0;
+            text-align: center;
+            padding-top: 4px;
+            box-sizing: border-box;
+            margin: 4px 6px 0 6px;
+            &:hover{
+                color: @scheme-color-3;
+            }
+        }
     }
     div.tree {
         position: absolute;

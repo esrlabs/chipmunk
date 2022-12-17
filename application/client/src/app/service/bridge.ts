@@ -141,6 +141,7 @@ export class Service extends Implementation {
         pcap(): Promise<File[]>;
         text(): Promise<File[]>;
         custom(ext: string): Promise<File[]>;
+        select(): Promise<string[]>;
     } {
         const request = (target: FileType, ext?: string): Promise<File[]> => {
             return new Promise((resolve, reject) => {
@@ -172,6 +173,18 @@ export class Service extends Implementation {
             },
             custom: (ext: string): Promise<File[]> => {
                 return request(FileType.Any, ext);
+            },
+            select: (): Promise<string[]> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Folder.Choose.Response,
+                        new Requests.Folder.Choose.Request(),
+                    )
+                        .then((response) => {
+                            resolve(response.paths);
+                        })
+                        .catch(reject);
+                });
             },
         };
     }
