@@ -1,4 +1,8 @@
 import { Entity as IEntity, EntityType } from '@platform/types/files';
+import { Filter } from '@elements/filter/filter';
+import { getDomSanitizer } from '@ui/env/globals';
+import { SafeHtml } from '@angular/platform-browser';
+import { fromStr } from '@platform/env/regex';
 
 const ICONS: { [key: string]: string[] } = {
     description: ['.txt', '.log', '.logs', '.info', '.cfg', '.json'],
@@ -8,17 +12,23 @@ const ICONS: { [key: string]: string[] } = {
 
 const CACHE: Map<string, string> = new Map();
 
+const DROP_REG = /\.|\|\[|\]|\(|\)|\*/gi;
+
 export class Entity {
     public readonly entity: IEntity;
     public readonly parent: string;
     public icon: string | undefined;
     public selected: boolean = false;
     public favourite: boolean = false;
+    public expanded: boolean = false;
 
-    constructor(entity: IEntity, parent: string, favourite: boolean) {
+    protected readonly filter: Filter;
+
+    constructor(entity: IEntity, parent: string, favourite: boolean, filter: Filter) {
         this.entity = entity;
         this.parent = parent;
         this.favourite = favourite;
+        this.filter = filter;
         if (entity.details !== undefined) {
             const ext = entity.details.ext.toLowerCase();
             const icon = CACHE.get(ext);
@@ -62,5 +72,37 @@ export class Entity {
                 this.selected = false;
             },
         };
+    }
+
+    public isVisible(): boolean {
+        if (this.expanded) {
+            return true;
+        }
+        const filter = this.filter.value().toLowerCase().trim().replace(DROP_REG, '');
+        if (filter.trim() === '') {
+            return true;
+        }
+        return this.getName().toLowerCase().indexOf(filter) !== -1;
+    }
+
+    public html(): SafeHtml {
+        const name = this.getName();
+        const filter = this.filter.value().toLowerCase().trim().replace(DROP_REG, '');
+        if (filter.trim() === '') {
+            return getDomSanitizer().bypassSecurityTrustHtml(name);
+        }
+        const regexp = fromStr(filter);
+        if (regexp instanceof Error) {
+            return getDomSanitizer().bypassSecurityTrustHtml(name);
+        }
+        const match = name.match(regexp);
+        if (match === null) {
+            return getDomSanitizer().bypassSecurityTrustHtml(name);
+        }
+        let html = name;
+        match.forEach((m) => {
+            html = html.replace(m, `<span class="match">${m}</span>`);
+        });
+        return getDomSanitizer().bypassSecurityTrustHtml(html);
     }
 }

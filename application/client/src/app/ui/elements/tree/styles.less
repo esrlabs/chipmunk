@@ -1,6 +1,6 @@
 @import '../../styles/variables.less';
 
-:host{
+app-elements-tree {
     position: relative;
     display: block;
     width: 100%;
@@ -39,6 +39,9 @@
         overflow: auto;
         & mat-tree {
             background: none;
+            & button {
+                margin-top: -8px;
+            }
         }
         & mat-tree-node {
             position: relative;
@@ -86,6 +89,9 @@
                 & mat-icon {
                     margin-right: 4px;
                     color: @scheme-color-2;
+                }
+                & span.match {
+                    background: @scheme-color-active;
                 }
             }
         }
