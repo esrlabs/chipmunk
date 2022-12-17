@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, AfterContentInit } from '@angular/core';
+import { Component, ChangeDetectorRef, AfterContentInit, ViewEncapsulation } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -11,6 +11,7 @@ import * as Scheme from './scheme';
     selector: 'app-elements-tree',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    encapsulation: ViewEncapsulation.None,
 })
 @Initial()
 @Ilc()
@@ -43,7 +44,7 @@ export class ElementsTreeSelector extends ChangesDetector implements AfterConten
                     {
                         caption: 'Delete from favourites',
                         handler: () => {
-                            this.state.removePlace(entity.getPath());
+                            this.state.removePlace(entity);
                             this.detectChanges();
                         },
                     },

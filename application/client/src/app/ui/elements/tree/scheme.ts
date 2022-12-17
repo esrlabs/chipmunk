@@ -5,6 +5,7 @@ import { map } from 'rxjs/operators';
 import { Entity } from './entity';
 import { EntityType, Entity as IEntity } from '@platform/types/files';
 import { Services } from '@service/ilc/services';
+import { Filter } from '@elements/filter/filter';
 
 export { Entity };
 
@@ -39,11 +40,13 @@ export class DynamicDatabase {
     public roots: string[];
 
     protected readonly services: Services;
+    protected readonly filter: Filter;
     protected source!: DynamicDataSource;
 
-    constructor(roots: string[], services: Services) {
+    constructor(roots: string[], services: Services, filter: Filter) {
         this.services = services;
         this.roots = roots;
+        this.filter = filter;
     }
 
     public destroy() {
@@ -67,6 +70,7 @@ export class DynamicDatabase {
                         },
                         '',
                         true,
+                        this.filter,
                     ),
                     0,
                     true,
@@ -97,7 +101,9 @@ export class DynamicDatabase {
                 .files()
                 .ls(path)
                 .then((entities: IEntity[]) => {
-                    const sub = entities.map((entity) => new Entity(entity, path, false));
+                    const sub = entities.map(
+                        (entity) => new Entity(entity, path, false, this.filter),
+                    );
                     sub.sort((a) => {
                         return a.isFolder() ? -1 : 1;
                     });
@@ -212,6 +218,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
             return Promise.resolve();
         }
         this._onToggle(node.item, expand);
+        node.item.expanded = expand;
         return new Promise((resolve, _reject) => {
             node.isLoading = true;
             this._database

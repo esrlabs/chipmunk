@@ -32,13 +32,9 @@ export class State {
             clearOnEscape: true,
             placeholder: 'Files filter',
         });
-        this.filter.subjects.get().change.subscribe(() => {
+        this.filter.subjects.get().change.subscribe((_path: string) => {
             ilc.detectChanges();
         });
-        // this.filter.subjects.get().enter.subscribe((path: string) => {
-        //     this.addPlace(path);
-        //     ilc.detectChanges();
-        // });
         ilc.env().subscriber.register(
             ilc
                 .ilc()
@@ -83,7 +79,7 @@ export class State {
     public async init(services: Services, log: Logger): Promise<void> {
         this._services = services;
         this._log = log;
-        const db = new Scheme.DynamicDatabase(this.favourites.slice(), services);
+        const db = new Scheme.DynamicDatabase(this.favourites.slice(), services, this.filter);
         const tree = new FlatTreeControl<Scheme.DynamicFlatNode>(
             (node: Scheme.DynamicFlatNode) => node.level,
             (node: Scheme.DynamicFlatNode) => node.expandable,
@@ -92,11 +88,15 @@ export class State {
             tree,
             db,
             (entity: Scheme.Entity, expanded: boolean) => {
-                if (expanded) {
-                    this.expanded().add(entity);
-                } else {
-                    this.expanded().remove(entity);
-                }
+                (() => {
+                    if (expanded) {
+                        return this.expanded().add(entity);
+                    } else {
+                        return this.expanded().remove(entity);
+                    }
+                })().catch((err: Error) => {
+                    this._log.error(`Fail to update state of folder's tree: ${err.message}`);
+                });
             },
         );
         db.bind(source);
@@ -146,10 +146,16 @@ export class State {
             });
     }
 
-    public removePlace(path: string) {
+    public removePlace(entity: Scheme.Entity) {
+        const path = entity.getPath();
         if (path.trim().length === 0 || this.favourites.indexOf(path) === -1) {
             return;
         }
+        this.expanded()
+            .remove(entity)
+            .catch((err: Error) => {
+                this._log.error(`Fail to update state of folder's tree: ${err.message}`);
+            });
         this.favourites = this.favourites.filter((f) => f !== path);
         this.scheme.db.removeRoot(path);
         this.scheme.source.data = this.scheme.db.initialData();

@@ -8,17 +8,19 @@
       [matTreeNodePaddingIndent]="20"
       [attr.data-selected]="node.item.selected"
       (click)="state.select(node)"
+      [style.display]="!node.item.isVisible() || node.vi ? 'none' : ''"
       (contextmenu)="ngItemContextMenu($event, node.item)">
       <button mat-icon-button disabled></button>
       <span [attr.class]="'name ' + (node.item.icon === undefined ? 'no-icon' : '')">
         <mat-icon *ngIf="node.item.icon !== undefined" class="item-icon">{{node.item.icon}}</mat-icon>
-        {{node.item.getName()}}
+        <span [innerHTML]="node.item.html()"></span>
       </span>
     </mat-tree-node>
     <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding 
       [matTreeNodePaddingIndent]="20"
       (contextmenu)="ngItemContextMenu($event, node.item)"
       (click)="state.select(node)"
+      [style.display]="!node.item.isVisible() ? 'none' : ''"
       [attr.data-selected]="node.item.selected">
       <button mat-icon-button
               [attr.aria-label]="'Toggle ' + node.item.getName()" matTreeNodeToggle>
@@ -26,7 +28,9 @@
           {{state.scheme.tree.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
         </mat-icon>
       </button>
-      <span class="name">{{node.item.getName()}}</span>
+      <span class="name">
+        <span [innerHTML]="node.item.html()"></span>
+      </span>
       <mat-progress-bar *ngIf="node.isLoading"
                         mode="indeterminate"></mat-progress-bar>
     </mat-tree-node>
