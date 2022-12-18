@@ -2,7 +2,8 @@ import { Entity as IEntity, EntityType } from '@platform/types/files';
 import { Filter } from '@elements/filter/filter';
 import { getDomSanitizer } from '@ui/env/globals';
 import { SafeHtml } from '@angular/platform-browser';
-import { fromStr } from '@platform/env/regex';
+import { fromStr, serialize } from '@platform/env/regex';
+import { getFileExtention } from '@platform/types/files';
 
 const ICONS: { [key: string]: string[] } = {
     description: ['.txt', '.log', '.logs', '.info', '.cfg', '.json'],
@@ -10,9 +11,8 @@ const ICONS: { [key: string]: string[] } = {
     cell_tower: ['.pcap', '.ngpcap'],
 };
 
+const EXTENTION_PATTERN = /^\*\.|^\./gi;
 const CACHE: Map<string, string> = new Map();
-
-const DROP_REG = /\.|\|\[|\]|\(|\)|\*/gi;
 
 export class Entity {
     public readonly entity: IEntity;
@@ -60,6 +60,10 @@ export class Entity {
         return this.entity.name;
     }
 
+    public getExtention(): string {
+        return getFileExtention(this.entity.name);
+    }
+
     public selecting(): {
         select(): void;
         unselect(): void;
@@ -78,31 +82,71 @@ export class Entity {
         if (this.expanded) {
             return true;
         }
-        const filter = this.filter.value().toLowerCase().trim().replace(DROP_REG, '');
+        const filter = this.filter.value().toLowerCase();
         if (filter.trim() === '') {
             return true;
         }
-        return this.getName().toLowerCase().indexOf(filter) !== -1;
+        if (this.isExtentionSearch(filter)) {
+            const extention = this.getExtention();
+            if (extention.trim() === '') {
+                return true;
+            }
+            return (
+                this.getExtention()
+                    .toLowerCase()
+                    .indexOf(serialize(filter.replace(EXTENTION_PATTERN, ''))) !== -1
+            );
+        } else {
+            return this.getName().toLowerCase().indexOf(serialize(filter)) !== -1;
+        }
     }
 
     public html(): SafeHtml {
         const name = this.getName();
-        const filter = this.filter.value().toLowerCase().trim().replace(DROP_REG, '');
+        const filter = this.filter.value().toLowerCase();
         if (filter.trim() === '') {
             return getDomSanitizer().bypassSecurityTrustHtml(name);
         }
-        const regexp = fromStr(filter);
-        if (regexp instanceof Error) {
-            return getDomSanitizer().bypassSecurityTrustHtml(name);
+        if (this.isExtentionSearch(filter)) {
+            const extention = this.getExtention();
+            if (extention.trim() === '') {
+                return getDomSanitizer().bypassSecurityTrustHtml(name);
+            }
+            const regexp = fromStr(serialize(filter.replace(EXTENTION_PATTERN, '')));
+            if (regexp instanceof Error) {
+                return getDomSanitizer().bypassSecurityTrustHtml(name);
+            }
+            const regexpExt = fromStr(serialize(`.${extention}`) + '$');
+            if (regexpExt instanceof Error) {
+                return getDomSanitizer().bypassSecurityTrustHtml(name);
+            }
+            const match = extention.match(regexp);
+            if (match === null) {
+                return getDomSanitizer().bypassSecurityTrustHtml(name);
+            }
+            let html = extention;
+            match.forEach((m) => {
+                html = html.replace(m, `<span class="match">${m}</span>`);
+            });
+            return getDomSanitizer().bypassSecurityTrustHtml(name.replace(regexpExt, `.${html}`));
+        } else {
+            const regexp = fromStr(filter);
+            if (regexp instanceof Error) {
+                return getDomSanitizer().bypassSecurityTrustHtml(name);
+            }
+            const match = name.match(regexp);
+            if (match === null) {
+                return getDomSanitizer().bypassSecurityTrustHtml(name);
+            }
+            let html = name;
+            match.forEach((m) => {
+                html = html.replace(m, `<span class="match">${m}</span>`);
+            });
+            return getDomSanitizer().bypassSecurityTrustHtml(html);
         }
-        const match = name.match(regexp);
-        if (match === null) {
-            return getDomSanitizer().bypassSecurityTrustHtml(name);
-        }
-        let html = name;
-        match.forEach((m) => {
-            html = html.replace(m, `<span class="match">${m}</span>`);
-        });
-        return getDomSanitizer().bypassSecurityTrustHtml(html);
+    }
+
+    protected isExtentionSearch(filter: string): boolean {
+        return filter.startsWith('.') || filter.startsWith('*.');
     }
 }
