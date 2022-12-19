@@ -15,6 +15,7 @@ import { session } from '@service/session';
 import { components } from '@env/decorators/initial';
 import { lockers, Locker } from '@ui/service/lockers';
 import { ParserName, Origin } from '@platform/types/observe';
+import { Stat } from './stat';
 
 import * as obj from '@platform/env/obj';
 
@@ -24,6 +25,7 @@ export class Action {
     public file: RecentFileAction | undefined;
     public dlt_stream: RecentStreamDltAction | undefined;
     public text_stream: RecentStreamTextAction | undefined;
+    public stat: Stat = Stat.defaults();
 
     public uuid: string = unique();
 
@@ -132,6 +134,7 @@ export class Action {
         } else {
             throw new Error(`Recent action isn't defined`);
         }
+        body['stat'] = this.stat.asObj();
         return {
             uuid: this.uuid,
             content: JSON.stringify(body),
@@ -164,6 +167,7 @@ export class Action {
                     } else {
                         throw new Error(`Unknonw type of action.`);
                     }
+                    this.stat = Stat.from(action['stat']);
                     return this;
                 } catch (err) {
                     throw new Error(`Fail to parse action: ${error(err)}`);
@@ -411,5 +415,10 @@ export class Action {
                     },
                 );
             });
+    }
+
+    public merge(action: Action): void {
+        this.stat = action.stat;
+        this.stat.update();
     }
 }

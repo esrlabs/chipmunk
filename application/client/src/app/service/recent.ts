@@ -41,15 +41,23 @@ export class Service extends Implementation {
         });
     }
 
-    public append(actions: Action[]): Promise<void> {
-        return bridge.entries({ key: STORAGE_KEY }).append(actions.map((a) => a.asEntry()));
-    }
+    // public append(actions: Action[]): Promise<void> {
+    //     return bridge.entries({ key: STORAGE_KEY }).append(actions.map((a) => a.asEntry()));
+    // }
 
-    public overwrite(actions: Action[]): Promise<void> {
-        return bridge.entries({ key: STORAGE_KEY }).append(actions.map((a) => a.asEntry()));
-    }
+    // public overwrite(actions: Action[]): Promise<void> {
+    //     return bridge.entries({ key: STORAGE_KEY }).append(actions.map((a) => a.asEntry()));
+    // }
 
-    public update(actions: Action[]): Promise<void> {
+    public async update(actions: Action[]): Promise<void> {
+        const stored = await this.get();
+        actions.forEach((action) => {
+            const found = stored.find((a) => a.uuid === action.uuid);
+            if (found === undefined) {
+                return;
+            }
+            action.merge(found);
+        });
         return bridge.entries({ key: STORAGE_KEY }).update(actions.map((a) => a.asEntry()));
     }
 
@@ -65,7 +73,7 @@ export class Service extends Implementation {
         };
     } {
         return {
-            file: (file: File, options: TargetFileOptions): Promise<void> => {
+            file: async (file: File, options: TargetFileOptions): Promise<void> => {
                 try {
                     const action = new Action().from().file(file, options);
                     return this.update([action]);
@@ -75,7 +83,7 @@ export class Service extends Implementation {
             },
             stream: (source: SourceDefinition) => {
                 return {
-                    dlt: (options: IDLTOptions): Promise<void> => {
+                    dlt: async (options: IDLTOptions): Promise<void> => {
                         try {
                             const action = new Action().from().stream(source).dlt(options);
                             return this.update([action]);
@@ -83,7 +91,7 @@ export class Service extends Implementation {
                             return Promise.reject(new Error(error(err)));
                         }
                     },
-                    text: (): Promise<void> => {
+                    text: async (): Promise<void> => {
                         try {
                             const action = new Action().from().stream(source).text();
                             return this.update([action]);
