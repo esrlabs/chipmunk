@@ -52,7 +52,14 @@ export class State extends Holder {
 
     public filtering() {
         this.matcher.search(this.filter.value());
-        this.actions.sort((a: WrappedAction, b: WrappedAction) => b.getScore() - a.getScore());
+        if (this.filter.value().trim() === '') {
+            this.actions.sort(
+                (a: WrappedAction, b: WrappedAction) =>
+                    b.action.stat.usageScore() - a.action.stat.usageScore(),
+            );
+        } else {
+            this.actions.sort((a: WrappedAction, b: WrappedAction) => b.getScore() - a.getScore());
+        }
         this.update.emit();
     }
 
@@ -77,7 +84,11 @@ export class State extends Holder {
             .then((actions: Action[]) => {
                 this.actions = actions
                     .filter((action) => action.isSuitable(this.origin, this.parser))
-                    .map((action) => new WrappedAction(action, this.matcher));
+                    .map((action) => new WrappedAction(action, this.matcher))
+                    .sort(
+                        (a: WrappedAction, b: WrappedAction) =>
+                            b.action.stat.usageScore() - a.action.stat.usageScore(),
+                    );
                 this.update.emit();
             })
             .catch((error: Error) => {

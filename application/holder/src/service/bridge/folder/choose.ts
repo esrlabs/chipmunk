@@ -9,8 +9,8 @@ export const handler = Requests.InjectLogger<
     CancelablePromise<Requests.Folder.Choose.Response>
 >(
     (
-        log: Logger,
-        request: Requests.Folder.Choose.Request,
+        _log: Logger,
+        _request: Requests.Folder.Choose.Request,
     ): CancelablePromise<Requests.Folder.Choose.Response> => {
         return new CancelablePromise((resolve, reject) => {
             electron
