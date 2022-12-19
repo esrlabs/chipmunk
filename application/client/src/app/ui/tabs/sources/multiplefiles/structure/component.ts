@@ -191,7 +191,8 @@ export class TabSourceMultipleFilesStructure
                             f.type === file.type ? kept.push(f) : removed.push(f),
                         );
                         this.data.data = kept;
-                        this.context.next({ type: EContextActionType.update, files: removed });
+                        removed.length > 0 &&
+                            this.context.next({ type: EContextActionType.update, files: removed });
                     },
                 },
             );
@@ -206,7 +207,8 @@ export class TabSourceMultipleFilesStructure
                         f.sizeInByte() === 0 ? removed.push(f) : kept.push(f),
                     );
                     this.data.data = kept;
-                    this.context.next({ type: EContextActionType.update, files: removed });
+                    removed.length > 0 &&
+                        this.context.next({ type: EContextActionType.update, files: removed });
                 },
             },
             {
