@@ -135,6 +135,14 @@ export class TabSourceMultipleFiles extends Holder implements AfterContentInit, 
                                 this.log().error(`Fail to open dlt file; error: ${err.message}`);
                             });
                         break;
+                    case FileType.Pcap:
+                        this.ilc()
+                            .services.system.opener.file(file.filename)
+                            .pcap()
+                            .catch((err: Error) => {
+                                this.log().error(`Fail to open pcap file; error: ${err.message}`);
+                            });
+                        break;
                 }
             }
         });
@@ -145,9 +153,7 @@ export class TabSourceMultipleFiles extends Holder implements AfterContentInit, 
         const files: FileHolder[] | undefined = event.files;
         switch (event.type) {
             case EContextActionType.open:
-                if (event.files !== undefined) {
-                    this.ngOpenEach(event.files);
-                }
+                this.ngOpenEach(files);
                 break;
             case EContextActionType.update:
                 if (files !== undefined) {

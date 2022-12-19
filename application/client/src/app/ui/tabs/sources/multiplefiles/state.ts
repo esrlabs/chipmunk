@@ -16,32 +16,16 @@ export class State {
         return this._openable;
     }
 
-    public set openable(value: boolean) {
-        this._openable = value;
-    }
-
     public get concatable(): boolean {
         return this._concatable;
-    }
-
-    public set concatable(value: boolean) {
-        this._concatable = value;
     }
 
     public get selectedCount(): number {
         return this._selectedCount;
     }
 
-    public set selectedCount(count: number) {
-        this._selectedCount = count;
-    }
-
     public get selectedSize(): string {
         return this._selectedSize;
-    }
-
-    public set selectedSize(size: string) {
-        this._selectedSize = size;
     }
 
     public get destination(): string {
@@ -62,9 +46,13 @@ export class State {
             }
         });
         this._selectedSize = bytesToStr(size);
-        this._concatable = this._selectedTypes.length === 1;
-        // this._openable = !this._selectedTypes.includes(FileType.Dlt);
-        // this._concatable =
-        //     this._selectedTypes.length === 1 && this._selectedTypes.includes(FileType.Text);
+        this._openable = ![FileType.Dlt, FileType.Pcap, FileType.SomeIP].some((type) =>
+            this._selectedTypes.includes(type),
+        );
+        this._concatable =
+            (this._selectedTypes.length === 1 && !this._selectedTypes.includes(FileType.SomeIP)) ||
+            (this._selectedTypes.length === 2 &&
+                this._selectedTypes.includes(FileType.Any) &&
+                this._selectedTypes.includes(FileType.Text));
     }
 }
