@@ -48,16 +48,9 @@ export class State extends Holder {
                     },
                 ),
         );
-        recent
-            .get()
-            .then((actions: Action[]) => {
-                this.actions = actions.map((action) => new WrappedAction(action, this.matcher));
-                this.actions.length > 0 && (this.selected = this.actions[0].hash());
-                this.update.emit();
-            })
-            .catch((error: Error) => {
-                console.log(`Fail to get recent due error: ${error.message}`);
-            });
+        this.reload().then(() => {
+            this.actions.length > 0 && (this.selected = this.actions[0].hash());
+        });
     }
 
     public bind(close: CloseHandler) {
@@ -66,7 +59,15 @@ export class State extends Holder {
 
     public filtering(value: string) {
         this.matcher.search(value);
-        this.actions.sort((a: WrappedAction, b: WrappedAction) => b.getScore() - a.getScore());
+        this.matcher.search(value);
+        if (value.trim() === '') {
+            this.actions.sort(
+                (a: WrappedAction, b: WrappedAction) =>
+                    b.action.stat.usageScore() - a.action.stat.usageScore(),
+            );
+        } else {
+            this.actions.sort((a: WrappedAction, b: WrappedAction) => b.getScore() - a.getScore());
+        }
         this.move().update();
         this.update.emit();
     }
@@ -139,11 +140,16 @@ export class State extends Holder {
         };
     }
 
-    protected reload(): void {
-        recent
+    protected reload(): Promise<void> {
+        return recent
             .get()
             .then((actions: Action[]) => {
-                this.actions = actions.map((action) => new WrappedAction(action, this.matcher));
+                this.actions = actions
+                    .map((action) => new WrappedAction(action, this.matcher))
+                    .sort(
+                        (a: WrappedAction, b: WrappedAction) =>
+                            b.action.stat.usageScore() - a.action.stat.usageScore(),
+                    );
                 this.update.emit();
             })
             .catch((error: Error) => {
