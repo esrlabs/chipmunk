@@ -11,6 +11,7 @@ import { LocksHistoryModule } from '@elements/locks.history/module';
 import { TransportReviewModule } from '@elements/transport/listed/module';
 import { AutocompleteModule } from '@elements/autocomplete/module';
 import { ComTooltipComponent } from '@elements/tooltip/component';
+import { FolderInputModule } from '@elements/folderinput/module';
 
 @NgModule({
     entryComponents: [ComTooltipComponent],
@@ -25,6 +26,7 @@ import { ComTooltipComponent } from '@elements/tooltip/component';
         LocksHistoryModule,
         TransportReviewModule,
         AutocompleteModule,
+        FolderInputModule,
     ],
     declarations: [ComTooltipComponent],
     exports: [
@@ -37,6 +39,7 @@ import { ComTooltipComponent } from '@elements/tooltip/component';
         LocksHistoryModule,
         TransportReviewModule,
         AutocompleteModule,
+        FolderInputModule,
     ],
     bootstrap: [
         ContainersModule,
@@ -48,6 +51,7 @@ import { ComTooltipComponent } from '@elements/tooltip/component';
         LocksHistoryModule,
         TransportReviewModule,
         AutocompleteModule,
+        FolderInputModule,
     ],
 })
 export class ElementsModule {}

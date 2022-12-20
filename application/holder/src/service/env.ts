@@ -14,9 +14,8 @@ import { Storage } from './env/storage';
 import { error } from 'platform/env/logger';
 
 import * as fs from 'fs';
+import * as os from 'os';
 import * as Requests from 'platform/ipc/request';
-
-const DEFAULTS_PATH = module.path;
 
 @DependOn(electron)
 @DependOn(storage)
@@ -48,7 +47,7 @@ export class Service extends Implementation {
                             }
                             try {
                                 const globalCwd = await this.storage.get().cwd();
-                                if (request.uuid === undefined || globalCwd === DEFAULTS_PATH) {
+                                if (request.uuid === undefined || globalCwd === os.homedir()) {
                                     await this.setGlobal(request.cwd);
                                 } else {
                                     this.cwd.set(request.uuid, request.cwd);
@@ -91,7 +90,7 @@ export class Service extends Implementation {
                                         cwd:
                                             cwd === undefined
                                                 ? globalCwd === undefined
-                                                    ? DEFAULTS_PATH
+                                                    ? os.homedir()
                                                     : globalCwd
                                                 : cwd,
                                     }),
@@ -100,7 +99,7 @@ export class Service extends Implementation {
                                 resolve(
                                     new Requests.Cwd.Get.Response({
                                         uuid: request.uuid,
-                                        cwd: cwd === undefined ? DEFAULTS_PATH : cwd,
+                                        cwd: cwd === undefined ? os.homedir() : cwd,
                                     }),
                                 );
                             }

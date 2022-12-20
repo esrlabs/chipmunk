@@ -2,6 +2,8 @@ import { storage } from '@service/storage';
 import { error } from 'platform/env/logger';
 
 import * as obj from 'platform/env/obj';
+import * as os from 'os';
+import * as fs from 'fs';
 
 const KEYS = {
     cwd: 'cwd',
@@ -19,6 +21,9 @@ export class Storage {
             cwd: (path: string): Promise<void> => {
                 if (path.trim() === '') {
                     return storage.entries.delete(Storage.KEY, [KEYS.cwd]);
+                }
+                if (!fs.existsSync(path)) {
+                    path = os.homedir();
                 }
                 const entry = { uuid: KEYS.cwd, content: JSON.stringify({ value: path }) };
                 return storage.entries.update(Storage.KEY, [entry]);
@@ -48,7 +53,14 @@ export class Storage {
                                 return resolve(undefined);
                             }
                             try {
-                                resolve(obj.getAsNotEmptyString(JSON.parse(cwd.content), 'value'));
+                                let path = obj.getAsNotEmptyString(
+                                    JSON.parse(cwd.content),
+                                    'value',
+                                );
+                                if (!fs.existsSync(path)) {
+                                    path = os.homedir();
+                                }
+                                resolve(path);
                             } catch (e) {
                                 reject(new Error(error(e)));
                             }

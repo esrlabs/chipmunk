@@ -3,6 +3,8 @@ import { Observe } from 'rustcore';
 import { sessions } from '@service/sessions';
 import { Instance as Logger } from 'platform/env/logger';
 
+import * as os from 'os';
+import * as fs from 'fs';
 import * as Requests from 'platform/ipc/request';
 
 export const handler = Requests.InjectLogger<
@@ -81,6 +83,16 @@ export const handler = Requests.InjectLogger<
                     }),
                 );
             } else if (request.source.process !== undefined) {
+                if (request.source.process.cwd.trim() === '') {
+                    request.source.process.cwd = os.homedir();
+                }
+                if (!fs.existsSync(request.source.process.cwd)) {
+                    return reject(
+                        new Error(
+                            `Working directory "${request.source.process.cwd}" doesn't exist`,
+                        ),
+                    );
+                }
                 stored
                     .observe()
                     .start(Observe.DataSource.stream().process(request.source.process).text())
@@ -100,7 +112,6 @@ export const handler = Requests.InjectLogger<
                         );
                     });
             } else {
-                console.log(request);
                 return reject(new Error(`Not supported type of transport`));
             }
         });

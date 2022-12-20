@@ -13,6 +13,10 @@ export class Service extends Implementation {
         ls(path: string): Promise<Entity[]>;
         stat(path: string): Promise<Entity>;
         checksum(filename: string): Promise<string>;
+        exists(path: string): Promise<boolean>;
+        name(
+            path: string,
+        ): Promise<{ name: string; filename: string; parent: string; ext: string }>;
         select: {
             any(): Promise<File[]>;
             dlt(): Promise<File[]>;
@@ -86,6 +90,33 @@ export class Service extends Implementation {
                         .catch(reject);
                 });
             },
+            exists: (path: string): Promise<boolean> => {
+                return Requests.IpcRequest.send(
+                    Requests.File.Exists.Response,
+                    new Requests.File.Exists.Request({
+                        path,
+                    }),
+                ).then((response) => {
+                    return response.exists;
+                });
+            },
+            name: (
+                path: string,
+            ): Promise<{ name: string; filename: string; parent: string; ext: string }> => {
+                return Requests.IpcRequest.send(
+                    Requests.File.Name.Response,
+                    new Requests.File.Name.Request({
+                        path,
+                    }),
+                ).then((response) => {
+                    return {
+                        name: response.name,
+                        parent: response.parent,
+                        ext: response.ext,
+                        filename: response.filename,
+                    };
+                });
+            },
             checksum: (filename: string): Promise<string> => {
                 return Requests.IpcRequest.send(
                     Requests.File.Checksum.Response,
@@ -142,6 +173,7 @@ export class Service extends Implementation {
         text(): Promise<File[]>;
         custom(ext: string): Promise<File[]>;
         select(): Promise<string[]>;
+        ls(path: string): Promise<string[]>;
     } {
         const request = (target: FileType, ext?: string): Promise<File[]> => {
             return new Promise((resolve, reject) => {
@@ -184,6 +216,14 @@ export class Service extends Implementation {
                             resolve(response.paths);
                         })
                         .catch(reject);
+                });
+            },
+            ls: (path: string): Promise<string[]> => {
+                return Requests.IpcRequest.send(
+                    Requests.Folder.Ls.Response,
+                    new Requests.Folder.Ls.Request({ path }),
+                ).then((response) => {
+                    return response.folders;
                 });
             },
         };
@@ -299,6 +339,25 @@ export class Service extends Implementation {
                     )
                         .then((response) => {
                             resolve(response.cwd);
+                        })
+                        .catch(reject);
+                });
+            },
+        };
+    }
+
+    public os(): {
+        homedir(): Promise<string>;
+    } {
+        return {
+            homedir: (): Promise<string> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Os.HomeDir.Response,
+                        new Requests.Os.HomeDir.Request(),
+                    )
+                        .then((response) => {
+                            resolve(response.path);
                         })
                         .catch(reject);
                 });
