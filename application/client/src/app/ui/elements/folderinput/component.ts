@@ -15,7 +15,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { Controll } from './input';
 import { FoldersList } from './folders';
-import { ErrorState, NullErrorState } from './error';
+import { ErrorState } from './error';
 
 interface Options {
     placeholder: string;
@@ -43,7 +43,7 @@ export class FolderInput extends ChangesDetector implements AfterContentInit, Af
 
     public control!: Controll;
     public folders!: FoldersList;
-    public error: ErrorState = new NullErrorState();
+    public error: ErrorState = new ErrorState();
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -63,7 +63,7 @@ export class FolderInput extends ChangesDetector implements AfterContentInit, Af
             this.markChangesForCheck();
         });
         this.env().subscriber.register(
-            this.error.observer().subscribe(() => {
+            this.error.subject.subscribe(() => {
                 this.detectChanges();
             }),
         );
