@@ -110,8 +110,35 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
+                    Requests.Folder.Ls.Request,
+                    RequestHandlers.Folder.Ls.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
                     Requests.File.File.Request,
                     RequestHandlers.File.File.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.File.Exists.Request,
+                    RequestHandlers.File.Exists.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.File.Name.Request,
+                    RequestHandlers.File.Name.handler,
                 ),
         );
         this.register(
@@ -139,6 +166,15 @@ export class Service extends Implementation {
                     this.getName(),
                     Requests.Os.AsFSEntity.Request,
                     RequestHandlers.Os.AsFSEntity.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Os.HomeDir.Request,
+                    RequestHandlers.Os.HomeDir.handler,
                 ),
         );
         this.register(

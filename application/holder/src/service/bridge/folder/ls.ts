@@ -1,0 +1,31 @@
+import { CancelablePromise } from 'platform/env/promise';
+import { Instance as Logger } from 'platform/env/logger';
+
+import * as Requests from 'platform/ipc/request';
+import * as fs from 'fs';
+import * as path from 'path';
+
+export const handler = Requests.InjectLogger<
+    Requests.Folder.Ls.Request,
+    CancelablePromise<Requests.Folder.Ls.Response>
+>(
+    (
+        _log: Logger,
+        request: Requests.Folder.Ls.Request,
+    ): CancelablePromise<Requests.Folder.Ls.Response> => {
+        return new CancelablePromise((resolve, reject) => {
+            fs.promises
+                .readdir(request.path, { withFileTypes: true })
+                .then((list) => {
+                    resolve(
+                        new Requests.Folder.Ls.Response({
+                            folders: list
+                                .filter((el) => el.isDirectory())
+                                .map((el) => path.resolve(request.path, el.name)),
+                        }),
+                    );
+                })
+                .catch(reject);
+        });
+    },
+);

@@ -1,0 +1,36 @@
+<mat-form-field class="outline" appearance="outline">
+    <input
+        #input
+        tabindex="1"
+        type="text"
+        [attr.placeholder]="options.placeholder"
+        [attr.ariaLabel]="options.label"
+        [errorStateMatcher]="error"
+        matInput
+        [formControl]="control.control"
+        [matAutocomplete]="recent_ref"
+        [matAutocompleteDisabled]="!control.recent"
+        (keyup)="control.keyup($event)"
+    />
+    <mat-error *ngIf="error.is()">
+        {{error.msg()}}
+    </mat-error>
+    <mat-autocomplete
+        #recent_ref="matAutocomplete"
+        class="regular"
+        (optionSelected)="control.selected($event)"
+        (closed)="control.onPanelClosed()"
+        [classList]="'recent-requests'"
+        [disableRipple]="true"
+    >
+        <mat-option
+            class="small"
+            *ngFor="let folder of folders.observer | async"
+            [value]="folder"                   
+        >
+            <span class="option-caption t-console t-small t-subselection">{{folder}}</span>
+        </mat-option>
+    </mat-autocomplete>
+</mat-form-field>
+<span [attr.class]="'small-icon-button codicon codicon-home'" (click)="home()"></span>
+<span [attr.class]="'small-icon-button codicon codicon-new-folder'" (click)="select()"></span>

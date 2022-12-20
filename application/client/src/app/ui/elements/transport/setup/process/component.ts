@@ -2,6 +2,7 @@ import {
     Component,
     ChangeDetectorRef,
     Input,
+    AfterContentInit,
     AfterViewInit,
     OnDestroy,
     ViewChild,
@@ -10,12 +11,10 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
 import { Action } from '@ui/tabs/sources/common/actions/action';
-import {
-    Options as AutocompleteOptions,
-    AutocompleteInput,
-} from '@elements/autocomplete/component';
+import { Options as AutocompleteOptions } from '@elements/autocomplete/component';
+import { Options as FoldersOptions, FolderInput } from '@elements/folderinput/component';
 import { Subject } from '@platform/env/subscription';
-import { CwdErrorState } from './error';
+// import { CwdErrorState } from './error';
 
 @Component({
     selector: 'app-transport-process',
@@ -23,14 +22,17 @@ import { CwdErrorState } from './error';
     styleUrls: ['./styles.less'],
 })
 @Ilc()
-export class TransportProcess extends ChangesDetector implements AfterViewInit, OnDestroy {
+export class TransportProcess
+    extends ChangesDetector
+    implements AfterContentInit, AfterViewInit, OnDestroy
+{
     @Input() public state!: State;
     @Input() public action!: Action;
-    @ViewChild('cwd') public cwdInputRef!: AutocompleteInput;
+    @ViewChild('cwd') public cwdInputRef!: FolderInput;
 
     public readonly inputs: {
         cmd: AutocompleteOptions;
-        cwd: AutocompleteOptions;
+        cwd: FoldersOptions;
     } = {
         cmd: {
             name: 'CommandsRecentList',
@@ -41,13 +43,8 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
             recent: new Subject<void>(),
         },
         cwd: {
-            name: 'CwdRecentList',
-            storage: 'processes_cwd_recent',
-            defaults: '',
             placeholder: 'Enter working folder',
             label: 'Terminal command',
-            recent: new Subject<void>(),
-            error: new CwdErrorState(),
         },
     };
 
@@ -59,12 +56,10 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
         this.state.destroy();
     }
 
-    public ngAfterViewInit(): void {
+    public ngAfterContentInit(): void {
         this.inputs.cmd.defaults = this.state.command;
-        this.inputs.cwd.defaults = this.state.cwd;
         this.action.subjects.get().applied.subscribe(() => {
             this.inputs.cmd.recent.emit();
-            this.inputs.cwd.recent.emit();
             this.state.cwd.trim() !== '' &&
                 this.ilc()
                     .services.system.bridge.cwd()
@@ -76,15 +71,7 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
         if (this.state.command.trim() === '') {
             this.action.setDisabled(true);
         }
-        this.ilc()
-            .services.system.bridge.cwd()
-            .get(undefined)
-            .then((cwd) => {
-                this.cwdInputRef.set(cwd);
-            })
-            .catch((err: Error) => {
-                this.log().error(`Fail to get cwd path: ${err.message}`);
-            });
+
         this.ilc()
             .services.system.bridge.env()
             .get()
@@ -96,6 +83,21 @@ export class TransportProcess extends ChangesDetector implements AfterViewInit, 
             })
             .finally(() => {
                 this.markChangesForCheck();
+            });
+    }
+
+    public ngAfterViewInit(): void {
+        if (this.state.cwd.trim() !== '') {
+            return;
+        }
+        this.ilc()
+            .services.system.bridge.cwd()
+            .get(undefined)
+            .then((cwd) => {
+                this.cwdInputRef.set(cwd);
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to get cwd path: ${err.message}`);
             });
     }
 

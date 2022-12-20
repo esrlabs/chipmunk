@@ -1,0 +1,121 @@
+import {
+    Component,
+    ChangeDetectorRef,
+    Input,
+    ViewChild,
+    ElementRef,
+    AfterContentInit,
+    AfterViewInit,
+    EventEmitter,
+    Output,
+    ViewEncapsulation,
+} from '@angular/core';
+import { Ilc, IlcInterface } from '@env/decorators/component';
+import { ChangesDetector } from '@ui/env/extentions/changes';
+import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
+import { Controll } from './input';
+import { FoldersList } from './folders';
+import { ErrorState, NullErrorState } from './error';
+
+interface Options {
+    placeholder: string;
+    label: string;
+}
+
+export { ErrorState, Options };
+
+@Component({
+    selector: 'app-folderinput-input',
+    templateUrl: './template.html',
+    styleUrls: ['./styles.less'],
+    encapsulation: ViewEncapsulation.None,
+})
+@Ilc()
+export class FolderInput extends ChangesDetector implements AfterContentInit, AfterViewInit {
+    @Input() public options!: Options;
+
+    @Output() public edit: EventEmitter<string> = new EventEmitter();
+    @Output() public enter: EventEmitter<string> = new EventEmitter();
+    @Output() public panel: EventEmitter<boolean> = new EventEmitter();
+
+    @ViewChild('input') inputRef!: ElementRef<HTMLInputElement>;
+    @ViewChild('input', { read: MatAutocompleteTrigger }) panelRef!: MatAutocompleteTrigger;
+
+    public control!: Controll;
+    public folders!: FoldersList;
+    public error: ErrorState = new NullErrorState();
+
+    constructor(cdRef: ChangeDetectorRef) {
+        super(cdRef);
+    }
+
+    public ngAfterContentInit(): void {
+        this.control = new Controll();
+        this.folders = new FoldersList(this.control.control);
+        this.control.actions.edit.subscribe((value: string) => {
+            this.edit.emit(value);
+        });
+        this.control.actions.enter.subscribe((value: string) => {
+            this.enter.emit(value);
+        });
+        this.control.actions.panel.subscribe((opened: boolean) => {
+            this.panel.emit(opened);
+            this.markChangesForCheck();
+        });
+        this.env().subscriber.register(
+            this.error.observer().subscribe(() => {
+                this.detectChanges();
+            }),
+        );
+    }
+
+    public ngAfterViewInit(): void {
+        this.control.bind(this.inputRef.nativeElement, this.panelRef);
+    }
+
+    public disable(): FolderInput {
+        this.control.disable();
+        this.detectChanges();
+        return this;
+    }
+
+    public enable(): FolderInput {
+        this.control.enable();
+        this.detectChanges();
+        return this;
+    }
+
+    public set(value: string): FolderInput {
+        this.control.set(value);
+        this.folders.setParent();
+        this.detectChanges();
+        return this;
+    }
+
+    public focus(): FolderInput {
+        this.inputRef.nativeElement.focus();
+        return this;
+    }
+
+    public select() {
+        this.ilc()
+            .services.system.bridge.folders()
+            .select()
+            .then((paths: string[]) => {
+                if (paths.length !== 1) {
+                    return;
+                }
+                this.set(paths[0]);
+            });
+    }
+
+    public home() {
+        this.ilc()
+            .services.system.bridge.os()
+            .homedir()
+            .then((path: string) => {
+                this.set(path);
+            });
+    }
+}
+export interface FolderInput extends IlcInterface {}

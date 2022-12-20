@@ -1,0 +1,42 @@
+@import '../../styles/variables.less';
+
+
+app-folderinput-input {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    & mat-form-field {
+        flex: auto;
+    }
+    & span.small-icon-button {
+        display: inline-block;
+        height: 24px;
+        width: 24px;
+        color: @scheme-color-0;
+        text-align: center;
+        padding-top: 4px;
+        box-sizing: border-box;
+        margin: 4px 0px 0px 0px;
+        &:hover{
+            color: @scheme-color-3;
+        }
+    }
+    & mat-form-field.full-width {
+        display: block;
+    }
+    & mat-form-field.outline {
+        margin: 0!important;
+    }
+    & div.mat-form-field-wrapper {
+        padding: 0;
+    }
+    & div.mat-form-field-subscript-wrapper {
+        position: relative;
+        margin: 0;
+    }
+    & mat-error {
+        color: @scheme-color-warning!important;
+        padding: 6px 0;
+    }
+}
