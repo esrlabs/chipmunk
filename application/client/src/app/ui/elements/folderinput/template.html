@@ -5,6 +5,7 @@
         type="text"
         [attr.placeholder]="options.placeholder"
         [attr.ariaLabel]="options.label"
+        [attr.invalid]="error.is()"
         [errorStateMatcher]="error"
         matInput
         [formControl]="control.control"
@@ -12,9 +13,7 @@
         [matAutocompleteDisabled]="!control.recent"
         (keyup)="control.keyup($event)"
     />
-    <mat-error *ngIf="error.is()">
-        {{error.msg()}}
-    </mat-error>
+    <mat-error *ngIf="error.is()">Doesn't exist</mat-error>
     <mat-autocomplete
         #recent_ref="matAutocomplete"
         class="regular"
