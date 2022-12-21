@@ -12,9 +12,11 @@ export enum EntityType {
 
 export interface Entity {
     name: string;
+    fullname: string;
     type: EntityType;
     details?: {
         filename: string;
+        full: string;
         path: string;
         basename: string;
         ext: string;

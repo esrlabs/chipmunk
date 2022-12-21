@@ -3,7 +3,7 @@ import { services } from '@register/services';
 import { ilc, Emitter, Channel, Services } from '@service/ilc';
 import { Session } from './session/session';
 import { TabControls } from './session/tab';
-import { File } from '@platform/types/files';
+import { File, FileType } from '@platform/types/files';
 import { SourceDefinition, Source as SourceRef } from '@platform/types/transport';
 import { IDLTOptions, parserSettingsToOptions } from '@platform/types/parsers/dlt';
 
@@ -26,6 +26,7 @@ export interface FileOpenFuncs {
     dlt(options?: IDLTOptions): Promise<string>;
     pcap(options?: IDLTOptions): Promise<string>;
     assign(session: Session | undefined): FileOpenFuncs;
+    auto(): Promise<string>;
 }
 
 @SetupService(services['opener'])
@@ -95,6 +96,23 @@ export class Service extends Implementation {
                 scope = session;
                 return out;
             },
+            auto: async (): Promise<string> => {
+                if (typeof file === 'string') {
+                    const data = await this._services.system.bridge.files().getByPath([file]);
+                    if (data.length !== 1) {
+                        return Promise.reject(new Error(`Fail to get info about file: ${file}`));
+                    }
+                    file = data[0];
+                }
+                switch (file.type) {
+                    case FileType.Dlt:
+                        return this.file(file).dlt();
+                    case FileType.Pcap:
+                        return this.file(file).pcap();
+                    default:
+                        return this.file(file).text();
+                }
+            },
         };
         return out;
     }
@@ -120,6 +138,11 @@ export class Service extends Implementation {
             assign: (session: Session | undefined): FileOpenFuncs => {
                 scope = session;
                 return out;
+            },
+            auto: (): Promise<string> => {
+                return Promise.reject(
+                    new Error(`Auto detection of file type of concat isn't implemented`),
+                );
             },
         };
         return out;

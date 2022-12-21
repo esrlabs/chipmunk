@@ -20,6 +20,7 @@ export const handler = Requests.InjectLogger<
                 .then((stats: fs.Stats) => {
                     const entity: Entity = {
                         name: request.path,
+                        fullname: path.normalize(request.path),
                         type: (() => {
                             if (stats.isBlockDevice()) {
                                 return EntityType.BlockDevice;
@@ -41,6 +42,7 @@ export const handler = Requests.InjectLogger<
                     if (stats.isFile() || stats.isSocket() || stats.isSymbolicLink()) {
                         entity.details = {
                             filename: request.path,
+                            full: path.normalize(request.path),
                             path: path.dirname(request.path),
                             basename: path.basename(request.path),
                             ext: path.extname(request.path),

@@ -12,6 +12,7 @@ import { TransportReviewModule } from '@elements/transport/listed/module';
 import { AutocompleteModule } from '@elements/autocomplete/module';
 import { ComTooltipComponent } from '@elements/tooltip/component';
 import { FolderInputModule } from '@elements/folderinput/module';
+import { FavoritesModule } from '@elements/favorites/module';
 
 @NgModule({
     entryComponents: [ComTooltipComponent],
@@ -27,6 +28,7 @@ import { FolderInputModule } from '@elements/folderinput/module';
         TransportReviewModule,
         AutocompleteModule,
         FolderInputModule,
+        FavoritesModule,
     ],
     declarations: [ComTooltipComponent],
     exports: [
@@ -40,6 +42,7 @@ import { FolderInputModule } from '@elements/folderinput/module';
         TransportReviewModule,
         AutocompleteModule,
         FolderInputModule,
+        FavoritesModule,
     ],
     bootstrap: [
         ContainersModule,
@@ -52,6 +55,7 @@ import { FolderInputModule } from '@elements/folderinput/module';
         TransportReviewModule,
         AutocompleteModule,
         FolderInputModule,
+        FavoritesModule,
     ],
 })
 export class ElementsModule {}

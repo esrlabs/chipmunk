@@ -59,7 +59,6 @@ export class State extends Holder {
 
     public filtering(value: string) {
         this.matcher.search(value);
-        this.matcher.search(value);
         if (value.trim() === '') {
             this.actions.sort(
                 (a: WrappedAction, b: WrappedAction) =>

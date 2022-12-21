@@ -77,7 +77,7 @@ export const KeysMap: KeyDescription[] = [
     {
         alias: 'Ctrl + P',
         shortkeys: { darwin: ['Cmd + P'], others: ['Ctrl + P'] },
-        description: 'Open recent files',
+        description: 'Explore files in favorites',
         category: Category.Files,
         required: [],
         uuid: 'Ctrl + P',
@@ -86,7 +86,7 @@ export const KeysMap: KeyDescription[] = [
     {
         alias: 'Shift + Ctrl + P',
         shortkeys: { darwin: ['Shift + Cmd + P'], others: ['Shift + Ctrl + P'] },
-        description: 'Open recent filters and presets',
+        description: 'Open recent actions',
         category: Category.Files,
         required: [Requirement.Session],
         uuid: 'Shift + Ctrl + P',

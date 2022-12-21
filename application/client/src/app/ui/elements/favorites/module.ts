@@ -4,11 +4,12 @@ import { ContainersModule } from '@elements/containers/module';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { FilterInputModule } from '@elements/filter/module';
 
-import { RecentActionsMini } from './component';
+import { Favorites } from './component';
 
-const components = [RecentActionsMini];
+const components = [Favorites];
 @NgModule({
     entryComponents: [...components],
     imports: [
@@ -18,9 +19,10 @@ const components = [RecentActionsMini];
         MatIconModule,
         MatMenuModule,
         FilterInputModule,
+        MatProgressBarModule,
     ],
     declarations: [...components],
     exports: [...components],
     bootstrap: [...components],
 })
-export class RecentActionsMiniModule {}
+export class FavoritesModule {}
