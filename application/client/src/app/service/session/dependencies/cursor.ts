@@ -2,6 +2,7 @@ import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { cutUuid } from '@log/index';
 import { Owner, Row } from '@schema/content/row';
+import { IRange } from '@platform/types/range';
 
 export interface SelectEvent {
     row: number;
@@ -18,9 +19,11 @@ export class Cursor extends Subscriber {
     public readonly subjects: Subjects<{
         selected: Subject<SelectEvent>;
         updated: Subject<void>;
+        frame: Subject<IRange>;
     }> = new Subjects({
         selected: new Subject<SelectEvent>(),
         updated: new Subject<void>(),
+        frame: new Subject<IRange>(),
     });
     private _selected: number[] = [];
     private _uuid!: string;
@@ -32,6 +35,7 @@ export class Cursor extends Subscriber {
         position: undefined,
         row: undefined,
     };
+    private _frame: IRange | undefined;
 
     public init(uuid: string) {
         this.setLoggerName(`Cursor: ${cutUuid(uuid)}`);
@@ -48,6 +52,21 @@ export class Cursor extends Subscriber {
         this.subjects.destroy();
         window.removeEventListener('keydown', this._onKeyDown);
         window.removeEventListener('keyup', this._onKeyUp);
+    }
+
+    public frame(): {
+        set(frame: IRange): void;
+        get(): IRange | undefined;
+    } {
+        return {
+            set: (frame: IRange): void => {
+                this._frame = frame;
+                this.subjects.get().frame.emit(frame);
+            },
+            get: (): IRange | undefined => {
+                return Object.assign({}, this._frame);
+            },
+        };
     }
 
     public select(position: number, initiator: Owner, row?: Row) {

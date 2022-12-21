@@ -11,6 +11,7 @@ export function getScrollAreaService(session: Session): Service {
         const service = new Service({
             setFrame: (range: Range) => {
                 session.stream.chunk(range).then((rows) => {
+                    session.cursor.frame().set(range.asObj());
                     service.setRows({
                         rows: rows.map((row) => {
                             return new Row({

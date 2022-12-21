@@ -42,6 +42,10 @@ export class Range {
         this.to = to;
     }
 
+    public asObj(): IRange {
+        return { from: this.from, to: this.to };
+    }
+
     public len(): number {
         return this.to - this.from;
     }
