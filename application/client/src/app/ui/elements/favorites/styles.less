@@ -1,11 +1,18 @@
 @import '../../styles/variables.less';
 
 
-app-recent-actions-mini {
+app-favorites-mini {
     position: relative;
     display: block;
     width: 100%;
     overflow: hidden;
+    & p.info {
+        padding: 3px 12px;
+        color: @scheme-color-2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
     & div.filter {
         height: 41px;
         width: 100%;
@@ -63,5 +70,9 @@ app-recent-actions-mini {
                 }
             }
         }        
+    }
+    & div.stat {
+        padding-bottom: 12px;
+        border-top: thin solid @scheme-color-4;
     }
 }

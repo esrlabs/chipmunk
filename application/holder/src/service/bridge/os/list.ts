@@ -23,6 +23,10 @@ export const handler = Requests.InjectLogger<
                             entities: list.map((entity: fs.Dirent) => {
                                 const output: Entity = {
                                     name: entity.name,
+                                    fullname: path.resolve(
+                                        path.normalize(request.path),
+                                        entity.name,
+                                    ),
                                     type: (() => {
                                         if (entity.isBlockDevice()) {
                                             return EntityType.BlockDevice;
@@ -48,7 +52,11 @@ export const handler = Requests.InjectLogger<
                                 ) {
                                     output.details = {
                                         filename: entity.name,
-                                        path: path.dirname(entity.name),
+                                        path: path.normalize(request.path),
+                                        full: path.resolve(
+                                            path.normalize(request.path),
+                                            entity.name,
+                                        ),
                                         basename: path.basename(entity.name),
                                         ext: path.extname(entity.name),
                                     };

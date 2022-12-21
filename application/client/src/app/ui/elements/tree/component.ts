@@ -86,13 +86,23 @@ export class ElementsTreeSelector extends ChangesDetector implements AfterConten
                 {
                     caption: 'Open as DLT',
                     handler: () => {
-                        console.log(`Not implemented`);
+                        this.ilc()
+                            .services.system.opener.file(entity.getPath())
+                            .dlt()
+                            .catch((err: Error) => {
+                                this.log().error(`Fail to open dlt file; error: ${err.message}`);
+                            });
                     },
                 },
                 {
                     caption: 'Open as PCAP',
                     handler: () => {
-                        console.log(`Not implemented`);
+                        this.ilc()
+                            .services.system.opener.file(entity.getPath())
+                            .pcap()
+                            .catch((err: Error) => {
+                                this.log().error(`Fail to open pcap file; error: ${err.message}`);
+                            });
                     },
                 },
             ],

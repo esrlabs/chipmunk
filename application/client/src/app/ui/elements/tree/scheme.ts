@@ -65,6 +65,7 @@ export class DynamicDatabase {
                     new Entity(
                         {
                             name: root,
+                            fullname: root,
                             type: EntityType.Directory,
                             details: undefined,
                         },

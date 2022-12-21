@@ -113,6 +113,22 @@ export class Service extends Implementation {
             this.listen('Ctrl + P', () => {
                 this._services.ui.popup.open({
                     component: {
+                        factory: components.get('app-favorites-mini'),
+                        inputs: {},
+                    },
+                    position: {
+                        vertical: Vertical.top,
+                        horizontal: Horizontal.center,
+                    },
+                    closeOnKey: 'Escape',
+                    width: 450,
+                });
+            }),
+        );
+        this.register(
+            this.listen('Shift + Ctrl + P', () => {
+                this._services.ui.popup.open({
+                    component: {
                         factory: components.get('app-recent-actions-mini'),
                         inputs: {},
                     },
