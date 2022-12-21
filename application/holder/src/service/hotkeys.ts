@@ -95,6 +95,14 @@ export class Service extends Implementation {
     }
 
     protected bind(): void {
+        if (this.window === undefined) {
+            this.log().debug(`Cannot activete hotkeys because no window available`);
+            return;
+        }
+        if (!this.window.isFocused()) {
+            this.log().debug(`Cannot activete hotkeys because window doesn't have a focus`);
+            return;
+        }
         let listeners = 0;
         KeysMap.forEach((key) => {
             if (key.client) {
