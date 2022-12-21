@@ -3,20 +3,33 @@ import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { bridge } from '@service/bridge';
+import { Folder } from './folder';
+import { Holder } from '@module/matcher/holder';
 
 @SetupLogger()
-export class FoldersList {
-    public items: string[] = [];
+export class FoldersList extends Holder {
+    public items: Folder[] = [];
     public parent: string = '/';
-    public observer!: Observable<string[]>;
+    public observer!: Observable<Folder[]>;
 
     protected readonly control: FormControl;
     protected previous: string = '';
+    protected delimiter: string = '';
 
     constructor(control: FormControl) {
+        super();
         this.control = control;
         this.setLoggerName(`FolderListController`);
         this.assign();
+        bridge
+            .folders()
+            .delimiter()
+            .then((delimiter) => {
+                this.delimiter = delimiter;
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to request delimiter: ${err.message}`);
+            });
     }
 
     public setParent() {
@@ -30,7 +43,7 @@ export class FoldersList {
                 this.update().catch((err: Error) => {
                     this.log().error(err.message);
                 });
-                return this.items;
+                return this.items.sort((a: Folder, b: Folder) => b.getScore() - a.getScore());
             }),
         );
     }
@@ -53,7 +66,9 @@ export class FoldersList {
             return Promise.resolve();
         }
         const target = this.parent;
-        this.items = await bridge.folders().ls(target);
+        this.items = await (
+            await bridge.folders().ls(target)
+        ).map((i) => new Folder(target, i, this.delimiter, this.matcher));
         this.previous = target;
         this.assign();
     }
@@ -71,21 +86,24 @@ export class FoldersList {
             }
             return Promise.resolve(undefined);
         }
+        const finish = (parent: string, query: string | undefined) => {
+            this.matcher.search(query === undefined ? '' : query);
+            this.parent = parent;
+        };
+        const info = candidate.trim() === '' ? undefined : await bridge.files().name(candidate);
         let suggestion = await suggest(candidate, this.parent);
         if (suggestion !== undefined) {
-            this.parent = suggestion;
+            finish(suggestion, info?.name);
             return Promise.resolve();
         }
-        suggestion = await suggest(
-            await (
-                await bridge.files().name(candidate)
-            ).parent,
-            this.parent,
-        );
+        if (info === undefined) {
+            return Promise.resolve();
+        }
+        suggestion = await suggest(info.parent, this.parent);
         if (suggestion !== undefined) {
-            this.parent = suggestion;
+            finish(suggestion, info.name);
         } else {
-            this.parent = '';
+            finish('', '');
         }
         return Promise.resolve();
     }

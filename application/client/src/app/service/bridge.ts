@@ -174,6 +174,7 @@ export class Service extends Implementation {
         custom(ext: string): Promise<File[]>;
         select(): Promise<string[]>;
         ls(path: string): Promise<string[]>;
+        delimiter(): Promise<string>;
     } {
         const request = (target: FileType, ext?: string): Promise<File[]> => {
             return new Promise((resolve, reject) => {
@@ -224,6 +225,14 @@ export class Service extends Implementation {
                     new Requests.Folder.Ls.Request({ path }),
                 ).then((response) => {
                     return response.folders;
+                });
+            },
+            delimiter: (): Promise<string> => {
+                return Requests.IpcRequest.send(
+                    Requests.Folder.Delimiter.Response,
+                    new Requests.Folder.Delimiter.Request(),
+                ).then((response) => {
+                    return response.delimiter;
                 });
             },
         };

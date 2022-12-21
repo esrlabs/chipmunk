@@ -28,8 +28,7 @@
             *ngFor="let recent of recent.observer | async"
             [value]="recent.value"                   
         >
-            <span class="option-caption t-console t-small t-subselection"
-                [innerHTML]="recent.html()"
+            <span class="option-caption" [innerHTML]="recent.html()"
             ></span>
             <mat-icon (click)="ngRemove(recent, $event)">close</mat-icon>
         </mat-option>
