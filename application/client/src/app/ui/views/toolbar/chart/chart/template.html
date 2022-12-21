@@ -2,6 +2,21 @@
     <mat-spinner *ngIf="this.state.isLoading()" [diameter]="32" mode="indeterminate"></mat-spinner>
     <p *ngIf="this.state.noData()" class="t-medium color-scheme-2">No Data</p>
 </div>
-<div [attr.class]="'container filters ' + (this.state.filters === undefined ? 'hidden' : '')" (click)="this.state.onClick($event)">
+<div [attr.class]="'container filters ' + (this.state.filters === undefined ? 'hidden' : '')"
+     (mousemove)="state.onMouseMove($event)"
+     (mouseenter)="state.onMouseEnter(true)"
+     (mouseleave)="state.onMouseEnter(false)"
+     [ngStyle]="{'cursor': state.mouseEnter ? 'none' : 'default'}"
+     (click)="this.state.onClick($event)">
+    <div *ngIf="state.mouseEnter" class="crosshair-vertical" [ngStyle]="{ 'margin-left': state.crosshairLeft + 'px' }">
+        <div *ngIf="state.showLeftTooltip" class="tooltip-right" [ngStyle]="{'margin-top': state.tooltipTop + 'px'}">
+            <div class="tooltip-arrow-right"></div>
+            <div class="tooltip-text">{{state.tooltip}}</div>
+        </div>
+        <div *ngIf="!state.showLeftTooltip" class="tooltip-left" [ngStyle]="{'margin-top': state.tooltipTop + 'px'}">
+            <div class="tooltip-text">{{state.tooltip}}</div>
+            <div class="tooltip-arrow-left"></div>
+        </div>
+    </div>
     <canvas [attr.id]="'view-chart-canvas-filters-' + this.session.uuid()"></canvas>
 </div>

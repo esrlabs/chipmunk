@@ -6,6 +6,12 @@ import { IRange } from '@platform/types/range';
 import { AdvancedState, EChartName } from '../abstract/advanced';
 
 export class State extends AdvancedState {
+    public crosshairLeft: number = 0;
+    public tooltip: string = '';
+    public tooltipTop: number = 0;
+    public showLeftTooltip: boolean = true;
+    public mouseEnter: boolean = false;
+
     private _range!: IRange;
     private _loading: boolean = true;
 
@@ -39,34 +45,29 @@ export class State extends AdvancedState {
     }
 
     public onClick(event: MouseEvent) {
-        if (event.target === undefined) {
-            return;
+        const position: number = this._calculatePosition(event);
+        position >= 0 && this._session.cursor.select(position, Owner.Chart);
+    }
+
+    public onMouseMove(event: MouseEvent) {
+        const rect: DOMRect = this._element.getBoundingClientRect();
+        const offsetX = event.offsetX;
+        if (offsetX > 0) {
+            this.crosshairLeft = offsetX;
+            this.showLeftTooltip = offsetX <= rect.width / 2;
         }
-        let position: number | undefined = this._getPositionByChartPointData(event);
-        if (position === undefined) {
-            const streamLen: number = this._session.stream.len();
-            const pos: IPosition = this._service.getPosition(this._session.uuid()).position;
-            const width: number =
-                pos.full === 0 ? this._element.getBoundingClientRect().width : pos.full;
-            if (streamLen > width) {
-                const rangeRate: number = streamLen / width;
-                const rangeBegin: number = Math.floor(pos.left * rangeRate);
-                const rangeEnd: number = Math.floor((pos.left + pos.width) * rangeRate);
-                const rows = rangeEnd - rangeBegin;
-                const rate: number = width / rows;
-                const offsetX: number = event.offsetX;
-                position = Math.floor(offsetX / rate) + rangeBegin;
-            } else {
-                if (this._range === undefined) {
-                    return;
-                }
-                const rows = this._range.to - this._range.from;
-                const rate: number = width / rows;
-                const offsetX: number = event.offsetX;
-                position = Math.floor(offsetX / rate) + this._range.from;
-            }
+        if (event.offsetY > 0) {
+            this.tooltipTop = rect.height / 2;
+            const position: number = this._calculatePosition(event);
+            this.tooltip = position >= 0 ? `${position}` : '';
         }
-        this._session.cursor.select(position, Owner.Chart);
+    }
+
+    public onMouseEnter(mouseEnter: boolean) {
+        if (!mouseEnter) {
+            this.tooltip = '';
+        }
+        this.mouseEnter = mouseEnter;
     }
 
     protected _resize() {
@@ -88,6 +89,37 @@ export class State extends AdvancedState {
             .finally(() => {
                 this._loading = false;
             });
+    }
+
+    private _calculatePosition(event: MouseEvent): number {
+        if (event.target === undefined) {
+            return -1;
+        }
+        let position: number | undefined = this._getPositionByChartPointData(event);
+        if (position === undefined) {
+            const streamLen: number = this._session.stream.len();
+            const pos: IPosition = this._service.getPosition(this._session.uuid()).position;
+            const width: number =
+                pos.full === 0 ? this._element.getBoundingClientRect().width : pos.full;
+            if (streamLen > width) {
+                const rangeRate: number = streamLen / width;
+                const rangeBegin: number = Math.floor(pos.left * rangeRate);
+                const rangeEnd: number = Math.floor((pos.left + pos.width) * rangeRate);
+                const rows = rangeEnd - rangeBegin;
+                const rate: number = width / rows;
+                const offsetX: number = event.offsetX;
+                position = Math.floor(offsetX / rate) + rangeBegin;
+            } else {
+                if (this._range === undefined) {
+                    return -1;
+                }
+                const rows = this._range.to - this._range.from;
+                const rate: number = width / rows;
+                const offsetX: number = event.offsetX;
+                position = Math.floor(offsetX / rate) + this._range.from;
+            }
+        }
+        return position;
     }
 
     private _getPositionByChartPointData(event: MouseEvent): number | undefined {
@@ -139,7 +171,8 @@ export class State extends AdvancedState {
         if (event.session !== this._session.uuid()) {
             return;
         }
-        this._fetch(this._element.getBoundingClientRect().width)
+        const width: number = this._element.getBoundingClientRect().width;
+        this._fetch(width)
             .then(() => {
                 let position = event.position;
                 const size: number = this._map.length;
@@ -147,7 +180,6 @@ export class State extends AdvancedState {
                     return;
                 }
                 if (!this._isPositionViable(position)) {
-                    const width = this._element.getBoundingClientRect().width;
                     position = {
                         full: width,
                         left: 0,
