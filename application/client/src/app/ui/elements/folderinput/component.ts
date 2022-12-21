@@ -10,6 +10,7 @@ import {
     Output,
     ViewEncapsulation,
 } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
@@ -46,7 +47,7 @@ export class FolderInput extends ChangesDetector implements AfterContentInit, Af
     public folders!: FoldersList;
     public error: ErrorState = new ErrorState();
 
-    constructor(cdRef: ChangeDetectorRef) {
+    constructor(cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
         super(cdRef);
     }
 
@@ -118,6 +119,10 @@ export class FolderInput extends ChangesDetector implements AfterContentInit, Af
             .then((path: string) => {
                 this.set(path);
             });
+    }
+
+    public safeHtml(html: string): SafeHtml {
+        return this._sanitizer.bypassSecurityTrustHtml(html);
     }
 }
 export interface FolderInput extends IlcInterface {}

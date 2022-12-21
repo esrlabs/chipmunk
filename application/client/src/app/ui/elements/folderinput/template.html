@@ -25,9 +25,9 @@
         <mat-option
             class="small"
             *ngFor="let folder of folders.observer | async"
-            [value]="folder"                   
+            [value]="folder.path"                   
         >
-            <span class="option-caption t-console t-small t-subselection">{{folder}}</span>
+            <span class="option-caption" [innerHTML]="safeHtml(folder.html())"></span>
         </mat-option>
     </mat-autocomplete>
 </mat-form-field>
