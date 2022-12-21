@@ -20,6 +20,7 @@ import { ErrorState } from './error';
 interface Options {
     placeholder: string;
     label: string;
+    defaults: string;
 }
 
 export { ErrorState, Options };
@@ -52,6 +53,7 @@ export class FolderInput extends ChangesDetector implements AfterContentInit, Af
     public ngAfterContentInit(): void {
         this.control = new Controll();
         this.folders = new FoldersList(this.control.control);
+        this.control.set(this.options.defaults);
         this.control.actions.edit.subscribe((value: string) => {
             this.edit.emit(value);
         });

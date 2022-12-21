@@ -45,6 +45,7 @@ export class TransportProcess
         cwd: {
             placeholder: 'Enter working folder',
             label: 'Terminal command',
+            defaults: '',
         },
     };
 
@@ -58,6 +59,7 @@ export class TransportProcess
 
     public ngAfterContentInit(): void {
         this.inputs.cmd.defaults = this.state.command;
+        this.inputs.cwd.defaults = this.state.cwd;
         this.action.subjects.get().applied.subscribe(() => {
             this.inputs.cmd.recent.emit();
             this.state.cwd.trim() !== '' &&
@@ -71,7 +73,6 @@ export class TransportProcess
         if (this.state.command.trim() === '') {
             this.action.setDisabled(true);
         }
-
         this.ilc()
             .services.system.bridge.env()
             .get()
