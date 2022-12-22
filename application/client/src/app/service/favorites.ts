@@ -1,16 +1,31 @@
-import { Instance as Logger } from '@platform/env/logger';
+import {
+    SetupService,
+    Interface,
+    Implementation,
+    register,
+    DependOn,
+} from '@platform/entity/service';
+import { services } from '@register/services';
 import { error } from '@platform/env/logger';
-import { scope } from '@platform/env/scope';
 import { bridge } from '@service/bridge';
 import { Subjects, Subject } from '@platform/env/subscription';
 
 import * as obj from '@platform/env/obj';
+import { EntityType } from '@platform/types/files';
 
 const ROOTS_STORAGE_KEY = 'user_favourites_places';
 const STATE_STORAGE_KEY = 'user_favourites_state';
 
-export class Favorites {
-    public favourites: string[] = [];
+export interface FavoriteState {
+    path: string;
+    parent: string;
+}
+
+@DependOn(bridge)
+@SetupService(services['favorites'])
+export class Service extends Implementation {
+    public favorites: string[] = [];
+    public states: FavoriteState[] = [];
     public updates: Subjects<{
         list: Subject<void>;
         state: Subject<void>;
@@ -18,19 +33,38 @@ export class Favorites {
         list: new Subject(),
         state: new Subject(),
     });
-    protected readonly log: Logger;
 
-    constructor() {
-        this.log = scope.getLogger(`FavoritesReader`);
+    public override async ready(): Promise<void> {
+        await Promise.all([
+            this.places()
+                .get()
+                .then((favorites) => {
+                    this.favorites = favorites;
+                })
+                .catch((err: Error) => {
+                    this.log().error(`Fail to load favorites: ${err.message}`);
+                }),
+            this.expanded()
+                .get()
+                .then((states) => {
+                    this.states = states;
+                })
+                .catch((err: Error) => {
+                    this.log().error(`Fail to load states: ${err.message}`);
+                }),
+        ]);
+        return Promise.resolve();
     }
 
-    public destroy(): void {
+    public override destroy(): Promise<void> {
         this.updates.destroy();
+        return Promise.resolve();
     }
 
     public places(): {
         get(): Promise<string[]>;
         add(paths: string[] | string): Promise<void>;
+        has(path: string): boolean;
         selectAndAdd(): Promise<void>;
         remove(path: string): Promise<void>;
     } {
@@ -38,35 +72,58 @@ export class Favorites {
             get: (): Promise<string[]> => {
                 return this.storage().get();
             },
-            add: (paths: string[] | string): Promise<void> => {
+            add: async (paths: string[] | string): Promise<void> => {
                 if (!(paths instanceof Array)) {
                     paths = [paths];
                 }
-                paths = paths.filter((p) => p.trim() !== '' && this.favourites.indexOf(p) === -1);
-
+                paths = paths.filter((p) => p.trim() !== '' && !this.places().has(p));
                 if (paths.length === 0) {
                     return Promise.resolve();
                 }
-                this.favourites = this.favourites.concat(paths);
+                const accepted: string[] = [];
+                for (const path of paths) {
+                    const stat = await bridge.files().stat(path);
+                    if (stat.type === EntityType.Directory) {
+                        accepted.push(path);
+                    }
+                }
+                this.favorites = this.favorites.concat(accepted);
                 return this.storage()
-                    .set(this.favourites)
+                    .set(this.favorites)
+                    .then(() => {
+                        this.updates.get().list.emit();
+                    })
                     .catch((err: Error) => {
-                        this.log.error(`Fail to save favourites: ${err.message}`);
+                        this.log().error(`Fail to save favorites: ${err.message}`);
                     });
+            },
+            has: (path: string): boolean => {
+                return this.favorites.indexOf(path) !== -1;
             },
             selectAndAdd: async (): Promise<void> => {
                 const folders = await bridge.folders().select();
                 return this.places().add(folders);
             },
             remove: (path: string): Promise<void> => {
-                if (path.trim().length === 0 || this.favourites.indexOf(path) === -1) {
+                if (path.trim().length === 0 || !this.places().has(path)) {
                     return Promise.resolve();
                 }
-                this.favourites = this.favourites.filter((f) => f !== path);
-                return this.storage()
-                    .set(this.favourites)
+                this.favorites = this.favorites.filter((f) => f !== path);
+                this.expanded()
+                    .remove(path)
+                    .then(() => {
+                        this.updates.get().state.emit();
+                    })
                     .catch((err: Error) => {
-                        this.log.error(`Fail to save favourites: ${err.message}`);
+                        this.log().error(`Fail to update state of favorites: ${err.message}`);
+                    });
+                return this.storage()
+                    .set(this.favorites)
+                    .then(() => {
+                        this.updates.get().list.emit();
+                    })
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to save favorites: ${err.message}`);
                     });
             },
         };
@@ -106,14 +163,14 @@ export class Favorites {
         };
     }
 
-    protected expanded(): {
-        get(): Promise<{ path: string; parent: string }[]>;
-        write(nodes: { path: string; parent: string }[]): Promise<void>;
+    public expanded(): {
+        get(): Promise<FavoriteState[]>;
+        write(): Promise<void>;
         add(path: string, parent: string): Promise<void>;
         remove(path: string): Promise<void>;
     } {
         return {
-            get: (): Promise<{ path: string; parent: string }[]> => {
+            get: (): Promise<FavoriteState[]> => {
                 return new Promise((resolve, reject) => {
                     bridge
                         .entries({ key: STATE_STORAGE_KEY })
@@ -129,18 +186,18 @@ export class Favorites {
                                 });
                                 resolve(nodes);
                             } catch (e) {
-                                this.log.error(`Fail to parse folder's tree state: ${error(e)}`);
+                                this.log().error(`Fail to parse folder's tree state: ${error(e)}`);
                                 resolve([]);
                             }
                         })
                         .catch(reject);
                 });
             },
-            write: (nodes: { path: string; parent: string }[]): Promise<void> => {
+            write: (): Promise<void> => {
                 return bridge
                     .entries({ key: STATE_STORAGE_KEY })
                     .overwrite(
-                        nodes.map((node: { path: string; parent: string }) => {
+                        this.states.map((node: FavoriteState) => {
                             return {
                                 uuid: node.path,
                                 content: JSON.stringify(node),
@@ -152,29 +209,29 @@ export class Favorites {
                     });
             },
             add: async (path: string, parent: string): Promise<void> => {
-                const expanded = await this.expanded().get();
-                if (expanded.find((v) => v.path === path) !== undefined) {
+                if (this.states.find((v) => v.path === path) !== undefined) {
                     return;
                 }
-                expanded.push({ path, parent });
+                this.states.push({ path, parent });
                 this.expanded()
-                    .write(expanded)
+                    .write()
                     .catch((err: Error) => {
-                        this.log.error(`Fail to write update expanded list: ${err.message}`);
+                        this.log().error(`Fail to write update expanded list: ${err.message}`);
                     });
             },
             remove: async (path: string): Promise<void> => {
-                let expanded = await this.expanded().get();
-                if (expanded.find((value) => value.path === path) === undefined) {
+                if (this.states.find((value) => value.path === path) === undefined) {
                     return;
                 }
-                expanded = expanded.filter((v) => v.path !== path && v.parent !== path);
+                this.states = this.states.filter((v) => v.path !== path && v.parent !== path);
                 this.expanded()
-                    .write(expanded)
+                    .write()
                     .catch((err: Error) => {
-                        this.log.error(`Fail to write update expanded list: ${err.message}`);
+                        this.log().error(`Fail to write update expanded list: ${err.message}`);
                     });
             },
         };
     }
 }
+export interface Service extends Interface {}
+export const favorites = register(new Service());

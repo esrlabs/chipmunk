@@ -1,4 +1,10 @@
-import { Component, ChangeDetectorRef, AfterContentInit, ViewEncapsulation } from '@angular/core';
+import {
+    Component,
+    ChangeDetectorRef,
+    AfterViewInit,
+    AfterContentInit,
+    ViewEncapsulation,
+} from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -15,7 +21,10 @@ import * as Scheme from './scheme';
 })
 @Initial()
 @Ilc()
-export class ElementsTreeSelector extends ChangesDetector implements AfterContentInit {
+export class ElementsTreeSelector
+    extends ChangesDetector
+    implements AfterViewInit, AfterContentInit
+{
     public state: State;
 
     constructor(cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
@@ -27,6 +36,10 @@ export class ElementsTreeSelector extends ChangesDetector implements AfterConten
         this.state.init(this.ilc().services, this.log()).catch((err: Error) => {
             this.log().error(`Fail to init folder's tree state: ${err.message}`);
         });
+    }
+
+    public ngAfterViewInit(): void {
+        this.state.expand();
     }
 
     public safeHtml(html: string): SafeHtml {
@@ -60,8 +73,17 @@ export class ElementsTreeSelector extends ChangesDetector implements AfterConten
                     {
                         caption: 'Add to favourites',
                         handler: () => {
-                            this.state.addPlace(entity.getPath());
-                            this.detectChanges();
+                            this.ilc()
+                                .services.system.favorites.places()
+                                .add(entity.getPath())
+                                .then(() => {
+                                    this.detectChanges();
+                                })
+                                .catch((err: Error) => {
+                                    this.log().error(
+                                        `Fail to add place into favorites: ${err.message}`,
+                                    );
+                                });
                         },
                     },
                 ],
@@ -120,12 +142,13 @@ export class ElementsTreeSelector extends ChangesDetector implements AfterConten
 
     public add() {
         this.ilc()
-            .services.system.bridge.folders()
-            .select()
-            .then((paths: string[]) => {
-                paths.forEach((path) => {
-                    this.state.addPlace(path);
-                });
+            .services.system.favorites.places()
+            .selectAndAdd()
+            .then(() => {
+                this.detectChanges();
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to add place into favorites: ${err.message}`);
             });
     }
 }
