@@ -41,6 +41,7 @@ export class TransportSerialAvailable {
                 vertical: Vertical.center,
                 horizontal: Horizontal.center,
             },
+            uuid: 'TransportSerialOptions'
         });
     }
 }

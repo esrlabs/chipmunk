@@ -177,6 +177,7 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
             closed: () => {
                 this._filterLockTocken.unlock();
             },
+            uuid: 'app-elements-timezone-selector',
         });
     }
 

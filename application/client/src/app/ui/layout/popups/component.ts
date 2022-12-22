@@ -31,6 +31,9 @@ export class LayoutPopups extends ChangesDetector implements AfterContentInit {
 
     public ngAfterContentInit(): void {
         this.ilc().channel.ui.popup.open((popup: Popup) => {
+            if (this.popups.has(popup.uuid)) {
+                return;
+            }
             popup.options.component.inputs === undefined && (popup.options.component.inputs = {});
             popup.options.component.inputs.close = this._close.bind(this, popup.uuid);
             this.popups.set(popup.uuid, { popup, close: this._close.bind(this, popup.uuid) });

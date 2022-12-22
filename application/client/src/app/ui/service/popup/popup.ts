@@ -26,6 +26,7 @@ export interface PopupOptions {
     closeOnKey?: string;
     closeOnBGClick?: boolean;
     closed?: () => void;
+    uuid?: string;
 }
 
 export interface Options extends PopupOptions {
@@ -42,11 +43,12 @@ export class Popup {
     });
 
     public options: Options;
-    public readonly uuid: string = unique();
+    public readonly uuid: string;
 
     protected readonly closer: (uuid: string) => void;
 
     constructor(options: Options, closer: (uuid: string) => void) {
+        this.uuid = options.uuid === undefined ? unique() : options.uuid;
         this.options = options;
         this.closer = closer;
     }
