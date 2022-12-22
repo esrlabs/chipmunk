@@ -106,6 +106,7 @@ export class Service extends Implementation {
                         inputs: {},
                     },
                     closeOnKey: '*',
+                    uuid: '?',
                 });
             }),
         );
@@ -122,6 +123,7 @@ export class Service extends Implementation {
                     },
                     closeOnKey: 'Escape',
                     width: 450,
+                    uuid: 'Ctrl + P',
                 });
             }),
         );
@@ -138,6 +140,7 @@ export class Service extends Implementation {
                     },
                     closeOnKey: 'Escape',
                     width: 450,
+                    uuid: 'Shift + Ctrl + P',
                 });
             }),
         );

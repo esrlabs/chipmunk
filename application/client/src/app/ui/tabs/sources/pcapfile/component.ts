@@ -127,6 +127,7 @@ export class TabSourcePcapFile extends ChangesDetector implements AfterViewInit,
             },
             closeOnKey: 'Escape',
             width: 350,
+            uuid: 'app-elements-timezone-selector',
         });
     }
 }

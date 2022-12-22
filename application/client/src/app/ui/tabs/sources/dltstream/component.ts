@@ -143,6 +143,7 @@ export class TabSourceDltStream extends ChangesDetector implements AfterContentI
             closed: () => {
                 this._filterLockTocken.unlock();
             },
+            uuid: 'app-elements-timezone-selector',
         });
     }
 }
