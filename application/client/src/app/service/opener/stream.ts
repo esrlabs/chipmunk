@@ -7,6 +7,7 @@ import { Session } from '../session/session';
 import { SourceDefinition, Source as SourceRef } from '@platform/types/transport';
 import { Base } from './base';
 import { isRenderMatch } from '@schema/render/tools';
+import { unique } from '@platform/env/sequence';
 
 export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> {
     protected readonly services: Services;
@@ -117,7 +118,12 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
                                 redefined: { source: SourceDefinition; options: Options },
                                 cb: (err: Error | undefined) => void,
                             ) => {
-                                const progress = getProgress(api.getGUID());
+                                if (api === undefined) {
+                                    this.logger.error(`Tab of API isn't available`);
+                                }
+                                const progress = getProgress(
+                                    api !== undefined ? api.getGUID() : unique(),
+                                );
                                 open(false, redefined)
                                     .then((uuid: string) => {
                                         progress.popup.close();

@@ -86,7 +86,7 @@ export class Service extends Implementation {
             toolbar?: boolean;
             uuid?: string;
         }) => UnboundTab;
-        tab: (tab: ITab) => ITabAPI;
+        tab: (tab: ITab) => ITabAPI | undefined;
     } {
         const binding = (uuid: string, session: Session, caption: string) => {
             this._sessions.set(uuid, session);
@@ -180,12 +180,18 @@ export class Service extends Implementation {
                         });
                 });
             },
-            tab: (tab: ITab): ITabAPI => {
-                if (tab.content !== undefined) {
-                    tab.content.inputs = tab.content.inputs === undefined ? {} : tab.content.inputs;
-                    tab.content.inputs.tab = new TabControls(tab, this._tabs);
+            tab: (tab: ITab): ITabAPI | undefined => {
+                if (tab.uuid !== undefined && this._tabs.has(tab.uuid)) {
+                    this._tabs.setActive(tab.uuid);
+                    return undefined;
+                } else {
+                    if (tab.content !== undefined) {
+                        tab.content.inputs =
+                            tab.content.inputs === undefined ? {} : tab.content.inputs;
+                        tab.content.inputs.tab = new TabControls(tab, this._tabs);
+                    }
+                    return this._tabs.add(tab);
                 }
-                return this._tabs.add(tab);
             },
             unbound: (opts: {
                 tab: ITab;

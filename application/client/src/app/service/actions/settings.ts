@@ -25,6 +25,7 @@ export class Action extends Base {
                 factory: Settings,
                 inputs: {},
             },
+            uuid: this.uuid(),
         });
         return Promise.resolve();
     }
