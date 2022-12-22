@@ -35,11 +35,11 @@ export class Hotkeys extends ChangesDetector implements AfterViewChecked, AfterV
             }
             groups[desc.category].keys.push({
                 shortkeys:
-                    desc.shortkeys.darwin === undefined
-                        ? desc.shortkeys.others
+                    desc.display.darwin === undefined
+                        ? desc.display.others
                         : this.ilc().services.system.env.platform().darwin()
-                        ? desc.shortkeys.darwin
-                        : desc.shortkeys.others,
+                        ? desc.display.darwin
+                        : desc.display.others,
                 description: desc.description,
             });
         });
