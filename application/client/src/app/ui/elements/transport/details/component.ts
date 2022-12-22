@@ -50,6 +50,24 @@ export class Transport extends ChangesDetector implements AfterContentInit, Afte
             });
     }
 
+    public visibility(): {
+        stop(): boolean;
+        restart(): boolean;
+        parameters(): boolean;
+    } {
+        return {
+            stop: (): boolean => {
+                return !this.stopped && this.observer !== undefined;
+            },
+            restart: (): boolean => {
+                return this.stopped && !(this.source.asSourceDefinition() instanceof Error);
+            },
+            parameters: (): boolean => {
+                return !(this.source.asSourceDefinition() instanceof Error);
+            },
+        };
+    }
+
     public ngRestart(): void {
         const sourceDef = this.source.asSourceDefinition();
         if (sourceDef instanceof Error) {
