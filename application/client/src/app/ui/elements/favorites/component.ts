@@ -86,6 +86,25 @@ export class Favorites
         this.state.open(item).auto();
     }
 
+    public addFolder(): void {
+        this.state.favorites
+            .places()
+            .selectAndAdd()
+            .then(() => {
+                this.state
+                    .load()
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to reload state favorites: ${err.message}`);
+                    })
+                    .finally(() => {
+                        this.detectChanges();
+                    });
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to add favorites: ${err.message}`);
+            });
+    }
+
     public safeHtml(html: string): SafeHtml {
         return this._sanitizer.bypassSecurityTrustHtml(html);
     }

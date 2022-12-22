@@ -6,6 +6,24 @@ app-favorites-mini {
     display: block;
     width: 100%;
     overflow: hidden;
+    & div.wrapper {
+        position: relative;
+        display: block;
+        width: 100%;
+        overflow: hidden;
+    }
+    & p.warning {
+        padding: 24px;
+        color: @scheme-color-0;
+        overflow: hidden;
+    }
+    & div.controlls {
+        padding-bottom: 12px;
+        text-align: center;
+        & button {
+            color: @scheme-color-0;
+        }
+    }
     & p.info {
         padding: 3px 12px;
         color: @scheme-color-2;
