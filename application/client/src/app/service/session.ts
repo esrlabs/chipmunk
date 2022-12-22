@@ -6,7 +6,7 @@ import {
     DependOn,
 } from '@platform/entity/service';
 import { services } from '@register/services';
-import { ilc, Emitter, Channel, Declarations } from '@service/ilc';
+import { ilc, Emitter, Channel } from '@service/ilc';
 import { TabsService, ITab, ITabAPI } from '@elements/tabs/service';
 import { Base } from './session/base';
 import { Session } from './session/session';
@@ -39,7 +39,6 @@ export class Service extends Implementation {
             this.log().debug(`Session is unlocked`);
             this._locker.unlock();
         });
-        this._channel.ux.hotkey(this._onHotKey.bind(this));
         this._tabs.getObservable().active.subscribe((next) => {
             this._active = this._sessions.get(next.uuid);
             this._emitter.session.change(
@@ -75,19 +74,6 @@ export class Service extends Implementation {
                     resolve();
                 });
         });
-    }
-
-    private _onHotKey(event: Declarations.HotkeyEvent) {
-        console.log(`Not implemented: ${event}`);
-        // if (this._active === undefined) {
-        //     return;
-        // }
-        // const service: TabsService | undefined = this._sessions.get(this._active);
-        // if (service === undefined) {
-        //     return;
-        // }
-        // LayoutStateService.toolbarMax();
-        // service.setActive(UUIDs.search);
     }
 
     public add(bind = true): {
