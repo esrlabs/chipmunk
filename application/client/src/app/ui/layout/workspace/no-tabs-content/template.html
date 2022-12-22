@@ -13,7 +13,7 @@
           </button>
           <button class="menu-button" mat-stroked-button [matMenuTriggerFor]="open_settings_menu">
             <mat-icon>settings</mat-icon>
-            <span class="t-small">Settings</span>
+            <span class="t-small">Preferences</span>
           </button>
         </mat-card-content>
       </mat-card>
@@ -80,7 +80,7 @@
 </mat-menu>
 
 <mat-menu #open_settings_menu="matMenu">
-  <ng-container *ngFor="let item of menu.settings">
+  <ng-container *ngFor="let item of menu.preferences">
     <ng-container *ngIf="item === null">
       <mat-divider></mat-divider>
     </ng-container>

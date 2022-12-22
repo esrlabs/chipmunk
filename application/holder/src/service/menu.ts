@@ -273,7 +273,9 @@ export class Service extends Implementation {
                             {
                                 label: 'Settings',
                                 click: async () => {
-                                    /* todo */
+                                    Actions.settings().catch((err: Error) => {
+                                        this.log().error(`Fail call action About: ${err.message}`);
+                                    });
                                 },
                             },
                         ],
