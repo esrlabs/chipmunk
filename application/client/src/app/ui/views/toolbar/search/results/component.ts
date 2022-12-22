@@ -102,7 +102,7 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                     }),
                 );
                 this.env().subscriber.register(
-                    this.ilc().services.system.hotkeys.listen('g', () => {
+                    this.ilc().services.system.hotkeys.listen('G', () => {
                         this.move().bottom();
                     }),
                 );
