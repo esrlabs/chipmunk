@@ -4,7 +4,7 @@
 <app-transport-process-details *ngIf="source.is().process" [source]="source" [session]="session" [observe]="observer"></app-transport-process-details>
 <app-transport-file-details *ngIf="source.is().file" [source]="source" [session]="session" [observe]="observer"></app-transport-file-details>
 <div class="controlls" *ngIf="!isTextFile()">
-    <button mat-stroked-button (click)="ngStop()" *ngIf="!stopped">Stop</button>
-    <button mat-stroked-button (click)="ngRestart()" *ngIf="stopped">Restart</button>
-    <button mat-stroked-button (click)="ngClone()">Parameters</button>
+    <button mat-stroked-button (click)="ngStop()" *ngIf="visibility().stop()">Stop</button>
+    <button mat-stroked-button (click)="ngRestart()" *ngIf="visibility().restart()">Restart</button>
+    <button mat-stroked-button (click)="ngClone()" *ngIf="visibility().parameters()">Parameters</button>
 </div>
