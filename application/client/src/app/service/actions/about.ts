@@ -27,6 +27,7 @@ export class Action extends Base {
                 horizontal: Horizontal.center,
             },
             closeOnKey: '*',
+            uuid: 'About',
         });
     }
 }
