@@ -370,7 +370,7 @@ export abstract class Provider<T> {
         return this.entities().length === 0;
     }
 
-    public init(): void {
+    public updatePanels(): void {
         this.panels = {
             list: {
                 name: this.getPanels().list().name(),
@@ -389,6 +389,8 @@ export abstract class Provider<T> {
             },
         };
     }
+
+    public abstract init(): void;
 
     public abstract entities(): Entity<T>[];
 

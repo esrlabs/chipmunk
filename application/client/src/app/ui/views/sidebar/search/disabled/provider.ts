@@ -14,8 +14,8 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
     private readonly _entities: Map<string, Entity<DisabledRequest>> = new Map();
     private readonly _listID: ListContent = ListContent.disabledList;
 
-    public override init(): void {
-        super.init();
+    public init(): void {
+        super.updatePanels();
         this.subscriber.register(
             this.session.search
                 .store()
