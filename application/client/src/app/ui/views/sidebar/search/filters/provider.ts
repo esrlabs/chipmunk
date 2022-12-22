@@ -15,8 +15,8 @@ export class ProviderFilters extends Provider<FilterRequest> {
     private _entities: Map<string, Entity<FilterRequest>> = new Map();
     private _listID: ListContent = ListContent.filtersList;
 
-    public override init(): void {
-        super.init();
+    public init(): void {
+        this.updatePanels();
         this.subscriber.register(
             this.session.search
                 .store()

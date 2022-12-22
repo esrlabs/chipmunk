@@ -9,7 +9,6 @@
             [listID]="provider.listID"
             [draganddrop]="draganddrop"
             appFiltersList
-            (click)="_ng_onPanelClick()"
         >
             <mat-expansion-panel-header>
                 <mat-panel-title>{{provider.panels.list.name}}</mat-panel-title>
@@ -32,7 +31,6 @@
             [disabled]="true"
             [hideToggle]="true"
             [expanded]="true"
-            (click)="_ng_onPanelClick()"
         >
             <mat-expansion-panel-header>
                 <mat-panel-title>{{selected.panels.details.name}}</mat-panel-title>

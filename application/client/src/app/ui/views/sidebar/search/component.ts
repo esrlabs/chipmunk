@@ -137,10 +137,6 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
         window.addEventListener('keyup', this._onGlobalKeyUp);
     }
 
-    public _ng_onPanelClick() {
-        // this.detectChanges();
-    }
-
     public _ng_onMouseOver() {
         this.draganddrop.onMouseOverGlobal();
     }

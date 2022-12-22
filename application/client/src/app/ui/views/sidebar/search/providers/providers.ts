@@ -512,6 +512,7 @@ export class Providers {
     }
 
     private _onChange() {
+        this._providers.forEach((p) => p.updatePanels());
         this.subjects.change.emit();
     }
 
