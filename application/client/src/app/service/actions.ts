@@ -186,6 +186,30 @@ export class Service extends Implementation {
                     },
                 ),
         );
+        this.register(
+            api
+                .transport()
+                .respondent(
+                    this.getName(),
+                    Requests.Actions.Settings.Request,
+                    (
+                        _request: Requests.Actions.Settings.Request,
+                    ): CancelablePromise<Requests.Actions.Settings.Response> => {
+                        return new CancelablePromise((resolve, _reject) => {
+                            new handlers.Settings.Action()
+                                .apply()
+                                .catch((err: Error) => {
+                                    this.log().error(
+                                        `Fail to call Settings action: ${err.message}`,
+                                    );
+                                })
+                                .finally(() => {
+                                    resolve(new Requests.Actions.Settings.Response());
+                                });
+                        });
+                    },
+                ),
+        );
         return Promise.resolve();
     }
 }

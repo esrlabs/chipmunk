@@ -43,9 +43,7 @@ export class LayoutHome extends ChangesDetector implements AfterViewInit, OnDest
             new actions.TcpDlt.Action(),
             new actions.SerialDlt.Action(),
         ],
-        settings: [
-            new actions.Settings.Action(),
-        ],
+        preferences: [new actions.Settings.Action()],
     };
     public actions: ActionsStorage = new ActionsStorage();
     public pinned: Array<Action | null> = [];
