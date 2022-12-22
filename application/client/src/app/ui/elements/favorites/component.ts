@@ -87,8 +87,7 @@ export class Favorites
     }
 
     public addFolder(): void {
-        this.state.favorites
-            .places()
+        this.state
             .selectAndAdd()
             .then(() => {
                 this.state

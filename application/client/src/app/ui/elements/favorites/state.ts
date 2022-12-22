@@ -4,7 +4,7 @@ import { Subject } from '@platform/env/subscription';
 import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Holder } from '@module/matcher/holder';
-import { Favorites } from '@module/favorites';
+import { favorites } from '@service/favorites';
 import { bridge } from '@service/bridge';
 import { EntityType, getFileName } from '@platform/types/files';
 
@@ -17,8 +17,7 @@ export class State extends Holder {
     public items: Item[] = [];
     public update: Subject<void> = new Subject<void>();
     public selected: string = '';
-    public roots: string[] = [];
-    public readonly favorites: Favorites = new Favorites();
+    public roots: string[];
 
     protected scanning: string | undefined;
     protected folders: string[] = [];
@@ -28,6 +27,7 @@ export class State extends Holder {
 
     constructor(ilc: IlcInterface & ChangesDetector) {
         super();
+        this.roots = favorites.favorites;
         this.ilc = ilc;
         this.filter = new Filter(ilc, { placeholder: 'Files form favorites' });
         this.filter.subjects.get().change.subscribe((value: string) => {
@@ -64,7 +64,6 @@ export class State extends Holder {
     }
 
     public destroy() {
-        this.favorites.destroy();
         this.abort.abort();
     }
 
@@ -74,6 +73,10 @@ export class State extends Holder {
 
     public loading(): string | undefined {
         return this.scanning;
+    }
+
+    public selectAndAdd(): Promise<void> {
+        return favorites.places().selectAndAdd();
     }
 
     public isEmpty(): boolean {
@@ -197,7 +200,7 @@ export class State extends Holder {
 
     public async load(): Promise<void> {
         this.items = [];
-        this.roots = await this.favorites.places().get();
+        this.roots = await favorites.places().get();
         for (const path of this.roots) {
             if (this.abort.signal.aborted) {
                 return Promise.resolve();

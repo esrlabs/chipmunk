@@ -24,7 +24,7 @@ export class Filter {
         focus: new Subject<void>(),
         blur: new Subject<void>(),
     });
-    private _element!: HTMLInputElement;
+    private _element!: HTMLInputElement | undefined;
 
     constructor(ilc: IlcInterface, options: Options) {
         ilc.life().destroy(() => {
@@ -38,11 +38,11 @@ export class Filter {
     }
 
     public focus() {
-        this._element.focus();
+        this._element !== undefined && this._element.focus();
     }
 
-    public value(): string {
-        return this._element.value;
+    public value(): string | undefined {
+        return this._element !== undefined ? this._element.value : undefined;
     }
 
     public defaults(): {

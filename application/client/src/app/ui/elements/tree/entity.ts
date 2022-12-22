@@ -82,7 +82,11 @@ export class Entity {
         if (this.expanded) {
             return true;
         }
-        const filter = this.filter.value().toLowerCase();
+        const value = this.filter.value();
+        if (value === undefined) {
+            return true;
+        }
+        const filter = value.toLowerCase();
         if (filter.trim() === '') {
             return true;
         }
@@ -103,7 +107,11 @@ export class Entity {
 
     public html(): SafeHtml {
         const name = this.getName();
-        const filter = this.filter.value().toLowerCase();
+        const value = this.filter.value();
+        if (value === undefined) {
+            return getDomSanitizer().bypassSecurityTrustHtml(name);
+        }
+        const filter = value.toLowerCase();
         if (filter.trim() === '') {
             return getDomSanitizer().bypassSecurityTrustHtml(name);
         }

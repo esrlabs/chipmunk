@@ -24,6 +24,7 @@ import { bridge } from '@service/bridge';
 import { hotkeys } from '@service/hotkeys';
 import { cli } from '@service/cli';
 import { actions } from '@service/actions';
+import { favorites } from '@service/favorites';
 
 import { Subscriber } from '@platform/env/subscription';
 
@@ -65,6 +66,7 @@ export interface IlcInterface {
 @DependOn(hotkeys)
 @DependOn(cli)
 @DependOn(actions)
+@DependOn(favorites)
 // UI services
 @DependOn(sidebar)
 @DependOn(toolbar)
