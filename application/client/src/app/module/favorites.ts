@@ -30,22 +30,33 @@ export class Favorites {
 
     public places(): {
         get(): Promise<string[]>;
-        add(path: string): Promise<void>;
+        add(paths: string[] | string): Promise<void>;
+        selectAndAdd(): Promise<void>;
         remove(path: string): Promise<void>;
     } {
         return {
             get: (): Promise<string[]> => {
                 return this.storage().get();
             },
-            add: (path: string): Promise<void> => {
-                if (path.trim().length === 0 || this.favourites.indexOf(path) !== -1) {
+            add: (paths: string[] | string): Promise<void> => {
+                if (!(paths instanceof Array)) {
+                    paths = [paths];
+                }
+                paths = paths.filter((p) => p.trim() !== '' && this.favourites.indexOf(p) === -1);
+
+                if (paths.length === 0) {
                     return Promise.resolve();
                 }
+                this.favourites = this.favourites.concat(paths);
                 return this.storage()
                     .set(this.favourites)
                     .catch((err: Error) => {
                         this.log.error(`Fail to save favourites: ${err.message}`);
                     });
+            },
+            selectAndAdd: async (): Promise<void> => {
+                const folders = await bridge.folders().select();
+                return this.places().add(folders);
             },
             remove: (path: string): Promise<void> => {
                 if (path.trim().length === 0 || this.favourites.indexOf(path) === -1) {

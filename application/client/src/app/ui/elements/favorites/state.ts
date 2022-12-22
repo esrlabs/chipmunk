@@ -18,8 +18,8 @@ export class State extends Holder {
     public update: Subject<void> = new Subject<void>();
     public selected: string = '';
     public roots: string[] = [];
+    public readonly favorites: Favorites = new Favorites();
 
-    protected readonly favorites: Favorites = new Favorites();
     protected scanning: string | undefined;
     protected folders: string[] = [];
     protected readonly abort: AbortController = new AbortController();
@@ -58,14 +58,9 @@ export class State extends Holder {
                     },
                 ),
         );
-        this.load()
-            .then(() => {
-                this.items.length > 0 && (this.selected = this.items[0].hash());
-            })
-            .finally(() => {
-                this.scanning = undefined;
-                this.update.emit();
-            });
+        this.load().then(() => {
+            this.items.length > 0 && (this.selected = this.items[0].hash());
+        });
     }
 
     public destroy() {
@@ -79,6 +74,10 @@ export class State extends Holder {
 
     public loading(): string | undefined {
         return this.scanning;
+    }
+
+    public isEmpty(): boolean {
+        return this.roots.length === 0;
     }
 
     public filtering(value: string) {
@@ -196,7 +195,7 @@ export class State extends Holder {
         };
     }
 
-    protected async load(): Promise<void> {
+    public async load(): Promise<void> {
         this.items = [];
         this.roots = await this.favorites.places().get();
         for (const path of this.roots) {
@@ -207,6 +206,8 @@ export class State extends Holder {
                 console.log(`Fail to get items from folder: ${err.message}`);
             });
         }
+        this.scanning = undefined;
+        this.update.emit();
     }
 
     protected async includeFromFolder(path: string): Promise<void> {
