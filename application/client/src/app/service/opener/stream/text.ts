@@ -23,9 +23,7 @@ export class Text extends StreamOpener<{}> {
                 this.logger.error(`Fail to add recent action; error: ${err.message}`);
             });
     }
-    public getStreamTabName(): string {
-        return 'Text Streaming';
-    }
+
     public getStreamSettingsTabName(): string {
         return 'Text source streaming';
     }

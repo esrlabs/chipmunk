@@ -31,9 +31,7 @@ export class Dlt extends StreamOpener<IDLTOptions> {
                 this.logger.error(`Fail to add recent action; error: ${err.message}`);
             });
     }
-    public getStreamTabName(): string {
-        return 'Dlt Streaming';
-    }
+
     public getStreamSettingsTabName(): string {
         return 'DLT content streaming';
     }

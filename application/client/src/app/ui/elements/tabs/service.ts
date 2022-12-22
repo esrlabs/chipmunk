@@ -39,6 +39,8 @@ export interface ITabAPI {
     subjects: ITabSubjects;
     getGUID: () => string;
     close: () => void;
+    setTitle: (caption: string) => Error | undefined;
+    getTitle: () => Error | string;
 }
 
 export class TabsService {
@@ -179,6 +181,8 @@ export class TabsService {
             subjects: _tab.subjects,
             getGUID: () => _tab.uuid,
             close: this.remove.bind(this, _tab.uuid),
+            setTitle: this.setTitle.bind(this, _tab.uuid),
+            getTitle: this.getTitle.bind(this, _tab.uuid),
         };
     }
 
@@ -287,6 +291,14 @@ export class TabsService {
         this._tabs.set(uuid, tab);
         this._subjects.updated.next(tab);
         return undefined;
+    }
+
+    public getTitle(uuid: string): Error | string {
+        const tab: ITabInternal | undefined = this._tabs.get(uuid);
+        if (tab === undefined) {
+            return new Error(`Fail to find tab "${uuid}", tab doesn't exist.`);
+        }
+        return tab.name;
     }
 
     public getServiceGuid(): string {

@@ -22,9 +22,25 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
     abstract getSettingsComponentName(): string;
     abstract binding(session: Session, source: SourceDefinition, options?: Options): Promise<void>;
     abstract after(source: SourceDefinition, options?: Options): Promise<void>;
-    abstract getStreamTabName(): string;
     abstract getStreamSettingsTabName(): string;
 
+    public getStreamTabName(source: SourceDefinition): string {
+        if (source.process !== undefined) {
+            return `${source.process.command}${
+                source.process.args.length > 0 ? ' ' : ''
+            }${source.process.args.join(' ')}`;
+        }
+        if (source.serial !== undefined) {
+            return `serial: ${source.serial.path}`;
+        }
+        if (source.tcp !== undefined) {
+            return `tcp: ${source.tcp.bind_addr}`;
+        }
+        if (source.udp !== undefined) {
+            return `udp: ${source.udp.bind_addr}`;
+        }
+        return 'Text Streaming';
+    }
     public stream(
         source: SourceDefinition | undefined,
         options: Options | undefined,
@@ -63,6 +79,7 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
                             this.assign(created);
                             this.binding(this.getSession(), used.source, used.options)
                                 .then(() => {
+                                    created.title().set(this.getStreamTabName(used.source));
                                     resolve(created.uuid());
                                 })
                                 .catch((err: Error) => {
@@ -106,7 +123,7 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
                                         progress.popup.close();
                                         this.services.system.session.bind(
                                             uuid,
-                                            this.getStreamTabName(),
+                                            this.getStreamTabName(redefined.source),
                                         );
                                         this.after(redefined.source, redefined.options)
                                             .catch((err: Error) => {

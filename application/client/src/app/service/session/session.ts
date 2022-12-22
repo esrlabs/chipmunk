@@ -226,5 +226,19 @@ export class Session extends Base {
             },
         };
     }
+
+    public title(): {
+        set(title: string): Error | undefined;
+        get(): Error | string;
+    } {
+        return {
+            set: (title: string): Error | undefined => {
+                return this._tab.setTitle(title);
+            },
+            get: (): Error | string => {
+                return this._tab.getTitle();
+            },
+        };
+    }
 }
 export interface Session extends LoggerInterface {}
