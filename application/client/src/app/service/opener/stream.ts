@@ -116,10 +116,23 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
                                             .message(err.message)
                                             .type(Level.error)
                                             .spinner(false);
-                                        this.session !== undefined &&
-                                            this.services.system.session.kill(this.session.uuid());
-                                        // We do not reject, but let component know - we are not able to observe
-                                        cb(err);
+                                        if (this.session !== undefined) {
+                                            this.services.system.session
+                                                .kill(this.session.uuid())
+                                                .catch((err: Error) => {
+                                                    this.logger.error(
+                                                        `Fail to kill session: ${err.message}`,
+                                                    );
+                                                })
+                                                .finally(() => {
+                                                    this.session = undefined;
+                                                    // We do not reject, but let component know - we are not able to observe
+                                                    cb(err);
+                                                });
+                                        } else {
+                                            // We do not reject, but let component know - we are not able to observe
+                                            cb(err);
+                                        }
                                     });
                             },
                         },
