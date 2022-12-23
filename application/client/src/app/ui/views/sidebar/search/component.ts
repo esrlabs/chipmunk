@@ -21,6 +21,7 @@ import { ProviderFilters } from './filters/provider';
 import { ProviderDisabled } from './disabled/provider';
 
 import * as dom from '@ui/env/dom';
+import * as ids from '@schema/ids';
 
 @Component({
     selector: 'app-views-filters',
@@ -146,7 +147,7 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
             {
                 caption: `Open preset manager`,
                 handler: () => {
-                    //
+                    this.session.toolbar()?.setActive(ids.TOOLBAR_TAB_PRESET);
                 },
             },
         ];
