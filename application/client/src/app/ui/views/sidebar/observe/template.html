@@ -32,6 +32,7 @@
     </mat-card-content>
 </mat-card>
 <div class="controlls">
-    <button mat-stroked-button [disabled]="isAttachingDisabled()" (click)="ngAttachStream()">Attach New</button>
+    <button mat-stroked-button *ngIf="attachableAs().stream()" (click)="attach().stream()">Attach New</button>
+    <button mat-stroked-button *ngIf="attachableAs().file()" (click)="attach().file()">Add File(s)</button>
 </div>
 
