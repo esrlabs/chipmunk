@@ -73,6 +73,7 @@ export class Service extends Implementation {
                 this.unbind = this.unbind.bind(this);
                 powerMonitor.addListener('resume', this.resume);
                 powerMonitor.addListener('shutdown', this.unbind);
+                app.addListener('browser-window-created', this.bind);
                 app.addListener('browser-window-blur', this.unbind);
                 app.addListener('browser-window-focus', this.bind);
                 app.addListener('before-quit', () => {
@@ -84,6 +85,7 @@ export class Service extends Implementation {
                 this.window.addListener('focus', this.resume);
             },
             unbind: (): void => {
+                app.removeListener('browser-window-created', this.bind);
                 app.removeListener('browser-window-blur', this.unbind);
                 app.removeListener('browser-window-focus', this.bind);
                 powerMonitor.removeListener('shutdown', this.unbind);
