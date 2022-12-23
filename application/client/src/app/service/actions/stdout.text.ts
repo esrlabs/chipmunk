@@ -13,7 +13,7 @@ export class Action extends Base {
     }
 
     public caption(): string {
-        return 'Read from Stdout';
+        return 'Read CLI output';
     }
 
     public async apply(): Promise<void> {
