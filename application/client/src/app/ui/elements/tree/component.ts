@@ -4,6 +4,8 @@ import {
     AfterViewInit,
     AfterContentInit,
     ViewEncapsulation,
+    ViewChild,
+    ElementRef,
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -25,6 +27,8 @@ export class ElementsTreeSelector
     extends ChangesDetector
     implements AfterViewInit, AfterContentInit
 {
+    @ViewChild('container') container!: ElementRef<HTMLElement>;
+
     public state: State;
 
     constructor(cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
@@ -33,13 +37,13 @@ export class ElementsTreeSelector
     }
 
     public ngAfterContentInit(): void {
-        this.state.init(this.ilc().services, this.log()).catch((err: Error) => {
+        this.state.init(this.ilc().services).catch((err: Error) => {
             this.log().error(`Fail to init folder's tree state: ${err.message}`);
         });
     }
 
     public ngAfterViewInit(): void {
-        this.state.expand();
+        this.state.bind(this.container.nativeElement);
     }
 
     public safeHtml(html: string): SafeHtml {

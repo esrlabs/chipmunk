@@ -4,7 +4,7 @@ import { ObserveOperation } from '@service/session/dependencies/observe/operatio
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { DataSource, ParserName, Parser } from '@platform/types/observe';
+import { DataSource } from '@platform/types/observe';
 import { Alias, getRenderAlias } from '@schema/render/tools';
 import { SourceHolder } from './holder';
 

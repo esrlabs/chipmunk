@@ -1,10 +1,10 @@
 import { FlatTreeControl } from '@angular/cdk/tree';
 import { Services } from '@service/ilc';
-import { Instance as Logger } from '@platform/env/logger';
 import { Filter } from '@elements/filter/filter';
 import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { favorites } from '@service/favorites';
+import { Subscription } from '@platform/env/subscription';
 
 import * as Scheme from './scheme';
 
@@ -17,7 +17,7 @@ export class State {
         source: Scheme.DynamicDataSource;
     };
     protected ilc: IlcInterface & ChangesDetector;
-    private _log!: Logger;
+    protected focused: boolean = false;
 
     constructor(ilc: IlcInterface & ChangesDetector) {
         this.ilc = ilc;
@@ -36,6 +36,9 @@ export class State {
                     'keydown',
                     window,
                     (event: KeyboardEvent) => {
+                        if (!this.focused) {
+                            return true;
+                        }
                         const count = this.scheme.source.data.length;
                         const selected = this.scheme.source.data.findIndex((d) => d.item.selected);
                         if (selected === -1) {
@@ -55,7 +58,7 @@ export class State {
                             prevRef.item.selecting().select();
                         } else if (event.key === ' ') {
                             if (selectedRef.expandable) {
-                                this.scheme.source.toggleNode(selectedRef, true);
+                                this.scheme.source.expand(selectedRef);
                             }
                         }
                         if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
@@ -70,8 +73,7 @@ export class State {
         );
     }
 
-    public async init(services: Services, log: Logger): Promise<void> {
-        this._log = log;
+    public async init(services: Services): Promise<void> {
         const db = new Scheme.DynamicDatabase(this.favorites.slice(), services, this.filter);
         const tree = new FlatTreeControl<Scheme.DynamicFlatNode>(
             (node: Scheme.DynamicFlatNode) => node.level,
@@ -88,7 +90,7 @@ export class State {
                         return favorites.expanded().remove(entity.getPath());
                     }
                 })().catch((err: Error) => {
-                    this._log.error(`Fail to update state of folder's tree: ${err.message}`);
+                    this.ilc.log().error(`Fail to update state of folder's tree: ${err.message}`);
                 });
             },
         );
@@ -108,8 +110,27 @@ export class State {
         );
     }
 
-    public expand(): void {
+    public bind(container: HTMLElement): void {
+        this.focus = this.focus.bind(this);
+        this.blur = this.blur.bind(this);
+        container.addEventListener('focus', this.focus);
+        container.addEventListener('blur', this.blur);
+        this.ilc.env().subscriber.register(
+            new Subscription('container_focus_listener', () => {
+                container.removeEventListener('focus', this.focus);
+                container.removeEventListener('blur', this.blur);
+                console.log(`>>>>>>>>>>>>>>>>>>>> REMOVED !!!`);
+            }),
+        );
         this.scheme.source.expand(favorites.states.map((v) => v.path));
+    }
+
+    public focus(): void {
+        this.focused = true;
+    }
+
+    public blur(): void {
+        this.focused = false;
     }
 
     public select(node: Scheme.DynamicFlatNode) {
@@ -127,7 +148,7 @@ export class State {
             .places()
             .remove(path)
             .catch((err: Error) => {
-                this._log.error(`Fail to add favorites: ${err.message}`);
+                this.ilc.log().error(`Fail to add favorites: ${err.message}`);
             });
     }
 
