@@ -119,7 +119,6 @@ export class State {
             new Subscription('container_focus_listener', () => {
                 container.removeEventListener('focus', this.focus);
                 container.removeEventListener('blur', this.blur);
-                console.log(`>>>>>>>>>>>>>>>>>>>> REMOVED !!!`);
             }),
         );
         this.scheme.source.expand(favorites.states.map((v) => v.path));
