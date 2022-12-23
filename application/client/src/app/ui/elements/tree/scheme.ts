@@ -200,9 +200,13 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
         });
     }
 
-    public async expand(paths: string[]): Promise<void> {
-        for (const path of paths) {
-            await this.expandByPath(path);
+    public async expand(paths: string[] | DynamicFlatNode): Promise<void> {
+        if (paths instanceof Array) {
+            for (const path of paths) {
+                await this.expandByPath(path);
+            }
+        } else {
+            this._treeControl.expand(paths);
         }
         return Promise.resolve();
     }

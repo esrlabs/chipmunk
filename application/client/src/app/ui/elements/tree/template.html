@@ -2,7 +2,7 @@
   <app-filter-input [filter]="state.filter"></app-filter-input>
   <span [attr.class]="'small-icon-button codicon codicon-new-folder'" (click)="add()"></span>
 </div>
-<div class="tree" (scroll)="onScrolling($event)">
+<div #container class="tree" (scroll)="onScrolling($event)" tabindex="100">
   <mat-tree [dataSource]="state.scheme.source" [treeControl]="state.scheme.tree" >
     <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding
       [matTreeNodePaddingIndent]="20"
