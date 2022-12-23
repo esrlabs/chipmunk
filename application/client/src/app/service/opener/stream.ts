@@ -42,6 +42,7 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
         }
         return 'Text Streaming';
     }
+
     public stream(
         source: SourceDefinition | undefined,
         options: Options | undefined,
@@ -53,55 +54,14 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
                 closable: true,
             });
         };
-        const open = (
-            bind: boolean,
-            used: { source: SourceDefinition; options: Options },
-        ): Promise<string> => {
-            if (this.session !== undefined) {
-                const matching = isRenderMatch(this.session, this.getRender());
-                if (matching instanceof Error) {
-                    return Promise.reject(matching);
-                }
-                if (!matching) {
-                    return Promise.reject(
-                        new Error(`Combination of renders in the scope of session isn't supported`),
-                    );
-                }
-                const uuid = this.session.uuid();
-                return this.binding(this.session, used.source, used.options).then(() =>
-                    Promise.resolve(uuid),
-                );
-            } else {
-                return new Promise((resolve, reject) => {
-                    this.services.system.session
-                        .add(bind)
-                        .empty(this.getRender())
-                        .then((created) => {
-                            this.assign(created);
-                            this.binding(this.getSession(), used.source, used.options)
-                                .then(() => {
-                                    created.title().set(this.getStreamTabName(used.source));
-                                    resolve(created.uuid());
-                                })
-                                .catch((err: Error) => {
-                                    this.logger.error(`Fail to connect: ${err.message}`);
-                                    reject(err);
-                                });
-                        })
-                        .catch((err: Error) => {
-                            this.logger.error(`Fail to create session: ${err.message}`);
-                            reject(err);
-                        });
-                });
-            }
-        };
         return new Promise((resolve, reject) => {
             if (source !== undefined && options !== undefined && openPresetSettings !== true) {
-                open(true, { source, options })
+                this.open(true, { source, options })
                     .then(() => {
                         if (this.session === undefined) {
                             reject(new Error(`Streaming handler: session isn't created.`));
                         } else {
+                            this.session.title().set(this.getStreamTabName(source));
                             resolve(this.session.uuid());
                         }
                     })
@@ -124,7 +84,7 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
                                 const progress = getProgress(
                                     api !== undefined ? api.getGUID() : unique(),
                                 );
-                                open(false, redefined)
+                                this.open(false, redefined)
                                     .then((uuid: string) => {
                                         progress.popup.close();
                                         this.services.system.session.bind(
@@ -168,5 +128,47 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
                 });
             }
         });
+    }
+
+    protected open(
+        bind: boolean,
+        used: { source: SourceDefinition; options: Options },
+    ): Promise<string> {
+        if (this.session !== undefined) {
+            const matching = isRenderMatch(this.session, this.getRender());
+            if (matching instanceof Error) {
+                return Promise.reject(matching);
+            }
+            if (!matching) {
+                return Promise.reject(
+                    new Error(`Combination of renders in the scope of session isn't supported`),
+                );
+            }
+            const uuid = this.session.uuid();
+            return this.binding(this.session, used.source, used.options).then(() =>
+                Promise.resolve(uuid),
+            );
+        } else {
+            return new Promise((resolve, reject) => {
+                this.services.system.session
+                    .add(bind)
+                    .empty(this.getRender())
+                    .then((created) => {
+                        this.assign(created);
+                        this.binding(this.getSession(), used.source, used.options)
+                            .then(() => {
+                                resolve(created.uuid());
+                            })
+                            .catch((err: Error) => {
+                                this.logger.error(`Fail to connect: ${err.message}`);
+                                reject(err);
+                            });
+                    })
+                    .catch((err: Error) => {
+                        this.logger.error(`Fail to create session: ${err.message}`);
+                        reject(err);
+                    });
+            });
+        }
     }
 }
