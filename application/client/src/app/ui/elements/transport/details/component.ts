@@ -36,20 +36,6 @@ export class Transport extends ChangesDetector implements AfterContentInit, Afte
         this.update().detectChanges();
     }
 
-    public ngStop(): void {
-        if (this.observer === undefined) {
-            return;
-        }
-        this.observer
-            .abort()
-            .catch((err: Error) => {
-                this.log().error(`Fail to stop observe operation: ${err.message}`);
-            })
-            .finally(() => {
-                this.update().detectChanges();
-            });
-    }
-
     public visibility(): {
         stop(): boolean;
         restart(): boolean;
@@ -66,6 +52,20 @@ export class Transport extends ChangesDetector implements AfterContentInit, Afte
                 return !(this.source.asSourceDefinition() instanceof Error);
             },
         };
+    }
+
+    public ngStop(): void {
+        if (this.observer === undefined) {
+            return;
+        }
+        this.observer
+            .abort()
+            .catch((err: Error) => {
+                this.log().error(`Fail to stop observe operation: ${err.message}`);
+            })
+            .finally(() => {
+                this.update().detectChanges();
+            });
     }
 
     public ngRestart(): void {
@@ -100,10 +100,6 @@ export class Transport extends ChangesDetector implements AfterContentInit, Afte
             .catch((err: Error) => {
                 this.log().error(`Fail to clone source: ${err.message}`);
             });
-    }
-
-    public isTextFile(): boolean {
-        return this.source.asFile() !== undefined && this.source.parser.Text === undefined;
     }
 
     protected update(): Transport {
