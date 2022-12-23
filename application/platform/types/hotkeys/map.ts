@@ -40,7 +40,7 @@ export interface KeyDescription {
     // true - listener is on browser layer; false - listener on holder(electron)
     client: Binding | Binding[] | undefined;
 }
-//
+//⌘ key
 export const KeysMap: KeyDescription[] = [
     {
         alias: 'Ctrl + T',
@@ -64,8 +64,8 @@ export const KeysMap: KeyDescription[] = [
     },
     {
         alias: 'Ctrl + Tab',
-        shortkeys: { darwin: ['Cmd + Tab'], others: ['Ctrl + Tab'] },
-        display: { darwin: ['⌘ + Tab'], others: ['Ctrl + Tab'] },
+        shortkeys: { darwin: ['Control + Tab'], others: ['Ctrl + Tab'] },
+        display: { darwin: ['Control + Tab'], others: ['Ctrl + Tab'] },
         description: 'Next tab',
         category: Category.Tabs,
         required: [],
@@ -74,8 +74,8 @@ export const KeysMap: KeyDescription[] = [
     },
     {
         alias: 'Shift + Ctrl + Tab',
-        shortkeys: { darwin: ['Shift + Cmd + Tab'], others: ['Shift + Ctrl + Tab'] },
-        display: { darwin: ['Shift + ⌘ + Tab'], others: ['Shift + Ctrl + Tab'] },
+        shortkeys: { darwin: ['Shift + Control + Tab'], others: ['Shift + Ctrl + Tab'] },
+        display: { darwin: ['Shift + Control + Tab'], others: ['Shift + Ctrl + Tab'] },
         description: 'Previous tab',
         category: Category.Tabs,
         required: [],
