@@ -198,7 +198,7 @@ export class Service extends Implementation {
                                 },
                             },
                             {
-                                label: 'Read from Stdout',
+                                label: 'Read CLI output',
                                 click: async () => {
                                     Actions.stream(ParserName.Text, Source.Process).catch(
                                         (err: Error) => {
