@@ -52,7 +52,6 @@ export class State extends AdvancedState {
             .getScaledMap(width)
             .then((map) => {
                 this._map = map;
-                this._labelCount = this._map.length;
                 this._draw(EChartName.zoomerFilters);
                 this._updateCursor();
             })

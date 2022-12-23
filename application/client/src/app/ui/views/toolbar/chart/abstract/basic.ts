@@ -9,10 +9,6 @@ export abstract class BasicState {
     protected _service!: Service;
     protected _element!: HTMLElement;
 
-    public abstract init(): void;
-
-    public abstract destroy(): void;
-
     public bind(
         parent: IlcInterface & ChangesDetector,
         session: Session,
@@ -23,4 +19,7 @@ export abstract class BasicState {
         this._element = element;
         this._service = Service.from(this._session);
     }
+
+    protected abstract init(): void;
+    protected abstract destroy(): void;
 }

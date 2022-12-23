@@ -13,20 +13,19 @@ export enum EChartName {
 export abstract class AdvancedState extends BasicState {
     protected _filters: Chart | undefined;
     protected _datasets: ChartDataset<'bar', number[]>[] = [];
-    protected _labelCount: number = 0;
     protected _map: ISearchMap = [];
 
     private _drawTimeout: number = -1;
 
-    public abstract override init(): void;
-
-    public abstract override destroy(): void;
-
     public abstract noData(): boolean;
+
+    protected abstract override init(): void;
+
+    protected abstract override destroy(): void;
 
     protected abstract _resize(): void;
 
-    protected abstract _fetch(width: number): Promise<void>;
+    protected abstract _fetch(width: number, range?: IRange): Promise<void>;
 
     protected _subscribe(): void {
         this._parent
@@ -53,7 +52,27 @@ export abstract class AdvancedState extends BasicState {
         }
     }
 
-    protected _changeColors(entities: StoredEntity<FilterRequest>[]): void {
+    protected _draw(chartName: EChartName): void {
+        if (this._drawTimeout !== -1) {
+            window.clearTimeout(this._drawTimeout);
+        }
+        this._drawTimeout = window.setTimeout(() => {
+            this._extractData();
+            if (this._filters === undefined) {
+                this._createChart(chartName);
+            } else {
+                this._filters.data = {
+                    datasets: this._datasets,
+                    labels: new Array(this._map.length).fill(''),
+                };
+                this._filters.update();
+            }
+            this._parent.detectChanges();
+            this._drawTimeout = -1;
+        });
+    }
+
+    private _changeColors(entities: StoredEntity<FilterRequest>[]): void {
         if (!this._filters) {
             return;
         }
@@ -71,37 +90,13 @@ export abstract class AdvancedState extends BasicState {
         this._filters.update();
     }
 
-    protected _draw(chartName: EChartName, range?: IRange): void {
-        if (this._drawTimeout !== -1) {
-            window.clearTimeout(this._drawTimeout);
-        }
-        this._drawTimeout = window.setTimeout(() => {
-            this._extractData(range);
-            if (this._filters === undefined) {
-                this._createChart(chartName);
-            } else {
-                this._filters.data = {
-                    datasets: this._datasets,
-                    labels: new Array(
-                        range === undefined ? this._labelCount : range.to - range.from,
-                    ).fill(''),
-                };
-                this._filters.update();
-            }
-            this._parent.detectChanges();
-            this._drawTimeout = -1;
-        });
-    }
-
-    protected _extractData(range?: IRange): void {
+    private _extractData(): void {
+        this._datasets = [];
         const filters: StoredEntity<FilterRequest>[] = this._session.search
             .store()
             .filters()
             .get()
             .filter((f) => f.definition.active);
-        this._datasets = [];
-        this._labelCount = this._map.length;
-        const map = range ? this._map.slice(range.from, range.to) : this._map;
         filters.forEach((filter: StoredEntity<FilterRequest>) => {
             this._datasets.push({
                 barPercentage: 1,
@@ -111,29 +106,27 @@ export abstract class AdvancedState extends BasicState {
                 data: [],
             });
         });
-        map.forEach((value: number[][], line: number) => {
+        this._map.forEach((value: number[][], line: number) => {
             value.forEach((matches: number[]) => {
-                const index: number = matches[0];
-                const data: number = matches[1];
-                const filter: StoredEntity<FilterRequest> | undefined = filters[index];
-                if (
-                    index === undefined ||
-                    data === undefined ||
-                    filter === undefined ||
-                    index >= this._datasets.length
-                ) {
+                if (matches[0] === undefined || matches[1] === undefined) {
                     return;
                 }
-                this._datasets[index].data[line] = data;
+                const index: number = matches[0];
+                const filter: StoredEntity<FilterRequest> = filters[index];
+                if (filter === undefined || index >= this._datasets.length) {
+                    return;
+                }
+                this._datasets[index].data[line] = matches[1];
                 this._datasets[index].backgroundColor = filter.definition.colors.background;
             });
         });
     }
-    protected _createChart(chartName: EChartName): void {
+
+    private _createChart(chartName: EChartName): void {
         this._filters = new Chart(`${chartName}-${this._session.uuid()}`, {
             type: 'bar',
             data: {
-                labels: new Array(this._labelCount).fill(''),
+                labels: new Array(this._map.length).fill(''),
                 datasets: this._datasets,
             },
             options: {
