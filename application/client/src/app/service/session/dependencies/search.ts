@@ -1,9 +1,9 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
-import { ISearchUpdated } from '@platform/types/filter';
 import { ISearchMap } from '@platform/interfaces/interface.rust.api.general';
 import { cutUuid } from '@log/index';
-import { IFilter } from '@platform/types/filter';
+import { IFilter, ISearchUpdated } from '@platform/types/filter';
+import { IRange } from '@platform/types/range';
 import { FiltersStore } from './search/filters/store';
 import { DisableStore } from './search/disabled/store';
 import { Highlights } from './search/highlights';
@@ -107,15 +107,15 @@ export class Search extends Subscriber {
         });
     }
 
-    public getScaledMap(len: number): Promise<ISearchMap> {
+    public getScaledMap(len: number, range?: IRange): Promise<ISearchMap> {
         return new Promise((resolve, reject) => {
             Requests.IpcRequest.send(
                 Requests.Search.Map.Response,
                 new Requests.Search.Map.Request({
                     session: this._uuid,
                     len,
-                    from: undefined,
-                    to: undefined,
+                    from: range ? range.from : undefined,
+                    to: range ? range.to : undefined,
                 }),
             )
                 .then((response) => {

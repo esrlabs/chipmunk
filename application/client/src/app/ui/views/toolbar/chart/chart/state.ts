@@ -74,13 +74,12 @@ export class State extends AdvancedState {
         this._parent.detectChanges();
     }
 
-    protected _fetch(width: number): Promise<void> {
+    protected _fetch(width: number, range: IRange): Promise<void> {
         this._loading = true;
         return this._session.search
-            .getScaledMap(width)
+            .getScaledMap(width, range)
             .then((map) => {
                 this._map = map;
-                this._labelCount = this._map.length;
                 this._draw(EChartName.chartFilters);
             })
             .catch((err: Error) => {
@@ -172,38 +171,23 @@ export class State extends AdvancedState {
             return;
         }
         const width: number = this._element.getBoundingClientRect().width;
-        this._fetch(width)
+        const streamLen: number = this._session.stream.len();
+        const position: IPosition = this._isPositionViable(event.position)
+            ? event.position
+            : {
+                  full: width,
+                  left: 0,
+                  width: width,
+              };
+        const range: IRange = {
+            from: Math.round((position.left / position.full) * streamLen),
+            to: Math.round(((position.left + position.width) / position.full) * streamLen),
+        };
+        range.to = range.to >= streamLen ? streamLen - 1 : range.to;
+        this._range = range;
+        this._fetch(width, range)
             .then(() => {
-                let position = event.position;
-                const size: number = this._map.length;
-                if (size === 0) {
-                    return;
-                }
-                if (!this._isPositionViable(position)) {
-                    position = {
-                        full: width,
-                        left: 0,
-                        width: width,
-                    };
-                }
-                const rate: number = position.full / size;
-                let range: IRange;
-                if (rate > 1) {
-                    range = {
-                        from: 0,
-                        to: size,
-                    };
-                } else {
-                    const left: number = Math.floor(position.left / rate);
-                    const width: number = Math.floor(position.width / rate);
-                    range = {
-                        from: left,
-                        to: left + width,
-                    };
-                    range.to = range.to >= size ? size - 1 : range.to;
-                }
-                this._range = range;
-                this._draw(EChartName.chartFilters, range);
+                this._map.length > 0 && this._draw(EChartName.chartFilters);
             })
             .catch((err: Error) => {
                 this._parent.log().error(err);
