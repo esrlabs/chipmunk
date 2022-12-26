@@ -30,6 +30,7 @@ export class ElementsTreeSelector
     @ViewChild('container') container!: ElementRef<HTMLElement>;
 
     public state: State;
+    private init!: Promise<void>;
 
     constructor(cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
         super(cdRef);
@@ -37,13 +38,16 @@ export class ElementsTreeSelector
     }
 
     public ngAfterContentInit(): void {
-        this.state.init(this.ilc().services).catch((err: Error) => {
+        this.init = this.state.init(this.ilc().services).catch((err: Error) => {
             this.log().error(`Fail to init folder's tree state: ${err.message}`);
         });
     }
 
     public ngAfterViewInit(): void {
         this.state.bind(this.container.nativeElement);
+        this.init.then(() => {
+            this.state.expand();
+        });
     }
 
     public safeHtml(html: string): SafeHtml {
@@ -153,6 +157,18 @@ export class ElementsTreeSelector
             })
             .catch((err: Error) => {
                 this.log().error(`Fail to add place into favorites: ${err.message}`);
+            });
+    }
+
+    public reload() {
+        this.state
+            .reload()
+            .then(() => {
+                this.detectChanges();
+                this.state.expand();
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to reload favorites places: ${err.message}`);
             });
     }
 }

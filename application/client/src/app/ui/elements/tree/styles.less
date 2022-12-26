@@ -24,10 +24,13 @@ app-elements-tree {
             text-align: center;
             padding-top: 4px;
             box-sizing: border-box;
-            margin: 4px 6px 0 6px;
+            margin: 4px 0px 0 6px;
             &:hover{
                 color: @scheme-color-3;
             }
+        }
+        & span.small-icon-button:last-child {
+            margin-right: 6px;
         }
     }
     div.tree {
@@ -58,6 +61,14 @@ app-elements-tree {
                     left: 0;
                     top:0;
                     background: @scheme-color-3;
+                }
+            }
+            &[data-exists="false"] {
+                color: @scheme-color-4;
+                & span.name {
+                    &.no-icon {
+                        padding-left: 0px;
+                    }
                 }
             }
             &:hover {

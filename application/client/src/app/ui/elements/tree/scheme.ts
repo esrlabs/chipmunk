@@ -6,6 +6,7 @@ import { Entity } from './entity';
 import { EntityType, Entity as IEntity } from '@platform/types/files';
 import { Services } from '@service/ilc/services';
 import { Filter } from '@elements/filter/filter';
+import { FavoritePlace } from '@service/favorites';
 
 export { Entity };
 
@@ -37,15 +38,14 @@ export class DynamicFlatNode {
 
 export class DynamicDatabase {
     public readonly structure = new Map<string, Entity[]>();
-    public roots: string[];
+    public roots: FavoritePlace[] = [];
 
     protected readonly services: Services;
     protected readonly filter: Filter;
     protected source!: DynamicDataSource;
 
-    constructor(roots: string[], services: Services, filter: Filter) {
+    constructor(services: Services, filter: Filter) {
         this.services = services;
-        this.roots = roots;
         this.filter = filter;
     }
 
@@ -60,36 +60,29 @@ export class DynamicDatabase {
 
     public initialData(): DynamicFlatNode[] {
         return this.roots.map(
-            (root: string) =>
+            (root: FavoritePlace) =>
                 new DynamicFlatNode(
                     new Entity(
                         {
-                            name: root,
-                            fullname: root,
+                            name: root.path,
+                            fullname: root.path,
                             type: EntityType.Directory,
                             details: undefined,
                         },
                         '',
                         true,
+                        root.exists,
                         this.filter,
                     ),
                     0,
-                    true,
+                    root.exists,
                 ),
         );
     }
 
-    public overwrite(roots: string[]) {
+    public overwrite(roots: FavoritePlace[]) {
         this.roots = roots;
         this.source.data = this.initialData();
-    }
-
-    public addRoot(root: string) {
-        this.roots.push(root);
-    }
-
-    public removeRoot(root: string) {
-        this.roots = this.roots.filter((r) => r !== root);
     }
 
     public getChildren(path: string): Promise<Entity[]> {
@@ -103,7 +96,7 @@ export class DynamicDatabase {
                 .ls(path)
                 .then((entities: IEntity[]) => {
                     const sub = entities.map(
-                        (entity) => new Entity(entity, path, false, this.filter),
+                        (entity) => new Entity(entity, path, false, true, this.filter),
                     );
                     sub.sort((a) => {
                         return a.isFolder() ? -1 : 1;
@@ -217,7 +210,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
 
     public toggleNode(node: DynamicFlatNode, expand: boolean): Promise<void> {
         const index = this.data.indexOf(node);
-        if (index < 0) {
+        if (index < 0 || !node.item.exists) {
             // If no children, or cannot find the node, no op
             node.afterExpanded();
             return Promise.resolve();
