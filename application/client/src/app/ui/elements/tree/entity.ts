@@ -21,13 +21,21 @@ export class Entity {
     public selected: boolean = false;
     public favourite: boolean = false;
     public expanded: boolean = false;
+    public exists: boolean = false;
 
     protected readonly filter: Filter;
 
-    constructor(entity: IEntity, parent: string, favourite: boolean, filter: Filter) {
+    constructor(
+        entity: IEntity,
+        parent: string,
+        favourite: boolean,
+        exists: boolean,
+        filter: Filter,
+    ) {
         this.entity = entity;
         this.parent = parent;
         this.favourite = favourite;
+        this.exists = exists;
         this.filter = filter;
         if (entity.details !== undefined) {
             const ext = entity.details.ext.toLowerCase();

@@ -3,14 +3,14 @@ import { Services } from '@service/ilc';
 import { Filter } from '@elements/filter/filter';
 import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { favorites } from '@service/favorites';
+import { favorites, FavoritePlace } from '@service/favorites';
 import { Subscription } from '@platform/env/subscription';
 
 import * as Scheme from './scheme';
 
 export class State {
     public filter: Filter;
-    public favorites: string[] = [];
+    public favorites: FavoritePlace[] = [];
     public scheme!: {
         db: Scheme.DynamicDatabase;
         tree: FlatTreeControl<Scheme.DynamicFlatNode>;
@@ -74,7 +74,7 @@ export class State {
     }
 
     public async init(services: Services): Promise<void> {
-        const db = new Scheme.DynamicDatabase(this.favorites.slice(), services, this.filter);
+        const db = new Scheme.DynamicDatabase(services, this.filter);
         const tree = new FlatTreeControl<Scheme.DynamicFlatNode>(
             (node: Scheme.DynamicFlatNode) => node.level,
             (node: Scheme.DynamicFlatNode) => node.expandable,
@@ -97,15 +97,19 @@ export class State {
         db.bind(source);
         source.data = db.initialData();
         this.scheme = { db, tree, source };
-        this.favorites = favorites.favorites.slice();
-        this.scheme.db.overwrite(this.favorites.slice());
-        if (this.scheme.source.data.length > 0) {
-            this.scheme.source.data[0].item.selecting().select();
-        }
+        await this.reload();
         this.ilc.env().subscriber.register(
             favorites.updates.get().list.subscribe(() => {
-                this.favorites = favorites.favorites.slice();
-                this.scheme.db.overwrite(this.favorites.slice());
+                favorites
+                    .places()
+                    .get()
+                    .then((places) => {
+                        this.favorites = places;
+                        this.scheme.db.overwrite(this.favorites.slice());
+                    })
+                    .catch((err: Error) => {
+                        this.ilc.log().error(`Fail to get favorites places list: ${err.message}`);
+                    });
             }),
         );
     }
@@ -121,6 +125,17 @@ export class State {
                 container.removeEventListener('blur', this.blur);
             }),
         );
+    }
+
+    public async reload(): Promise<void> {
+        this.favorites = await favorites.places().get();
+        this.scheme.db.overwrite(this.favorites.slice());
+        if (this.scheme.source.data.length > 0) {
+            this.scheme.source.data[0].item.selecting().select();
+        }
+    }
+
+    public expand() {
         this.scheme.source.expand(favorites.states.map((v) => v.path));
     }
 

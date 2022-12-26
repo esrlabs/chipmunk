@@ -27,7 +27,7 @@ export class State extends Holder {
 
     constructor(ilc: IlcInterface & ChangesDetector) {
         super();
-        this.roots = favorites.favorites;
+        this.roots = [];
         this.ilc = ilc;
         this.filter = new Filter(ilc, { placeholder: 'Files form favorites' });
         this.filter.subjects.get().change.subscribe((value: string) => {
@@ -200,7 +200,8 @@ export class State extends Holder {
 
     public async load(): Promise<void> {
         this.items = [];
-        this.roots = await favorites.places().get();
+        const data = await favorites.places().get();
+        this.roots = data.filter((f) => f.exists).map((f) => f.path);
         for (const path of this.roots) {
             if (this.abort.signal.aborted) {
                 return Promise.resolve();

@@ -21,10 +21,14 @@ export interface FavoriteState {
     parent: string;
 }
 
+export interface FavoritePlace {
+    path: string;
+    exists: boolean;
+}
+
 @DependOn(bridge)
 @SetupService(services['favorites'])
 export class Service extends Implementation {
-    public favorites: string[] = [];
     public states: FavoriteState[] = [];
     public updates: Subjects<{
         list: Subject<void>;
@@ -33,6 +37,8 @@ export class Service extends Implementation {
         list: new Subject(),
         state: new Subject(),
     });
+
+    protected favorites: FavoritePlace[] = [];
 
     public override async ready(): Promise<void> {
         await Promise.all([
@@ -62,15 +68,24 @@ export class Service extends Implementation {
     }
 
     public places(): {
-        get(): Promise<string[]>;
+        get(): Promise<FavoritePlace[]>;
         add(paths: string[] | string): Promise<void>;
         has(path: string): boolean;
         selectAndAdd(): Promise<void>;
         remove(path: string): Promise<void>;
     } {
         return {
-            get: (): Promise<string[]> => {
-                return this.storage().get();
+            get: async (): Promise<FavoritePlace[]> => {
+                const favorites: FavoritePlace[] = [];
+                const paths = await this.storage().get();
+                for (const path of paths) {
+                    const exists = await bridge.files().exists(path);
+                    favorites.push({
+                        path,
+                        exists,
+                    });
+                }
+                return favorites;
             },
             add: async (paths: string[] | string): Promise<void> => {
                 if (!(paths instanceof Array)) {
@@ -87,7 +102,11 @@ export class Service extends Implementation {
                         accepted.push(path);
                     }
                 }
-                this.favorites = this.favorites.concat(accepted);
+                this.favorites = this.favorites.concat(
+                    accepted.map((path) => {
+                        return { path, exists: true };
+                    }),
+                );
                 return this.storage()
                     .set(this.favorites)
                     .then(() => {
@@ -98,7 +117,7 @@ export class Service extends Implementation {
                     });
             },
             has: (path: string): boolean => {
-                return this.favorites.indexOf(path) !== -1;
+                return this.favorites.find((f) => f.path === path) !== undefined;
             },
             selectAndAdd: async (): Promise<void> => {
                 const folders = await bridge.folders().select();
@@ -108,7 +127,7 @@ export class Service extends Implementation {
                 if (path.trim().length === 0 || !this.places().has(path)) {
                     return Promise.resolve();
                 }
-                this.favorites = this.favorites.filter((f) => f !== path);
+                this.favorites = this.favorites.filter((f) => f.path !== path);
                 this.expanded()
                     .remove(path)
                     .then(() => {
@@ -131,7 +150,7 @@ export class Service extends Implementation {
 
     protected storage(): {
         get(): Promise<string[]>;
-        set(value: string[]): Promise<void>;
+        set(value: string[] | FavoritePlace[]): Promise<void>;
     } {
         return {
             get: (): Promise<string[]> => {
@@ -145,11 +164,12 @@ export class Service extends Implementation {
                         .catch(reject);
                 });
             },
-            set: (value: string[]): Promise<void> => {
+            set: (value: string[] | FavoritePlace[]): Promise<void> => {
                 return bridge
                     .entries({ key: ROOTS_STORAGE_KEY })
                     .overwrite(
-                        value.map((path: string) => {
+                        value.map((favorite: string | FavoritePlace) => {
+                            const path = typeof favorite === 'string' ? favorite : favorite.path;
                             return {
                                 uuid: path,
                                 content: path,

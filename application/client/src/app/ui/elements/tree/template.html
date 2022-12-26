@@ -1,5 +1,6 @@
 <div class="controls">
   <app-filter-input [filter]="state.filter"></app-filter-input>
+  <span [attr.class]="'small-icon-button codicon codicon-debug-restart'" (click)="reload()"></span>
   <span [attr.class]="'small-icon-button codicon codicon-new-folder'" (click)="add()"></span>
 </div>
 <div #container class="tree" (scroll)="onScrolling($event)" tabindex="100">
@@ -7,6 +8,7 @@
     <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding
       [matTreeNodePaddingIndent]="20"
       [attr.data-selected]="node.item.selected"
+      [attr.data-exists]="node.item.exists"
       (click)="state.select(node)"
       [style.display]="!node.item.isVisible() || node.vi ? 'none' : ''"
       (contextmenu)="ngItemContextMenu($event, node.item)">
@@ -21,7 +23,8 @@
       (contextmenu)="ngItemContextMenu($event, node.item)"
       (click)="state.select(node)"
       [style.display]="!node.item.isVisible() ? 'none' : ''"
-      [attr.data-selected]="node.item.selected">
+      [attr.data-selected]="node.item.selected"
+      [attr.data-exists]="node.item.exists">
       <button mat-icon-button
               [attr.aria-label]="'Toggle ' + node.item.getName()" matTreeNodeToggle>
         <mat-icon class="mat-icon-rtl-mirror">
