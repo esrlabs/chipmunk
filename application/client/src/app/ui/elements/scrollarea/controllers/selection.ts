@@ -134,10 +134,18 @@ export class Selecting {
         if (anchorNode === null || focusNode === null) {
             return;
         }
-        if (!isFinite(anchorOffset)) {
+        if (
+            !isFinite(anchorOffset) ||
+            (typeof anchorNode.textContent === 'string' &&
+                anchorNode.textContent.length <= anchorOffset)
+        ) {
             anchorOffset = getMaxOffset(anchorNode);
         }
-        if (!isFinite(focusOffset)) {
+        if (
+            !isFinite(focusOffset) ||
+            (typeof focusNode.textContent === 'string' &&
+                focusNode.textContent.length <= focusOffset)
+        ) {
             focusOffset = getMaxOffset(focusNode);
         }
         try {
