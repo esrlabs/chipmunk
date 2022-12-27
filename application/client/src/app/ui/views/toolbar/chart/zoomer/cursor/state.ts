@@ -36,12 +36,12 @@ export class State extends BasicState {
         this._parent
             .env()
             .subscriber.register(
-                this._parent.ilc().channel.ui.sidebar.resize(this._resize.bind(this)),
+                this._parent.ilc().channel.ui.sidebar.resize(this._resizeSidebar.bind(this)),
             );
         window.addEventListener('mousemove', this._onWindowMousemove);
         window.addEventListener('mouseup', this._onWindowMouseup);
         this._restore();
-        this._resize();
+        this._resizeSidebar();
     }
 
     public destroy() {
@@ -186,7 +186,7 @@ export class State extends BasicState {
         stop(event);
     }
 
-    private _resize() {
+    private _resizeSidebar() {
         const scrollWidth: number = this._element.getBoundingClientRect().width;
         const width: number = scrollWidth - this._leftOffset();
         if (width <= 0 || isNaN(width) || !isFinite(width)) {
