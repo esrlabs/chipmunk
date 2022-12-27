@@ -14,15 +14,24 @@ export class State extends AdvancedState {
 
     private _range!: IRange;
     private _loading: boolean = true;
+    private _width: number = 0;
+    private _height: number = 0;
 
     public init() {
         this._subscribe();
         this._parent
             .env()
             .subscriber.register(
-                this._parent.ilc().channel.ui.sidebar.resize(this._resize.bind(this)),
+                this._parent.ilc().channel.ui.sidebar.resize(this._resizeSidebar.bind(this)),
+            );
+        this._parent
+            .env()
+            .subscriber.register(
+                this._parent.ilc().channel.ui.toolbar.resize(this._resizeToolbar.bind(this)),
             );
         this._parent.env().subscriber.register(this._service.onChange(this._onChange.bind(this)));
+        this._resizeSidebar();
+        this._resizeToolbar();
         this._onChange(this._service.getPosition(this._session.uuid()));
     }
 
@@ -45,21 +54,28 @@ export class State extends AdvancedState {
     }
 
     public onClick(event: MouseEvent) {
-        const position: number = this._calculatePosition(event);
-        position >= 0 && this._session.cursor.select(position, Owner.Chart);
+        const position: number | Error = this._calculatePosition(event);
+        if (position instanceof Error) {
+            this._parent.log().error(position);
+        } else {
+            position >= 0 && this._session.cursor.select(position, Owner.Chart);
+        }
     }
 
     public onMouseMove(event: MouseEvent) {
-        const rect: DOMRect = this._element.getBoundingClientRect();
         const offsetX = event.offsetX;
         if (offsetX > 0) {
             this.crosshairLeft = offsetX;
-            this.showLeftTooltip = offsetX <= rect.width / 2;
+            this.showLeftTooltip = offsetX <= this._width / 2;
         }
         if (event.offsetY > 0) {
-            this.tooltipTop = rect.height / 2;
-            const position: number = this._calculatePosition(event);
-            this.tooltip = position >= 0 ? `${position}` : '';
+            this.tooltipTop = this._height / 2;
+            const position: number | Error = this._calculatePosition(event);
+            if (position instanceof Error) {
+                this._parent.log().error(position);
+            } else {
+                this.tooltip = position >= 0 ? `${position}` : '';
+            }
         }
     }
 
@@ -70,8 +86,8 @@ export class State extends AdvancedState {
         this.mouseEnter = mouseEnter;
     }
 
-    protected _resize() {
-        this._parent.detectChanges();
+    protected _resizeSidebar() {
+        this._width = this._element.getBoundingClientRect().width;
     }
 
     protected _fetch(width: number, range: IRange): Promise<void> {
@@ -90,7 +106,11 @@ export class State extends AdvancedState {
             });
     }
 
-    private _calculatePosition(event: MouseEvent): number {
+    private _resizeToolbar() {
+        this._height = this._element.getBoundingClientRect().height;
+    }
+
+    private _calculatePosition(event: MouseEvent): number | Error {
         if (event.target === undefined) {
             return -1;
         }
@@ -98,8 +118,10 @@ export class State extends AdvancedState {
         if (position === undefined) {
             const streamLen: number = this._session.stream.len();
             const pos: IPosition = this._service.getPosition(this._session.uuid()).position;
-            const width: number =
-                pos.full === 0 ? this._element.getBoundingClientRect().width : pos.full;
+            if (!this._isPositionViable(pos)) {
+                return new Error('Failed to calculate position due to invalid data');
+            }
+            const width: number = pos.full === 0 ? this._width : pos.full;
             if (streamLen > width) {
                 const rangeRate: number = streamLen / width;
                 const rangeBegin: number = Math.floor(pos.left * rangeRate);
@@ -170,14 +192,13 @@ export class State extends AdvancedState {
         if (event.session !== this._session.uuid()) {
             return;
         }
-        const width: number = this._element.getBoundingClientRect().width;
         const streamLen: number = this._session.stream.len();
         const position: IPosition = this._isPositionViable(event.position)
             ? event.position
             : {
-                  full: width,
+                  full: this._width,
                   left: 0,
-                  width: width,
+                  width: this._width,
               };
         const range: IRange = {
             from: Math.round((position.left / position.full) * streamLen),
@@ -185,7 +206,7 @@ export class State extends AdvancedState {
         };
         range.to = range.to >= streamLen ? streamLen - 1 : range.to;
         this._range = range;
-        this._fetch(width, range)
+        this._fetch(this._width, range)
             .then(() => {
                 this._map.length > 0 && this._draw(EChartName.chartFilters);
             })

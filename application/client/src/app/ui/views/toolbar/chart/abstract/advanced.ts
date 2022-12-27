@@ -23,7 +23,7 @@ export abstract class AdvancedState extends BasicState {
 
     protected abstract override destroy(): void;
 
-    protected abstract _resize(): void;
+    protected abstract _resizeSidebar(): void;
 
     protected abstract _fetch(width: number, range?: IRange): Promise<void>;
 

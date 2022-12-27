@@ -11,11 +11,11 @@ export class State extends AdvancedState {
 
     public init() {
         this._positionChangeSetup();
-        this._resize();
+        this._resizeSidebar();
         this._subscribe();
         this._parent.env().subscriber.register(
             this._parent.ilc().channel.ui.sidebar.resize(() => {
-                this._resize();
+                this._resizeSidebar();
                 this._update();
             }),
         );
@@ -42,7 +42,7 @@ export class State extends AdvancedState {
         return !displayFilter;
     }
 
-    protected _resize() {
+    protected _resizeSidebar() {
         this._parent.detectChanges();
         this._width = this._element.getBoundingClientRect().width;
     }
