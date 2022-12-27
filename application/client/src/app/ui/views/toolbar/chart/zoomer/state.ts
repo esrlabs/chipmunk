@@ -19,7 +19,8 @@ export class State extends AdvancedState {
                 this._update();
             }),
         );
-        this._fetch(this._session.stream.len()).catch((err: Error) => {
+        this._resizeSidebar();
+        this._fetch(this._width).catch((err: Error) => {
             this._parent.log().error(err);
         });
     }
@@ -43,7 +44,6 @@ export class State extends AdvancedState {
     }
 
     protected _resizeSidebar() {
-        this._parent.detectChanges();
         this._width = this._element.getBoundingClientRect().width;
     }
 
