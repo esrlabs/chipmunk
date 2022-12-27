@@ -60,6 +60,7 @@ export class NodeInfo {
         if (this.node.get() !== accessor.node()) {
             const rowInfo: IRowNodeInfo | undefined = this._getRowInfo(accessor.node());
             if (rowInfo === undefined) {
+                this.node.set(null);
                 return;
             }
             this.path = rowInfo.path;
