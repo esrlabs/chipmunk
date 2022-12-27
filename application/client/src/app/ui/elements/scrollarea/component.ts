@@ -11,7 +11,7 @@ import {
     HostListener,
 } from '@angular/core';
 import { Subscriber } from '@platform/env/subscription';
-import { Owner, Row } from '@schema/content/row';
+import { Row } from '@schema/content/row';
 import { Holder } from './controllers/holder';
 import { Service } from './controllers/service';
 import { Frame, ChangesInitiator } from './controllers/frame';
@@ -20,7 +20,6 @@ import { Keyboard } from './controllers/keyboard';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { RemoveHandler } from '@ui/service/styles';
 import { Ilc, IlcInterface } from '@env/decorators/component';
-import { Session } from '@service/session/session';
 import { stop } from '@ui/env/dom';
 import { unique } from '@platform/env/sequence';
 
@@ -44,9 +43,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
     @ViewChild('content_holder', { static: false }) _nodeHolder!: ElementRef<HTMLElement>;
 
     @Input() public service!: Service;
-    @Input() public session!: Session;
     @Input() public tabIndex!: number;
-    @Input() public owner!: Owner;
 
     private readonly _subscriber: Subscriber = new Subscriber();
     private _id: string = unique();
@@ -105,7 +102,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
         this.holder.bind(this._nodeHolder);
         this.frame.bind(this.service, this.holder);
         this.service.bind(this.frame, this.elRef.nativeElement);
-        this.selecting.bind(this._nodeHolder.nativeElement, this.frame, this.session);
+        this.selecting.bind(this._nodeHolder.nativeElement, this.frame, this.service);
         this.keyboard.bind(this.frame);
         this._subscriber.register(
             this.frame.onFrameChange((rows: Row[]) => {
@@ -165,7 +162,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
                 if (!this.service.focus().get()) {
                     return;
                 }
-                this.selecting.copyToClipboard(this.owner).catch((err: Error) => {
+                this.selecting.copyToClipboard().catch((err: Error) => {
                     this.log().error(`Fail to copy content into clipboard: ${err.message}`);
                 });
             }),

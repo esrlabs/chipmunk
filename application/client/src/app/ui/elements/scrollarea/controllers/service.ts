@@ -18,6 +18,7 @@ export class Service implements Destroy {
     public readonly setFrame: (range: SafeRange) => void;
     public readonly getLen: () => number;
     public readonly getItemHeight: () => number;
+    public readonly getRows: (range: IRange) => Promise<IRowsPacket>;
 
     protected frame!: Frame;
     protected elRef!: HTMLElement;
@@ -40,13 +41,19 @@ export class Service implements Destroy {
     };
     private _cursor: number = 0;
 
-    constructor(api: { setFrame(range: IRange): void; getLen(): number; getItemHeight(): number }) {
+    constructor(api: {
+        setFrame(range: IRange): void;
+        getRows(range: IRange): Promise<IRowsPacket>;
+        getLen(): number;
+        getItemHeight(): number;
+    }) {
         this.setFrame = (range: SafeRange) => {
             api.setFrame(range);
             this._cursor = range.from;
         };
         this.getLen = api.getLen;
         this.getItemHeight = api.getItemHeight;
+        this.getRows = api.getRows;
     }
 
     public bind(frame: Frame, elRef: HTMLElement) {
