@@ -9,8 +9,7 @@ import {
 } from './selection.nodeinfo';
 import { SelectionNode } from './selection.node';
 import { isParent } from '@ui/env/dom';
-import { Session } from '@service/session/session';
-import { Owner } from '@schema/content/row';
+import { Service } from './service';
 
 export enum SelectionDirection {
     Top = 'Top',
@@ -31,7 +30,7 @@ export interface ISelection {
 export class Selecting {
     private _frame!: Frame;
     private _holder!: HTMLElement;
-    private _session!: Session;
+    private _service!: Service;
     private _progress: boolean = false;
     private _selection: {
         focus: NodeInfo;
@@ -52,10 +51,10 @@ export class Selecting {
         finish: new Subject(),
     };
 
-    bind(holder: HTMLElement, frame: Frame, session: Session) {
+    bind(holder: HTMLElement, frame: Frame, service: Service) {
         this._holder = holder;
         this._frame = frame;
-        this._session = session;
+        this._service = service;
         this._onSelectionStarted = this._onSelectionStarted.bind(this);
         this._onSelectionEnded = this._onSelectionEnded.bind(this);
         this._onSelectionChange = this._onSelectionChange.bind(this);
@@ -242,7 +241,7 @@ export class Selecting {
         return this.get() !== undefined;
     }
 
-    public async copyToClipboard(owner: Owner): Promise<void> {
+    public async copyToClipboard(): Promise<void> {
         const selection = this.get();
         if (selection === undefined) {
             return Promise.resolve();
@@ -251,21 +250,10 @@ export class Selecting {
             navigator.clipboard.writeText(selection);
             return Promise.resolve();
         }
-        const rows = await (
-            await (async () => {
-                if (owner === Owner.Search) {
-                    return await this._session.stream.grab(
-                        this._session.search.map
-                            .get()
-                            .ranges({ from: selection.rows.start, to: selection.rows.end }),
-                    );
-                } else {
-                    return await this._session.stream.grab([
-                        { from: selection.rows.start, to: selection.rows.end },
-                    ]);
-                }
-            })()
-        ).map((r) => r.content);
+        const rows = (
+            await this._service.getRows({ from: selection.rows.start, to: selection.rows.end })
+        ).rows.map((r) => r.content);
+
         if (rows.length === 0) {
             return Promise.resolve();
         }

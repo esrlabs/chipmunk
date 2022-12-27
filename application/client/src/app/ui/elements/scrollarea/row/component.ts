@@ -112,7 +112,7 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                     disabled: !this.selecting.hasSelection(),
                     shortcut: 'Ctrl + C',
                     handler: () => {
-                        this.selecting.copyToClipboard(this.row.owner).catch((err: Error) => {
+                        this.selecting.copyToClipboard().catch((err: Error) => {
                             this.log().error(`Fail to copy selection: ${err.message}`);
                         });
                     },
