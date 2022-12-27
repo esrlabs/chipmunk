@@ -33,8 +33,6 @@ export class LayoutSidebarControls {
         //     x: event.pageX,
         //     y: event.pageY,
         // });
-        // event.stopImmediatePropagation();
-        // event.preventDefault();
     }
 }
 export interface LayoutSidebarControls extends IlcInterface {}

@@ -18,6 +18,7 @@ import { MatDragDropResetFeatureDirective } from '@ui/env/directives/material.dr
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
+import { stop } from '@ui/env/dom';
 
 @Component({
     selector: 'app-sidebar-filters-filter',
@@ -89,8 +90,7 @@ export class Filter extends ChangesDetector implements AfterContentInit {
 
     public _ng_flagsToggle(event: MouseEvent, flag: 'cases' | 'word' | 'reg') {
         this.state.toggleFilter(flag);
-        event.preventDefault();
-        event.stopImmediatePropagation();
+        stop(event);
     }
 
     public _ng_onRequestInputKeyUp(event: KeyboardEvent) {

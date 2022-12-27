@@ -20,6 +20,9 @@ import { Keyboard } from './controllers/keyboard';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { RemoveHandler } from '@ui/service/styles';
 import { Ilc, IlcInterface } from '@env/decorators/component';
+import { Session } from '@service/session/session';
+import { stop } from '@ui/env/dom';
+import { unique } from '@platform/env/sequence';
 
 export interface IScrollBoxSelection {
     selection: string;
@@ -41,20 +44,23 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
     @ViewChild('content_holder', { static: false }) _nodeHolder!: ElementRef<HTMLElement>;
 
     @Input() public service!: Service;
+    @Input() public session!: Session;
+    @Input() public tabIndex!: number;
 
     private readonly _subscriber: Subscriber = new Subscriber();
-    private _cssClass: string = '';
+    private _id: string = unique();
     private _removeGlobalStyleHandler: RemoveHandler | undefined;
 
-    @HostBinding('tabindex') get tabindex() {
-        return 0;
+    @HostBinding('tabindex') get tabndex() {
+        return this.tabIndex === undefined ? 0 : this.tabIndex;
     }
 
-    @HostBinding('class') set cssClass(cssClass: string) {
-        this._cssClass = cssClass;
+    @HostBinding('id') set id(id: string) {
+        this._id = id;
     }
-    get cssClass() {
-        return this._cssClass;
+
+    get id() {
+        return this._id;
     }
 
     @HostListener('window:keydown', ['$event']) onKeyDown(event: KeyboardEvent) {
@@ -98,7 +104,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
         this.holder.bind(this._nodeHolder);
         this.frame.bind(this.service, this.holder);
         this.service.bind(this.frame, this.elRef.nativeElement);
-        this.selecting.bind(this._nodeHolder.nativeElement, this.frame);
+        this.selecting.bind(this._nodeHolder.nativeElement, this.frame, this.session);
         this.keyboard.bind(this.frame);
         this._subscriber.register(
             this.frame.onFrameChange((rows: Row[]) => {
@@ -121,20 +127,20 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
         );
         this._subscriber.register(
             this.selecting.onSelectionStart(() => {
-                this.cssClass = 'selecting';
                 this._removeGlobalStyleHandler = this.ilc().services.ui.styles
-                    .add(`:not(.selecting *) {
-					user-select: none;
-				}`);
+                    .add(`:not(*[id="${this._id}"] *) {
+                	user-select: none;
+                }`);
+                this.detectChanges();
             }),
         );
         this._subscriber.register(
             this.selecting.onSelectionFinish(() => {
-                this.cssClass = '';
                 if (typeof this._removeGlobalStyleHandler === 'function') {
                     this._removeGlobalStyleHandler();
                     this._removeGlobalStyleHandler = undefined;
                 }
+                this.detectChanges();
             }),
         );
         this._subscriber.register(
@@ -153,7 +159,16 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
                 this.service.scrollToBottom();
             }),
         );
-
+        this._subscriber.register(
+            this.ilc().services.system.hotkeys.listen('Ctrl + C', () => {
+                if (!this.service.focus().get()) {
+                    return;
+                }
+                this.selecting.copyToClipboard().catch((err: Error) => {
+                    this.log().error(`Fail to copy content into clipboard: ${err.message}`);
+                });
+            }),
+        );
         this.frame.init();
     }
 
@@ -174,7 +189,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
     public onWheel(event: WheelEvent) {
         if (Math.abs(event.deltaX) < Math.abs(event.deltaY)) {
             this.frame.offsetTo(event.deltaY, ChangesInitiator.Wheel);
-            event.preventDefault();
+            stop(event);
         }
     }
 

@@ -5,6 +5,7 @@ import { DataSource, SourceDescription } from '@platform/types/observe';
 import { Session } from '@service/session/session';
 import { IMenuItem, contextmenu } from '@ui/service/contextmenu';
 import { ObserveOperation } from '@service/session/dependencies/observe/operation';
+import { stop } from '@ui/env/dom';
 
 @Component({
     selector: 'app-transport-review',
@@ -111,8 +112,7 @@ export class Transport extends ChangesDetector implements AfterContentInit {
             x: event.pageX,
             y: event.pageY,
         });
-        event.stopImmediatePropagation();
-        event.preventDefault();
+        stop(event);
     }
     public description!: SourceDescription | undefined;
 

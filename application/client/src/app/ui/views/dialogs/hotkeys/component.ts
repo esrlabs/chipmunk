@@ -27,6 +27,9 @@ export class Hotkeys extends ChangesDetector implements AfterViewChecked, AfterV
         super(cdRef);
         const groups: any = {};
         KeysMap.forEach((desc: KeyDescription) => {
+            if (desc.hidden !== undefined && desc.hidden) {
+                return;
+            }
             if (groups[desc.category] === undefined) {
                 groups[desc.category] = {
                     name: desc.category,

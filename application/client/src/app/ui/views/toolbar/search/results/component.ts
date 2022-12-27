@@ -1,11 +1,4 @@
-import {
-    Component,
-    OnDestroy,
-    ViewChild,
-    Input,
-    AfterContentInit,
-    ChangeDetectionStrategy,
-} from '@angular/core';
+import { Component, OnDestroy, ViewChild, Input, AfterContentInit } from '@angular/core';
 import { Session } from '@service/session';
 import { Owner } from '@schema/content/row';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -18,7 +11,6 @@ import { getScrollAreaService, setScrollAreaService } from './backing';
     selector: 'app-views-search-results',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
-    changeDetection: ChangeDetectionStrategy.Default,
 })
 @Ilc()
 export class ViewSearchResults implements AfterContentInit, OnDestroy {
@@ -83,7 +75,12 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                             return;
                         }
                         this.navigation.pending = -1;
-                        this.session.cursor.select(pending.position, Owner.Search);
+                        this.session.cursor.select(
+                            pending.position,
+                            Owner.Search,
+                            undefined,
+                            undefined,
+                        );
                     }),
                 );
                 this.env().subscriber.register(
@@ -94,16 +91,6 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                 this.env().subscriber.register(
                     this.ilc().services.system.hotkeys.listen('[', () => {
                         this.move().prev();
-                    }),
-                );
-                this.env().subscriber.register(
-                    this.ilc().services.system.hotkeys.listen('gg', () => {
-                        this.move().top();
-                    }),
-                );
-                this.env().subscriber.register(
-                    this.ilc().services.system.hotkeys.listen('G', () => {
-                        this.move().bottom();
                     }),
                 );
                 this.env().subscriber.register(
@@ -134,7 +121,7 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
             }
             const single = this.session.cursor.getSingle().position();
             if (single === undefined) {
-                this.session.cursor.select(rows[0].position, Owner.Search);
+                this.session.cursor.select(rows[0].position, Owner.Search, undefined, undefined);
                 return undefined;
             }
             const selected = rows.findIndex((r) => r.position === single);
@@ -146,7 +133,12 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                     return;
                 }
                 if (selected < rows.length - 1) {
-                    this.session.cursor.select(rows[selected + 1].position, Owner.Search);
+                    this.session.cursor.select(
+                        rows[selected + 1].position,
+                        Owner.Search,
+                        undefined,
+                        undefined,
+                    );
                     return;
                 }
                 if (selected === rows.length - 1) {
@@ -168,7 +160,12 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                     return;
                 }
                 if (selected > 0) {
-                    this.session.cursor.select(rows[selected - 1].position, Owner.Search);
+                    this.session.cursor.select(
+                        rows[selected - 1].position,
+                        Owner.Search,
+                        undefined,
+                        undefined,
+                    );
                     return;
                 }
                 if (selected === 0) {

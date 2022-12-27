@@ -212,12 +212,7 @@ export class Session extends Base {
     } {
         return {
             indexes: (): number[] => {
-                let selected = this.cursor.get().slice();
-                const bookmarks = this.bookmarks
-                    .get()
-                    .map((b) => b.position)
-                    .filter((b) => selected.indexOf(b) === -1);
-                selected = selected.concat(bookmarks);
+                const selected = this.cursor.get().slice();
                 selected.sort((a, b) => (a > b ? 1 : -1));
                 return selected;
             },

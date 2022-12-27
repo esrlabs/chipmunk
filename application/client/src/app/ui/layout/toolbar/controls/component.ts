@@ -3,6 +3,7 @@ import { AreaState } from '../../state';
 import { Observable, Subscription } from 'rxjs';
 import { IComponentDesc } from '@elements/containers/dynamic/component';
 import { Ilc, IlcInterface } from '@env/decorators/component';
+import { stop } from '@ui/env/dom';
 
 @Component({
     selector: 'app-layout-toolbar-controls',
@@ -36,8 +37,7 @@ export class LayoutToolbarControls implements AfterContentInit, OnDestroy {
         } else {
             this.state.minimize();
         }
-        event.preventDefault();
-        event.stopImmediatePropagation();
+        stop(event);
         return false;
     }
 
@@ -67,8 +67,7 @@ export class LayoutToolbarControls implements AfterContentInit, OnDestroy {
         //     x: event.pageX,
         //     y: event.pageY,
         // });
-        event.stopImmediatePropagation();
-        event.preventDefault();
+        stop(event);
     }
 
     private _onInjecton(injection: IComponentDesc) {
