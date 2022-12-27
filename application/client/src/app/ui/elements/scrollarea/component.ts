@@ -11,7 +11,7 @@ import {
     HostListener,
 } from '@angular/core';
 import { Subscriber } from '@platform/env/subscription';
-import { Row } from '@schema/content/row';
+import { Owner, Row } from '@schema/content/row';
 import { Holder } from './controllers/holder';
 import { Service } from './controllers/service';
 import { Frame, ChangesInitiator } from './controllers/frame';
@@ -46,6 +46,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
     @Input() public service!: Service;
     @Input() public session!: Session;
     @Input() public tabIndex!: number;
+    @Input() public owner!: Owner;
 
     private readonly _subscriber: Subscriber = new Subscriber();
     private _id: string = unique();
@@ -164,7 +165,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
                 if (!this.service.focus().get()) {
                     return;
                 }
-                this.selecting.copyToClipboard().catch((err: Error) => {
+                this.selecting.copyToClipboard(this.owner).catch((err: Error) => {
                     this.log().error(`Fail to copy content into clipboard: ${err.message}`);
                 });
             }),

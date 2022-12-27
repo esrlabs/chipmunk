@@ -10,6 +10,7 @@ import {
 import { SelectionNode } from './selection.node';
 import { isParent } from '@ui/env/dom';
 import { Session } from '@service/session/session';
+import { Owner } from '@schema/content/row';
 
 export enum SelectionDirection {
     Top = 'Top',
@@ -241,7 +242,7 @@ export class Selecting {
         return this.get() !== undefined;
     }
 
-    public async copyToClipboard(): Promise<void> {
+    public async copyToClipboard(owner: Owner): Promise<void> {
         const selection = this.get();
         if (selection === undefined) {
             return Promise.resolve();
@@ -251,9 +252,19 @@ export class Selecting {
             return Promise.resolve();
         }
         const rows = await (
-            await this._session.stream.grab([
-                { from: selection.rows.start, to: selection.rows.end },
-            ])
+            await (async () => {
+                if (owner === Owner.Search) {
+                    return await this._session.stream.grab(
+                        this._session.search.map
+                            .get()
+                            .ranges({ from: selection.rows.start, to: selection.rows.end }),
+                    );
+                } else {
+                    return await this._session.stream.grab([
+                        { from: selection.rows.start, to: selection.rows.end },
+                    ]);
+                }
+            })()
         ).map((r) => r.content);
         if (rows.length === 0) {
             return Promise.resolve();

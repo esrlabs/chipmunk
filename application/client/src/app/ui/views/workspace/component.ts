@@ -20,6 +20,7 @@ export class ViewWorkspace implements AfterContentInit, OnDestroy {
 
     @Input() public session!: Session;
 
+    public readonly Owner = Owner;
     public service!: Service;
     public columns: Columns | undefined;
 
