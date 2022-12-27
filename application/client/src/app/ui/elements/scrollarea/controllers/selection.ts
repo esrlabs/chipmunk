@@ -8,7 +8,7 @@ import {
     getAnchorNodeInfo,
 } from './selection.nodeinfo';
 import { SelectionNode } from './selection.node';
-import { isParent } from '@ui/env/dom';
+import { findParentByTag } from '@ui/env/dom';
 import { Service } from './service';
 
 export enum SelectionDirection {
@@ -325,7 +325,10 @@ export class Selecting {
         if (event.button !== 0) {
             return;
         }
-        if (!isParent(event.target as HTMLElement, this._holder)) {
+        if (
+            findParentByTag(event.target as HTMLElement, ['app-scrollarea-row', 'input']) ===
+            undefined
+        ) {
             return;
         }
         this._drop();

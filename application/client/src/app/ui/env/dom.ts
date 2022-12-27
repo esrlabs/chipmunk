@@ -10,8 +10,9 @@ export function stop(event: KeyboardEvent | MouseEvent | Event): boolean {
 
 export function findParentByTag(
     target: HTMLElement | null | undefined,
-    tag: string,
+    tag: string[],
 ): HTMLElement | undefined {
+    tag = tag.map((t) => t.toLowerCase());
     if (target === null || target === undefined) {
         return undefined;
     }
@@ -19,7 +20,7 @@ export function findParentByTag(
         return undefined;
     }
     const targetTag = target.tagName.toLowerCase();
-    if (targetTag === tag.toLowerCase()) {
+    if (tag.includes(targetTag)) {
         return target;
     }
     if (targetTag === 'body') {
@@ -29,6 +30,6 @@ export function findParentByTag(
 }
 
 export function isParent(target: HTMLElement, parent: HTMLElement): boolean {
-    const candidate = findParentByTag(target, parent.tagName);
+    const candidate = findParentByTag(target, [parent.tagName]);
     return candidate === undefined ? false : candidate === parent;
 }
