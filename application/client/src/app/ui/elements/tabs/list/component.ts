@@ -13,6 +13,7 @@ import type { QueryList } from '@angular/core';
 import { ITabInternal, TabsService } from '../service';
 import { TabsOptions } from '../options';
 import { Subscription } from 'rxjs';
+import { stop } from '@ui/env/dom';
 
 @Component({
     selector: 'element-tabs-list',
@@ -73,8 +74,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
 
     public _ng_onTabClose(event: MouseEvent, tabkey: string) {
         this.service.remove(tabkey);
-        event.stopImmediatePropagation();
-        event.preventDefault();
+        stop(event);
         this._forceUpdate();
         return false;
     }

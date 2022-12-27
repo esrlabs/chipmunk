@@ -4,6 +4,7 @@ import { Horizontal, Vertical } from '@ui/service/popup/popup';
 import { TransportSerialOptions } from '../options/component';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { State } from '../state';
+import { stop } from '@ui/env/dom';
 
 import SerialService from '../service/service';
 
@@ -27,7 +28,7 @@ export class TransportSerialAvailable {
     }
 
     public _ng_onOptions(event: MouseEvent) {
-        event.stopPropagation();
+        stop(event);
         this.ilc().services.ui.popup.open({
             component: {
                 factory: TransportSerialOptions,
@@ -41,7 +42,7 @@ export class TransportSerialAvailable {
                 vertical: Vertical.center,
                 horizontal: Horizontal.center,
             },
-            uuid: 'TransportSerialOptions'
+            uuid: 'TransportSerialOptions',
         });
     }
 }

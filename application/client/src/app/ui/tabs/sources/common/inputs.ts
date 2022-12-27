@@ -10,6 +10,7 @@ import {
     EventEmitter,
 } from '@angular/core';
 import { Subject } from '@platform/env/subscription';
+import { stop } from '@ui/env/dom';
 
 export enum Direction {
     Vertical = 'Vertical',
@@ -66,8 +67,7 @@ export class ResizerDirective implements AfterViewInit, OnDestroy {
             this.size = this.min;
         }
         this._position = this._getPos(event);
-        event.stopImmediatePropagation();
-        event.preventDefault();
+        stop(event);
         if (this.resized !== undefined) {
             this.resized.emit(this.size);
         } else {

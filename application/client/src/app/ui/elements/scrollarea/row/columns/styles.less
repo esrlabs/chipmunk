@@ -1,6 +1,6 @@
 @import '../../../../styles/variables.less';
 
-:host {
+app-scrollarea-row-columns {
     display: flex;
     flex-direction: row;
     position: relative;
@@ -27,4 +27,7 @@
 			border-left: none;
 		}
 	}
+    & * {
+        user-select: text;
+    }
 }

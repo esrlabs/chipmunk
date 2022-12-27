@@ -25,7 +25,6 @@ export class NodeInfo {
     public path: string | undefined;
     public offset: number | undefined;
     public node: SelectionNode = new SelectionNode();
-    public fragment: string | undefined;
     private _target: Target;
 
     constructor(target: Target) {
@@ -73,11 +72,6 @@ export class NodeInfo {
         if (this._target === Target.Anchor && this.row === undefined) {
             console.log(`${this.path} / ${this.row} / ${this.offset}`);
         }
-        // console.log(
-        // 	`${this._target === Target.Focus ? 'FOCUS' : 'ANCHOR'}: ${this.path} / ${this.row} / ${
-        // 		this.offset
-        // 	}`,
-        // );
     }
 
     public setToRow(rowIndex: number) {

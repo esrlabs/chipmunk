@@ -15,6 +15,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Locker, Level } from '@ui/service/lockers';
 import { getSourceColor } from '@ui/styles/colors';
 import { Notification } from '@ui/service/notifications';
+import { Selecting } from '../controllers/selection';
 
 @Component({
     selector: 'app-scrollarea-row',
@@ -25,6 +26,7 @@ import { Notification } from '@ui/service/notifications';
 @Ilc()
 export class RowComponent extends ChangesDetector implements AfterContentInit, AfterViewInit {
     @Input() public row!: Row;
+    @Input() public selecting!: Selecting;
 
     public render: number = 1;
     public bookmarked: boolean = false;
@@ -102,32 +104,53 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                 });
         };
         const items: {}[] = [];
-        if (this.row.session.cursor.get().length > 0) {
-            items.push(
-                ...[
-                    {
-                        caption: 'Unselect All',
-                        handler: () => {
-                            this.row.session.cursor.drop();
-                        },
-                    },
-                    {},
-                ],
-            );
-        }
+        const selectedRowsCount = this.row.session.selection().indexes().length;
         items.push(
             ...[
                 {
-                    caption: 'Export Selected',
-                    disabled: this.row.session.selection().indexes().length === 0,
+                    caption: 'Copy',
+                    disabled: !this.selecting.hasSelection(),
+                    shortcut: 'Ctrl + C',
+                    handler: () => {
+                        this.selecting.copyToClipboard().catch((err: Error) => {
+                            this.log().error(`Fail to copy selection: ${err.message}`);
+                        });
+                    },
+                },
+                {},
+                {
+                    caption:
+                        selectedRowsCount === 0
+                            ? 'Unselect All'
+                            : `Unselect ${selectedRowsCount} row${
+                                  selectedRowsCount > 1 ? 's' : ''
+                              }`,
+                    disabled: selectedRowsCount === 0,
+                    handler: () => {
+                        this.row.session.cursor.drop();
+                    },
+                },
+                {},
+                {
+                    caption:
+                        selectedRowsCount === 0
+                            ? 'Export Selected'
+                            : `Export ${selectedRowsCount} row${
+                                  selectedRowsCount > 1 ? 's' : ''
+                              } rows`,
+                    disabled: selectedRowsCount === 0,
                     handler: () => {
                         exportSelected(false);
                     },
                 },
                 {
-                    caption: 'Export Selected as Raw',
-                    disabled:
-                        !isRawAvailable || this.row.session.selection().indexes().length === 0,
+                    caption:
+                        selectedRowsCount === 0
+                            ? 'Export Selected'
+                            : `Export ${selectedRowsCount} row${
+                                  selectedRowsCount > 1 ? 's' : ''
+                              } rows as raw`,
+                    disabled: !isRawAvailable || selectedRowsCount === 0,
                     handler: () => {
                         exportSelected(true);
                     },
@@ -162,8 +185,8 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         });
     }
 
-    @HostListener('click') onClick() {
-        this.row.select().toggle();
+    @HostListener('click', ['$event']) onClick(event: PointerEvent) {
+        this.row.select().toggle(event);
     }
 
     constructor(@SkipSelf() selfCdRef: ChangeDetectorRef, cdRef: ChangeDetectorRef) {

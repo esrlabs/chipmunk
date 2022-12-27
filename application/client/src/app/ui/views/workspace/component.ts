@@ -45,16 +45,6 @@ export class ViewWorkspace implements AfterContentInit, OnDestroy {
         this.env().subscriber.register(
             this.service.onBound(() => {
                 this.env().subscriber.register(
-                    this.ilc().services.system.hotkeys.listen('gg', () => {
-                        this.move().top();
-                    }),
-                );
-                this.env().subscriber.register(
-                    this.ilc().services.system.hotkeys.listen('G', () => {
-                        this.move().bottom();
-                    }),
-                );
-                this.env().subscriber.register(
                     this.ilc().services.system.hotkeys.listen('Ctrl + 1', () => {
                         this.service.focus().set();
                     }),

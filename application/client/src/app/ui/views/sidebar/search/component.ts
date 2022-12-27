@@ -19,6 +19,7 @@ import { IMenuItem, contextmenu } from '@ui/service/contextmenu';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { ProviderFilters } from './filters/provider';
 import { ProviderDisabled } from './disabled/provider';
+import { stop } from '@ui/env/dom';
 
 import * as dom from '@ui/env/dom';
 import * as ids from '@schema/ids';
@@ -112,8 +113,7 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
                     x: event.event.pageX,
                     y: event.event.pageY,
                 });
-                event.event.stopImmediatePropagation();
-                event.event.preventDefault();
+                stop(event.event);
             }),
         );
         this.env().subscriber.register(
@@ -188,8 +188,7 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
                 this._providers.edit().in();
                 break;
         }
-        event.stopImmediatePropagation();
-        event.preventDefault();
+        stop(event);
         return false;
     }
 }

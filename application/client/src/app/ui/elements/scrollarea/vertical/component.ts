@@ -14,6 +14,7 @@ import { Service } from '../controllers/service';
 import { Holder } from '../controllers/holder';
 import { ChangesInitiator, Frame, PositionEvent } from '../controllers/frame';
 import { LockToken } from '@ui/env/lock.token';
+import { stop } from '@ui/env/dom';
 
 const MAX_SCROLL_THUMB_HEIGHT: number = 20;
 
@@ -60,7 +61,7 @@ export class ScrollAreaVerticalComponent implements AfterContentInit, AfterViewI
     }
 
     @HostListener('wheel', ['$event']) onWheel(event: MouseEvent) {
-        event.preventDefault();
+        stop(event);
         return false;
     }
 

@@ -6,6 +6,7 @@ import {
     ChangeDetectionStrategy,
     ChangeDetectorRef,
     SkipSelf,
+    ViewEncapsulation,
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Row } from '@schema/content/row';
@@ -17,6 +18,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
     styleUrls: ['./styles.less'],
     template: '',
     changeDetection: ChangeDetectionStrategy.OnPush,
+    encapsulation: ViewEncapsulation.None,
 })
 @Ilc()
 export class Standard extends ChangesDetector implements AfterContentInit {

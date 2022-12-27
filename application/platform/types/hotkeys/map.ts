@@ -37,6 +37,8 @@ export interface KeyDescription {
     category: Category;
     required: Requirement[];
     uuid: string;
+    // Isn't visible in HotKeys popup
+    hidden?: boolean;
     // true - listener is on browser layer; false - listener on holder(electron)
     client: Binding | Binding[] | undefined;
 }
@@ -250,6 +252,18 @@ export const KeysMap: KeyDescription[] = [
         required: [Requirement.NoInput],
         uuid: '?',
         client: { key: '?' },
+    },
+    // Hidden
+    {
+        alias: 'Ctrl + C',
+        shortkeys: { darwin: ['Cmd + C'], others: ['Ctrl + C'] },
+        display: { darwin: ['⌘ + C'], others: ['Ctrl + C'] },
+        description: 'Copy to clipboard',
+        category: Category.Other,
+        required: [],
+        uuid: 'Ctrl + C',
+        client: undefined,
+        hidden: true,
     },
 ];
 

@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
-// import { DialogsRecentFilesActionComponent } from '@dialogs/recentfile/component';
 import { Ilc, IlcInterface } from '@env/decorators/component';
+import { stop } from '@ui/env/dom';
 
 @Component({
     selector: 'app-layout-workspace-controls',
@@ -12,8 +12,7 @@ export class LayoutWorkspaceControls {
     @Input() public onNewTab!: () => void;
 
     public addNewTab(event: MouseEvent) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
+        stop(event);
         if (typeof this.onNewTab !== 'function') {
             return false;
         }

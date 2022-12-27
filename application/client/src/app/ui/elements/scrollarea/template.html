@@ -1,7 +1,7 @@
 <div class="container">
 	<ul class="holder" #content_holder (wheel)="onWheel($event)">
 		<li *ngFor="let row of rows; let i = index;" [attr.data-row-index]="i + getFrameStart()" [attr.data-on-border]="isSourceSwitched(i)">
-			<app-scrollarea-row [row]="row"></app-scrollarea-row>
+			<app-scrollarea-row [row]="row" [selecting]="selecting"></app-scrollarea-row>
 		</li>
 	</ul>	
 </div>

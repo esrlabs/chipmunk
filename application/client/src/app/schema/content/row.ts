@@ -111,14 +111,14 @@ export class Row extends Subscriber {
 
     public select(): {
         is(): boolean;
-        toggle(): void;
+        toggle(event: PointerEvent): void;
     } {
         return {
             is: (): boolean => {
                 return this.session.cursor.isSelected(this.position);
             },
-            toggle: (): void => {
-                this.session.cursor.select(this.position, this.owner, this);
+            toggle: (event: PointerEvent): void => {
+                this.session.cursor.select(this.position, this.owner, event, this);
             },
         };
     }

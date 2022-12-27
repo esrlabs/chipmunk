@@ -5,6 +5,7 @@ import {
     AfterContentInit,
     HostBinding,
     SkipSelf,
+    ViewEncapsulation,
 } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Row } from '@schema/content/row';
@@ -17,6 +18,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
     selector: 'app-scrollarea-row-columns',
     styleUrls: ['./styles.less'],
     templateUrl: './template.html',
+    encapsulation: ViewEncapsulation.None,
 })
 @Ilc()
 export class Columns extends ChangesDetector implements AfterContentInit {

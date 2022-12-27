@@ -1,7 +1,7 @@
 @import '../../../../styles/variables.less';
 @import '../../../../styles/support.less';
 
-:host {
+app-scrollarea-row-standard {
     display: inline-block;
     position: relative;
     font-family: 'console', monospace;
@@ -19,4 +19,7 @@
     user-select: text;
     cursor: text;
     min-width: 100%;
+    & * {
+        user-select: text;
+    }
 }

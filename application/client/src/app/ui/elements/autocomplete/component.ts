@@ -18,6 +18,7 @@ import { List } from '@env/storages/recent/list';
 import { Recent } from '@env/storages/recent/item';
 import { Subject } from '@platform/env/subscription';
 import { ErrorState, NullErrorState } from './error';
+import { stop } from '@ui/env/dom';
 
 interface Options {
     defaults: string;
@@ -90,8 +91,7 @@ export class AutocompleteInput extends ChangesDetector implements AfterContentIn
     public ngRemove(recent: Recent, event: MouseEvent) {
         this.recent.remove(recent.value);
         this.detectChanges();
-        event.preventDefault();
-        event.stopImmediatePropagation();
+        stop(event);
     }
 
     public disable(): AutocompleteInput {

@@ -12,6 +12,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
 import { Initial } from '@env/decorators/initial';
+import { stop } from '@ui/env/dom';
 
 import * as Scheme from './scheme';
 
@@ -142,9 +143,7 @@ export class ElementsTreeSelector
     }
 
     public onScrolling(event: Event) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
+        stop(event as MouseEvent);
         return false;
     }
 
