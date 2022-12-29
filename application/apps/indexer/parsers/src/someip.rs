@@ -85,7 +85,7 @@ impl<'m> Parser<SomeipLogMessage> for SomeipParser<'m> {
             }
 
             Err(error) => {
-                let msg = format!("{}", error);
+                let msg = format!("{error}");
                 debug!("at {} : {}", time, msg);
                 Err(Error::Parse(msg))
             }
@@ -148,7 +148,7 @@ fn sd_message_string(payload: &SdPayload) -> String {
             ),
         };
 
-        string = format!("{}\n- {}", string, entry_string);
+        string = format!("{string}\n- {entry_string}");
 
         for option in entry_options {
             string = format!("{}\n  |- {}", string, sd_option_string(option));
@@ -245,8 +245,8 @@ fn rpc_message_string(header: &Header, payload: &RpcPayload, model: Option<&Fibe
                 let mut som_parser = SOMParser::new(payload);
                 som_type
                     .map(|mut value| match value.parse(&mut som_parser) {
-                        Ok(_) => Cow::Owned(format!("{}", value)),
-                        Err(error) => Cow::Owned(format!("{}", error)),
+                        Ok(_) => Cow::Owned(format!("{value}")),
+                        Err(error) => Cow::Owned(format!("{error}")),
                     })
                     .unwrap_or(Cow::Borrowed("(UnknownType)"))
             }
@@ -289,11 +289,11 @@ mod test {
     use stringreader::StringReader;
 
     fn flatten_str(string: &str) -> String {
-        string.replace(' ', "").replace('\n', "")
+        string.replace([' ', '\n'], "")
     }
 
     fn assert_str(expected: &str, actual: &str) {
-        assert_eq!(flatten_str(expected), flatten_str(actual), "\n{}\n", actual);
+        assert_eq!(flatten_str(expected), flatten_str(actual), "\n{actual}\n");
     }
 
     fn test_model() -> FibexModel {

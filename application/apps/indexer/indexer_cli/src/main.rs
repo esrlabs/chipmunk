@@ -534,7 +534,7 @@ pub async fn main() -> Result<()> {
 
         match res {
             Ok((v, start_op)) => {
-                duration_report(start_op, format!("grabbing {} lines", length));
+                duration_report(start_op, format!("grabbing {length} lines"));
                 let mut i = start_index;
                 let cap_after = 150;
                 for (cnt, s) in v.iter().enumerate() {
@@ -551,7 +551,7 @@ pub async fn main() -> Result<()> {
                 }
             }
             Err(e) => {
-                report_error(format!("Error during line grabbing: {}", e));
+                report_error(format!("Error during line grabbing: {e}"));
                 std::process::exit(2);
             }
         }
@@ -626,7 +626,7 @@ pub async fn main() -> Result<()> {
             )
             .await
             {
-                report_error(format!("couldn't process: {}", why));
+                report_error(format!("couldn't process: {why}"));
                 std::process::exit(2)
             }
         });
@@ -699,7 +699,7 @@ pub async fn main() -> Result<()> {
                 tx,
                 None,
             ) {
-                report_error(format!("couldn't process: {}", why));
+                report_error(format!("couldn't process: {why}"));
                 std::process::exit(2)
             }
         });
@@ -707,7 +707,7 @@ pub async fn main() -> Result<()> {
         loop {
             match rx.recv() {
                 Err(why) => {
-                    report_error(format!("couldn't process: {}", why));
+                    report_error(format!("couldn't process: {why}"));
                     std::process::exit(2)
                 }
                 Ok(Ok(IndexingProgress::Finished { .. })) => {
@@ -751,9 +751,9 @@ pub async fn main() -> Result<()> {
     ) {
         match (format_string, test_string, test_config) {
             (Some(fs), Some(ts), None) => match line_matching_format_expression(&fs, &ts) {
-                Ok(res) => println!("match: {:?}", res),
+                Ok(res) => println!("match: {res:?}"),
                 Err(e) => {
-                    report_error(format!("error matching: {}", e));
+                    report_error(format!("error matching: {e}"));
                     std::process::exit(2)
                 }
             },
@@ -761,7 +761,7 @@ pub async fn main() -> Result<()> {
                 let mut test_config_file = match fs::File::open(&config_path) {
                     Ok(file) => file,
                     Err(_) => {
-                        report_error(format!("could not open {:?}", config_path));
+                        report_error(format!("could not open {config_path:?}"));
                         std::process::exit(2)
                     }
                 };
@@ -769,7 +769,7 @@ pub async fn main() -> Result<()> {
                     match read_format_string_options(&mut test_config_file) {
                         Ok(o) => o,
                         Err(e) => {
-                            report_error(format!("could not parse format config file: {}", e));
+                            report_error(format!("could not parse format config file: {e}"));
                             std::process::exit(2)
                         }
                     };
@@ -780,7 +780,7 @@ pub async fn main() -> Result<()> {
                 ) {
                     Ok(res) => match serde_json::to_string(&res) {
                         Ok(v) => {
-                            println!("{}", v);
+                            println!("{v}");
                             if status_updates {
                                 duration_report(
                                     start,
@@ -792,12 +792,12 @@ pub async fn main() -> Result<()> {
                             }
                         }
                         Err(e) => {
-                            report_error(format!("serializing result failed: {}", e));
+                            report_error(format!("serializing result failed: {e}"));
                             std::process::exit(2)
                         }
                     },
                     Err(e) => {
-                        report_error(format!("could not match format string file: {}", e));
+                        report_error(format!("could not match format string file: {e}"));
                         std::process::exit(2)
                     }
                 }
@@ -902,7 +902,7 @@ pub async fn main() -> Result<()> {
                     let mut cnf_file = match fs::File::open(&config_path) {
                         Ok(file) => file,
                         Err(_) => {
-                            report_error(format!("could not open filter config {:?}", config_path));
+                            report_error(format!("could not open filter config {config_path:?}"));
                             std::process::exit(2)
                         }
                     };
@@ -921,7 +921,7 @@ pub async fn main() -> Result<()> {
             let mut grabber = match Grabber::lazy(TextFileSource::new(file_path)) {
                 Ok(grabber) => Some(grabber),
                 Err(err) => {
-                    report_error(format!("could not create grabber {:?}", err));
+                    report_error(format!("could not create grabber {err:?}"));
                     std::process::exit(2)
                 }
             };
@@ -970,8 +970,7 @@ pub async fn main() -> Result<()> {
                                 last_grab_call = Instant::now();
                                 if let Err(err) = grabber.update_from_file(None) {
                                     report_error(format!(
-                                        "fail to update grabber metadata {:?}",
-                                        err
+                                        "fail to update grabber metadata {err:?}"
                                     ));
                                     std::process::exit(2)
                                 }
@@ -1014,7 +1013,7 @@ pub async fn main() -> Result<()> {
         start: std::time::Instant,
     ) -> tokio::task::JoinHandle<()> {
         tokio::spawn(async move {
-            println!("start progress listener for {} bytes", source_file_size);
+            println!("start progress listener for {source_file_size} bytes");
             while let Some(item) = rx.recv().await {
                 match item {
                     Ok(IndexingProgress::Finished { .. }) => {
@@ -1036,7 +1035,7 @@ pub async fn main() -> Result<()> {
                         // progress_bar.set_position((progress_fraction * (total as f64)) as u64);
                     }
                     Ok(IndexingProgress::GotItem { item: chunk }) => {
-                        println!("Invalid chunk received {:?}", chunk);
+                        println!("Invalid chunk received {chunk:?}");
                     }
                     Err(Notification {
                         severity,
@@ -1073,7 +1072,7 @@ pub async fn main() -> Result<()> {
                 let mut cnf_file = match fs::File::open(&config_path) {
                     Ok(file) => file,
                     Err(_) => {
-                        report_error(format!("could not open filter config {:?}", config_path));
+                        report_error(format!("could not open filter config {config_path:?}"));
                         std::process::exit(2)
                     }
                 };
@@ -1104,7 +1103,7 @@ pub async fn main() -> Result<()> {
                 progress_listener(source_file_size, rx, start),
                 convert_from_pcapng(file_path, &out_path, tx, cancel, dlt_parser),
             };
-            println!("total res was: {:?}", res);
+            println!("total res was: {res:?}");
         } else {
             println!("NOT one-go");
             let (tx, mut rx): (mpsc::Sender<ChunkResults>, mpsc::Receiver<ChunkResults>) =
@@ -1128,7 +1127,7 @@ pub async fn main() -> Result<()> {
             .await;
 
             if let Err(reason) = res {
-                report_error(format!("couldn't process: {}", reason));
+                report_error(format!("couldn't process: {reason}"));
                 std::process::exit(2)
             }
             // });
@@ -1150,7 +1149,7 @@ pub async fn main() -> Result<()> {
                         // progress_bar.set_position((progress_fraction * (total as f64)) as u64);
                     }
                     Some(Ok(IndexingProgress::GotItem { item: chunk })) => {
-                        println!("{:?}", chunk);
+                        println!("{chunk:?}");
                         chunks.push(chunk);
                     }
                     Some(Err(Notification {
@@ -1186,7 +1185,7 @@ pub async fn main() -> Result<()> {
                 let mut cnf_file = match fs::File::open(&config_path) {
                     Ok(file) => file,
                     Err(_) => {
-                        report_error(format!("could not open filter config {:?}", config_path));
+                        report_error(format!("could not open filter config {config_path:?}"));
                         std::process::exit(2)
                     }
                 };
@@ -1229,7 +1228,7 @@ pub async fn main() -> Result<()> {
             .await;
 
             if let Err(reason) = res {
-                report_error(format!("couldn't process: {}", reason));
+                report_error(format!("couldn't process: {reason}"));
                 std::process::exit(2)
             }
         });
@@ -1237,7 +1236,7 @@ pub async fn main() -> Result<()> {
         loop {
             match rx.recv() {
                 Err(why) => {
-                    report_error(format!("couldn't process: {}", why));
+                    report_error(format!("couldn't process: {why}"));
                     std::process::exit(2)
                 }
                 Ok(Ok(IndexingProgress::Finished { .. })) => {
@@ -1249,7 +1248,7 @@ pub async fn main() -> Result<()> {
                     trace!("progress... ({:.0} %)", progress_fraction * 100.0);
                 }
                 Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
-                    println!("{:?}", chunk);
+                    println!("{chunk:?}");
                     chunks.push(chunk);
                 }
                 Ok(Err(Notification {
@@ -1282,7 +1281,7 @@ pub async fn main() -> Result<()> {
                     "detected timestamp: {}",
                     posix_timestamp_as_string(timestamp)
                 ),
-                Err(e) => println!("no timestamp found in {} ({})", test_string, e),
+                Err(e) => println!("no timestamp found in {test_string} ({e})"),
             }
         } else if let Some(file_name) = input_file {
             let (tx, rx): (
@@ -1300,7 +1299,7 @@ pub async fn main() -> Result<()> {
                 match timespan_in_files(items, &tx) {
                     Ok(()) => (),
                     Err(e) => {
-                        report_error(format!("executed with error: {}", e));
+                        report_error(format!("executed with error: {e}"));
                         std::process::exit(2)
                     }
                 };
@@ -1309,9 +1308,9 @@ pub async fn main() -> Result<()> {
                 match rx.recv() {
                     Ok(Ok(IndexingProgress::GotItem { item: res })) => {
                         match serde_json::to_string(&res) {
-                            Ok(stats) => println!("{}", stats),
+                            Ok(stats) => println!("{stats}"),
                             Err(e) => {
-                                report_error(format!("serializing result {:?} failed: {}", res, e));
+                                report_error(format!("serializing result {res:?} failed: {e}"));
                                 std::process::exit(2)
                             }
                         }
@@ -1342,7 +1341,7 @@ pub async fn main() -> Result<()> {
                         break;
                     }
                     Err(e) => {
-                        report_error(format!("couldn't process: {}", e));
+                        report_error(format!("couldn't process: {e}"));
                         std::process::exit(2)
                     }
                 }
@@ -1351,7 +1350,7 @@ pub async fn main() -> Result<()> {
             let mut discover_config_file = match fs::File::open(&config_file_path) {
                 Ok(file) => file,
                 Err(_) => {
-                    report_error(format!("could not open {:?}", config_file_path));
+                    report_error(format!("could not open {config_file_path:?}"));
                     std::process::exit(2)
                 }
             };
@@ -1359,11 +1358,11 @@ pub async fn main() -> Result<()> {
             discover_config_file
                 .read_to_string(&mut contents)
                 .expect("something went wrong reading the file");
-            println!("discover for: {:?}", contents);
+            println!("discover for: {contents:?}");
             let items: Vec<DiscoverItem> = match serde_json::from_str(&contents[..]) {
                 Ok(items) => items,
                 Err(e) => {
-                    report_error(format!("could not read discover config {}", e));
+                    report_error(format!("could not read discover config {e}"));
                     std::process::exit(2)
                 }
             };
@@ -1378,7 +1377,7 @@ pub async fn main() -> Result<()> {
                 match timespan_in_files(items, &tx) {
                     Ok(()) => (),
                     Err(e) => {
-                        report_error(format!("executed with error: {}", e));
+                        report_error(format!("executed with error: {e}"));
                         std::process::exit(2)
                     }
                 };
@@ -1422,7 +1421,7 @@ pub async fn main() -> Result<()> {
             }
             let json = serde_json::to_string(&results).unwrap_or_else(|_| "".to_string());
             println!("printing our results");
-            println!("{}", json);
+            println!("{json}");
         }
     }
 
@@ -1431,7 +1430,7 @@ pub async fn main() -> Result<()> {
 
         let start_op = Instant::now();
         duration_report(start_op, "detection of file type".to_string());
-        println!("res = {:?}", res);
+        println!("res = {res:?}");
     }
 
     async fn handle_dlt_stats_subcommand(
@@ -1457,7 +1456,7 @@ pub async fn main() -> Result<()> {
             let f = match fs::File::open(file_path) {
                 Ok(file) => file,
                 Err(_) => {
-                    report_error(format!("could not open {:?}", file_path));
+                    report_error(format!("could not open {file_path:?}"));
                     std::process::exit(2)
                 }
             };
@@ -1475,9 +1474,9 @@ pub async fn main() -> Result<()> {
                     trace!("got item...");
 
                     match serde_json::to_string(&res) {
-                        Ok(stats) => println!("{}", stats),
+                        Ok(stats) => println!("{stats}"),
                         Err(e) => {
-                            report_error(format!("serializing result {:?} failed: {}", res, e));
+                            report_error(format!("serializing result {res:?} failed: {e}"));
                             std::process::exit(2)
                         }
                     }
@@ -1527,7 +1526,7 @@ pub async fn main() -> Result<()> {
                 progress_listener(input_file_size, rx, start),
                 print_from_pcapng(input_path, &output_path, tx, cancel, someip_parser),
             };
-            println!("result: {:?}", res);
+            println!("result: {res:?}");
 
             println!("done with handle_someip_pcap_subcommand");
             std::process::exit(0)
@@ -1544,12 +1543,12 @@ fn duration_report(start: std::time::Instant, report: String) {
         let ms = elapsed.as_millis();
         if ms > 1000 {
             let duration_in_s = ms as f64 / 1000.0;
-            eprintln!("{} took {:.3}s!", report, duration_in_s);
+            eprintln!("{report} took {duration_in_s:.3}s!");
         } else {
-            eprintln!("{} took {:.3}ms!", report, ms);
+            eprintln!("{report} took {ms:.3}ms!");
         }
     } else {
-        eprintln!("{} took {:.3}us!", report, us);
+        eprintln!("{report} took {us:.3}us!");
     }
 }
 
@@ -1564,8 +1563,7 @@ fn duration_report_throughput(
     let duration_in_s = ms as f64 / 1000.0;
     let amount_per_second: f64 = amount / duration_in_s;
     eprintln!(
-        "{} took {:.3}s! ({:.3} {}/s)",
-        report, duration_in_s, amount_per_second, unit
+        "{report} took {duration_in_s:.3}s! ({amount_per_second:.3} {unit}/s)"
     );
 }
 
@@ -1597,8 +1595,7 @@ async fn count_dlt_messages(input: &Path) -> Result<u64, DltParseError> {
         Ok(msg_stream.count().await as u64)
     } else {
         Err(DltParseError::Unrecoverable(format!(
-            "Couldn't find dlt file: {:?}",
-            input
+            "Couldn't find dlt file: {input:?}"
         )))
     }
 }
@@ -1630,8 +1627,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                 }
                 if item_count > 10 || err_count > 10 {
                     println!(
-                        "DLT parser, item_count: {}, err_count: {}, consumed: {}",
-                        item_count, err_count, consumed
+                        "DLT parser, item_count: {item_count}, err_count: {err_count}, consumed: {consumed}"
                     );
                     break;
                 }
@@ -1664,15 +1660,14 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                         }
                         if item_count > 10 || err_count > 10 {
                             println!(
-                                "Someip pcap parser, item_count: {}, err_count: {}, consumed: {} (skipped: {})",
-                                item_count, err_count, consumed, skipped_count
+                                "Someip pcap parser, item_count: {item_count}, err_count: {err_count}, consumed: {consumed} (skipped: {skipped_count})"
                             );
                             break;
                         }
                     }
                 }
                 Err(e) => {
-                    println!("was not a pcap file: {}", e);
+                    println!("was not a pcap file: {e}");
                 }
             }
         }
@@ -1704,15 +1699,14 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                         }
                         if item_count > 10 || err_count > 10 {
                             println!(
-                                "DLT pcap parser, item_count: {}, err_count: {}, consumed: {} (skipped: {})",
-                                item_count, err_count, consumed, skipped_count
+                                "DLT pcap parser, item_count: {item_count}, err_count: {err_count}, consumed: {consumed} (skipped: {skipped_count})"
                             );
                             break;
                         }
                     }
                 }
                 Err(e) => {
-                    println!("was not a pcap file: {}", e);
+                    println!("was not a pcap file: {e}");
                 }
             }
         }
@@ -1750,8 +1744,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                 }
                 if item_count > 10 || err_count > 10 {
                     println!(
-                        "TEXT parser, item_count: {}, err_count: {}, skipped count: {}, consumed: {}",
-                        item_count, err_count, skipped_count, consumed
+                        "TEXT parser, item_count: {item_count}, err_count: {err_count}, skipped count: {skipped_count}, consumed: {consumed}"
                     );
                     break;
                 }
@@ -1760,8 +1753,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
         Ok(true)
     } else {
         Err(DltParseError::Unrecoverable(format!(
-            "Couldn't find dlt file: {:?}",
-            input
+            "Couldn't find dlt file: {input:?}"
         )))
     }
 }

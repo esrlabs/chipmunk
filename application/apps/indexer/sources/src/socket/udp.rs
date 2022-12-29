@@ -39,7 +39,7 @@ impl UdpSource {
                         None => Ipv4Addr::new(0, 0, 0, 0),
                     };
                     if let Err(e) = socket.join_multicast_v4(addr, inter) {
-                        let msg = format!("error joining multicast group: {}", e);
+                        let msg = format!("error joining multicast group: {e}");
                         warn!("{}", msg);
                         return Err(UdpSourceError::Io(e));
                     }
@@ -54,7 +54,7 @@ impl UdpSource {
                         None => 0,
                     };
                     if let Err(e) = socket.join_multicast_v6(&addr, inter) {
-                        let msg = format!("error joining multicast group: {}", e);
+                        let msg = format!("error joining multicast group: {e}");
                         warn!("{}", msg);
                         return Err(UdpSourceError::Io(e));
                     }
@@ -81,7 +81,7 @@ impl ByteSource for UdpSource {
             .socket
             .recv_from(&mut self.tmp_buffer)
             .await
-            .map_err(|e| SourceError::Setup(format!("{}", e)))?;
+            .map_err(|e| SourceError::Setup(format!("{e}")))?;
         trace!(
             "---> Received {} bytes from {:?}: {}",
             len,

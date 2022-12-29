@@ -41,7 +41,7 @@ pub enum ConnectionError {
 impl From<std::io::Error> for ConnectionError {
     fn from(err: std::io::Error) -> ConnectionError {
         ConnectionError::Other {
-            info: format!("{}", err),
+            info: format!("{err}"),
         }
     }
 }
@@ -49,7 +49,7 @@ impl From<std::io::Error> for ConnectionError {
 impl From<std::net::AddrParseError> for ConnectionError {
     fn from(err: std::net::AddrParseError) -> ConnectionError {
         ConnectionError::WrongConfiguration {
-            cause: format!("{}", err),
+            cause: format!("{err}"),
         }
     }
 }
@@ -57,7 +57,7 @@ impl From<std::net::AddrParseError> for ConnectionError {
 impl From<std::num::ParseIntError> for ConnectionError {
     fn from(err: std::num::ParseIntError) -> ConnectionError {
         ConnectionError::WrongConfiguration {
-            cause: format!("{}", err),
+            cause: format!("{err}"),
         }
     }
 }
@@ -79,7 +79,7 @@ pub async fn index_from_socket(
         Ok(addr) => addr,
         Err(e) => {
             return Err(ConnectionError::WrongConfiguration {
-                cause: format!("{}", e),
+                cause: format!("{e}"),
             });
         }
     };
@@ -156,7 +156,7 @@ pub async fn index_from_socket_udp(
             multicast_info
                 .multicast_addr()
                 .map_err(|e| ConnectionError::WrongConfiguration {
-                    cause: format!("{}", e),
+                    cause: format!("{e}"),
                 })?;
         match multi_addr {
             IpAddr::V4(addr) => {
@@ -165,7 +165,7 @@ pub async fn index_from_socket_udp(
                     None => Ipv4Addr::new(0, 0, 0, 0),
                 };
                 if let Err(e) = socket.join_multicast_v4(addr, inter) {
-                    let msg = format!("error joining multicast group: {}", e);
+                    let msg = format!("error joining multicast group: {e}");
                     warn!("{}", msg);
                     return Err(ConnectionError::UnableToConnect { reason: msg });
                 }
@@ -180,7 +180,7 @@ pub async fn index_from_socket_udp(
                     None => 0,
                 };
                 if let Err(e) = socket.join_multicast_v6(&addr, inter) {
-                    let msg = format!("error joining multicast group: {}", e);
+                    let msg = format!("error joining multicast group: {e}");
                     warn!("{}", msg);
                     return Err(ConnectionError::UnableToConnect { reason: msg });
                 }
@@ -336,7 +336,7 @@ pub async fn create_index_and_mapping_dlt_from_socket(
                 Err(e) => {
                     let _ = update_channel.send(Err(Notification {
                         severity: Severity::ERROR,
-                        content: format!("{}", e),
+                        content: format!("{e}"),
                         line: None,
                     }));
                     Err(e)
@@ -346,8 +346,7 @@ pub async fn create_index_and_mapping_dlt_from_socket(
         }
         Err(e) => {
             let content = format!(
-                "Could not determine last line number of {:?} ({})",
-                out_path, e
+                "Could not determine last line number of {out_path:?} ({e})"
             );
             let _ = update_channel.send(Err(Notification {
                 severity: Severity::ERROR,
@@ -372,7 +371,7 @@ pub(crate) struct SessionProcessor {
 
 pub(crate) fn session_file_path(session_id: &str) -> Option<PathBuf> {
     let home_dir = dirs::home_dir()?;
-    let tmp_file_name = format!("{}.dlt", session_id);
+    let tmp_file_name = format!("{session_id}.dlt");
     Some(
         home_dir
             .join(".chipmunk")
@@ -470,7 +469,7 @@ impl SessionProcessor {
         debug!("parsing hickup: {}", reason);
         let _ = self.update_channel.send(Err(Notification {
             severity: Severity::WARNING,
-            content: format!("parsing faild for one message: {}", reason),
+            content: format!("parsing faild for one message: {reason}"),
             line: None,
         }));
     }

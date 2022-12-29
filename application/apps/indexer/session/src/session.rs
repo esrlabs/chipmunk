@@ -138,7 +138,7 @@ impl Session {
             .tracker
             .get_sde_sender(target)
             .await
-            .map_err(|e| ComputationError::IoOperation(format!("{:?}", e)))?
+            .map_err(|e| ComputationError::IoOperation(format!("{e:?}")))?
         {
             tx_sde.send((msg, tx_response)).map_err(|_| {
                 ComputationError::Communication(String::from(

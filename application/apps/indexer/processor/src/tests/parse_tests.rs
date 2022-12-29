@@ -181,7 +181,7 @@ mod tests {
                 println!("{}", posix_timestamp_as_string(time));
             }
         };
-        println!("res: {:?}", res);
+        println!("res: {res:?}");
     }
     #[test]
     fn test_parse_date_line_no_year_with_timezone() {
@@ -676,7 +676,7 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!("error happened in detection: {}", e),
+            Err(e) => panic!("error happened in detection: {e}"),
         }
         match detect_timestamp_in_string("2019-07-30 09:38:02.555 -00:30", None) {
             Ok((timestamp, _, _)) => assert_eq!(
@@ -688,7 +688,7 @@ mod tests {
                     + THIRTY_MIN_IN_MS,
                 timestamp
             ),
-            Err(e) => panic!("error happened in detection: {}", e),
+            Err(e) => panic!("error happened in detection: {e}"),
         }
     }
     #[test]
@@ -703,7 +703,7 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!("error happened in detection: {}", e),
+            Err(e) => panic!("error happened in detection: {e}"),
         }
     }
 
@@ -718,7 +718,7 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!("error happened in detection: {}", e),
+            Err(e) => panic!("error happened in detection: {e}"),
         }
         match detect_timestamp_in_string("2019-07-30T04:38:02.555 -05:30", None) {
             Ok((timestamp, _, _)) => assert_eq!(
@@ -730,7 +730,7 @@ mod tests {
                     + FIVE_HOURS_THIRTY_MIN_IN_MS,
                 timestamp
             ),
-            Err(e) => panic!("error happened in detection: {}", e),
+            Err(e) => panic!("error happened in detection: {e}"),
         }
         match detect_timestamp_in_string("2019-07-30T11:08:02.555+01:00", None) {
             Ok((timestamp, _, _)) => assert_eq!(
@@ -741,7 +741,7 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!("error happened in detection: {}", e),
+            Err(e) => panic!("error happened in detection: {e}"),
         }
     }
     #[test]
@@ -756,7 +756,7 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!("error happened in detection: {}", e),
+            Err(e) => panic!("error happened in detection: {e}"),
         }
         match detect_timestamp_in_string("07-30 12:08:02.555 +0200", None) {
             Ok((timestamp, _, _)) => assert_eq!(
@@ -767,7 +767,7 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!("error happened in detection: {}", e),
+            Err(e) => panic!("error happened in detection: {e}"),
         }
     }
 
@@ -783,7 +783,7 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!("error happened in detection: {}", e),
+            Err(e) => panic!("error happened in detection: {e}"),
         }
         match detect_timestamp_in_string("07-30T15:08:02.555 +05:00", None) {
             Ok((timestamp, _, _)) => assert_eq!(
@@ -794,7 +794,7 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!("error happened in detection: {}", e),
+            Err(e) => panic!("error happened in detection: {e}"),
         }
     }
     #[test]
@@ -808,11 +808,11 @@ mod tests {
                     + 555,
                 timestamp
             ),
-            Err(e) => panic!("error happened in detection: {}", e),
+            Err(e) => panic!("error happened in detection: {e}"),
         }
         match detect_timestamp_in_string("07-30-2019 08:08:02.555 -0200", None) {
             Ok((timestamp, _, _)) => assert_eq!(1_564_481_282_555, timestamp),
-            Err(e) => panic!("error happened in detection: {}", e),
+            Err(e) => panic!("error happened in detection: {e}"),
         }
     }
     #[test]
@@ -826,7 +826,7 @@ mod tests {
                     * 1000,
                 timestamp
             ),
-            Err(e) => panic!("error happened in detection: {}", e),
+            Err(e) => panic!("error happened in detection: {e}"),
         }
         match detect_timestamp_in_string(
             "109.169.248.247 - - [30/Jul/2019:12:08:02 +0200] xyz",
@@ -840,17 +840,17 @@ mod tests {
                     - TWO_HOURS_IN_MS,
                 timestamp
             ),
-            Err(e) => panic!("error happened in detection: {}", e),
+            Err(e) => panic!("error happened in detection: {e}"),
         }
     }
 
     test_generator::test_expand_paths! { test_detect_regex; "processor/test_samples/detecting/*" }
 
     fn test_detect_regex(dir_name: &str) {
-        let in_path = PathBuf::from("..").join(&dir_name).join("in.log");
+        let in_path = PathBuf::from("..").join(dir_name).join("in.log");
         let res = detect_timestamp_format_in_file(&in_path).expect("could not detect regex type");
 
-        let mut format_path = PathBuf::from("..").join(&dir_name);
+        let mut format_path = PathBuf::from("..").join(dir_name);
         format_path.push("expected.format");
         let contents =
             fs::read_to_string(format_path).expect("Something went wrong reading the file");
@@ -879,16 +879,16 @@ mod tests {
                 assert_eq!(res.max_time, Some(ts_max * 1000));
                 assert_eq!(res.min_time, Some(ts_min * 1000));
             }
-            Err(e) => panic!("error was: {}", e),
+            Err(e) => panic!("error was: {e}"),
         }
         // test a format expression that does not match
         match timespan_in_file("YYYY MM DD hh:mm TZD", &file_path, None) {
             Ok(res) => {
                 if res.format.is_ok() {
-                    panic!("format string should not match but was: {:?}", res)
+                    panic!("format string should not match but was: {res:?}")
                 }
             }
-            Err(e) => panic!("error was: {}", e),
+            Err(e) => panic!("error was: {e}"),
         }
     }
 

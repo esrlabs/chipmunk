@@ -82,7 +82,7 @@ pub fn export_file_line_based(
             .expect("UpdateChannel closed");
         Ok(())
     } else {
-        let reason = format!("couln't find session file: {:?}", file_path,);
+        let reason = format!("couln't find session file: {file_path:?}",);
         update_channel
             .send(Err(Notification {
                 severity: Severity::ERROR,

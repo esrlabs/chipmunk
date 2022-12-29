@@ -54,7 +54,7 @@ impl From<sources::Error> for NativeError {
         NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ComputationFailed,
-            message: Some(format!("Fail create source: {}", err)),
+            message: Some(format!("Fail create source: {err}")),
         }
     }
 }
@@ -64,7 +64,7 @@ impl From<tokio::sync::mpsc::error::SendError<CallbackEvent>> for NativeError {
         NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ComputationFailed,
-            message: Some(format!("Callback channel is broken: {}", err)),
+            message: Some(format!("Callback channel is broken: {err}")),
         }
     }
 }
@@ -105,7 +105,7 @@ impl From<GrabError> for NativeError {
             GrabError::Unsupported(s) => NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::ComputationFailed,
-                message: Some(format!("File type is not supported: {}", s)),
+                message: Some(format!("File type is not supported: {s}")),
             },
         }
     }
@@ -211,19 +211,19 @@ impl CallbackEvent {
 impl std::fmt::Display for CallbackEvent {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Self::StreamUpdated(len) => write!(f, "StreamUpdated({})", len),
+            Self::StreamUpdated(len) => write!(f, "StreamUpdated({len})"),
             Self::FileRead => write!(f, "FileRead"),
-            Self::SearchUpdated { found, stat: _ } => write!(f, "SearchUpdated({})", found),
+            Self::SearchUpdated { found, stat: _ } => write!(f, "SearchUpdated({found})"),
             Self::SearchMapUpdated(_) => write!(f, "SearchMapUpdated"),
             Self::Progress {
                 uuid: _,
                 progress: _,
             } => write!(f, "Progress"),
-            Self::SessionError(err) => write!(f, "SessionError: {:?}", err),
+            Self::SessionError(err) => write!(f, "SessionError: {err:?}"),
             Self::OperationError { uuid, error } => {
-                write!(f, "OperationError: {}: {:?}", uuid, error)
+                write!(f, "OperationError: {uuid}: {error:?}")
             }
-            Self::OperationStarted(uuid) => write!(f, "OperationStarted: {}", uuid),
+            Self::OperationStarted(uuid) => write!(f, "OperationStarted: {uuid}"),
             Self::OperationDone(info) => write!(f, "OperationDone: {}", info.uuid),
             Self::SessionDestroyed => write!(f, "SessionDestroyed"),
         }

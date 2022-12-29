@@ -29,7 +29,7 @@ pub async fn handle(
     .map_err(|err| NativeError {
         severity: Severity::ERROR,
         kind: NativeErrorKind::OperationSearch,
-        message: Some(format!("Failed to merge files: {}", err)),
+        message: Some(format!("Failed to merge files: {err}")),
     })?;
     while let Ok(msg) = rx_progress.recv() {
         operation_api.emit(match msg {

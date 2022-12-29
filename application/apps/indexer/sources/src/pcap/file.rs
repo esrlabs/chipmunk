@@ -45,7 +45,7 @@ impl<R: Read> PcapngByteSource<R> {
     pub fn new(reader: R) -> Result<Self, SourceError> {
         Ok(Self {
             pcapng_reader: PcapNGReader::new(65536, reader)
-                .map_err(|e| SourceError::Setup(format!("{}", e)))?,
+                .map_err(|e| SourceError::Setup(format!("{e}")))?,
             buffer: Buffer::new(),
             last_know_timestamp: None,
             total: 0,
@@ -106,7 +106,7 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
                     // continue;
                 }
                 Err(e) => {
-                    let m = format!("{}", e);
+                    let m = format!("{e}");
                     error!("reloading from pcap file, {}", m);
                     return Err(SourceError::Unrecoverable(m));
                 }
@@ -152,8 +152,7 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
                 }
             }
             Err(e) => Err(SourceError::Unrecoverable(format!(
-                "error trying to extract data from ethernet frame: {}",
-                e
+                "error trying to extract data from ethernet frame: {e}"
             ))),
         };
         // bytes are copied into buffer and can be dropped by pcap reader
@@ -244,7 +243,7 @@ struct TextFileOutput {
 impl TextFileOutput {
     pub fn new(out_path: &Path, update_channel: Sender<VoidResults>) -> Result<Self, Error> {
         let (out_file, _current_out_file_size) = utils::get_out_file_and_size(false, out_path)
-            .map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
+            .map_err(|e| Error::Unrecoverable(format!("{e}")))?;
         let buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
         Ok(Self {
             buf_writer,
@@ -259,7 +258,7 @@ impl Output for TextFileOutput {
     where
         T: LogMessage + Send,
     {
-        let text = format!("{}\n", msg);
+        let text = format!("{msg}\n");
         self.buf_writer.write_all(text.as_bytes())?;
 
         Ok(())
@@ -291,7 +290,7 @@ struct DltFileOutput {
 impl DltFileOutput {
     pub fn new(out_path: &Path, update_channel: Sender<VoidResults>) -> Result<Self, Error> {
         let (out_file, _current_out_file_size) = utils::get_out_file_and_size(false, out_path)
-            .map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
+            .map_err(|e| Error::Unrecoverable(format!("{e}")))?;
         let buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
         Ok(Self {
             buf_writer,
@@ -347,7 +346,7 @@ impl ChunkOutput {
         update_channel: Sender<ChunkResults>,
     ) -> Result<Self, Error> {
         let (out_file, current_out_file_size) = utils::get_out_file_and_size(append, out_path)
-            .map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
+            .map_err(|e| Error::Unrecoverable(format!("{e}")))?;
         let chunk_factory = ChunkFactory::new(chunk_size, current_out_file_size);
         let buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
         Ok(Self {
@@ -427,7 +426,7 @@ pub async fn print_from_pcapng<T: LogMessage + std::marker::Unpin + Send, P: Par
     let pcap_file = File::open(pcap_path)?;
     let buf_reader = std::io::BufReader::new(&pcap_file);
     let pcapng_byte_src =
-        PcapngByteSource::new(buf_reader).map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
+        PcapngByteSource::new(buf_reader).map_err(|e| Error::Unrecoverable(format!("{e}")))?;
     let mut pcap_msg_producer = MessageProducer::new(parser, pcapng_byte_src, None);
     let msg_stream = pcap_msg_producer.as_stream();
     pin_mut!(msg_stream);
@@ -452,7 +451,7 @@ pub async fn convert_from_pcapng<
     let pcap_file = File::open(pcap_path)?;
     let buf_reader = std::io::BufReader::new(&pcap_file);
     let pcapng_byte_src =
-        PcapngByteSource::new(buf_reader).map_err(|e| Error::Unrecoverable(format!("{}", e)))?;
+        PcapngByteSource::new(buf_reader).map_err(|e| Error::Unrecoverable(format!("{e}")))?;
     let mut pcap_msg_producer = MessageProducer::new(parser, pcapng_byte_src, None);
     let msg_stream = pcap_msg_producer.as_stream();
     pin_mut!(msg_stream);
@@ -543,7 +542,7 @@ where
         output
             .progress(Err(Notification {
                 severity: Severity::WARNING,
-                content: format!("parsing incomplete for {} messages", incomplete_parses),
+                content: format!("parsing incomplete for {incomplete_parses} messages"),
                 line: None,
             }))
             .await;
@@ -595,7 +594,7 @@ pub async fn create_index_and_mapping_from_pcapng<
             {
                 Ok(()) => Ok(()),
                 Err(e) => {
-                    let content = format!("{}", e);
+                    let content = format!("{e}");
                     update_channel
                         .send(Err(Notification {
                             severity: Severity::ERROR,
@@ -621,7 +620,7 @@ pub async fn create_index_and_mapping_from_pcapng<
                 }))
                 .await
                 .expect("UpdateChannel closed");
-            Err(Error::Unrecoverable(format!("{}", e)))
+            Err(Error::Unrecoverable(format!("{e}")))
         }
     }
 }

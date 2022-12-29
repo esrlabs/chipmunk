@@ -22,8 +22,7 @@ where
             severity: Severity::ERROR,
             kind: NativeErrorKind::OperationSearch,
             message: Some(format!(
-                "Fail to execute extract search result operation. Error: {}",
-                e
+                "Fail to execute extract search result operation. Error: {e}"
             )),
         })
 }

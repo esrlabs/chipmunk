@@ -105,16 +105,7 @@ pub fn write_tagged_line<T: io::Write>(
                     out_buffer,
                     "{}",
                     format_args!(
-                        "{}{}{}{}{}{}{}{}{}",
-                        trimmed_line,
-                        PLUGIN_ID_SENTINAL,
-                        tag,
-                        PLUGIN_ID_SENTINAL,
-                        ROW_NUMBER_SENTINAL,
-                        line_nr,
-                        ROW_NUMBER_SENTINAL,
-                        ts,
-                        ROW_NUMBER_SENTINAL,
+                        "{trimmed_line}{PLUGIN_ID_SENTINAL}{tag}{PLUGIN_ID_SENTINAL}{ROW_NUMBER_SENTINAL}{line_nr}{ROW_NUMBER_SENTINAL}{ts}{ROW_NUMBER_SENTINAL}",
                     ),
                 )?;
                 Ok(line_len_with_timestamp_no_nl + 1)
@@ -123,16 +114,7 @@ pub fn write_tagged_line<T: io::Write>(
                     out_buffer,
                     "{}",
                     format_args!(
-                        "{}{}{}{}{}{}{}{}{}",
-                        trimmed_line,
-                        PLUGIN_ID_SENTINAL,
-                        tag,
-                        PLUGIN_ID_SENTINAL,
-                        ROW_NUMBER_SENTINAL,
-                        line_nr,
-                        ROW_NUMBER_SENTINAL,
-                        ts,
-                        ROW_NUMBER_SENTINAL,
+                        "{trimmed_line}{PLUGIN_ID_SENTINAL}{tag}{PLUGIN_ID_SENTINAL}{ROW_NUMBER_SENTINAL}{line_nr}{ROW_NUMBER_SENTINAL}{ts}{ROW_NUMBER_SENTINAL}",
                     ),
                 )?;
                 Ok(line_len_with_timestamp_no_nl)
@@ -146,14 +128,7 @@ pub fn write_tagged_line<T: io::Write>(
                     out_buffer,
                     "{}",
                     format_args!(
-                        "{}{}{}{}{}{}{}",
-                        trimmed_line,
-                        PLUGIN_ID_SENTINAL,
-                        tag,
-                        PLUGIN_ID_SENTINAL,
-                        ROW_NUMBER_SENTINAL,
-                        line_nr,
-                        ROW_NUMBER_SENTINAL,
+                        "{trimmed_line}{PLUGIN_ID_SENTINAL}{tag}{PLUGIN_ID_SENTINAL}{ROW_NUMBER_SENTINAL}{line_nr}{ROW_NUMBER_SENTINAL}",
                     ),
                 )?;
                 Ok(line_len_no_timestamp_no_nl + 1)
@@ -162,14 +137,7 @@ pub fn write_tagged_line<T: io::Write>(
                     out_buffer,
                     "{}",
                     format_args!(
-                        "{}{}{}{}{}{}{}",
-                        trimmed_line,
-                        PLUGIN_ID_SENTINAL,
-                        tag,
-                        PLUGIN_ID_SENTINAL,
-                        ROW_NUMBER_SENTINAL,
-                        line_nr,
-                        ROW_NUMBER_SENTINAL,
+                        "{trimmed_line}{PLUGIN_ID_SENTINAL}{tag}{PLUGIN_ID_SENTINAL}{ROW_NUMBER_SENTINAL}{line_nr}{ROW_NUMBER_SENTINAL}",
                     ),
                 )?;
                 Ok(line_len_no_timestamp_no_nl)
@@ -204,8 +172,7 @@ pub fn next_line_nr(path: &std::path::Path) -> Result<usize, Error> {
         Ok(_) => (),
         Err(e) => {
             return Err(Error::MalformedPreprocessed(format!(
-                "Could not read last entry in file {:?}",
-                e
+                "Could not read last entry in file {e:?}"
             )));
         }
     };
@@ -219,21 +186,20 @@ pub fn next_line_nr(path: &std::path::Path) -> Result<usize, Error> {
             // row nr starts at i + 2
             let row_slice = &buf[i + 2..];
             let row_string = std::str::from_utf8(row_slice).map_err(|e| {
-                Error::MalformedPreprocessed(format!("Could not convert slice from utf8: {}", e))
+                Error::MalformedPreprocessed(format!("Could not convert slice from utf8: {e}"))
             })?;
             let row_nr: usize = row_string
                 .trim_end_matches(is_newline)
                 .trim_end_matches(ROW_NUMBER_SENTINAL)
                 .parse()
                 .map_err(|e| {
-                    Error::MalformedPreprocessed(format!("Extract row number failed: {}", e))
+                    Error::MalformedPreprocessed(format!("Extract row number failed: {e}"))
                 })?;
             return Ok(row_nr + 1);
         }
     }
     Err(Error::MalformedPreprocessed(format!(
-        "did not find row number in line: {:X?}",
-        buf
+        "did not find row number in line: {buf:X?}"
     )))
 }
 pub fn get_out_file_and_size(

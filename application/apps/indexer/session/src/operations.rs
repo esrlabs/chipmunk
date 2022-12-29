@@ -186,7 +186,7 @@ impl OperationAPI {
     }
 
     pub fn emit(&self, event: CallbackEvent) {
-        let event_log = format!("{:?}", event);
+        let event_log = format!("{event:?}");
         if let Err(err) = self.tx_callback_events.send(event) {
             error!("Fail to send event {}; error: {}", event_log, err)
         }
@@ -213,7 +213,7 @@ impl OperationAPI {
                             error: NativeError {
                                 severity: Severity::ERROR,
                                 kind: NativeErrorKind::ComputationFailed,
-                                message: Some(format!("{}", err)),
+                                message: Some(format!("{err}")),
                             },
                         },
                     }
@@ -373,8 +373,7 @@ impl OperationAPI {
                                     severity: Severity::WARNING,
                                     kind: NativeErrorKind::NotYetImplemented,
                                     message: Some(format!(
-                                        "Fail to cancel operation {}; operation isn't found",
-                                        target
+                                        "Fail to cancel operation {target}; operation isn't found"
                                     )),
                                 }),
                                 operation_str,
@@ -388,8 +387,7 @@ impl OperationAPI {
                                 severity: Severity::WARNING,
                                 kind: NativeErrorKind::NotYetImplemented,
                                 message: Some(format!(
-                                    "Fail to cancel operation {}; error: {:?}",
-                                    target, err
+                                    "Fail to cancel operation {target}; error: {err:?}"
                                 )),
                             }),
                             operation_str,
@@ -421,8 +419,7 @@ pub fn uuid_from_str(operation_id: &str) -> Result<Uuid, ComputationError> {
     match Uuid::parse_str(operation_id) {
         Ok(uuid) => Ok(uuid),
         Err(e) => Err(ComputationError::Process(format!(
-            "Fail to parse operation uuid from {}. Error: {}",
-            operation_id, e
+            "Fail to parse operation uuid from {operation_id}. Error: {e}"
         ))),
     }
 }

@@ -257,7 +257,7 @@ impl Grabber {
     /// from a file
     pub fn load_metadata(mut self, slots_path: impl AsRef<Path>) -> Result<Self, GrabError> {
         let mut slots_file = fs::File::open(&slots_path)
-            .map_err(|e| GrabError::Config(format!("Could not open slot file: {}", e)))?;
+            .map_err(|e| GrabError::Config(format!("Could not open slot file: {e}")))?;
         let mut buffer = vec![];
         let _bytes_read = slots_file.read_to_end(&mut buffer);
         self.metadata = Some(
