@@ -17,35 +17,19 @@
           </button>
         </mat-card-content>
       </mat-card>
-      <mat-card *ngIf="pinned.length > 0">
+      <mat-card>
         <mat-card-title>Favorited Actions</mat-card-title>
         <mat-card-subtitle>Add/remove favorited actions</mat-card-subtitle>
         <mat-card-content>
+          <ng-container *ngIf="pinned.length === 0">
+            <p class="t-small">You can add some actions into favorites. Just click on star (on hover above action).</p>
+          </ng-container>
           <ng-container *ngFor="let item of pinned">
             <ng-container *ngIf="item === null">
               <mat-divider></mat-divider>
             </ng-container>
             <app-home-action *ngIf="item !== null" [action]="item" [actions]="actions" [menu]="false"></app-home-action>  
           </ng-container>
-        </mat-card-content>
-      </mat-card>
-      <mat-card>
-        <mat-card-title>Features</mat-card-title>
-        <mat-card-content>
-          <div class="feature">
-            <h1>No limits, quick access</h1>
-            <p>Open any size files with same loading performance</p>  
-          </div>
-          <mat-divider></mat-divider>
-          <div class="feature">
-            <h1>DLT format</h1>
-            <p>Open DLT files</p>  
-          </div>
-          <mat-divider></mat-divider>
-          <div class="feature">
-            <h1>WireShark traces</h1>
-            <p>Open pcap and ngpcap files</p>  
-          </div>
         </mat-card-content>
       </mat-card>
     </div>
