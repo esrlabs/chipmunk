@@ -134,6 +134,6 @@ impl MulticastInfo {
         self.multiaddr
             .to_string()
             .parse()
-            .map_err(|e| Error::Configuration(format!("Could not parse mulitcast address: {}", e)))
+            .map_err(|e| Error::Configuration(format!("Could not parse mulitcast address: {e}")))
     }
 }

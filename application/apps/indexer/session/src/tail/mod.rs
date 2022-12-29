@@ -44,8 +44,7 @@ pub async fn track(
                     size = updated;
                     if let Err(err) = tx_update.send(Ok(())).await {
                         return Err(Error::Channel(format!(
-                            "Fail to send update signal: {}",
-                            err
+                            "Fail to send update signal: {err}"
                         )));
                     }
                 }

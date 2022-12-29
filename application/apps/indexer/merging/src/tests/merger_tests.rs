@@ -31,7 +31,7 @@ mod tests {
 
             match log4rs::init_config(config) {
                 Ok(_) => (),
-                Err(e) => println!("error initalizing logger: {:?}", e),
+                Err(e) => println!("error initalizing logger: {e:?}"),
             }
         });
     }
@@ -48,8 +48,8 @@ mod tests {
 
         let tmp_dir = TempDir::new("test_dir").expect("could not create temp dir");
         let out_file_path = tmp_dir.path().join("tmpTestFile.txt.out");
-        let option_path = PathBuf::from("..").join(&dir_name).join("config.json");
-        let append_to_this = PathBuf::from("..").join(&dir_name).join("append_here.log");
+        let option_path = PathBuf::from("..").join(dir_name).join("config.json");
+        let append_to_this = PathBuf::from("..").join(dir_name).join("append_here.log");
         let append_use_case = append_to_this.exists();
         if append_use_case {
             fs::copy(&append_to_this, &out_file_path).expect("copy content failed");
@@ -73,7 +73,7 @@ mod tests {
                     let out_file_content_bytes =
                         fs::read(&out_file_path).expect("could not read file");
                     let out_file_content = String::from_utf8_lossy(&out_file_content_bytes[..]);
-                    let mut expected_path = PathBuf::from("..").join(&dir_name);
+                    let mut expected_path = PathBuf::from("..").join(dir_name);
                     expected_path.push("expected.merged");
                     let expected_content_bytes =
                         fs::read(expected_path).expect("could not read expected file");

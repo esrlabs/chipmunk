@@ -64,11 +64,11 @@ impl Reporter {
     }
     pub fn flush(self: &mut Reporter) {
         for (error, count) in self.error_incidents.iter() {
-            report_error(format!("{} ({} times)", error, count));
+            report_error(format!("{error} ({count} times)"));
         }
         self.error_incidents.clear();
         for (warning, count) in self.warning_incidents.iter() {
-            report_warning(format!("{} ({} times)", warning, count));
+            report_warning(format!("{warning} ({count} times)"));
         }
         self.warning_incidents.clear();
     }

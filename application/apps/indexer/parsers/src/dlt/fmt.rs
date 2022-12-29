@@ -104,11 +104,11 @@ impl<'a> fmt::Display for DltValue<'a> {
             Value::F64(value) => value.fmt(f),
             Value::StringVal(s) => {
                 for line in s.lines() {
-                    write!(f, "{}~", line)?;
+                    write!(f, "{line}~")?;
                 }
                 Ok(())
             }
-            Value::Raw(value) => write!(f, "{:02X?}", value),
+            Value::Raw(value) => write!(f, "{value:02X?}"),
         }
     }
 }
@@ -118,13 +118,13 @@ struct DltArgument<'a>(&'a Argument);
 impl<'a> fmt::Display for DltArgument<'a> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         if let Some(n) = &self.0.name {
-            write!(f, "name: {} ", n)?;
+            write!(f, "name: {n} ")?;
         }
         if let Some(u) = &self.0.unit {
-            write!(f, "unit: {} ", u)?;
+            write!(f, "unit: {u} ")?;
         }
         if let Some(v) = self.0.to_real_value() {
-            write!(f, "value: {} ", v)?;
+            write!(f, "value: {v} ")?;
         } else {
             write!(f, "value: {} ", DltValue(&self.0.value))?;
         }
@@ -164,7 +164,7 @@ impl<'a> fmt::Display for DltStandardHeader<'a> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}{}", self.0.version, DLT_COLUMN_SENTINAL)?;
         if let Some(id) = &self.0.session_id {
-            write!(f, "{}", id)?;
+            write!(f, "{id}")?;
         }
         write!(
             f,
@@ -172,11 +172,11 @@ impl<'a> fmt::Display for DltStandardHeader<'a> {
             DLT_COLUMN_SENTINAL, self.0.message_counter, DLT_COLUMN_SENTINAL,
         )?;
         if let Some(t) = &self.0.timestamp {
-            write!(f, "{}", t)?;
+            write!(f, "{t}")?;
         }
-        write!(f, "{}", DLT_COLUMN_SENTINAL,)?;
+        write!(f, "{DLT_COLUMN_SENTINAL}",)?;
         if let Some(id) = &self.0.ecu_id {
-            write!(f, "{}", id)?;
+            write!(f, "{id}")?;
         }
         Ok(())
     }
@@ -256,15 +256,13 @@ impl<'a> Serialize for FormattableMessage<'a> {
                         Some(v) => state.serialize_field(
                             "payload",
                             &format!(
-                                "{}[{}]{} {}",
-                                DLT_ARGUMENT_SENTINAL, id, DLT_ARGUMENT_SENTINAL, v
+                                "{DLT_ARGUMENT_SENTINAL}[{id}]{DLT_ARGUMENT_SENTINAL} {v}"
                             ),
                         )?,
                         None => state.serialize_field(
                             "payload",
                             &format!(
-                                "{}[{}]{} {:02X?}",
-                                DLT_ARGUMENT_SENTINAL, id, DLT_ARGUMENT_SENTINAL, data
+                                "{DLT_ARGUMENT_SENTINAL}[{id}]{DLT_ARGUMENT_SENTINAL} {data:02X?}"
                             ),
                         )?,
                     };
@@ -358,12 +356,10 @@ impl<'a> FormattableMessage<'a> {
                     let payload_string =
                         match get_message_type_string(&self.message.extended_header) {
                             Some(v) => format!(
-                                "{}[{}]{} {}",
-                                DLT_ARGUMENT_SENTINAL, id, DLT_ARGUMENT_SENTINAL, v
+                                "{DLT_ARGUMENT_SENTINAL}[{id}]{DLT_ARGUMENT_SENTINAL} {v}"
                             ),
                             None => format!(
-                                "{}[{}]{} {:02X?}",
-                                DLT_ARGUMENT_SENTINAL, id, DLT_ARGUMENT_SENTINAL, data
+                                "{DLT_ARGUMENT_SENTINAL}[{id}]{DLT_ARGUMENT_SENTINAL} {data:02X?}"
                             ),
                         };
                     Ok(PrintableMessage::new(
@@ -409,8 +405,7 @@ impl<'a> FormattableMessage<'a> {
             None => {
                 write!(
                     f,
-                    "-{}-{}-{}",
-                    DLT_COLUMN_SENTINAL, DLT_COLUMN_SENTINAL, DLT_COLUMN_SENTINAL,
+                    "-{DLT_COLUMN_SENTINAL}-{DLT_COLUMN_SENTINAL}-{DLT_COLUMN_SENTINAL}",
                 )?;
             }
         };
@@ -438,7 +433,7 @@ impl<'a> FormattableMessage<'a> {
             } else {
                 write!(f, "-")?;
             }
-            write!(f, "{}", DLT_COLUMN_SENTINAL)?;
+            write!(f, "{DLT_COLUMN_SENTINAL}")?;
             fibex_info_added = !non_verbose_info.arguments.is_empty();
             for arg in non_verbose_info.arguments {
                 write!(f, "{}{} ", DLT_ARGUMENT_SENTINAL, DltArgument(&arg))?;
@@ -450,14 +445,12 @@ impl<'a> FormattableMessage<'a> {
             let _ = match get_message_type_string(&self.message.extended_header) {
                 Some(v) => f.write_str(
                     &format!(
-                        "{}[{}]{} {}",
-                        DLT_ARGUMENT_SENTINAL, id, DLT_ARGUMENT_SENTINAL, v
+                        "{DLT_ARGUMENT_SENTINAL}[{id}]{DLT_ARGUMENT_SENTINAL} {v}"
                     )[..],
                 ),
                 None => f.write_str(
                     &format!(
-                        "{}[{}]{} {:02X?}",
-                        DLT_ARGUMENT_SENTINAL, id, DLT_ARGUMENT_SENTINAL, data
+                        "{DLT_ARGUMENT_SENTINAL}[{id}]{DLT_ARGUMENT_SENTINAL} {data:02X?}"
                     )[..],
                 ),
             };
@@ -541,9 +534,9 @@ impl<'a> fmt::Display for FormattableMessage<'a> {
             };
         }
         let header = DltStandardHeader(&self.message.header);
-        write!(f, "{}", DLT_COLUMN_SENTINAL,)?;
-        write!(f, "{}", header)?;
-        write!(f, "{}", DLT_COLUMN_SENTINAL,)?;
+        write!(f, "{DLT_COLUMN_SENTINAL}",)?;
+        write!(f, "{header}")?;
+        write!(f, "{DLT_COLUMN_SENTINAL}",)?;
 
         match &self.message.payload {
             PayloadContent::Verbose(arguments) => {
@@ -556,7 +549,7 @@ impl<'a> fmt::Display for FormattableMessage<'a> {
             PayloadContent::ControlMsg(ctrl_id, _data) => {
                 self.write_app_id_context_id_and_message_type(f)?;
                 match service_id_lookup(ctrl_id.value()) {
-                    Some((name, _desc)) => write!(f, "[{}]", name),
+                    Some((name, _desc)) => write!(f, "[{name}]"),
                     None => write!(f, "[Unknown CtrlCommand]"),
                 }
             }

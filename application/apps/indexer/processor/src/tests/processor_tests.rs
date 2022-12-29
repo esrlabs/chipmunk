@@ -147,8 +147,7 @@ mod tests {
                     line,
                 })) => {
                     println!(
-                        "[{:?}]: test_append_to_empty_output: notification[{:?}]...{}",
-                        line, severity, content
+                        "[{line:?}]: test_append_to_empty_output: notification[{severity:?}]...{content}"
                     );
                 }
                 Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
@@ -200,7 +199,7 @@ mod tests {
                     println!("finished...");
                     let out_file_content: String =
                         fs::read_to_string(out_path).expect("could not read file");
-                    println!("outfile: {}\nchunks: {:?}", out_file_content, chunks);
+                    println!("outfile: {out_file_content}\nchunks: {chunks:?}");
                     assert_eq!(
                         1,
                         chunks.len(),
@@ -218,12 +217,11 @@ mod tests {
                     line,
                 })) => {
                     println!(
-                        "[{:?}]: test_append_to_empty_output2: notification[{:?}]...{}",
-                        line, severity, content
+                        "[{line:?}]: test_append_to_empty_output2: notification[{severity:?}]...{content}"
                     );
                 }
                 Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
-                    println!("got item...{:?}", chunk);
+                    println!("got item...{chunk:?}");
                     chunks.push(chunk);
                 }
                 Ok(Ok(IndexingProgress::Stopped)) => {
@@ -239,7 +237,7 @@ mod tests {
     #[tokio::test]
     async fn test_chunking_one_chunk_exact() {
         let (chunks, content) = get_chunks("A\n", 1, "some_new_tag", None).await;
-        println!("chunks: {:?}", chunks);
+        println!("chunks: {chunks:?}");
         println!("content: {:02X?}", content.as_bytes());
         assert_eq!(1, chunks.len());
         assert_eq!(content.len(), size_of_all_chunks(&chunks));
@@ -247,7 +245,7 @@ mod tests {
     #[tokio::test]
     async fn test_chunking_one_chunk_to_big() {
         let (chunks, content) = get_chunks("A\n", 2, "tag_ok", None).await;
-        println!("chunks: {:?}", chunks);
+        println!("chunks: {chunks:?}");
         println!("content: {:02X?}", content.as_bytes());
         assert_eq!(1, chunks.len());
         assert_eq!(content.len(), size_of_all_chunks(&chunks));
@@ -261,7 +259,7 @@ mod tests {
     #[tokio::test]
     async fn test_chunking_multiple_chunks_partly() {
         let (chunks, content) = get_chunks("A\nB\nC", 2, "T", None).await;
-        println!("chunks: {:?}", chunks);
+        println!("chunks: {chunks:?}");
         println!(
             "content ({} bytes): {:02X?}",
             content.as_bytes().len(),
@@ -279,7 +277,7 @@ mod tests {
     #[tokio::test]
     async fn test_chunking_multiple_chunks_complete_no_nl() {
         let (chunks, content) = get_chunks("A\nB\nC\nD", 2, "tag_complete_no_nl", None).await;
-        println!("chunks: {:?}", chunks);
+        println!("chunks: {chunks:?}");
         trace!("content: {:02X?}", content.as_bytes());
         assert_eq!(2, chunks.len());
         assert_eq!(content.len(), size_of_all_chunks(&chunks));
@@ -298,7 +296,7 @@ mod tests {
     test_generator::test_expand_paths! { test_input_output; "processor/test_samples/indexing/*" }
 
     fn test_input_output(dir_name: &str) {
-        let in_path = PathBuf::from("..").join(&dir_name).join("in.txt");
+        let in_path = PathBuf::from("..").join(dir_name).join("in.txt");
         let tmp_dir = tempdir().expect("could not create temp dir");
         let out_file_path = tmp_dir.path().join("tmpTestFile.txt.out");
         let restored_file_path = tmp_dir.path().join("restoredTestFile.txt.out");
@@ -311,7 +309,7 @@ mod tests {
         // let last_in_ms = since_the_epoch.as_micros() as i64;
         // let out_file_path = home_dir.join(format!("{}_sample_test.test.out", last_in_ms));
 
-        let append_to_this = PathBuf::from("..").join(&dir_name).join("append_here.log");
+        let append_to_this = PathBuf::from("..").join(dir_name).join("append_here.log");
         let append_use_case = append_to_this.exists();
 
         if append_use_case {
@@ -348,7 +346,7 @@ mod tests {
                     let out_file_content_bytes =
                         fs::read(&out_file_path).expect("could not read file");
                     let out_file_content = String::from_utf8_lossy(&out_file_content_bytes[..]);
-                    let expected_path = PathBuf::from("..").join(&dir_name).join("expected.output");
+                    let expected_path = PathBuf::from("..").join(dir_name).join("expected.output");
                     let expected_content_bytes =
                         fs::read(expected_path).expect("could not read expected file");
                     let expected_content = String::from_utf8_lossy(&expected_content_bytes[..]);
@@ -375,8 +373,7 @@ mod tests {
                     line,
                 })) => {
                     println!(
-                        "[{:?}]: test_input_output: notification[{:?}]...{}",
-                        line, severity, content
+                        "[{line:?}]: test_input_output: notification[{severity:?}]...{content}"
                     );
                 }
                 Ok(Ok(IndexingProgress::Stopped)) => {

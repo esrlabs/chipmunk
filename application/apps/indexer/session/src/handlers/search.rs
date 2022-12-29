@@ -72,8 +72,7 @@ pub async fn handle(
                                             severity: Severity::ERROR,
                                             kind: NativeErrorKind::OperationSearch,
                                             message: Some(format!(
-                                                "Fail to execute search. Error: {}",
-                                                err
+                                                "Fail to execute search. Error: {err}"
                                             )),
                                         })
                                 },

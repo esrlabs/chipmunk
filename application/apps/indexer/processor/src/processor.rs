@@ -47,21 +47,21 @@ pub async fn create_index_and_mapping(
     shutdown_receiver: Option<cc::Receiver<()>>,
 ) -> Result<(), IndexError> {
     let initial_line_nr =
-        utils::next_line_nr(&config.out_path).map_err(|e| IndexError::Process(format!("{}", e)))?;
+        utils::next_line_nr(&config.out_path).map_err(|e| IndexError::Process(format!("{e}")))?;
     let (out_file, current_out_file_size) =
         utils::get_out_file_and_size(config.append, &config.out_path)
-            .map_err(|e| IndexError::Process(format!("{}", e)))?;
+            .map_err(|e| IndexError::Process(format!("{e}")))?;
 
     let in_file = fs::File::open(&config.in_file).map_err(|e| {
         warn!("could not open {:?}", config.in_file);
         update_channel
             .try_send(Err(Notification {
                 severity: Severity::WARNING,
-                content: format!("could not open file ({})", e),
+                content: format!("could not open file ({e})"),
                 line: None,
             }))
             .expect("UpdateChannel closed");
-        IndexError::ConfigurationProblem(format!("could not open file ({})", e))
+        IndexError::ConfigurationProblem(format!("could not open file ({e})"))
     })?;
     let mut decode_builder = DecodeReaderBytesBuilder::new();
     decode_builder
@@ -174,8 +174,7 @@ pub fn index_file<T: Read>(
             let last_expected_byte_index = out_file.metadata().map(|md| md.len() as usize)?;
             if last_expected_byte_index != last_byte_index {
                 return Err(IndexError::Process(format!(
-                    "error in computation! last byte in chunks is {} but should be {}",
-                    last_byte_index, last_expected_byte_index
+                    "error in computation! last byte in chunks is {last_byte_index} but should be {last_expected_byte_index}"
                 )));
             }
         }

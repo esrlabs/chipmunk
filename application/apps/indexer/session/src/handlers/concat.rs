@@ -29,7 +29,7 @@ pub async fn handle(
     .map_err(|err| NativeError {
         severity: Severity::ERROR,
         kind: NativeErrorKind::OperationSearch,
-        message: Some(format!("Failed to concatenate files: {}", err)),
+        message: Some(format!("Failed to concatenate files: {err}")),
     })?;
     while let Ok(msg) = rx_progress.recv() {
         operation_api.emit(match msg {

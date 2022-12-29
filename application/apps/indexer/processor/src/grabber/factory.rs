@@ -24,8 +24,7 @@ pub fn get_supported_file_type(path: &Path) -> Result<SupportedFileType, GrabErr
                 Ok(SupportedFileType::Text)
             } else {
                 Err(GrabError::Unsupported(format!(
-                    "Unsupported file type for {:?}",
-                    path
+                    "Unsupported file type for {path:?}"
                 )))
             }
         }
@@ -37,7 +36,7 @@ pub fn create_lazy_grabber(input_p: &Path) -> Result<Grabber, GrabError> {
         SupportedFileType::Text => {
             let source = TextFileSource::new(input_p);
             let grabber = Grabber::lazy(source).map_err(|e| {
-                let err_msg = format!("Could not create grabber: {}", e);
+                let err_msg = format!("Could not create grabber: {e}");
                 warn!("{}", err_msg);
                 GrabError::Config(err_msg)
             })?;

@@ -23,7 +23,7 @@ impl Decoder for LineCodec {
                 Ok(s) => Ok(Some(s.to_string())),
                 Err(err) => Err(io::Error::new(
                     io::ErrorKind::Other,
-                    format!("Failed to format string: {}", err),
+                    format!("Failed to format string: {err}"),
                 )),
             },
             None => Ok(None),
@@ -142,8 +142,7 @@ impl ByteSource for SerialSource {
                 }
                 Err(err) => {
                     return Err(SourceError::Setup(format!(
-                        "Failed to read stream: {}",
-                        err
+                        "Failed to read stream: {err}"
                     )));
                 }
             },
@@ -174,14 +173,14 @@ impl ByteSource for SerialSource {
 
     async fn income(&mut self, msg: String) -> Result<String, String> {
         let request = serde_json::from_str::<sde::SdeRequest>(&msg)
-            .map_err(|e| format!("Fail to deserialize message: {}", e))?;
+            .map_err(|e| format!("Fail to deserialize message: {e}"))?;
         let response = match request {
             sde::SdeRequest::WriteText(str) => {
                 let len = str.len();
                 match self.write_stream.send(str.as_bytes().to_vec()).await {
                     Ok(()) => sde::SdeResponse::WriteText(sde::WriteResponse { bytes: len }),
                     Err(err) => {
-                        sde::SdeResponse::Error(format!("Fail to write string to port: {}", err))
+                        sde::SdeResponse::Error(format!("Fail to write string to port: {err}"))
                     }
                 }
             }
@@ -190,13 +189,13 @@ impl ByteSource for SerialSource {
                 match self.write_stream.send(bytes).await {
                     Ok(()) => sde::SdeResponse::WriteText(sde::WriteResponse { bytes: len }),
                     Err(err) => {
-                        sde::SdeResponse::Error(format!("Fail to write bytes to port: {}", err))
+                        sde::SdeResponse::Error(format!("Fail to write bytes to port: {err}"))
                     }
                 }
             }
         };
         serde_json::to_string(&response)
-            .map_err(|e| format!("Fail to convert response to JSON: {}", e))
+            .map_err(|e| format!("Fail to convert response to JSON: {e}"))
     }
 }
 

@@ -33,7 +33,7 @@ impl ByteSource for TcpSource {
             self.socket
                 .readable()
                 .await
-                .map_err(|e| SourceError::Unrecoverable(format!("{}", e)))?;
+                .map_err(|e| SourceError::Unrecoverable(format!("{e}")))?;
             debug!("Socket ready to read");
             match self.socket.try_read(&mut self.tmp_buffer) {
                 Ok(len) => {
@@ -48,7 +48,7 @@ impl ByteSource for TcpSource {
                     continue;
                 }
                 Err(e) => {
-                    return Err(SourceError::Setup(format!("{}", e)));
+                    return Err(SourceError::Setup(format!("{e}")));
                 }
             }
         }

@@ -83,7 +83,7 @@ impl TextFileSource {
     pub fn input_size(&self) -> Result<u64, GrabError> {
         let input_file_size = std::fs::metadata(self.path())
             .map_err(|e| {
-                GrabError::Config(format!("Could not determine size of input file: {}", e))
+                GrabError::Config(format!("Could not determine size of input file: {e}"))
             })?
             .len();
         Ok(input_file_size)
@@ -191,8 +191,7 @@ impl TextFileSource {
                 Err(e) => {
                     trace!("no more content");
                     return Err(GrabError::Config(format!(
-                        "error for filling buffer with more content: {:?}",
-                        e
+                        "error for filling buffer with more content: {e:?}"
                     )));
                 }
             }
@@ -232,7 +231,7 @@ impl TextFileSource {
             debug!("Available slots: {:?}", metadata.slots);
             GrabError::InvalidRange {
                 range: line_range.clone(),
-                context: format!("Error identifying byte range for range {:?}", line_range),
+                context: format!("Error identifying byte range for range {line_range:?}"),
             }
         })?;
         let mut read_buf = vec![0; file_part.length];
@@ -297,7 +296,7 @@ impl TextFileSource {
                     .join("\n")
                     .as_bytes(),
             )
-            .map_err(|e| GrabError::IoOperation(format!("Could not write into file {:?}", e)))?;
+            .map_err(|e| GrabError::IoOperation(format!("Could not write into file {e:?}")))?;
         Ok(())
     }
 }

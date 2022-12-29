@@ -77,12 +77,12 @@ impl OperationTrackerAPI {
         api: Api,
         rx_response: oneshot::Receiver<T>,
     ) -> Result<T, NativeError> {
-        let api_str = format!("{}", api);
+        let api_str = format!("{api}");
         self.tx_api.send(api).map_err(|e| {
-            NativeError::channel(&format!("Failed to send to Api::{}; error: {}", api_str, e))
+            NativeError::channel(&format!("Failed to send to Api::{api_str}; error: {e}"))
         })?;
         rx_response.await.map_err(|_| {
-            NativeError::channel(&format!("Failed to get response from Api::{}", api_str))
+            NativeError::channel(&format!("Failed to get response from Api::{api_str}"))
         })
     }
 
@@ -138,7 +138,7 @@ impl OperationTrackerAPI {
 
     pub fn shutdown(&self) -> Result<(), NativeError> {
         self.tx_api.send(Api::Shutdown).map_err(|e| {
-            NativeError::channel(&format!("fail to send to Api::Shutdown; error: {}", e,))
+            NativeError::channel(&format!("fail to send to Api::Shutdown; error: {e}",))
         })
     }
 }
@@ -265,7 +265,7 @@ pub async fn run(
                         Err(err) => Err(NativeError {
                             severity: Severity::ERROR,
                             kind: NativeErrorKind::ComputationFailed,
-                            message: Some(format!("{}", err)),
+                            message: Some(format!("{err}")),
                         }),
                     })
                     .is_err()

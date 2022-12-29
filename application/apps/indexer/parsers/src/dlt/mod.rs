@@ -112,7 +112,7 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
         timestamp: Option<u64>,
     ) -> Result<(&'b [u8], Option<FormattableMessage<'m>>), Error> {
         match dlt_message(input, self.filter_config.as_ref(), self.with_storage_header)
-            .map_err(|e| Error::Parse(format!("{}", e)))?
+            .map_err(|e| Error::Parse(format!("{e}")))?
         {
             (rest, dlt_core::parse::ParsedMessage::FilteredOut(_n)) => Ok((rest, None)),
 
@@ -143,7 +143,7 @@ impl Parser<RangeMessage> for DltRangeParser {
         _timestamp: Option<u64>,
     ) -> Result<(&'b [u8], Option<RangeMessage>), Error> {
         let (rest, consumed) =
-            dlt_consume_msg(input).map_err(|e| Error::Parse(format!("{}", e)))?;
+            dlt_consume_msg(input).map_err(|e| Error::Parse(format!("{e}")))?;
         let msg = consumed.map(|c| {
             self.offset += c as usize;
             RangeMessage {
@@ -164,7 +164,7 @@ impl Parser<RawMessage> for DltRawParser {
         _timestamp: Option<u64>,
     ) -> Result<(&'b [u8], Option<RawMessage>), Error> {
         let (rest, consumed) =
-            dlt_consume_msg(input).map_err(|e| Error::Parse(format!("{}", e)))?;
+            dlt_consume_msg(input).map_err(|e| Error::Parse(format!("{e}")))?;
         let msg = consumed.map(|c| RawMessage {
             content: Vec::from(&input[0..c as usize]),
         });

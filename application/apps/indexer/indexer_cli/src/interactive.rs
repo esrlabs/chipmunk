@@ -56,7 +56,7 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                                     item = msg_stream.next() => {
                                         match item {
                                             Some((_, MessageStreamItem::Item(msg))) => {
-                                                println!("msg: {}", msg);
+                                                println!("msg: {msg}");
                                             }
                                             _ => println!("no msg"),
                                         }
@@ -88,11 +88,11 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                         let start_op = Instant::now();
                         let content = session.grab(LineRange::from(0u64..=1000)).await.expect("grab failed");
                         let len = content.len();
-                        println!("content has {} elemenst", len);
+                        println!("content has {len} elemenst");
                         for elem in content {
-                            println!("{:?}", elem);
+                            println!("{elem:?}");
                         }
-                        duration_report(start_op, format!("grabbing {} lines", len));
+                        duration_report(start_op, format!("grabbing {len} lines"));
                     }
                     Some(Command::Stop) => {
                         println!("stop command received");
@@ -109,7 +109,7 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
             feedback = receiver.recv() => {
                 if let Some(feedback) = feedback {
                     let elapsed = start.elapsed().as_millis();
-                    println!("got session feedback after {} ms: {:?}", elapsed, feedback);
+                    println!("got session feedback after {elapsed} ms: {feedback:?}");
                 } else {
                     println!("no more feedback comming");
                     break;
@@ -164,7 +164,7 @@ async fn collect_user_input(tx: mpsc::UnboundedSender<Command>) -> JoinHandle<()
                         break;
                     }
                     x => {
-                        println!("unknown command: {}", x);
+                        println!("unknown command: {x}");
                     }
                 },
                 Err(ReadlineError::Interrupted) => {
@@ -178,7 +178,7 @@ async fn collect_user_input(tx: mpsc::UnboundedSender<Command>) -> JoinHandle<()
                     break;
                 }
                 Err(err) => {
-                    println!("Error: {:?}", err);
+                    println!("Error: {err:?}");
                     tx.send(Command::Stop).expect("send failed");
                     break;
                 }

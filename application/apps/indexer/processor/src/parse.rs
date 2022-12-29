@@ -112,9 +112,9 @@ pub fn posix_timestamp_as_string(timestamp_ms: i64) -> String {
     ) {
         Some(naive_datetime_max) => {
             let t: DateTime<Utc> = DateTime::from_utc(naive_datetime_max, Utc);
-            format!("{}", t)
+            format!("{t}")
         }
-        None => format!("could not parse: {}", timestamp_ms),
+        None => format!("could not parse: {timestamp_ms}"),
     }
 }
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -324,7 +324,7 @@ fn date_format_str_to_regex(date_format: &str) -> Result<Regex, DateParseError> 
             }
         }
         Err(e) => {
-            report_error(format!("{:?}", e));
+            report_error(format!("{e:?}"));
             Err(DateParseError::FormatExpression)
         }
     }
@@ -343,7 +343,7 @@ static TIMEZONE_GROUP: &str = "timezone";
 static ABSOLUTE_MS_GROUP: &str = "absolute";
 
 fn named_group(regex: &str, capture_id: &str) -> String {
-    format!(r"(?P<{}>{})", capture_id, regex)
+    format!(r"(?P<{capture_id}>{regex})")
 }
 
 fn format_piece_as_regex_string(p: &FormatPiece) -> String {
@@ -512,7 +512,7 @@ pub(crate) fn timespan_in_file(
     match (min_time, max_time) {
         (None, None) => Ok(TimestampFormatResult {
             path: format!("{}", file_path.as_ref().display()),
-            format: Err(format!("{} did not match in file", format_expr)),
+            format: Err(format!("{format_expr} did not match in file")),
             min_time: None,
             max_time: None,
         }), // format string did not produce results
@@ -552,7 +552,7 @@ pub fn timespan_in_files(
                         update_channel
                             .send(Err(Notification {
                                 severity: Severity::WARNING,
-                                content: format!("{}", e),
+                                content: format!("{e}"),
                                 line: None,
                             }))
                             .expect("UpdateChannel closed");
@@ -564,7 +564,7 @@ pub fn timespan_in_files(
                     .send(Ok(IndexingProgress::GotItem {
                         item: TimestampFormatResult {
                             path: item.path.to_string(),
-                            format: Err(format!("error trying to detect format expression: {}", e)),
+                            format: Err(format!("error trying to detect format expression: {e}")),
                             min_time: None,
                             max_time: None,
                         },
@@ -573,7 +573,7 @@ pub fn timespan_in_files(
                 update_channel
                     .send(Err(Notification {
                         severity: Severity::WARNING,
-                        content: format!("executed with error: {}", e),
+                        content: format!("executed with error: {e}"),
                         line: None,
                     }))
                     .expect("UpdateChannel closed");
@@ -649,8 +649,7 @@ fn parse_from_month(mmm: &str) -> Result<u32, DateParseError> {
         "Nov" => Ok(11),
         "Dec" => Ok(12),
         _ => Err(DateParseError::InvalidParse(format!(
-            "could not parse month {:?}",
-            mmm
+            "could not parse month {mmm:?}"
         ))),
     }
 }
@@ -670,7 +669,7 @@ pub struct FormatCheckFlags {
 
 pub fn check_format(format: &str, flags: FormatCheckFlags) -> FormatCheckResult {
     match lookup_regex_for_format_str(format) {
-        Err(e) => FormatCheckResult::FormatInvalid(format!("format invalid: {}", e)),
+        Err(e) => FormatCheckResult::FormatInvalid(format!("format invalid: {e}")),
         Ok(regex) => {
             let mut s = HashSet::new();
             for n in regex.capture_names().flatten() {
@@ -679,8 +678,7 @@ pub fn check_format(format: &str, flags: FormatCheckFlags) -> FormatCheckResult 
             if !s.contains(ABSOLUTE_MS_TAG) {
                 if !flags.miss_year && !s.contains(YEAR_GROUP) && !s.contains(YEAR_SHORT_GROUP) {
                     return FormatCheckResult::FormatInvalid(format!(
-                        "missing long or short year ({} or {})",
-                        YEAR_FORMAT_TAG, YEAR_SHORT_FORMAT_TAG,
+                        "missing long or short year ({YEAR_FORMAT_TAG} or {YEAR_SHORT_FORMAT_TAG})",
                     ));
                 }
                 if !flags.miss_month
@@ -688,26 +686,22 @@ pub fn check_format(format: &str, flags: FormatCheckFlags) -> FormatCheckResult 
                     && !s.contains(MONTH_SHORT_NAME_GROUP)
                 {
                     return FormatCheckResult::FormatInvalid(format!(
-                        "missing numeric or short month ({} or {})",
-                        MONTH_FORMAT_TAG, MONTH_FORMAT_SHORT_NAME_TAG,
+                        "missing numeric or short month ({MONTH_FORMAT_TAG} or {MONTH_FORMAT_SHORT_NAME_TAG})",
                     ));
                 }
                 if !flags.miss_day && !s.contains(DAY_GROUP) {
                     return FormatCheckResult::FormatInvalid(format!(
-                        "missing days ({})",
-                        DAY_FORMAT_TAG
+                        "missing days ({DAY_FORMAT_TAG})"
                     ));
                 }
                 if !s.contains(HOUR_GROUP) {
                     return FormatCheckResult::FormatInvalid(format!(
-                        "missing hours ({})",
-                        HOURS_FORMAT_TAG
+                        "missing hours ({HOURS_FORMAT_TAG})"
                     ));
                 }
                 if !s.contains(MINUTE_GROUP) {
                     return FormatCheckResult::FormatInvalid(format!(
-                        "missing minutes ({})",
-                        MINUTES_FORMAT_TAG
+                        "missing minutes ({MINUTES_FORMAT_TAG})"
                     ));
                 }
             }
@@ -738,7 +732,7 @@ pub fn extract_posix_timestamp(
         Some(day_str) => day_str
             .as_str()
             .parse()
-            .map_err(|e| DateParseError::InvalidParse(format!("fail parse day: {}", e))),
+            .map_err(|e| DateParseError::InvalidParse(format!("fail parse day: {e}"))),
         None => replacements.day.ok_or_else(|| {
             DateParseError::InvalidParse("no group for days found in regex".to_owned())
         }),
@@ -747,7 +741,7 @@ pub fn extract_posix_timestamp(
         Some(month_capt) => month_capt
             .as_str()
             .parse()
-            .map_err(|e| DateParseError::InvalidParse(format!("could not parse month: {}", e))),
+            .map_err(|e| DateParseError::InvalidParse(format!("could not parse month: {e}"))),
         None => match caps.name(MONTH_SHORT_NAME_GROUP) {
             Some(month_short_name) => parse_from_month(month_short_name.as_str()),
             None => replacements.month.ok_or_else(|| {
@@ -912,7 +906,7 @@ pub fn line_to_timed_line(
         Err(e) => {
             reporter.add_to_report(
                 Severity::WARNING,
-                format!("could not extract timestamp: {}", e),
+                format!("could not extract timestamp: {e}"),
             );
             Err(e)
         }
@@ -1098,8 +1092,7 @@ fn parse_short_month(input: &str) -> IResult<&str, u32> {
         "Nov" => Ok(11),
         "Dec" => Ok(12),
         _ => Err(DateParseError::InvalidParse(format!(
-            "could not parse month {:?}",
-            s
+            "could not parse month {s:?}"
         ))),
     })(input)
 }
@@ -1146,8 +1139,7 @@ pub fn parse_full_timestamp(input: &str, regex: &Regex) -> Result<(i64, bool), D
                     }
                 }
                 Err(e) => Err(DateParseError::InvalidParse(format!(
-                    "error while parsing: {:?}",
-                    e
+                    "error while parsing: {e:?}"
                 ))),
             }
         }
@@ -1162,8 +1154,7 @@ pub(crate) fn parse_timezone(input: &str) -> Result<i64, DateParseError> {
     match timezone_parser(input) {
         Ok((_, res)) => Ok(res),
         Err(e) => Err(DateParseError::InvalidParse(format!(
-            "error parsing timezone: {:?}",
-            e
+            "error parsing timezone: {e:?}"
         ))),
     }
 }

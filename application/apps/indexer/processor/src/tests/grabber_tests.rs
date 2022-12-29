@@ -20,9 +20,9 @@ mod tests {
         for (i, line) in content.iter().enumerate() {
             if i == content.len() - 1 && !line.is_empty() {
                 // last
-                write!(writer, "{}", line).expect("Could not write");
+                write!(writer, "{line}").expect("Could not write");
             } else {
-                writeln!(writer, "{}", line).expect("Could not write");
+                writeln!(writer, "{line}").expect("Could not write");
             }
 
             line_length.push(line.len() as u64);
@@ -123,7 +123,7 @@ mod tests {
             }
             for _line in 0..1000 {
                 use std::io::Write;
-                writeln!(file, "{}", s).expect("could not write to file");
+                writeln!(file, "{s}").expect("could not write to file");
             }
             let p = file.into_temp_path();
             let source = TextFileSource::new(&p);
@@ -154,7 +154,7 @@ mod tests {
                 write!(s, "{}", i % 10).expect("could not append to string");
             }
             for _line in 0..100 {
-                writeln!(file, "{}", s).expect("could not write to file");
+                writeln!(file, "{s}").expect("could not write to file");
             }
             let p = file.into_temp_path();
             let source = TextFileSource::new(&p);

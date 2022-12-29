@@ -184,13 +184,13 @@ impl SearchFilter {
 fn escape(value: &str) -> String {
     let mapping: HashMap<char, String> = "{}[]+$^/!.*|():?,=<>\\"
         .chars()
-        .map(|c| (c, format!("\\{}", c)))
+        .map(|c| (c, format!("\\{c}")))
         .collect();
     value
         .chars()
         .map(|c| match mapping.get(&c) {
             Some(v) => v.clone(),
-            None => format!("{}", c),
+            None => format!("{c}"),
         })
         .collect::<String>()
 }
@@ -205,8 +205,7 @@ fn filter_as_regex(filter: &SearchFilter) -> String {
         escape(&filter.value)
     };
     format!(
-        "{}{}{}{}{}",
-        ignore_case_start, word_marker, subject, word_marker, ignore_case_end,
+        "{ignore_case_start}{word_marker}{subject}{word_marker}{ignore_case_end}",
     )
 }
 
@@ -379,12 +378,12 @@ impl MatchesExtractor {
         for filter in self.filters.iter() {
             regexs.push(
                 Regex::from_str(&filter_as_regex(filter))
-                    .map_err(|err| SearchError::Regex(format!("{}", err)))?,
+                    .map_err(|err| SearchError::Regex(format!("{err}")))?,
             );
         }
         let regex_matcher = match RegexMatcher::new(&combined_regex) {
             Ok(regex) => regex,
-            Err(err) => return Err(SearchError::Regex(format!("{}", err))),
+            Err(err) => return Err(SearchError::Regex(format!("{err}"))),
         };
         // Take in account: we are counting on all levels (grabbing search, grabbing stream etc)
         // from 0 line always. But grep gives results from 1. That's why here is a point of correct:
@@ -434,7 +433,7 @@ mod tests {
         let mut holder = SearchHolder::new(tmp_file.path(), filters.iter(), Uuid::new_v4());
         let (_range, indexes, _stats) = holder
             .execute_search(0, file_size, CancellationToken::new())
-            .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {}", e)))?;
+            .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {e}")))?;
         Ok(indexes)
     }
 
@@ -452,7 +451,7 @@ mod tests {
         ];
 
         let matches = filtered(&LOGS.join("\n"), &filters)?;
-        println!("matches: {:?}", matches);
+        println!("matches: {matches:?}");
         assert_eq!(2, matches.len());
         assert_eq!(1, matches[0].index);
         assert_eq!(3, matches[1].index);
@@ -473,7 +472,7 @@ mod tests {
         ];
 
         let matches = filtered(&LOGS.join("\n"), &filters)?;
-        println!("matches: {:?}", matches);
+        println!("matches: {matches:?}");
         assert_eq!(1, matches.len());
         assert_eq!(3, matches[0].index);
         Ok(())

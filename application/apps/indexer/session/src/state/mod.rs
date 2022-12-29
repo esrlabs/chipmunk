@@ -196,7 +196,7 @@ impl SessionState {
             .map_err(|e| NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::Grabber,
-                message: Some(format!("{}", e)),
+                message: Some(format!("{e}")),
             })?;
         let mut elements: Vec<GrabbedElement> = vec![];
         let mut ranges = vec![];
@@ -355,7 +355,7 @@ impl SessionState {
         writer.flush().map_err(|e| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Io,
-            message: Some(format!("Fail to write into file: {:?}", e)),
+            message: Some(format!("Fail to write into file: {e:?}")),
         })?;
         Ok(true)
     }
@@ -412,12 +412,12 @@ impl SessionStateAPI {
         api: Api,
         rx_response: oneshot::Receiver<T>,
     ) -> Result<T, NativeError> {
-        let api_str = format!("{}", api);
+        let api_str = format!("{api}");
         self.tx_api.send(api).map_err(|e| {
-            NativeError::channel(&format!("Failed to send to Api::{}; error: {}", api_str, e))
+            NativeError::channel(&format!("Failed to send to Api::{api_str}; error: {e}"))
         })?;
         rx_response.await.map_err(|_| {
-            NativeError::channel(&format!("Failed to get response from Api::{}", api_str))
+            NativeError::channel(&format!("Failed to get response from Api::{api_str}"))
         })
     }
 
@@ -588,8 +588,7 @@ impl SessionStateAPI {
             .send(Api::NotifyCancelingOperation(uuid))
             .map_err(|e| {
                 NativeError::channel(&format!(
-                    "fail to send to Api::NotifyCancelingOperation; error: {}",
-                    e,
+                    "fail to send to Api::NotifyCancelingOperation; error: {e}",
                 ))
             })
     }
@@ -599,8 +598,7 @@ impl SessionStateAPI {
             .send(Api::NotifyCanceledOperation(uuid))
             .map_err(|e| {
                 NativeError::channel(&format!(
-                    "Failed to send to Api::NotifyCanceledOperation; error: {}",
-                    e,
+                    "Failed to send to Api::NotifyCanceledOperation; error: {e}",
                 ))
             })
     }
@@ -620,7 +618,7 @@ impl SessionStateAPI {
 
     pub fn shutdown(&self) -> Result<(), NativeError> {
         self.tx_api.send(Api::Shutdown).map_err(|e| {
-            NativeError::channel(&format!("fail to send to Api::Shutdown; error: {}", e,))
+            NativeError::channel(&format!("fail to send to Api::Shutdown; error: {e}",))
         })
     }
 

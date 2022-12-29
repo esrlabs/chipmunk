@@ -108,7 +108,7 @@ pub fn concat_files(
         .map(|x| PathBuf::from(x.path.clone()))
         .collect();
     let mut progress_reporter = ProgressReporter::new(
-        combined_file_size(&paths).map_err(|e| ConcatError::General(format!("{:?}", e)))?,
+        combined_file_size(&paths).map_err(|e| ConcatError::General(format!("{e:?}")))?,
         update_channel.clone(),
     );
 

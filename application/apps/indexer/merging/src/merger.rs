@@ -396,8 +396,7 @@ pub(crate) fn merge_inputs_with_writer(
     } else {
         if lines_with_year_missing > 0 {
             report_warning(format!(
-                "year was missing for {} lines",
-                lines_with_year_missing
+                "year was missing for {lines_with_year_missing} lines"
             ));
         }
         writer.write_rest()?;
@@ -424,8 +423,7 @@ where
     paths.iter().try_fold(0, |acc, x| match x.len() {
         Ok(len) => Ok(acc + len),
         Err(e) => Err(MergeError::GeneralMergingProblem(format!(
-            "error getting combined file size ({})",
-            e
+            "error getting combined file size ({e})"
         ))),
     })
 }
@@ -448,7 +446,7 @@ impl IndexOutput {
         };
         let line_nr = if append {
             utils::next_line_nr(out_path)
-                .map_err(|e| MergeError::GeneralMergingProblem(format!("{:?}", e)))?
+                .map_err(|e| MergeError::GeneralMergingProblem(format!("{e:?}")))?
         } else {
             0
         };
