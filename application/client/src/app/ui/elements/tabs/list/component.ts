@@ -74,9 +74,8 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
 
     public _ng_onTabClose(event: MouseEvent, tabkey: string) {
         this.service.remove(tabkey);
-        stop(event);
         this._forceUpdate();
-        return false;
+        return stop(event);
     }
 
     public _ng_isArrowsNeeded(): boolean {
