@@ -47,7 +47,7 @@ export abstract class AdvancedState extends BasicState {
     protected _update(): void {
         if (this._filters !== undefined && this._filters.width > 0) {
             this._fetch(this._filters.width).catch((err: Error) => {
-                this._parent.log().error(err);
+                this._parent.log().error(err.message);
             });
         }
     }
