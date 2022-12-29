@@ -283,7 +283,7 @@ export class Selecting {
         }
     }
 
-    private _drop() {
+    public drop() {
         this._selection = {
             focus: getFocusNodeInfo(),
             anchor: getAnchorNodeInfo(),
@@ -296,7 +296,7 @@ export class Selecting {
 
     private _onSelectionStarted() {
         document.addEventListener('selectionchange', this._onSelectionChange);
-        this._drop();
+        this.drop();
         this._progress = true;
         this._subjects.from.emit();
         this._holder.focus();
@@ -331,6 +331,6 @@ export class Selecting {
         ) {
             return;
         }
-        this._drop();
+        this.drop();
     }
 }

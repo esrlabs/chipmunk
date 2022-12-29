@@ -195,8 +195,8 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
         return this._removeGlobalStyleHandler !== undefined;
     }
 
-    public onMouseMoveSelectionDetector(direction: SelectionDirection) {
-        this.selecting.doSelectionInDirection(direction);
+    public onMouseMoveSelectionDetector(_direction: SelectionDirection) {
+        this.selecting.drop();
     }
 }
 export interface ScrollAreaComponent extends IlcInterface {}
