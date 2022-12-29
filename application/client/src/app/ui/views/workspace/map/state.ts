@@ -67,6 +67,15 @@ export class State {
         this.context.fillRect(0, 0, this.width, this.height);
         this.width = count * State.COLUMN_WIDTH;
         this.detectChanges();
+        const scale = (() => {
+            if (this.map.length === 0 || this.height === 0) {
+                return 1;
+            } else if (this.map.length < this.height) {
+                return this.height / this.map.length;
+            } else {
+                return 1;
+            }
+        })();
         this.map.forEach((value: number[][], top: number) => {
             value.forEach((matches) => {
                 if (isActive) {
@@ -76,7 +85,12 @@ export class State {
                     this.context.fillStyle =
                         filter === undefined ? 'rgb(255,0,0)' : filter.definition.colors.background;
                 }
-                this.context.fillRect(matches[0] * State.COLUMN_WIDTH, top, State.COLUMN_WIDTH, 1);
+                this.context.fillRect(
+                    matches[0] * State.COLUMN_WIDTH,
+                    top * scale,
+                    State.COLUMN_WIDTH,
+                    scale,
+                );
             });
         });
         return this;
