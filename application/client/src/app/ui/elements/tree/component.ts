@@ -142,6 +142,18 @@ export class ElementsTreeSelector
         });
     }
 
+    public onDefaultAction(entity: Scheme.Entity) {
+        if (entity.isFolder()) {
+            return;
+        }
+        this.ilc()
+            .services.system.opener.file(entity.getPath())
+            .auto()
+            .catch((err: Error) => {
+                this.log().error(`Fail to open text file; error: ${err.message}`);
+            });
+    }
+
     public onScrolling(event: Event) {
         stop(event as MouseEvent);
         return false;

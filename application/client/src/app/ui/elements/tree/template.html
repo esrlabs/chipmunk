@@ -10,6 +10,7 @@
       [attr.data-selected]="node.item.selected"
       [attr.data-exists]="node.item.exists"
       (click)="state.select(node)"
+      (dblclick)="onDefaultAction(node.item)"
       [style.display]="!node.item.isVisible() || node.vi ? 'none' : ''"
       (contextmenu)="ngItemContextMenu($event, node.item)">
       <button mat-icon-button disabled></button>
