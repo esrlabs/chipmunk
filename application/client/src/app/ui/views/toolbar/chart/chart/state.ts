@@ -58,7 +58,8 @@ export class State extends AdvancedState {
         if (position instanceof Error) {
             this._parent.log().error(position);
         } else {
-            position >= 0 && this._session.cursor.select(position, Owner.Chart);
+            position >= 0 &&
+                this._session.cursor.select(position, Owner.Chart, undefined, undefined);
         }
     }
 
