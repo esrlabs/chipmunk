@@ -25,6 +25,9 @@ export class Filter {
         if (this._ilc.services.system.state.states().ui.input) {
             return false;
         }
+        if (event.ctrlKey || event.metaKey || event.altKey) {
+            return false;
+        }
         if (event.code === 'Backspace') {
             if (this._filter.length > 0) {
                 this._filter = this._filter.substring(0, this._filter.length - 1);
