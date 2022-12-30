@@ -11,14 +11,14 @@ export enum EChartName {
 }
 
 export abstract class AdvancedState extends BasicState {
+    public noData: boolean = false;
+
     protected _filters: Chart | undefined;
     protected _datasets: ChartDataset<'bar', number[]>[] = [];
     protected _map: ISearchMap = [];
     protected _width: number = 0;
 
     private _drawTimeout: number = -1;
-
-    public abstract noData(): boolean;
 
     protected abstract override init(): void;
 
@@ -109,7 +109,11 @@ export abstract class AdvancedState extends BasicState {
                 data: [],
             });
         });
+        let noData: boolean = true;
         this._map.forEach((value: number[][], line: number) => {
+            if (value.length > 0) {
+                noData = false;
+            }
             value.forEach((matches: number[]) => {
                 if (matches[0] === undefined || matches[1] === undefined) {
                     return;
@@ -123,6 +127,7 @@ export abstract class AdvancedState extends BasicState {
                 this._datasets[index].backgroundColor = filter.definition.colors.background;
             });
         });
+        this.noData = noData;
     }
 
     private _createChart(chartName: EChartName): void {

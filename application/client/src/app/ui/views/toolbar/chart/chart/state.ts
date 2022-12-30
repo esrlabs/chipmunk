@@ -39,10 +39,6 @@ export class State extends AdvancedState {
         }
     }
 
-    public noData(): boolean {
-        return !this._loading && this._datasets.length <= 0;
-    }
-
     public isLoading(): boolean {
         return this._loading;
     }
