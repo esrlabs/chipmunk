@@ -13,7 +13,6 @@ export class State extends AdvancedState {
 
     private _range!: IRange;
     private _loading: boolean = true;
-    private _width: number = 0;
     private _height: number = 0;
 
     public init() {
@@ -41,7 +40,7 @@ export class State extends AdvancedState {
     }
 
     public noData(): boolean {
-        return !this._loading && this._map.length <= 0;
+        return !this._loading && this._datasets.length <= 0;
     }
 
     public isLoading(): boolean {
@@ -75,10 +74,6 @@ export class State extends AdvancedState {
             this.tooltip = '';
         }
         this.mouseEnter = mouseEnter;
-    }
-
-    protected _resizeSidebar() {
-        this._width = this._element.getBoundingClientRect().width;
     }
 
     protected _fetch(width: number, range: IRange): Promise<void> {

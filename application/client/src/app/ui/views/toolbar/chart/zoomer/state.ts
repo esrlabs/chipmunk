@@ -7,8 +7,6 @@ export class State extends AdvancedState {
     public _ng_rectLeft: number = 0;
     public readonly _ng_borderWidth: number = 2;
 
-    private _width: number = 0;
-
     public init() {
         this._positionChangeSetup();
         this._resizeSidebar();
@@ -32,19 +30,7 @@ export class State extends AdvancedState {
     }
 
     public noData(): boolean {
-        let displayFilter: boolean = false;
-        if (
-            this._filters &&
-            this._filters.data.datasets &&
-            this._filters.data.datasets.length > 0
-        ) {
-            displayFilter = true;
-        }
-        return !displayFilter;
-    }
-
-    protected _resizeSidebar() {
-        this._width = this._element.getBoundingClientRect().width;
+        return this._datasets.length <= 0;
     }
 
     protected _fetch(width: number): Promise<void> {

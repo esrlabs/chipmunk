@@ -14,6 +14,7 @@ export abstract class AdvancedState extends BasicState {
     protected _filters: Chart | undefined;
     protected _datasets: ChartDataset<'bar', number[]>[] = [];
     protected _map: ISearchMap = [];
+    protected _width: number = 0;
 
     private _drawTimeout: number = -1;
 
@@ -23,9 +24,11 @@ export abstract class AdvancedState extends BasicState {
 
     protected abstract override destroy(): void;
 
-    protected abstract _resizeSidebar(): void;
-
     protected abstract _fetch(width: number, range?: IRange): Promise<void>;
+
+    protected _resizeSidebar() {
+        this._width = this._element.getBoundingClientRect().width;
+    }
 
     protected _subscribe(): void {
         this._parent
