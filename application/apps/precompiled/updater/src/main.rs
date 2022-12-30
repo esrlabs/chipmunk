@@ -7,7 +7,11 @@ use base::{initialize_from_fresh_yml, util::*};
 use std::{
     path::{Path, PathBuf},
     process::{Child, Command},
+    thread,
+    time
 };
+
+const PEDNING_CLOSING_APP_TIME_MS: u64 = 3000;
 
 fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
     Command::new(exe)
@@ -145,6 +149,9 @@ fn main() {
             .expect("could not get parent-directory of application")
             .to_path_buf()
     };
+    info!("will sleep {PEDNING_CLOSING_APP_TIME_MS}ms to let parent app to be closed");
+    let waiting = time::Duration::from_millis(PEDNING_CLOSING_APP_TIME_MS);
+    thread::sleep(waiting);
     info!("removing old application {:?}", app_folder);
     let dest = match remove_old_application(&app_folder) {
         Ok(res) => res,
