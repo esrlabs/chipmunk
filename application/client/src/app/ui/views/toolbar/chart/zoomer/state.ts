@@ -17,7 +17,6 @@ export class State extends AdvancedState {
                 this._update();
             }),
         );
-        this._resizeSidebar();
         this._fetch(this._width).catch((err: Error) => {
             this._parent.log().error(err.message);
         });
@@ -27,10 +26,6 @@ export class State extends AdvancedState {
         if (this._filters !== undefined) {
             this._filters.destroy();
         }
-    }
-
-    public noData(): boolean {
-        return this._datasets.length <= 0;
     }
 
     protected _fetch(width: number): Promise<void> {
