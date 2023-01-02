@@ -1,4 +1,3 @@
-import { Chart } from 'chart.js';
 import { IPosition, IPositionChange } from '../service';
 import { Owner } from '@schema/content/row';
 import { IRange } from '@platform/types/range';
@@ -41,10 +40,6 @@ export class State extends AdvancedState {
 
     public isLoading(): boolean {
         return this._loading;
-    }
-
-    public get filters(): Chart | undefined {
-        return this._filters;
     }
 
     public onClick(event: MouseEvent) {
