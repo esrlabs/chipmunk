@@ -15,9 +15,9 @@ pub fn remove_entity(entity: &Path) -> Result<()> {
         return Ok(());
     }
     if entity.is_dir() {
-        std::fs::remove_dir_all(&entity)?;
+        std::fs::remove_dir_all(entity)?;
     } else if entity.is_file() {
-        std::fs::remove_file(&entity)?;
+        std::fs::remove_file(entity)?;
     }
     Ok(())
 }
@@ -50,15 +50,18 @@ pub fn unpack(tgz: &Path, dest: &Path) -> Result<()> {
     // Unpack
     info!("File {:?} will be unpacked into {:?}", tgz, dest);
 
-    let tar_gz = File::open(&tgz)?;
+    let tar_gz = File::open(tgz)?;
     let tar = GzDecoder::new(tar_gz);
     let mut archive = Archive::new(tar);
-    archive.unpack(&dest)?;
+    archive.unpack(dest)?;
 
     Ok(())
 }
 
 pub fn collect_release_files(app: &Path) -> Option<Vec<String>> {
+    if cfg!(target_os = "macos") {
+        return None;
+    }
     let release_file: PathBuf = app.to_path_buf().join(RELEASE_FILE_NAME);
     if !release_file.exists() {
         warn!("Fail to find release file {:?}", release_file);
