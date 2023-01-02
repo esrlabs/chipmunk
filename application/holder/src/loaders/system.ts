@@ -38,29 +38,41 @@ class Application implements IApplication {
         app.whenReady().then(() => {
             process.on('exit', () => {
                 this.emitters.push('NodeJS::exit');
-                this.shutdown().close();
+                this.shutdown().close().catch((err: Error) => {
+                    this.logger.error(`Fail to shutdown on "process:exit": ${err.message}`);
+                });
             });
             process.on('SIGQUIT', () => {
                 this.emitters.push('NodeJS::SIGQUIT');
-                this.shutdown().close();
+                this.shutdown().close().catch((err: Error) => {
+                    this.logger.error(`Fail to shutdown on "process:SIGQUIT": ${err.message}`);
+                });
             });
             process.on('SIGINT', () => {
                 this.emitters.push('NodeJS::SIGINT');
-                this.shutdown().close();
+                this.shutdown().close().catch((err: Error) => {
+                    this.logger.error(`Fail to shutdown on "process:SIGINT": ${err.message}`);
+                });
             });
             process.on('SIGTERM', () => {
                 this.emitters.push('NodeJS::SIGTERM');
-                this.shutdown().close();
+                this.shutdown().close().catch((err: Error) => {
+                    this.logger.error(`Fail to shutdown on "process:SIGTERM": ${err.message}`);
+                });
             });
             app.on('will-quit', (event: Event) => {
                 this.emitters.push('Electron::will-quit');
                 event.preventDefault();
-                this.shutdown().close();
+                this.shutdown().close().catch((err: Error) => {
+                    this.logger.error(`Fail to shutdown on "app:will-quit": ${err.message}`);
+                });
             });
             app.on('before-quit', (event: Event) => {
                 this.emitters.push('Electron::before-quit');
                 event.preventDefault();
-                this.shutdown().close();
+                this.shutdown().close().catch((err: Error) => {
+                    this.logger.error(`Fail to shutdown on "app:before-quit": ${err.message}`);
+                });
             });
             process.on('uncaughtException', (error: Error) => {
                 this.logger.error(`[BAD] UncaughtException: ${error.message}`);
@@ -97,6 +109,7 @@ class Application implements IApplication {
 
     private async _shutdown(exitcase: ExitCase): Promise<void> {
         if (this.lock.isLocked()) {
+            this.logger.info(`shutdown signal would be ignored: applcation is shutdowning already`);
             return Promise.resolve();
         }
         this.lock.lock();

@@ -72,8 +72,11 @@ export class Service extends Implementation {
         return Promise.resolve();
     }
 
-    public override destroy(): Promise<void> {
+    public override async destroy(): Promise<void> {
         this.subjects.destroy();
+        await this._window.destroy().catch((err: Error) => {
+            this.log().error(`Fail to destroy window controller: ${err.message}`)
+        });
         return Promise.resolve();
     }
 

@@ -72,7 +72,12 @@ export class Window extends Implementation {
             this._window.destroy();
             this.log().debug(`BrowserWindow was destroyed.`);
         }
+        if (this._ipc !== undefined) {
+            this._ipc.destroy();
+            this.log().debug(`ICP transport was destroyed.`);
+        }
         this._window = undefined;
+        this._ipc = undefined;
         return Promise.resolve();
     }
 

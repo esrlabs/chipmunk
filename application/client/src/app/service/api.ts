@@ -13,6 +13,11 @@ export class Service extends Implementation {
         return Promise.resolve();
     }
 
+    public override destroy(): Promise<void> {
+        this._transport.destroy();
+        return Promise.resolve();
+    }
+
     public transport(): Transport {
         return this._transport;
     }
