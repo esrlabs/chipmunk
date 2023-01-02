@@ -20,6 +20,10 @@ export abstract class AdvancedState extends BasicState {
 
     private _drawTimeout: number = -1;
 
+    public get filters(): Chart | undefined {
+        return this._filters;
+    }
+
     protected abstract override init(): void;
 
     protected abstract override destroy(): void;
