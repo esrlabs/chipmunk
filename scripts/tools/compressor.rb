@@ -8,7 +8,7 @@ class Compressor
     target = if OS.mac?
                './chipmunk.app'
              else
-               '*'
+               '* .release'
              end
     @archname += '.tgz'
     Shell.chdir(@location) do

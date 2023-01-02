@@ -75,8 +75,10 @@ class Release
     Dir.foreach(Paths::RELEASE_BIN) do |entry|
       lines = "#{lines}#{entry}\n" if entry != '.' && entry != '..'
     end
-    File.open(snapshot_file, 'a') do |line|
-      line.puts lines
+    File.open(snapshot_file, 'a') do |fd|
+      fd.puts lines
+      fd.flush
+      fd.close
     end
     Reporter.add(Jobs::Other, Owner::Release, 'files snapshot has been created', '')
   end
