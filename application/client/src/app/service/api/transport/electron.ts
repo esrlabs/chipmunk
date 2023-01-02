@@ -48,6 +48,7 @@ export class Implementation extends Transport {
             ref: EntityConstructor<any> & ISignatureRequirement;
         }
     > = new Map();
+    private _destroyed: boolean = false;
 
     constructor() {
         super();
@@ -59,10 +60,24 @@ export class Implementation extends Transport {
         ipc().subscribe(events.HOST_RESPONSE_NAME, this._onHostResponse);
     }
 
+    public destroy(): void {
+        ipc().unsubscribeAll(events.HOST_EVENT_NAME);
+        ipc().unsubscribeAll(events.HOST_REQUEST_NAME);
+        ipc().unsubscribeAll(events.HOST_RESPONSE_NAME);
+        this._requests.forEach((request) => {
+            request.rejector(new Error(`Rejected because transport is destroying`));
+        })
+        this._requests.clear();
+        this._respondents.clear();
+    }
+
     public request<Request, Response>(
         request: Request & ISignatureRequirement,
         responseConstructorRef: EntityConstructor<Response> & ISignatureRequirement,
     ): Promise<Response> {
+        if (this._destroyed) {
+            return Promise.reject(new Error(`Transport is destroyed`));
+        }
         return new Promise((resolve, reject) => {
             const pack = new Package(this._getSequence()).payload(request);
             this._requests.set(pack.getSequence(), {
@@ -98,6 +113,9 @@ export class Implementation extends Transport {
     }
 
     public notify<Notification>(notification: Notification & ISignatureRequirement): void {
+        if (this._destroyed) {
+            return;
+        }
         ipc().send(
             events.RENDER_EVENT_NAME,
             new Package(this._getSequence()).payload(notification).packed(),

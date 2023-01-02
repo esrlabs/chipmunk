@@ -8,11 +8,12 @@ import {
     Respond,
     Errors,
 } from 'platform/ipc/transport';
-import * as events from 'platform/ipc/setup/channels';
 import { Subject, Subscription } from 'platform/env/subscription';
 import { ipcMain, IpcMainEvent, BrowserWindow } from 'electron';
 import { Logger } from '@env/logs/index';
 import { error } from 'platform/env/logger';
+
+import * as events from 'platform/ipc/setup/channels';
 
 interface IEventDesc {
     subject: Subject<any>;
@@ -39,6 +40,7 @@ export class Implementation extends Transport {
             ref: EntityConstructor<any> & ISignatureRequirement;
         }
     > = new Map();
+    private _destroyed: boolean = false;
 
     constructor(window: BrowserWindow) {
         super();
@@ -51,10 +53,23 @@ export class Implementation extends Transport {
         ipcMain.on(events.RENDER_RESPONSE_NAME, this._onRenderResponse);
     }
 
+    public destroy(): void {
+        ipcMain.removeAllListeners();
+        this._requests.forEach((request) => {
+            request.rejector(new Error(`Rejected because transport is destroying`));
+        })
+        this._requests.clear();
+        this._respondents.clear();
+        this._destroyed = true;
+    }
+
     public request<Request, Response>(
         request: Request & ISignatureRequirement,
         responseConstructorRef: EntityConstructor<Response> & ISignatureRequirement,
     ): Promise<Response> {
+        if (this._destroyed) {
+            return Promise.reject(new Error(`Transport is destroyed`));
+        }
         return new Promise((resolve, reject) => {
             const pack = new Package(this._getSequence()).payload(request);
             this._requests.set(pack.getSequence(), {
@@ -90,6 +105,9 @@ export class Implementation extends Transport {
     }
 
     public notify<Notification>(notification: Notification & ISignatureRequirement): void {
+        if (this._destroyed) {
+            return;
+        }
         this._window.webContents.send(
             events.HOST_EVENT_NAME,
             new Package(this._getSequence()).payload(notification).packed(),

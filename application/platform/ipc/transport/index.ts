@@ -57,6 +57,9 @@ export abstract class Transport {
         event: string,
         refEventConstructor: EntityConstructor<Event> & ISignatureRequirement,
     ): Subject<typeof refEventConstructor>;
+
+    public abstract destroy(): void;
+
 }
 
 export interface Packed {
