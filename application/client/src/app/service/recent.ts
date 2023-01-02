@@ -12,12 +12,15 @@ import { error } from '@platform/env/logger';
 import { TargetFileOptions, File } from '@platform/types/files';
 import { SourceDefinition } from '@platform/types/transport';
 import { IDLTOptions } from '@platform/types/parsers/dlt';
+import { Subject } from '@platform/env/subscription';
 
 const STORAGE_KEY = 'user_recent_actions';
 
 @DependOn(bridge)
 @SetupService(services['recent'])
 export class Service extends Implementation {
+    private _entryUpdate: Subject<void> = new Subject();
+
     public get(): Promise<Action[]> {
         return new Promise((resolve, reject) => {
             bridge
@@ -62,7 +65,18 @@ export class Service extends Implementation {
     }
 
     public delete(uuids: string[]): Promise<void> {
-        return bridge.entries({ key: STORAGE_KEY }).delete(uuids);
+        return new Promise<void>((resolve, reject) => {
+            bridge
+                .entries({ key: STORAGE_KEY })
+                .delete(uuids)
+                .then(() => {
+                    this._entryUpdate.emit();
+                    resolve();
+                })
+                .catch((err: Error) => {
+                    reject(err);
+                });
+        });
     }
 
     public add(): {
@@ -102,6 +116,10 @@ export class Service extends Implementation {
                 };
             },
         };
+    }
+
+    public get entryUpdate(): Subject<void> {
+        return this._entryUpdate;
     }
 }
 export interface Service extends Interface {}

@@ -45,6 +45,7 @@ export class RecentActions extends ChangesDetector implements AfterContentInit {
                 this.detectChanges();
             }),
         );
+        this.env().subscriber.register(this.state.entryUpdate());
     }
 
     public onDefaultAction(action: Action) {
@@ -65,7 +66,7 @@ export class RecentActions extends ChangesDetector implements AfterContentInit {
             {
                 caption: 'Clear All',
                 handler: () => {
-                    console.log(`Not implemented`);
+                    this.state.removeAll();
                 },
             },
         ];

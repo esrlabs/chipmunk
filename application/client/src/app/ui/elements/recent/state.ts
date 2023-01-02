@@ -2,7 +2,7 @@ import { Action } from '@service/recent/action';
 import { WrappedAction } from './action';
 import { Filter } from '@ui/env/entities/filter';
 import { recent } from '@service/recent';
-import { Subject } from '@platform/env/subscription';
+import { Subject, Subscription } from '@platform/env/subscription';
 import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { syncHasFocusedInput } from '@ui/env/globals';
@@ -76,6 +76,21 @@ export class State extends Holder {
             .catch((err: Error) => {
                 console.error(`Fail to remove recent action: ${err.message}`);
             });
+    }
+
+    public removeAll() {
+        recent
+            .get()
+            .then((actions: Action[]) => {
+                this.remove(actions.map((action: Action) => action.uuid));
+            })
+            .catch((err: Error) => {
+                console.error(`Fail to remove all recent actions: ${err.message}`);
+            });
+    }
+
+    public entryUpdate(): Subscription {
+        return recent.entryUpdate.subscribe(this.reload.bind(this));
     }
 
     protected reload(): void {
