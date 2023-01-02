@@ -65,7 +65,7 @@ export class RecentActionsMini extends ChangesDetector implements AfterViewInit,
             {
                 caption: 'Clear All',
                 handler: () => {
-                    console.log(`Not implemented`);
+                    this.state.removeAll();
                 },
             },
         ];

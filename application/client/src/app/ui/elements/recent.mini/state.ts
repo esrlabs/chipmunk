@@ -86,6 +86,17 @@ export class State extends Holder {
             });
     }
 
+    public removeAll() {
+        recent
+            .get()
+            .then((actions: Action[]) => {
+                this.remove(actions.map((action: Action) => action.uuid));
+            })
+            .catch((err: Error) => {
+                console.error(`Fail to remove all recent actions: ${err.message}`);
+            });
+    }
+
     protected move(): {
         up(): void;
         down(): void;
