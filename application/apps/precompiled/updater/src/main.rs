@@ -194,7 +194,7 @@ fn main() {
                 // User renamed chipmunk.app to something else
                 info!("Chipmunk application folder had been renamed by user to {}; target folder should be renamed to", mac_app_folder_name.to_string_lossy());
                 if let Err(e) = fs::rename(dest.join(DEFAULT_MAC_APP_FOLDER), &current_app_path) {
-                    error!("fail to rename updated application folder");
+                    error!("fail to rename updated application folder {e:?}");
                     std::process::exit(1);
                 } else {
                     info!("application folder has been renamed");
