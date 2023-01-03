@@ -166,6 +166,10 @@ export class State {
             });
     }
 
+    public isEmpty(): boolean {
+        return this.scheme.db.isEmpty();
+    }
+
     private _scrollIntoView() {
         const nodes = document.querySelectorAll(`mat-tree-node[data-selected="true"]`);
         if (nodes.length === 0) {

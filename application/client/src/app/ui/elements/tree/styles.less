@@ -5,6 +5,19 @@ app-elements-tree {
     display: block;
     width: 100%;
     height: 100%;
+    div.greeting {
+        padding: 12px;
+        & p {
+            color: @scheme-color-1;
+        }
+        & div.buttons {
+            padding-top: 12px;
+            text-align: center;
+            & button {
+                color: @scheme-color-0;
+            }
+        }
+    }
     div.controls {
         position: absolute;
         display: flex;
@@ -14,6 +27,7 @@ app-elements-tree {
         height: 32px;
         width: ~"calc(100% - 2px)";
         & app-filter-input {
+            margin-left: 12px;
             flex: auto;
         }
         & span.small-icon-button {
