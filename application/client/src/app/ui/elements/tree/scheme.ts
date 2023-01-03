@@ -34,6 +34,10 @@ export class DynamicFlatNode {
         this.expandedCallback = undefined;
         cb();
     }
+
+    public isVisible(): boolean {
+        return this.item.isVisible();
+    }
 }
 
 export class DynamicDatabase {
@@ -110,6 +114,10 @@ export class DynamicDatabase {
 
     public isExpandable(path: string): boolean {
         return this.structure.has(path);
+    }
+
+    public isEmpty(): boolean {
+        return this.roots.length === 0;
     }
 }
 

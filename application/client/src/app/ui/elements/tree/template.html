@@ -4,6 +4,12 @@
   <span [attr.class]="'small-icon-button codicon codicon-new-folder'" (click)="add()"></span>
 </div>
 <div #container class="tree" (scroll)="onScrolling($event)" tabindex="100">
+  <div class="greeting" *ngIf="state.isEmpty()">
+    <p class="t-small">You can add some locations to your favorites. It will give you a way to quickly browse files from these locations.</p>
+    <div class="buttons">
+      <button mat-stroked-button (click)="add()">Add Folder(s) to Favorites</button>
+    </div>
+  </div>
   <mat-tree [dataSource]="state.scheme.source" [treeControl]="state.scheme.tree" >
     <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding
       [matTreeNodePaddingIndent]="20"
@@ -11,7 +17,7 @@
       [attr.data-exists]="node.item.exists"
       (click)="state.select(node)"
       (dblclick)="onDefaultAction(node.item)"
-      [style.display]="!node.item.isVisible() || node.vi ? 'none' : ''"
+      [style.display]="!node.isVisible() ? 'none' : ''"
       (contextmenu)="ngItemContextMenu($event, node.item)">
       <button mat-icon-button disabled></button>
       <span [attr.class]="'name ' + (node.item.icon === undefined ? 'no-icon' : '')">
@@ -23,7 +29,7 @@
       [matTreeNodePaddingIndent]="20"
       (contextmenu)="ngItemContextMenu($event, node.item)"
       (click)="state.select(node)"
-      [style.display]="!node.item.isVisible() ? 'none' : ''"
+      [style.display]="!node.isVisible() ? 'none' : ''"
       [attr.data-selected]="node.item.selected"
       [attr.data-exists]="node.item.exists">
       <button mat-icon-button
