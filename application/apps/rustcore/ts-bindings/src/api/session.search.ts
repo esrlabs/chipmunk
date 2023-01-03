@@ -166,7 +166,7 @@ export class SessionSearch {
         });
     }
 
-    public getNearest(positionInStream: number): ICancelablePromise<INearest> {
+    public getNearest(positionInStream: number): ICancelablePromise<INearest | undefined> {
         return Executors.nearest(this._session, this._provider, this._logger, {
             positionInStream,
         });

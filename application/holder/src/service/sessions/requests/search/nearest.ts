@@ -34,8 +34,7 @@ export const handler = Requests.InjectLogger<
                             resolve(
                                 new Requests.Search.Nearest.Response({
                                     session: request.session,
-                                    stream: nearest.position,
-                                    position: nearest.index,
+                                    nearest,
                                 }),
                             );
                         })

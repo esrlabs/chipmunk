@@ -1,4 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
+import { INearest } from '../../../interfaces/interface.rust.api.general';
 
 import * as validator from '../../../env/obj';
 
@@ -20,15 +21,13 @@ export interface Request extends Interface {}
 @Define({ name: 'NearestResponse' })
 export class Response extends SignatureRequirement {
     public session: string;
-    public stream: number;
-    public position: number;
+    public nearest: INearest | undefined;
 
-    constructor(input: { session: string; stream: number; position: number }) {
+    constructor(input: { session: string; nearest: INearest | undefined }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
-        this.stream = validator.getAsValidNumber(input, 'stream');
-        this.position = validator.getAsValidNumber(input, 'position');
+        this.nearest = validator.getAsObjOrUndefined(input, 'nearest');
     }
 }
 

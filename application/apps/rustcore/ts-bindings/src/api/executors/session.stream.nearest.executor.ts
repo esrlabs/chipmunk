@@ -7,13 +7,13 @@ export interface IExecuteNearestOptions {
     positionInStream: number;
 }
 
-export const executor: TExecutor<INearest, IExecuteNearestOptions> = (
+export const executor: TExecutor<INearest | undefined, IExecuteNearestOptions> = (
     session: RustSession,
     provider: EventProvider,
     logger: Logger,
     options: IExecuteNearestOptions,
-): CancelablePromise<INearest> => {
-    return AsyncResultsExecutor<INearest, IExecuteNearestOptions>(
+): CancelablePromise<INearest | undefined> => {
+    return AsyncResultsExecutor<INearest | undefined, IExecuteNearestOptions>(
         session,
         provider,
         logger,
@@ -25,10 +25,14 @@ export const executor: TExecutor<INearest, IExecuteNearestOptions> = (
         ): Promise<any> {
             return session.getNearestTo(operationUuid, options.positionInStream);
         },
-        function (data: any, resolve: (res: INearest) => void, reject: (err: Error) => void) {
+        function (
+            data: any,
+            resolve: (res: INearest | undefined) => void,
+            reject: (err: Error) => void,
+        ) {
             try {
-                const result: INearest = JSON.parse(data);
-                resolve(result);
+                const result: INearest | undefined | null = JSON.parse(data);
+                resolve(result === null ? undefined : result);
             } catch (e) {
                 return reject(
                     new Error(
