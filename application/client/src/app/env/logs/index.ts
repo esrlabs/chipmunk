@@ -1,9 +1,12 @@
 import { LoggerParameters } from './parameters';
 import { Instance, Level } from '@platform/env/logger';
 
+import * as Events from '@platform/ipc/event';
+
 const LEFT_SPACE_ON_LOGGER_SIG = 1;
 const RIGHT_SPACE_ON_LOGGER_SIG = 1;
 const LOG_LEVEL_MAX = 7;
+const WRITE_TO_BACKEND = [Level.ERROR, Level.WARNING];
 
 export function cutUuid(uuid: string): string {
     return uuid.substring(0, 6);
@@ -16,6 +19,20 @@ export function error(err: Error | unknown): string {
 export class Logger extends Instance {
     public static maxNameLength = 0;
     public static tm: number = Date.now();
+    public static backendAllowed: boolean = false;
+    public static backend(): {
+        allow(): void;
+        disallow(): void;
+    } {
+        return {
+            allow: (): void => {
+                Logger.backendAllowed = true;
+            },
+            disallow: (): void => {
+                Logger.backendAllowed = false;
+            },
+        };
+    }
     private _signature = '';
     private _parameters: LoggerParameters = new LoggerParameters({});
 
@@ -84,6 +101,15 @@ export class Logger extends Instance {
      */
     public debug(...args: unknown[]) {
         return this._log(this._getMessage(...args), Level.DEBUG);
+    }
+
+    /**
+     * Publish debug logs
+     * @param {any} args - Any input for logs
+     * @returns {string} - Formatted log-string
+     */
+    public storable(...args: unknown[]) {
+        return this._log(this._getMessage(...args), Level.STORABLE);
     }
 
     public measure(operation: string, warnDurationMs?: number): () => void {
@@ -159,13 +185,36 @@ export class Logger extends Instance {
         return msg;
     }
 
-    private _log(original: string, level: Level) {
+    private _backend(message: string, level: Level): void {
+        if (!Logger.backendAllowed) {
+            return;
+        }
+        if (level !== Level.STORABLE && !WRITE_TO_BACKEND.includes(level)) {
+            return;
+        }
+        try {
+            Events.IpcEvent.emit(
+                new Events.Logs.Write.Event({
+                    message,
+                }),
+            );
+        } catch (e) {
+            console.error(`Fail to send to backend logs: ${error(e)}`);
+        }
+    }
+
+    private _wrap(original: string, level: Level): string {
         const levelStr = `${level}`;
         const fill = LOG_LEVEL_MAX - levelStr.length;
-        const message = `[${levelStr}${' '.repeat(
+        return `[${this._getTime()}][${levelStr}${' '.repeat(
             fill > 0 && isFinite(fill) && !isNaN(fill) ? fill : 0,
         )}][${this._signature}]: ${original}`;
-        this._console(`[${this._getTime()}]${message}`, level);
+    }
+
+    private _log(original: string, level: Level) {
+        const message = this._wrap(original, level);
+        this._console(message, level);
+        this._backend(message, level);
         return original;
     }
 }
