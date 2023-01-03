@@ -135,9 +135,7 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                     caption:
                         selectedRowsCount === 0
                             ? 'Export Selected'
-                            : `Export ${selectedRowsCount} row${
-                                  selectedRowsCount > 1 ? 's' : ''
-                              } rows`,
+                            : `Export ${selectedRowsCount} row${selectedRowsCount > 1 ? 's' : ''}`,
                     disabled: selectedRowsCount === 0,
                     handler: () => {
                         exportSelected(false);
@@ -149,7 +147,7 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                             ? 'Export Selected'
                             : `Export ${selectedRowsCount} row${
                                   selectedRowsCount > 1 ? 's' : ''
-                              } rows as raw`,
+                              } as raw`,
                     disabled: !isRawAvailable || selectedRowsCount === 0,
                     handler: () => {
                         exportSelected(true);
