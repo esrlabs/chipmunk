@@ -50,7 +50,7 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                             this.service.refresh();
                         })
                         .catch((err: Error) => {
-                            console.error(err);
+                            this.log().error(`Fail to get nearest content: ${err.message}`);
                         });
                 }
             }),
