@@ -29,6 +29,7 @@ export class State extends AdvancedState {
         this._parent.env().subscriber.register(this._service.onChange(this._onChange.bind(this)));
         this._resizeSidebar();
         this._resizeToolbar();
+        this._service.noData = this._session.search.len() <= 0;
         this._onChange(this._service.getPosition(this._session.uuid()));
     }
 
@@ -68,6 +69,12 @@ export class State extends AdvancedState {
     }
 
     protected _fetch(width: number, range: IRange): Promise<void> {
+        if (this.noData) {
+            return new Promise((resolve) => {
+                this._map = [];
+                resolve();
+            });
+        }
         this._loading = true;
         return this._session.search
             .getScaledMap(width, range)

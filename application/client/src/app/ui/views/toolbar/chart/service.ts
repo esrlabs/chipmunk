@@ -16,6 +16,7 @@ export interface IPositionChange {
 }
 
 export class Service extends Subscriber implements Destroy {
+    private _noData: boolean = true;
     private _positions: Map<string, IPosition> = new Map();
     private readonly _subjects: {
         change: Subject<IPositionChange>;
@@ -61,6 +62,14 @@ export class Service extends Subscriber implements Destroy {
             this._positions.set(session, position);
         }
         return { session: session, position: position };
+    }
+
+    public get noData(): boolean {
+        return this._noData;
+    }
+
+    public set noData(noData: boolean) {
+        this._noData = noData;
     }
 
     public onChange(handler: (event: IPositionChange) => void): Subscription {
