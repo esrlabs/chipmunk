@@ -40,7 +40,7 @@ export class Implementation extends Transport {
             ref: EntityConstructor<any> & ISignatureRequirement;
         }
     > = new Map();
-    private _destroyed: boolean = false;
+    private _destroyed = false;
 
     constructor(window: BrowserWindow) {
         super();
@@ -57,7 +57,7 @@ export class Implementation extends Transport {
         ipcMain.removeAllListeners();
         this._requests.forEach((request) => {
             request.rejector(new Error(`Rejected because transport is destroying`));
-        })
+        });
         this._requests.clear();
         this._respondents.clear();
         this._destroyed = true;
@@ -184,7 +184,7 @@ export class Implementation extends Transport {
             this._log.error(`Error with processing event "${signature}": ${payload.message}`);
             return;
         }
-        this._log.info(`Event ${signature} has been gotten and successfully constructed.`);
+        this._log.verbose(`Event ${signature} has been gotten and successfully constructed.`);
         desc.subject.emit(payload);
     }
 
@@ -211,7 +211,7 @@ export class Implementation extends Transport {
             );
             return;
         }
-        this._log.info(
+        this._log.verbose(
             `Request ${signature} (seq: ${pack.getSequence()}) has been gotten and successfully constructed.`,
         );
         respondent

@@ -6,14 +6,16 @@ export enum Level {
     WARNING = 'WARNING',
     VERBOS = 'VERBOS',
     ERROR = 'ERROR',
+    STORABLE = 'STORABLE',
 }
 
 export const LOGS_LEVEL_TABLE = {
-    VERBOS: [Level.VERBOS, Level.DEBUG, Level.INFO, Level.WARNING, Level.ERROR],
-    DEBUG: [Level.DEBUG, Level.INFO, Level.WARNING, Level.ERROR],
-    INFO: [Level.INFO, Level.WARNING, Level.ERROR],
-    WARNING: [Level.WARNING, Level.ERROR],
-    ERROR: [Level.ERROR],
+    VERBOS: [Level.VERBOS, Level.DEBUG, Level.INFO, Level.WARNING, Level.ERROR, Level.STORABLE],
+    DEBUG: [Level.DEBUG, Level.INFO, Level.WARNING, Level.ERROR, Level.STORABLE],
+    INFO: [Level.INFO, Level.WARNING, Level.ERROR, Level.STORABLE],
+    WARNING: [Level.WARNING, Level.ERROR, Level.STORABLE],
+    ERROR: [Level.ERROR, Level.STORABLE],
+    STORABLE: [Level.ERROR, Level.STORABLE],
 };
 
 export function isValidLevel(level: string): boolean {
@@ -56,6 +58,7 @@ export abstract class Instance {
     abstract verbose(...args: unknown[]): string;
     abstract debug(...args: unknown[]): string;
     abstract error(...args: unknown[]): string;
+    abstract storable(...args: unknown[]): string;
     abstract measure(...args: unknown[]): () => void;
     abstract rename(signature: string): void;
 }

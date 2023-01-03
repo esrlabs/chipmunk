@@ -25,6 +25,7 @@ import { hotkeys } from '@service/hotkeys';
 import { cli } from '@service/cli';
 import { actions } from '@service/actions';
 import { favorites } from '@service/favorites';
+import { sys } from '@service/sys';
 
 import { Subscriber } from '@platform/env/subscription';
 
@@ -67,6 +68,7 @@ export interface IlcInterface {
 @DependOn(cli)
 @DependOn(actions)
 @DependOn(favorites)
+@DependOn(sys)
 // UI services
 @DependOn(sidebar)
 @DependOn(toolbar)

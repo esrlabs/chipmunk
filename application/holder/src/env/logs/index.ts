@@ -1,6 +1,6 @@
-import { LoggerParameters } from './parameters';
 import { Instance, Level } from 'platform/env/logger';
 import { FileStore } from './filestore';
+import { settings } from './settings';
 
 import * as path from 'path';
 
@@ -25,16 +25,14 @@ export function error(err: Error | unknown): string {
 export class Logger extends Instance {
     public static maxNameLength = 0;
     private _signature = '';
-    private _parameters: LoggerParameters = new LoggerParameters({});
 
     /**
      * @constructor
      * @param {string} signature        - Signature of logger instance
      * @param {LoggerParameters} params - Logger parameters
      */
-    constructor(signature: string, params?: LoggerParameters) {
+    constructor(signature: string) {
         super();
-        params instanceof LoggerParameters && (this._parameters = params);
         if (signature.length > Logger.maxNameLength) {
             Logger.maxNameLength = signature.length;
         }
@@ -116,35 +114,33 @@ export class Logger extends Instance {
 
     public write(message: string): void {
         const msg = `[${this._signature}]: ${message}`;
-        store.write(msg);
-        this._console(msg, Level.STORABLE);
+        this.publish(msg, Level.STORABLE);
     }
 
-    private _console(message: string, level: Level) {
-        if (!this._parameters.console) {
+    protected publish(message: string, level: Level) {
+        if (level !== Level.STORABLE && !settings.getAllowedConsole()[level]) {
             return;
         }
-        (level === Level.STORABLE || this._parameters.getAllowedConsole()[level]) &&
-            console.log(
-                `%c${message}`,
-                (() => {
-                    switch (level) {
-                        case Level.VERBOS:
-                            return 'color: grey';
-                        case Level.INFO:
-                            return 'color: blue';
-                        case Level.DEBUG:
-                            return 'color: green';
-                        case Level.WARNING:
-                            return 'color: yellow';
-                        case Level.ERROR:
-                            return 'color: red';
-                        default:
-                            return '';
-                    }
-                })(),
-            );
-        /* tslint:enable */
+        console.log(
+            `%c${message}`,
+            (() => {
+                switch (level) {
+                    case Level.VERBOS:
+                        return 'color: grey';
+                    case Level.INFO:
+                        return 'color: blue';
+                    case Level.DEBUG:
+                        return 'color: green';
+                    case Level.WARNING:
+                        return 'color: yellow';
+                    case Level.ERROR:
+                        return 'color: red';
+                    default:
+                        return '';
+                }
+            })(),
+        );
+        store.write(message);
     }
 
     private _getMessage(...args: unknown[]) {
@@ -173,8 +169,7 @@ export class Logger extends Instance {
         const message = `[${this._getTime()}][${levelStr}${' '.repeat(
             fill > 0 && isFinite(fill) && !isNaN(fill) ? fill : 0,
         )}][${this._signature}]: ${original}`;
-        this._console(message, level);
-        store.write(message);
+        this.publish(message, level);
         return original;
     }
 }

@@ -117,7 +117,6 @@ function check() {
         return;
     }
     const args = process.argv.slice();
-    console.log(args);
     const executor = args.shift();
     if (executor === undefined) {
         // Unexpected amount of arguments

@@ -10,10 +10,6 @@ export const services: { [key: string]: Inputs } = {
         name: 'Paths',
         uuid: v4(),
     },
-    environment: {
-        name: 'Environment',
-        uuid: v4(),
-    },
     production: {
         name: 'Production',
         uuid: v4(),

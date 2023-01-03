@@ -14,7 +14,7 @@ export const handler = Requests.InjectLogger<
         request: Requests.Serial.Ports.Request,
     ): CancelablePromise<Requests.Serial.Ports.Response> => {
         return new CancelablePromise((resolve, reject) => {
-            log.info(request);
+            log.debug(request);
             const scanning = jobs
                 .create({
                     name: 'scan ports',

@@ -145,7 +145,7 @@ export class Service extends Implementation {
                 handler: () => {
                     return this._delivery().then((updater: string) => {
                         global.application
-                            .shutdown()
+                            .shutdown('Updating')
                             .update(new Update(updater, filename, paths.getExec(true)))
                             .catch((err: Error) => {
                                 this.log().error(`Fail to trigger updating; error: ${err.message}`);

@@ -49,11 +49,26 @@ export class Service extends Implementation {
         return Promise.resolve();
     }
 
-    public override destroy(): Promise<void> {
+    public override async destroy(): Promise<void> {
         this._emitter.destroy();
         this._channel.destroy();
-        super.destroy();
-        return Promise.resolve();
+        await super.destroy();
+        if (this._sessions.size > 0) {
+            throw new Error(
+                `Destroy is called with existed sessions. Count of opened session ${this._sessions.size}`,
+            );
+        }
+    }
+
+    public async closeAllSessions(): Promise<void> {
+        this.log().storable(`All sessions will be closed`);
+        for (const session of Array.from(this._sessions.values())) {
+            const uuid = session.uuid();
+            await this.kill(uuid).catch((err: Error) => {
+                this.log().error(`Fail to close session "${uuid}": ${err.message}`);
+            });
+        }
+        this.log().storable(`All sessions are be closed`);
     }
 
     public kill(uuid: string): Promise<void> {

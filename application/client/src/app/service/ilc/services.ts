@@ -19,6 +19,7 @@ import { env, Service as EnvService } from '@service/env';
 import { actions, Service as ActionsService } from '@service/actions';
 import { settings, Service as Settings } from '@service/settings';
 import { favorites, Service as Favorites } from '@service/favorites';
+import { sys, Service as Sys } from '@service/sys';
 
 import { Instance as Logger } from '@platform/env/logger';
 
@@ -36,6 +37,7 @@ export class Services {
         actions: ActionsService;
         settings: Settings;
         favorites: Favorites;
+        sys: Sys;
     };
     public readonly ui: {
         popup: UIPopupService;
@@ -68,6 +70,7 @@ export class Services {
             actions,
             settings,
             favorites,
+            sys,
         };
         this.ui = {
             popup,

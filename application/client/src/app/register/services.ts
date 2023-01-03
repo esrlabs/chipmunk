@@ -70,6 +70,10 @@ export const services: { [key: string]: Inputs } = {
         name: 'Settings',
         uuid: v4(),
     },
+    sys: {
+        name: 'Sys',
+        uuid: v4(),
+    },
     favorites: {
         name: 'Favorites',
         uuid: v4(),

@@ -8,10 +8,13 @@ import { system } from 'platform/modules/system';
 import { Transport } from 'platform/ipc/transport';
 import { Settings, Window as WindowSettings } from './window/settings';
 import { SettingsHolder, settingsFactory } from '@controller/settings';
-import { environment } from '@service/environment';
+import { envvars } from '@loader/envvars';
+import { ChipmunkGlobal } from '@register/global';
 
 import * as path from 'path';
 import * as Events from 'platform/ipc/event';
+
+declare const global: ChipmunkGlobal;
 
 @Define({ name: 'Window', parent: services['electron'], accessor: system.getServicesAccessor() })
 export class Window extends Implementation {
@@ -50,6 +53,19 @@ export class Window extends Implementation {
         this._ipc = new ElectronIPCTransport(this._window);
         this._window.on('resize', this._resize.bind(this));
         this._window.on('move', this._resize.bind(this));
+        this._window.once('close', (event: Event) => {
+            this.log().debug(`Closing of browser window is prevented`);
+            event.preventDefault();
+            event.returnValue = false;
+            global.application
+                .shutdown('onBrowserWindowClose')
+                .close()
+                .catch((err: Error) => {
+                    this.log().error(
+                        `Fail to trigger closing of application; error: ${err.message}`,
+                    );
+                });
+        });
         scope.setTransport(this._ipc);
         Events.IpcEvent.subscribe(
             Events.State.Client.Event,
@@ -63,7 +79,7 @@ export class Window extends Implementation {
             },
         );
         this._window.loadFile(path.resolve(paths.getClient(), 'index.html'));
-        environment.get().CHIPMUNK_DEVELOPING_MODE && this._window.webContents.openDevTools();
+        envvars.get().CHIPMUNK_DEVELOPING_MODE && this._window.webContents.openDevTools();
         return Promise.resolve();
     }
 

@@ -9,7 +9,7 @@ import { Module } from './module';
 import { version } from '@module/version';
 import { error } from 'platform/env/logger';
 import { settings } from '@service/settings';
-import { environment } from '@service/environment';
+import { envvars } from '@loader/envvars';
 
 const PROXY = { key: 'proxy', path: 'general.network' };
 const AUTHORIZATION = { key: 'authorization', path: 'general.network' };
@@ -38,7 +38,7 @@ export class Net extends Module {
         if (typeof proxy === 'string' && proxy.trim() !== '') {
             return proxy;
         }
-        const env = environment.getOS();
+        const env = envvars.getOS();
         if (uri.protocol === 'http:') {
             return env['HTTP_PROXY'] || env['http_proxy'] || undefined;
         } else if (uri.protocol === 'https:') {

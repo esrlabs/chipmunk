@@ -9,12 +9,10 @@ export const handler = Requests.InjectLogger<
     CancelablePromise<Requests.App.Version.Response>
 >(
     (
-        log: Logger,
-        request: Requests.App.Version.Request,
+        _log: Logger,
+        _request: Requests.App.Version.Request,
     ): CancelablePromise<Requests.App.Version.Response> => {
         return new CancelablePromise((resolve, _reject) => {
-            log.info(request);
-
             resolve(
                 new Requests.App.Version.Response({
                     version: version.getVersion(),

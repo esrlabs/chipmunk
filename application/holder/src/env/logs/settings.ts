@@ -1,19 +1,29 @@
 import { Level, LOGS_LEVEL_TABLE } from 'platform/env/logger';
+import { envvars } from '@loader/envvars';
 
 export const DEFAUT_ALLOWED_CONSOLE = {
     DEBUG: true,
     ERROR: true,
     INFO: true,
-    VERBOS: false,
+    VERBOS: true,
     WARNING: true,
+    STORABLE: true,
 };
 
-export type TOutputFunc = (...args: unknown[]) => unknown;
-export type TLogCallback = (message: string, level: Level) => void;
-
 export class Settings {
-    private level: Level = Level.WARNING;
-    private allowed: { [key: string]: boolean } = {};
+    public static getDefaultLevel(): Level {
+        if (envvars.get().CHIPMUNK_DEVELOPING_MODE) {
+            return Level.DEBUG;
+        }
+        const devLevel = envvars.get().CHIPMUNK_DEV_LOGLEVEL;
+        if (devLevel !== undefined) {
+            return devLevel as Level;
+        }
+        return Level.WARNING;
+    }
+
+    protected level: Level = Settings.getDefaultLevel();
+    protected allowed: { [key: string]: boolean } = {};
 
     constructor() {
         this._update();
@@ -28,10 +38,15 @@ export class Settings {
         return this.allowed;
     }
 
+    public refreshFromEnvVars() {
+        this.level = Settings.getDefaultLevel();
+        this._update();
+    }
+
     private _update() {
         this.allowed = Object.assign({}, DEFAUT_ALLOWED_CONSOLE);
         Object.keys(this.allowed).forEach((key: string) => {
-            this.allowed[key] = LOGS_LEVEL_TABLE[this.level].indexOf(key as Level) !== -1;
+            this.allowed[key] = LOGS_LEVEL_TABLE[this.level].includes(key as Level);
         });
     }
 }

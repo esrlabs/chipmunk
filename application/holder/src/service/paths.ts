@@ -5,7 +5,6 @@ import {
     DependOn,
     register,
 } from 'platform/entity/service';
-import { environment } from '@service/environment';
 import { production } from '@service/production';
 import { app } from 'electron';
 import { services } from '@register/services';
@@ -28,7 +27,6 @@ export function getHomeFolder(): string {
 }
 
 @DependOn(production)
-@DependOn(environment)
 @SetupService(services['paths'])
 export class Service extends Implementation {
     private _home = '';

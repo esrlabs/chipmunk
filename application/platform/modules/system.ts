@@ -37,7 +37,7 @@ export class Service extends Implementation {
         const inited = this._inited;
         const register = this._register;
         const logger = this._logger;
-        logger.info(`initing services...`);
+        logger.debug(`initing services...`);
         async function initialize(
             service: Interface & Implementation,
             uuids: string[],
@@ -53,7 +53,7 @@ export class Service extends Implementation {
                 uuids.push(uuid);
             });
             await service.init();
-            logger.info(`service "${service.getName()}" inited`);
+            logger.debug(`service "${service.getName()}" inited`);
             inited.unshift(service);
             register.set(service.getUuid(), service);
             uuids.push(service.getUuid());
@@ -75,7 +75,7 @@ export class Service extends Implementation {
                 return Promise.reject(new Error(error(err)));
             }
         }
-        logger.info(`all services are inited...`);
+        logger.debug(`all services are inited...`);
         this.subjects.inited.emit();
         if (hooks !== undefined && hooks.before !== undefined) {
             await hooks.before();
@@ -107,7 +107,7 @@ export class Service extends Implementation {
         for (const service of this._inited) {
             try {
                 await service.destroy();
-                this._logger.info(`service "${service.getName()}" destroyed`);
+                this._logger.debug(`service "${service.getName()}" destroyed`);
             } catch (err) {
                 return Promise.reject(new Error(error(err)));
             }
