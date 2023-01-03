@@ -7,13 +7,17 @@ import {
 } from 'platform/entity/service';
 import { services } from '@register/services';
 import { electron } from '@service/electron';
+import { Logger } from '@env/logs/index';
 
 import * as Requests from 'platform/ipc/request';
 import * as RequestHandlers from './bridge/index';
+import * as Events from 'platform/ipc/event';
 
 @DependOn(electron)
 @SetupService(services['bridge'])
 export class Service extends Implementation {
+    protected clientLogger: Logger | undefined = new Logger('Client');
+
     public override ready(): Promise<void> {
         this.register(
             electron
@@ -195,11 +199,17 @@ export class Service extends Implementation {
                     RequestHandlers.Serial.Ports.handler,
                 ),
         );
+        this.register(
+            Events.IpcEvent.subscribe(Events.Logs.Write.Event, (event: Events.Logs.Write.Event) => {
+                this.clientLogger !== undefined && this.clientLogger.write(event.message);
+            }),
+        );
         return Promise.resolve();
     }
 
     public override destroy(): Promise<void> {
         this.unsubscribe();
+        this.clientLogger = undefined;
         return Promise.resolve();
     }
 }

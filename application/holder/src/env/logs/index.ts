@@ -18,7 +18,6 @@ export function unbind(): Promise<void> {
     return store.unbind();
 }
 
-
 export function error(err: Error | unknown): string {
     return `${err instanceof Error ? err.message : err}`;
 }
@@ -95,6 +94,15 @@ export class Logger extends Instance {
         return this._log(this._getMessage(...args), Level.DEBUG);
     }
 
+    /**
+     * Publish debug logs
+     * @param {any} args - Any input for logs
+     * @returns {string} - Formatted log-string
+     */
+    public storable(...args: unknown[]) {
+        return this._log(this._getMessage(...args), Level.STORABLE);
+    }
+
     public measure(operation: string): () => void {
         const started = Date.now();
         this.debug(`starting "${operation}"`);
@@ -106,11 +114,17 @@ export class Logger extends Instance {
         };
     }
 
+    public write(message: string): void {
+        const msg = `[${this._signature}]: ${message}`;
+        store.write(msg);
+        this._console(msg, Level.STORABLE);
+    }
+
     private _console(message: string, level: Level) {
         if (!this._parameters.console) {
             return;
         }
-        this._parameters.getAllowedConsole()[level] &&
+        (level === Level.STORABLE || this._parameters.getAllowedConsole()[level]) &&
             console.log(
                 `%c${message}`,
                 (() => {
