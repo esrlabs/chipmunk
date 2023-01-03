@@ -8,7 +8,7 @@ import {
 import { services } from '@register/services';
 import { electron } from '@service/electron';
 import { paths } from '@service/paths';
-import { environment } from '@service/environment';
+import { envvars } from '@loader/envvars';
 import { isDevelopingExecuting } from '@loader/cli';
 import { exec } from 'sudo-prompt';
 import { ParserName } from 'platform/types/observe';
@@ -21,7 +21,6 @@ import * as fs from 'fs';
 const UNIX_LOCAL_BIN = '/usr/local/bin';
 const UNIX_SYMLINK_PATH = `${UNIX_LOCAL_BIN}/cm`;
 
-@DependOn(environment)
 @DependOn(paths)
 @DependOn(electron)
 @SetupService(services['cli'])
@@ -226,7 +225,7 @@ export class Service extends Implementation {
                 }
             },
             exists: async (): Promise<boolean> => {
-                const vars = environment.getOS();
+                const vars = envvars.getOS();
                 switch (process.platform) {
                     case 'win32':
                         return (

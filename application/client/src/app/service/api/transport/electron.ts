@@ -66,7 +66,7 @@ export class Implementation extends Transport {
         ipc().unsubscribeAll(events.HOST_RESPONSE_NAME);
         this._requests.forEach((request) => {
             request.rejector(new Error(`Rejected because transport is destroying`));
-        })
+        });
         this._requests.clear();
         this._respondents.clear();
     }
@@ -197,7 +197,7 @@ export class Implementation extends Transport {
             this._log.error(`Error with processing event "${signature}": ${payload.message}`);
             return;
         }
-        this._log.info(`Event ${signature} has been gotten and successfully constructed.`);
+        this._log.verbose(`Event ${signature} has been gotten and successfully constructed.`);
         this._zone(() => {
             desc.subject.emit(payload);
         });
@@ -226,7 +226,7 @@ export class Implementation extends Transport {
             );
             return;
         }
-        this._log.info(
+        this._log.verbose(
             `Request ${signature} (seq: ${pack.getSequence()}) has been gotten and successfully constructed.`,
         );
         this._zone(() => {

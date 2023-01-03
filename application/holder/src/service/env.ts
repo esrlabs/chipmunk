@@ -8,7 +8,7 @@ import {
 import { services } from '@register/services';
 import { electron } from '@service/electron';
 import { storage } from '@service/storage';
-import { environment } from '@service/environment';
+import { envvars } from '@loader/envvars';
 import { CancelablePromise } from 'platform/env/promise';
 import { Storage } from './env/storage';
 import { error } from 'platform/env/logger';
@@ -19,7 +19,6 @@ import * as Requests from 'platform/ipc/request';
 
 @DependOn(electron)
 @DependOn(storage)
-@DependOn(environment)
 @SetupService(services['env'])
 export class Service extends Implementation {
     protected cwd: Map<string, string> = new Map();
@@ -181,7 +180,7 @@ export class Service extends Implementation {
             .catch((err: Error) => {
                 this.log().error(`Error to write storage: ${err.message}`);
             });
-        const os = Object.assign({}, environment.getOS()) as { [key: string]: string };
+        const os = Object.assign({}, envvars.getOS()) as { [key: string]: string };
         return Object.assign(os, injected === undefined ? {} : injected);
     }
 

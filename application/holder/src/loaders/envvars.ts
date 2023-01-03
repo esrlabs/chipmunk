@@ -1,7 +1,5 @@
-import { SetupService, Interface, Implementation, register } from 'platform/entity/service';
 import { getEnvVar, getElectronAppShellEnvVars } from '@env/os';
 import { setProp, getProp } from 'platform/env/obj';
-import { services } from '@register/services';
 
 export enum EChipmunkEnvVars {
     /**
@@ -84,6 +82,18 @@ export interface IChipmunkEnvVars {
 }
 
 const CChipmunkEnvVarsParsers: { [key: string]: (smth: unknown) => boolean } = {
+    [EChipmunkEnvVars.CHIPMUNK_DEVELOPING_MODE]: (smth: unknown): boolean => {
+        if (
+            typeof smth === 'string' &&
+            ['true', 'on', '1'].indexOf(smth.toLowerCase().trim()) !== -1
+        ) {
+            return true;
+        }
+        if (typeof smth === 'number' && smth === 1) {
+            return true;
+        }
+        return false;
+    },
     [EChipmunkEnvVars.CHIPMUNK_NO_WEBDEVTOOLS]: (smth: unknown): boolean => {
         if (
             typeof smth === 'string' &&
@@ -158,10 +168,18 @@ const CChipmunkEnvVarsParsers: { [key: string]: (smth: unknown) => boolean } = {
     },
 };
 
-@SetupService(services['environment'])
-export class Service extends Implementation {
-    private _inited: Implementation[] = [];
+const GeneralEnvVarsList = [
+    EChipmunkEnvVars.CHIPMUNK_DEVELOPING_MODE,
+    EChipmunkEnvVars.CHIPMUNK_NO_WEBDEVTOOLS,
+    EChipmunkEnvVars.CHIPMUNK_DEV_LOGLEVEL,
+    EChipmunkEnvVars.CHIPMUNK_NO_RENDER_LOGS,
+    EChipmunkEnvVars.CHIPMUNK_PLUGINS_SANDBOX,
+    EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_DEFAULTS,
+    EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_UPDATES,
+    EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID,
+];
 
+export class GeneralEnvVars {
     private _env: IChipmunkEnvVars = {
         CHIPMUNK_DEVELOPING_MODE: undefined,
         CHIPMUNK_NO_WEBDEVTOOLS: undefined,
@@ -175,24 +193,10 @@ export class Service extends Implementation {
     };
     private _os: typeof process.env = process.env;
 
-    /**
-     * Initialization function
-     * @returns Promise<void>
-     */
-    public override init(): Promise<void> {
+    public init(): Promise<void> {
         return new Promise((resolve) => {
-            const list = [
-                EChipmunkEnvVars.CHIPMUNK_DEVELOPING_MODE,
-                EChipmunkEnvVars.CHIPMUNK_NO_WEBDEVTOOLS,
-                EChipmunkEnvVars.CHIPMUNK_DEV_LOGLEVEL,
-                EChipmunkEnvVars.CHIPMUNK_NO_RENDER_LOGS,
-                EChipmunkEnvVars.CHIPMUNK_PLUGINS_SANDBOX,
-                EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_DEFAULTS,
-                EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_UPDATES,
-                EChipmunkEnvVars.CHIPMUNK_PLUGINS_NO_REMOVE_NOTVALID,
-            ];
             Promise.all(
-                list.map((env: string) => {
+                GeneralEnvVarsList.map((env: string) => {
                     return getEnvVar(env)
                         .then((value: string) => {
                             if (typeof value !== 'string' || value.trim() === '') {
@@ -206,7 +210,7 @@ export class Service extends Implementation {
                             }
                         })
                         .catch((err: Error) => {
-                            this.log().warn(
+                            console.error(
                                 `Cannot detect env "${env}" due error: ${
                                     err instanceof Error ? err.message : err
                                 }`,
@@ -217,25 +221,18 @@ export class Service extends Implementation {
             )
                 .catch((error: Error) => {
                     // Drop all to default
-                    list.forEach((env: string) => {
+                    GeneralEnvVarsList.forEach((env: string) => {
                         setProp(this._env, env, undefined);
                     });
-                    this.log().error(`Fail to detect OS env due error: ${error.message}`);
+                    console.error(`Fail to detect OS env due error: ${error.message}`);
                 })
                 .finally(() => {
-                    this.log().debug(
-                        `Next env vars are detected:\n${list
-                            .map((env: string) => {
-                                return `\t${env}=${getProp(this._env, env)}`;
-                            })
-                            .join('\n')}`,
-                    );
                     getElectronAppShellEnvVars(process.execPath)
                         .then((vars) => {
                             this._os = vars;
                         })
                         .catch((err: Error) => {
-                            this.log().warn(
+                            console.error(
                                 `Fail get all envvars due error: ${
                                     err instanceof Error ? err.message : err
                                 }`,
@@ -253,7 +250,12 @@ export class Service extends Implementation {
     public getOS(): typeof process.env {
         return this._os;
     }
-}
-export interface Service extends Interface {}
 
-export const environment = register(new Service());
+    public envsToString(): string {
+        return `Next env vars are detected:\n${GeneralEnvVarsList.map((env: string) => {
+            return `\t${env}=${getProp(this._env, env)}`;
+        }).join('\n')}`;
+    }
+}
+
+export const envvars = new GeneralEnvVars();
