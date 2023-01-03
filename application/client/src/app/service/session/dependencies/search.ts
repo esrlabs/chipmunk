@@ -1,6 +1,6 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
-import { ISearchMap } from '@platform/interfaces/interface.rust.api.general';
+import { ISearchMap, INearest } from '@platform/interfaces/interface.rust.api.general';
 import { cutUuid } from '@log/index';
 import { IFilter, ISearchUpdated } from '@platform/types/filter';
 import { IRange } from '@platform/types/range';
@@ -140,7 +140,7 @@ export class Search extends Subscriber {
         });
     }
 
-    public nearest(stream: number): Promise<{ stream: number; position: number }> {
+    public nearest(stream: number): Promise<INearest | undefined> {
         return new Promise((resolve) => {
             Requests.IpcRequest.send(
                 Requests.Search.Nearest.Response,
@@ -150,7 +150,7 @@ export class Search extends Subscriber {
                 }),
             )
                 .then((response: Requests.Search.Nearest.Response) => {
-                    resolve({ stream: response.stream, position: response.position });
+                    resolve(response.nearest);
                 })
                 .catch((error: Error) => {
                     this.log().error(`Fail to get nearest content: ${error.message}`);

@@ -43,9 +43,10 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                     this.session.search
                         .nearest(single)
                         .then((location) => {
-                            this.service.scrollTo(
-                                location.position - 2 < 0 ? 0 : location.position - 2,
-                            );
+                            if (location === undefined) {
+                                return;
+                            }
+                            this.service.scrollTo(location.index - 2 < 0 ? 0 : location.index - 2);
                             this.service.refresh();
                         })
                         .catch((err: Error) => {

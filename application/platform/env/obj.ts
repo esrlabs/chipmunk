@@ -160,7 +160,7 @@ export function getAsObj(src: any, key: string, defaults?: unknown): any {
 }
 
 export function getAsObjOrUndefined(src: any, key: string, defaults?: unknown): any {
-    if (typeof src[key] !== 'object') {
+    if (typeof src[key] !== 'object' || isUndefinedOrNull(src, key)) {
         if (defaults !== undefined) {
             return defaults;
         } else {
@@ -199,7 +199,7 @@ export function getAsValidNumberOrUndefined(
     key: string,
     conditions?: { min?: number; max?: number; defaults?: number },
 ): number | undefined {
-    return src[key] === undefined ? undefined : getAsValidNumber(src, key, conditions);
+    return isUndefinedOrNull(src, key) ? undefined : getAsValidNumber(src, key, conditions);
 }
 
 export function getAsArray<T>(src: any, key: string): Array<T> {
@@ -207,6 +207,10 @@ export function getAsArray<T>(src: any, key: string): Array<T> {
         throw new Error(`Parameter "${key}" should be valid array`);
     }
     return src[key];
+}
+
+export function isUndefinedOrNull(src: any, key: string): boolean {
+    return src[key] === undefined || src[key] === null;
 }
 
 export function getAsArrayOrUndefined<T>(src: any, key: string): Array<T> | undefined {
