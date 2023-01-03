@@ -72,9 +72,9 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
             this.row.session.exporter
                 .export(raw)
                 .stream(this.row.session.selection().ranges())
-                .then(() => {
+                .then((saved: boolean) => {
                     progress.popup.close();
-                    confirmToUser();
+                    saved && confirmToUser();
                 })
                 .catch((err: Error) => {
                     this.log().error(`Fail to export data${raw ? ' (raw)' : ''}: ${err.message}`);
@@ -94,9 +94,9 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
             this.row.session.exporter
                 .export(raw)
                 .search()
-                .then(() => {
+                .then((saved: boolean) => {
                     progress.popup.close();
-                    confirmToUser();
+                    saved && confirmToUser();
                 })
                 .catch((err: Error) => {
                     this.log().error(`Fail to export data${raw ? ' (raw)' : ''}: ${err.message}`);
