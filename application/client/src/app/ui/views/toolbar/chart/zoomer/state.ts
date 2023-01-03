@@ -17,6 +17,7 @@ export class State extends AdvancedState {
                 this._update();
             }),
         );
+        this._service.noData = this._session.search.len() <= 0;
         this._fetch(this._width).catch((err: Error) => {
             this._parent.log().error(err.message);
         });
@@ -29,6 +30,12 @@ export class State extends AdvancedState {
     }
 
     protected _fetch(width: number): Promise<void> {
+        if (this.noData) {
+            return new Promise((resolve) => {
+                this._map = [];
+                resolve();
+            });
+        }
         return this._session.search
             .getScaledMap(width)
             .then((map) => {

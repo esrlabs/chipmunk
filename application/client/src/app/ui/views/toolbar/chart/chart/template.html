@@ -1,6 +1,6 @@
 <div class="info-container">
     <mat-spinner *ngIf="this.state.isLoading() && !this.state.noData" [diameter]="32" mode="indeterminate"></mat-spinner>
-    <p *ngIf="this.state.noData" class="t-medium color-scheme-2">No Data</p>
+    <p [ngStyle]="{ 'display': (this.state.noData ? 'block' : 'none') }" class="t-medium color-scheme-3">No Data</p>
 </div>
 <div [attr.class]="'container filters ' + (this.state.filters === undefined || this.state.noData ? 'hidden' : '')"
      (mousemove)="state.onMouseMove($event)"

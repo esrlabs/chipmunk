@@ -11,8 +11,6 @@ export enum EChartName {
 }
 
 export abstract class AdvancedState extends BasicState {
-    public noData: boolean = false;
-
     protected _filters: Chart | undefined;
     protected _datasets: ChartDataset<'bar', number[]>[] = [];
     protected _map: ISearchMap = [];
@@ -22,6 +20,10 @@ export abstract class AdvancedState extends BasicState {
 
     public get filters(): Chart | undefined {
         return this._filters;
+    }
+
+    public get noData(): boolean {
+        return this._service === undefined ? true : this._service.noData;
     }
 
     protected abstract override init(): void;
@@ -52,11 +54,15 @@ export abstract class AdvancedState extends BasicState {
     }
 
     protected _update(): void {
-        if (this._filters !== undefined && this._filters.width > 0) {
-            this._fetch(this._filters.width).catch((err: Error) => {
-                this._parent.log().error(err.message);
-            });
+        if (this._session !== undefined && this._session.search.len() <= 0) {
+            this._service.noData = true;
+            this._parent.detectChanges();
+            return;
         }
+        this._service.noData = false;
+        this._fetch(this._width).catch((err: Error) => {
+            this._parent.log().error(err.message);
+        });
     }
 
     protected _draw(chartName: EChartName): void {
@@ -64,7 +70,8 @@ export abstract class AdvancedState extends BasicState {
             window.clearTimeout(this._drawTimeout);
         }
         this._drawTimeout = window.setTimeout(() => {
-            this._extractData();
+            const checkForData: boolean = chartName === EChartName.zoomerFilters;
+            this._extractData(checkForData);
             if (this._filters === undefined) {
                 this._createChart(chartName);
             } else {
@@ -97,7 +104,7 @@ export abstract class AdvancedState extends BasicState {
         this._filters.update();
     }
 
-    private _extractData(): void {
+    private _extractData(checkForData: boolean): void {
         this._datasets = [];
         const filters: StoredEntity<FilterRequest>[] = this._session.search
             .store()
@@ -131,7 +138,9 @@ export abstract class AdvancedState extends BasicState {
                 this._datasets[index].backgroundColor = filter.definition.colors.background;
             });
         });
-        this.noData = noData;
+        if (checkForData) {
+            this._service.noData = noData;
+        }
     }
 
     private _createChart(chartName: EChartName): void {
