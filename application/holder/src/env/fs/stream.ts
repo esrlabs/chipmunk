@@ -30,6 +30,7 @@ export class StreamController {
         this.closed = true;
         return new Promise((resolve) => {
             this.stream.end(() => {
+                this.stream.destroy();
                 resolve();
             });
         });
