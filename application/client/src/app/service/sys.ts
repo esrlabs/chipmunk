@@ -56,11 +56,11 @@ export class Service extends Implementation {
                                         );
                                     })
                                     .finally(() => {
-                                        this.log().storable(`Shutdowning services`);
+                                        this.log().debug(`Shutdowning services`);
                                         system
                                             .destroy()
                                             .then(() => {
-                                                this.log().storable(
+                                                this.log().debug(
                                                     `All services are down. Client can be closed`,
                                                 );
                                             })

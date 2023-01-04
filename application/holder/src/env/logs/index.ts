@@ -92,15 +92,6 @@ export class Logger extends Instance {
         return this._log(this._getMessage(...args), Level.DEBUG);
     }
 
-    /**
-     * Publish debug logs
-     * @param {any} args - Any input for logs
-     * @returns {string} - Formatted log-string
-     */
-    public storable(...args: unknown[]) {
-        return this._log(this._getMessage(...args), Level.STORABLE);
-    }
-
     public measure(operation: string): () => void {
         const started = Date.now();
         this.debug(`starting "${operation}"`);
@@ -112,13 +103,15 @@ export class Logger extends Instance {
         };
     }
 
-    public write(message: string): void {
-        const msg = `[${this._signature}]: ${message}`;
-        this.publish(msg, Level.STORABLE);
+    public write(message: string, level: Level): void {
+        if (!settings.getAllowedConsole()[level]) {
+            return;
+        }
+        store.write(`[${this._signature}]: ${message}`);
     }
 
     protected publish(message: string, level: Level) {
-        if (level !== Level.STORABLE && !settings.getAllowedConsole()[level]) {
+        if (!settings.getAllowedConsole()[level]) {
             return;
         }
         console.log(

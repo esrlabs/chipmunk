@@ -1,36 +1,30 @@
-import { Level, LOGS_LEVEL_TABLE } from 'platform/env/logger';
+import { Level, LOGS_LEVEL_TABLE, getLogLevelFromStr } from 'platform/env/logger';
 import { envvars } from '@loader/envvars';
 
 export const DEFAUT_ALLOWED_CONSOLE = {
     DEBUG: true,
     ERROR: true,
     INFO: true,
-    VERBOS: true,
+    VERBOS: false,
     WARNING: true,
-    STORABLE: true,
 };
 
 export class Settings {
     public static getDefaultLevel(): Level {
-        if (envvars.get().CHIPMUNK_DEVELOPING_MODE) {
-            return Level.DEBUG;
+        if (envvars.get().CHIPMUNK_DEVELOPING_MODE === true) {
+            return Level.VERBOS;
         }
-        const devLevel = envvars.get().CHIPMUNK_DEV_LOGLEVEL;
+        const devLevel = getLogLevelFromStr(envvars.get().CHIPMUNK_DEV_LOGLEVEL);
         if (devLevel !== undefined) {
-            return devLevel as Level;
+            return devLevel;
         }
-        return Level.WARNING;
+        return Level.DEBUG;
     }
 
     protected level: Level = Settings.getDefaultLevel();
     protected allowed: { [key: string]: boolean } = {};
 
     constructor() {
-        this._update();
-    }
-
-    public setLevel(level: Level) {
-        this.level = level;
         this._update();
     }
 

@@ -6,7 +6,7 @@ import * as Events from '@platform/ipc/event';
 const LEFT_SPACE_ON_LOGGER_SIG = 1;
 const RIGHT_SPACE_ON_LOGGER_SIG = 1;
 const LOG_LEVEL_MAX = 7;
-const WRITE_TO_BACKEND = [Level.ERROR, Level.WARNING];
+const WRITE_TO_BACKEND = [Level.ERROR, Level.WARNING, Level.DEBUG, Level.INFO];
 
 export function cutUuid(uuid: string): string {
     return uuid.substring(0, 6);
@@ -103,15 +103,6 @@ export class Logger extends Instance {
         return this._log(this._getMessage(...args), Level.DEBUG);
     }
 
-    /**
-     * Publish debug logs
-     * @param {any} args - Any input for logs
-     * @returns {string} - Formatted log-string
-     */
-    public storable(...args: unknown[]) {
-        return this._log(this._getMessage(...args), Level.STORABLE);
-    }
-
     public measure(operation: string, warnDurationMs?: number): () => void {
         const started = Date.now();
         warnDurationMs === undefined && this.debug(`starting "${operation}"`);
@@ -189,13 +180,14 @@ export class Logger extends Instance {
         if (!Logger.backendAllowed) {
             return;
         }
-        if (level !== Level.STORABLE && !WRITE_TO_BACKEND.includes(level)) {
+        if (!WRITE_TO_BACKEND.includes(level)) {
             return;
         }
         try {
             Events.IpcEvent.emit(
                 new Events.Logs.Write.Event({
                     message,
+                    level,
                 }),
             );
         } catch (e) {

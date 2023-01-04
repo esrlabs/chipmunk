@@ -1,7 +1,6 @@
 import { SetupService, Interface, Implementation, register } from 'platform/entity/service';
 import { envvars } from '@loader/envvars';
-import { settings } from '@env/logs/settings';
-import { Level, isValidLevel, strToLogLevel } from 'platform/env/logger';
+import { Level } from 'platform/env/logger';
 
 import { services } from '@register/services';
 
@@ -18,15 +17,6 @@ export class Service extends Implementation {
                 this._production = true;
             }
             this.log().debug(`Production is: ${this._production ? 'ON' : 'OFF'}`);
-            const logLevel: string | undefined = envvars.get().CHIPMUNK_DEV_LOGLEVEL;
-            if (logLevel !== undefined && isValidLevel(logLevel)) {
-                this._logLevel = strToLogLevel(logLevel);
-            } else if (this._production) {
-                this._logLevel = Level.WARNING;
-            } else {
-                this._logLevel = Level.VERBOS;
-            }
-            settings.setLevel(this._logLevel);
             resolve();
         });
     }
