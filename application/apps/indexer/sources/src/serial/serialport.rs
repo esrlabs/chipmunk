@@ -100,7 +100,7 @@ impl SerialSource {
             .stop_bits(stop_bits(&config.stop_bits))
             .open_native_async()
         {
-            Ok(mut port) => {
+            Ok(port) => {
                 #[cfg(unix)]
                 if let Err(err) = port.set_exclusive(false) {
                     return Err(SourceError::Setup(format!(

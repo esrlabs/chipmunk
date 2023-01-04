@@ -11,6 +11,7 @@ use std::{
     process::{Child, Command},
     thread, time,
 };
+use regex::Regex;
 
 const PEDNING_CLOSING_APP_TIME_MS: u64 = 3000;
 const ATTEMPTS_TO_REMOVE: u8 = 5;
@@ -23,35 +24,23 @@ fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
         .map_err(|e| anyhow!("could not spawn {} as a process ({})", exe, e))
 }
 
-fn extract_validated_paths_from_args() -> Result<(PathBuf, PathBuf, i32)> {
-    let mut args = Vec::new();
+fn deserialize_spaces(str: String) -> Result<String> {
+    let re = Regex::new(r"%20").map_err(|_| anyhow!("Fail to find symbol [ in arguments"))?;
+    Ok(re.replace_all(&str, " ").to_string())
+}
 
+fn extract_validated_paths_from_args(args: Vec<String>) -> Result<(PathBuf, PathBuf)> {
     trace!("Parsing arguments");
-    for arg in std::env::args().skip(1) {
-        args.push(arg);
-    }
-
-    if args.len() < 2 {
+    let args_as_str = deserialize_spaces(args.join(""))?;
+    let from = args_as_str.chars().position(|c| c == '[').ok_or(anyhow!("Fail to find symbol [ in arguments"))?;
+    let to = args_as_str.chars().position(|c| c == ']').ok_or(anyhow!("Fail to find symbol ] in arguments"))?;
+    let params_as_str = args_as_str[(from + 1)..to].to_string();
+    trace!("extracted: {params_as_str}");
+    let params = params_as_str.split(";").collect::<Vec<&str>>();
+    if params.len() < 2 {
         Err(anyhow!("Expecting at least 2 arguments"))
     } else {
-        let (path1, path2, pid) = (
-            PathBuf::from(args[0].to_string()),
-            PathBuf::from(args[1].to_string()),
-            args[2]
-                .to_string()
-                .parse::<i32>()
-                .map_err(|e| anyhow!("{}", e))?,
-        );
-        // Check paths
-        if !path1.exists() {
-            error!("File {:?} doesn't exist", path1);
-            std::process::exit(1);
-        }
-        if !path2.exists() {
-            error!("File {:?} doesn't exist", path2);
-            std::process::exit(1);
-        }
-        Ok((path1, path2, pid))
+        Ok((PathBuf::from(params[0]),  PathBuf::from(params[1])))
     }
 }
 
@@ -135,13 +124,17 @@ fn restart_app(app: &Path) -> Result<()> {
     }
 }
 fn main() {
+    println!("Updating chipmunk...");
+    println!("Please do not close this terminal, it will be closed as soon as chipmunk will be updated.");
     match initialize_from_fresh_yml() {
         Ok(()) => trace!("=======> Updater started logging"),
         Err(e) => eprintln!("couldn't initialize logging: {e}"),
     }
     debug!("Started updater");
     // on macos the current_app_path will be something like /xyz/chipmunk.app
-    let (current_app_path, compressed_update_path, _pid) = match extract_validated_paths_from_args()
+    let (current_app_path, compressed_update_path) = match extract_validated_paths_from_args(
+        std::env::args().map(|a| a.to_string()).collect::<Vec<String>>()
+    )
     {
         Ok(res) => res,
         Err(e) => {
@@ -152,6 +145,15 @@ fn main() {
             std::process::exit(1);
         }
     };
+    // Check paths
+    if !current_app_path.exists() {
+        error!("File {:?} doesn't exist", current_app_path);
+        std::process::exit(1);
+    }
+    if !compressed_update_path.exists() {
+        error!("File {:?} doesn't exist", compressed_update_path);
+        std::process::exit(1);
+    }
     debug!("to replace: {:?}", current_app_path);
     debug!("new package: {:?}", compressed_update_path);
     let app_folder = if cfg!(target_os = "macos") {
@@ -220,4 +222,51 @@ fn main() {
         );
     }
     info!("updater terminated");
+}
+
+#[test]
+fn test() {
+    let args: Vec<String> = vec![
+        String::from("some_noise"),
+        String::from("[/path/to/current_app;/path/to/disto;123;2333]"),
+        String::from("some_noise")
+    ];
+    let (app, disto) = extract_validated_paths_from_args(args).expect("Argument should be parsed");
+    println!("{app:?}");
+    println!("{disto:?}");
+    assert_eq!(Some("/path/to/current_app"), app.to_str());
+    assert_eq!(Some("/path/to/disto"), disto.to_str());
+
+    let args: Vec<String> = vec![
+        String::from("some_noise"),
+        String::from("[/path with space/to/current app name with space;/path/to/disto with space;123;2333]"),
+        String::from("some_noise")
+    ];
+    let (app, disto) = extract_validated_paths_from_args(args).expect("Argument should be parsed");
+    println!("{app:?}");
+    println!("{disto:?}");
+    assert_eq!(Some("/path with space/to/current app name with space"), app.to_str());
+    assert_eq!(Some("/path/to/disto with space"), disto.to_str());
+    
+    let args: Vec<String> = vec![
+        String::from("some_noise"),
+        String::from("[C:\\path\\to\\current_app;D:\\path\\to\\disto;123;2333]"),
+        String::from("some_noise")
+    ];
+    let (app, disto) = extract_validated_paths_from_args(args).expect("Argument should be parsed");
+    println!("{app:?}");
+    println!("{disto:?}");
+    assert_eq!(Some("C:\\path\\to\\current_app"), app.to_str());
+    assert_eq!(Some("D:\\path\\to\\disto"), disto.to_str());
+
+    let args: Vec<String> = vec![
+        String::from("some_noise"),
+        String::from("[C:\\path with space\\to another with space\\current app with space;D:\\path with space\\to\\disto;123;2333]"),
+        String::from("some_noise")
+    ];
+    let (app, disto) = extract_validated_paths_from_args(args).expect("Argument should be parsed");
+    println!("{app:?}");
+    println!("{disto:?}");
+    assert_eq!(Some("C:\\path with space\\to another with space\\current app with space"), app.to_str());
+    assert_eq!(Some("D:\\path with space\\to\\disto"), disto.to_str());
 }
