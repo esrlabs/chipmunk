@@ -36,7 +36,7 @@ export class Exporter {
                     return false;
                 }
                 const dest = await bridge.files().select.save();
-                if (dest === undefined || dest === '') {
+                if (dest === undefined) {
                     return false;
                 }
                 return asRaw
@@ -49,7 +49,7 @@ export class Exporter {
                     return false;
                 }
                 const dest = await bridge.files().select.save();
-                if (dest === undefined || dest === '') {
+                if (dest === undefined) {
                     return false;
                 }
                 return asRaw

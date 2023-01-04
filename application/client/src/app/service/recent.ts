@@ -19,7 +19,12 @@ const STORAGE_KEY = 'user_recent_actions';
 @DependOn(bridge)
 @SetupService(services['recent'])
 export class Service extends Implementation {
-    private _entryUpdate: Subject<void> = new Subject();
+    public readonly updated: Subject<void> = new Subject();
+
+    public override destroy(): Promise<void> {
+        this.updated.destroy();
+        return super.destroy();
+    }
 
     public get(): Promise<Action[]> {
         return new Promise((resolve, reject) => {
@@ -70,7 +75,7 @@ export class Service extends Implementation {
                 .entries({ key: STORAGE_KEY })
                 .delete(uuids)
                 .then(() => {
-                    this._entryUpdate.emit();
+                    this.updated.emit();
                     resolve();
                 })
                 .catch((err: Error) => {
@@ -116,10 +121,6 @@ export class Service extends Implementation {
                 };
             },
         };
-    }
-
-    public get entryUpdate(): Subject<void> {
-        return this._entryUpdate;
     }
 }
 export interface Service extends Interface {}

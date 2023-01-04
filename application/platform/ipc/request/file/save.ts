@@ -22,7 +22,7 @@ export class Response extends SignatureRequirement {
     constructor(input: { filename?: string; error?: string }) {
         super();
         validator.isObject(input);
-        this.filename = validator.getAsString(input, 'filename');
+        this.filename = validator.getAsNotEmptyStringOrAsUndefined(input, 'filename');
         this.error = validator.getAsNotEmptyStringOrAsUndefined(input, 'error');
     }
 }

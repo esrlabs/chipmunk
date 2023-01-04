@@ -45,7 +45,6 @@ export class RecentActions extends ChangesDetector implements AfterContentInit {
                 this.detectChanges();
             }),
         );
-        this.env().subscriber.register(this.state.entryUpdate());
     }
 
     public onDefaultAction(action: Action) {
