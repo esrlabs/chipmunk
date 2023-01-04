@@ -85,6 +85,7 @@ export class Window extends Implementation {
 
     public override destroy(): Promise<void> {
         if (this._window !== undefined) {
+            this._window.removeAllListeners();
             this._window.destroy();
             this.log().debug(`BrowserWindow was destroyed.`);
         }

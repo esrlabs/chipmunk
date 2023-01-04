@@ -42,7 +42,11 @@ export class FileStore {
         if (this.stream === undefined) {
             return Promise.resolve();
         }
-        this.stream.write(`Logs store is shutdown\n`);
-        return this.stream.destroy();
+        const stream = this.stream;
+        this.stream = undefined;
+        stream.write(`Logs store is shutdown\n`);
+        return stream.destroy().catch((err: Error) => {
+            console.error(`Fail to destroy logs store: ${err.message}`);
+        });
     }
 }
