@@ -1,12 +1,14 @@
-use crate::factory::SerialTransportConfig;
-use crate::serial::sde;
-use crate::ByteSource;
-use crate::{Error as SourceError, ReloadInfo, SourceFilter};
+use crate::{
+    factory::SerialTransportConfig, serial::sde, ByteSource, Error as SourceError, ReloadInfo,
+    SourceFilter,
+};
 use async_trait::async_trait;
 use buf_redux::Buffer;
 use bytes::{BufMut, BytesMut};
-use futures::stream::{SplitSink, SplitStream, StreamExt};
-use futures::SinkExt;
+use futures::{
+    stream::{SplitSink, SplitStream, StreamExt},
+    SinkExt,
+};
 use std::{io, str};
 use tokio_serial::{DataBits, FlowControl, Parity, SerialPortBuilderExt, SerialStream, StopBits};
 use tokio_util::codec::{Decoder, Encoder, Framed};
@@ -100,7 +102,7 @@ impl SerialSource {
             .stop_bits(stop_bits(&config.stop_bits))
             .open_native_async()
         {
-            Ok(port) => {
+            Ok(mut port) => {
                 #[cfg(unix)]
                 if let Err(err) = port.set_exclusive(false) {
                     return Err(SourceError::Setup(format!(
@@ -141,9 +143,7 @@ impl ByteSource for SerialSource {
                     self.buffer.copy_from_slice(received.as_bytes());
                 }
                 Err(err) => {
-                    return Err(SourceError::Setup(format!(
-                        "Failed to read stream: {err}"
-                    )));
+                    return Err(SourceError::Setup(format!("Failed to read stream: {err}")));
                 }
             },
             None => {

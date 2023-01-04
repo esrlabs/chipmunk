@@ -169,9 +169,20 @@ class Application implements IApplication {
 - disto: ${exitcase.disto}\n\
 - PID: ${process.pid}\n\
 - PPID: ${process.ppid}`);
+            const sep = '%sep%';
             spawn(
                 `${exitcase.updater}`,
-                [`[${serializeSpaces(exitcase.app)};${serializeSpaces(exitcase.disto)};${process.pid};${process.ppid}]`],
+                [
+                    '[',
+                    serializeSpaces(exitcase.app),
+                    sep,
+                    serializeSpaces(exitcase.disto),
+                    sep,
+                    process.pid.toString(),
+                    sep,
+                    process.ppid.toString(),
+                    `]`,
+                ],
                 {
                     shell: true,
                     detached: true,
