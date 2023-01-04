@@ -66,7 +66,12 @@ export class Service extends Implementation {
             }
             action.merge(found);
         });
-        return bridge.entries({ key: STORAGE_KEY }).update(actions.map((a) => a.asEntry()));
+        return bridge
+            .entries({ key: STORAGE_KEY })
+            .update(actions.map((a) => a.asEntry()))
+            .then(() => {
+                this.updated.emit();
+            });
     }
 
     public delete(uuids: string[]): Promise<void> {
