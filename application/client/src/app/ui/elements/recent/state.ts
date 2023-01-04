@@ -2,12 +2,13 @@ import { Action } from '@service/recent/action';
 import { WrappedAction } from './action';
 import { Filter } from '@ui/env/entities/filter';
 import { recent } from '@service/recent';
-import { Subject, Subscription } from '@platform/env/subscription';
+import { Subject } from '@platform/env/subscription';
 import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { syncHasFocusedInput } from '@ui/env/globals';
 import { Holder } from '@module/matcher';
 import { ParserName, Origin } from '@platform/types/observe';
+import { Instance as Logger } from '@platform/env/logger';
 
 export class State extends Holder {
     public actions: WrappedAction[] = [];
@@ -16,6 +17,8 @@ export class State extends Holder {
     public readonly update: Subject<void> = new Subject<void>();
     public readonly origin?: Origin;
     public readonly parser?: ParserName;
+
+    private _logger: Logger;
 
     constructor(
         ilc: IlcInterface & ChangesDetector,
@@ -26,6 +29,7 @@ export class State extends Holder {
         this.filter = new Filter(ilc.ilc());
         this.origin = origin;
         this.parser = parser;
+        this._logger = ilc.log();
         ilc.env().subscriber.register(
             this.filter.subjects.get().drop.subscribe(this.filtering.bind(this)),
         );
@@ -47,6 +51,7 @@ export class State extends Holder {
                     },
                 ),
         );
+        ilc.env().subscriber.register(recent.updated.subscribe(this.reload.bind(this)));
         this.reload();
     }
 
@@ -74,7 +79,7 @@ export class State extends Holder {
                 this.reload();
             })
             .catch((err: Error) => {
-                console.error(`Fail to remove recent action: ${err.message}`);
+                this._logger.error(`Fail to remove recent action: ${err.message}`);
             });
     }
 
@@ -85,12 +90,8 @@ export class State extends Holder {
                 this.remove(actions.map((action: Action) => action.uuid));
             })
             .catch((err: Error) => {
-                console.error(`Fail to remove all recent actions: ${err.message}`);
+                this._logger.error(`Fail to remove all recent actions: ${err.message}`);
             });
-    }
-
-    public entryUpdate(): Subscription {
-        return recent.entryUpdate.subscribe(this.reload.bind(this));
     }
 
     protected reload(): void {
@@ -107,7 +108,7 @@ export class State extends Holder {
                 this.update.emit();
             })
             .catch((error: Error) => {
-                console.log(`Fail to get recent due error: ${error.message}`);
+                this._logger.error(`Fail to get recent due error: ${error.message}`);
             });
     }
 }

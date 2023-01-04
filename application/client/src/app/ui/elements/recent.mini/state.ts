@@ -6,6 +6,7 @@ import { Subject } from '@platform/env/subscription';
 import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Holder } from '@module/matcher/holder';
+import { Instance as Logger } from '@platform/env/logger';
 
 export type CloseHandler = () => void;
 
@@ -14,7 +15,10 @@ export class State extends Holder {
     public actions: WrappedAction[] = [];
     public update: Subject<void> = new Subject<void>();
     public selected: string = '';
+
     protected close: CloseHandler | undefined;
+
+    private _logger: Logger;
 
     constructor(ilc: IlcInterface & ChangesDetector) {
         super();
@@ -23,6 +27,7 @@ export class State extends Holder {
             this.filtering(value);
             ilc.detectChanges();
         });
+        this._logger = ilc.log();
         ilc.env().subscriber.register(
             ilc
                 .ilc()
@@ -82,7 +87,7 @@ export class State extends Holder {
                 this.reload();
             })
             .catch((err: Error) => {
-                console.error(`Fail to remove recent action: ${err.message}`);
+                this._logger.error(`Fail to remove recent action: ${err.message}`);
             });
     }
 
@@ -93,7 +98,7 @@ export class State extends Holder {
                 this.remove(actions.map((action: Action) => action.uuid));
             })
             .catch((err: Error) => {
-                console.error(`Fail to remove all recent actions: ${err.message}`);
+                this._logger.error(`Fail to remove all recent actions: ${err.message}`);
             });
     }
 
@@ -163,7 +168,7 @@ export class State extends Holder {
                 this.update.emit();
             })
             .catch((error: Error) => {
-                console.log(`Fail to get recent due error: ${error.message}`);
+                this._logger.error(`Fail to get recent due error: ${error.message}`);
             });
     }
 }

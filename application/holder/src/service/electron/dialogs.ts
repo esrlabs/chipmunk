@@ -24,8 +24,12 @@ export class Dialogs extends Implementation {
                           })
                         : [{ name: 'All Files', extensions: ['*'] }],
             })
-            .then((result) => {
-                return result.filePath;
+            .then((result: Electron.SaveDialogReturnValue) => {
+                return result.filePath === undefined
+                    ? result.filePath
+                    : result.filePath.trim() === ''
+                    ? undefined
+                    : result.filePath;
             });
     }
 
