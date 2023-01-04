@@ -61,14 +61,14 @@ export class Service extends Implementation {
     }
 
     public async closeAllSessions(): Promise<void> {
-        this.log().storable(`All sessions will be closed`);
+        this.log().debug(`All sessions will be closed`);
         for (const session of Array.from(this._sessions.values())) {
             const uuid = session.uuid();
             await this.kill(uuid).catch((err: Error) => {
                 this.log().error(`Fail to close session "${uuid}": ${err.message}`);
             });
         }
-        this.log().storable(`All sessions are be closed`);
+        this.log().debug(`All sessions are be closed`);
     }
 
     public kill(uuid: string): Promise<void> {

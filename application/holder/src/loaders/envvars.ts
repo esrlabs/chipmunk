@@ -70,7 +70,7 @@ export const CChipmunkEnvVars: string[] = [
 ];
 
 export interface IChipmunkEnvVars {
-    CHIPMUNK_DEVELOPING_MODE: string | undefined;
+    CHIPMUNK_DEVELOPING_MODE: boolean | undefined;
     CHIPMUNK_NO_WEBDEVTOOLS: boolean | undefined;
     CHIPMUNK_NO_RENDER_LOGS: boolean | undefined;
     CHIPMUNK_DEV_LOGLEVEL: string | undefined;
