@@ -10,3 +10,7 @@ export function filename(filename: string): string {
 export function basefolder(filename: string): string {
     return filename.replace(/[^/]*$/gi, '');
 }
+
+export function serializeSpaces(str: string): string {
+    return str.replace(/\s/gi, '%20');
+}

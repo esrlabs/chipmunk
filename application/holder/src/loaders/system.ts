@@ -14,9 +14,10 @@ import { LockToken } from 'platform/env/lock.token';
 import { IApplication, ChipmunkGlobal } from '@register/global';
 import { unbind } from '@env/logs';
 import { settings } from '@env/logs/settings';
-// import { tools } from 'rustcore';
 import { envvars } from './envvars';
 import { spawn } from 'child_process';
+import { serializeSpaces } from 'platform/env/str';
+// import { tools } from 'rustcore';
 
 import * as cases from './exitcases';
 import * as Requests from 'platform/ipc/request';
@@ -164,12 +165,13 @@ class Application implements IApplication {
             //     });
             this.logger.debug(`Application will be closed with UPDATE case.\n \
 - updater: ${exitcase.updater}\n\
+- app: ${exitcase.app}\n\
 - disto: ${exitcase.disto}\n\
 - PID: ${process.pid}\n\
 - PPID: ${process.ppid}`);
             spawn(
                 `${exitcase.updater}`,
-                [exitcase.app, exitcase.disto, process.pid.toString(), process.ppid.toString()],
+                [`[${serializeSpaces(exitcase.app)};${serializeSpaces(exitcase.disto)};${process.pid};${process.ppid}]`],
                 {
                     shell: true,
                     detached: true,
