@@ -13,8 +13,11 @@ import { unique } from 'platform/env/sequence';
 import { FileType } from 'platform/types/files';
 import { ParserName } from 'platform/types/observe';
 import { Source } from 'platform/types/transport';
+import { ChipmunkGlobal } from '@register/global';
 
 import * as Actions from './actions';
+
+declare const global: ChipmunkGlobal;
 
 @DependOn(notifications)
 @DependOn(cli)
@@ -49,7 +52,17 @@ export class Service extends Implementation {
                               { role: 'hideOthers' },
                               { role: 'unhide' },
                               { type: 'separator' },
-                              { role: 'quit' },
+                              {
+                                  label: this.isMac ? 'Quit' : 'Close',
+                                  click: () => {
+                                      global.application
+                                          .shutdown('ClosingWithMenu')
+                                          .close()
+                                          .catch((err: Error) => {
+                                              this.log().error(`Fail to close: ${err.message}`);
+                                          });
+                                  },
+                              },
                           ],
                       },
                   ]
@@ -290,7 +303,17 @@ export class Service extends Implementation {
                         },
                     },
                     { type: 'separator' },
-                    this.isMac ? { role: 'close' } : { role: 'quit' },
+                    {
+                        label: this.isMac ? 'Quit' : 'Close',
+                        click: () => {
+                            global.application
+                                .shutdown('ClosingWithMenu')
+                                .close()
+                                .catch((err: Error) => {
+                                    this.log().error(`Fail to close: ${err.message}`);
+                                });
+                        },
+                    },
                 ],
             },
             {
@@ -307,10 +330,6 @@ export class Service extends Implementation {
             {
                 label: 'View',
                 submenu: [
-                    { role: 'reload' },
-                    { role: 'forceReload' },
-                    { role: 'toggleDevTools' },
-                    { type: 'separator' },
                     { role: 'resetZoom' },
                     { role: 'zoomIn' },
                     { role: 'zoomOut' },
@@ -332,6 +351,10 @@ export class Service extends Implementation {
                           ]
                         : [{ role: 'close' }]),
                 ],
+            },
+            {
+                label: 'Dev',
+                submenu: [{ role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' }],
             },
         ] as unknown as MenuItem[];
     }
