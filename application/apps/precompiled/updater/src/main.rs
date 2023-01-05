@@ -4,6 +4,7 @@ extern crate log4rs;
 
 use anyhow::{anyhow, Result};
 use base::{initialize_from_fresh_yml, util::*};
+use fs_extra::dir;
 use regex::Regex;
 use std::{
     ffi::OsStr,
@@ -62,7 +63,7 @@ fn remove_old_application(
     thread::sleep(waiting);
     if cfg!(target_os = "macos") {
         // Mac doesn't require any specific actions, because all are in self-compressed folder "chipmunk.app"
-        // fs::remove_dir_all(app_folder)?;
+        // By security reasons we should not remove previous version of application, we would just replaces it
         let dest = app_folder
             .parent()
             .ok_or_else(|| anyhow!("parent folder not found"))?;
@@ -164,6 +165,10 @@ fn main() {
         error!("File {:?} doesn't exist", compressed_update_path);
         std::process::exit(1);
     }
+    let compressed_parent_folder = compressed_update_path
+        .parent()
+        .expect("could not get parent-directory of compressed file")
+        .to_path_buf();
     debug!("to replace: {:?}", current_app_path);
     debug!("new package: {:?}", compressed_update_path);
     let app_folder = if cfg!(target_os = "macos") {
@@ -194,43 +199,73 @@ fn main() {
             }
         };
     };
-    if let Err(e) = unpack(&compressed_update_path, &dest) {
+    if let Err(e) = unpack(
+        &compressed_update_path,
+        if cfg!(target_os = "macos") {
+            &compressed_parent_folder
+        } else {
+            &dest
+        },
+    ) {
         error!(
             "unpacking {:?} failed ({}), try to rollback",
             &compressed_update_path, e
         );
+        std::process::exit(1);
     }
-    // if cfg!(target_os = "macos") {
-    //     if let Some(mac_app_folder_name) = current_app_path.file_name() {
-    //         if mac_app_folder_name != OsStr::new(DEFAULT_MAC_APP_FOLDER) {
-    //             // User renamed chipmunk.app to something else
-    //             info!("Chipmunk application folder had been renamed by user to {}; target folder should be renamed to", mac_app_folder_name.to_string_lossy());
-    //             if let Err(e) = fs::rename(dest.join(DEFAULT_MAC_APP_FOLDER), &current_app_path) {
-    //                 error!("fail to rename updated application folder {e:?}");
-    //                 std::process::exit(1);
-    //             } else {
-    //                 info!("application folder has been renamed");
-    //             }
-    //         }
-    //     } else {
-    //         error!(
-    //             "cannot detect current name of application folder for path {}",
-    //             current_app_path.to_string_lossy()
-    //         );
-    //         std::process::exit(1);
-    //     }
-    // }
+    if cfg!(target_os = "macos") {
+        let mac_app_folder_name = if let Some(mac_app_folder_name) = current_app_path.file_name() {
+            mac_app_folder_name
+        } else {
+            error!(
+                "cannot detect current name of application folder for path {}",
+                current_app_path.to_string_lossy()
+            );
+            std::process::exit(1);
+        };
+        if mac_app_folder_name != OsStr::new(DEFAULT_MAC_APP_FOLDER) {
+            // User renamed chipmunk.app to something else
+            info!("Chipmunk application folder had been renamed by user to {mac_app_folder_name:?}; target folder should be renamed to");
+            if let Err(e) = fs::rename(
+                compressed_parent_folder.join(DEFAULT_MAC_APP_FOLDER),
+                &compressed_parent_folder.join(mac_app_folder_name),
+            ) {
+                error!("fail to rename updated application folder {e:?}");
+                std::process::exit(1);
+            } else {
+                info!("application folder has been renamed");
+            }
+        }
+        let mut options = dir::CopyOptions::new();
+        options.overwrite = true;
+        let src = compressed_parent_folder.join(mac_app_folder_name);
+        let current_app_parent = current_app_path.parent().unwrap();
+        debug!("will copy {src:?} to {current_app_parent:?}");
+        if let Err(e) = dir::copy(&src, &current_app_parent, &options) {
+            error!("fail to copy application file from {src:?} to {current_app_path:?} {e:?}");
+            std::process::exit(1);
+        } else {
+            debug!("copied {src:?} to {current_app_parent:?}");
+        }
+        if let Err(err) = fs::remove_dir_all(&src) {
+            warn!("Fail to remove app-bundle {src:?} due error {err}",);
+        } else {
+            debug!("file {src:?} removed");
+        }
+    }
+
     match restart_app(&current_app_path) {
         Err(e) => error!("restart failed: {}", e),
         Ok(()) => info!("restarted successfully"),
     }
-    debug!("Remove file {:?}", compressed_update_path);
-    // if let Err(err) = fs::remove_file(&compressed_update_path) {
-    //     warn!(
-    //         "Fail to remove file {:?} due error {}",
-    //         compressed_update_path, err
-    //     );
-    // }
+    if let Err(err) = fs::remove_file(&compressed_update_path) {
+        warn!(
+            "Fail to remove file {:?} due error {}",
+            compressed_update_path, err
+        );
+    } else {
+        debug!("file {compressed_update_path:?} removed");
+    }
     info!("updater terminated");
 }
 
