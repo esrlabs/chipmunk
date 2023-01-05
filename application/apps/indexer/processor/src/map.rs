@@ -95,6 +95,9 @@ impl SearchMap {
             let mut cursor: usize = 0;
             if rate <= 1.0 {
                 loop {
+                    if cursor >= self.matches.len() {
+                        break;
+                    }
                     if self.matches[cursor].index >= from {
                         break;
                     } else {
