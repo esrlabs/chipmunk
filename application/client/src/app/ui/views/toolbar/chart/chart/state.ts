@@ -8,8 +8,10 @@ export class State extends AdvancedState {
     public tooltip: string = '';
     public tooltipTop: number = 0;
     public showLeftTooltip: boolean = true;
-    public mouseEnter: boolean = false;
 
+    private readonly _tooltipHeight: number = 10;
+    private _tooltipTimeout: number = -1;
+    private _mouseEnter: boolean = false;
     private _range!: IRange;
     private _loading: boolean = true;
     private _height: number = 0;
@@ -49,23 +51,38 @@ export class State extends AdvancedState {
     }
 
     public onMouseMove(event: MouseEvent) {
-        const offsetX = event.offsetX;
-        if (offsetX > 0) {
-            this.crosshairLeft = offsetX;
-            this.showLeftTooltip = offsetX <= this._width / 2;
+        if (this._tooltipTimeout !== -1) {
+            window.clearTimeout(this._tooltipTimeout);
         }
-        if (event.offsetY > 0) {
-            this.tooltipTop = this._height / 2;
-            const position: number = this._calculatePosition(event);
-            this.tooltip = position >= 0 ? `${position}` : '';
-        }
+        this._tooltipTimeout = window.setTimeout(() => {
+            const offsetX = event.offsetX;
+            if (offsetX > 0) {
+                this.crosshairLeft = offsetX;
+                this.showLeftTooltip = offsetX <= this._width / 2;
+            }
+            if (event.offsetY > 0) {
+                const difference: number = this._height - this._tooltipHeight * 2;
+                if (event.offsetY >= difference) {
+                    this.tooltipTop = difference;
+                } else {
+                    this.tooltipTop = event.offsetY;
+                }
+                const position: number = this._calculatePosition(event);
+                this.tooltip = position >= 0 ? `${position}` : '';
+            }
+            this._tooltipTimeout = -1;
+        });
     }
 
     public onMouseEnter(mouseEnter: boolean) {
         if (!mouseEnter) {
             this.tooltip = '';
         }
-        this.mouseEnter = mouseEnter;
+        this._mouseEnter = mouseEnter;
+    }
+
+    public showTooltip(): boolean {
+        return this._mouseEnter && this.tooltip.trim() !== '';
     }
 
     protected _fetch(width: number, range: IRange): Promise<void> {

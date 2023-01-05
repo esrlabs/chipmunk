@@ -6,9 +6,9 @@
      (mousemove)="state.onMouseMove($event)"
      (mouseenter)="state.onMouseEnter(true)"
      (mouseleave)="state.onMouseEnter(false)"
-     [ngStyle]="{'cursor': state.mouseEnter ? 'none' : 'default'}"
+     [ngStyle]="{'cursor': state.showTooltip() ? 'none' : 'default'}"
      (click)="this.state.onClick($event)">
-    <div *ngIf="state.mouseEnter" class="crosshair-vertical" [ngStyle]="{ 'margin-left': state.crosshairLeft + 'px' }">
+    <div *ngIf="state.showTooltip()" class="crosshair-vertical" [ngStyle]="{ 'margin-left': state.crosshairLeft + 'px' }">
         <div *ngIf="state.showLeftTooltip" class="tooltip-right" [ngStyle]="{'margin-top': state.tooltipTop + 'px'}">
             <div class="tooltip-arrow-right"></div>
             <div class="tooltip-text">{{state.tooltip}}</div>
