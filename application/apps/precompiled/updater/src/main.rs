@@ -183,8 +183,7 @@ fn main() {
     let mut attempts: u8 = 0;
     let dest = loop {
         info!(
-            "removing old application {:?}; attempt {}",
-            app_folder,
+            "removing old application {app_folder:?}; attempt {}",
             attempts + 1
         );
         match remove_old_application(&app_folder, release_files.as_ref()) {
@@ -253,16 +252,12 @@ fn main() {
             debug!("file {src:?} removed");
         }
     }
-
     match restart_app(&current_app_path) {
         Err(e) => error!("restart failed: {}", e),
         Ok(()) => info!("restarted successfully"),
     }
     if let Err(err) = fs::remove_file(&compressed_update_path) {
-        warn!(
-            "Fail to remove file {:?} due error {}",
-            compressed_update_path, err
-        );
+        warn!("Fail to remove file {compressed_update_path:?} due error {err}",);
     } else {
         debug!("file {compressed_update_path:?} removed");
     }
