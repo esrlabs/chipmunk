@@ -62,7 +62,7 @@ fn remove_old_application(
     thread::sleep(waiting);
     if cfg!(target_os = "macos") {
         // Mac doesn't require any specific actions, because all are in self-compressed folder "chipmunk.app"
-        fs::remove_dir_all(app_folder)?;
+        // fs::remove_dir_all(app_folder)?;
         let dest = app_folder
             .parent()
             .ok_or_else(|| anyhow!("parent folder not found"))?;
@@ -136,7 +136,7 @@ fn main() {
         "Please do not close this terminal, it will be closed as soon as chipmunk will be updated."
     );
     match initialize_from_fresh_yml() {
-        Ok(()) => trace!("=======> Updater started logging"),
+        Ok(()) => trace!("=======> Updater started logging (experemental)"),
         Err(e) => eprintln!("couldn't initialize logging: {e}"),
     }
     debug!("Started updater");
@@ -200,37 +200,37 @@ fn main() {
             &compressed_update_path, e
         );
     }
-    if cfg!(target_os = "macos") {
-        if let Some(mac_app_folder_name) = current_app_path.file_name() {
-            if mac_app_folder_name != OsStr::new(DEFAULT_MAC_APP_FOLDER) {
-                // User renamed chipmunk.app to something else
-                info!("Chipmunk application folder had been renamed by user to {}; target folder should be renamed to", mac_app_folder_name.to_string_lossy());
-                if let Err(e) = fs::rename(dest.join(DEFAULT_MAC_APP_FOLDER), &current_app_path) {
-                    error!("fail to rename updated application folder {e:?}");
-                    std::process::exit(1);
-                } else {
-                    info!("application folder has been renamed");
-                }
-            }
-        } else {
-            error!(
-                "cannot detect current name of application folder for path {}",
-                current_app_path.to_string_lossy()
-            );
-            std::process::exit(1);
-        }
-    }
+    // if cfg!(target_os = "macos") {
+    //     if let Some(mac_app_folder_name) = current_app_path.file_name() {
+    //         if mac_app_folder_name != OsStr::new(DEFAULT_MAC_APP_FOLDER) {
+    //             // User renamed chipmunk.app to something else
+    //             info!("Chipmunk application folder had been renamed by user to {}; target folder should be renamed to", mac_app_folder_name.to_string_lossy());
+    //             if let Err(e) = fs::rename(dest.join(DEFAULT_MAC_APP_FOLDER), &current_app_path) {
+    //                 error!("fail to rename updated application folder {e:?}");
+    //                 std::process::exit(1);
+    //             } else {
+    //                 info!("application folder has been renamed");
+    //             }
+    //         }
+    //     } else {
+    //         error!(
+    //             "cannot detect current name of application folder for path {}",
+    //             current_app_path.to_string_lossy()
+    //         );
+    //         std::process::exit(1);
+    //     }
+    // }
     match restart_app(&current_app_path) {
         Err(e) => error!("restart failed: {}", e),
         Ok(()) => info!("restarted successfully"),
     }
     debug!("Remove file {:?}", compressed_update_path);
-    if let Err(err) = fs::remove_file(&compressed_update_path) {
-        warn!(
-            "Fail to remove file {:?} due error {}",
-            compressed_update_path, err
-        );
-    }
+    // if let Err(err) = fs::remove_file(&compressed_update_path) {
+    //     warn!(
+    //         "Fail to remove file {:?} due error {}",
+    //         compressed_update_path, err
+    //     );
+    // }
     info!("updater terminated");
 }
 
