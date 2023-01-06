@@ -39,7 +39,6 @@ pub fn version() -> String {
     let cargo_toml = std::include_str!("../../Cargo.toml");
     let defaults = String::from("not_found");
     if let Ok(value) = cargo_toml.parse::<Value>() {
-        print!("{value:?}");
         let as_table = if let Some(as_table) = value.as_table() {
             as_table
         } else {
