@@ -21,11 +21,11 @@ class Release
     else
       Rake::Task['build:dev'].invoke
     end
-    Precompiled.new.check(false)
+    Updater.new.check(true)
     Shell.chdir(Paths::ELECTRON) do
       set_envvars
       Shell.sh build_cmd
-      Reporter.add(Jobs::Building, Owner::Release, 'building', '')
+      Reporter.add(Jobs::Building, Owner::Release, 'built', '')
     end
     snapshot
     Reporter.add(Jobs::Release, Owner::Release, "done: #{Paths::RELEASE_BUILD}", '')

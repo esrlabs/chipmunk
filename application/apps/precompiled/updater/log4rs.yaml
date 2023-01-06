@@ -1,0 +1,29 @@
+# chipmunk_logconf_version: 1.0
+refresh_rate: 30 seconds
+
+# The "appenders" map contains the set of appenders, indexed by their names.
+appenders:
+    logger-root:
+        kind: file
+        path: $LOG_PATH
+        encoder:
+            kind: pattern
+            pattern: "{d} [{M}] {l}:: {m}\n"
+
+root:
+    # level: off
+    # level: error
+    level: trace
+    # level: info
+    # level: debug
+    # level: trace
+
+    appenders:
+        - logger-root
+
+loggers:
+    updater:
+        level: trace
+        appenders:
+            - logger-root
+        additive: false

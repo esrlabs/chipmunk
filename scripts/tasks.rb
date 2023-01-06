@@ -55,9 +55,9 @@ namespace :build do
     Reporter.print
   end
 
-  desc 'Build precompiled'
-  task :precompiled do
-    Precompiled.new.build
+  desc 'Build updater'
+  task :updater do
+    Updater.new.build
     Reporter.print
   end
 
@@ -105,9 +105,9 @@ namespace :rebuild do
     Rake::Task['build:prod'].invoke
   end
 
-  desc 'Rebuild precompiled'
-  task :precompiled do
-    Precompiled.new.check(true)
+  desc 'Rebuild updater'
+  task :updater do
+    Updater.new.check(true)
     Reporter.print
   end
 end
@@ -149,7 +149,7 @@ namespace :developing do
 
   desc 'Clean all'
   task :clean_all do
-    Precompiled.new.clean
+    Updater.new.clean
     Matcher.new(true, true).clean
     Ansi.new(true, true).clean
     Client.new(true, true).clean
@@ -162,7 +162,7 @@ namespace :developing do
 
   desc 'Clean & rebuild all'
   task :clean_rebuild_all do
-    Precompiled.new.clean
+    Updater.new.clean
     Matcher.new(true, true).clean
     Ansi.new(true, true).clean
     Client.new(true, true).clean
@@ -351,6 +351,7 @@ namespace :clippy do
 
   desc 'Clippy indexer'
   task :indexer do
+    Reporter.add(Jobs::Clippy, Owner::Indexer, "checked: #{Paths::INDEXER}", '')
     Shell.chdir(Paths::INDEXER) do
       sh Paths::CLIPPY_NIGHTLY
     end
@@ -361,6 +362,7 @@ namespace :clippy do
     Shell.chdir(Paths::RS_BINDINGS) do
       sh Paths::CLIPPY_NIGHTLY
     end
+    Reporter.add(Jobs::Clippy, Owner::Rustcore, "checked: #{Paths::RS_BINDINGS}", '')
   end
 
   desc 'Clippy matcher'
@@ -368,6 +370,7 @@ namespace :clippy do
     Shell.chdir("#{Paths::MATCHER}/src") do
       sh Paths::CLIPPY_NIGHTLY
     end
+    Reporter.add(Jobs::Clippy, Owner::Matcher, "checked: #{Paths::MATCHER}", '')
   end
 
   desc 'Clippy ansi'
@@ -375,10 +378,22 @@ namespace :clippy do
     Shell.chdir("#{Paths::ANSI}/src") do
       sh Paths::CLIPPY_NIGHTLY
     end
+    Reporter.add(Jobs::Clippy, Owner::Ansi, "checked: #{Paths::ANSI}", '')
+  end
+
+  desc 'Clippy updater'
+  task :updater do
+    Shell.chdir("#{Paths::UPDATER}") do
+      sh Paths::CLIPPY_NIGHTLY
+    end
+    Reporter.add(Jobs::Clippy, Owner::Updater, "checked: #{Paths::UPDATER}", '')
   end
 
   desc 'Clippy all'
-  task all: ['clippy:nightly', 'clippy:indexer', 'clippy:rs_bindings', 'clippy:matcher', 'clippy:ansi']
+  task all: ['clippy:nightly', 'clippy:indexer', 'clippy:rs_bindings', 'clippy:matcher', 'clippy:ansi',
+             'clippy:updater'] do
+    Reporter.print
+  end
 end
 
 namespace :env do

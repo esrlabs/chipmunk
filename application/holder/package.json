@@ -34,7 +34,7 @@
         ],
         "extraFiles": [
             {
-                "from": "../apps/precompiled/target/release",
+                "from": "../apps/precompiled/updater/target/release",
                 "to": "Resources/bin",
                 "filter": [
                     "updater",
