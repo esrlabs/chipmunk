@@ -5,6 +5,7 @@ module Jobs
   Clearing = 'clearing'
   Checks = 'checks'
   Release = 'release'
+  Clippy = 'clippy'
   Other = 'other'
 end
 
@@ -17,7 +18,7 @@ module Owner
   Bindings = 'Bindings'
   Matcher = 'Matcher'
   Ansi = 'Ansi'
-  Precompiled = 'Precompiled'
+  Updater = 'Updater'
   Release = 'Release'
   Compressor = 'Compressor'
   Env = 'Env'
@@ -63,6 +64,8 @@ def icon_type(type)
   when Jobs::Clearing
     '*'
   when Jobs::Checks
+    '*'
+  when Jobs::Clippy
     '*'
   when Jobs::Release
     '🎉'

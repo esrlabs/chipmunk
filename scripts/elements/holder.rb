@@ -96,7 +96,7 @@ class Holder
       Reporter.add(Jobs::Building, Owner::Holder, 'built', '')
     end
     Shell.sh "cp #{Paths::ELECTRON}/package.json #{@dist}/package.json"
-    Precompiled.new.check(@settings.launchers_rebuild)
+    Updater.new.check(@settings.launchers_rebuild)
   end
 
   def lint
