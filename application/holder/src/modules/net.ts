@@ -3,6 +3,7 @@ import * as https from 'https';
 import * as url from 'url';
 import * as fs from 'fs';
 
+import { Transform } from 'stream';
 import { HttpProxyAgent } from 'http-proxy-agent';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { Module } from './module';
@@ -10,6 +11,7 @@ import { version } from '@module/version';
 import { error } from 'platform/env/logger';
 import { settings } from '@service/settings';
 import { envvars } from '@loader/envvars';
+import { unique } from 'platform/env/sequence';
 
 const PROXY = { key: 'proxy', path: 'general.network' };
 const AUTHORIZATION = { key: 'authorization', path: 'general.network' };
@@ -141,7 +143,8 @@ export class Net extends Module {
                         response.statusCode >= 200 &&
                         response.statusCode < 300
                     ) {
-                        this.logger.debug(`Successfully requested: ${uri}`);
+                        const requestUuid = unique();
+                        this.logger.debug(`Successfully requested (${requestUuid}): ${uri}`);
                         const writer = fs.createWriteStream(filename);
                         writer.on('error', (saveErr: NodeJS.ErrnoException) => {
                             fs.unlink(filename, () => {
@@ -152,7 +155,31 @@ export class Net extends Module {
                             this.logger.debug(`Successfully download from ${uri} to ${filename}`);
                             resolve(filename);
                         });
-                        response.pipe(writer);
+                        let received = 0;
+                        let prev = Date.now();
+                        const logger = this.logger;
+                        response
+                            .pipe(
+                                new Transform({
+                                    transform(
+                                        chunk: string | Buffer,
+                                        _encoding: BufferEncoding,
+                                        callback: () => void,
+                                    ) {
+                                        received += chunk.length;
+                                        this.push(chunk);
+                                        callback();
+                                        const current = Date.now();
+                                        if (current - prev > 3000) {
+                                            logger.debug(
+                                                `Downloaded (${requestUuid}): ${received} bytes`,
+                                            );
+                                            prev = Date.now();
+                                        }
+                                    },
+                                }),
+                            )
+                            .pipe(writer);
                     } else if (response.headers.location) {
                         this.download(response.headers.location, filename)
                             .then(resolve)
