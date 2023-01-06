@@ -23,4 +23,4 @@ merging = { path = "../merging" }
 processor = { path = "../processor" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "1.5", features = ["full"] }
+tokio = { version = "1.16", features = ["full"] }
