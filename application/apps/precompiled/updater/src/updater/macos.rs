@@ -30,15 +30,24 @@ impl Updater for PlatformUpdater {
             .map_err(UpdateError::CompressedError)?;
         // Rename application if it was renamed by user
         if self.args.app_name != *DEFAULT_MAC_APP_FOLDER {
-            log::debug!("Chipmunk application folder had been renamed by user to {:?}; target folder should be renamed too.", self.args.app_name);
+            log::debug!("Chipmunk application folder had been renamed by user to {:?}; downloaded version of application should be renamed too.", self.args.app_name);
+            let renamed_app_name = self.compressed.location.join(&self.args.app_name);
+            if renamed_app_name.exists() {
+                log::debug!("Detected {renamed_app_name:?}. This app-bundle will be removed",);
+                if let Err(err) = fs::remove_dir_all(&renamed_app_name) {
+                    log::warn!("Fail to remove app-bundle {renamed_app_name:?} due error {err}",);
+                } else {
+                    log::debug!("file {renamed_app_name:?} removed");
+                }
+            }
             fs::rename(
                 self.compressed.location.join(DEFAULT_MAC_APP_FOLDER),
-                self.compressed.location.join(&self.args.app_name),
+                &renamed_app_name,
             )
             .map_err(|e| UpdateError::IO(format!("Fail to do renaming: {e}")))?;
             log::debug!(
                 "Chipmunk application has been renamed to {:?}",
-                self.compressed.location.join(&self.args.app_name)
+                renamed_app_name
             );
         }
         // Copy files

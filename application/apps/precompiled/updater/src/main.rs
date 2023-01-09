@@ -29,7 +29,7 @@ fn main() -> Result<(), GeneralError> {
         eprintln!("Couldn't initialize logging: {e}");
         GeneralError::Logger(e.to_string())
     })?;
-    debug!("Updater ver. {version} has been started");
+    log::debug!("Updater ver. {version} has been started");
     let args = Arguments::new().map_err(|e| {
         log::error!("Fail to parse arguments: {e:?}");
         GeneralError::Arguments(e)
