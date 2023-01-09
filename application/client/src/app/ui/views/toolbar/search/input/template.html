@@ -57,16 +57,19 @@
 <div class="flags">
     <span
         tabindex="11"
+        title="Match Case"
         [attr.class]="'small-icon-button codicon codicon-case-sensitive ' + (input.flags.cases ? 'active' : 'inactive')"
         (click)="input.set().caseSensitive()"
     ></span>
     <span
         tabindex="12"
+        title="Match Whole Word"
         [attr.class]="'small-icon-button codicon codicon-whole-word ' + (input.flags.word ? 'active' : 'inactive')"
         (click)="input.set().wholeWord()"
     ></span>
     <span
         tabindex="13"
+        title="Use Regular Expression"
         [attr.class]="'small-icon-button codicon codicon-regex ' + (input.flags.reg ? 'active' : 'inactive')"
         (click)="input.set().regex()"
     ></span>
