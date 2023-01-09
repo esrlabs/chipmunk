@@ -46,7 +46,11 @@ export function AsyncResultsExecutor<TResult, TOptions>(
                 if (event.uuid !== self.uuid()) {
                     return; // Ignore. This is another operation
                 }
-                logger.warn(`Error on operation "${name}": ${event.error.message}`);
+                logger.warn(
+                    `Error on operation "${name}":\n${'-'.repeat(40)}\n${
+                        event.error.message
+                    }\n${'-'.repeat(40)}`,
+                );
                 reject(new Error(event.error.message));
             }),
             done: provider.getEvents().OperationDone.subscribe((event: IOperationDoneEvent) => {

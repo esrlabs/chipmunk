@@ -122,7 +122,9 @@ export class SessionSearch {
             if (this._tasks.search.current === undefined) {
                 executor(self, filters);
             } else {
-                this._tasks.search.pending !== undefined && this._tasks.search.pending.self.abort();
+                if (this._tasks.search.pending !== undefined) {
+                    this._tasks.search.pending.self.abort();
+                }
                 this._tasks.search.pending = {
                     self,
                     filters,
@@ -134,7 +136,9 @@ export class SessionSearch {
 
     public drop(): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            this._tasks.search.pending !== undefined && this._tasks.search.pending.self.abort();
+            if (this._tasks.search.pending !== undefined) {
+                this._tasks.search.pending.self.abort();
+            }
             this._tasks.search.pending = undefined;
             if (this._tasks.search.current === undefined) {
                 this._session.dropSearch().then(resolve).catch(reject);

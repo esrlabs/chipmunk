@@ -181,20 +181,6 @@ impl SearchFilter {
     }
 }
 
-fn escape(value: &str) -> String {
-    let mapping: HashMap<char, String> = "{}[]+$^/!.*|():?,=<>\\"
-        .chars()
-        .map(|c| (c, format!("\\{c}")))
-        .collect();
-    value
-        .chars()
-        .map(|c| match mapping.get(&c) {
-            Some(v) => v.clone(),
-            None => format!("{c}"),
-        })
-        .collect::<String>()
-}
-
 fn filter_as_regex(filter: &SearchFilter) -> String {
     let word_marker = if filter.is_word { "\\b" } else { "" };
     let ignore_case_start = if filter.ignore_case { "(?i)" } else { "" };
@@ -202,11 +188,9 @@ fn filter_as_regex(filter: &SearchFilter) -> String {
     let subject = if filter.is_regex {
         filter.value.clone()
     } else {
-        escape(&filter.value)
+        regex::escape(&filter.value)
     };
-    format!(
-        "{ignore_case_start}{word_marker}{subject}{word_marker}{ignore_case_end}",
-    )
+    format!("{ignore_case_start}{word_marker}{subject}{word_marker}{ignore_case_end}",)
 }
 
 fn filter_as_alias(filter: &SearchFilter) -> String {
@@ -284,16 +268,20 @@ impl SearchHolder {
         );
         let matcher = match RegexMatcher::new(&combined_regex) {
             Ok(regex) => regex,
-            Err(err) => return Err(SearchError::Regex(format!("{err}"))),
+            Err(err) => {
+                return Err(SearchError::Regex(format!(
+                    "Fail to create combined regex for {combined_regex}: {err}"
+                )))
+            }
         };
         let mut matchers: Vec<Regex> = vec![];
         let mut aliases: HashMap<usize, String> = HashMap::new();
         for (pos, filter) in self.search_filters.iter().enumerate() {
             aliases.insert(pos, filter_as_alias(filter));
-            matchers.push(
-                Regex::from_str(&filter_as_regex(filter))
-                    .map_err(|err| SearchError::Regex(format!("{err}")))?,
-            );
+            let regex_as_str = filter_as_regex(filter);
+            matchers.push(Regex::from_str(&regex_as_str).map_err(|err| {
+                SearchError::Regex(format!("Fail to create regex for {regex_as_str}: {err}"))
+            })?);
         }
         let in_file = File::open(&self.file_path).map_err(|_| {
             GrabError::IoOperation(format!("Could not open file {:?}", &self.file_path))

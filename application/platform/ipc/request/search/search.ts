@@ -23,13 +23,15 @@ export class Response extends SignatureRequirement {
     public session: string;
     public found: number;
     public canceled: boolean;
+    public error?: string;
 
-    constructor(input: { session: string; found: number; canceled: boolean }) {
+    constructor(input: { session: string; found: number; canceled: boolean; error?: string }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
         this.found = validator.getAsValidNumber(input, 'found');
         this.canceled = validator.getAsBool(input, 'canceled');
+        this.error = validator.getAsNotEmptyStringOrAsUndefined(input, 'error');
     }
 }
 
