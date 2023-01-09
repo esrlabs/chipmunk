@@ -19,6 +19,7 @@ import { ActiveSearch } from './active';
 import { Map } from '@service/session/dependencies/search/map';
 import { IFilter } from '@platform/types/filter';
 import { IFinish } from '@service/session/dependencies/search/state';
+import { Notification } from '@ui/service/notifications';
 
 @Component({
     selector: 'app-views-search-input',
@@ -73,7 +74,12 @@ export class ViewSearchInput
                 .subjects.get()
                 .finish.subscribe((result: IFinish) => {
                     this.progress.stop();
-                    result.error !== undefined && this.log().error(result.error);
+                    if (result.error !== undefined) {
+                        this.log().error(result.error);
+                        this.ilc().services.ui.notifications.notify(
+                            new Notification({ message: result.error, actions: [] }),
+                        );
+                    }
                 }),
         );
         this.env().subscriber.register(

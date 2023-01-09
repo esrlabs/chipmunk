@@ -27,6 +27,7 @@ export interface ICancelablePromise<T = void, C = void, EN = string, EH = TEvent
     abort(reason: C): CancelablePromise<T, C, EN, EH>;
     on(event: EN, handler: EH): CancelablePromise<T, C, EN, EH>;
     isProcessing(): boolean;
+    isCompleted(): boolean;
     isCanceling(): boolean;
     emit(event: EN, ...args: any[]): void;
     uuid(uuid?: string): string;
@@ -127,6 +128,10 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
             return false;
         }
         return true;
+    }
+
+    public isCompleted(): boolean {
+        return !this.isProcessing();
     }
 
     public isCanceling(): boolean {
@@ -335,7 +340,7 @@ export class JobsTracker<T = void, C = void, EN = string, EH = TEventHandler> {
                         resolve();
                     }
                 });
-                if (!job.isCanceling()) {
+                if (!job.isCompleted()) {
                     // Task wasn't canceled yet
                     job.abort(reason);
                 }
@@ -440,7 +445,7 @@ export class PromiseExecutor<T> {
                         resolve();
                     }
                 });
-                if (!task.isCanceling()) {
+                if (!task.isCompleted()) {
                     // Task wasn't canceled yet
                     task.abort();
                 }

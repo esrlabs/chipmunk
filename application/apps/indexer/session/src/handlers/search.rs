@@ -5,7 +5,11 @@ use crate::{
 };
 use indexer_base::progress::Severity;
 use log::debug;
-use processor::search::{SearchFilter, SearchHolder, SearchResults};
+use processor::{
+    map::{FilterMatch, FiltersStats},
+    search::{SearchFilter, SearchHolder, SearchResults},
+};
+use std::ops::Range;
 use tokio::{
     select,
     sync::mpsc::{channel, Receiver, Sender},
@@ -20,6 +24,7 @@ type SearchResultChannel = (
     Receiver<(SearchHolder, SearchResults)>,
 );
 
+#[allow(clippy::type_complexity)]
 pub async fn handle(
     operation_api: &OperationAPI,
     filters: Vec<SearchFilter>,
@@ -47,7 +52,18 @@ pub async fn handle(
                     .is_ok()
             {}
         });
-        let search_results = select! {
+        let search_results: Option<
+            Result<
+                (
+                    Range<usize>,
+                    usize,
+                    Vec<FilterMatch>,
+                    FiltersStats,
+                    SearchHolder,
+                ),
+                (Option<SearchHolder>, NativeError),
+            >,
+        > = select! {
             res = async {
                 loop {
                     match timeout(
@@ -58,29 +74,29 @@ pub async fn handle(
                     {
                         Ok(recv_results) => {
                             break recv_results.map_or(
-                                Err(NativeError {
+                                Err((None, NativeError {
                                     severity: Severity::ERROR,
                                     kind: NativeErrorKind::OperationSearch,
                                     message: Some("Fail to receive search results".to_string()),
-                                }),
+                                })),
                                 |(search_holder, search_results)| {
-                                    search_results
-                                        .map(|(processed, matches, stats)| {
-                                            (processed, matches.len(), matches, stats, search_holder)
-                                        })
-                                        .map_err(|err| NativeError {
+                                    match search_results {
+                                        Ok((processed, matches, stats)) => Ok((processed, matches.len(), matches, stats, search_holder)),
+                                        Err(err) => Err((Some(search_holder), NativeError {
                                             severity: Severity::ERROR,
                                             kind: NativeErrorKind::OperationSearch,
                                             message: Some(format!(
                                                 "Fail to execute search. Error: {err}"
                                             )),
-                                        })
+                                        }))
+
+                                    }
                                 },
                             );
                         }
                         Err(_) => {
                             if !cancel.is_cancelled() {
-                                state.set_matches(None, None).await?;
+                                state.set_matches(None, None).await.map_err(|err| (None, err))?;
                             }
                         },
                     };
@@ -101,10 +117,19 @@ pub async fn handle(
                     state.set_matches(Some(matches), Some(stats)).await?;
                     Ok(Some(found as u64))
                 }
-                Err(err) => Err(err),
+                Err((search_holder, err)) => {
+                    if let Some(search_holder) = search_holder {
+                        state
+                            .set_search_holder(Some(search_holder), operation_api.id())
+                            .await?;
+                    } else {
+                        state.set_search_holder(None, operation_api.id()).await?;
+                    }
+                    state.drop_search().await?;
+                    Err(err)
+                }
             }
         } else {
-            // Here should not be uuid at all.
             // We should not recreate holder, but just drop into NotInited
             state.set_search_holder(None, operation_api.id()).await?;
             state.drop_search().await?;

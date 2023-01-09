@@ -93,14 +93,10 @@ export class Search extends Subscriber {
                 }),
             )
                 .then((response) => {
-                    if (response.found !== undefined) {
-                        resolve(response.found);
+                    if (typeof response.error === 'string' && response.error.trim() !== '') {
+                        reject(new Error(response.error));
                     } else {
-                        reject(
-                            response.canceled
-                                ? new Error(`Operation is canceled`)
-                                : new Error(`No results of search`),
-                        );
+                        resolve(response.canceled ? 0 : response.found);
                     }
                 })
                 .catch(reject);

@@ -1,5 +1,5 @@
 import { CancelablePromise } from 'platform/env/promise';
-import { sessions, Jobs } from '@service/sessions';
+import { sessions } from '@service/sessions';
 import { Instance as Logger } from 'platform/env/logger';
 
 import * as Requests from 'platform/ipc/request';
@@ -20,29 +20,21 @@ export const handler = Requests.InjectLogger<
             if (stored.isShutdowning()) {
                 return reject(new Error(`Session is closing`));
             }
-            stored
-                .register(Jobs.search)
-                .abort('aborting')
-                .catch((err: Error) => {
-                    log.error(`Fail to cancel search operations; error: ${err.message}`);
+            stored.session
+                .getSearch()
+                .getMap(request.len, request.from, request.to)
+                .then((map) => {
+                    resolve(
+                        new Requests.Search.Map.Response({
+                            session: request.session,
+                            map,
+                            from: request.from === undefined ? 0 : request.from,
+                            to: request.to === undefined ? 0 : request.to,
+                        }),
+                    );
                 })
-                .finally(() => {
-                    stored.session
-                        .getSearch()
-                        .getMap(request.len, request.from, request.to)
-                        .then((map) => {
-                            resolve(
-                                new Requests.Search.Map.Response({
-                                    session: request.session,
-                                    map,
-                                    from: request.from === undefined ? 0 : request.from,
-                                    to: request.to === undefined ? 0 : request.to,
-                                }),
-                            );
-                        })
-                        .catch((error: Error) => {
-                            reject(error);
-                        });
+                .catch((error: Error) => {
+                    reject(error);
                 });
         });
     },

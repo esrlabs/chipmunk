@@ -45,7 +45,15 @@ export const handler = Requests.InjectLogger<
                         );
                     })
                     .catch((err) => {
-                        console.log(err);
+                        log.warn(`Search was finished with error: ${err.message}`);
+                        resolve(
+                            new Requests.Search.Search.Response({
+                                session: session_uuid,
+                                found: 0,
+                                canceled: false,
+                                error: err.message,
+                            }),
+                        );
                     }),
             );
         });
