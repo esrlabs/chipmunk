@@ -5,7 +5,7 @@ export class State extends AdvancedState {
     public isCursorVisible: boolean = true;
     public _ng_rectWidth: number = -1;
     public _ng_rectLeft: number = 0;
-    public readonly _ng_borderWidth: number = 2;
+    public readonly _ng_borderWidth: number = 1;
 
     public init() {
         this._positionChangeSetup();
