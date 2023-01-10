@@ -18,7 +18,6 @@ import { Progress } from './progress';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { ActiveSearch } from './active';
 import { Map } from '@service/session/dependencies/search/map';
-import { IFilter } from '@platform/types/filter';
 import { IFinish } from '@service/session/dependencies/search/state';
 import { Notification } from '@ui/service/notifications';
 
@@ -113,29 +112,25 @@ export class ViewSearchInput
                 });
         });
         this.input.actions.accept.subscribe(() => {
-            let filter: IFilter;
-            if (this.active !== undefined) {
-                filter = {
-                    filter: this.active.filter.filter,
-                    flags: this.input.flags,
-                };
-            } else {
-                filter = this.input.asFilter();
+            if (this.active === undefined) {
+                const filter = this.input.asFilter();
                 this.recent.update(filter.filter);
+                this.session.search
+                    .state()
+                    .setActive(filter)
+                    .then(() => {
+                        this.active = new ActiveSearch(this.session.search, filter);
+                        this.input.drop();
+                    })
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to accept search: ${err.message}`);
+                    })
+                    .finally(() => {
+                        this.markChangesForCheck();
+                    });
+            } else if (this.active.isPossibleToSaveAsFilter()) {
+                this.onSaveAsFilter();
             }
-            this.session.search
-                .state()
-                .setActive(filter)
-                .then(() => {
-                    this.active = new ActiveSearch(this.session.search, filter);
-                    this.input.drop();
-                })
-                .catch((err: Error) => {
-                    this.log().error(`Fail to accept search: ${err.message}`);
-                })
-                .finally(() => {
-                    this.markChangesForCheck();
-                });
         });
         this.input.actions.drop.subscribe(() => {
             this.drop();
