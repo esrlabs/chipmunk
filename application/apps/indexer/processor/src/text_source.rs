@@ -3,7 +3,7 @@ use crate::grabber::{
 };
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use indexer_base::progress::ComputationResult;
-use log::{error, debug};
+use log::{debug, error};
 use std::{
     fs,
     io::{Read, SeekFrom},
@@ -82,9 +82,7 @@ impl TextFileSource {
     /// the size of the input content
     pub fn input_size(&self) -> Result<u64, GrabError> {
         let input_file_size = std::fs::metadata(self.path())
-            .map_err(|e| {
-                GrabError::Config(format!("Could not determine size of input file: {e}"))
-            })?
+            .map_err(|e| GrabError::Config(format!("Could not determine size of input file: {e}")))?
             .len();
         Ok(input_file_size)
     }
@@ -205,11 +203,13 @@ impl TextFileSource {
         } else {
             None
         };
+        let line_count = (if let Some(slot) = slots.last() {
+            slot.lines.end() + 1
+        } else {
+            log_msg_cnt
+        }) as usize;
         Ok((
-            ComputationResult::Item(GrabMetadata {
-                slots,
-                line_count: log_msg_cnt as usize,
-            }),
+            ComputationResult::Item(GrabMetadata { slots, line_count }),
             processed,
         ))
     }
