@@ -1,4 +1,4 @@
-<div class="input">
+<div [attr.class]="'input ' + (input.error.hasError() ? 'has-error' : '')">
     <mat-form-field class="outline" appearance="outline">
         <span class="active" *ngIf="active !== undefined">
             <span class="t-console t-small filter">{{active.filter.filter}}</span>
@@ -7,17 +7,13 @@
                 [disabled]="!active.isPossibleToSaveAsFilter()"
                 (click)="onSaveAsFilter()"
             >
-                <mat-icon [class]="!active.isPossibleToSaveAsFilter() ? 'disabled' : ''"
-                    >save</mat-icon
-                >
+                <mat-icon [class]="!active.isPossibleToSaveAsFilter() ? 'disabled' : ''">save</mat-icon>
             </button>
             <button
                 [class]="active.isPossibleToSaveAsChart() ? 'enabled' : ''"
                 [disabled]="!active.isPossibleToSaveAsChart()"
             >
-                <mat-icon [class]="!active.isPossibleToSaveAsChart() ? 'disabled' : ''"
-                    >timeline</mat-icon
-                >
+                <mat-icon [class]="!active.isPossibleToSaveAsChart() ? 'disabled' : ''">timeline</mat-icon>
             </button>
             <button class="enabled" (click)="drop()">
                 <mat-icon>close</mat-icon>
@@ -75,6 +71,10 @@
     ></span>
 </div>
 <div class="summary">
+    <span class="error t-medium" *ngIf="input.error.hasError()" [attr.title]="input.error.getErrorMsg()">
+        <mat-icon>error</mat-icon>
+        <span class="message">{{input.error.getErrorMsg()}}</span>
+    </span>
     <span class="t-small color-scheme-2" *ngIf="progress.visible()">{{progress.summary()}}</span>
     <mat-spinner *ngIf="progress.working" [diameter]="20"></mat-spinner>
 </div>

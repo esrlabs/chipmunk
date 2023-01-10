@@ -181,6 +181,11 @@ impl SearchFilter {
     }
 }
 
+pub fn get_filter_error(filter: &SearchFilter) -> Option<String> {
+    let regex_as_str = filter_as_regex(filter);
+    Regex::from_str(&regex_as_str).map_or_else(|err| Some(err.to_string()), |_| None)
+}
+
 fn filter_as_regex(filter: &SearchFilter) -> String {
     let word_marker = if filter.is_word { "\\b" } else { "" };
     let ignore_case_start = if filter.ignore_case { "(?i)" } else { "" };

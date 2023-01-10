@@ -9,6 +9,12 @@ export interface IRustModuleExports {
     Dlt: any;
     Serial: any;
     Files: any;
+    getFilterError: (filter: {
+        value: string;
+        is_regex: boolean;
+        ignore_case: boolean;
+        is_word: boolean;
+    }) => string | undefined;
     execute: (filename: string, args: string[]) => Promise<void>;
 }
 

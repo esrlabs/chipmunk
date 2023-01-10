@@ -7,6 +7,7 @@ import {
     AfterViewInit,
     ChangeDetectorRef,
     ElementRef,
+    ViewEncapsulation,
 } from '@angular/core';
 import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { Session } from '@service/session';
@@ -25,6 +26,7 @@ import { Notification } from '@ui/service/notifications';
     selector: 'app-views-search-input',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    encapsulation: ViewEncapsulation.None,
 })
 @Ilc()
 export class ViewSearchInput
@@ -57,6 +59,11 @@ export class ViewSearchInput
         this.map = this.session.search.map;
         this.env().subscriber.register(
             this.progress.updated.subscribe(() => {
+                this.detectChanges();
+            }),
+        );
+        this.env().subscriber.register(
+            this.input.error.updated.subscribe(() => {
                 this.detectChanges();
             }),
         );
@@ -105,7 +112,6 @@ export class ViewSearchInput
                     this.markChangesForCheck();
                 });
         });
-
         this.input.actions.accept.subscribe(() => {
             let filter: IFilter;
             if (this.active !== undefined) {
