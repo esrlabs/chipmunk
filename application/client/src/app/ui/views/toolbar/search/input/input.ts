@@ -2,11 +2,13 @@ import { FormControl } from '@angular/forms';
 import { Subject } from '@platform/env/subscription';
 import { IFilter, IFilterFlags } from '@platform/types/filter';
 import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
+import { ErrorHandler } from './error';
 
 import * as obj from '@platform/env/obj';
 
 export class SearchInput {
-    public control: FormControl = new FormControl();
+    public readonly control: FormControl = new FormControl();
+    public readonly error: ErrorHandler = new ErrorHandler();
     public ref!: HTMLInputElement;
     public value: string = '';
     public readonly: boolean = false;
@@ -41,6 +43,7 @@ export class SearchInput {
         this.actions.recent.destroy();
         this.actions.edit.destroy();
         this.actions.clear.destroy();
+        this.error.destroy();
     }
 
     public bind(ref: HTMLInputElement, panel: MatAutocompleteTrigger) {
@@ -87,7 +90,12 @@ export class SearchInput {
                 this.actions.drop.emit();
             } else {
                 this.value = this.control.value;
-                this.actions.accept.emit();
+                this.error
+                    .set()
+                    .value(this.control.value)
+                    .then(() => {
+                        !this.error.hasError() && this.actions.accept.emit();
+                    });
             }
         } else if (event.key === 'Backspace' && this.control.value === '' && this._prev === '') {
             this.actions.edit.emit();
@@ -96,10 +104,12 @@ export class SearchInput {
             this._panel.openPanel();
             this.actions.recent.emit();
         }
+        this.error.set().value(this.control.value);
     }
 
     public drop() {
         this.control.setValue('');
+        this.error.set().value(this.control.value);
         this.value = '';
         this._prev = '';
     }
@@ -119,18 +129,22 @@ export class SearchInput {
                     this.control.setValue(value.filter);
                     this.flags = obj.clone(value.flags);
                 }
+                this.error.set().value(this.control.value);
             },
             caseSensitive: () => {
                 this.flags.cases = !this.flags.cases;
                 this.actions.flags.emit();
+                this.error.set().caseSensitive(this.flags.cases);
             },
             wholeWord: () => {
                 this.flags.word = !this.flags.word;
                 this.actions.flags.emit();
+                this.error.set().wholeWord(this.flags.word);
             },
             regex: () => {
                 this.flags.reg = !this.flags.reg;
                 this.actions.flags.emit();
+                this.error.set().regex(this.flags.reg);
             },
         };
     }
