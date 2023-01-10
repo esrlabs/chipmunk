@@ -87,7 +87,7 @@ export class SearchInput {
             }
             if (this.control.value.trim() === '') {
                 this.drop();
-                this.actions.drop.emit();
+                this.actions.accept.emit();
             } else {
                 this.value = this.control.value;
                 this.error
