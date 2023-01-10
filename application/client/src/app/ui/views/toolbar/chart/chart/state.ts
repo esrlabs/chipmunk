@@ -45,6 +45,10 @@ export class State extends AdvancedState {
         return this._loading;
     }
 
+    public onWheel(event: WheelEvent) {
+        this._service.wheel.emit(event);
+    }
+
     public onClick(event: MouseEvent) {
         const position: number = this._calculatePosition(event);
         position >= 0 && this._session.cursor.select(position, Owner.Chart, undefined, undefined);

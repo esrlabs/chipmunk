@@ -20,8 +20,10 @@ export class Service extends Subscriber implements Destroy {
     private _positions: Map<string, IPosition> = new Map();
     private readonly _subjects: {
         change: Subject<IPositionChange>;
+        wheel: Subject<WheelEvent>;
     } = {
         change: new Subject<IPositionChange>(),
+        wheel: new Subject<WheelEvent>(),
     };
 
     static from(session: Session): Service {
@@ -70,6 +72,10 @@ export class Service extends Subscriber implements Destroy {
 
     public set noData(noData: boolean) {
         this._noData = noData;
+    }
+
+    public get wheel(): Subject<WheelEvent> {
+        return this._subjects.wheel;
     }
 
     public onChange(handler: (event: IPositionChange) => void): Subscription {

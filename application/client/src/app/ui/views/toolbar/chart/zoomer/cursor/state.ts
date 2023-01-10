@@ -38,6 +38,9 @@ export class State extends BasicState {
             .subscriber.register(
                 this._parent.ilc().channel.ui.sidebar.resize(this._resizeSidebar.bind(this)),
             );
+        this._parent
+            .env()
+            .subscriber.register(this._service.wheel.subscribe(this.onWheel.bind(this)));
         window.addEventListener('mousemove', this._onWindowMousemove);
         window.addEventListener('mouseup', this._onWindowMouseup);
         this._restore();
