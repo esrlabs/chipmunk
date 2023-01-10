@@ -5,6 +5,7 @@ import {
     AfterViewInit,
     OnDestroy,
     ViewContainerRef,
+    HostListener,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -24,6 +25,10 @@ export class ViewChartCanvas extends ChangesDetector implements AfterViewInit, O
 
     constructor(cdRef: ChangeDetectorRef, public vcRef: ViewContainerRef) {
         super(cdRef);
+    }
+
+    @HostListener('wheel', ['$event']) _ng_onWheel(event: WheelEvent) {
+        this.state.onWheel(event);
     }
 
     public ngAfterViewInit() {
