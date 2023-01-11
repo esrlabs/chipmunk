@@ -275,7 +275,7 @@ impl SearchHolder {
             Ok(regex) => regex,
             Err(err) => {
                 return Err(SearchError::Regex(format!(
-                    "Fail to create combined regex for {combined_regex}: {err}"
+                    "Failed to create combined regex for {combined_regex}: {err}"
                 )))
             }
         };
@@ -285,7 +285,7 @@ impl SearchHolder {
             aliases.insert(pos, filter_as_alias(filter));
             let regex_as_str = filter_as_regex(filter);
             matchers.push(Regex::from_str(&regex_as_str).map_err(|err| {
-                SearchError::Regex(format!("Fail to create regex for {regex_as_str}: {err}"))
+                SearchError::Regex(format!("Failed to create regex for {regex_as_str}: {err}"))
             })?);
         }
         let in_file = File::open(&self.file_path).map_err(|_| {
