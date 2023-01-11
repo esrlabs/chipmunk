@@ -14,23 +14,24 @@ const config = readConfigurationFile().get().tests.map;
 
 describe('Map', function () {
     it(config.regular.list[1], function (done) {
+        const index: number = 1;
         if (
             config.regular.spec === undefined ||
             config.regular.spec.map === undefined ||
-            config.regular.spec.map[1] === undefined
+            config.regular.spec.map[index] === undefined
         ) {
             return finish(
                 undefined,
                 done,
-                new Error(`For test #1 required specification: map.regular.spec`),
+                new Error(`For test #${index} required specification: map.regular.spec`),
             );
         }
-        const spec = config.regular.spec.map[1];
-        const logger = getLogger(config.regular.list[1]);
+        const spec = config.regular.spec.map[index];
+        const logger = getLogger(config.regular.list[index]);
         Session.create()
             .then((session: Session) => {
                 // Set provider into debug mode
-                session.debug(true, config.regular.list[1]);
+                session.debug(true, config.regular.list[index]);
                 const stream = session.getStream();
                 const search = session.getSearch();
                 if (stream instanceof Error) {
@@ -93,23 +94,24 @@ describe('Map', function () {
     });
 
     it(config.regular.list[2], function (done) {
+        const index: number = 2;
         if (
             config.regular.spec === undefined ||
             config.regular.spec.map === undefined ||
-            config.regular.spec.map[2] === undefined
+            config.regular.spec.map[index] === undefined
         ) {
             return finish(
                 undefined,
                 done,
-                new Error(`For test #2 required specification: map.regular.spec`),
+                new Error(`For test #${index} required specification: map.regular.spec`),
             );
         }
-        const spec = config.regular.spec.map[2];
-        const logger = getLogger(config.regular.list[2]);
+        const spec = config.regular.spec.map[index];
+        const logger = getLogger(config.regular.list[index]);
         Session.create()
             .then((session: Session) => {
                 // Set provider into debug mode
-                session.debug(true, config.regular.list[2]);
+                session.debug(true, config.regular.list[index]);
                 const stream = session.getStream();
                 const search = session.getSearch();
                 if (stream instanceof Error) {
@@ -172,23 +174,24 @@ describe('Map', function () {
     });
 
     it(config.regular.list[3], function (done) {
+        const index: number = 3;
         if (
             config.regular.spec === undefined ||
             config.regular.spec.map === undefined ||
-            config.regular.spec.map[3] === undefined
+            config.regular.spec.map[index] === undefined
         ) {
             return finish(
                 undefined,
                 done,
-                new Error(`For test #3 required specification: map.regular.spec`),
+                new Error(`For test #${index} required specification: map.regular.spec`),
             );
         }
-        const spec = config.regular.spec.map[3];
-        const logger = getLogger(config.regular.list[3]);
+        const spec = config.regular.spec.map[index];
+        const logger = getLogger(config.regular.list[index]);
         Session.create()
             .then((session: Session) => {
                 // Set provider into debug mode
-                session.debug(true, config.regular.list[3]);
+                session.debug(true, config.regular.list[index]);
                 const stream = session.getStream();
                 const search = session.getSearch();
                 if (stream instanceof Error) {
@@ -279,6 +282,331 @@ describe('Map', function () {
                                                     expect(matches[0]).toEqual(2);
                                                     expect(matches[1]).toEqual(1);
                                                 });
+                                            }
+                                        });
+                                        finish(session, done);
+                                    })
+                                    .catch(finish.bind(null, session, done));
+                            })
+                            .catch(finish.bind(null, session, done));
+                    })
+                    .catch(finish.bind(null, session, done));
+            })
+            .catch((err: Error) => {
+                finish(
+                    undefined,
+                    done,
+                    new Error(
+                        `Fail to create session due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
+                );
+            });
+    });
+
+    it(config.regular.list[4], function (done) {
+        const index: number = 4;
+        if (
+            config.regular.spec === undefined ||
+            config.regular.spec.map === undefined ||
+            config.regular.spec.map[index] === undefined
+        ) {
+            return finish(
+                undefined,
+                done,
+                new Error(`For test #${index} required specification: map.regular.spec`),
+            );
+        }
+        const spec = config.regular.spec.map[index];
+        const logger = getLogger(config.regular.list[index]);
+        Session.create()
+            .then((session: Session) => {
+                session.debug(true, config.regular.list[index]);
+                const stream = session.getStream();
+                const search = session.getSearch();
+                if (stream instanceof Error) {
+                    return finish(session, done, stream);
+                }
+                if (search instanceof Error) {
+                    return finish(session, done, search);
+                }
+                const tmpobj = createSampleFile(
+                    spec.filesize,
+                    logger,
+                    (i: number) =>
+                        `[${i}]:: Run command ${
+                            i % 100 === 0 || i < 5 ? 'echo "haha">>file.txt' : ''
+                        }\n`,
+                );
+                stream
+                    .observe(Observe.DataSource.file(tmpobj.name).text())
+                    .on('confirmed', () => {
+                        search
+                            .search([
+                                {
+                                    filter: 'file.txt',
+                                    flags: { reg: false, word: false, cases: false },
+                                },
+                            ])
+                            .then((_) => {
+                                search
+                                    .getMap(spec.datasetLength)
+                                    .then((map: ISearchMap) => {
+                                        expect(map.length).toEqual(spec.datasetLength);
+                                        map.forEach((lineData: number[][], lineNumber: number) => {
+                                            if (lineNumber % 100 === 0 || lineNumber < 5) {
+                                                expect(lineData.length).toEqual(1);
+                                                lineData.forEach((matches: number[]) => {
+                                                    expect(matches[0]).toEqual(0);
+                                                    expect(matches[1]).toEqual(1);
+                                                });
+                                            } else {
+                                                expect(lineData.length).toEqual(0);
+                                            }
+                                        });
+                                        finish(session, done);
+                                    })
+                                    .catch(finish.bind(null, session, done));
+                            })
+                            .catch(finish.bind(null, session, done));
+                    })
+                    .catch(finish.bind(null, session, done));
+            })
+            .catch((err: Error) => {
+                finish(
+                    undefined,
+                    done,
+                    new Error(
+                        `Fail to create session due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
+                );
+            });
+    });
+
+    it(config.regular.list[5], function (done) {
+        const index: number = 5;
+        if (
+            config.regular.spec === undefined ||
+            config.regular.spec.map === undefined ||
+            config.regular.spec.map[index] === undefined
+        ) {
+            return finish(
+                undefined,
+                done,
+                new Error(`For test #${index} required specification: map.regular.spec`),
+            );
+        }
+        const spec = config.regular.spec.map[index];
+        const logger = getLogger(config.regular.list[index]);
+        Session.create()
+            .then((session: Session) => {
+                // Set provider into debug mode
+                session.debug(true, config.regular.list[index]);
+                const stream = session.getStream();
+                const search = session.getSearch();
+                if (stream instanceof Error) {
+                    return finish(session, done, stream);
+                }
+                if (search instanceof Error) {
+                    return finish(session, done, search);
+                }
+                const tmpobj = createSampleFile(
+                    spec.filesize,
+                    logger,
+                    (i: number) =>
+                        `[${i}]:: Random text ${i % 100 === 0 || i < 5 ? '1:1' : ''} as expected\n`,
+                );
+                stream
+                    .observe(Observe.DataSource.file(tmpobj.name).text())
+                    .on('confirmed', () => {
+                        search
+                            .search([
+                                {
+                                    filter: '1:1',
+                                    flags: { reg: false, word: false, cases: false },
+                                },
+                            ])
+                            .then((_) => {
+                                search
+                                    .getMap(spec.datasetLength)
+                                    .then((map: ISearchMap) => {
+                                        expect(map.length).toEqual(spec.datasetLength);
+                                        map.forEach((lineData: number[][], lineNumber: number) => {
+                                            if (lineNumber % 100 === 0 || lineNumber < 5) {
+                                                expect(lineData.length).toEqual(1);
+                                                lineData.forEach((matches: number[]) => {
+                                                    expect(matches[0]).toEqual(0);
+                                                    expect(matches[1]).toEqual(1);
+                                                });
+                                            } else {
+                                                expect(lineData.length).toEqual(0);
+                                            }
+                                        });
+                                        finish(session, done);
+                                    })
+                                    .catch(finish.bind(null, session, done));
+                            })
+                            .catch(finish.bind(null, session, done));
+                    })
+                    .catch(finish.bind(null, session, done));
+            })
+            .catch((err: Error) => {
+                finish(
+                    undefined,
+                    done,
+                    new Error(
+                        `Fail to create session due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
+                );
+            });
+    });
+
+    it(config.regular.list[6], function (done) {
+        const index: number = 6;
+        if (
+            config.regular.spec === undefined ||
+            config.regular.spec.map === undefined ||
+            config.regular.spec.map[index] === undefined
+        ) {
+            return finish(
+                undefined,
+                done,
+                new Error(`For test #${index} required specification: map.regular.spec`),
+            );
+        }
+        const spec = config.regular.spec.map[index];
+        const logger = getLogger(config.regular.list[index]);
+        Session.create()
+            .then((session: Session) => {
+                // Set provider into debug mode
+                session.debug(true, config.regular.list[index]);
+                const stream = session.getStream();
+                const search = session.getSearch();
+                if (stream instanceof Error) {
+                    return finish(session, done, stream);
+                }
+                if (search instanceof Error) {
+                    return finish(session, done, search);
+                }
+                const tmpobj = createSampleFile(
+                    spec.filesize,
+                    logger,
+                    (i: number) =>
+                        `[${i}]:: Timestamp is ${
+                            i % 15 === 0 || i < 7 ? '00:00.0:1' + i : 'unknown'
+                        } right now.\n`,
+                );
+                stream
+                    .observe(Observe.DataSource.file(tmpobj.name).text())
+                    .on('confirmed', () => {
+                        search
+                            .search([
+                                {
+                                    filter: '0.0:1',
+                                    flags: { reg: false, word: false, cases: false },
+                                },
+                            ])
+                            .then((_) => {
+                                search
+                                    .getMap(spec.datasetLength)
+                                    .then((map: ISearchMap) => {
+                                        expect(map.length).toEqual(spec.datasetLength);
+                                        map.forEach((lineData: number[][], lineNumber: number) => {
+                                            if (lineNumber % 15 === 0 || lineNumber < 7) {
+                                                expect(lineData.length).toEqual(1);
+                                                lineData.forEach((matches: number[]) => {
+                                                    expect(matches[0]).toEqual(0);
+                                                    expect(matches[1]).toEqual(1);
+                                                });
+                                            } else {
+                                                expect(lineData.length).toEqual(0);
+                                            }
+                                        });
+                                        finish(session, done);
+                                    })
+                                    .catch(finish.bind(null, session, done));
+                            })
+                            .catch(finish.bind(null, session, done));
+                    })
+                    .catch(finish.bind(null, session, done));
+            })
+            .catch((err: Error) => {
+                finish(
+                    undefined,
+                    done,
+                    new Error(
+                        `Fail to create session due error: ${
+                            err instanceof Error ? err.message : err
+                        }`,
+                    ),
+                );
+            });
+    });
+
+    it(config.regular.list[7], function (done) {
+        const index: number = 7;
+        if (
+            config.regular.spec === undefined ||
+            config.regular.spec.map === undefined ||
+            config.regular.spec.map[index] === undefined
+        ) {
+            return finish(
+                undefined,
+                done,
+                new Error(`For test #${index} required specification: map.regular.spec`),
+            );
+        }
+        const spec = config.regular.spec.map[index];
+        const logger = getLogger(config.regular.list[index]);
+        Session.create()
+            .then((session: Session) => {
+                // Set provider into debug mode
+                session.debug(true, config.regular.list[index]);
+                const stream = session.getStream();
+                const search = session.getSearch();
+                if (stream instanceof Error) {
+                    return finish(session, done, stream);
+                }
+                if (search instanceof Error) {
+                    return finish(session, done, search);
+                }
+                const tmpobj = createSampleFile(
+                    spec.filesize,
+                    logger,
+                    (i: number) =>
+                        `[${i}]:: Timestamp in a longsword(${
+                            i % 3 === 0 || i > 700 ? '0.0:1' + i : 'unknown'
+                        })\n`,
+                );
+                stream
+                    .observe(Observe.DataSource.file(tmpobj.name).text())
+                    .on('confirmed', () => {
+                        search
+                            .search([
+                                {
+                                    filter: 'word(0.0:1',
+                                    flags: { reg: false, word: false, cases: false },
+                                },
+                            ])
+                            .then((_) => {
+                                search
+                                    .getMap(spec.datasetLength)
+                                    .then((map: ISearchMap) => {
+                                        expect(map.length).toEqual(spec.datasetLength);
+                                        map.forEach((lineData: number[][], lineNumber: number) => {
+                                            if (lineNumber % 3 === 0 || lineNumber > 700) {
+                                                expect(lineData.length).toEqual(1);
+                                                lineData.forEach((matches: number[]) => {
+                                                    expect(matches[0]).toEqual(0);
+                                                    expect(matches[1]).toEqual(1);
+                                                });
+                                            } else {
+                                                expect(lineData.length).toEqual(0);
                                             }
                                         });
                                         finish(session, done);

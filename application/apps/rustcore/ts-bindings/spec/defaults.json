@@ -134,7 +134,11 @@
                 "list": {
                     "1": "Test 1. Search map for file length < dataset length",
                     "2": "Test 2. Search map for 10 line file with match on first line",
-                    "3": "Test 3. Search map for big file with multiple filters"
+                    "3": "Test 3. Search map for big file with multiple filters",
+                    "4": "Test 4. Search map for file containing '>>'",
+                    "5": "Test 5. Search map for file with ':'-match",
+                    "6": "Test 6. Search map for file with '0.0:1'-match",
+                    "7": "Test 7. Search map for file with 'word(0.0:1'-match"
                 },
                 "spec": {
                     "map": {
@@ -149,6 +153,22 @@
                         "3": {
                             "filesize": 6000,
                             "datasetLength": 6000
+                        },
+                        "4": {
+                            "filesize": 10,
+                            "datasetLength": 10
+                        },
+                        "5": {
+                            "filesize": 1000,
+                            "datasetLength": 1000
+                        },
+                        "6": {
+                            "filesize": 1000,
+                            "datasetLength": 1000
+                        },
+                        "7": {
+                            "filesize": 1000,
+                            "datasetLength": 1000
                         }
                     }
                 }
