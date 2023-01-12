@@ -10,6 +10,7 @@ import {
 import { SelectionNode } from './selection.node';
 import { findParentByTag } from '@ui/env/dom';
 import { Service } from './service';
+import { escapeAnsi } from '@module/ansi';
 
 const DIRECTED_SCROLL_TIMEOUT_MS = 50;
 
@@ -258,7 +259,7 @@ export class Selecting {
         return this.get() !== undefined;
     }
 
-    public async copyToClipboard(): Promise<void> {
+    public async copyToClipboard(original: boolean): Promise<void> {
         const selection = this.get();
         if (selection === undefined) {
             return Promise.resolve();
@@ -269,7 +270,13 @@ export class Selecting {
         }
         const rows = (
             await this._service.getRows({ from: selection.rows.start, to: selection.rows.end })
-        ).rows.map((r) => r.content);
+        ).rows.map((r) => {
+            if (original) {
+                return r.content;
+            } else {
+                return escapeAnsi(r.content);
+            }
+        });
 
         if (rows.length === 0) {
             return Promise.resolve();

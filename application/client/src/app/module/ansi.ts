@@ -9,3 +9,11 @@ export function ansiToHtml(input: string): string | Error {
         return new Error(error(e));
     }
 }
+
+export function escapeAnsi(input: string): string | Error {
+    try {
+        return wasm.getAnsi().escape(input);
+    } catch (e) {
+        return new Error(error(e));
+    }
+}
