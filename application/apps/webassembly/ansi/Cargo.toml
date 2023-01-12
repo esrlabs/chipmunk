@@ -10,5 +10,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 ansi-to-html = { version = "0.1.2", features = ["lazy-init"] }
+strip-ansi-escapes = "0.1.1"
 wasm-bindgen = "0.2"
 wasm-bindgen-test = "0.3.0"
