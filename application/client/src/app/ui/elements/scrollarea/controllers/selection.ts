@@ -11,6 +11,8 @@ import { SelectionNode } from './selection.node';
 import { findParentByTag } from '@ui/env/dom';
 import { Service } from './service';
 
+const DIRECTED_SCROLL_TIMEOUT_MS = 50;
+
 export enum SelectionDirection {
     Top = 'Top',
     Bottom = 'Bottom',
@@ -32,6 +34,13 @@ export class Selecting {
     private _holder!: HTMLElement;
     private _service!: Service;
     private _progress: boolean = false;
+    private _directed: {
+        direction: SelectionDirection;
+        timer: number;
+    } = {
+        direction: SelectionDirection.Bottom,
+        timer: -1,
+    };
     private _selection: {
         focus: NodeInfo;
         anchor: NodeInfo;
@@ -181,36 +190,44 @@ export class Selecting {
         return this._subjects.finish.subscribe(handler);
     }
 
-    public doSelectionInDirection(direction?: SelectionDirection) {
-        if (!this._progress) {
-            return;
-        }
-        if (direction !== undefined) {
-            switch (direction) {
-                case SelectionDirection.Top:
-                    this._frame.offsetToByRows(-1, ChangesInitiator.Selecting);
-                    this._selection.focus.setToRow(this._frame.get().from);
-                    break;
-                case SelectionDirection.Bottom:
-                    this._frame.offsetToByRows(1, ChangesInitiator.Selecting);
-                    this._selection.focus.setToRow(this._frame.get().to);
-                    break;
-            }
-        } else {
-            const selection: Selection | null = document.getSelection();
-            if (selection === null) {
-                return;
-            }
-            this._selection.focus.update(selection);
-            this._selection.anchor.update(selection);
-            this._detectBorders(selection);
-            if (this._selection.focus.row === this._frame.get().from) {
-                this._frame.offsetToByRows(-1, ChangesInitiator.Selecting);
-            } else if (this._selection.focus.row === this._frame.get().to) {
-                this._frame.offsetToByRows(1, ChangesInitiator.Selecting);
-            }
-        }
-        this._holder.focus();
+    public directed(): {
+        start(direction: SelectionDirection): void;
+        next(): void;
+        finish(): void;
+    } {
+        return {
+            start: (direction: SelectionDirection): void => {
+                if (!this._progress) {
+                    return;
+                }
+                this._directed.direction = direction;
+                this.directed().next();
+            },
+            next: (): void => {
+                if (!this._progress) {
+                    return;
+                }
+                clearTimeout(this._directed.timer);
+                switch (this._directed.direction) {
+                    case SelectionDirection.Top:
+                        this._frame.offsetToByRows(-1, ChangesInitiator.Selecting);
+                        this._selection.focus.setToRow(this._frame.get().from);
+                        break;
+                    case SelectionDirection.Bottom:
+                        this._frame.offsetToByRows(1, ChangesInitiator.Selecting);
+                        this._selection.focus.setToRow(this._frame.get().to);
+                        break;
+                }
+                this._holder.focus();
+                this._directed.timer = setTimeout(() => {
+                    this.directed().next();
+                }, DIRECTED_SCROLL_TIMEOUT_MS) as any;
+            },
+            finish: (): void => {
+                clearTimeout(this._directed.timer);
+                this._directed.timer = -1;
+            },
+        };
     }
 
     public get(): ISelection | string | undefined {
@@ -315,7 +332,13 @@ export class Selecting {
         if (!this._progress) {
             return;
         }
-        this.doSelectionInDirection(undefined);
+        const selection: Selection | null = document.getSelection();
+        if (selection === null) {
+            return;
+        }
+        this._selection.focus.update(selection);
+        this._selection.anchor.update(selection);
+        this._detectBorders(selection);
     }
 
     private _onMouseDown(event: MouseEvent) {

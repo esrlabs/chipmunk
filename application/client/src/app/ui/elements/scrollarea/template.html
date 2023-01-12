@@ -1,3 +1,6 @@
+<div class="selection-detector top" *ngIf="showSelectionDetectors()">
+	<div class="selection-detector-filler" (mouseenter)="onMouseInSelectionDetector(selectionDirection.Top)" (mouseleave)="onMouseOutSelectionDetector()"></div>
+</div>
 <div class="container">
 	<ul class="holder" #content_holder (wheel)="onWheel($event)">
 		<li *ngFor="let row of rows; let i = index;" [attr.data-row-index]="i + getFrameStart()" [attr.data-on-border]="isSourceSwitched(i)">
@@ -10,9 +13,6 @@
 	[holder]="holder"
 	[frame]="frame"
 	(scrolling)="onScrolling($event)"></app-scrollarea-vertical>
-<div class="selection-detector top" *ngIf="showSelectionDetectors()">
-	<div class="selection-detector-filler" (mousemove)="onMouseMoveSelectionDetector(selectionDirection.Top)"></div>
-</div>
 <div class="selection-detector bottom" *ngIf="showSelectionDetectors()">
-	<div class="selection-detector-filler" (mousemove)="onMouseMoveSelectionDetector(selectionDirection.Bottom)"></div>
+	<div class="selection-detector-filler" (mouseenter)="onMouseInSelectionDetector(selectionDirection.Bottom)" (mouseleave)="onMouseOutSelectionDetector()"></div>
 </div>
