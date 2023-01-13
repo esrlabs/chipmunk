@@ -1,5 +1,6 @@
 import { ISearchMap } from '@platform/interfaces/interface.rust.api.general';
 import { Session } from '@service/session';
+import { scheme_color_match } from '@ui/styles/colors';
 
 export class State {
     static COLUMN_WIDTH = 4;
@@ -79,11 +80,13 @@ export class State {
         this.map.forEach((value: number[][], top: number) => {
             value.forEach((matches) => {
                 if (isActive) {
-                    this.context.fillStyle = 'rgb(255,0,0)';
+                    this.context.fillStyle = scheme_color_match;
                 } else {
                     const filter = filters[matches[0]];
                     this.context.fillStyle =
-                        filter === undefined ? 'rgb(255,0,0)' : filter.definition.colors.background;
+                        filter === undefined
+                            ? scheme_color_match
+                            : filter.definition.colors.background;
                 }
                 this.context.fillRect(
                     matches[0] * State.COLUMN_WIDTH,

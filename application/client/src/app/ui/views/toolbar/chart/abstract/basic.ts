@@ -8,6 +8,7 @@ export abstract class BasicState {
     protected _session!: Session;
     protected _service!: Service;
     protected _element!: HTMLElement;
+    protected _activeSearch!: boolean;
 
     public bind(
         parent: IlcInterface & ChangesDetector,
@@ -18,6 +19,7 @@ export abstract class BasicState {
         this._session = session;
         this._element = element;
         this._service = Service.from(this._session);
+        this._activeSearch = this._session.search.state().hasActiveSearch();
     }
 
     protected abstract init(): void;
