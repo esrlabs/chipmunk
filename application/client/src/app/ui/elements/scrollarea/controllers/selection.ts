@@ -260,15 +260,19 @@ export class Selecting {
 
     public selection(): { exist: boolean; lines: number } {
         const selection = this.get();
-        return {
-            exist: selection !== undefined,
-            lines:
-                selection === undefined
-                    ? 0
-                    : typeof selection === 'string'
-                    ? 1
-                    : selection.rows.end - selection.rows.start,
-        };
+        if (selection === undefined) {
+            return {
+                exist: false,
+                lines: 0,
+            };
+        } else {
+            const len =
+                typeof selection === 'string' ? 1 : selection.rows.end - selection.rows.start + 1;
+            return {
+                exist: selection !== undefined,
+                lines: len < 0 ? 0 : len,
+            };
+        }
     }
 
     public async copyToClipboard(original: boolean): Promise<void> {
