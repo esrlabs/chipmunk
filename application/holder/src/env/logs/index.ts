@@ -104,10 +104,7 @@ export class Logger extends Instance {
     }
 
     public write(message: string, level: Level): void {
-        if (!settings.getAllowedConsole()[level]) {
-            return;
-        }
-        store.write(`[${this._signature}]: ${message}`);
+        this.publish(`[${this._signature}]: ${message}`, level);
     }
 
     protected publish(message: string, level: Level) {
