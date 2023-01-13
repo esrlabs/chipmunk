@@ -105,11 +105,18 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         };
         const items: {}[] = [];
         const selectedRowsCount = this.row.session.selection().indexes().length;
+        const delimiter = this.row.session.render.delimiter();
+        const selection = this.selecting.selection();
         items.push(
             ...[
                 {
-                    caption: 'Copy',
-                    disabled: !this.selecting.hasSelection(),
+                    caption:
+                        delimiter === undefined
+                            ? 'Copy as Plain Text'
+                            : selection.lines > 1
+                            ? 'Copy as Formated Table'
+                            : 'Copy',
+                    disabled: !selection.exist,
                     shortcut: 'Ctrl + C',
                     handler: () => {
                         this.selecting.copyToClipboard(false).catch((err: Error) => {
@@ -118,8 +125,11 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                     },
                 },
                 {
-                    caption: 'Copy With Original Format',
-                    disabled: !this.selecting.hasSelection(),
+                    caption:
+                        delimiter === undefined
+                            ? 'Copy with Original Formating'
+                            : 'Copy without Formating',
+                    disabled: !selection.exist || (delimiter !== undefined && selection.lines <= 1),
                     handler: () => {
                         this.selecting.copyToClipboard(true).catch((err: Error) => {
                             this.log().error(`Fail to copy selection: ${err.message}`);
@@ -202,6 +212,7 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
 
     public ngAfterContentInit(): void {
         this.render = this.row.session.render.delimiter() === undefined ? 1 : 2;
+        this.selecting.setDelimiter(this.row.session.render.delimiter());
         this.env().subscriber.register(
             this.row.session.stream.subjects.get().rank.subscribe(() => {
                 this.update();
