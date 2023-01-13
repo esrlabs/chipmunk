@@ -1,5 +1,5 @@
 import { Subject } from '@platform/env/subscription';
-import { getContrastColor, scheme_color_accent, getNextColor } from '@styles/colors';
+import { getContrastColor, scheme_color_match, getNextColor } from '@styles/colors';
 import { DisableConvertable } from '../disabled/converting';
 import { IFilter, IFilterFlags } from '@platform/types/filter';
 import { Hash, Recognizable } from '@platform/types/storage/entry';
@@ -110,15 +110,15 @@ export class FilterRequest
             colors: {
                 color:
                     def.colors === undefined
-                        ? getContrastColor(scheme_color_accent, true)
+                        ? getContrastColor(scheme_color_match, true)
                         : def.colors.color === undefined
-                        ? getContrastColor(scheme_color_accent, true)
+                        ? getContrastColor(scheme_color_match, true)
                         : def.colors.color,
                 background:
                     def.colors === undefined
-                        ? scheme_color_accent
+                        ? scheme_color_match
                         : def.colors.background === undefined
-                        ? scheme_color_accent
+                        ? scheme_color_match
                         : def.colors.background,
             },
         };
