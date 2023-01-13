@@ -1,4 +1,4 @@
-name: BuildAndReleaseMaster
+name: BuildAndReleaseChipmunk2
 
 on:
     push:
@@ -15,7 +15,9 @@ jobs:
                 rust: [stable]
         steps:
             - name: Checkout
-              uses: actions/checkout@v2
+              uses: actions/checkout@v3
+              with:
+                  ref: chipmunk_2
             - name: Install windows python
               uses: actions/setup-python@v1
               if: startsWith(matrix.os, 'windows')
