@@ -2,6 +2,8 @@ name: BuildAndReleaseMaster
 
 on:
     push:
+        branches:
+            - master # Push events on master branch
         tags:
             - next-**
 jobs:
