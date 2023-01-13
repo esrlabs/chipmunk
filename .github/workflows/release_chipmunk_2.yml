@@ -3,7 +3,7 @@ name: BuildAndReleaseChipmunk2
 on:
     push:
         branches:
-            - master # Push events on master branch
+            - chipmunk_2 # Push events on chipmunk_2 branch
         tags-ignore:
             - next-**
 jobs:

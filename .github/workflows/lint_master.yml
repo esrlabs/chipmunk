@@ -1,48 +1,90 @@
 name: LintMaster
 
 on:
-  push:
-    branches:
-      - master # Push events on master branch
+    push:
+        branches:
+            - master # Push events on master branch
 
 jobs:
-  lint_js:
-    runs-on: ubuntu-18.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: install ruby
-        uses: actions/setup-ruby@v1
-        with:
-          ruby-version: "2.x"
-      - name: install octokit
-        run: gem install octokit
-      - name: install node
-        uses: actions/setup-node@master
-        with:
-          node-version: "14.15.4"
-      - name: install typescript
-        run: npm install typescript --global
-      - name: install tslint
-        run: npm install --global tslint
-      - name: lint js code
-        run: rake lint_js --trace
-  lint_rust:
-    runs-on: ubuntu-18.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: install ruby
-        uses: actions/setup-ruby@v1
-        with:
-          ruby-version: "2.x"
-      - name: install octokit
-        run: gem install octokit
-      - name: install rust
-        uses: hecrj/setup-rust-action@v1
-        with:
-          rust-version: ${{ matrix.rust }}
-      - name: install clippy
-        run: rustup component add clippy
-      - name: lint rust code
-        run: rake lint_rust --trace
+    ts_lint:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+            - name: install ruby
+              uses: ruby/setup-ruby@v1
+              with:
+                  ruby-version: "3.0"
+                  bundler-cache: true
+            - name: install ruby:gem::dotenv
+              run: gem install dotenv
+            - name: install ruby:gem::json
+              run: gem install json
+            - uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
+                  override: true
+            - name: NPM install
+              working-directory: ./application/
+              run: rake install:all
+            - name: JS/TS linting
+              working-directory: ./application/
+              run: rake lint:all
+    rust_lint:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+            - name: install ruby
+              uses: ruby/setup-ruby@v1
+              with:
+                  ruby-version: "3.0"
+                  bundler-cache: true
+            - name: install ruby:gem::dotenv
+              run: gem install dotenv
+            - name: install ruby:gem::json
+              run: gem install json
+            - uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
+                  override: true
+            - name: Rust linting
+              working-directory: ./application/
+              run: rake clippy:all
+    integration_tests:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+            - name: install ruby
+              uses: ruby/setup-ruby@v1
+              with:
+                  ruby-version: "3.0"
+                  bundler-cache: true
+            - name: install ruby:gem::dotenv
+              run: gem install dotenv
+            - name: install ruby:gem::json
+              run: gem install json
+            - uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
+                  override: true
+            - name: Run integration tests
+              working-directory: ./application
+              env:
+                  ELECTRON_RUN_AS_NODE: 1
+              run: rake test:all
+    unit_tests:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+            - uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
+                  override: true
+            - name: Run unit tests on indexer
+              uses: actions-rs/cargo@v1
+              with:
+                  command: test
+                  args: --manifest-path ./application/apps/indexer/Cargo.toml
