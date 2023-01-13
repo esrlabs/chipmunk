@@ -78,6 +78,10 @@
         white-space: nowrap;
         color: @scheme-color-0;
     }
+    input.error {
+        color: @scheme-color-error;
+        border-bottom: dashed 1px @scheme-color-error;
+    }
     span.flags {
         flex: 0;
         white-space: nowrap;
@@ -96,12 +100,6 @@
             &.inactive{
                 color: @scheme-color-3;
             }
-        }
-    }
-    &.notvalid {
-        input.request {
-            color: @scheme-color-error;
-            border-bottom: dashed 1px @scheme-color-error;
         }
     }
     &.edited {
