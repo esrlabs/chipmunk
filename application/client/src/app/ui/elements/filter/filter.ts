@@ -33,8 +33,9 @@ export class Filter {
         this.options = options;
     }
 
-    public bind(element: HTMLInputElement) {
-        this._element = element;
+    public bind(element: HTMLInputElement | undefined): Filter {
+        element !== undefined && (this._element = element);
+        return this;
     }
 
     public focus() {

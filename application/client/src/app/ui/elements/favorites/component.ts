@@ -7,6 +7,7 @@ import {
     ViewEncapsulation,
     Input,
     OnDestroy,
+    ViewChild,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
@@ -14,6 +15,7 @@ import { Item } from './item';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State, CloseHandler } from './state';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { InputFilter } from '@elements/filter/component';
 
 @Component({
     selector: 'app-favorites-mini',
@@ -28,6 +30,7 @@ export class Favorites
     extends ChangesDetector
     implements AfterViewInit, AfterContentInit, OnDestroy
 {
+    @ViewChild('filter') public filterInputRef!: InputFilter;
     @Input() close: CloseHandler | undefined;
 
     public readonly state: State;
@@ -37,7 +40,7 @@ export class Favorites
         this.state = new State(this);
         this.env().subscriber.register(
             this.state.update.subscribe(() => {
-                this.detectChanges();
+                this.bindFilterInput();
             }),
         );
     }
@@ -51,8 +54,7 @@ export class Favorites
     }
 
     public ngAfterViewInit(): void {
-        this.detectChanges();
-        this.state.filter.focus();
+        this.bindFilterInput();
     }
 
     public ngItemContextMenu(event: MouseEvent, item: Item) {
@@ -106,6 +108,12 @@ export class Favorites
 
     public safeHtml(html: string): SafeHtml {
         return this._sanitizer.bypassSecurityTrustHtml(html);
+    }
+
+    public bindFilterInput() {
+        this.detectChanges();
+        this.filterInputRef !== undefined &&
+            this.state.filter.bind(this.filterInputRef.getInputElementRef()).focus();
     }
 }
 export interface Favorites extends IlcInterface {}
