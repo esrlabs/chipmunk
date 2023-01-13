@@ -1,6 +1,6 @@
 import { ISearchMap } from '@platform/interfaces/interface.rust.api.general';
 import { Session } from '@service/session';
-import { scheme_color_match } from '@ui/styles/colors';
+import { scheme_color_match } from '@styles/colors';
 
 export class State {
     static COLUMN_WIDTH = 4;
