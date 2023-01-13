@@ -6,6 +6,7 @@ import {
     ChangeDetectorRef,
     ViewEncapsulation,
     Input,
+    ViewChild,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
@@ -13,6 +14,7 @@ import { Action } from '@service/recent/action';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State, CloseHandler } from './state';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { InputFilter } from '@elements/filter/component';
 
 @Component({
     selector: 'app-recent-actions-mini',
@@ -24,6 +26,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 @Initial()
 @Ilc()
 export class RecentActionsMini extends ChangesDetector implements AfterViewInit, AfterContentInit {
+    @ViewChild('filter') public filterInputRef!: InputFilter;
     @Input() close: CloseHandler | undefined;
 
     public readonly state: State;
@@ -44,7 +47,8 @@ export class RecentActionsMini extends ChangesDetector implements AfterViewInit,
 
     public ngAfterViewInit(): void {
         this.detectChanges();
-        this.state.filter.focus();
+        this.filterInputRef !== undefined &&
+            this.state.filter.bind(this.filterInputRef.getInputElementRef()).focus();
     }
 
     public onDefaultAction(action: Action) {

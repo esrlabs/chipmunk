@@ -1,4 +1,4 @@
-<app-filter-input [filter]="state.filter"></app-filter-input>
+<app-filter-input #filter [filter]="state.filter"></app-filter-input>
 <div class="actions">
     <div [attr.class]="'action ' + (state.selected === action.hash() ? 'selected' : '')" 
         *ngFor="let action of state.getFilteredActions();" 

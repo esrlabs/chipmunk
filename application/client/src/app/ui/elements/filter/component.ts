@@ -37,5 +37,16 @@ export class InputFilter extends ChangesDetector implements AfterContentInit, Af
     public ngAfterViewInit(): void {
         this.filter.bind(this.filterInputRef.nativeElement);
     }
+
+    public focus(): void {
+        if (this.filterInputRef === undefined) {
+            return;
+        }
+        this.filterInputRef.nativeElement.focus();
+    }
+
+    public getInputElementRef(): HTMLInputElement | undefined {
+        return this.filterInputRef !== undefined ? this.filterInputRef.nativeElement : undefined;
+    }
 }
 export interface InputFilter extends IlcInterface {}
