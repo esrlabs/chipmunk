@@ -8,6 +8,7 @@ export const scheme_color_6 = '#111111';
 export const scheme_color_error = 'rgb(253, 21, 21)';
 export const scheme_color_accent = '#74b9ff';
 export const scheme_color_warning = '#fffd71';
+export const scheme_color_match = '#e4e15b';
 export const scheme_search_match = '#AA0000';
 
 const colorsCache: Map<string, string> = new Map();

@@ -4,6 +4,7 @@ import { FilterRequest } from '@service/session/dependencies/search/filters/requ
 import { StoredEntity } from '@service/session/dependencies/search/store';
 import { Chart, ChartDataset } from 'chart.js';
 import { BasicState } from './basic';
+import { scheme_color_match } from '@styles/colors';
 
 export enum EChartName {
     chartFilters = 'view-chart-canvas-filters',
@@ -87,7 +88,7 @@ export abstract class AdvancedState extends BasicState {
     }
 
     private _changeColors(entities: StoredEntity<FilterRequest>[]): void {
-        if (!this._filters) {
+        if (!this._filters || this._activeSearch) {
             return;
         }
         entities.forEach((entity: StoredEntity<FilterRequest>) => {
@@ -135,7 +136,9 @@ export abstract class AdvancedState extends BasicState {
                     return;
                 }
                 this._datasets[index].data[line] = matches[1];
-                this._datasets[index].backgroundColor = filter.definition.colors.background;
+                this._datasets[index].backgroundColor = this._activeSearch
+                    ? scheme_color_match
+                    : filter.definition.colors.background;
             });
         });
         if (checkForData) {
