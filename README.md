@@ -43,7 +43,7 @@ Unpack chipmunk to a folder of your choosing. Use the `chipmunk` executable to s
 
 # Chipmunk 3 Beta Phase
 
-Today we proudly inform you about the first beta release of chipmunk 3. (download at https://github.com/esrlabs/chipmunk/releases/tag/next-3.4.5)
+Today we proudly inform you about the first beta release of chipmunk 3.
 
 ## Design & Architecture
 
