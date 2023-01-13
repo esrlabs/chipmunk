@@ -12,6 +12,8 @@ import { findParentByTag } from '@ui/env/dom';
 import { Service } from './service';
 import { escapeAnsi } from '@module/ansi';
 
+import * as nums from '@platform/env/num';
+
 const DIRECTED_SCROLL_TIMEOUT_MS = 50;
 
 export enum SelectionDirection {
@@ -60,6 +62,7 @@ export class Selecting {
         from: new Subject(),
         finish: new Subject(),
     };
+    private _delimiter: string | undefined;
 
     bind(holder: HTMLElement, frame: Frame, service: Service) {
         this._holder = holder;
@@ -255,8 +258,17 @@ export class Selecting {
         };
     }
 
-    public hasSelection(): boolean {
-        return this.get() !== undefined;
+    public selection(): { exist: boolean; lines: number } {
+        const selection = this.get();
+        return {
+            exist: selection !== undefined,
+            lines:
+                selection === undefined
+                    ? 0
+                    : typeof selection === 'string'
+                    ? 1
+                    : selection.rows.end - selection.rows.start,
+        };
     }
 
     public async copyToClipboard(original: boolean): Promise<void> {
@@ -268,22 +280,53 @@ export class Selecting {
             navigator.clipboard.writeText(selection);
             return Promise.resolve();
         }
+        const delimiter = this._delimiter;
         const rows = (
             await this._service.getRows({ from: selection.rows.start, to: selection.rows.end })
         ).rows.map((r) => {
-            if (original) {
-                return r.content;
+            if (!original && delimiter === undefined) {
+                const escaped = escapeAnsi(r.content);
+                return escaped instanceof Error ? r.content : escaped;
             } else {
-                return escapeAnsi(r.content);
+                return r.content;
             }
         });
-
         if (rows.length === 0) {
             return Promise.resolve();
         }
-        rows[0] = selection.fragments.start;
-        rows[rows.length - 1] = selection.fragments.end;
-        navigator.clipboard.writeText(rows.join('\n'));
+        if (delimiter === undefined || rows.length === 1) {
+            rows[0] = selection.fragments.start;
+            rows[rows.length - 1] = selection.fragments.end;
+            navigator.clipboard.writeText(rows.join('\n'));
+        } else {
+            const columns = rows.map((r) => r.split(delimiter));
+            const widths = new Array(columns[0].length);
+            columns.forEach((rows: string[]) => {
+                rows.forEach((r, i) => {
+                    if (widths[i] === undefined) {
+                        widths[i] = 0;
+                    }
+                    widths[i] = Math.max(widths[i], r.length);
+                });
+            });
+            const formated = columns.map((rows: string[]) => {
+                if (original) {
+                    return rows.join(';');
+                } else {
+                    return rows
+                        .map((r, i) => {
+                            const repeat = nums.diffUInts([widths[i], r.length], 0);
+                            return `${r}${' '.repeat(repeat < 0 ? 0 : repeat)}`;
+                        })
+                        .join(' | ');
+                }
+            });
+            navigator.clipboard.writeText(formated.join('\n'));
+        }
+    }
+
+    public setDelimiter(delimiter: string | undefined): void {
+        this._delimiter = delimiter;
     }
 
     private _detectBorders(selection: Selection): void {
