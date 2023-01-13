@@ -9,12 +9,9 @@ puts "#{'=' * 50}"
 
 TS = './ts-bindings'
 TS_BUILD = './ts-bindings/dist'
-TS_BUILD_CLI = './ts-bindings-cli/dist/apps/rustcore/ts-bindings'
-TS_CLI = './ts-bindings-cli'
 RS = './rs-bindings'
 BUILD_ENV = "#{TS}/node_modules/.bin/electron-build-env"
 TSC = "#{TS}/node_modules/.bin/tsc"
-TSC_CLI = "#{TS_CLI}/node_modules/.bin/tsc"
 NJ_CLI = 'nj-cli'
 # os detection
 module OS
@@ -43,15 +40,8 @@ namespace :install do
     end
   end
 
-  desc 'Install TS-CLI'
-  task :ts_cli do
-    Dir.chdir(TS_CLI) do
-      sh 'npm install'
-    end
-  end
-
   desc 'install all'
-  task all: ['install:ts', 'install:ts_cli']
+  task all: ['install:ts']
 end
 
 namespace :build do
@@ -80,28 +70,6 @@ namespace :build do
     mod_file = "#{dir_tests}/index.node"
     FileUtils.rm(mod_file) if File.exist?(mod_file)
     sh "cp #{RS}/dist/index.node #{TS}/src/native/index.node"
-    # Copy native to CLI
-    # dir_cli = "#{TS_BUILD_CLI}/native"
-    # FileUtils.rm_rf(dir_cli) unless !File.exists?(dir_cli)
-    # Dir.mkdir(dir_cli) unless File.exists?(dir_cli)
-    # sh "cp #{RS}/dist/index.node #{dir_cli}/index.node"
-  end
-
-  desc 'Build TS-CLI'
-  task :ts_cli do
-    sh "#{TSC_CLI} -p #{TS_CLI}/tsconfig.json"
-    file = "#{TS_CLI}/dist/apps/rustcore/ts-bindings-cli/src/index.js"
-    if OS.windows?
-      # TODO
-    else
-      link = "#{Dir.pwd}/ts-cli"
-      content = File.read(file)
-      File.write(file, "#!/usr/bin/env node\n#{content}", mode: 'w')
-      sh "chmod +x #{file}"
-      sh "rm #{link}" if File.exist?(link)
-      sh "ln -s #{file} #{link}"
-      sh "chmod +x #{link}"
-    end
   end
 
   desc 'build all'
