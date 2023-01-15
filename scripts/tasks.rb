@@ -157,7 +157,6 @@ namespace :developing do
     Platform.new(true, true).clean
     Release.new(true, true).clean
     Holder.new(HolderSettings.new).clean
-    Reporter.print
   end
 
   desc 'Clean & rebuild all'

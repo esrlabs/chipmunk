@@ -55,6 +55,15 @@ class Holder
     @node_modules = "#{Paths::ELECTRON}/node_modules"
     @settings = settings
     @installed = File.exist?(@node_modules)
+    @target_indexer_base = "#{Paths::INDEXER}/indexer_base/target"
+    @target_indexer_cli = "#{Paths::INDEXER}/indexer_cli/target"
+    @target_merging = "#{Paths::INDEXER}/merging/target"
+    @target_parsers = "#{Paths::INDEXER}/parsers/target"
+    @target_processor = "#{Paths::INDEXER}/processor/target"
+    @target_session = "#{Paths::INDEXER}/session/target"
+    @target_sources = "#{Paths::INDEXER}/sources/target"
+    @targets = [@dist, @release, @node_modules, @target_indexer_base, @target_indexer_cli, @target_merging, @target_parsers,
+                @target_processor, @target_session, @target_sources]
   end
 
   def install
@@ -70,17 +79,13 @@ class Holder
   end
 
   def clean
-    if File.exist?(@dist)
-      Shell.rm_rf(@dist)
-      Reporter.add(Jobs::Clearing, Owner::Holder, "removed: #{@dist}", '')
-    end
-    if File.exist?(@release)
-      Shell.rm_rf(@release)
-      Reporter.add(Jobs::Clearing, Owner::Holder, "removed: #{@release}", '')
-    end
-    if File.exist?(@node_modules)
-      Shell.rm_rf(@node_modules)
-      Reporter.add(Jobs::Clearing, Owner::Holder, "removed: #{@node_modules}", '')
+    @targets.each do |path|
+      if File.exist?(path)
+        Shell.rm_rf(path)
+        Reporter.add(Jobs::Clearing, Owner::Holder, "removed: #{path}", '')
+      else
+        Reporter.add(Jobs::Clearing, Owner::Holder, "doesn't exist: #{path}", '')
+      end
     end
   end
 

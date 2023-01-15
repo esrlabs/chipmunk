@@ -8,24 +8,17 @@ class Bindings
     @nj_cli = 'nj-cli'
     @reinstall = reinstall
     @installed = File.exist?(@node_modules)
+    @targets = [@dist, @node_modules, @target, @dist_rs]
   end
 
   def clean
-    if File.exist?(@dist)
-      Shell.rm_rf(@dist)
-      Reporter.add(Jobs::Clearing, Owner::Bindings, "removed: #{@dist}", '')
-    end
-    if File.exist?(@node_modules)
-      Shell.rm_rf(@node_modules)
-      Reporter.add(Jobs::Clearing, Owner::Bindings, "removed: #{@node_modules}", '')
-    end
-    if File.exist?(@target)
-      Shell.rm_rf(@target)
-      Reporter.add(Jobs::Clearing, Owner::Bindings, "removed: #{@target}", '')
-    end
-    if File.exist?(@dist_rs)
-      Shell.rm_rf(@dist_rs)
-      Reporter.add(Jobs::Clearing, Owner::Bindings, "removed: #{@dist_rs}", '')
+    @targets.each do |path|
+      if File.exist?(path)
+        Shell.rm_rf(path)
+        Reporter.add(Jobs::Clearing, Owner::Bindings, "removed: #{path}", '')
+      else
+        Reporter.add(Jobs::Clearing, Owner::Bindings, "doesn't exist: #{path}", '')
+      end
     end
   end
 

@@ -7,24 +7,17 @@ class Ansi
     @reinstall = reinstall
     @rebuild = rebuild
     @installed = File.exist?("#{Paths::ANSI}/node_modules")
+    @targets = [@pkg, @target, @node_modules, @test_output]
   end
 
   def clean
-    if File.exist?(@pkg)
-      Shell.rm_rf(@pkg)
-      Reporter.add(Jobs::Clearing, Owner::Ansi, "removed: #{@pkg}", '')
-    end
-    if File.exist?(@target)
-      Shell.rm_rf(@target)
-      Reporter.add(Jobs::Clearing, Owner::Ansi, "removed: #{@target}", '')
-    end
-    if File.exist?(@node_modules)
-      Shell.rm_rf(@node_modules)
-      Reporter.add(Jobs::Clearing, Owner::Ansi, "removed: #{@node_modules}", '')
-    end
-    if File.exist?(@test_output)
-      Shell.rm_rf(@test_output)
-      Reporter.add(Jobs::Clearing, Owner::Ansi, "removed: #{@test_output}", '')
+    @targets.each do |path|
+      if File.exist?(path)
+        Shell.rm_rf(path)
+        Reporter.add(Jobs::Clearing, Owner::Ansi, "removed: #{path}", '')
+      else
+        Reporter.add(Jobs::Clearing, Owner::Ansi, "doesn't exist: #{path}", '')
+      end
     end
   end
 

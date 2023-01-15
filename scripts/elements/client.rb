@@ -5,6 +5,7 @@ class Client
     @reinstall = reinstall
     @prod = prod
     @installed = File.exist?(@node_modules)
+    @targets = [@dist, @node_modules]
   end
 
   def install
@@ -20,13 +21,13 @@ class Client
   end
 
   def clean
-    if File.exist?(@dist)
-      Shell.rm_rf(@dist)
-      Reporter.add(Jobs::Clearing, Owner::Client, "removed: #{@dist}", '')
-    end
-    if File.exist?(@node_modules)
-      Shell.rm_rf(@node_modules)
-      Reporter.add(Jobs::Clearing, Owner::Client, "removed: #{@node_modules}", '')
+    @targets.each do |path|
+      if File.exist?(path)
+        Shell.rm_rf(path)
+        Reporter.add(Jobs::Clearing, Owner::Client, "removed: #{path}", '')
+      else
+        Reporter.add(Jobs::Clearing, Owner::Client, "doesn't exist: #{path}", '')
+      end
     end
   end
 
