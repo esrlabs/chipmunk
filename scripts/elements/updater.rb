@@ -2,12 +2,17 @@ class Updater
   def initialize
     @dest = "#{Paths::UPDATER}/target"
     @target = OS.executable("#{Paths::UPDATER}/target/release/updater")
+    @targets = [@dest]
   end
 
   def clean
-    if File.exist?(@dest)
-      Shell.rm_rf(@dest)
-      Reporter.add(Jobs::Clearing, Owner::Updater, "removed: #{@dest}", '')
+    @targets.each do |path|
+      if File.exist?(path)
+        Shell.rm_rf(path)
+        Reporter.add(Jobs::Clearing, Owner::Updater, "removed: #{path}", '')
+      else
+        Reporter.add(Jobs::Clearing, Owner::Updater, "doesn't exist: #{path}", '')
+      end
     end
   end
 

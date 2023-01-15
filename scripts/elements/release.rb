@@ -10,6 +10,8 @@ class Release
     if File.exist?(Paths::RELEASE)
       Shell.rm_rf(Paths::RELEASE)
       Reporter.add(Jobs::Clearing, Owner::Release, "removed: #{Paths::RELEASE}", '')
+    else
+      Reporter.add(Jobs::Clearing, Owner::Release, "doesn't exist: #{Paths::RELEASE}", '')
     end
   end
 

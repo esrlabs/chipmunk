@@ -7,24 +7,17 @@ class Matcher
     @reinstall = reinstall
     @rebuild = rebuild
     @installed = File.exist?("#{Paths::MATCHER}/node_modules")
+    @targets = [@pkg, @target, @node_modules, @test_output]
   end
 
   def clean
-    if File.exist?(@pkg)
-      Shell.rm_rf(@pkg)
-      Reporter.add(Jobs::Clearing, Owner::Matcher, "removed: #{@pkg}", '')
-    end
-    if File.exist?(@target)
-      Shell.rm_rf(@target)
-      Reporter.add(Jobs::Clearing, Owner::Matcher, "removed: #{@target}", '')
-    end
-    if File.exist?(@node_modules)
-      Shell.rm_rf(@node_modules)
-      Reporter.add(Jobs::Clearing, Owner::Matcher, "removed: #{@node_modules}", '')
-    end
-    if File.exist?(@test_output)
-      Shell.rm_rf(@test_output)
-      Reporter.add(Jobs::Clearing, Owner::Matcher, "removed: #{@test_output}", '')
+    @targets.each do |path|
+      if File.exist?(path)
+        Shell.rm_rf(path)
+        Reporter.add(Jobs::Clearing, Owner::Matcher, "removed: #{path}", '')
+      else
+        Reporter.add(Jobs::Clearing, Owner::Matcher, "doesn't exist: #{path}", '')
+      end
     end
   end
 
