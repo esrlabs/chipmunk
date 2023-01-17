@@ -15,6 +15,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ParserName, Origin } from '@platform/types/observe';
+import { SourceDefinition } from '@platform/types/transport';
 
 @Component({
     selector: 'app-recent-actions',
@@ -29,6 +30,8 @@ export class RecentActions extends ChangesDetector implements AfterContentInit {
     @Input() public parser?: ParserName;
     @Input() public origin?: Origin;
     @Input() public after?: AfterHandler;
+    @Input() public before?: (source: SourceDefinition) => boolean;
+
     @Output() public applied: EventEmitter<void> = new EventEmitter();
 
     public state!: State;
@@ -48,6 +51,12 @@ export class RecentActions extends ChangesDetector implements AfterContentInit {
     }
 
     public onDefaultAction(action: Action) {
+        const source = action.as().source();
+        if (source !== undefined && this.before !== undefined) {
+            if (!this.before(source)) {
+                return;
+            }
+        }
         action.after(this.after).apply(this.state.remove.bind(this.state));
     }
 

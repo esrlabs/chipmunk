@@ -3,6 +3,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
 import { Action } from '@ui/tabs/sources/common/actions/action';
 import { Ilc, IlcInterface } from '@env/decorators/component';
+import { Subject } from '@platform/env/subscription';
 
 import SerialService from './service/service';
 
@@ -15,6 +16,7 @@ import SerialService from './service/service';
 export class TransportSerial extends ChangesDetector implements AfterViewInit, OnDestroy {
     @Input() public state!: State;
     @Input() public action!: Action;
+    @Input() public update?: Subject<void>;
 
     public _ng_ports: string[] = [];
 
@@ -26,6 +28,12 @@ export class TransportSerial extends ChangesDetector implements AfterViewInit, O
 
     public ngAfterViewInit() {
         this._detectPorts();
+        this.update !== undefined &&
+            this.env().subscriber.register(
+                this.update.subscribe(() => {
+                    this.detectChanges();
+                }),
+            );
     }
 
     public ngOnDestroy() {
@@ -60,7 +68,7 @@ export class TransportSerial extends ChangesDetector implements AfterViewInit, O
             .finally(() => {
                 this._timeout = setTimeout(() => {
                     this._detectPorts();
-                }, 3000);
+                }, 3000) as unknown as number;
             });
     }
 }

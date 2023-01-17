@@ -13,6 +13,7 @@ import { State } from './state';
 import { Action } from '@ui/tabs/sources/common/actions/action';
 import { Options as AutocompleteOptions } from '@elements/autocomplete/component';
 import { Options as FoldersOptions, FolderInput } from '@elements/folderinput/component';
+import { AutocompleteInput } from '@elements/autocomplete/component';
 import { Subject } from '@platform/env/subscription';
 import { CmdErrorState } from './error';
 
@@ -28,7 +29,9 @@ export class TransportProcess
 {
     @Input() public state!: State;
     @Input() public action!: Action;
+    @Input() public update?: Subject<void>;
     @ViewChild('cwd') public cwdInputRef!: FolderInput;
+    @ViewChild('cmd') public cmdInputRef!: AutocompleteInput;
 
     public readonly inputs: {
         cmd: AutocompleteOptions;
@@ -59,6 +62,13 @@ export class TransportProcess
     }
 
     public ngAfterContentInit(): void {
+        this.update !== undefined &&
+            this.env().subscriber.register(
+                this.update.subscribe(() => {
+                    this.cmdInputRef.set(this.state.command);
+                    this.cwdInputRef.set(this.state.cwd);
+                }),
+            );
         this.inputs.cmd.defaults = this.state.command;
         this.inputs.cwd.defaults = this.state.cwd;
         this.action.subjects.get().applied.subscribe(() => {

@@ -1,4 +1,4 @@
-<app-autocomplete-input [options]="inputs.cmd"
+<app-autocomplete-input #cmd [options]="inputs.cmd"
     (edit)="ngEdit('cmd', $event)"
     (enter)="ngEnter('cmd')"
     (panel)="ngPanel()"></app-autocomplete-input>

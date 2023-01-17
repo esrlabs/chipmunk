@@ -104,40 +104,58 @@ export class Action {
         }
     }
 
-    public asFile(): BaseInfo | undefined {
-        if (this.file === undefined) {
-            return undefined;
-        }
-        return this.file.getBaseInfo();
-    }
-
-    public asComponent(): IComponentDesc {
-        if (this.file !== undefined) {
-            return this.file.asComponent();
-        } else if (this.dlt_stream !== undefined) {
-            return this.dlt_stream.asComponent();
-        } else if (this.text_stream !== undefined) {
-            return this.text_stream.asComponent();
-        } else {
-            throw new Error(`Unknonw type of action.`);
-        }
-    }
-
-    public asEntry(): Entry {
-        const body: { [key: string]: unknown } = {};
-        if (this.file !== undefined) {
-            body['file'] = this.file.asObj();
-        } else if (this.dlt_stream !== undefined) {
-            body['dlt_stream'] = this.dlt_stream.asObj();
-        } else if (this.text_stream !== undefined) {
-            body['text_stream'] = this.text_stream.asObj();
-        } else {
-            throw new Error(`Recent action isn't defined`);
-        }
-        body['stat'] = this.stat.asObj();
+    public as(): {
+        source(): SourceDefinition | undefined;
+        file(): BaseInfo | undefined;
+        component(): IComponentDesc;
+        entry(): Entry;
+    } {
         return {
-            uuid: this.uuid,
-            content: JSON.stringify(body),
+            source: (): SourceDefinition | undefined => {
+                if (this.file !== undefined) {
+                    return undefined;
+                } else if (this.text_stream !== undefined) {
+                    return this.text_stream.source;
+                } else if (this.dlt_stream !== undefined) {
+                    return this.dlt_stream.source;
+                } else {
+                    return undefined;
+                }
+            },
+            file: (): BaseInfo | undefined => {
+                if (this.file === undefined) {
+                    return undefined;
+                }
+                return this.file.getBaseInfo();
+            },
+            component: (): IComponentDesc => {
+                if (this.file !== undefined) {
+                    return this.file.asComponent();
+                } else if (this.dlt_stream !== undefined) {
+                    return this.dlt_stream.asComponent();
+                } else if (this.text_stream !== undefined) {
+                    return this.text_stream.asComponent();
+                } else {
+                    throw new Error(`Unknonw type of action.`);
+                }
+            },
+            entry: (): Entry => {
+                const body: { [key: string]: unknown } = {};
+                if (this.file !== undefined) {
+                    body['file'] = this.file.asObj();
+                } else if (this.dlt_stream !== undefined) {
+                    body['dlt_stream'] = this.dlt_stream.asObj();
+                } else if (this.text_stream !== undefined) {
+                    body['text_stream'] = this.text_stream.asObj();
+                } else {
+                    throw new Error(`Recent action isn't defined`);
+                }
+                body['stat'] = this.stat.asObj();
+                return {
+                    uuid: this.uuid,
+                    content: JSON.stringify(body),
+                };
+            },
         };
     }
 

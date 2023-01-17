@@ -6,7 +6,7 @@
         </mat-option>
     </mat-select>
 </mat-form-field>
-<app-transport-udp *ngIf="state.udp !== undefined" [state]="state.udp" [action]="action"></app-transport-udp>
-<app-transport-tcp *ngIf="state.tcp !== undefined" [state]="state.tcp" [action]="action"></app-transport-tcp>
-<app-transport-serial *ngIf="state.serial !== undefined" [state]="state.serial" [action]="action"></app-transport-serial>
-<app-transport-process *ngIf="state.process !== undefined" [state]="state.process" [action]="action"></app-transport-process>
+<app-transport-udp *ngIf="state.udp !== undefined" [state]="state.udp" [action]="action" [update]="state.updated"></app-transport-udp>
+<app-transport-tcp *ngIf="state.tcp !== undefined" [state]="state.tcp" [action]="action" [update]="state.updated"></app-transport-tcp>
+<app-transport-serial *ngIf="state.serial !== undefined" [state]="state.serial" [action]="action" [update]="state.updated"></app-transport-serial>
+<app-transport-process *ngIf="state.process !== undefined" [state]="state.process" [action]="action" [update]="state.updated"></app-transport-process>

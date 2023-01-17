@@ -49,14 +49,6 @@ export class Service extends Implementation {
         });
     }
 
-    // public append(actions: Action[]): Promise<void> {
-    //     return bridge.entries({ key: STORAGE_KEY }).append(actions.map((a) => a.asEntry()));
-    // }
-
-    // public overwrite(actions: Action[]): Promise<void> {
-    //     return bridge.entries({ key: STORAGE_KEY }).append(actions.map((a) => a.asEntry()));
-    // }
-
     public async update(actions: Action[]): Promise<void> {
         const stored = await this.get();
         actions.forEach((action) => {
@@ -68,7 +60,7 @@ export class Service extends Implementation {
         });
         return bridge
             .entries({ key: STORAGE_KEY })
-            .update(actions.map((a) => a.asEntry()))
+            .update(actions.map((a) => a.as().entry()))
             .then(() => {
                 this.updated.emit();
             });

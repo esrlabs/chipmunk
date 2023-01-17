@@ -4,6 +4,10 @@ import { State as TransportState } from '@elements/transport/setup/state';
 export class State {
     public transport: TransportState = new TransportState();
 
+    public destroy() {
+        this.transport.destroy();
+    }
+
     public fromOptions(opt: {
         source: SourceDefinition | undefined;
         preselected: SourceRef | undefined;
@@ -18,5 +22,9 @@ export class State {
         return {
             source: this.transport.asSourceDefinition(),
         };
+    }
+
+    public update(source: SourceDefinition) {
+        this.transport.from(source);
     }
 }

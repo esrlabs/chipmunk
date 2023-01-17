@@ -61,6 +61,7 @@ export class TabSourceDltStream extends ChangesDetector implements AfterContentI
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
         this.close = this.close.bind(this);
+        this.defaultRecentAction = this.defaultRecentAction.bind(this);
     }
 
     public ngAfterContentInit(): void {
@@ -145,6 +146,12 @@ export class TabSourceDltStream extends ChangesDetector implements AfterContentI
             },
             uuid: 'app-elements-timezone-selector',
         });
+    }
+
+    public defaultRecentAction(source: SourceDefinition): boolean {
+        this.state.update(source);
+        this.detectChanges();
+        return false;
     }
 }
 export interface TabSourceDltStream extends IlcInterface {}
