@@ -70,7 +70,7 @@ export class Service extends Implementation {
         const github = new GitHubClient();
         const releases: IReleaseData[] = await github.getReleases({ repo: REPO });
         const current: Version = new Version(version.getVersion());
-        let candidate: IReleaseData | undefined;
+        let candidate: { release: IReleaseData; version: Version } | undefined;
         releases.forEach((release: IReleaseData) => {
             if (!release.name.toLowerCase().includes(TARGET_TAG_STARTS)) {
                 return;
@@ -78,7 +78,16 @@ export class Service extends Implementation {
             try {
                 const version = new Version(release.name, TARGET_TAG_STARTS);
                 if (current.isGivenGrander(version)) {
-                    candidate = release;
+                    if (candidate !== undefined && !candidate.version.isGivenGrander(version)) {
+                        this.log().debug(
+                            `Release "${release.name} (tag: ${release.tag_name})", ignored, because candidate ${candidate.release.tag_name}`,
+                        );
+                        return;
+                    }
+                    candidate = {
+                        release,
+                        version,
+                    };
                 }
             } catch (err) {
                 this.log().warn(
@@ -92,11 +101,11 @@ export class Service extends Implementation {
             this.log().debug(`No updates has been found.`);
             return Promise.resolve();
         }
-        this.log().debug(`New version has been found: ${candidate.name}`);
-        const release: ReleaseFile = new ReleaseFile(candidate.name, TARGET_TAG_STARTS);
+        this.log().debug(`New version has been found: ${candidate.release.name}`);
+        const release: ReleaseFile = new ReleaseFile(candidate.release.name, TARGET_TAG_STARTS);
         this.log().debug(`Looking for: ${release.filename}`);
         let compressed: string | undefined;
-        candidate.assets.forEach((asset: IReleaseAsset) => {
+        candidate.release.assets.forEach((asset: IReleaseAsset) => {
             if (release.equal(asset.name)) {
                 compressed = asset.name;
             }
@@ -109,29 +118,29 @@ export class Service extends Implementation {
         if (fs.existsSync(filename)) {
             // File was already downloaded
             this.log().debug(
-                `File was already downloaded "${filename}". latest: ${candidate.tag_name}.`,
+                `File was already downloaded "${filename}". latest: ${candidate.release.tag_name}.`,
             );
             this.candidate = {
-                release: candidate,
+                release: candidate.release,
                 filename,
             };
         } else {
             this.log().debug(
-                `Found new version "${candidate.tag_name}". Starting downloading: ${release.filename}.`,
+                `Found new version "${candidate.release.tag_name}". Starting downloading: ${release.filename}.`,
             );
             const filename: string = await github.download(
                 {
                     repo: REPO,
                 },
                 {
-                    version: candidate.name,
+                    version: candidate.release.name,
                     name: release.filename,
                     dest: paths.getDownloads(),
                 },
             );
             this.log().debug(`File ${release.filename} is downloaded into: ${filename}.`);
             this.candidate = {
-                release: candidate as IReleaseData,
+                release: candidate.release as IReleaseData,
                 filename,
             };
         }
@@ -157,7 +166,7 @@ export class Service extends Implementation {
                 action: {
                     uuid: unique(),
                     name: 'Cancel',
-                    description: `Update to ${(candidate as IReleaseData).name}`,
+                    description: `Update to ${(candidate.release as IReleaseData).name}`,
                 },
                 handler: () => Promise.resolve(),
             },
