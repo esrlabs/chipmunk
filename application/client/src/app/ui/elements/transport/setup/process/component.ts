@@ -14,7 +14,7 @@ import { Action } from '@ui/tabs/sources/common/actions/action';
 import { Options as AutocompleteOptions } from '@elements/autocomplete/component';
 import { Options as FoldersOptions, FolderInput } from '@elements/folderinput/component';
 import { Subject } from '@platform/env/subscription';
-// import { CwdErrorState } from './error';
+import { CmdErrorState } from './error';
 
 @Component({
     selector: 'app-transport-process',
@@ -41,6 +41,7 @@ export class TransportProcess
             placeholder: 'Enter terminal command',
             label: 'Terminal command',
             recent: new Subject<void>(),
+            error: new CmdErrorState(),
         },
         cwd: {
             placeholder: 'Enter working folder',
@@ -112,7 +113,7 @@ export class TransportProcess
     }
 
     public ngEnter(target: 'cmd' | 'cwd'): void {
-        if (target === 'cmd') {
+        if (target === 'cmd' && !this.inputs.cmd.error?.is()) {
             this.action.apply();
         }
         this.markChangesForCheck();
