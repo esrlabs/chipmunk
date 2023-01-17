@@ -65,4 +65,8 @@ export class State {
             source: this.transport.asSourceDefinition(),
         };
     }
+
+    public update(source: SourceDefinition) {
+        this.transport.from(source);
+    }
 }

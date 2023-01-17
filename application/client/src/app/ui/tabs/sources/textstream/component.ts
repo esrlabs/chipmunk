@@ -37,10 +37,12 @@ export class TabSourceTextStream extends ChangesDetector implements AfterContent
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
         this.close = this.close.bind(this);
+        this.defaultRecentAction = this.defaultRecentAction.bind(this);
     }
 
     public ngOnDestroy(): void {
         this.tab.storage<State>().set(this.state);
+        this.state.destroy();
         this.action.destroy();
     }
 
@@ -84,6 +86,12 @@ export class TabSourceTextStream extends ChangesDetector implements AfterContent
 
     public close() {
         this.tab.close();
+    }
+
+    public defaultRecentAction(source: SourceDefinition): boolean {
+        this.state.update(source);
+        this.detectChanges();
+        return false;
     }
 }
 export interface TabSourceTextStream extends IlcInterface {}

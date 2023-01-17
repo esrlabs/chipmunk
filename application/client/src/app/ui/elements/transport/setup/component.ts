@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Input } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
@@ -11,7 +11,7 @@ import { Action } from '@ui/tabs/sources/common/actions/action';
     styleUrls: ['./styles.less'],
 })
 @Ilc()
-export class Transport extends ChangesDetector {
+export class Transport extends ChangesDetector implements AfterContentInit {
     public readonly Source = Source;
 
     @Input() public state!: State;
@@ -26,6 +26,15 @@ export class Transport extends ChangesDetector {
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
+    }
+
+    public ngAfterContentInit(): void {
+        this.env().subscriber.register(
+            this.state.updated.subscribe(() => {
+                this.action.defaults();
+                this.detectChanges();
+            }),
+        );
     }
 
     public ngOnSourceChange() {

@@ -3,6 +3,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
 import { Action } from '@ui/tabs/sources/common/actions/action';
+import { Subject } from '@platform/env/subscription';
 
 @Component({
     selector: 'app-transport-udp',
@@ -13,6 +14,7 @@ import { Action } from '@ui/tabs/sources/common/actions/action';
 export class TransportUdp extends ChangesDetector implements OnDestroy, AfterViewInit {
     @Input() public state!: State;
     @Input() public action!: Action;
+    @Input() public update?: Subject<void>;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -23,6 +25,12 @@ export class TransportUdp extends ChangesDetector implements OnDestroy, AfterVie
     }
 
     public ngAfterViewInit(): void {
+        this.update !== undefined && this.env().subscriber.register(
+            this.update.subscribe(() => {
+                this.detectChanges();
+                this.verify();
+            }),
+        );
         this.env().subscriber.register(
             this.state.subjects.get().updated.subscribe(this.verify.bind(this)),
         );

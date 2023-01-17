@@ -11,7 +11,7 @@
                 <mat-card-title>Recent</mat-card-title>
                 <mat-card-subtitle>Recently created connections</mat-card-subtitle>
                 <mat-card-content>
-                    <app-recent-actions [parser]="ParserName.Text" [origin]="Origin.Stream" [after]="close"></app-recent-actions>
+                    <app-recent-actions [parser]="ParserName.Text" [origin]="Origin.Stream" [after]="close" [before]="defaultRecentAction"></app-recent-actions>
                 </mat-card-content>
             </mat-card>
         </div>

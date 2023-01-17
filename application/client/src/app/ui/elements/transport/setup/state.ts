@@ -2,6 +2,7 @@ import { State as UdpState } from './udp/state';
 import { State as TcpState } from './tcp/state';
 import { State as SerialState } from './serial/state';
 import { State as ProcessState } from './process/state';
+import { Subject } from '@platform/env/subscription';
 
 import { Source, SourceDefinition } from '@platform/types/transport';
 
@@ -11,6 +12,7 @@ export class State {
     public serial: SerialState | undefined;
     public process: ProcessState | undefined;
     public source: Source = Source.Udp;
+    public updated: Subject<void> = new Subject();
 
     private _backup: {
         udp: UdpState;
@@ -29,6 +31,10 @@ export class State {
             this.source = defaults;
         }
         this.switch(this.source);
+    }
+
+    public destroy() {
+        this.updated.destroy();
     }
 
     public from(source: SourceDefinition) {
@@ -80,6 +86,7 @@ export class State {
                 this.serial = undefined;
                 break;
         }
+        this.updated.emit();
     }
 
     public asSourceDefinition(): SourceDefinition {
