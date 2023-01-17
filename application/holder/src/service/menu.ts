@@ -211,7 +211,7 @@ export class Service extends Implementation {
                                 },
                             },
                             {
-                                label: 'Read CLI output',
+                                label: 'Execute command',
                                 click: async () => {
                                     Actions.stream(ParserName.Text, Source.Process).catch(
                                         (err: Error) => {

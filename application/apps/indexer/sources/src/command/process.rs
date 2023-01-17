@@ -2,7 +2,8 @@ use crate::{command::sde, ByteSource, Error as SourceError, ReloadInfo, SourceFi
 use async_trait::async_trait;
 use buf_redux::Buffer;
 use futures;
-use std::{collections::HashMap, path::PathBuf, process::Stdio};
+use regex::{Captures, Regex};
+use std::{collections::HashMap, ffi::OsString, path::PathBuf, process::Stdio};
 use thiserror::Error;
 use tokio::{
     io::AsyncWriteExt,
@@ -37,6 +38,34 @@ impl Drop for ProcessSource {
 }
 
 impl ProcessSource {
+    pub fn parse_args(args: Vec<String>) -> Result<Vec<OsString>, ProcessError> {
+        let group_re = Regex::new(r#"".*?""#)
+            .map_err(|_| ProcessError::Setup(String::from("Fail to build regex")))?;
+        let quote_re = Regex::new(r#"""#)
+            .map_err(|_| ProcessError::Setup(String::from("Fail to build regex")))?;
+        let args_str = args.join(" ");
+        let mut groups: Vec<String> = vec![];
+        let parsed = group_re.replace_all(&args_str, |caps: &Captures| {
+            let index = groups.len();
+            if caps.len() != 0 {
+                let group = caps[0].to_string();
+                groups.push(quote_re.replace_all(&group, "").to_string());
+            }
+            format!("==extraction:({index})==")
+        });
+        Ok(parsed
+            .split(' ')
+            .map(|a| {
+                let mut str = a.to_string();
+                for (i, g) in groups.iter().enumerate() {
+                    let key = format!("==extraction:({i})==");
+                    str = str.replace(&key, g).to_owned();
+                }
+                OsString::from(str)
+            })
+            .collect())
+    }
+
     pub async fn new(
         command: String,
         cwd: PathBuf,
@@ -44,8 +73,8 @@ impl ProcessSource {
         envs: HashMap<String, String>,
     ) -> Result<Self, ProcessError> {
         let mut process = Command::new(command)
-            .args(args)
-            .current_dir(cwd)
+            .args(ProcessSource::parse_args(args)?)
+            .current_dir(OsString::from(cwd))
             .envs(envs)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -190,4 +219,35 @@ async fn test_process() -> Result<(), ProcessError> {
         }
         Err(err) => Err(err),
     }
+}
+
+#[tokio::test]
+async fn test_parsing() -> Result<(), ProcessError> {
+    let parsed = ProcessSource::parse_args(vec![
+        String::from("arg1"),
+        String::from("arg2"),
+        String::from(r#""some_path/with"#),
+        String::from("space"),
+        String::from("or"),
+        String::from(r#"spaces""#),
+        String::from("arg3"),
+    ])?;
+    assert_eq!(parsed.len(), 4);
+    assert_eq!(parsed[0], OsString::from("arg1"));
+    assert_eq!(parsed[1], OsString::from("arg2"));
+    assert_eq!(parsed[2], OsString::from("some_path/with space or spaces"));
+    assert_eq!(parsed[3], OsString::from("arg3"));
+    let parsed = ProcessSource::parse_args(
+        r#"arg1 arg2 "some_path/with space or spaces" arg3"#
+            .split(" ")
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>(),
+    )?;
+    assert_eq!(parsed.len(), 4);
+    assert_eq!(parsed[0], OsString::from("arg1"));
+    assert_eq!(parsed[1], OsString::from("arg2"));
+    assert_eq!(parsed[2], OsString::from("some_path/with space or spaces"));
+    assert_eq!(parsed[3], OsString::from("arg3"));
+    Ok(())
 }

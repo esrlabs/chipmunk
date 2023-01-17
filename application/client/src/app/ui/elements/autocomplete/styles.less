@@ -22,4 +22,10 @@ app-autocomplete-input {
         color: @scheme-color-warning!important;
         padding: 6px 0;
     }
+    & mat-form-field[data-error-state="true"] {
+        .mat-form-field-outline-end,
+        .mat-form-field-outline-start {
+            border-color: @scheme-color-error!important;
+        }
+    }
 }

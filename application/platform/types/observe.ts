@@ -201,7 +201,9 @@ export class DataSource {
                 };
             },
             process: (Process: ProcessTransportSettings): SourcesFactory => {
-                const origin: IOrigin = { Stream: [unique(), { Process }] };
+                const origin: IOrigin = {
+                    Stream: [unique(), { Process }],
+                };
                 return {
                     dlt: (settings: DltParserSettings): DataSource => {
                         return new DataSource({

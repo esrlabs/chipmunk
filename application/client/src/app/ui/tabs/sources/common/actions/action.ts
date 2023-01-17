@@ -1,6 +1,6 @@
 import { Subject, Subjects } from '@platform/env/subscription';
 
-const DEFAULT_CAPTION = 'Connect';
+const DEFAULT_CAPTION = 'Run';
 const DEFAULT_STATE = false;
 
 export class Action {
