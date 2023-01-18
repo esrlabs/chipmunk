@@ -42,12 +42,12 @@ export abstract class Store<T> extends Subscriber {
         this.unsubscribe();
     }
 
-    public overwrite(items: StoredEntity<T>[], silence: boolean = false): Store<T> {
+    public overwrite(items: StoredEntity<T>[]): Store<T> {
         this._entities = new Map();
         items.forEach((item) => {
             this._entities.set(item.uuid(), item);
         });
-        !silence && this._update();
+        this._update();
         return this;
     }
 

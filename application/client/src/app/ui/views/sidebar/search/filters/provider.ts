@@ -24,12 +24,6 @@ export class ProviderFilters extends Provider<FilterRequest> {
                 .subjects.get()
                 .value.subscribe(() => {
                     super.change();
-                    this.session.search
-                        .state()
-                        .filters()
-                        .catch((err: Error) => {
-                            console.log(err);
-                        });
                 }),
         );
         this.subscriber.register(
