@@ -65,6 +65,15 @@ export class Search extends Subscriber {
             filters: new FiltersStore(uuid),
             disabled: new DisableStore(uuid),
         };
+        this.register(
+            this._store.filters.subjects.get().value.subscribe(() => {
+                this.state()
+                    .filters()
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to trigger search by filters: ${err.message}`);
+                    });
+            }),
+        );
         this._state = new State(this);
         this._highlights = new Highlights(this);
     }

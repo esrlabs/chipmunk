@@ -32,7 +32,7 @@ export class FiltersCollection
         session.search
             .store()
             .filters()
-            .overwrite(this.as().elements() as StoredEntity<FilterRequest>[], true);
+            .overwrite(this.as().elements() as StoredEntity<FilterRequest>[]);
         return () => {
             session.search.store().filters().refresh();
         };
@@ -64,5 +64,4 @@ export class FiltersCollection
     public applicableOnlyToOrigin(): boolean {
         return false;
     }
-
 }

@@ -32,7 +32,7 @@ export class DisabledCollection
         session.search
             .store()
             .disabled()
-            .overwrite(this.as().elements() as StoredEntity<DisabledRequest>[], true);
+            .overwrite(this.as().elements() as StoredEntity<DisabledRequest>[]);
         return () => {
             session.search.store().disabled().refresh();
         };
