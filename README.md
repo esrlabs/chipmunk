@@ -1,6 +1,6 @@
 [![LICENSE](https://img.shields.io/github/license/esrlabs/chipmunk?color=blue)](LICENSE.txt)
-[![](https://github.com/esrlabs/chipmunk/workflows/BuildAndReleaseMaster/badge.svg)](https://github.com/esrlabs/chipmunk/actions)
-[![](https://github.com/esrlabs/chipmunk/workflows/LintMaster/badge.svg)](https://github.com/esrlabs/chipmunk/actions)
+[![](https://github.com/esrlabs/chipmunk/actions/workflows/release_next.yml/badge.svg)](https://github.com/esrlabs/chipmunk/actions/workflows/release_next.yml)
+[![](https://github.com/esrlabs/chipmunk/actions/workflows/lint_master.yml/badge.svg)](https://github.com/esrlabs/chipmunk/actions/workflows/lint_master.yml)
 
 # Chipmunk Log Analyzer & Viewer
 
