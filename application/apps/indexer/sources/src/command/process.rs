@@ -13,6 +13,15 @@ use tokio::{
 use tokio_stream::StreamExt;
 use tokio_util::codec::{self, FramedRead, LinesCodec};
 
+lazy_static! {
+    static ref GROUP_RE: Regex =
+        Regex::new(r#"".*?""#).expect("Regex must compile (fail with GROUP_RE)");
+    static ref QUOTE_RE: Regex =
+        Regex::new(r#"""#).expect("Regex must compile (fail with QUOTE_RE)");
+    static ref ESC_RE: Regex =
+        Regex::new(r#"\\\s"#).expect("Regex must compile (fail with ESC_RE)");
+}
+
 #[derive(Error, Debug)]
 pub enum ProcessError {
     #[error("Process setup problem: {0}")]
@@ -39,19 +48,13 @@ impl Drop for ProcessSource {
 
 impl ProcessSource {
     pub fn parse_command(command: &str) -> Result<Vec<OsString>, ProcessError> {
-        let group_re = Regex::new(r#"".*?""#)
-            .map_err(|_| ProcessError::Setup(String::from("Fail to build regex")))?;
-        let quote_re = Regex::new(r#"""#)
-            .map_err(|_| ProcessError::Setup(String::from("Fail to build regex")))?;
-        let esc_re = Regex::new(r#"\\\s"#)
-            .map_err(|_| ProcessError::Setup(String::from("Fail to build regex")))?;
         let mut groups: Vec<String> = vec![];
-        let parsed = esc_re.replace_all(command, "==esc_space==").to_string();
-        let parsed = group_re.replace_all(&parsed, |caps: &Captures| {
+        let parsed = ESC_RE.replace_all(command, "==esc_space==").to_string();
+        let parsed = GROUP_RE.replace_all(&parsed, |caps: &Captures| {
             let index = groups.len();
             if caps.len() != 0 {
                 let group = caps[0].to_string();
-                groups.push(quote_re.replace_all(&group, "").to_string());
+                groups.push(QUOTE_RE.replace_all(&group, "").to_string());
             }
             format!("==extraction:({index})==")
         });
