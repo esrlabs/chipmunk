@@ -57,46 +57,105 @@ export class Service extends Implementation {
         return Promise.resolve();
     }
 
-    public async check(force: boolean): Promise<void> {
-        const auto = settings.get().value<boolean>(AUTO.path, AUTO.key);
-        if (!auto && !force) {
-            this.log().debug(`Checking of updates is skipped.`);
-            return Promise.resolve();
-        }
-        if (!production.isProduction()) {
-            this.log().debug(`Checking of updates is skipped because production is OFF.`);
-            return Promise.resolve();
-        }
-        const github = new GitHubClient();
-        const releases: IReleaseData[] = await github.getReleases({ repo: REPO });
-        const current: Version = new Version(version.getVersion());
-        let candidate: { release: IReleaseData; version: Version } | undefined;
-        releases.forEach((release: IReleaseData) => {
-            if (!release.name.toLowerCase().includes(TARGET_TAG_STARTS)) {
-                return;
-            }
-            try {
-                const version = new Version(release.name, TARGET_TAG_STARTS);
-                if (current.isGivenGrander(version)) {
-                    if (candidate !== undefined && !candidate.version.isGivenGrander(version)) {
-                        this.log().debug(
-                            `Release "${release.name} (tag: ${release.tag_name})", ignored, because candidate ${candidate.release.tag_name}`,
-                        );
+    protected find(force: boolean): {
+        skiping(): boolean;
+        night(): Promise<{ release: IReleaseData; version: Version } | undefined>;
+        latest(): Promise<{ release: IReleaseData; version: Version } | undefined>;
+    } {
+        return {
+            skiping: (): boolean => {
+                const auto = settings.get().value<boolean>(AUTO.path, AUTO.key);
+                if (!auto && !force) {
+                    this.log().debug(`Checking of updates is skipped.`);
+                    return true;
+                }
+                if (!production.isProduction()) {
+                    this.log().debug(`Checking of updates is skipped because production is OFF.`);
+                    return true;
+                }
+                return false;
+            },
+            night: async (): Promise<{ release: IReleaseData; version: Version } | undefined> => {
+                if (this.find(force).skiping()) {
+                    return undefined;
+                }
+                const github = new GitHubClient();
+                const releases: IReleaseData[] = await github.getReleases({ repo: REPO });
+                const current: Version = new Version(version.getVersion());
+                let candidate: { release: IReleaseData; version: Version } | undefined;
+                releases.forEach((release: IReleaseData) => {
+                    if (!release.name.toLowerCase().includes(TARGET_TAG_STARTS)) {
                         return;
                     }
-                    candidate = {
-                        release,
-                        version,
-                    };
+                    try {
+                        const version = new Version(release.name, TARGET_TAG_STARTS);
+                        if (current.isGivenGrander(version)) {
+                            if (
+                                candidate !== undefined &&
+                                !candidate.version.isGivenGrander(version)
+                            ) {
+                                this.log().debug(
+                                    `Release "${release.name} (tag: ${release.tag_name})", ignored, because candidate ${candidate.release.tag_name}`,
+                                );
+                                return;
+                            }
+                            candidate = {
+                                release,
+                                version,
+                            };
+                        }
+                    } catch (err) {
+                        this.log().warn(
+                            `Found release "${release.name} (tag: ${
+                                release.tag_name
+                            })", but version isn't valid: ${error(err)}`,
+                        );
+                    }
+                });
+                return candidate;
+            },
+            latest: async (): Promise<{ release: IReleaseData; version: Version } | undefined> => {
+                if (this.find(force).skiping()) {
+                    return undefined;
                 }
-            } catch (err) {
-                this.log().warn(
-                    `Found release "${release.name} (tag: ${
-                        release.tag_name
-                    })", but version isn't valid: ${error(err)}`,
-                );
-            }
-        });
+                const github = new GitHubClient();
+                const latest: IReleaseData = await github.getLatestRelease({ repo: REPO });
+                if (!latest.name.toLowerCase().includes(TARGET_TAG_STARTS)) {
+                    this.log().warn(
+                        `Found release "${latest.name} (tag: ${latest.tag_name})", but this is not NEXT-series release`,
+                    );
+                    return undefined;
+                }
+                const current: Version = new Version(version.getVersion());
+                let candidate: { release: IReleaseData; version: Version } | undefined;
+                try {
+                    const version = new Version(latest.name, TARGET_TAG_STARTS);
+                    if (current.isGivenGrander(version)) {
+                        if (candidate !== undefined && !candidate.version.isGivenGrander(version)) {
+                            this.log().debug(
+                                `Release "${latest.name} (tag: ${latest.tag_name})", ignored, because candidate ${candidate.release.tag_name}`,
+                            );
+                            return;
+                        }
+                        candidate = {
+                            release: latest,
+                            version,
+                        };
+                    }
+                } catch (err) {
+                    this.log().warn(
+                        `Found release "${latest.name} (tag: ${
+                            latest.tag_name
+                        })", but version isn't valid: ${error(err)}`,
+                    );
+                }
+                return candidate;
+            },
+        };
+    }
+
+    public async check(force: boolean): Promise<void> {
+        const candidate = await this.find(force).latest();
         if (candidate === undefined) {
             this.log().debug(`No updates has been found.`);
             return Promise.resolve();
@@ -128,6 +187,7 @@ export class Service extends Implementation {
             this.log().debug(
                 `Found new version "${candidate.release.tag_name}". Starting downloading: ${release.filename}.`,
             );
+            const github = new GitHubClient();
             const filename: string = await github.download(
                 {
                     repo: REPO,
