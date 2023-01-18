@@ -4,12 +4,12 @@ import { FormControl } from '@angular/forms';
 
 export abstract class ErrorState extends ErrorStateMatcher {
     protected value: string = '';
-
+    protected timer: number = -1;
     public override isErrorState(control: FormControl | null): boolean {
         if (control !== null) {
             const updated = this.value !== control.value;
             this.value = control.value;
-            updated && this.validate();
+            updated && this.check();
         }
         return this.is();
     }
@@ -18,6 +18,14 @@ export abstract class ErrorState extends ErrorStateMatcher {
     abstract is(): boolean;
     abstract observer(): Subject<void>;
     abstract validate(): void;
+
+    public check() {
+        // We are using timeout to prevent ExpressionChangedAfterItHasBeenCheckedError
+        clearTimeout(this.timer);
+        this.timer = setTimeout(() => {
+            this.validate();
+        }) as unknown as number;
+    }
 }
 
 export class NullErrorState extends ErrorState {
