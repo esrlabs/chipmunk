@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use thiserror::Error;
 
-#[cfg(test)]
 #[macro_use]
 extern crate lazy_static;
 
