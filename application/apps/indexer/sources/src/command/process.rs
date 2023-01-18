@@ -38,14 +38,16 @@ impl Drop for ProcessSource {
 }
 
 impl ProcessSource {
-    pub fn parse_args(args: Vec<String>) -> Result<Vec<OsString>, ProcessError> {
+    pub fn parse_command(command: &str) -> Result<Vec<OsString>, ProcessError> {
         let group_re = Regex::new(r#"".*?""#)
             .map_err(|_| ProcessError::Setup(String::from("Fail to build regex")))?;
         let quote_re = Regex::new(r#"""#)
             .map_err(|_| ProcessError::Setup(String::from("Fail to build regex")))?;
-        let args_str = args.join(" ");
+        let esc_re = Regex::new(r#"\\\s"#)
+            .map_err(|_| ProcessError::Setup(String::from("Fail to build regex")))?;
         let mut groups: Vec<String> = vec![];
-        let parsed = group_re.replace_all(&args_str, |caps: &Captures| {
+        let parsed = esc_re.replace_all(command, "==esc_space==").to_string();
+        let parsed = group_re.replace_all(&parsed, |caps: &Captures| {
             let index = groups.len();
             if caps.len() != 0 {
                 let group = caps[0].to_string();
@@ -61,7 +63,7 @@ impl ProcessSource {
                     let key = format!("==extraction:({i})==");
                     str = str.replace(&key, g).to_owned();
                 }
-                OsString::from(str)
+                OsString::from(str.replace("==esc_space==", " "))
             })
             .collect())
     }
@@ -69,11 +71,19 @@ impl ProcessSource {
     pub async fn new(
         command: String,
         cwd: PathBuf,
-        args: Vec<String>,
         envs: HashMap<String, String>,
     ) -> Result<Self, ProcessError> {
-        let mut process = Command::new(command)
-            .args(ProcessSource::parse_args(args)?)
+        println!(">>>>>>>>>>>>>>>>>>>>>>>> {command:?}");
+        let mut args = ProcessSource::parse_command(&command)?;
+        let cmd = if args.is_empty() {
+            return Err(ProcessError::Setup(format!(
+                "Not command has been found in \"{command}\""
+            )));
+        } else {
+            args.remove(0)
+        };
+        let mut process = Command::new(cmd)
+            .args(args)
             .current_dir(OsString::from(cwd))
             .envs(envs)
             .stdout(Stdio::piped())
@@ -196,11 +206,10 @@ async fn test_process() -> Result<(), ProcessError> {
     if cfg!(windows) {
         command = "help";
     } else if cfg!(unix) {
-        command = "ls";
+        command = "ls -lsa";
     }
     let envs = HashMap::new();
-    let args = Vec::new();
-    match ProcessSource::new(command.to_string(), env::current_dir().unwrap(), args, envs).await {
+    match ProcessSource::new(command.to_string(), env::current_dir().unwrap(), envs).await {
         Ok(mut process_source) => {
             while process_source
                 .reload(None)
@@ -223,27 +232,15 @@ async fn test_process() -> Result<(), ProcessError> {
 
 #[tokio::test]
 async fn test_parsing() -> Result<(), ProcessError> {
-    let parsed = ProcessSource::parse_args(vec![
-        String::from("arg1"),
-        String::from("arg2"),
-        String::from(r#""some_path/with"#),
-        String::from("space"),
-        String::from("or"),
-        String::from(r#"spaces""#),
-        String::from("arg3"),
-    ])?;
+    let parsed =
+        ProcessSource::parse_command(r#"arg1 arg2 "some_path/with space or spaces" arg3"#)?;
     assert_eq!(parsed.len(), 4);
     assert_eq!(parsed[0], OsString::from("arg1"));
     assert_eq!(parsed[1], OsString::from("arg2"));
     assert_eq!(parsed[2], OsString::from("some_path/with space or spaces"));
     assert_eq!(parsed[3], OsString::from("arg3"));
-    let parsed = ProcessSource::parse_args(
-        r#"arg1 arg2 "some_path/with space or spaces" arg3"#
-            .split(" ")
-            .into_iter()
-            .map(|s| s.to_string())
-            .collect::<Vec<String>>(),
-    )?;
+    let parsed =
+        ProcessSource::parse_command(r#"arg1 arg2 some_path/with\ space\ or\ spaces arg3"#)?;
     assert_eq!(parsed.len(), 4);
     assert_eq!(parsed[0], OsString::from("arg1"));
     assert_eq!(parsed[1], OsString::from("arg2"));
