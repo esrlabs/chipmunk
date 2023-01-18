@@ -10,18 +10,16 @@ export class State extends Base<ProcessTransportSettings> {
 
     public from(opt: ProcessTransportSettings) {
         this.cwd = opt.cwd;
-        this.command = `${opt.command}${opt.args.length > 0 ? ' ' : ''}${opt.args.join(' ')}`;
+        this.command = `${opt.command}`;
         const safe = obj.getSafeObj(opt.envs);
         this.env = safe instanceof Error ? {} : safe;
     }
 
     public asSourceDefinition(): ProcessTransportSettings {
-        const parts = this.command.split(' ');
         const safe = obj.getSafeObj(this.env);
         return {
-            command: parts[0],
+            command: this.command,
             cwd: this.cwd,
-            args: parts.slice(1),
             envs: safe instanceof Error ? {} : safe,
         };
     }

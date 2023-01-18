@@ -53,7 +53,7 @@ export class TransportProcess extends ChangesDetector implements AfterContentIni
     }
 
     public ngFullCommand(): string {
-        return `${this.process.command} ${this.process.args.join(' ')}`;
+        return `${this.process.command}`;
     }
 
     public ngCwd(): string {

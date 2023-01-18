@@ -27,9 +27,7 @@ export abstract class StreamOpener<Options> extends Base<StreamOpener<Options>> 
 
     public getStreamTabName(source: SourceDefinition): string {
         if (source.process !== undefined) {
-            return `${source.process.command}${
-                source.process.args.length > 0 ? ' ' : ''
-            }${source.process.args.join(' ')}`;
+            return `${source.process.command}`;
         }
         if (source.serial !== undefined) {
             return `serial: ${source.serial.path}`;

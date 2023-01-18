@@ -457,7 +457,7 @@ export class DataSource {
         const streaming = stream.all();
         if (streaming.Process !== undefined) {
             return {
-                major: `${streaming.Process.command} ${streaming.Process.args.join(' ')}`,
+                major: `${streaming.Process.command}`,
                 minor: streaming.Process.cwd === '' ? 'no defined cwd' : streaming.Process.cwd,
                 icon: 'web_asset',
                 type: 'command',
@@ -531,7 +531,7 @@ export class DataSource {
         if (streaming.Process !== undefined) {
             return {
                 name: `${streaming.Process.command}`,
-                desc: `${streaming.Process.command} ${streaming.Process.args.join(' ')}`,
+                desc: `${streaming.Process.command}`,
                 icon: 'web_asset',
             };
         } else if (streaming.UDP !== undefined) {

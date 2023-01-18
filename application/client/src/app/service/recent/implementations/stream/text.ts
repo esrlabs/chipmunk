@@ -39,7 +39,7 @@ export class Recent extends RecentAction {
         } else if (this.source.process !== undefined) {
             return {
                 major: `Plain text from STDOUT/ERR`,
-                minor: `${this.source.process.command} ${this.source.process.args.join(' ')}`,
+                minor: `${this.source.process.command}`,
             };
         } else if (this.source.tcp !== undefined) {
             return {

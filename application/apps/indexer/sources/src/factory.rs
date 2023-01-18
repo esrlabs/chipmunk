@@ -79,7 +79,6 @@ pub enum Transport {
 pub struct ProcessTransportConfig {
     pub cwd: PathBuf,
     pub command: String,
-    pub args: Vec<String>,
     pub envs: HashMap<String, String>,
 }
 

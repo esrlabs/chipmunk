@@ -24,7 +24,7 @@ export class StreamDesc implements IStreamDesc {
             minor = `${def.Serial.baud_rate}.${def.Serial.data_bits}.${def.Serial.stop_bits}`;
             sourceRef = Source.Serial;
         } else if (def.Process !== undefined) {
-            major = `${def.Process.command} ${def.Process.args.join(',')}`;
+            major = `${def.Process.command}`;
             minor = '';
             sourceRef = Source.Process;
         } else if (def.TCP !== undefined) {

@@ -22,12 +22,9 @@ export function handler(
     });
 }
 
-function getSettings(full: string, cwd: string): ProcessTransportSettings {
-    const args = full.split(' ');
-    const command = args.shift() as string;
+function getSettings(command: string, cwd: string): ProcessTransportSettings {
     return {
         command,
-        args,
         cwd,
         envs: {},
     };

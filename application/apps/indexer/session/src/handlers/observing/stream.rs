@@ -82,7 +82,6 @@ pub async fn listen<'a>(
             let process_source = ProcessSource::new(
                 settings.command.clone(),
                 settings.cwd.clone(),
-                settings.args.clone(),
                 settings.envs.clone(),
             )
             .await
