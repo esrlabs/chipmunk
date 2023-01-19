@@ -67,6 +67,7 @@ export class FolderInput extends ChangesDetector implements AfterContentInit, Af
         });
         this.env().subscriber.register(
             this.error.subject.subscribe(() => {
+                this.edit.emit(this.control.value);
                 this.detectChanges();
             }),
         );
