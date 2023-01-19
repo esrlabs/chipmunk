@@ -48,7 +48,7 @@ export class TransportProcess
         },
         cwd: {
             placeholder: 'Enter working folder',
-            label: 'Terminal command',
+            label: 'Working folder',
             defaults: '',
         },
     };

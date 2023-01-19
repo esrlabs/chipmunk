@@ -20,7 +20,7 @@ import { ErrorState } from './error';
 
 interface Options {
     placeholder: string;
-    label: string;
+    label?: string;
     defaults: string;
 }
 
