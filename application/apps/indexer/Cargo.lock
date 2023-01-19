@@ -2239,6 +2239,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "shellexpand"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd1c7ddea665294d484c39fd0c0d2b7e35bbfe10035c5fe1854741a57f6880e1"
+dependencies = [
+ "dirs",
+]
+
+[[package]]
 name = "signal-hook-registry"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2340,6 +2349,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "shellexpand",
  "thiserror",
  "tokio",
  "tokio-process",
