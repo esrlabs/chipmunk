@@ -119,11 +119,15 @@ export class TransportProcess
             this.action.setDisabled(value.trim() === '');
         } else {
             this.state.cwd = value;
+            this.action.setDisabled(this.cwdInputRef.error.is());
         }
     }
 
     public ngEnter(target: 'cmd' | 'cwd'): void {
-        if (target === 'cmd' && !this.inputs.cmd.error?.is()) {
+        if (this.cwdInputRef.error.is() || this.cmdInputRef.error.is()) {
+            return;
+        }
+        if (target === 'cmd') {
             this.action.apply();
         }
         this.markChangesForCheck();
