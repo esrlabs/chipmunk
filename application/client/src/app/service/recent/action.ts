@@ -16,6 +16,7 @@ import { components } from '@env/decorators/initial';
 import { lockers, Locker } from '@ui/service/lockers';
 import { ParserName, Origin } from '@platform/types/observe';
 import { Stat } from './stat';
+import { recent } from '@service/recent';
 
 import * as obj from '@platform/env/obj';
 
@@ -160,7 +161,7 @@ export class Action {
     }
 
     public from(): {
-        entry(entry: Entry): Action;
+        entry(entry: Entry): boolean;
         file(file: File, options: TargetFileOptions): Action;
         stream(source: SourceDefinition): {
             dlt(options: IDLTOptions): Action;
@@ -168,7 +169,7 @@ export class Action {
         };
     } {
         return {
-            entry: (entry: Entry): Action => {
+            entry: (entry: Entry): boolean => {
                 this.uuid = entry.uuid;
                 try {
                     const action = JSON.parse(entry.content);
@@ -185,8 +186,9 @@ export class Action {
                     } else {
                         throw new Error(`Unknonw type of action.`);
                     }
-                    this.stat = Stat.from(action['stat']);
-                    return this;
+                    const stat = Stat.from(action['stat']);
+                    this.stat = stat.stat;
+                    return stat.dropped;
                 } catch (err) {
                     throw new Error(`Fail to parse action: ${error(err)}`);
                 }
@@ -407,6 +409,9 @@ export class Action {
         })()
             .then(() => {
                 this.handlers.after !== undefined && this.handlers.after();
+                recent.update([this]).catch((err: Error) => {
+                    console.error(`Fail to update recent action: ${err.message}`);
+                });
             })
             .catch((err: Error) => {
                 const message = lockers.lock(

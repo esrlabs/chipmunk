@@ -26,27 +26,30 @@ export class Service extends Implementation {
         return super.destroy();
     }
 
-    public get(): Promise<Action[]> {
-        return new Promise((resolve, reject) => {
-            bridge
-                .entries({ key: STORAGE_KEY })
-                .get()
-                .then((entries) => {
-                    resolve(
-                        entries
-                            .map((entry) => {
-                                try {
-                                    return new Action().from().entry(entry);
-                                } catch (err) {
-                                    this.log().error(`Fail to read action: ${error(err)}`);
-                                    return undefined;
-                                }
-                            })
-                            .filter((a) => a !== undefined) as Action[],
-                    );
-                })
-                .catch(reject);
-        });
+    public async get(): Promise<Action[]> {
+        const dropped: Action[] = [];
+        const actions = await bridge
+            .entries({ key: STORAGE_KEY })
+            .get()
+            .then((entries) => {
+                return entries
+                    .map((entry) => {
+                        try {
+                            const action = new Action();
+                            action.from().entry(entry) && dropped.push(action);
+                            return action;
+                        } catch (err) {
+                            this.log().error(`Fail to read action: ${error(err)}`);
+                            return undefined;
+                        }
+                    })
+                    .filter((a) => a !== undefined) as Action[];
+            });
+        dropped.length > 0 &&
+            this.update(dropped).catch((err: Error) => {
+                this.log().error(`Fail to update recent storage: ${err.message}`);
+            });
+        return actions;
     }
 
     public async update(actions: Action[]): Promise<void> {
@@ -63,6 +66,9 @@ export class Service extends Implementation {
             .update(actions.map((a) => a.as().entry()))
             .then(() => {
                 this.updated.emit();
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to update recent storage: ${err.message}`);
             });
     }
 
