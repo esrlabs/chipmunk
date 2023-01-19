@@ -871,9 +871,24 @@ mod tests {
         let ts_mid = 1_584_447_318;
         let ts_max = 1_584_447_320;
 
-        writeln!(f, "{} abc", unix_timestamp_to_utc(ts_min).to_rfc3339()).expect("tempfile");
-        writeln!(f, "{} def", unix_timestamp_to_utc(ts_mid).to_rfc3339()).expect("tempfile");
-        writeln!(f, "{} ghi", unix_timestamp_to_utc(ts_max).to_rfc3339()).expect("tempfile");
+        writeln!(
+            f,
+            "{} abc",
+            unix_timestamp_to_utc(ts_min).expect("valid").to_rfc3339()
+        )
+        .expect("tempfile");
+        writeln!(
+            f,
+            "{} def",
+            unix_timestamp_to_utc(ts_mid).expect("valid").to_rfc3339()
+        )
+        .expect("tempfile");
+        writeln!(
+            f,
+            "{} ghi",
+            unix_timestamp_to_utc(ts_max).expect("valid").to_rfc3339()
+        )
+        .expect("tempfile");
         match timespan_in_file("YYYY-MM-DDThh:mm:ssTZD", &file_path, None) {
             Ok(res) => {
                 assert_eq!(res.max_time, Some(ts_max * 1000));
@@ -964,7 +979,13 @@ mod tests {
         let line_cnt = 1000usize;
         for i in 0..line_cnt {
             ts_max = ts_min + (i as i64);
-            writeln!(f, "{} {}", unix_timestamp_to_utc(ts_max).to_rfc3339(), i).expect("tempfile");
+            writeln!(
+                f,
+                "{} {}",
+                unix_timestamp_to_utc(ts_max).expect("valid").to_rfc3339(),
+                i
+            )
+            .expect("tempfile");
         }
         let regex = lookup_regex_for_format_str("YYYY-MM-DDThh:mm:ssTZD").expect("regex failed");
         let f2 = File::open(&file_path).expect("");
