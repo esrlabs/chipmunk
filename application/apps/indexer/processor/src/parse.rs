@@ -472,9 +472,9 @@ pub(crate) fn scan_lines(
     Ok((scanned_cnt, min_timestamp, max_timestamp))
 }
 
-pub fn unix_timestamp_to_utc(timestamp: i64) -> DateTime<Utc> {
-    let naive_datetime = NaiveDateTime::from_timestamp(timestamp, 0);
-    DateTime::from_utc(naive_datetime, Utc)
+pub fn unix_timestamp_to_utc(timestamp: i64) -> Option<DateTime<Utc>> {
+    NaiveDateTime::from_timestamp_opt(timestamp, 0)
+        .map(|naive_datetime| DateTime::from_utc(naive_datetime, Utc))
 }
 
 /// find out the lower and upper timestamp of a file
