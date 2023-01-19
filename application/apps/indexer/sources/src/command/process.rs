@@ -3,6 +3,7 @@ use async_trait::async_trait;
 use buf_redux::Buffer;
 use futures;
 use regex::{Captures, Regex};
+use shellexpand::tilde;
 use std::{collections::HashMap, ffi::OsString, path::PathBuf, process::Stdio};
 use thiserror::Error;
 use tokio::{
@@ -66,7 +67,8 @@ impl ProcessSource {
                     let key = format!("==extraction:({i})==");
                     str = str.replace(&key, g).to_owned();
                 }
-                OsString::from(str.replace("==esc_space==", " "))
+                let restored = str.replace("==esc_space==", " ");
+                OsString::from(tilde(&restored).to_string())
             })
             .collect())
     }
@@ -234,17 +236,16 @@ async fn test_process() -> Result<(), ProcessError> {
 
 #[tokio::test]
 async fn test_parsing() -> Result<(), ProcessError> {
-    let parsed =
-        ProcessSource::parse_command(r#"arg1 arg2 "some_path/with space or spaces" arg3"#)?;
+    let parsed = ProcessSource::parse_command(r#"cmd arg2 "some_path/with space or spaces" arg3"#)?;
     assert_eq!(parsed.len(), 4);
-    assert_eq!(parsed[0], OsString::from("arg1"));
+    assert_eq!(parsed[0], OsString::from("cmd"));
     assert_eq!(parsed[1], OsString::from("arg2"));
     assert_eq!(parsed[2], OsString::from("some_path/with space or spaces"));
     assert_eq!(parsed[3], OsString::from("arg3"));
     let parsed =
-        ProcessSource::parse_command(r#"arg1 arg2 some_path/with\ space\ or\ spaces arg3"#)?;
+        ProcessSource::parse_command(r#"cmd arg2 some_path/with\ space\ or\ spaces arg3"#)?;
     assert_eq!(parsed.len(), 4);
-    assert_eq!(parsed[0], OsString::from("arg1"));
+    assert_eq!(parsed[0], OsString::from("cmd"));
     assert_eq!(parsed[1], OsString::from("arg2"));
     assert_eq!(parsed[2], OsString::from("some_path/with space or spaces"));
     assert_eq!(parsed[3], OsString::from("arg3"));
