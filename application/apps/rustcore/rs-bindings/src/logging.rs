@@ -43,7 +43,7 @@ impl log::Log for SimpleLogger {
 #[node_bindgen_init_once]
 fn init_module() {
     if let Err(e) = init_logging() {
-        eprintln!("Problems setting up logging: {}", e);
+        eprintln!("Problems setting up logging: {e}");
     }
 }
 
