@@ -49,7 +49,7 @@ impl RustSession {
         callback: F,
     ) -> Result<(), ComputationErrorWrapper> {
         let rt = Runtime::new().map_err(|e| {
-            ComputationError::Process(format!("Could not start tokio runtime: {}", e))
+            ComputationError::Process(format!("Could not start tokio runtime: {e}"))
         })?;
         let (tx_session, rx_session): (oneshot::Sender<Session>, oneshot::Receiver<Session>) =
             oneshot::channel();
@@ -302,7 +302,7 @@ impl RustSession {
         operation_id: String,
     ) -> Result<(), ComputationErrorWrapper> {
         let options: ObserveOptions = serde_json::from_str(&options).map_err(|e| {
-            ComputationError::Process(format!("Cannot parse source settings: {}", e))
+            ComputationError::Process(format!("Cannot parse source settings: {e}"))
         })?;
         if let Some(ref session) = self.session {
             session

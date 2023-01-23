@@ -11,7 +11,7 @@ pub fn spawn(exe: &Path, args: Vec<String>) -> Result<Child, String> {
     Command::new(exe)
         .args(args)
         .spawn()
-        .map_err(|e| format!("{}", e))
+        .map_err(|e| format!("{e}"))
 }
 
 #[cfg(target_os = "windows")]

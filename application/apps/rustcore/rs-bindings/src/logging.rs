@@ -54,7 +54,7 @@ pub fn init_logging() -> Result<()> {
         match log4rs::init_file(&log_config_path, Default::default()) {
             Ok(()) => true,
             Err(e) => {
-                eprintln!("problems with existing log config ({}), write fresh", e);
+                eprintln!("problems with existing log config ({e}), write fresh");
                 // log4rs.yaml exists, could not parse it
                 initialize_from_fresh_yml().is_ok()
             }

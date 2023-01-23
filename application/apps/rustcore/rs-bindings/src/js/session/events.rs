@@ -13,8 +13,7 @@ impl TryIntoJs for CallbackEventWrapper {
         match serde_json::to_string(&self.0) {
             Ok(s) => js_env.create_string_utf8(&s),
             Err(e) => Err(NjError::Other(format!(
-                "Could not convert Callback event to json: {}",
-                e
+                "Could not convert Callback event to json: {e}"
             ))),
         }
     }
@@ -35,7 +34,7 @@ pub(crate) struct ComputationErrorWrapper(pub ComputationError);
 
 impl TryIntoJs for ComputationErrorWrapper {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        let value = serde_json::to_value(self.0).map_err(|e| NjError::Other(format!("{}", e)))?;
+        let value = serde_json::to_value(self.0).map_err(|e| NjError::Other(format!("{e}")))?;
         value.try_to_js(js_env)
     }
 }
