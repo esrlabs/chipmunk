@@ -1562,9 +1562,7 @@ fn duration_report_throughput(
     let ms = elapsed.as_millis();
     let duration_in_s = ms as f64 / 1000.0;
     let amount_per_second: f64 = amount / duration_in_s;
-    eprintln!(
-        "{report} took {duration_in_s:.3}s! ({amount_per_second:.3} {unit}/s)"
-    );
+    eprintln!("{report} took {duration_in_s:.3}s! ({amount_per_second:.3} {unit}/s)");
 }
 
 fn load_test_fibex() -> FibexConfig {
@@ -1577,6 +1575,7 @@ fn initialize_progress_bar(len: u64) -> ProgressBar {
     let progress_bar = ProgressBar::new(len);
     progress_bar.set_style(ProgressStyle::default_bar()
                 .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+                .expect("Could not create template")
                 .progress_chars("#>-"));
     progress_bar
 }

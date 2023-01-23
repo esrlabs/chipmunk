@@ -13,7 +13,7 @@ crossbeam-channel = "0.5"
 etherparse = "0.13"
 futures = "0.3"
 indexer_base = { path = "../indexer_base" }
-log = "0.4.17"
+log = "0.4"
 parsers = { path = "../parsers" }
 pcap-parser = "0.14"
 pin-project-lite = "0.2"
