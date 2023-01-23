@@ -33,11 +33,11 @@ Unpack chipmunk to a folder of your choosing. Use the `chipmunk.exe` to start ch
 Unpack chipmunk to a folder of your choosing. Use the `chipmunk` executable to start chipmunk.
 
 ```
-   ____ _     _                             _      _____    __              ____   ___ ____  _____
-  / ___| |__ (_)_ __  _ __ ___  _   _ _ __ | | __ |___ /   / _| ___  _ __  |___ \ / _ \___ \|___ /
- | |   | '_ \| | '_ \| '_ ` _ \| | | | '_ \| |/ /   |_ \  | |_ / _ \| '__|   __) | | | |__) | |_ \
- | |___| | | | | |_) | | | | | | |_| | | | |   <   ___) | |  _| (_) | |     / __/| |_| / __/ ___) |
-  \____|_| |_|_| .__/|_| |_| |_|\__,_|_| |_|_|\_\ |____/  |_|  \___/|_|    |_____|\___/_____|____/
+   ____ _     _                             _      _____
+  / ___| |__ (_)_ __  _ __ ___  _   _ _ __ | | __ |___ /
+ | |   | '_ \| | '_ \| '_ ` _ \| | | | '_ \| |/ /   |_ \
+ | |___| | | | | |_) | | | | | | |_| | | | |   <   ___) |
+  \____|_| |_|_| .__/|_| |_| |_|\__,_|_| |_|_|\_\ |____/
                |_|
 ```
 
@@ -66,11 +66,13 @@ Take into account that some form of plugins might be back, but only on the front
 Considering technical reasons and with generally limited resources, Chipmunk 3 do not yet include the following features:
 (but they will be added soon)
 
-- Charts based on parsed values
-- Time measurement
-- Merging of files by found timestamp
-- DLT log message details
-- Setting colors for columns, hide/show columns (related to column based content like DLT)
+- [ ] Charts based on parsed values
+- [ ] Time measurement
+- [ ] Merging of files by found timestamp
+- [ ] DLT log message details
+- [ ] Setting colors for columns, hide/show columns (related to column based content like DLT)
+- [ ] ADB Plugin
+- [x] Serial Plugin
 
 ## New features
 
