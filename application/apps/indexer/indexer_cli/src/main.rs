@@ -22,6 +22,7 @@ mod dlt;
 mod interactive;
 
 use crate::interactive::handle_interactive_session;
+use addon::dlt_ft::*;
 use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
@@ -207,6 +208,21 @@ enum Chip {
         filter_config: Option<PathBuf>,
         #[structopt(short = "n", long, help = "do not use storage header")]
         no_storage_header: bool,
+    },
+    #[structopt(about = "extract files from dlt trace")]
+    DltFt {
+        #[structopt(help = "the DLT file to parse")]
+        input: PathBuf,
+        #[structopt(
+            long = "out",
+            name = "OUT",
+            help = "Output directory, \"input directory\" if not present"
+        )]
+        output: Option<PathBuf>,
+        #[structopt(short, long, help = "run in interactive mode")]
+        interactive: bool,
+        #[structopt(short, long, help = "parse input without storage headers")]
+        raw: bool,
     },
     #[structopt(about = "dlt from pcap files")]
     DltPcap {
@@ -411,6 +427,12 @@ pub async fn main() -> Result<()> {
             )
             .await
         }
+        Chip::DltFt {
+            input,
+            output,
+            interactive,
+            raw,
+        } => handle_dlt_ft_subcommand(&input, output, interactive, raw, start).await,
         Chip::DltPcap {
             input,
             tag,
@@ -1004,6 +1026,98 @@ pub async fn main() -> Result<()> {
         }
 
         println!("done with handle_dlt_subcommand");
+        std::process::exit(0)
+    }
+
+    async fn handle_dlt_ft_subcommand(
+        file_path: &Path,
+        out_path: Option<PathBuf>,
+        interactive: bool,
+        raw: bool,
+        start: std::time::Instant,
+    ) {
+        debug!("handle_dlt_ft_subcommand");
+
+        let with_storage_header = !raw;
+        let output_dir = match out_path {
+            Some(path) => path,
+            None => file_path.parent().unwrap().to_path_buf(),
+        };
+
+        if interactive {
+            // extract selected files
+            println!("scan files..");
+            let ft_indexer = FtIndexer::new();
+            let ft_index = ft_indexer
+                .index(file_path, with_storage_header)
+                .await
+                .unwrap();
+            if ft_index.is_empty() {
+                println!("no file(s) found!");
+                std::process::exit(0);
+            }
+            for (pos, ft_file) in ft_index.iter().enumerate() {
+                let index: usize = pos + 1;
+                println!("<{}>\t{} ({} bytes)", index, ft_file.name, ft_file.size);
+            }
+            loop {
+                println!("enter file indexes [<num>,...] or 'q' for exit:");
+                let mut input = String::new();
+                std::io::stdin().read_line(&mut input).unwrap();
+                if input.trim() == "q" {
+                    std::process::exit(0)
+                }
+
+                let mut ft_filter = FtFilter::new();
+                for part in input.trim().split(',') {
+                    if let Ok(index) = part.parse::<usize>() {
+                        if let Some(ft_file) = ft_index.get(index - 1) {
+                            ft_filter.add(ft_file);
+                        }
+                    }
+                }
+
+                let mut ft_streamer = FtStreamer::new(output_dir.clone());
+                let size = ft_streamer
+                    .stream(file_path, Some(ft_filter), with_storage_header)
+                    .await;
+                println!("{} bytes written", size);
+
+                if !ft_streamer.is_complete() {
+                    eprintln!("{} streams remaining!", ft_streamer.num_streams());
+                    eprintln!("{} stream errors!", ft_streamer.num_errors());
+                }
+            }
+        } else {
+            // extract all files
+            println!("extract files..");
+            let mut ft_streamer = FtStreamer::new(output_dir.clone());
+            let size = ft_streamer
+                .stream(file_path, None, with_storage_header)
+                .await;
+
+            if !ft_streamer.is_complete() {
+                eprintln!("{} streams remaining!", ft_streamer.num_streams());
+                eprintln!("{} stream errors!", ft_streamer.num_errors());
+            }
+
+            let source_file_size = fs::metadata(file_path).expect("file size error").len();
+            let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
+            let out_file_size_in_mb = size as f64 / 1024.0 / 1024.0;
+
+            duration_report_throughput(
+                start,
+                format!(
+                    "processing ~{} MB (wrote ~{} MB contained data)",
+                    file_size_in_mb.round(),
+                    out_file_size_in_mb.round(),
+                ),
+                file_size_in_mb,
+                "MB".to_string(),
+            );
+        }
+
+        println!("done with handle_dlt_ft_subcommand");
         std::process::exit(0)
     }
 

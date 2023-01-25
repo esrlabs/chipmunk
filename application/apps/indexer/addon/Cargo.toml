@@ -1,0 +1,40 @@
+[package]
+name = "addon"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+#anyhow = "1.0"
+#async-stream = "0.3.2"
+#bytes = "1.0"
+#chrono = "0.4"
+#crossbeam-channel = "0.5.1"
+#dirs = "4.0"
+dlt-core = "0.14"
+env_logger = "0.9"
+futures = "0.3"
+indexer_base = { path = "../indexer_base" }
+#indicatif = "0.16"
+#lazy_static = "1.4"
+log = "0.4.17"
+#merging = { path = "../merging" }
+parsers = { path = "../parsers" }
+processor = { path = "../processor" }
+#session = { path = "../session" }
+#structopt = "0.3"
+#rustyline = "10.0.0"
+sources = { path = "../sources" }
+#serde = { version = "1.0", features = ["derive"] }
+#serde_json = "1.0"
+thiserror = "1.0"
+tokio = { version = "1.17", features = ["full"] }
+tokio-util = {version = "0.7", features = ["codec", "net"] }
+tokio-stream = "0.1.5"
+#uuid = "1.0"
+# someip-messages = { path = "../../../../../someip"}
+#someip-messages = { git = "https://github.com/esrlabs/someip" }
+# someip-payload = { path = "../../../../../someip-payload"}
+#someip-payload = { git = "https://github.com/esrlabs/someip-payload" }
+
+[dev-dependencies]
+rand = "0.8.5"
