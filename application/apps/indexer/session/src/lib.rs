@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate bitflags;
+
 pub mod events;
 mod handlers;
 pub mod operations;
@@ -8,3 +11,7 @@ pub mod tail;
 pub mod tracker;
 
 pub use sources::factory;
+
+#[cfg(test)]
+#[macro_use]
+extern crate lazy_static;

@@ -34,6 +34,10 @@ export interface IEventMapUpdated {
     map: IMapEntity[];
 }
 
+export interface IEventIndexedMapUpdated {
+    len: number;
+}
+
 export interface IEventMatchesUpdated {
     matches: IMatchEntity[];
 }
@@ -44,6 +48,7 @@ export interface ISessionEvents {
     SearchUpdated: Subject<ISearchUpdated>;
     SearchMapUpdated: Subject<string>;
     MapUpdated: Subject<IEventMapUpdated>;
+    IndexedMapUpdated: Subject<IEventIndexedMapUpdated>;
     MatchesUpdated: Subject<IEventMatchesUpdated>;
     Progress: Subject<IProgressEvent>;
     SessionError: Subject<IError>;
@@ -59,6 +64,7 @@ interface ISessionEventsSignatures {
     SearchUpdated: 'SearchUpdated';
     SearchMapUpdated: 'SearchMapUpdated';
     MapUpdated: 'MapUpdated';
+    IndexedMapUpdated: 'IndexedMapUpdated';
     MatchesUpdated: 'MatchesUpdated';
     Progress: 'Progress';
     SessionError: 'SessionError';
@@ -74,6 +80,7 @@ const SessionEventsSignatures: ISessionEventsSignatures = {
     SearchUpdated: 'SearchUpdated',
     SearchMapUpdated: 'SearchMapUpdated',
     MapUpdated: 'MapUpdated',
+    IndexedMapUpdated: 'IndexedMapUpdated',
     MatchesUpdated: 'MatchesUpdated',
     Progress: 'Progress',
     SessionError: 'SessionError',
@@ -89,6 +96,7 @@ interface ISessionEventsInterfaces {
     SearchUpdated: { self: 'object'; found: 'number'; stat: typeof Object };
     SearchMapUpdated: { self: ['string', null] };
     MapUpdated: { self: 'object'; map: typeof Array };
+    IndexedMapUpdated: { self: 'object'; len: 'number' };
     MatchesUpdated: { self: 'object'; matches: typeof Array };
     Progress: {
         self: 'object';
@@ -115,6 +123,7 @@ const SessionEventsInterfaces: ISessionEventsInterfaces = {
     SearchUpdated: { self: 'object', found: 'number', stat: Object },
     SearchMapUpdated: { self: ['string', null] },
     MapUpdated: { self: 'object', map: Array },
+    IndexedMapUpdated: { self: 'object', len: 'number' },
     MatchesUpdated: { self: 'object', matches: Array },
     Progress: {
         self: 'object',
@@ -145,7 +154,8 @@ export class EventProvider extends Computation<
         FileRead: new Subject<void>(),
         SearchUpdated: new Subject<ISearchUpdated>(),
         SearchMapUpdated: new Subject<string>(),
-        MapUpdated: new Subject<IEventMapUpdated>(), // dummy
+        MapUpdated: new Subject<IEventMapUpdated>(),
+        IndexedMapUpdated: new Subject<IEventIndexedMapUpdated>(),
         MatchesUpdated: new Subject<IEventMatchesUpdated>(), // dummy
         Progress: new Subject<IProgressEvent>(),
         SessionError: new Subject<IError>(),

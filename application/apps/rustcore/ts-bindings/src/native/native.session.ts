@@ -18,6 +18,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getValidNum } from '../util/numbers';
 import { IRange } from 'platform/types/range';
 import { ObservedSourceLink } from 'platform/types/observe';
+import { IndexingMode } from 'platform/types/content';
 
 export type RustSessionConstructorImpl<T> = new (
     uuid: string,
@@ -45,6 +46,26 @@ export abstract class RustSession extends RustSessionRequiered {
     public abstract grabStreamChunk(start: number, len: number): Promise<IGrabbedElement[]>;
 
     public abstract grabStreamRanges(ranges: IRange[]): Promise<IGrabbedElement[]>;
+
+    public abstract grabIndexed(start: number, len: number): Promise<IGrabbedElement[]>;
+
+    public abstract setIndexingMode(mode: IndexingMode): Promise<void>;
+
+    public abstract getIndexedLen(): Promise<number>;
+
+    public abstract extendBreadcrumbs(
+        seporator: number,
+        offset: number,
+        above: boolean,
+    ): Promise<void>;
+
+    public abstract removeBookmark(row: number): Promise<void>;
+
+    public abstract addSelection(range: IRange): Promise<void>;
+
+    public abstract removeSelection(range: IRange): Promise<void>;
+
+    public abstract addBookmark(row: number): Promise<void>;
 
     /**
      * Returns chunk of stream/session file.
@@ -204,6 +225,26 @@ export abstract class RustSessionNative {
     public abstract getSourcesDefinitions(): Promise<ObservedSourceLink[]>;
 
     public abstract grab(start: number, len: number): Promise<string>;
+
+    public abstract grabIndexed(start: number, len: number): Promise<string>;
+
+    public abstract setIndexingMode(mode: number): Promise<void>;
+
+    public abstract getIndexedLen(): Promise<number>;
+
+    public abstract extendBreadcrumbs(
+        seporator: number,
+        offset: number,
+        above: boolean,
+    ): Promise<void>;
+
+    public abstract removeBookmark(row: number): Promise<void>;
+
+    public abstract addSelection(range: [number, number]): Promise<void>;
+
+    public abstract removeSelection(range: [number, number]): Promise<void>;
+
+    public abstract addBookmark(row: number): Promise<void>;
 
     public abstract grabRanges(ranges: number[][]): Promise<string>;
 
@@ -380,7 +421,8 @@ export class RustSessionWrapper extends RustSession {
                         const result: Array<{
                             c: string;
                             id: number;
-                            p: unknown;
+                            p: number;
+                            n: number[];
                         }> = JSON.parse(grabbed);
                         resolve(
                             result.map(
@@ -388,7 +430,8 @@ export class RustSessionWrapper extends RustSession {
                                     item: {
                                         c: string;
                                         id: number;
-                                        p: unknown;
+                                        p: number;
+                                        n: number[];
                                     },
                                     i: number,
                                 ) => {
@@ -396,6 +439,7 @@ export class RustSessionWrapper extends RustSession {
                                         content: item.c,
                                         source_id: item.id,
                                         position: getValidNum(item.p),
+                                        nature: item.n,
                                     };
                                 },
                             ),
@@ -428,6 +472,193 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
+    public grabIndexed(start: number, len: number): Promise<IGrabbedElement[]> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('grabIndexed');
+            this._native
+                .grabIndexed(start, len)
+                .then((grabbed: string) => {
+                    try {
+                        const result: Array<{
+                            c: string;
+                            id: number;
+                            p: unknown;
+                            n: number[];
+                        }> = JSON.parse(grabbed);
+                        resolve(
+                            result.map(
+                                (
+                                    item: {
+                                        c: string;
+                                        id: number;
+                                        p: unknown;
+                                        n: number[];
+                                    },
+                                    i: number,
+                                ) => {
+                                    return {
+                                        content: item.c,
+                                        source_id: item.id,
+                                        position: getValidNum(item.p),
+                                        nature: item.n,
+                                    };
+                                },
+                            ),
+                        );
+                    } catch (err) {
+                        reject(
+                            new NativeError(
+                                new Error(
+                                    this._logger.error(
+                                        `Fail to call grabIndexed(${start}, ${len}) due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                ),
+                                Type.ParsingContentChunk,
+                                Source.GrabStreamChunk,
+                            ),
+                        );
+                    }
+                })
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            NativeError.from(err),
+                            Type.GrabbingContent,
+                            Source.GrabStreamChunk,
+                        ),
+                    );
+                });
+        });
+    }
+
+    public setIndexingMode(mode: IndexingMode): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('setIndexingMode');
+            this._native
+                .setIndexingMode(mode)
+                .then(resolve)
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            NativeError.from(err),
+                            Type.ContentManipulation,
+                            Source.SetIndexingMode,
+                        ),
+                    );
+                });
+        });
+    }
+
+    public getIndexedLen(): Promise<number> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('getIndexedLen');
+            this._native
+                .getIndexedLen()
+                .then(resolve)
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            NativeError.from(err),
+                            Type.ContentManipulation,
+                            Source.GetIndexedLen,
+                        ),
+                    );
+                });
+        });
+    }
+
+    public extendBreadcrumbs(seporator: number, offset: number, above: boolean): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('extendBreadcrumbs');
+            this._native
+                .extendBreadcrumbs(seporator, offset, above)
+                .then(resolve)
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            NativeError.from(err),
+                            Type.ContentManipulation,
+                            Source.ExtendBreadcrumbs,
+                        ),
+                    );
+                });
+        });
+    }
+
+    public removeBookmark(row: number): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('removeBookmark');
+            this._native
+                .removeBookmark(row)
+                .then(resolve)
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            NativeError.from(err),
+                            Type.ContentManipulation,
+                            Source.RemoveBookmark,
+                        ),
+                    );
+                });
+        });
+    }
+
+    public addSelection(range: IRange): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('addSelection');
+            this._native
+                .addSelection([range.from, range.to])
+                .then(resolve)
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            NativeError.from(err),
+                            Type.ContentManipulation,
+                            Source.AddSelection,
+                        ),
+                    );
+                });
+        });
+    }
+
+    public removeSelection(range: IRange): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('removeSelection');
+            this._native
+                .removeSelection([range.from, range.to])
+                .then(resolve)
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            NativeError.from(err),
+                            Type.ContentManipulation,
+                            Source.RemoveSelection,
+                        ),
+                    );
+                });
+        });
+    }
+
+    public addBookmark(row: number): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('addBookmark');
+            this._native
+                .addBookmark(row)
+                .then(resolve)
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            NativeError.from(err),
+                            Type.ContentManipulation,
+                            Source.AddBookmark,
+                        ),
+                    );
+                });
+        });
+    }
+
     public grabStreamRanges(ranges: IRange[]): Promise<IGrabbedElement[]> {
         return new Promise((resolve, reject) => {
             try {
@@ -439,8 +670,8 @@ export class RustSessionWrapper extends RustSession {
                             const result: Array<{
                                 c: string;
                                 id: number;
-                                r: unknown;
-                                p: unknown;
+                                p: number;
+                                n: number[];
                             }> = JSON.parse(grabbed);
                             resolve(
                                 result.map(
@@ -448,7 +679,8 @@ export class RustSessionWrapper extends RustSession {
                                         item: {
                                             c: string;
                                             id: number;
-                                            p: unknown;
+                                            p: number;
+                                            n: number[];
                                         },
                                         i: number,
                                     ) => {
@@ -456,6 +688,7 @@ export class RustSessionWrapper extends RustSession {
                                             content: item.c,
                                             source_id: item.id,
                                             position: getValidNum(item.p),
+                                            nature: item.n,
                                         };
                                     },
                                 ),
@@ -503,7 +736,8 @@ export class RustSessionWrapper extends RustSession {
                         const result: Array<{
                             c: string;
                             id: number;
-                            p: unknown;
+                            p: number;
+                            n: number[];
                         }> = JSON.parse(grabbed);
                         resolve(
                             result.map(
@@ -512,6 +746,7 @@ export class RustSessionWrapper extends RustSession {
                                         c: string;
                                         id: number;
                                         p: unknown;
+                                        n: number[];
                                     },
                                     i: number,
                                 ) => {
@@ -519,6 +754,7 @@ export class RustSessionWrapper extends RustSession {
                                         content: item.c,
                                         source_id: item.id,
                                         position: getValidNum(item.p),
+                                        nature: item.n,
                                     };
                                 },
                             ),

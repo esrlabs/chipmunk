@@ -26,10 +26,17 @@ use tokio::sync::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
+mod indexes;
 mod observed;
 mod session_file;
 mod source_ids;
 
+pub use indexes::{
+    controller::{Controller as Indexes, Mode as IndexesMode},
+    frame::Frame,
+    map::Map,
+    nature::Nature,
+};
 use observed::Observed;
 pub use session_file::{SessionFile, SessionFileState};
 pub use source_ids::SourceDefinition;
@@ -44,6 +51,14 @@ pub struct GrabbedElement {
     pub content: String,
     #[serde(rename = "p")]
     pub pos: usize,
+    #[serde(rename = "n")]
+    pub nature: u8,
+}
+
+impl GrabbedElement {
+    pub fn set_nature(&mut self, nature: u8) {
+        self.nature = nature;
+    }
 }
 
 #[derive(Debug)]
@@ -92,6 +107,22 @@ pub enum Api {
             oneshot::Sender<Result<Vec<GrabbedElement>, NativeError>>,
         ),
     ),
+    GrabIndexed(
+        (
+            RangeInclusive<u64>,
+            oneshot::Sender<Result<Vec<GrabbedElement>, NativeError>>,
+        ),
+    ),
+    SetIndexingMode((IndexesMode, oneshot::Sender<Result<(), NativeError>>)),
+    GetIndexedMapLen(oneshot::Sender<usize>),
+    AddBookmark((u64, oneshot::Sender<Result<(), NativeError>>)),
+    RemoveBookmark((u64, oneshot::Sender<Result<(), NativeError>>)),
+    ExtendBreadcrumbs {
+        seporator: u64,
+        offset: u64,
+        above: bool,
+        tx_response: oneshot::Sender<Result<(), NativeError>>,
+    },
     GrabSearch(
         (
             LineRange,
@@ -157,6 +188,12 @@ impl Display for Api {
                 Self::SetSearchHolder(_) => "SetSearchHolder",
                 Self::DropSearch(_) => "DropSearch",
                 Self::GrabSearch(_) => "GrabSearch",
+                Self::GrabIndexed(_) => "GrabIndexed",
+                Self::SetIndexingMode(_) => "SetIndexingMode",
+                Self::GetIndexedMapLen(_) => "GetIndexedMapLen",
+                Self::AddBookmark(_) => "AddBookmark",
+                Self::RemoveBookmark(_) => "RemoveBookmark",
+                Self::ExtendBreadcrumbs { .. } => "ExtendBreadcrumbs",
                 Self::GrabRanges(_) => "GrabRanges",
                 Self::GetNearestPosition(_) => "GetNearestPosition",
                 Self::GetScaledMap(_) => "GetScaledMap",
@@ -182,6 +219,7 @@ pub struct SessionState {
     pub session_file: SessionFile,
     pub observed: Observed,
     pub search_map: SearchMap,
+    pub indexes: Indexes,
     pub search_holder: SearchHolderState,
     pub cancelling_operations: HashMap<Uuid, bool>,
     pub status: Status,
@@ -189,6 +227,33 @@ pub struct SessionState {
 }
 
 impl SessionState {
+    fn new(tx_callback_events: UnboundedSender<CallbackEvent>) -> Self {
+        Self {
+            session_file: SessionFile::new(),
+            observed: Observed::new(),
+            search_map: SearchMap::new(),
+            search_holder: SearchHolderState::NotInited,
+            indexes: Indexes::new(Some(tx_callback_events)),
+            status: Status::Open,
+            cancelling_operations: HashMap::new(),
+            debug: false,
+        }
+    }
+
+    fn handle_grab_indexed(
+        &mut self,
+        mut range: RangeInclusive<u64>,
+    ) -> Result<Vec<GrabbedElement>, NativeError> {
+        let frame = self.indexes.frame(&mut range)?;
+        let mut elements: Vec<GrabbedElement> = vec![];
+        for range in frame.ranges().iter() {
+            let mut session_elements = self.session_file.grab(&LineRange::from(range.clone()))?;
+            elements.append(&mut session_elements);
+        }
+        frame.naturalize(&mut elements)?;
+        Ok(elements)
+    }
+
     fn handle_grab_search(&mut self, range: LineRange) -> Result<Vec<GrabbedElement>, NativeError> {
         let indexes = self
             .search_map
@@ -298,12 +363,14 @@ impl SessionState {
         let rows = self.session_file.len();
         let bytes = self.session_file.read_bytes();
         self.search_map.set_stream_len(rows);
+        self.indexes.set_stream_len(rows)?;
         tx_callback_events.send(CallbackEvent::StreamUpdated(rows))?;
         match self
             .search_holder
             .execute_search(rows, bytes, state_cancellation_token)
         {
             Some(Ok((_processed, mut matches, stats))) => {
+                self.indexes.append_search_results(&matches)?;
                 let map_updates = SearchMap::map_as_str(&matches);
                 let found = self.search_map.append(&mut matches) as u64;
                 self.search_map.append_stats(stats);
@@ -425,6 +492,56 @@ impl SessionStateAPI {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::Grab((range.clone(), tx)), rx)
             .await?
+    }
+
+    pub async fn grab_indexed(
+        &self,
+        range: RangeInclusive<u64>,
+    ) -> Result<Vec<GrabbedElement>, NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GrabIndexed((range, tx)), rx)
+            .await?
+    }
+
+    pub async fn set_indexing_mode(&self, mode: IndexesMode) -> Result<(), NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::SetIndexingMode((mode, tx)), rx)
+            .await?
+    }
+
+    pub async fn get_indexed_len(&self) -> Result<usize, NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GetIndexedMapLen(tx), rx).await
+    }
+
+    pub async fn add_bookmark(&self, row: u64) -> Result<(), NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::AddBookmark((row, tx)), rx).await?
+    }
+
+    pub async fn remove_bookmark(&self, row: u64) -> Result<(), NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::RemoveBookmark((row, tx)), rx)
+            .await?
+    }
+
+    pub async fn extend_breadcrumbs(
+        &self,
+        seporator: u64,
+        offset: u64,
+        above: bool,
+    ) -> Result<(), NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(
+            Api::ExtendBreadcrumbs {
+                seporator,
+                offset,
+                above,
+                tx_response: tx,
+            },
+            rx,
+        )
+        .await?
     }
 
     pub async fn grab_search(&self, range: LineRange) -> Result<Vec<GrabbedElement>, NativeError> {
@@ -631,15 +748,7 @@ pub async fn run(
     mut rx_api: UnboundedReceiver<Api>,
     tx_callback_events: UnboundedSender<CallbackEvent>,
 ) -> Result<(), NativeError> {
-    let mut state = SessionState {
-        session_file: SessionFile::new(),
-        observed: Observed::new(),
-        search_map: SearchMap::new(),
-        search_holder: SearchHolderState::NotInited,
-        status: Status::Open,
-        cancelling_operations: HashMap::new(),
-        debug: false,
-    };
+    let mut state = SessionState::new(tx_callback_events.clone());
     let state_cancellation_token = CancellationToken::new();
     debug!("task is started");
     while let Some(msg) = rx_api.recv().await {
@@ -743,6 +852,47 @@ pub async fn run(
                     .send(state.session_file.grab(&range))
                     .map_err(|_| NativeError::channel("Failed to respond to Api::Grab"))?;
             }
+            Api::GrabIndexed((range, tx_response)) => {
+                tx_response
+                    .send(state.handle_grab_indexed(range))
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::GrabIndexed"))?;
+            }
+            Api::SetIndexingMode((mode, tx_response)) => {
+                tx_response
+                    .send(state.indexes.set_mode(mode))
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::SetIndexingMode")
+                    })?;
+            }
+            Api::GetIndexedMapLen(tx_response) => {
+                tx_response.send(state.indexes.len()).map_err(|_| {
+                    NativeError::channel("Failed to respond to Api::GetIndexedMapLen")
+                })?;
+            }
+            Api::AddBookmark((row, tx_response)) => {
+                tx_response
+                    .send(state.indexes.add_bookmark(row))
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::AddBookmark"))?;
+            }
+            Api::RemoveBookmark((row, tx_response)) => {
+                tx_response
+                    .send(state.indexes.remove_bookmark(row))
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::RemoveBookmark")
+                    })?;
+            }
+            Api::ExtendBreadcrumbs {
+                seporator,
+                offset,
+                above,
+                tx_response,
+            } => {
+                tx_response
+                    .send(state.indexes.breadcrumbs_expand(seporator, offset, above))
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::ExtendBreadcrumbs")
+                    })?;
+            }
             Api::GrabSearch((range, tx_response)) => {
                 tx_response
                     .send(state.handle_grab_search(range))
@@ -811,6 +961,7 @@ pub async fn run(
                 } else {
                     state.search_holder = SearchHolderState::NotInited;
                     state.search_map.set(None, None);
+                    state.indexes.drop_search()?;
                     true
                 };
                 tx_callback_events.send(CallbackEvent::no_search_results())?;
@@ -823,6 +974,9 @@ pub async fn run(
                 let update = matches
                     .as_ref()
                     .map(|matches| SearchMap::map_as_str(matches));
+                if let Some(matches) = matches.as_ref() {
+                    state.indexes.set_search_results(matches)?;
+                }
                 state.search_map.set(matches, stats);
                 tx_callback_events.send(CallbackEvent::SearchMapUpdated(update))?;
                 tx_callback_events.send(CallbackEvent::search_results(
