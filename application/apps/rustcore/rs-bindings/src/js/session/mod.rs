@@ -338,48 +338,6 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    async fn add_selection(&self, range: (i64, i64)) -> Result<(), ComputationErrorWrapper> {
-        let (from, to): (u64, u64) = (
-            u64::try_from(range.0)
-                .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?,
-            u64::try_from(range.1)
-                .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?,
-        );
-        if let Some(ref session) = self.session {
-            session
-                .add_selection(RangeInclusive::<u64>::new(from, to))
-                .await
-                .map_err(ComputationErrorWrapper)?;
-            Ok(())
-        } else {
-            Err(ComputationErrorWrapper(
-                ComputationError::SessionUnavailable,
-            ))
-        }
-    }
-
-    #[node_bindgen]
-    async fn remove_selection(&self, range: (i64, i64)) -> Result<(), ComputationErrorWrapper> {
-        let (from, to): (u64, u64) = (
-            u64::try_from(range.0)
-                .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?,
-            u64::try_from(range.1)
-                .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?,
-        );
-        if let Some(ref session) = self.session {
-            session
-                .remove_selection(RangeInclusive::<u64>::new(from, to))
-                .await
-                .map_err(ComputationErrorWrapper)?;
-            Ok(())
-        } else {
-            Err(ComputationErrorWrapper(
-                ComputationError::SessionUnavailable,
-            ))
-        }
-    }
-
-    #[node_bindgen]
     async fn extend_breadcrumbs(
         &self,
         seporator: i64,
@@ -455,9 +413,8 @@ impl RustSession {
         options: String,
         operation_id: String,
     ) -> Result<(), ComputationErrorWrapper> {
-        let options: ObserveOptions = serde_json::from_str(&options).map_err(|e| {
-            ComputationError::Process(format!("Cannot parse source settings: {e}"))
-        })?;
+        let options: ObserveOptions = serde_json::from_str(&options)
+            .map_err(|e| ComputationError::Process(format!("Cannot parse source settings: {e}")))?;
         if let Some(ref session) = self.session {
             session
                 .observe(operations::uuid_from_str(&operation_id)?, options)
