@@ -41,6 +41,9 @@ export interface IConfiguration {
                 tests: { [key: string]: IPerformanceTest };
             };
         };
+        indexes: {
+            regular: IRegularTests;
+        };
         concat: {
             regular: IRegularTests;
         };

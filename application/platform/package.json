@@ -79,6 +79,7 @@
         "./types/sde/common": "./dist/types/sde/common.js",
         "./types/sde/serial": "./dist/types/sde/serial.js",
         "./types/files": "./dist/types/files.js",
+        "./types/content": "./dist/types/content.js",
         "./types/filter": "./dist/types/filter.js",
         "./types/observe": "./dist/types/observe.js",
         "./types/range": "./dist/types/range.js",

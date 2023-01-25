@@ -14,18 +14,9 @@ import {
 } from '../interfaces/index';
 import { IRange } from 'platform/types/range';
 import { ObservedSourceLink } from 'platform/types/observe';
+import { IndexingMode } from 'platform/types/content';
 
 export { IExtractDTFormatOptions, IExtractDTFormatResult, Observe };
-
-// abstract class Connector<T> {
-//     public abstract disconnect(): Promise<void>; // Equal to destroy
-//     public abstract setOptions(options: T): Promise<void>; // To have a way update options in on fly
-//     public abstract getSubjects(): {
-//         // Major events
-//         disconnected: Subject<void>;
-//         connected: Subject<void>;
-//     };
-// }
 
 export class SessionStream {
     private readonly _provider: EventProvider;
@@ -56,6 +47,38 @@ export class SessionStream {
 
     public grab(start: number, len: number): Promise<IGrabbedElement[]> {
         return this._session.grabStreamChunk(start, len);
+    }
+
+    public grabIndexed(start: number, len: number): Promise<IGrabbedElement[]> {
+        return this._session.grabIndexed(start, len);
+    }
+
+    public setIndexingMode(mode: IndexingMode): Promise<void> {
+        return this._session.setIndexingMode(mode);
+    }
+
+    public getIndexedLen(): Promise<number> {
+        return this._session.getIndexedLen();
+    }
+
+    public addBookmark(row: number): Promise<void> {
+        return this._session.addBookmark(row);
+    }
+
+    public removeBookmark(row: number): Promise<void> {
+        return this._session.removeBookmark(row);
+    }
+
+    public addSelection(range: IRange): Promise<void> {
+        return this._session.addSelection(range);
+    }
+
+    public removeSelection(range: IRange): Promise<void> {
+        return this._session.removeSelection(range);
+    }
+
+    public extendBreadcrumbs(seporator: number, offset: number, above: boolean): Promise<void> {
+        return this._session.extendBreadcrumbs(seporator, offset, above);
     }
 
     public grabRanges(ranges: IRange[]): Promise<IGrabbedElement[]> {

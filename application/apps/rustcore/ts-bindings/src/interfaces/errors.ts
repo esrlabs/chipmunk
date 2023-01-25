@@ -9,6 +9,7 @@ export enum Type {
     ParsingContentChunk = 'ParsingContentChunk',
     ParsingSearchChunk = 'ParsingSearchChunk',
     CancelationError = 'CancelationError',
+    ContentManipulation = 'ContentManipulation',
     Other = 'Other',
 }
 
@@ -35,6 +36,13 @@ export enum Source {
     Detect = 'Detect',
     Abort = 'Abort',
     Sleep = 'Sleep',
+    AddBookmark = 'AddBookmark',
+    RemoveSelection = 'RemoveSelection',
+    AddSelection = 'AddSelection',
+    RemoveBookmark = 'RemoveBookmark',
+    ExtendBreadcrumbs = 'ExtendBreadcrumbs',
+    SetIndexingMode = 'SetIndexingMode',
+    GetIndexedLen = 'GetIndexedLen',
     Other = 'Other',
 }
 

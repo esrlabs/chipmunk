@@ -3,7 +3,7 @@ use crate::{
     operations,
     operations::Operation,
     state,
-    state::{GrabbedElement, SessionStateAPI, SourceDefinition},
+    state::{GrabbedElement, IndexesMode, SessionStateAPI, SourceDefinition},
     tracker,
     tracker::OperationTrackerAPI,
 };
@@ -95,6 +95,60 @@ impl Session {
     pub async fn grab(&self, range: LineRange) -> Result<Vec<GrabbedElement>, ComputationError> {
         self.state
             .grab(range)
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
+    pub async fn grab_indexed(
+        &self,
+        range: RangeInclusive<u64>,
+    ) -> Result<Vec<GrabbedElement>, ComputationError> {
+        self.state
+            .grab_indexed(range)
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
+    pub async fn set_indexing_mode(&self, mode: u8) -> Result<(), ComputationError> {
+        self.state
+            .set_indexing_mode(match mode {
+                0u8 => IndexesMode::Regular,
+                1u8 => IndexesMode::Breadcrumbs,
+                _ => return Err(ComputationError::InvalidData),
+            })
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
+    pub async fn get_indexed_len(&self) -> Result<usize, ComputationError> {
+        self.state
+            .get_indexed_len()
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
+    pub async fn add_bookmark(&self, row: u64) -> Result<(), ComputationError> {
+        self.state
+            .add_bookmark(row)
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
+    pub async fn remove_bookmark(&self, row: u64) -> Result<(), ComputationError> {
+        self.state
+            .remove_bookmark(row)
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
+    pub async fn extend_breadcrumbs(
+        &self,
+        seporator: u64,
+        offset: u64,
+        above: bool,
+    ) -> Result<(), ComputationError> {
+        self.state
+            .extend_breadcrumbs(seporator, offset, above)
             .await
             .map_err(ComputationError::NativeError)
     }
