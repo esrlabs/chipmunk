@@ -245,6 +245,15 @@ namespace :test do
       end
     end
 
+    desc 'run indexes tests'
+    task :indexes do
+      Bindings.new(false).build
+      Reporter.print
+      Shell.chdir(Paths::TS_BINDINGS) do
+        sh "#{test_runner} spec/session.indexes.spec.ts"
+      end
+    end
+
     desc 'run concat tests'
     task :concat do
       Bindings.new(false).build
@@ -310,7 +319,8 @@ namespace :test do
   task all: ['test:binding:observe', 'test:binding:concat', 'test:binding:extract',
              'test:binding:ranges', 'test:binding:exporting', 'test:binding:search',
              'test:binding:cancel', 'test:binding:errors', 'test:binding:map',
-             'test:matcher:karma', 'test:matcher:rust', 'test:ansi:karma', 'test:ansi:rust']
+             'test:matcher:karma', 'test:matcher:rust', 'test:ansi:karma',
+             'test:binding:indexes', 'test:ansi:rust']
 end
 
 namespace :lint do

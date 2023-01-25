@@ -142,8 +142,7 @@ impl Parser<RangeMessage> for DltRangeParser {
         input: &'b [u8],
         _timestamp: Option<u64>,
     ) -> Result<(&'b [u8], Option<RangeMessage>), Error> {
-        let (rest, consumed) =
-            dlt_consume_msg(input).map_err(|e| Error::Parse(format!("{e}")))?;
+        let (rest, consumed) = dlt_consume_msg(input).map_err(|e| Error::Parse(format!("{e}")))?;
         let msg = consumed.map(|c| {
             self.offset += c as usize;
             RangeMessage {
@@ -163,8 +162,7 @@ impl Parser<RawMessage> for DltRawParser {
         input: &'b [u8],
         _timestamp: Option<u64>,
     ) -> Result<(&'b [u8], Option<RawMessage>), Error> {
-        let (rest, consumed) =
-            dlt_consume_msg(input).map_err(|e| Error::Parse(format!("{e}")))?;
+        let (rest, consumed) = dlt_consume_msg(input).map_err(|e| Error::Parse(format!("{e}")))?;
         let msg = consumed.map(|c| RawMessage {
             content: Vec::from(&input[0..c as usize]),
         });

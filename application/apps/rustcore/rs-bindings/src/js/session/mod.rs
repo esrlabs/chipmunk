@@ -250,6 +250,160 @@ impl RustSession {
     }
 
     #[node_bindgen]
+    async fn grab_indexed(
+        &self,
+        start_line_index: i64,
+        number_of_lines: i64,
+    ) -> Result<String, ComputationErrorWrapper> {
+        let start = u64::try_from(start_line_index)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
+        let end = u64::try_from(start_line_index + number_of_lines - 1)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
+        if let Some(ref session) = self.session {
+            let grabbed = session
+                .grab_indexed(RangeInclusive::<u64>::new(start, end))
+                .await
+                .map_err(ComputationErrorWrapper)?;
+            Ok(serde_json::to_string(&grabbed)?)
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
+    async fn set_indexing_mode(&self, mode: i32) -> Result<(), ComputationErrorWrapper> {
+        let mode = u8::try_from(mode)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
+        if let Some(ref session) = self.session {
+            session
+                .set_indexing_mode(mode)
+                .await
+                .map_err(ComputationErrorWrapper)?;
+            Ok(())
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
+    async fn get_indexed_len(&self) -> Result<i64, ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            session
+                .get_indexed_len()
+                .await
+                .map(|r| r as i64)
+                .map_err(ComputationErrorWrapper)
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+    #[node_bindgen]
+    async fn add_bookmark(&self, row: i64) -> Result<(), ComputationErrorWrapper> {
+        let row = u64::try_from(row)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
+        if let Some(ref session) = self.session {
+            session
+                .add_bookmark(row)
+                .await
+                .map_err(ComputationErrorWrapper)?;
+            Ok(())
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
+    async fn remove_bookmark(&self, row: i64) -> Result<(), ComputationErrorWrapper> {
+        let row = u64::try_from(row)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
+        if let Some(ref session) = self.session {
+            session
+                .remove_bookmark(row)
+                .await
+                .map_err(ComputationErrorWrapper)?;
+            Ok(())
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
+    async fn add_selection(&self, range: (i64, i64)) -> Result<(), ComputationErrorWrapper> {
+        let (from, to): (u64, u64) = (
+            u64::try_from(range.0)
+                .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?,
+            u64::try_from(range.1)
+                .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?,
+        );
+        if let Some(ref session) = self.session {
+            session
+                .add_selection(RangeInclusive::<u64>::new(from, to))
+                .await
+                .map_err(ComputationErrorWrapper)?;
+            Ok(())
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
+    async fn remove_selection(&self, range: (i64, i64)) -> Result<(), ComputationErrorWrapper> {
+        let (from, to): (u64, u64) = (
+            u64::try_from(range.0)
+                .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?,
+            u64::try_from(range.1)
+                .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?,
+        );
+        if let Some(ref session) = self.session {
+            session
+                .remove_selection(RangeInclusive::<u64>::new(from, to))
+                .await
+                .map_err(ComputationErrorWrapper)?;
+            Ok(())
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
+    async fn extend_breadcrumbs(
+        &self,
+        seporator: i64,
+        offset: i64,
+        above: bool,
+    ) -> Result<(), ComputationErrorWrapper> {
+        let seporator = u64::try_from(seporator)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
+        let offset = u64::try_from(offset)
+            .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
+        if let Some(ref session) = self.session {
+            session
+                .extend_breadcrumbs(seporator, offset, above)
+                .await
+                .map_err(ComputationErrorWrapper)?;
+            Ok(())
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
     async fn grab_search(
         &self,
         start_line_index: i64,
