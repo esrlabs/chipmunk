@@ -1069,18 +1069,18 @@ pub async fn main() -> Result<()> {
         if interactive {
             // extract selected files
             println!("scan files..");
-            let ft_indexer = FtIndexer::new();
-            let cancel = CancellationToken::new();
-
             let file = File::open(file_path).expect("file not found");
             let reader = BufReader::new(&file);
             let source = BinaryByteSource::new(reader);
-
-            let parser = DltParser::new(None, None, with_storage_header);
+            let parser = DltParser::new(filter_conf.clone(), None, with_storage_header);
             let mut producer = MessageProducer::new(parser, source, None);
             let stream = producer.as_stream();
             pin_mut!(stream);
+
+            let ft_indexer = FtIndexer::new();
+            let cancel = CancellationToken::new();
             let ft_index = ft_indexer.index_from_stream(stream, cancel).await.unwrap();
+
             if ft_index.is_empty() {
                 println!("no file(s) found!");
                 std::process::exit(0);
@@ -1109,9 +1109,15 @@ pub async fn main() -> Result<()> {
                 let mut ft_streamer = FtStreamer::new(output_dir.clone());
                 let cancel = CancellationToken::new();
                 let size = ft_streamer
-                    .stream(file_path, None, Some(ft_files), with_storage_header, cancel)
+                    .stream(
+                        file_path,
+                        filter_conf.clone(),
+                        Some(ft_files),
+                        with_storage_header,
+                        cancel,
+                    )
                     .await;
-                println!("{size} bytes written");
+                println!("{} bytes written", size);
 
                 if !ft_streamer.is_complete() {
                     eprintln!("{} streams remaining!", ft_streamer.num_streams());

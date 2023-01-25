@@ -82,6 +82,11 @@ end
 test_runner = './ts-bindings/node_modules/.bin/electron ./ts-bindings/node_modules/jasmine-ts/lib/index.js'
 
 namespace :test do
+  desc 'run dlt tests'
+  task :dlt do
+    sh "#{test_runner} ts-bindings/spec/session.dlt.spec.ts"
+  end
+
   desc 'run search tests'
   task :search do
     sh "#{test_runner} ts-bindings/spec/session.search.spec.ts"

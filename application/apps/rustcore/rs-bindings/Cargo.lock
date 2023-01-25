@@ -34,6 +34,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "addon"
+version = "0.1.0"
+dependencies = [
+ "dlt-core",
+ "env_logger",
+ "futures 0.3.25",
+ "indexer_base",
+ "log",
+ "parsers",
+ "processor",
+ "serde",
+ "serde_json",
+ "sources",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+]
+
+[[package]]
 name = "ahash"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -255,6 +275,17 @@ name = "atomic-waker"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "065374052e7df7ee4047b1160cca5e1467a12351a40b3da123c870ba0b8eda2a"
+
+[[package]]
+name = "atty"
+version = "0.2.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9b39be18770d11421cdb1b9947a45dd3f37e93092cbf377614828a319d5fee8"
+dependencies = [
+ "hermit-abi",
+ "libc",
+ "winapi 0.3.9",
+]
 
 [[package]]
 name = "autocfg"
@@ -801,6 +832,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1cc3c5651fb62ab8aa3103998dade57efdd028544bd300516baa31840c252a83"
 dependencies = [
  "encoding_rs",
+]
+
+[[package]]
+name = "env_logger"
+version = "0.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a12e6657c4c97ebab115a42dcee77225f7f482cdd841cf7088c657a42e9e00e7"
+dependencies = [
+ "atty",
+ "humantime",
+ "log",
+ "regex",
+ "termcolor",
 ]
 
 [[package]]
@@ -1658,6 +1702,7 @@ dependencies = [
 name = "node-bindings"
 version = "0.1.0"
 dependencies = [
+ "addon",
  "anyhow",
  "blake3",
  "crossbeam-channel",

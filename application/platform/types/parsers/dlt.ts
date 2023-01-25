@@ -176,3 +176,15 @@ export const NUM_LOGS_LEVELS: { [key: number]: string } = {
     [5]: EMTIN.DLT_LOG_DEBUG,
     [6]: EMTIN.DLT_LOG_VERBOSE,
 };
+
+export interface FtFile {
+    name: string;
+    size: number;
+    created: string;
+    messages: number[];
+}
+
+export interface FtOptions {
+    filter_config: DltFilterConf | undefined;
+    with_storage_header: boolean;
+}

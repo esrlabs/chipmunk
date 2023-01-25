@@ -71,6 +71,9 @@ export interface IConfiguration {
         map: {
             regular: IRegularTests;
         };
+        dlt: {
+            regular: IRegularTests;
+        };
     };
 }
 

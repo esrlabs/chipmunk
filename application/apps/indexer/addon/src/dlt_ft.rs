@@ -7,6 +7,8 @@ use parsers::{
     dlt::{fmt::FormattableMessage, DltParser},
     MessageStreamItem,
 };
+use parsers::{dlt::DltParser, MessageStreamItem};
+use serde::Serialize;
 use sources::{producer::MessageProducer, raw::binary::BinaryByteSource};
 use std::{
     collections::HashMap,
@@ -309,7 +311,7 @@ impl FtMessageParser {
 }
 
 /// An indexed DLT-FT file.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct FtFile {
     /// The name of the file.
     pub name: String,
@@ -318,7 +320,7 @@ pub struct FtFile {
     /// The creation date of the file.
     pub created: String,
     /// The 1-based indexes of the original DLT messages.
-    messages: Vec<usize>,
+    pub messages: Vec<usize>,
 }
 
 /// An indexer for DLT-FT files contained in a DLT trace.
@@ -344,11 +346,6 @@ impl FtIndexer {
     where
         S: futures::Stream<Item = (usize, MessageStreamItem<FormattableMessage<'a>>)> + Unpin,
     {
-        // let parser = DltParser::new(filter.map(|f| f.into()), None, with_storage_header);
-        // let mut producer = MessageProducer::new(parser, source, None);
-        // let stream = producer.as_stream();
-        // pin_mut!(stream);
-
         let mut index: usize = 0;
         let mut canceled = false;
 
@@ -695,6 +692,7 @@ mod tests {
         let (id3, mut messages3) =
             ft_file("ecu3", "test3.txt", &String::from("test333").into_bytes());
         assert_eq!(3, messages3.len());
+
         let mut messages: Vec<Message> = Vec::new();
         messages.push(messages1.remove(0)); // 1
         messages.push(messages2.remove(0)); // 2
@@ -946,6 +944,26 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
+    fn write_sample_file() {
+        let (_, messages) = ft_files();
+
+        let path = "ft-sample.dlt";
+        let mut file = File::create(path).unwrap();
+
+        let header = [
+            0x44, 0x4C, 0x54, 0x01, // dlt-pattern
+            0x00, 0x00, 0x00, 0x00, // timestamp
+            0x00, 0x00, 0x00, 0x00, //
+            0x65, 0x63, 0x75, 0x00, // ecu-id
+        ];
+        for message in messages {
+            file.write_all(&header).unwrap();
+            file.write_all(&message.as_bytes()).unwrap();
+        }
+    }
+
+    #[test]
     fn test_parse_ft_messages() {
         let (id, messages) = ft_file("ecu", "test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
@@ -1123,9 +1141,9 @@ mod tests {
         let size = stream(&mut streamer, &messages, None, None, false).await;
         assert_eq!(5 + 6 + 7, size);
         assert!(streamer.is_complete());
-        output.assert_file(&format!("{}_test1.txt", ids.get(0).unwrap()), "test1");
-        output.assert_file(&format!("{}_test2.txt", ids.get(1).unwrap()), "test22");
-        output.assert_file(&format!("{}_test3.txt", ids.get(2).unwrap()), "test333");
+        output.assert_file(&format!("{ids.get(0).unwrap()}_test1.txt"), "test1");
+        output.assert_file(&format!("{ids.get(1).unwrap()}_test2.txt"), "test22");
+        output.assert_file(&format!("{ids.get(2).unwrap()}_test3.txt"), "test333");
     }
 
     #[tokio::test]

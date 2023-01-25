@@ -191,7 +191,6 @@ module Screens
       { name: 'Test all [rake test:all', value: 14 },
       { name: 'back', value: 15 },
       { name: 'exit', value: 16 }
-    ]
     case prompt.select('Actions groups', choices)
     when 1
       Rake::Task['test:binding:search'].invoke
@@ -212,9 +211,9 @@ module Screens
     when 9
       Rake::Task['test:binding:map'].invoke
     when 10
-      Rake::Task['test:matcher:karma'].invoke
+      Rake::Task['test:binding:dlt'].invoke
     when 11
-      Rake::Task['test:matcher:rust'].invoke
+      Rake::Task['test:matcher:karma'].invoke
     when 12
       Rake::Task['test:utils:karma'].invoke
     when 13

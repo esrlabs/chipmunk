@@ -192,6 +192,22 @@
                     }
                 }
             }
+        },
+        "dlt": {
+            "regular": {
+                "execute_only": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+                "list": {
+                    "1": "Test 1. Scan for attachments",
+                    "2": "Test 2. Scan for attachments with filter",
+                    "3": "Test 3. Scan for attachments canceled",
+                    "4": "Test 4. Extract selected attachments",
+                    "5": "Test 5. Extract selected attachments with filter",
+                    "6": "Test 6. Extract selected attachments canceled",
+                    "7": "Test 7. Extract all attachments",
+                    "8": "Test 8. Extract all attachments with filter",
+                    "9": "Test 9. Extract all attachments canceled"
+                }
+            }
         }
     }
 }

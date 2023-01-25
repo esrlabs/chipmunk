@@ -199,6 +199,15 @@ test_runner = './node_modules/.bin/electron ./node_modules/jasmine-ts/lib/index.
 
 namespace :test do
   namespace :binding do
+    desc 'run dlt tests'
+    task :dlt do
+      Bindings.new(false).build
+      Reporter.print
+      Shell.chdir(Paths::TS_BINDINGS) do
+        sh "#{test_runner} spec/session.dlt.spec.ts"
+      end
+    end
+
     desc 'run search tests'
     task :search do
       Bindings.new(false).build

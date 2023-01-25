@@ -31,6 +31,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 session = { path = "../../indexer/session" }
 sources = { path = "../../indexer/sources" }
+addon = { path = "../../indexer/addon" }
 thiserror = "1.0"
 tokio = { version = "1.24", features = ["full"] }
 tokio-serial = "5.4"
