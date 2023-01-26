@@ -9,6 +9,7 @@ use std::{
     marker::{Send, Sync},
     path::{Path, PathBuf},
 };
+use tokio_util::sync::CancellationToken;
 
 const FT_START_TAG: &str = "FLST";
 const FT_DATA_TAG: &str = "FLDA";
@@ -329,12 +330,19 @@ impl FtIndexer {
     }
 
     /// Returns a list of files contained in the DLT trace of the given path, if any.
-    pub async fn index(self, input: &Path, with_storage_header: bool) -> Option<Vec<FtFile>> {
+    pub async fn index(
+        self,
+        input: &Path,
+        with_storage_header: bool,
+        cancel: CancellationToken,
+    ) -> Option<Vec<FtFile>> {
         if let Ok(file) = File::open(input) {
             let reader = BufReader::new(&file);
             let source = BinaryByteSource::new(reader);
 
-            return self.index_from_source(source, with_storage_header).await;
+            return self
+                .index_from_source(source, with_storage_header, cancel)
+                .await;
         }
 
         None
@@ -345,6 +353,7 @@ impl FtIndexer {
         mut self,
         source: BinaryByteSource<R>,
         with_storage_header: bool,
+        cancel: CancellationToken,
     ) -> Option<Vec<FtFile>> {
         let parser = DltParser::new(None, None, with_storage_header);
         let mut producer = MessageProducer::new(parser, source, None);
@@ -352,11 +361,33 @@ impl FtIndexer {
         pin_mut!(stream);
 
         let mut index: usize = 0;
-        while let Some((_, item)) = stream.next().await {
-            index += 1;
-            if let MessageStreamItem::Item(item) = item {
-                self.process(index, &item.message);
+        let mut canceled = false;
+
+        loop {
+            tokio::select! {
+                _ = cancel.cancelled() => {
+                    debug!("ft-index canceled");
+                    canceled = true;
+                    break;
+                }
+                item = tokio_stream::StreamExt::next(&mut stream) => {
+                    match item {
+                        Some((_, item)) => {
+                            index += 1;
+                            if let MessageStreamItem::Item(item) = item {
+                                self.process(index, &item.message);
+                            }
+                        }
+                        _ => {
+                            break;
+                        }
+                    }
+                }
             }
+        }
+
+        if canceled {
+            return None;
         }
 
         Some(self.into())
@@ -487,17 +518,18 @@ impl FtStreamer {
         input: &Path,
         filter: Option<FtFilter>,
         with_storage_header: bool,
+        cancel: CancellationToken,
     ) -> usize {
         if let Ok(file) = File::open(input) {
             let reader = BufReader::new(&file);
             let source = BinaryByteSource::new(reader);
 
             return self
-                .stream_from_source(source, filter, with_storage_header)
+                .stream_from_source(source, filter, with_storage_header, cancel)
                 .await;
         }
 
-        self.bytes
+        0
     }
 
     /// Writes the files contained in the DLT trace of the given byte source, if any.
@@ -506,6 +538,7 @@ impl FtStreamer {
         source: BinaryByteSource<R>,
         filter: Option<FtFilter>,
         with_storage_header: bool,
+        cancel: CancellationToken,
     ) -> usize {
         self.streams.drain();
         self.errors = 0;
@@ -527,19 +560,41 @@ impl FtStreamer {
         pin_mut!(stream);
 
         let mut index: usize = skipped;
-        while let Some((_, item)) = stream.next().await {
-            index += 1;
-            if let MessageStreamItem::Item(item) = item {
-                if let Some(ref filter) = filter {
-                    if index > max_index {
-                        break;
-                    } else if filter.contains(index) {
-                        self.process(&item.message);
+        let mut canceled = false;
+
+        loop {
+            tokio::select! {
+                _ = cancel.cancelled() => {
+                    debug!("ft-stream canceled");
+                    canceled = true;
+                    break;
+                }
+                item = tokio_stream::StreamExt::next(&mut stream) => {
+                    match item {
+                        Some((_, item)) => {
+                            index += 1;
+                            if let MessageStreamItem::Item(item) = item {
+                                if let Some(ref filter) = filter {
+                                    if index > max_index {
+                                        break;
+                                    } else if filter.contains(index) {
+                                        self.process(&item.message);
+                                    }
+                                } else {
+                                    self.process(&item.message);
+                                }
+                            }
+                        }
+                        _ => {
+                            break;
+                        }
                     }
-                } else {
-                    self.process(&item.message);
                 }
             }
+        }
+
+        if canceled {
+            return 0;
         }
 
         self.bytes
@@ -870,20 +925,35 @@ mod tests {
         }
     }
 
-    async fn index(indexer: FtIndexer, messages: &Vec<Message>) -> Option<Vec<FtFile>> {
+    async fn index(
+        indexer: FtIndexer,
+        messages: &Vec<Message>,
+        canceled: bool,
+    ) -> Option<Vec<FtFile>> {
         let cursor = Cursor::new(as_bytes(&messages));
         let source = BinaryByteSource::new(cursor);
-        indexer.index_from_source(source, false).await
+        let cancel = CancellationToken::new();
+        if canceled {
+            cancel.cancel();
+        }
+        indexer.index_from_source(source, false, cancel).await
     }
 
     async fn stream(
         streamer: &mut FtStreamer,
         messages: &Vec<Message>,
         filter: Option<FtFilter>,
+        canceled: bool,
     ) -> usize {
         let cursor = Cursor::new(as_bytes(&messages));
         let source = BinaryByteSource::new(cursor);
-        streamer.stream_from_source(source, filter, false).await
+        let cancel = CancellationToken::new();
+        if canceled {
+            cancel.cancel();
+        }
+        streamer
+            .stream_from_source(source, filter, false, cancel)
+            .await
     }
 
     #[test]
@@ -944,7 +1014,7 @@ mod tests {
         assert_eq!(3, messages.len());
 
         let indexer = FtIndexer::new();
-        let index = index(indexer, &messages).await.unwrap();
+        let index = index(indexer, &messages, false).await.unwrap();
         assert_eq!(1, index.len());
 
         let file = index.get(0).unwrap();
@@ -960,7 +1030,7 @@ mod tests {
         assert_eq!(5, messages.len());
 
         let indexer = FtIndexer::new();
-        let index = index(indexer, &messages).await.unwrap();
+        let index = index(indexer, &messages, false).await.unwrap();
         assert_eq!(1, index.len());
 
         let file = index.get(0).unwrap();
@@ -975,7 +1045,7 @@ mod tests {
         let (_, messages) = ft_files();
 
         let indexer = FtIndexer::new();
-        let index = index(indexer, &messages).await.unwrap();
+        let index = index(indexer, &messages, false).await.unwrap();
         assert_eq!(3, index.len());
 
         let file = index.get(0).unwrap();
@@ -992,6 +1062,15 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_index_canceled() {
+        let (_, messages) = ft_files();
+
+        let indexer = FtIndexer::new();
+        let index = index(indexer, &messages, true).await;
+        assert!(index.is_none());
+    }
+
+    #[tokio::test]
     async fn test_stream_single_file() {
         let output = TempDir::new();
 
@@ -999,7 +1078,7 @@ mod tests {
         assert_eq!(3, messages.len());
 
         let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None).await;
+        let size = stream(&mut streamer, &messages, None, false).await;
         assert_eq!(4, size);
         assert!(streamer.is_complete());
 
@@ -1014,7 +1093,7 @@ mod tests {
         assert_eq!(5, messages.len());
 
         let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None).await;
+        let size = stream(&mut streamer, &messages, None, false).await;
         assert_eq!(26, size);
         assert!(streamer.is_complete());
 
@@ -1029,7 +1108,7 @@ mod tests {
         assert_eq!(3, ids.len());
 
         let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None).await;
+        let size = stream(&mut streamer, &messages, None, false).await;
         assert_eq!(5 + 6 + 7, size);
         assert!(streamer.is_complete());
 
@@ -1044,7 +1123,7 @@ mod tests {
         assert_eq!(3, ids.len());
 
         let indexer = FtIndexer::new();
-        let index = index(indexer, &messages).await.unwrap();
+        let index = index(indexer, &messages, false).await.unwrap();
         assert_eq!(3, index.len());
 
         {
@@ -1055,7 +1134,7 @@ mod tests {
             filter.add(&index.get(0).unwrap());
 
             let mut streamer = FtStreamer::new(output.dir.clone());
-            let size = stream(&mut streamer, &messages, Some(filter)).await;
+            let size = stream(&mut streamer, &messages, Some(filter), false).await;
             assert_eq!(5, size);
             assert!(streamer.is_complete());
 
@@ -1070,7 +1149,7 @@ mod tests {
             filter.add(&index.get(1).unwrap());
 
             let mut streamer = FtStreamer::new(output.dir.clone());
-            let size = stream(&mut streamer, &messages, Some(filter)).await;
+            let size = stream(&mut streamer, &messages, Some(filter), false).await;
             assert_eq!(6, size);
             assert!(streamer.is_complete());
 
@@ -1085,7 +1164,7 @@ mod tests {
             filter.add(&index.get(2).unwrap());
 
             let mut streamer = FtStreamer::new(output.dir.clone());
-            let size = stream(&mut streamer, &messages, Some(filter)).await;
+            let size = stream(&mut streamer, &messages, Some(filter), false).await;
             assert_eq!(7, size);
             assert!(streamer.is_complete());
 
@@ -1102,7 +1181,7 @@ mod tests {
             filter.add(&index.get(2).unwrap());
 
             let mut streamer = FtStreamer::new(output.dir.clone());
-            let size = stream(&mut streamer, &messages, Some(filter)).await;
+            let size = stream(&mut streamer, &messages, Some(filter), false).await;
             assert_eq!(5 + 6 + 7, size);
             assert!(streamer.is_complete());
 
@@ -1121,7 +1200,7 @@ mod tests {
         messages.remove(3);
 
         let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None).await;
+        let size = stream(&mut streamer, &messages, None, false).await;
         assert_eq!(0, size);
 
         assert!(!streamer.is_complete());
@@ -1140,7 +1219,7 @@ mod tests {
         messages.swap(2, 3);
 
         let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None).await;
+        let size = stream(&mut streamer, &messages, None, false).await;
         assert_eq!(0, size);
 
         assert!(!streamer.is_complete());
@@ -1159,7 +1238,7 @@ mod tests {
         messages.remove(4);
 
         let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None).await;
+        let size = stream(&mut streamer, &messages, None, false).await;
         assert_eq!(0, size);
 
         assert!(!streamer.is_complete());
@@ -1179,7 +1258,7 @@ mod tests {
             let output = TempDir::new(); // scoped!
             streamer = FtStreamer::new(output.dir.clone());
         }
-        let size = stream(&mut streamer, &messages, None).await;
+        let size = stream(&mut streamer, &messages, None, false).await;
         assert_eq!(0, size);
 
         assert!(!streamer.is_complete());
@@ -1195,7 +1274,7 @@ mod tests {
         let (id, mut messages) = ft_file("test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
         messages.remove(1);
-        let size = stream(&mut streamer, &messages, None).await;
+        let size = stream(&mut streamer, &messages, None, false).await;
         assert_eq!(0, size);
         assert!(!streamer.is_complete());
         assert_eq!(0, streamer.num_streams());
@@ -1205,7 +1284,7 @@ mod tests {
         let (id, mut messages) = ft_file("test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
         messages.remove(2);
-        let size = stream(&mut streamer, &messages, None).await;
+        let size = stream(&mut streamer, &messages, None, false).await;
         assert_eq!(0, size);
         assert!(!streamer.is_complete());
         assert_eq!(1, streamer.num_streams());
@@ -1214,9 +1293,19 @@ mod tests {
 
         let (id, messages) = ft_file("test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
-        let size = stream(&mut streamer, &messages, None).await;
+        let size = stream(&mut streamer, &messages, None, false).await;
         assert_eq!(4, size);
         assert!(streamer.is_complete());
         output.assert_file(&format!("{}_test.txt", id), "test");
+    }
+
+    #[tokio::test]
+    async fn test_stream_canceled() {
+        let output = TempDir::new();
+        let (_, messages) = ft_files();
+
+        let mut streamer = FtStreamer::new(output.dir.clone());
+        let size = stream(&mut streamer, &messages, None, true).await;
+        assert_eq!(0, size);
     }
 }

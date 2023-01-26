@@ -1048,8 +1048,9 @@ pub async fn main() -> Result<()> {
             // extract selected files
             println!("scan files..");
             let ft_indexer = FtIndexer::new();
+            let cancel = CancellationToken::new();
             let ft_index = ft_indexer
-                .index(file_path, with_storage_header)
+                .index(file_path, with_storage_header, cancel)
                 .await
                 .unwrap();
             if ft_index.is_empty() {
@@ -1078,8 +1079,9 @@ pub async fn main() -> Result<()> {
                 }
 
                 let mut ft_streamer = FtStreamer::new(output_dir.clone());
+                let cancel = CancellationToken::new();
                 let size = ft_streamer
-                    .stream(file_path, Some(ft_filter), with_storage_header)
+                    .stream(file_path, Some(ft_filter), with_storage_header, cancel)
                     .await;
                 println!("{} bytes written", size);
 
@@ -1092,8 +1094,9 @@ pub async fn main() -> Result<()> {
             // extract all files
             println!("extract files..");
             let mut ft_streamer = FtStreamer::new(output_dir.clone());
+            let cancel = CancellationToken::new();
             let size = ft_streamer
-                .stream(file_path, None, with_storage_header)
+                .stream(file_path, None, with_storage_header, cancel)
                 .await;
 
             if !ft_streamer.is_complete() {
