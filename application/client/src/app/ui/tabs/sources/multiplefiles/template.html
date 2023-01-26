@@ -4,7 +4,10 @@
             <mat-card class="top">
                 <mat-card-title>Multiple files</mat-card-title>
                 <mat-card-content>
-                    <app-tabs-source-multiplefiles-structure (context)="this.state.onContext($event)" [files]="state.files" [filesUpdate]="state.filesUpdate"></app-tabs-source-multiplefiles-structure>
+                    <app-tabs-source-multiplefiles-structure (event)="this.state.onEvent($event)"
+                                                             [files]="state.files"
+                                                             [filesUpdate]="state.filesUpdate">
+                    </app-tabs-source-multiplefiles-structure>
                     <div class="filter t-medium" [class]="this.state.filter.value() !== '' ? '' : 'hidden'">{{this.state.filter.value()}}</div>
                 </mat-card-content>
             </mat-card>
