@@ -1,11 +1,11 @@
-<div class="preset-container" appMatDragDropFileFeature (dropped)="ngOnDrop($event)">
+<div class="preset-container" appMatDragDropFileFeature (dropped)="this.state.onDropped($event)">
     <div class="preset-container-content">
         <div class="left">
             <mat-card class="top">
                 <mat-card-title>Multiple files</mat-card-title>
                 <mat-card-content>
-                    <app-tabs-source-multiplefiles-structure (context)="ngOnContext($event)" [files]="state.files" [filesUpdate]="filesUpdate"></app-tabs-source-multiplefiles-structure>
-                    <div class="filter t-medium" [class]="filter.value() !== '' ? '' : 'hidden'">{{filter.value()}}</div>
+                    <app-tabs-source-multiplefiles-structure (context)="this.state.onContext($event)" [files]="state.files" [filesUpdate]="state.filesUpdate"></app-tabs-source-multiplefiles-structure>
+                    <div class="filter t-medium" [class]="this.state.filter.value() !== '' ? '' : 'hidden'">{{this.state.filter.value()}}</div>
                 </mat-card-content>
             </mat-card>
         </div>
@@ -26,28 +26,23 @@
                             <td>New size:</td>
                             <td>{{state.selectedSize}}</td>
                         </tr>
-                        <!--<tr>
-                            <td>Destination:</td>
-                            <td (click)="ngOnDestination()">{{ngDestination}}</td>
-                            <td>TODO</td> Destination path - Clickable to open folder selector
-                        </tr>-->
                     </table>
                 </mat-card-content>
             </mat-card>
             <mat-card>
                 <mat-card-title>Warnings / Errors</mat-card-title>
                 <mat-card-content>
-                    <p [class]="state.openable ? 'hidden' : ''">Opening dlt/pcap with default settings not supported yet</p>
-                    <p [class]="state.concatable ? 'hidden' : ''">Concatenation of specified file types not supported yet</p>
+                    <p [class]="state.buttonState().openable ? 'hidden' : ''">Opening dlt/pcap with default settings not supported yet</p>
+                    <p [class]="state.buttonState().concatable ? 'hidden' : ''">Concatenation of specified file types not supported yet</p>
                 </mat-card-content>
             </mat-card>
             <div class="spacer"></div>
             <mat-card class="controls">
                 <mat-card-title>Actions</mat-card-title>
                 <mat-card-content>
-                    <button mat-stroked-button (click)="ngOpenEach()" [disabled]="!state.openable">Open each</button>
-                    <button mat-stroked-button (click)="ngConcat()" [disabled]="!state.concatable">Concat</button>
-                    <button mat-stroked-button (click)="ngCancel()">Cancel</button>
+                    <button mat-stroked-button (click)="this.state.buttonAction().openEach()" [disabled]="!state.buttonState().openable">Open each</button>
+                    <button mat-stroked-button (click)="this.state.buttonAction().concat()" [disabled]="!state.buttonState().concatable">Concat</button>
+                    <button mat-stroked-button (click)="this.state.buttonAction().cancel()">Cancel</button>
                 </mat-card-content>
             </mat-card>
         </div>
