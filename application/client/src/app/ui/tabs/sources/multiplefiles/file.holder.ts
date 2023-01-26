@@ -7,10 +7,12 @@ import * as wasm from '@loader/wasm';
 export class FileHolder extends Matchee {
     private _file: File;
     private _selected: boolean = true;
+    private _color: string;
 
-    constructor(matcher: wasm.Matcher, file: File) {
+    constructor(matcher: wasm.Matcher, file: File, color: string) {
         super(matcher, { name: file.name, path: file.path });
         this._file = file;
+        this._color = color;
     }
 
     public reverseSelect() {
@@ -23,6 +25,10 @@ export class FileHolder extends Matchee {
 
     public unselect() {
         this._selected = false;
+    }
+
+    public get color(): string {
+        return this._color;
     }
 
     public get filename(): string {
