@@ -30,6 +30,22 @@
                 </mat-card-content>
             </mat-card>
             <mat-card>
+                <mat-card-title>Concat overview</mat-card-title>
+                <mat-card-content>
+                    <div class="overview">
+                        <div *ngFor="let file of this.state.selectedFiles"
+                                class="color"
+                                [ngStyle]="{ 'background-color': file.color, width: state.overviewColorWidth(file.sizeInByte()) + '%' }">
+                        </div>
+                    </div>
+                    <div *ngFor="let file of this.state.selectedFiles" class="component">
+                        <span class="color" [ngStyle]="{ 'background-color': file.color }"></span>
+                        <span class="filename">{{file.filename}}</span>
+                    </div>
+                </mat-card-content>
+
+            </mat-card>
+            <mat-card>
                 <mat-card-title>Warnings / Errors</mat-card-title>
                 <mat-card-content>
                     <p [class]="state.buttonState().openable ? 'hidden' : ''">Opening dlt/pcap with default settings not supported yet</p>

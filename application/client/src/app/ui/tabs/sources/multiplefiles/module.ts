@@ -4,6 +4,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { AppDirectiviesModule } from '@ui/env/directives/module';
 import { MatSortModule } from '@angular/material/sort';
+import { CommonModule } from '@angular/common';
 
 import { TabSourceMultipleFilesStructure } from './structure/component';
 import { TabSourceMultipleFiles } from './component';
@@ -15,6 +16,7 @@ const imports = [
     MatTableModule,
     AppDirectiviesModule,
     MatSortModule,
+    CommonModule,
 ];
 
 @NgModule({

@@ -9,6 +9,7 @@ import { Instance } from '@platform/env/logger';
 import { InternalAPI } from '@service/ilc';
 import { Filter } from '@ui/env/entities/filter';
 import { Level, Locker } from '@ui/service/lockers';
+import { getUniqueColorTo } from '@ui/styles/colors';
 
 export class State extends Holder {
     public readonly filesUpdate: Subject<FileHolder[]> = new Subject();
@@ -18,6 +19,7 @@ export class State extends Holder {
     private _files: FileHolder[] = [];
     private _filter!: Filter;
     private _log!: Instance;
+    private _usedColors: string[] = [];
     private _selectedCount: number = 0;
     private _selectedTotalSize: number = 0;
     private _selectedTypes: FileType[] = [];
@@ -30,10 +32,18 @@ export class State extends Holder {
     public init(ilc: InternalAPI, tab: TabControls, files: File[], log: Instance) {
         this._ilc = ilc;
         this._tab = tab;
-        this._files = files.map((file: File) => new FileHolder(this.matcher, file));
+        this._files = files.map((file: File) => {
+            const color = getUniqueColorTo(this._usedColors);
+            this._usedColors.push(color);
+            return new FileHolder(this.matcher, file, color);
+        });
         this._filter = new Filter(this._ilc);
         this._log = log;
         this._updateSummary();
+    }
+
+    public get selectedFiles(): FileHolder[] {
+        return this._selectedFiles;
     }
 
     public get filter(): Filter {
@@ -166,7 +176,9 @@ export class State extends Holder {
             if (this._files.find((file: FileHolder) => file.filename === result.filename)) {
                 return;
             }
-            this._files.push(new FileHolder(this.matcher, result));
+            const color = getUniqueColorTo(this._usedColors);
+            this._usedColors.push(color);
+            this._files.push(new FileHolder(this.matcher, result, color));
             this.filesUpdate.emit(this._files);
             this._updateSummary();
         });
@@ -199,6 +211,10 @@ export class State extends Holder {
                     .filter((file: FileHolder) => file.getScore() > 0),
             );
         }
+    }
+
+    public overviewColorWidth(size: number) {
+        return (size / this._selectedTotalSize) * 100;
     }
 
     private _updateSummary() {

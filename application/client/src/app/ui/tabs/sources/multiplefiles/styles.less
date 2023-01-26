@@ -90,4 +90,28 @@
   & .table-fill {
       width: 100%;
   }
+	& div.overview {
+        display: flex;
+        height: 30px;
+            margin-bottom: 10px;
+        & div.color {
+            height: 100%;
+            flex-direction: column;
+        }
+	}
+	& div.component {
+			display: flex;
+			& span.color {
+					height: 15px;
+					width: 15px;
+					margin-top: 2px;
+					margin-right: 1px;
+			}
+			& span.filename {
+				direction: rtl;
+				white-space: nowrap;    
+				text-overflow: ellipsis;
+				overflow: hidden;
+			}
+	}
 }
