@@ -7,7 +7,7 @@ fn test_build() {
     let len: u64 = 100_000_000;
     let search_trigger = len / 100000;
     let bookmarks_trigger = len / 1997;
-    let frames_trigger = len / 20000;
+    let frames_trigger = len / 200000;
     map.set_stream_len(len, 4, 2, false).unwrap();
     let mut matches: Vec<u64> = vec![];
     for p in 0..(len - 1) {
