@@ -2,7 +2,7 @@ import { FileHolder } from './file.holder';
 import { bytesToStr } from '@env/str';
 import { File, FileType } from '@platform/types/files';
 import { Subject } from '@platform/env/subscription';
-import { EContextActionType, IContextAction } from './structure/component';
+import { EEventType, IEvent } from './structure/component';
 import { Holder } from '@module/matcher';
 import { TabControls } from '@service/session';
 import { Instance } from '@platform/env/logger';
@@ -184,20 +184,23 @@ export class State extends Holder {
         });
     }
 
-    public onContext(event: IContextAction) {
-        const files: FileHolder[] | undefined = event.files;
+    public onEvent(event: IEvent) {
         switch (event.type) {
-            case EContextActionType.open:
-                this.buttonAction().openEach(files);
+            case EEventType.open:
+                this.buttonAction().openEach(event.files);
                 break;
-            case EContextActionType.update:
-                if (files !== undefined) {
-                    this._files =
-                        files.length === 0
-                            ? []
-                            : this._files.filter((f: FileHolder) => !files.includes(f));
-                }
+            case EEventType.select:
                 this._updateSummary();
+                break;
+            case EEventType.sort:
+                this._files = event.files;
+                this._updateSummary();
+                break;
+            case EEventType.update:
+                this._files =
+                    event.files.length === 0
+                        ? []
+                        : this._files.filter((f: FileHolder) => !event.files.includes(f));
                 break;
         }
     }

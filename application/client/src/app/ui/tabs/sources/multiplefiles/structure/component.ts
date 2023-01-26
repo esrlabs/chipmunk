@@ -8,24 +8,27 @@ import {
     Output,
     EventEmitter,
     AfterViewInit,
+    OnDestroy,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { MatSort } from '@angular/material/sort';
-import { MatTableDataSource } from '@angular/material/table';
+import { MatTable, MatTableDataSource } from '@angular/material/table';
 import { FileHolder } from '../file.holder';
-import { MatTable } from '@angular/material/table';
 import { Subject } from '@platform/env/subscription';
 import { FileType } from '@platform/types/files';
+import { Subscription } from 'rxjs';
 
-export interface IContextAction {
-    type: EContextActionType;
-    files?: FileHolder[];
+export interface IEvent {
+    type: EEventType;
+    files: FileHolder[];
 }
 
-export enum EContextActionType {
+export enum EEventType {
     update = 'update',
+    select = 'select',
     open = 'open',
+    sort = 'sort',
 }
 
 export const COLUMNS = {
@@ -45,9 +48,18 @@ export const COLUMNS = {
 @Ilc()
 export class TabSourceMultipleFilesStructure
     extends ChangesDetector
-    implements AfterContentInit, AfterViewInit
+    implements AfterContentInit, AfterViewInit, OnDestroy
 {
-    columns: string[] = [
+    @Input() files!: FileHolder[];
+    @Input() filesUpdate!: Subject<FileHolder[]>;
+
+    @Output() event: EventEmitter<IEvent> = new EventEmitter();
+
+    @ViewChild(MatSort) sort!: MatSort;
+    @ViewChild(MatTable) table!: MatTable<any>;
+
+    public data!: MatTableDataSource<FileHolder>;
+    public readonly columns: string[] = [
         COLUMNS.type,
         COLUMNS.name,
         COLUMNS.path,
@@ -55,14 +67,7 @@ export class TabSourceMultipleFilesStructure
         COLUMNS.modificationDate,
     ];
 
-    @Input() files!: FileHolder[];
-    @Input() filesUpdate!: Subject<FileHolder[]>;
-    @Output() context: EventEmitter<IContextAction> = new EventEmitter();
-
-    @ViewChild(MatSort) sort!: MatSort;
-    @ViewChild(MatTable) table!: MatTable<any>;
-
-    public data!: MatTableDataSource<FileHolder>;
+    private _subscriptions: Subscription[] = [];
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -70,11 +75,22 @@ export class TabSourceMultipleFilesStructure
 
     public ngAfterContentInit() {
         this.data = new MatTableDataSource<FileHolder>(this.files);
-        this.filesUpdate.subscribe(this._onFilesUpdate.bind(this));
+        this.env().subscriber.register(this.filesUpdate.subscribe(this._onFilesUpdate.bind(this)));
+        this._subscriptions.push(
+            this.data.connect().subscribe((files: FileHolder[]) => {
+                this.event.emit({ type: EEventType.sort, files: files });
+            }),
+        );
     }
 
     public ngAfterViewInit() {
         this.data.sort = this.sort;
+    }
+
+    public ngOnDestroy() {
+        this._subscriptions.forEach((subscription: Subscription) => {
+            subscription.unsubscribe();
+        });
     }
 
     public ngOnSortChange() {
@@ -84,7 +100,7 @@ export class TabSourceMultipleFilesStructure
 
     public ngOnRowSelect(file: FileHolder) {
         file.reverseSelect();
-        this.context.next({ type: EContextActionType.update });
+        this.event.next({ type: EEventType.select, files: [] });
     }
 
     public ngContextMenu(event: MouseEvent, file?: FileHolder) {
@@ -94,7 +110,7 @@ export class TabSourceMultipleFilesStructure
             items.push({
                 caption: 'Open File',
                 handler: () => {
-                    this.context.next({ type: EContextActionType.open, files: [file] });
+                    this.event.next({ type: EEventType.open, files: [file] });
                 },
                 disabled: file.type === FileType.Dlt,
             });
@@ -103,8 +119,8 @@ export class TabSourceMultipleFilesStructure
             {
                 caption: 'Open Selected',
                 handler: () => {
-                    this.context.next({
-                        type: EContextActionType.open,
+                    this.event.next({
+                        type: EEventType.open,
                         files: this.data.data.filter((file: FileHolder) => file.selected),
                     });
                 },
@@ -119,7 +135,7 @@ export class TabSourceMultipleFilesStructure
                     caption: file.selected ? 'Unselect' : 'Select',
                     handler: () => {
                         file.selected ? file.unselect() : file.select();
-                        this.context.next({ type: EContextActionType.update });
+                        this.event.next({ type: EEventType.select, files: [] });
                     },
                 },
                 {
@@ -128,7 +144,7 @@ export class TabSourceMultipleFilesStructure
                         this.data.data.forEach((f: FileHolder) =>
                             f.type === file.type ? f.select() : f.unselect(),
                         );
-                        this.context.next({ type: EContextActionType.update });
+                        this.event.next({ type: EEventType.select, files: [] });
                     },
                 },
                 {
@@ -139,7 +155,7 @@ export class TabSourceMultipleFilesStructure
                                 f.unselect();
                             }
                         });
-                        this.context.next({ type: EContextActionType.update });
+                        this.event.next({ type: EEventType.select, files: [] });
                     },
                 },
                 {
@@ -152,21 +168,21 @@ export class TabSourceMultipleFilesStructure
                 caption: 'Select All',
                 handler: () => {
                     this.data.data.forEach((f: FileHolder) => f.select());
-                    this.context.next({ type: EContextActionType.update });
+                    this.event.next({ type: EEventType.select, files: [] });
                 },
             },
             {
                 caption: 'Unselect All',
                 handler: () => {
                     this.data.data.forEach((f: FileHolder) => f.unselect());
-                    this.context.next({ type: EContextActionType.update });
+                    this.event.next({ type: EEventType.select, files: [] });
                 },
             },
             {
                 caption: 'Reverse Select All',
                 handler: () => {
                     this.data.data.forEach((f: FileHolder) => f.reverseSelect());
-                    this.context.next({ type: EContextActionType.update });
+                    this.event.next({ type: EEventType.select, files: [] });
                 },
             },
             {
@@ -179,7 +195,7 @@ export class TabSourceMultipleFilesStructure
                     caption: 'Remove',
                     handler: () => {
                         this.data.data = this.data.data.filter((f: FileHolder) => f !== file);
-                        this.context.next({ type: EContextActionType.update, files: [file] });
+                        this.event.next({ type: EEventType.update, files: [file] });
                     },
                 },
                 {
@@ -192,7 +208,7 @@ export class TabSourceMultipleFilesStructure
                         );
                         this.data.data = kept;
                         removed.length > 0 &&
-                            this.context.next({ type: EContextActionType.update, files: removed });
+                            this.event.next({ type: EEventType.update, files: removed });
                     },
                 },
             );
@@ -208,14 +224,14 @@ export class TabSourceMultipleFilesStructure
                     );
                     this.data.data = kept;
                     removed.length > 0 &&
-                        this.context.next({ type: EContextActionType.update, files: removed });
+                        this.event.next({ type: EEventType.update, files: removed });
                 },
             },
             {
                 caption: 'Remove All',
                 handler: () => {
                     this.data.data = [];
-                    this.context.next({ type: EContextActionType.update, files: [] });
+                    this.event.next({ type: EEventType.update, files: [] });
                 },
             },
         );
