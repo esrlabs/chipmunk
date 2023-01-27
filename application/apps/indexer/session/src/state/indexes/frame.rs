@@ -7,20 +7,20 @@ use indexer_base::progress::Severity;
 use std::ops::RangeInclusive;
 
 #[derive(Debug)]
-pub struct Frame<'a> {
-    pub indexes: Vec<(&'a u64, &'a Nature)>,
+pub struct Frame {
+    pub indexes: Vec<(u64, Nature)>,
 }
 
-impl<'a> Frame<'a> {
+impl Frame {
     pub fn new() -> Self {
         Self { indexes: vec![] }
     }
 
-    pub fn insert(&mut self, index: (&'a u64, &'a Nature)) {
+    pub fn insert(&mut self, index: (u64, Nature)) {
         self.indexes.push(index);
     }
 
-    pub fn set(&mut self, indexes: Vec<(&'a u64, &'a Nature)>) {
+    pub fn set(&mut self, indexes: Vec<(u64, Nature)>) {
         self.indexes = indexes;
     }
 
@@ -39,12 +39,12 @@ impl<'a> Frame<'a> {
         let mut to_pos: u64 = 0;
         for (i, (position, _)) in self.indexes.iter().enumerate() {
             if i == 0 {
-                from_pos = **position;
-            } else if to_pos + 1 != **position {
+                from_pos = *position;
+            } else if to_pos + 1 != *position {
                 ranges.push(RangeInclusive::new(from_pos, to_pos));
-                from_pos = **position;
+                from_pos = *position;
             }
-            to_pos = **position;
+            to_pos = *position;
         }
         if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from_pos)
             || (ranges.is_empty() && !self.indexes.is_empty())
@@ -70,11 +70,5 @@ impl<'a> Frame<'a> {
             el.set_nature(self.indexes[i].1.bits());
         });
         Ok(())
-    }
-}
-
-impl<'a> Default for Frame<'a> {
-    fn default() -> Self {
-        Self::new()
     }
 }
