@@ -1,4 +1,4 @@
-use super::{frame::Frame, nature::Nature};
+use super::{frame::Frame, keys::Keys, nature::Nature};
 use crate::events::{NativeError, NativeErrorKind};
 use indexer_base::progress::Severity;
 use std::{cmp, collections::BTreeMap, ops::RangeInclusive};
@@ -6,6 +6,7 @@ use std::{cmp, collections::BTreeMap, ops::RangeInclusive};
 #[derive(Debug)]
 pub struct Map {
     indexes: BTreeMap<u64, Nature>,
+    keys: Keys,
     stream_len: u64,
 }
 
@@ -13,8 +14,19 @@ impl Map {
     pub fn new() -> Self {
         Self {
             indexes: BTreeMap::new(),
+            keys: Keys::new(),
             stream_len: 0,
         }
+    }
+
+    pub fn index_add(&mut self, position: u64, nature: Nature) {
+        self.indexes.insert(position, nature);
+        self.keys.add(position);
+    }
+
+    pub fn index_remove(&mut self, position: &u64) {
+        self.indexes.remove(position);
+        self.keys.remove(position);
     }
 
     pub fn insert(&mut self, positions: &[u64], nature: Nature) {
@@ -22,7 +34,7 @@ impl Map {
             if let Some(index) = self.indexes.get_mut(position) {
                 index.include(nature);
             } else {
-                self.indexes.insert(*position, nature);
+                self.index_add(*position, nature);
             }
         });
     }
@@ -37,7 +49,7 @@ impl Map {
             if let Some(index) = self.indexes.get_mut(position) {
                 index.exclude(nature);
                 if index.is_empty() {
-                    self.indexes.remove(position);
+                    self.index_remove(position);
                 }
             }
         });
@@ -48,10 +60,10 @@ impl Map {
         self.remove(&positions, nature);
     }
 
-    fn remove_if(&mut self, postion: u64, nature: Nature) {
-        if let Some(index) = self.indexes.get_mut(&postion) {
+    fn remove_if(&mut self, position: u64, nature: Nature) {
+        if let Some(index) = self.indexes.get_mut(&position) {
             if index == &nature {
-                self.indexes.remove(&postion);
+                self.index_remove(&position);
             }
         }
     }
@@ -192,14 +204,14 @@ impl Map {
         for position in positions.iter() {
             if let Some(index) = self.indexes.get_mut(position) {
                 if index.is_seporator() {
-                    self.indexes.remove(position);
+                    self.index_remove(position);
                 } else {
                     index.reassign(nature);
                     // Nothing todo because we didn't insert, but reassinged
                     continue;
                 }
             }
-            self.indexes.insert(*position, nature);
+            self.index_add(*position, nature);
             if let Some(before) = self.breadcrumbs_drop_before(*position)? {
                 self.breadcrumbs_rebuild_between(before, *position, min_distance, min_offset)?;
             } else if *position > 0 {
@@ -304,7 +316,7 @@ impl Map {
         }
         let expanded = [expanded_before, expanded_after].concat();
         expanded.iter().for_each(|position| {
-            self.indexes.remove(position);
+            self.index_remove(position);
         });
         self.breadcrumbs_insert_between(
             RangeInclusive::new(from_shifted, to_shifted),
@@ -396,8 +408,7 @@ impl Map {
     }
 
     fn breadcrumbs_drop_before(&mut self, from: u64) -> Result<Option<u64>, NativeError> {
-        let keys = self.indexes.keys().collect::<Vec<&u64>>();
-        let mut cursor: usize = Map::key_index_by_position_from(&keys, &from)?;
+        let mut cursor: usize = self.keys.get_index(&from)?;
         let mut to_drop: Vec<u64> = vec![];
         let mut before: Option<u64> = None;
         loop {
@@ -405,7 +416,7 @@ impl Map {
                 break;
             }
             cursor -= 1;
-            if let Some((i, index)) = self.indexes.get_key_value(keys[cursor]) {
+            if let Some((i, index)) = self.indexes.get_key_value(&self.keys.get_position(cursor)?) {
                 if !index.is_pinned() && !index.is_expanded() {
                     to_drop.push(*i);
                 } else {
@@ -415,15 +426,14 @@ impl Map {
             }
         }
         to_drop.iter().for_each(|position| {
-            self.indexes.remove(position);
+            self.index_remove(position);
         });
         Ok(before)
     }
 
     fn breadcrumbs_drop_after(&mut self, from: u64) -> Result<Option<u64>, NativeError> {
-        let keys = self.indexes.keys().collect::<Vec<&u64>>();
         let len = self.indexes.keys().len();
-        let mut cursor: usize = Map::key_index_by_position_from(&keys, &from)?;
+        let mut cursor: usize = self.keys.get_index(&from)?;
         let mut to_drop: Vec<u64> = vec![];
         let mut after: Option<u64> = None;
         loop {
@@ -431,7 +441,7 @@ impl Map {
             if cursor >= len {
                 break;
             }
-            if let Some((i, index)) = self.indexes.get_key_value(keys[cursor]) {
+            if let Some((i, index)) = self.indexes.get_key_value(&self.keys.get_position(cursor)?) {
                 if !index.is_pinned() && !index.is_expanded() {
                     to_drop.push(*i);
                 } else {
@@ -441,26 +451,25 @@ impl Map {
             }
         }
         to_drop.iter().for_each(|position| {
-            self.indexes.remove(position);
+            self.index_remove(position);
         });
         Ok(after)
     }
 
     #[allow(clippy::type_complexity)]
     fn get_arround_positions(
-        &self,
+        &mut self,
         position: &u64,
     ) -> Result<(Option<u64>, Option<u64>), NativeError> {
-        let keys = self.indexes.keys().collect::<Vec<&u64>>();
         let mut before: Option<u64> = None;
         let mut after: Option<u64> = None;
-        let len = keys.len();
-        let key_index = Map::key_index_by_position_from(&keys, position)?;
+        let len = self.indexes.keys().len();
+        let key_index = self.keys.get_index(&position)?;
         if key_index > 0 {
-            before = Some(*keys[key_index - 1]);
+            before = Some(self.keys.get_position(key_index - 1)?);
         }
         if key_index < len - 1 {
-            after = Some(*keys[key_index + 1]);
+            after = Some(self.keys.get_position(key_index + 1)?);
         }
         Ok((before, after))
     }
@@ -489,9 +498,8 @@ impl Map {
                 if cursor >= len {
                     break;
                 }
-                if let Some((position, nature)) = self
-                    .indexes
-                    .get_key_value(self.position_by_key_index(cursor)?)
+                if let Some((position, nature)) =
+                    self.indexes.get_key_value(&self.keys.get_position(cursor)?)
                 {
                     if filter.cross(*nature) {
                         result = Some((position, nature));
@@ -502,9 +510,8 @@ impl Map {
             }
         } else {
             loop {
-                if let Some((position, nature)) = self
-                    .indexes
-                    .get_key_value(self.position_by_key_index(cursor)?)
+                if let Some((position, nature)) =
+                    self.indexes.get_key_value(&self.keys.get_position(cursor)?)
                 {
                     if filter.cross(*nature) {
                         result = Some((position, nature));
@@ -529,7 +536,7 @@ impl Map {
             }
         });
         to_be_removed.iter().for_each(|position| {
-            self.indexes.remove(position);
+            self.index_remove(position);
         });
     }
 
@@ -547,6 +554,7 @@ impl Map {
         self.stream_len = len;
         if self.stream_len == 0 {
             self.indexes.clear();
+            self.keys.clear();
             return Ok(());
         }
         if update_breadcrumbs {
@@ -586,26 +594,7 @@ impl Map {
         self.len() == 0
     }
 
-    fn position_by_key_index(&self, key_index: usize) -> Result<&u64, NativeError> {
-        self.indexes.keys().nth(key_index).ok_or(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
-            message: Some(format!("Invalid key-index {}", key_index)),
-        })
-    }
-
-    fn key_index_by_position_from(keys: &Vec<&u64>, position: &u64) -> Result<usize, NativeError> {
-        keys.iter().position(|k| *k == position).ok_or(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
-            message: Some(format!(
-                "Position value {position} doesn't exist. Map len: {};",
-                keys.len()
-            )),
-        })
-    }
-
-    pub fn frame(&self, range: &mut RangeInclusive<u64>) -> Result<Frame, NativeError> {
+    pub fn frame(&mut self, range: &mut RangeInclusive<u64>) -> Result<Frame, NativeError> {
         if range.end() >= &(self.indexes.len() as u64) {
             return Err(NativeError {
                 severity: Severity::ERROR,
@@ -619,14 +608,16 @@ impl Map {
         // let keys = self.indexes.keys().collect::<Vec<&u64>>();
         // let from_position = keys[*range.start() as usize];
         // let to_position = keys[*range.end() as usize];
+        self.keys.sort();
         let mut frame = Frame::new();
         frame.set(
             self.indexes
                 .range(RangeInclusive::new(
-                    self.position_by_key_index(*range.start() as usize)?,
-                    self.position_by_key_index(*range.end() as usize)?,
+                    self.keys.get_position(*range.start() as usize)?,
+                    self.keys.get_position(*range.end() as usize)?,
                 ))
-                .collect::<Vec<(&u64, &Nature)>>(),
+                .map(|(pos, nature)| (*pos, *nature))
+                .collect::<Vec<(u64, Nature)>>(),
         );
         Ok(frame)
     }

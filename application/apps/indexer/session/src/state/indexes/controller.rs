@@ -158,7 +158,7 @@ impl Controller {
         Ok(())
     }
 
-    pub fn frame(&self, range: &mut RangeInclusive<u64>) -> Result<Frame, NativeError> {
+    pub fn frame(&mut self, range: &mut RangeInclusive<u64>) -> Result<Frame, NativeError> {
         self.map.frame(range)
     }
 

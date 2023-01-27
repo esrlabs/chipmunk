@@ -19,7 +19,7 @@ fn test_build() {
     map.insert(&matches, Nature::SEARCH);
     let duration = start.elapsed();
     println!(
-        "set initial search matches (count of matches = {}) for stream {len} rows: {} ms; map len = {}",
+        "[UI: click]....................... 1. set initial search matches (count of matches = {}) for stream {len} rows: {} ms; map len = {}",
         matches.len(),
         duration.as_millis(),
         map.len()
@@ -29,7 +29,7 @@ fn test_build() {
     map.breadcrumbs_build(4, 2).unwrap();
     let duration = start.elapsed();
     println!(
-        "build initial breadcrumbs: {} ms; map len = {}",
+        "[UI: click]....................... 2. build initial breadcrumbs: {} ms; map len = {}",
         duration.as_millis(),
         map.len()
     );
@@ -45,7 +45,7 @@ fn test_build() {
     }
     let duration = start.elapsed();
     println!(
-        "add {bookmarks} bookmarks one by one: {} ms; (each ~{}ms) map len = {}",
+        "[UI: click]....................... 3. add {bookmarks} bookmarks one by one: {} ms; (each ~{}ms) map len = {}",
         duration.as_millis(),
         duration.as_millis() as f64 / bookmarks as f64,
         map.len()
@@ -62,7 +62,7 @@ fn test_build() {
         .unwrap();
     let duration = start.elapsed();
     println!(
-        "add {} bookmarks all together: {} ms; map len = {}",
+        "[UI: restore]..................... 4. add {} bookmarks all together: {} ms; map len = {}",
         bookmarks.len(),
         duration.as_millis(),
         map.len()
@@ -80,7 +80,26 @@ fn test_build() {
     }
     let duration = start.elapsed();
     println!(
-        "request {frames} frames (len 100) one by one: {} ms; (each ~{}ms)",
+        "[UI: scroll without updates]...... 5. request {frames} frames (len 100) one by one: {} ms; (each ~{}ms)",
+        duration.as_millis(),
+        duration.as_millis() as f64 / frames as f64,
+    );
+
+    let start = Instant::now();
+    let mut frames: u64 = 0;
+    let available = map.len() as u64;
+    for p in 0..(available - 100) {
+        if p % frames_trigger == 0 {
+            map.breadcrumbs_insert_and_update(&vec![p], Nature::BOOKMARK, 4, 2)
+                .unwrap();
+            let mut range = RangeInclusive::new(p, p + 100);
+            let _frame = map.frame(&mut range).unwrap();
+            frames += 1;
+        }
+    }
+    let duration = start.elapsed();
+    println!(
+        "[UI: scroll without with updates]. 6. request with changes {frames} frames (len 100) one by one: {} ms; (each ~{}ms)",
         duration.as_millis(),
         duration.as_millis() as f64 / frames as f64,
     );

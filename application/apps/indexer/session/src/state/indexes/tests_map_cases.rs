@@ -95,11 +95,11 @@ impl MapTest {
                 frame.indexes.iter().enumerate().for_each(
                     |(n, (frame_position, frame_natures))| {
                         let (ctrl_position, ctrl_natures) = control.get(n).unwrap();
-                        if ctrl_position != *frame_position || **frame_natures != *ctrl_natures {
+                        if ctrl_position != frame_position || *frame_natures != *ctrl_natures {
                             self.print_frame(&frame);
                         }
-                        assert_eq!(ctrl_position, *frame_position);
-                        assert_eq!(**frame_natures, *ctrl_natures);
+                        assert_eq!(ctrl_position, frame_position);
+                        assert_eq!(*frame_natures, *ctrl_natures);
                     },
                 );
             }

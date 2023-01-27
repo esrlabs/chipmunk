@@ -3,6 +3,7 @@ pub mod controller;
 pub mod frame;
 pub mod map;
 pub mod nature;
+pub mod keys;
 
 // #[cfg(test)]
 // pub mod tests_controller;
