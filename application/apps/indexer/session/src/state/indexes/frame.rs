@@ -20,6 +20,10 @@ impl<'a> Frame<'a> {
         self.indexes.push(index);
     }
 
+    pub fn set(&mut self, indexes: Vec<(&'a u64, &'a Nature)>) {
+        self.indexes = indexes;
+    }
+
     pub fn len(&self) -> usize {
         self.indexes.len()
     }
