@@ -219,6 +219,12 @@ enum Chip {
             help = "Output directory, \"input directory\" if not present"
         )]
         output: Option<PathBuf>,
+        #[structopt(
+            long = "filter",
+            name = "FILTER_CONFIG",
+            help = "json file that defines dlt filter settings"
+        )]
+        filter_config: Option<PathBuf>,
         #[structopt(short, long, help = "run in interactive mode")]
         interactive: bool,
         #[structopt(short, long, help = "parse input without storage headers")]
@@ -430,9 +436,10 @@ pub async fn main() -> Result<()> {
         Chip::DltFt {
             input,
             output,
+            filter_config,
             interactive,
             raw,
-        } => handle_dlt_ft_subcommand(&input, output, interactive, raw, start).await,
+        } => handle_dlt_ft_subcommand(&input, output, filter_config, interactive, raw, start).await,
         Chip::DltPcap {
             input,
             tag,
@@ -1032,11 +1039,26 @@ pub async fn main() -> Result<()> {
     async fn handle_dlt_ft_subcommand(
         file_path: &Path,
         out_path: Option<PathBuf>,
+        filter_config: Option<PathBuf>,
         interactive: bool,
         raw: bool,
         start: std::time::Instant,
     ) {
         debug!("handle_dlt_ft_subcommand");
+
+        let filter_conf: Option<DltFilterConfig> = match filter_config {
+            Some(config_path) => {
+                let mut cnf_file = match fs::File::open(&config_path) {
+                    Ok(file) => file,
+                    Err(_) => {
+                        report_error(format!("could not open filter config {config_path:?}"));
+                        std::process::exit(2)
+                    }
+                };
+                read_filter_options(&mut cnf_file)
+            }
+            None => None,
+        };
 
         let with_storage_header = !raw;
         let output_dir = match out_path {
@@ -1050,7 +1072,7 @@ pub async fn main() -> Result<()> {
             let ft_indexer = FtIndexer::new();
             let cancel = CancellationToken::new();
             let ft_index = ft_indexer
-                .index(file_path, with_storage_header, cancel)
+                .index(file_path, filter_conf, with_storage_header, cancel)
                 .await
                 .unwrap();
             if ft_index.is_empty() {
@@ -1069,11 +1091,11 @@ pub async fn main() -> Result<()> {
                     std::process::exit(0)
                 }
 
-                let mut ft_filter = FtFilter::new();
+                let mut ft_files = Vec::new();
                 for part in input.trim().split(',') {
                     if let Ok(index) = part.parse::<usize>() {
                         if let Some(ft_file) = ft_index.get(index - 1) {
-                            ft_filter.add(ft_file);
+                            ft_files.push(ft_file);
                         }
                     }
                 }
@@ -1081,7 +1103,7 @@ pub async fn main() -> Result<()> {
                 let mut ft_streamer = FtStreamer::new(output_dir.clone());
                 let cancel = CancellationToken::new();
                 let size = ft_streamer
-                    .stream(file_path, Some(ft_filter), with_storage_header, cancel)
+                    .stream(file_path, None, Some(ft_files), with_storage_header, cancel)
                     .await;
                 println!("{} bytes written", size);
 
@@ -1096,7 +1118,7 @@ pub async fn main() -> Result<()> {
             let mut ft_streamer = FtStreamer::new(output_dir.clone());
             let cancel = CancellationToken::new();
             let size = ft_streamer
-                .stream(file_path, None, with_storage_header, cancel)
+                .stream(file_path, filter_conf, None, with_storage_header, cancel)
                 .await;
 
             if !ft_streamer.is_complete() {

@@ -1,4 +1,7 @@
-use dlt_core::dlt::{Argument, LogLevel, Message, MessageType, PayloadContent, Value};
+use dlt_core::{
+    dlt::{Argument, LogLevel, Message, MessageType, PayloadContent, Value},
+    filtering::DltFilterConfig,
+};
 use futures::{pin_mut, stream::StreamExt};
 use parsers::{dlt::DltParser, MessageStreamItem};
 use sources::{producer::MessageProducer, raw::binary::BinaryByteSource};
@@ -333,6 +336,7 @@ impl FtIndexer {
     pub async fn index(
         self,
         input: &Path,
+        filter: Option<DltFilterConfig>,
         with_storage_header: bool,
         cancel: CancellationToken,
     ) -> Option<Vec<FtFile>> {
@@ -341,7 +345,7 @@ impl FtIndexer {
             let source = BinaryByteSource::new(reader);
 
             return self
-                .index_from_source(source, with_storage_header, cancel)
+                .index_from_source(source, filter, with_storage_header, cancel)
                 .await;
         }
 
@@ -352,10 +356,11 @@ impl FtIndexer {
     pub async fn index_from_source<R: Read + Seek + Sync + Send>(
         mut self,
         source: BinaryByteSource<R>,
+        filter: Option<DltFilterConfig>,
         with_storage_header: bool,
         cancel: CancellationToken,
     ) -> Option<Vec<FtFile>> {
-        let parser = DltParser::new(None, None, with_storage_header);
+        let parser = DltParser::new(filter.map(|f| f.into()), None, with_storage_header);
         let mut producer = MessageProducer::new(parser, source, None);
         let stream = producer.as_stream();
         pin_mut!(stream);
@@ -432,36 +437,9 @@ impl FtIndexer {
     }
 }
 
-/// A filter for indexed DLT-FT files.
-#[derive(Debug, Clone)]
-pub struct FtFilter {
-    /// The 1-based indexes of the original DLT messages.
-    messages: Vec<usize>,
-}
-
-impl FtFilter {
-    pub fn new() -> Self {
-        FtFilter {
-            messages: Vec::new(),
-        }
-    }
-
-    pub fn add(&mut self, file: &FtFile) {
-        self.messages.extend(&file.messages);
-        self.messages.sort();
-        self.messages.dedup();
-    }
-
-    fn contains(&self, index: usize) -> bool {
-        self.messages.contains(&index)
-    }
-
-    fn min_index(&self) -> usize {
-        *self.messages.iter().min().unwrap_or(&0)
-    }
-
-    fn max_index(&self) -> usize {
-        *self.messages.iter().max().unwrap_or(&0)
+impl Default for FtIndexer {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -516,7 +494,8 @@ impl FtStreamer {
     pub async fn stream(
         &mut self,
         input: &Path,
-        filter: Option<FtFilter>,
+        filter: Option<DltFilterConfig>,
+        files: Option<Vec<&FtFile>>,
         with_storage_header: bool,
         cancel: CancellationToken,
     ) -> usize {
@@ -525,7 +504,7 @@ impl FtStreamer {
             let source = BinaryByteSource::new(reader);
 
             return self
-                .stream_from_source(source, filter, with_storage_header, cancel)
+                .stream_from_source(source, filter, files, with_storage_header, cancel)
                 .await;
         }
 
@@ -536,7 +515,8 @@ impl FtStreamer {
     pub async fn stream_from_source<R: Read + Seek + Sync + Send>(
         &mut self,
         source: BinaryByteSource<R>,
-        filter: Option<FtFilter>,
+        filter: Option<DltFilterConfig>,
+        files: Option<Vec<&FtFile>>,
         with_storage_header: bool,
         cancel: CancellationToken,
     ) -> usize {
@@ -544,17 +524,23 @@ impl FtStreamer {
         self.errors = 0;
         self.bytes = 0;
 
-        let mut min_index: usize = 0;
-        let mut max_index: usize = 0;
+        let mut indexes: Option<Vec<&usize>> = None;
+        let mut index_min: usize = 0;
+        let mut index_max: usize = 0;
 
-        if let Some(ref filter) = filter {
-            min_index = filter.min_index();
-            max_index = filter.max_index();
+        if let Some(ref files) = files {
+            let mut messages: Vec<&usize> = files.iter().flat_map(|file| &file.messages).collect();
+            messages.sort();
+            messages.dedup();
+
+            index_min = **messages.iter().min().unwrap_or(&&0);
+            index_max = **messages.iter().max().unwrap_or(&&0);
+            indexes = Some(messages);
         }
 
-        let skipped = if min_index > 0 { min_index - 1 } else { 0 };
+        let skipped = if index_min > 0 { index_min - 1 } else { 0 };
 
-        let parser = DltParser::new(None, None, with_storage_header);
+        let parser = DltParser::new(filter.map(|f| f.into()), None, with_storage_header);
         let mut producer = MessageProducer::new(parser, source, None);
         let stream = producer.as_stream().skip(skipped);
         pin_mut!(stream);
@@ -574,10 +560,10 @@ impl FtStreamer {
                         Some((_, item)) => {
                             index += 1;
                             if let MessageStreamItem::Item(item) = item {
-                                if let Some(ref filter) = filter {
-                                    if index > max_index {
+                                if let Some(ref indexes) = indexes {
+                                    if index > index_max {
                                         break;
-                                    } else if filter.contains(index) {
+                                    } else if indexes.contains(&&index) {
                                         self.process(&item.message);
                                     }
                                 } else {
@@ -714,11 +700,14 @@ mod tests {
     const CHUNK_SIZE: usize = 10;
 
     fn ft_files() -> (Vec<u32>, Vec<Message>) {
-        let (id1, mut messages1) = ft_file("test1.txt", &String::from("test1").into_bytes());
+        let (id1, mut messages1) =
+            ft_file("ecu1", "test1.txt", &String::from("test1").into_bytes());
         assert_eq!(3, messages1.len());
-        let (id2, mut messages2) = ft_file("test2.txt", &String::from("test22").into_bytes());
+        let (id2, mut messages2) =
+            ft_file("ecu2", "test2.txt", &String::from("test22").into_bytes());
         assert_eq!(3, messages2.len());
-        let (id3, mut messages3) = ft_file("test3.txt", &String::from("test333").into_bytes());
+        let (id3, mut messages3) =
+            ft_file("ecu3", "test3.txt", &String::from("test333").into_bytes());
         assert_eq!(3, messages3.len());
 
         let mut messages: Vec<Message> = Vec::new();
@@ -735,7 +724,7 @@ mod tests {
         (vec![id1, id2, id3], messages)
     }
 
-    fn ft_file<'a>(name: &str, payload: &'a [u8]) -> (u32, Vec<Message>) {
+    fn ft_file<'a>(ecu: &str, name: &str, payload: &'a [u8]) -> (u32, Vec<Message>) {
         let mut rand = rand::thread_rng();
         let id: u32 = rand.gen::<u32>();
 
@@ -746,14 +735,17 @@ mod tests {
         }
 
         let mut messages: Vec<Message> = Vec::new();
-        messages.push(start_message(FileStart {
-            timestamp: None,
-            id,
-            name: name.to_string(),
-            size: size.try_into().unwrap(),
-            created: String::from("date"),
-            packets: packets.try_into().unwrap(),
-        }));
+        messages.push(start_message(
+            ecu,
+            FileStart {
+                timestamp: None,
+                id,
+                name: name.to_string(),
+                size: size.try_into().unwrap(),
+                created: String::from("date"),
+                packets: packets.try_into().unwrap(),
+            },
+        ));
 
         let mut offset: usize = 0;
         for packet in 1..(packets + 1) {
@@ -767,22 +759,28 @@ mod tests {
                 offset += bytes_left;
             }
 
-            messages.push(data_message(FileData {
-                timestamp: None,
-                id,
-                packet: packet.try_into().unwrap(),
-                bytes: &bytes,
-            }));
+            messages.push(data_message(
+                ecu,
+                FileData {
+                    timestamp: None,
+                    id,
+                    packet: packet.try_into().unwrap(),
+                    bytes: &bytes,
+                },
+            ));
         }
 
-        messages.push(end_message(FileEnd {
-            timestamp: None,
-            id,
-        }));
+        messages.push(end_message(
+            ecu,
+            FileEnd {
+                timestamp: None,
+                id,
+            },
+        ));
         (id, messages)
     }
 
-    fn start_message(config: FileStart) -> Message {
+    fn start_message(ecu: &str, config: FileStart) -> Message {
         let args: Vec<Argument> = vec![
             arg_string(FT_START_TAG.to_string()),
             arg_number(config.id),
@@ -793,10 +791,10 @@ mod tests {
             arg_number(0), // buffer-size
             arg_string(FT_START_TAG.to_string()),
         ];
-        dlt_message(args)
+        dlt_message(ecu, args)
     }
 
-    fn data_message(config: FileData) -> Message {
+    fn data_message(ecu: &str, config: FileData) -> Message {
         let args: Vec<Argument> = vec![
             arg_string(FT_DATA_TAG.to_string()),
             arg_number(config.id),
@@ -804,19 +802,19 @@ mod tests {
             arg_bytes(config.bytes.to_vec()),
             arg_string(FT_DATA_TAG.to_string()),
         ];
-        dlt_message(args)
+        dlt_message(ecu, args)
     }
 
-    fn end_message(config: FileEnd) -> Message {
+    fn end_message(ecu: &str, config: FileEnd) -> Message {
         let args: Vec<Argument> = vec![
             arg_string(FT_END_TAG.to_string()),
             arg_number(config.id),
             arg_string(FT_END_TAG.to_string()),
         ];
-        dlt_message(args)
+        dlt_message(ecu, args)
     }
 
-    fn dlt_message(args: Vec<Argument>) -> Message {
+    fn dlt_message(ecu: &str, args: Vec<Argument>) -> Message {
         let mut payload_length: u16 = 0;
         for arg in args.iter() {
             payload_length += arg.len() as u16;
@@ -828,7 +826,7 @@ mod tests {
                 endianness: Endianness::Big,
                 has_extended_header: true,
                 message_counter: 0,
-                ecu_id: None,
+                ecu_id: Some(ecu.to_string()),
                 session_id: None,
                 timestamp: None,
                 payload_length,
@@ -928,6 +926,7 @@ mod tests {
     async fn index(
         indexer: FtIndexer,
         messages: &Vec<Message>,
+        filter: Option<DltFilterConfig>,
         canceled: bool,
     ) -> Option<Vec<FtFile>> {
         let cursor = Cursor::new(as_bytes(&messages));
@@ -936,13 +935,16 @@ mod tests {
         if canceled {
             cancel.cancel();
         }
-        indexer.index_from_source(source, false, cancel).await
+        indexer
+            .index_from_source(source, filter, false, cancel)
+            .await
     }
 
     async fn stream(
         streamer: &mut FtStreamer,
         messages: &Vec<Message>,
-        filter: Option<FtFilter>,
+        filter: Option<DltFilterConfig>,
+        files: Option<Vec<&FtFile>>,
         canceled: bool,
     ) -> usize {
         let cursor = Cursor::new(as_bytes(&messages));
@@ -952,13 +954,13 @@ mod tests {
             cancel.cancel();
         }
         streamer
-            .stream_from_source(source, filter, false, cancel)
+            .stream_from_source(source, filter, files, false, cancel)
             .await
     }
 
     #[test]
     fn test_parse_ft_messages() {
-        let (id, messages) = ft_file("test.txt", "test".as_bytes());
+        let (id, messages) = ft_file("ecu", "test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
 
         assert_eq!(
@@ -1010,11 +1012,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_index_single_file() {
-        let (_, messages) = ft_file("test.txt", "test".as_bytes());
+        let (_, messages) = ft_file("ecu", "test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
 
         let indexer = FtIndexer::new();
-        let index = index(indexer, &messages, false).await.unwrap();
+        let index = index(indexer, &messages, None, false).await.unwrap();
         assert_eq!(1, index.len());
 
         let file = index.get(0).unwrap();
@@ -1026,11 +1028,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_index_single_file_multiple_chunks() {
-        let (_, messages) = ft_file("test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
+        let (_, messages) = ft_file("ecu", "test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
         assert_eq!(5, messages.len());
 
         let indexer = FtIndexer::new();
-        let index = index(indexer, &messages, false).await.unwrap();
+        let index = index(indexer, &messages, None, false).await.unwrap();
         assert_eq!(1, index.len());
 
         let file = index.get(0).unwrap();
@@ -1045,7 +1047,7 @@ mod tests {
         let (_, messages) = ft_files();
 
         let indexer = FtIndexer::new();
-        let index = index(indexer, &messages, false).await.unwrap();
+        let index = index(indexer, &messages, None, false).await.unwrap();
         assert_eq!(3, index.len());
 
         let file = index.get(0).unwrap();
@@ -1062,11 +1064,34 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_index_files_with_filter() {
+        let (_, messages) = ft_files();
+
+        let indexer = FtIndexer::new();
+        let filter = DltFilterConfig {
+            min_log_level: None,
+            app_ids: None,
+            ecu_ids: Some(vec!["ecu2".to_string()]),
+            context_ids: None,
+            app_id_count: 0,
+            context_id_count: 0,
+        };
+        let index = index(indexer, &messages, Some(filter), false)
+            .await
+            .unwrap();
+        assert_eq!(1, index.len());
+
+        let file = index.get(0).unwrap();
+        assert_eq!(file.name, String::from("test2.txt"));
+        assert_eq!(file.messages, vec![2, 4, 8]);
+    }
+
+    #[tokio::test]
     async fn test_index_canceled() {
         let (_, messages) = ft_files();
 
         let indexer = FtIndexer::new();
-        let index = index(indexer, &messages, true).await;
+        let index = index(indexer, &messages, None, true).await;
         assert!(index.is_none());
     }
 
@@ -1074,11 +1099,11 @@ mod tests {
     async fn test_stream_single_file() {
         let output = TempDir::new();
 
-        let (id, messages) = ft_file("test.txt", "test".as_bytes());
+        let (id, messages) = ft_file("ecu", "test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
 
         let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None, false).await;
+        let size = stream(&mut streamer, &messages, None, None, false).await;
         assert_eq!(4, size);
         assert!(streamer.is_complete());
 
@@ -1089,11 +1114,11 @@ mod tests {
     async fn test_stream_single_file_multiple_chunks() {
         let output = TempDir::new();
 
-        let (id, messages) = ft_file("test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
+        let (id, messages) = ft_file("ecu", "test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
         assert_eq!(5, messages.len());
 
         let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None, false).await;
+        let size = stream(&mut streamer, &messages, None, None, false).await;
         assert_eq!(26, size);
         assert!(streamer.is_complete());
 
@@ -1108,7 +1133,7 @@ mod tests {
         assert_eq!(3, ids.len());
 
         let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None, false).await;
+        let size = stream(&mut streamer, &messages, None, None, false).await;
         assert_eq!(5 + 6 + 7, size);
         assert!(streamer.is_complete());
 
@@ -1119,22 +1144,45 @@ mod tests {
 
     #[tokio::test]
     async fn test_stream_files_with_filter() {
+        let output = TempDir::new();
+
+        let (ids, messages) = ft_files();
+        assert_eq!(3, ids.len());
+
+        let mut streamer = FtStreamer::new(output.dir.clone());
+        let filter = DltFilterConfig {
+            min_log_level: None,
+            app_ids: None,
+            ecu_ids: Some(vec!["ecu2".to_string()]),
+            context_ids: None,
+            app_id_count: 0,
+            context_id_count: 0,
+        };
+        let size = stream(&mut streamer, &messages, Some(filter), None, false).await;
+        assert_eq!(6, size);
+        assert!(streamer.is_complete());
+
+        output.assert_file(&format!("{}_test2.txt", ids.get(1).unwrap()), "test22");
+    }
+
+    #[tokio::test]
+    async fn test_stream_files_with_index() {
         let (ids, messages) = ft_files();
         assert_eq!(3, ids.len());
 
         let indexer = FtIndexer::new();
-        let index = index(indexer, &messages, false).await.unwrap();
+        let index = index(indexer, &messages, None, false).await.unwrap();
         assert_eq!(3, index.len());
 
         {
             // file at start
             let output = TempDir::new();
 
-            let mut filter = FtFilter::new();
-            filter.add(&index.get(0).unwrap());
+            let mut files = Vec::new();
+            files.push(index.get(0).unwrap());
 
             let mut streamer = FtStreamer::new(output.dir.clone());
-            let size = stream(&mut streamer, &messages, Some(filter), false).await;
+            let size = stream(&mut streamer, &messages, None, Some(files), false).await;
             assert_eq!(5, size);
             assert!(streamer.is_complete());
 
@@ -1145,11 +1193,11 @@ mod tests {
             // file in middle
             let output = TempDir::new();
 
-            let mut filter = FtFilter::new();
-            filter.add(&index.get(1).unwrap());
+            let mut files = Vec::new();
+            files.push(index.get(1).unwrap());
 
             let mut streamer = FtStreamer::new(output.dir.clone());
-            let size = stream(&mut streamer, &messages, Some(filter), false).await;
+            let size = stream(&mut streamer, &messages, None, Some(files), false).await;
             assert_eq!(6, size);
             assert!(streamer.is_complete());
 
@@ -1160,11 +1208,11 @@ mod tests {
             // file at end
             let output = TempDir::new();
 
-            let mut filter = FtFilter::new();
-            filter.add(&index.get(2).unwrap());
+            let mut files = Vec::new();
+            files.push(index.get(2).unwrap());
 
             let mut streamer = FtStreamer::new(output.dir.clone());
-            let size = stream(&mut streamer, &messages, Some(filter), false).await;
+            let size = stream(&mut streamer, &messages, None, Some(files), false).await;
             assert_eq!(7, size);
             assert!(streamer.is_complete());
 
@@ -1175,13 +1223,13 @@ mod tests {
             // all files
             let output = TempDir::new();
 
-            let mut filter = FtFilter::new();
-            filter.add(&index.get(0).unwrap());
-            filter.add(&index.get(1).unwrap());
-            filter.add(&index.get(2).unwrap());
+            let mut files = Vec::new();
+            files.push(index.get(0).unwrap());
+            files.push(index.get(1).unwrap());
+            files.push(index.get(2).unwrap());
 
             let mut streamer = FtStreamer::new(output.dir.clone());
-            let size = stream(&mut streamer, &messages, Some(filter), false).await;
+            let size = stream(&mut streamer, &messages, None, Some(files), false).await;
             assert_eq!(5 + 6 + 7, size);
             assert!(streamer.is_complete());
 
@@ -1195,12 +1243,13 @@ mod tests {
     async fn test_stream_missing_data_packet() {
         let output = TempDir::new();
 
-        let (id, mut messages) = ft_file("test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
+        let (id, mut messages) =
+            ft_file("ecu", "test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
         assert_eq!(5, messages.len());
         messages.remove(3);
 
         let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None, false).await;
+        let size = stream(&mut streamer, &messages, None, None, false).await;
         assert_eq!(0, size);
 
         assert!(!streamer.is_complete());
@@ -1214,12 +1263,13 @@ mod tests {
     async fn test_stream_mismatched_data_packet() {
         let output = TempDir::new();
 
-        let (id, mut messages) = ft_file("test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
+        let (id, mut messages) =
+            ft_file("ecu", "test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
         assert_eq!(5, messages.len());
         messages.swap(2, 3);
 
         let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None, false).await;
+        let size = stream(&mut streamer, &messages, None, None, false).await;
         assert_eq!(0, size);
 
         assert!(!streamer.is_complete());
@@ -1233,12 +1283,13 @@ mod tests {
     async fn test_stream_missing_end_packet() {
         let output = TempDir::new();
 
-        let (id, mut messages) = ft_file("test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
+        let (id, mut messages) =
+            ft_file("ecu", "test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
         assert_eq!(5, messages.len());
         messages.remove(4);
 
         let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None, false).await;
+        let size = stream(&mut streamer, &messages, None, None, false).await;
         assert_eq!(0, size);
 
         assert!(!streamer.is_complete());
@@ -1250,7 +1301,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_stream_io_error() {
-        let (_, messages) = ft_file("test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
+        let (_, messages) = ft_file("ecu", "test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
         assert_eq!(5, messages.len());
 
         let mut streamer;
@@ -1258,7 +1309,7 @@ mod tests {
             let output = TempDir::new(); // scoped!
             streamer = FtStreamer::new(output.dir.clone());
         }
-        let size = stream(&mut streamer, &messages, None, false).await;
+        let size = stream(&mut streamer, &messages, None, None, false).await;
         assert_eq!(0, size);
 
         assert!(!streamer.is_complete());
@@ -1271,29 +1322,29 @@ mod tests {
         let output = TempDir::new();
         let mut streamer = FtStreamer::new(output.dir.clone());
 
-        let (id, mut messages) = ft_file("test.txt", "test".as_bytes());
+        let (id, mut messages) = ft_file("ecu", "test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
         messages.remove(1);
-        let size = stream(&mut streamer, &messages, None, false).await;
+        let size = stream(&mut streamer, &messages, None, None, false).await;
         assert_eq!(0, size);
         assert!(!streamer.is_complete());
         assert_eq!(0, streamer.num_streams());
         assert_eq!(1, streamer.num_errors());
         output.assert_file(&format!("{}_test.txt", id), "");
 
-        let (id, mut messages) = ft_file("test.txt", "test".as_bytes());
+        let (id, mut messages) = ft_file("ecu", "test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
         messages.remove(2);
-        let size = stream(&mut streamer, &messages, None, false).await;
+        let size = stream(&mut streamer, &messages, None, None, false).await;
         assert_eq!(0, size);
         assert!(!streamer.is_complete());
         assert_eq!(1, streamer.num_streams());
         assert_eq!(0, streamer.num_errors());
         output.assert_file(&format!("{}_test.txt", id), "test");
 
-        let (id, messages) = ft_file("test.txt", "test".as_bytes());
+        let (id, messages) = ft_file("ecu", "test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
-        let size = stream(&mut streamer, &messages, None, false).await;
+        let size = stream(&mut streamer, &messages, None, None, false).await;
         assert_eq!(4, size);
         assert!(streamer.is_complete());
         output.assert_file(&format!("{}_test.txt", id), "test");
@@ -1305,7 +1356,7 @@ mod tests {
         let (_, messages) = ft_files();
 
         let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None, true).await;
+        let size = stream(&mut streamer, &messages, None, None, true).await;
         assert_eq!(0, size);
     }
 }
