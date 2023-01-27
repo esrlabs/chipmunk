@@ -18,6 +18,7 @@ import { FileHolder } from '../file.holder';
 import { Subject } from '@platform/env/subscription';
 import { FileType } from '@platform/types/files';
 import { Subscription } from 'rxjs';
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 
 export interface IEvent {
     type: EEventType;
@@ -67,7 +68,7 @@ export class TabSourceMultipleFilesStructure
         COLUMNS.modificationDate,
     ];
 
-    private _subscriptions: Subscription[] = [];
+    private _subscription!: Subscription;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -76,11 +77,7 @@ export class TabSourceMultipleFilesStructure
     public ngAfterContentInit() {
         this.data = new MatTableDataSource<FileHolder>(this.files);
         this.env().subscriber.register(this.filesUpdate.subscribe(this._onFilesUpdate.bind(this)));
-        this._subscriptions.push(
-            this.data.connect().subscribe((files: FileHolder[]) => {
-                this.event.emit({ type: EEventType.sort, files: files });
-            }),
-        );
+        this._subscribe();
     }
 
     public ngAfterViewInit() {
@@ -88,14 +85,22 @@ export class TabSourceMultipleFilesStructure
     }
 
     public ngOnDestroy() {
-        this._subscriptions.forEach((subscription: Subscription) => {
-            subscription.unsubscribe();
-        });
+        this._subscription && this._subscription.unsubscribe();
     }
 
     public ngOnSortChange() {
         this.detectChanges();
         this.table.renderRows();
+    }
+
+    public ngOnDropListDropped(event: CdkDragDrop<FileHolder[]>) {
+        this.sort.sort({ id: '', start: '', disableClear: false });
+        this._subscription && this._subscription.unsubscribe();
+        moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
+        this.data = new MatTableDataSource<FileHolder>(event.container.data);
+        this._subscribe();
+        this.data.sort = this.sort;
+        this.event.emit({ type: EEventType.sort, files: event.container.data });
     }
 
     public ngOnRowSelect(file: FileHolder) {
@@ -244,6 +249,22 @@ export class TabSourceMultipleFilesStructure
 
     private _onFilesUpdate(files: FileHolder[]) {
         this.data.data = files;
+    }
+
+    private _subscribe() {
+        if (this.data) {
+            this._subscription = this.data.connect().subscribe((files: FileHolder[]) => {
+                files === this.data.data && console.log('Same, duh');
+                if (
+                    files.length === this.data.data.length &&
+                    files.every((file, index) => file === this.data.data[index])
+                ) {
+                    return;
+                }
+                this.data.data = files;
+                this.event.emit({ type: EEventType.sort, files: files });
+            });
+        }
     }
 }
 export interface TabSourceMultipleFilesStructure extends IlcInterface {}

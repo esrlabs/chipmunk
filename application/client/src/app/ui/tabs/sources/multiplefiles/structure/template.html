@@ -1,4 +1,11 @@
-<table mat-table [dataSource]="data" matSort (contextmenu)="ngContextMenu($event)" (matSortChange)="ngOnSortChange()">
+<table  mat-table
+        matSort
+        cdkDropList
+        [dataSource]="data"
+        [cdkDropListData]="data.data"
+        (contextmenu)="ngContextMenu($event)"
+        (matSortChange)="ngOnSortChange()"
+        (cdkDropListDropped)="ngOnDropListDropped($event)">
 
     <ng-container matColumnDef="type">
       <th mat-header-cell *matHeaderCellDef mat-sort-header sortActionDescription="Sort by type" class="type">
@@ -37,5 +44,11 @@
     </ng-container>
 
     <tr mat-header-row *matHeaderRowDef="columns; sticky: true"></tr>
-    <tr mat-row *matRowDef="let row; columns: columns;" [class]="row.selected ? 'selected' : ''" (contextmenu)="ngContextMenu($event, row)" (click)="ngOnRowSelect(row)"></tr>
+    <tr mat-row
+        cdkDrag
+        *matRowDef="let row; columns: columns;"
+        [class]="row.selected ? 'selected' : ''"
+        (contextmenu)="ngContextMenu($event, row)"
+        (click)="ngOnRowSelect(row)">
+    </tr>
   </table>
