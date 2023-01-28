@@ -109,7 +109,7 @@ function StreamChunkRequest(packaged: Package<Requests.Stream.Chunk.Request>) {
             content: `___${i}___`.repeat(20),
             source_id: 0,
             position: i,
-            nature: [0],
+            nature: 0,
         });
     }
     Requests.IpcRequest.emulate(

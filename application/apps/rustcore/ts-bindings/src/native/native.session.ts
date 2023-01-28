@@ -61,10 +61,6 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract removeBookmark(row: number): Promise<void>;
 
-    public abstract addSelection(range: IRange): Promise<void>;
-
-    public abstract removeSelection(range: IRange): Promise<void>;
-
     public abstract addBookmark(row: number): Promise<void>;
 
     /**
@@ -239,10 +235,6 @@ export abstract class RustSessionNative {
     ): Promise<void>;
 
     public abstract removeBookmark(row: number): Promise<void>;
-
-    public abstract addSelection(range: [number, number]): Promise<void>;
-
-    public abstract removeSelection(range: [number, number]): Promise<void>;
 
     public abstract addBookmark(row: number): Promise<void>;
 
@@ -422,7 +414,7 @@ export class RustSessionWrapper extends RustSession {
                             c: string;
                             id: number;
                             p: number;
-                            n: number[];
+                            n: number;
                         }> = JSON.parse(grabbed);
                         resolve(
                             result.map(
@@ -431,7 +423,7 @@ export class RustSessionWrapper extends RustSession {
                                         c: string;
                                         id: number;
                                         p: number;
-                                        n: number[];
+                                        n: number;
                                     },
                                     i: number,
                                 ) => {
@@ -483,7 +475,7 @@ export class RustSessionWrapper extends RustSession {
                             c: string;
                             id: number;
                             p: unknown;
-                            n: number[];
+                            n: number;
                         }> = JSON.parse(grabbed);
                         resolve(
                             result.map(
@@ -492,7 +484,7 @@ export class RustSessionWrapper extends RustSession {
                                         c: string;
                                         id: number;
                                         p: unknown;
-                                        n: number[];
+                                        n: number;
                                     },
                                     i: number,
                                 ) => {
@@ -605,42 +597,6 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
-    public addSelection(range: IRange): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this._provider.debug().emit.operation('addSelection');
-            this._native
-                .addSelection([range.from, range.to])
-                .then(resolve)
-                .catch((err) => {
-                    reject(
-                        new NativeError(
-                            NativeError.from(err),
-                            Type.ContentManipulation,
-                            Source.AddSelection,
-                        ),
-                    );
-                });
-        });
-    }
-
-    public removeSelection(range: IRange): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this._provider.debug().emit.operation('removeSelection');
-            this._native
-                .removeSelection([range.from, range.to])
-                .then(resolve)
-                .catch((err) => {
-                    reject(
-                        new NativeError(
-                            NativeError.from(err),
-                            Type.ContentManipulation,
-                            Source.RemoveSelection,
-                        ),
-                    );
-                });
-        });
-    }
-
     public addBookmark(row: number): Promise<void> {
         return new Promise((resolve, reject) => {
             this._provider.debug().emit.operation('addBookmark');
@@ -671,7 +627,7 @@ export class RustSessionWrapper extends RustSession {
                                 c: string;
                                 id: number;
                                 p: number;
-                                n: number[];
+                                n: number;
                             }> = JSON.parse(grabbed);
                             resolve(
                                 result.map(
@@ -680,7 +636,7 @@ export class RustSessionWrapper extends RustSession {
                                             c: string;
                                             id: number;
                                             p: number;
-                                            n: number[];
+                                            n: number;
                                         },
                                         i: number,
                                     ) => {
@@ -737,7 +693,7 @@ export class RustSessionWrapper extends RustSession {
                             c: string;
                             id: number;
                             p: number;
-                            n: number[];
+                            n: number;
                         }> = JSON.parse(grabbed);
                         resolve(
                             result.map(
@@ -746,7 +702,7 @@ export class RustSessionWrapper extends RustSession {
                                         c: string;
                                         id: number;
                                         p: unknown;
-                                        n: number[];
+                                        n: number;
                                     },
                                     i: number,
                                 ) => {

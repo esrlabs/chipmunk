@@ -69,14 +69,6 @@ export class SessionStream {
         return this._session.removeBookmark(row);
     }
 
-    public addSelection(range: IRange): Promise<void> {
-        return this._session.addSelection(range);
-    }
-
-    public removeSelection(range: IRange): Promise<void> {
-        return this._session.removeSelection(range);
-    }
-
     public extendBreadcrumbs(seporator: number, offset: number, above: boolean): Promise<void> {
         return this._session.extendBreadcrumbs(seporator, offset, above);
     }
