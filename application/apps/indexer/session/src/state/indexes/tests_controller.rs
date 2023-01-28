@@ -1,745 +1,1783 @@
 use super::{
     controller::{Controller, Mode},
+    frame::Frame,
     nature::Nature,
 };
 use processor::map::FilterMatch;
 use std::ops::RangeInclusive;
 
-fn get_matches(indexes: Vec<u64>) -> Vec<FilterMatch> {
-    indexes
-        .iter()
-        .map(|i| FilterMatch {
-            index: *i,
-            filters: vec![0],
-        })
-        .collect::<Vec<FilterMatch>>()
+lazy_static! {
+    // If you need to execute some specific test, just define a name
+    // of test(s) here.
+    static ref RUN_ONLY: Vec<String> = vec![];
+    // static ref RUN_ONLY: Vec<String> = vec![String::from("023")];
+}
+
+struct ControllerTest {
+    controller: Controller,
+    pub name: String,
+    pub actions: Vec<Action>,
+}
+
+impl ControllerTest {
+    pub fn create(name: &str, actions: Vec<Action>) -> Self {
+        ControllerTest {
+            controller: Controller::new(None),
+            name: name.to_string(),
+            actions,
+        }
+    }
+
+    pub fn next(&mut self) -> bool {
+        if !RUN_ONLY.is_empty() && !RUN_ONLY.contains(&self.name) {
+            println!("[{}]: Skipped", self.name);
+            return false;
+        }
+        if self.actions.is_empty() {
+            return false;
+        }
+        let action = self.actions.remove(0);
+        println!("[{}]: Action: {action} ", self.name);
+        match action {
+            Action::StreamLen(len) => {
+                self.controller.set_stream_len(len).unwrap();
+            }
+            Action::CheckLen(len) => {
+                if self.controller.len() != len {
+                    eprintln!(
+                        "{}: len of map = {}; expected len = {len}",
+                        self.name,
+                        self.controller.len()
+                    );
+                }
+                assert_eq!(self.controller.len(), len);
+            }
+            Action::SetMode(mode) => {
+                self.controller.set_mode(mode).unwrap();
+            }
+            Action::ExtendBreadcrumbs((sep, offset, above)) => {
+                self.controller
+                    .breadcrumbs_expand(sep, offset, above)
+                    .unwrap();
+            }
+            Action::Search(matches) => {
+                self.controller.set_search_results(&matches).unwrap();
+            }
+            Action::AppendSearch(matches) => {
+                self.controller.append_search_results(&matches).unwrap();
+            }
+            Action::AddBookmark(position) => {
+                self.controller.add_bookmark(position).unwrap();
+            }
+            Action::RemoveBookmark(position) => {
+                self.controller.remove_bookmark(position).unwrap();
+            }
+            Action::Frame((range, control)) => {
+                let mut range = if let Some(range) = range {
+                    range
+                } else {
+                    if self.controller.is_empty() {
+                        RangeInclusive::new(0, 0)
+                    } else {
+                        RangeInclusive::new(0, (self.controller.len() - 1) as u64)
+                    }
+                };
+                let frame = self.controller.frame(&mut range).unwrap();
+                if control.len() != frame.indexes.len() {
+                    self.print_frame(&frame);
+                }
+                assert_eq!(control.len(), frame.indexes.len());
+                frame.indexes.iter().enumerate().for_each(
+                    |(n, (frame_position, frame_natures))| {
+                        let (ctrl_position, ctrl_natures) = control.get(n).unwrap();
+                        if ctrl_position != frame_position || *frame_natures != *ctrl_natures {
+                            self.print_frame(&frame);
+                        }
+                        assert_eq!(ctrl_position, frame_position);
+                        assert_eq!(*frame_natures, *ctrl_natures);
+                    },
+                );
+            }
+        }
+        return !self.actions.is_empty();
+    }
+
+    fn print_frame(&self, frame: &Frame) {
+        println!("{}", "=".repeat(40));
+        println!("Test: {}. Frame", self.name);
+        println!("{}", "=".repeat(40));
+        frame.indexes.iter().enumerate().for_each(|(n, i)| {
+            println!("({n}): {i:?}");
+        });
+        println!("{}", "=".repeat(40));
+    }
+}
+enum Action {
+    // Set len of stream
+    StreamLen(u64),
+    // Checks a len of map usize - expected len
+    CheckLen(usize),
+    // Add searches into map
+    Search(Vec<FilterMatch>),
+    // Append searches into map
+    AppendSearch(Vec<FilterMatch>),
+    // Set mode
+    SetMode(Mode),
+    // Extending breadcrumbs
+    ExtendBreadcrumbs((u64, u64, bool)),
+    // Insert bookmarks into position (used ONLY in breadcrumbs mode)
+    AddBookmark(u64),
+    // Remove bookmarks from position (used ONLY in breadcrumbs mode)
+    RemoveBookmark(u64),
+    // Grab Frame (range, expected len, expected content)
+    Frame((Option<RangeInclusive<u64>>, Vec<(u64, Nature)>)),
+}
+
+impl std::fmt::Display for Action {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Action::StreamLen(len) => format!("StreamLen - {len}"),
+                Action::CheckLen(len) => format!("CheckLen - {len}"),
+                Action::Search(matches) => format!("Search - {matches:?}"),
+                Action::AppendSearch(matches) => format!("AppendSearch - {matches:?}"),
+                Action::SetMode(mode) => format!("BuildBreadcrumbs - {mode:?}"),
+                Action::ExtendBreadcrumbs((sep, offset, above)) =>
+                    format!("ExtendBreadcrumbs - sep={sep}; offset={offset}; above={above}"),
+                Action::AddBookmark(pos) => format!("AddBookmark - {pos}"),
+                Action::RemoveBookmark(pos) => format!("RemoveBookmark - {pos}"),
+                Action::Frame((range, _)) => format!("Frame - {range:?}"),
+            }
+        )
+    }
 }
 
 #[test]
-fn test_a() {
-    let mut controller = Controller::new(None);
-    controller.set_stream_len(30).unwrap();
-    let search_matches = get_matches(vec![0, 10, 20, 30]);
-    controller.append_search_results(&search_matches).unwrap();
-    assert_eq!(controller.len(), search_matches.len());
-    let frame = controller
-        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
-        .unwrap();
-    // We are expecting to see next "picture"
-    let control: Vec<(u64, Nature)> = vec![
-        (0, Nature::Search),
-        (10, Nature::Search),
-        (20, Nature::Search),
-        (30, Nature::Search),
+fn test() {
+    let mut tests: Vec<ControllerTest> = vec![
+        ControllerTest::create(
+            "001",
+            vec![
+                Action::StreamLen(21),
+                Action::Search(vec![
+                    FilterMatch::new(0, vec![]),
+                    FilterMatch::new(10, vec![]),
+                    FilterMatch::new(20, vec![]),
+                ]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::SEARCH),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "002",
+            vec![
+                Action::StreamLen(21),
+                Action::Search(vec![
+                    FilterMatch::new(0, vec![]),
+                    FilterMatch::new(10, vec![]),
+                    FilterMatch::new(20, vec![]),
+                ]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::AddBookmark(0),
+                Action::AddBookmark(20),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::SEARCH.union(Nature::BOOKMARK)),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH.union(Nature::BOOKMARK)),
+                    ],
+                )),
+                Action::RemoveBookmark(0),
+                Action::RemoveBookmark(20),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::SEARCH),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "003",
+            vec![
+                Action::StreamLen(30),
+                Action::Search(vec![
+                    FilterMatch::new(0, vec![]),
+                    FilterMatch::new(10, vec![]),
+                    FilterMatch::new(20, vec![]),
+                ]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::AddBookmark(23),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::SEARCH),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (23, Nature::BOOKMARK),
+                        (24, Nature::BREADCRUMB),
+                        (25, Nature::BREADCRUMB),
+                        (26, Nature::BREADCRUMB),
+                        (27, Nature::BREADCRUMB),
+                        (28, Nature::BREADCRUMB),
+                        (29, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::RemoveBookmark(23),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::SEARCH),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (23, Nature::BREADCRUMB),
+                        (24, Nature::BREADCRUMB),
+                        (25, Nature::BREADCRUMB),
+                        (26, Nature::BREADCRUMB),
+                        (27, Nature::BREADCRUMB),
+                        (28, Nature::BREADCRUMB),
+                        (29, Nature::BREADCRUMB),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "004",
+            vec![
+                Action::StreamLen(21),
+                Action::Search(vec![
+                    FilterMatch::new(0, vec![]),
+                    FilterMatch::new(10, vec![]),
+                    FilterMatch::new(20, vec![]),
+                ]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::AddBookmark(19),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::SEARCH),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BOOKMARK),
+                        (20, Nature::SEARCH),
+                    ],
+                )),
+                Action::RemoveBookmark(19),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::SEARCH),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "005",
+            vec![
+                Action::StreamLen(21),
+                Action::Search(vec![
+                    FilterMatch::new(0, vec![]),
+                    FilterMatch::new(10, vec![]),
+                    FilterMatch::new(20, vec![]),
+                ]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::AddBookmark(11),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::SEARCH),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BOOKMARK),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                    ],
+                )),
+                Action::RemoveBookmark(11),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::SEARCH),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "006",
+            vec![
+                Action::StreamLen(31),
+                Action::Search(vec![
+                    FilterMatch::new(0, vec![]),
+                    FilterMatch::new(10, vec![]),
+                    FilterMatch::new(20, vec![]),
+                ]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::SEARCH),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (25, Nature::BREADCRUMB_SEPORATOR),
+                        (29, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::AddBookmark(30),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::SEARCH),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (25, Nature::BREADCRUMB_SEPORATOR),
+                        (29, Nature::BREADCRUMB),
+                        (30, Nature::BOOKMARK),
+                    ],
+                )),
+                Action::RemoveBookmark(30),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::SEARCH),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (25, Nature::BREADCRUMB_SEPORATOR),
+                        (29, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "007",
+            vec![
+                Action::StreamLen(21),
+                Action::Search(vec![
+                    FilterMatch::new(10, vec![]),
+                    FilterMatch::new(20, vec![]),
+                ]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (4, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "008",
+            vec![
+                Action::StreamLen(21),
+                Action::Search(vec![
+                    FilterMatch::new(5, vec![]),
+                    FilterMatch::new(10, vec![]),
+                    FilterMatch::new(20, vec![]),
+                ]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (3, Nature::BREADCRUMB),
+                        (4, Nature::BREADCRUMB),
+                        (5, Nature::SEARCH),
+                        (6, Nature::BREADCRUMB),
+                        (7, Nature::BREADCRUMB),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "009",
+            vec![
+                Action::StreamLen(25),
+                Action::Search(vec![
+                    FilterMatch::new(5, vec![]),
+                    FilterMatch::new(10, vec![]),
+                    FilterMatch::new(20, vec![]),
+                ]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (3, Nature::BREADCRUMB),
+                        (4, Nature::BREADCRUMB),
+                        (5, Nature::SEARCH),
+                        (6, Nature::BREADCRUMB),
+                        (7, Nature::BREADCRUMB),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (23, Nature::BREADCRUMB),
+                        (24, Nature::BREADCRUMB),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "010",
+            vec![
+                Action::StreamLen(22),
+                Action::Search(vec![
+                    FilterMatch::new(1, vec![]),
+                    FilterMatch::new(10, vec![]),
+                    FilterMatch::new(20, vec![]),
+                ]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::SEARCH),
+                        (2, Nature::BREADCRUMB),
+                        (3, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "011",
+            vec![
+                Action::StreamLen(21),
+                Action::Search(vec![
+                    FilterMatch::new(0, vec![]),
+                    FilterMatch::new(10, vec![]),
+                    FilterMatch::new(20, vec![]),
+                ]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::SEARCH),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "012",
+            vec![
+                Action::StreamLen(20),
+                Action::Search(vec![FilterMatch::new(10, vec![])]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (4, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "013",
+            vec![
+                Action::StreamLen(20),
+                Action::Search(vec![]),
+                Action::CheckLen(0),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::CheckLen(0),
+            ],
+        ),
+        ControllerTest::create(
+            "014",
+            vec![
+                Action::StreamLen(21),
+                Action::Search(vec![FilterMatch::new(20, vec![])]),
+                Action::CheckLen(1),
+                Action::AddBookmark(10),
+                Action::CheckLen(2),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (4, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::BOOKMARK),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "015",
+            vec![
+                Action::StreamLen(51),
+                Action::Search(vec![
+                    FilterMatch::new(10, vec![]),
+                    FilterMatch::new(20, vec![]),
+                    FilterMatch::new(50, vec![]),
+                ]),
+                Action::CheckLen(3),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (4, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (35, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                        (50, Nature::SEARCH),
+                    ],
+                )),
+                Action::ExtendBreadcrumbs((35, 10, true)),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (4, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (23, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (24, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (25, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (26, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (27, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (28, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (29, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (30, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (31, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (32, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (35, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                        (50, Nature::SEARCH),
+                    ],
+                )),
+                Action::ExtendBreadcrumbs((35, 10, true)),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (4, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (23, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (24, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (25, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (26, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (27, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (28, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (29, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (30, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (31, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (32, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (33, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (34, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (35, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                        (50, Nature::SEARCH),
+                    ],
+                )),
+                Action::ExtendBreadcrumbs((35, 15, false)),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (4, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (23, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (24, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (25, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (26, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (27, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (28, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (29, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (30, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (31, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (32, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (33, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (34, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (35, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (36, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (37, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (38, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (39, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (40, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (41, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (42, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (43, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (44, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (45, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (46, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (47, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                        (50, Nature::SEARCH),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "016",
+            vec![
+                Action::StreamLen(20),
+                Action::Search(vec![FilterMatch::new(10, vec![])]),
+                Action::CheckLen(1),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (4, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::ExtendBreadcrumbs((4, 10, true)),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (3, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (4, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::ExtendBreadcrumbs((4, 10, false)),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (3, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (4, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (5, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (6, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (7, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::ExtendBreadcrumbs((15, 100, true)),
+                Action::ExtendBreadcrumbs((15, 100, false)),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (3, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (4, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (5, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (6, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (7, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::SEARCH),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (13, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (14, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (15, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (16, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (17, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "017",
+            vec![
+                Action::StreamLen(50),
+                Action::Search(vec![
+                    FilterMatch::new(0, vec![]),
+                    FilterMatch::new(20, vec![]),
+                ]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::SEARCH),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (10, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (35, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::AddBookmark(10),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::SEARCH),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::BOOKMARK),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (35, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::AppendSearch(vec![
+                    FilterMatch::new(30, vec![]),
+                    FilterMatch::new(40, vec![]),
+                ]),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::SEARCH),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::BOOKMARK),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (25, Nature::BREADCRUMB_SEPORATOR),
+                        (28, Nature::BREADCRUMB),
+                        (29, Nature::BREADCRUMB),
+                        (30, Nature::SEARCH),
+                        (31, Nature::BREADCRUMB),
+                        (32, Nature::BREADCRUMB),
+                        (35, Nature::BREADCRUMB_SEPORATOR),
+                        (38, Nature::BREADCRUMB),
+                        (39, Nature::BREADCRUMB),
+                        (40, Nature::SEARCH),
+                        (41, Nature::BREADCRUMB),
+                        (42, Nature::BREADCRUMB),
+                        (45, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "018",
+            vec![
+                Action::StreamLen(50),
+                Action::Search(vec![
+                    FilterMatch::new(20, vec![]),
+                    FilterMatch::new(40, vec![]),
+                ]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (38, Nature::BREADCRUMB),
+                        (39, Nature::BREADCRUMB),
+                        (40, Nature::SEARCH),
+                        (41, Nature::BREADCRUMB),
+                        (42, Nature::BREADCRUMB),
+                        (45, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::AddBookmark(10),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (4, Nature::BREADCRUMB_SEPORATOR),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::BOOKMARK),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB),
+                        (15, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (38, Nature::BREADCRUMB),
+                        (39, Nature::BREADCRUMB),
+                        (40, Nature::SEARCH),
+                        (41, Nature::BREADCRUMB),
+                        (42, Nature::BREADCRUMB),
+                        (45, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "019",
+            vec![
+                Action::StreamLen(41),
+                Action::Search(vec![
+                    FilterMatch::new(20, vec![]),
+                    FilterMatch::new(40, vec![]),
+                ]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (38, Nature::BREADCRUMB),
+                        (39, Nature::BREADCRUMB),
+                        (40, Nature::SEARCH),
+                    ],
+                )),
+                Action::StreamLen(50),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (38, Nature::BREADCRUMB),
+                        (39, Nature::BREADCRUMB),
+                        (40, Nature::SEARCH),
+                        (41, Nature::BREADCRUMB),
+                        (42, Nature::BREADCRUMB),
+                        (45, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::StreamLen(60),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (38, Nature::BREADCRUMB),
+                        (39, Nature::BREADCRUMB),
+                        (40, Nature::SEARCH),
+                        (41, Nature::BREADCRUMB),
+                        (42, Nature::BREADCRUMB),
+                        (50, Nature::BREADCRUMB_SEPORATOR),
+                        (58, Nature::BREADCRUMB),
+                        (59, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::AddBookmark(59),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (38, Nature::BREADCRUMB),
+                        (39, Nature::BREADCRUMB),
+                        (40, Nature::SEARCH),
+                        (41, Nature::BREADCRUMB),
+                        (42, Nature::BREADCRUMB),
+                        (50, Nature::BREADCRUMB_SEPORATOR),
+                        (58, Nature::BREADCRUMB),
+                        (59, Nature::BOOKMARK),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "020",
+            vec![
+                Action::StreamLen(41),
+                Action::Search(vec![
+                    FilterMatch::new(20, vec![]),
+                    FilterMatch::new(40, vec![]),
+                ]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (38, Nature::BREADCRUMB),
+                        (39, Nature::BREADCRUMB),
+                        (40, Nature::SEARCH),
+                    ],
+                )),
+                Action::StreamLen(50),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (38, Nature::BREADCRUMB),
+                        (39, Nature::BREADCRUMB),
+                        (40, Nature::SEARCH),
+                        (41, Nature::BREADCRUMB),
+                        (42, Nature::BREADCRUMB),
+                        (45, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::ExtendBreadcrumbs((45, 5, true)),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (38, Nature::BREADCRUMB),
+                        (39, Nature::BREADCRUMB),
+                        (40, Nature::SEARCH),
+                        (41, Nature::BREADCRUMB),
+                        (42, Nature::BREADCRUMB),
+                        (43, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (44, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (45, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::StreamLen(60),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (38, Nature::BREADCRUMB),
+                        (39, Nature::BREADCRUMB),
+                        (40, Nature::SEARCH),
+                        (41, Nature::BREADCRUMB),
+                        (42, Nature::BREADCRUMB),
+                        (43, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (44, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (51, Nature::BREADCRUMB_SEPORATOR),
+                        (58, Nature::BREADCRUMB),
+                        (59, Nature::BREADCRUMB),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "021",
+            vec![
+                Action::StreamLen(41),
+                Action::Search(vec![
+                    FilterMatch::new(20, vec![]),
+                    FilterMatch::new(40, vec![]),
+                ]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (38, Nature::BREADCRUMB),
+                        (39, Nature::BREADCRUMB),
+                        (40, Nature::SEARCH),
+                    ],
+                )),
+                Action::StreamLen(50),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (38, Nature::BREADCRUMB),
+                        (39, Nature::BREADCRUMB),
+                        (40, Nature::SEARCH),
+                        (41, Nature::BREADCRUMB),
+                        (42, Nature::BREADCRUMB),
+                        (45, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::ExtendBreadcrumbs((45, 5, false)),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (38, Nature::BREADCRUMB),
+                        (39, Nature::BREADCRUMB),
+                        (40, Nature::SEARCH),
+                        (41, Nature::BREADCRUMB),
+                        (42, Nature::BREADCRUMB),
+                        (45, Nature::BREADCRUMB_SEPORATOR),
+                        (46, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (47, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::StreamLen(60),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (38, Nature::BREADCRUMB),
+                        (39, Nature::BREADCRUMB),
+                        (40, Nature::SEARCH),
+                        (41, Nature::BREADCRUMB),
+                        (42, Nature::BREADCRUMB),
+                        (45, Nature::BREADCRUMB_SEPORATOR),
+                        (46, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (47, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (52, Nature::BREADCRUMB_SEPORATOR),
+                        (58, Nature::BREADCRUMB),
+                        (59, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::ExtendBreadcrumbs((45, 5, true)),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (38, Nature::BREADCRUMB),
+                        (39, Nature::BREADCRUMB),
+                        (40, Nature::SEARCH),
+                        (41, Nature::BREADCRUMB),
+                        (42, Nature::BREADCRUMB),
+                        (43, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (44, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (45, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (46, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (47, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (52, Nature::BREADCRUMB_SEPORATOR),
+                        (58, Nature::BREADCRUMB),
+                        (59, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::StreamLen(100),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::SEARCH),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (38, Nature::BREADCRUMB),
+                        (39, Nature::BREADCRUMB),
+                        (40, Nature::SEARCH),
+                        (41, Nature::BREADCRUMB),
+                        (42, Nature::BREADCRUMB),
+                        (43, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (44, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (45, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (46, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (47, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (72, Nature::BREADCRUMB_SEPORATOR),
+                        (98, Nature::BREADCRUMB),
+                        (99, Nature::BREADCRUMB),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "022",
+            vec![
+                Action::StreamLen(100),
+                Action::Search(vec![FilterMatch::new(50, vec![])]),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (24, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                        (50, Nature::SEARCH),
+                        (51, Nature::BREADCRUMB),
+                        (52, Nature::BREADCRUMB),
+                        (75, Nature::BREADCRUMB_SEPORATOR),
+                        (98, Nature::BREADCRUMB),
+                        (99, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::ExtendBreadcrumbs((24, 5, true)),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (3, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (4, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (5, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (6, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (24, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                        (50, Nature::SEARCH),
+                        (51, Nature::BREADCRUMB),
+                        (52, Nature::BREADCRUMB),
+                        (75, Nature::BREADCRUMB_SEPORATOR),
+                        (98, Nature::BREADCRUMB),
+                        (99, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::AddBookmark(20),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (3, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (4, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (5, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (6, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (12, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::BOOKMARK),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (35, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                        (50, Nature::SEARCH),
+                        (51, Nature::BREADCRUMB),
+                        (52, Nature::BREADCRUMB),
+                        (75, Nature::BREADCRUMB_SEPORATOR),
+                        (98, Nature::BREADCRUMB),
+                        (99, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::AddBookmark(1),
+                Action::AddBookmark(2),
+                Action::AddBookmark(6),
+                Action::AddBookmark(99),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BOOKMARK),
+                        (2, Nature::BOOKMARK.union(Nature::EXPANDED)),
+                        (3, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (4, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (5, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (6, Nature::BOOKMARK.union(Nature::EXPANDED)),
+                        (12, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::BOOKMARK),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (35, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                        (50, Nature::SEARCH),
+                        (51, Nature::BREADCRUMB),
+                        (52, Nature::BREADCRUMB),
+                        (75, Nature::BREADCRUMB_SEPORATOR),
+                        (98, Nature::BREADCRUMB),
+                        (99, Nature::BOOKMARK),
+                    ],
+                )),
+                Action::StreamLen(200),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BOOKMARK),
+                        (2, Nature::BOOKMARK.union(Nature::EXPANDED)),
+                        (3, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (4, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (5, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (6, Nature::BOOKMARK.union(Nature::EXPANDED)),
+                        (12, Nature::BREADCRUMB_SEPORATOR),
+                        (18, Nature::BREADCRUMB),
+                        (19, Nature::BREADCRUMB),
+                        (20, Nature::BOOKMARK),
+                        (21, Nature::BREADCRUMB),
+                        (22, Nature::BREADCRUMB),
+                        (35, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                        (50, Nature::SEARCH),
+                        (51, Nature::BREADCRUMB),
+                        (52, Nature::BREADCRUMB),
+                        (75, Nature::BREADCRUMB_SEPORATOR),
+                        (98, Nature::BREADCRUMB),
+                        (99, Nature::BOOKMARK),
+                        (100, Nature::BREADCRUMB),
+                        (101, Nature::BREADCRUMB),
+                        (149, Nature::BREADCRUMB_SEPORATOR),
+                        (198, Nature::BREADCRUMB),
+                        (199, Nature::BREADCRUMB),
+                    ],
+                )),
+            ],
+        ),
+        ControllerTest::create(
+            "023",
+            vec![
+                Action::StreamLen(50),
+                Action::SetMode(Mode::Breadcrumbs),
+                Action::CheckLen(0),
+                Action::AddBookmark(25),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB_SEPORATOR),
+                        (23, Nature::BREADCRUMB),
+                        (24, Nature::BREADCRUMB),
+                        (25, Nature::BOOKMARK),
+                        (26, Nature::BREADCRUMB),
+                        (27, Nature::BREADCRUMB),
+                        (37, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::RemoveBookmark(25),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB_SEPORATOR),
+                        (23, Nature::BREADCRUMB),
+                        (24, Nature::BREADCRUMB),
+                        (25, Nature::BREADCRUMB),
+                        (26, Nature::BREADCRUMB),
+                        (27, Nature::BREADCRUMB),
+                        (37, Nature::BREADCRUMB_SEPORATOR),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::ExtendBreadcrumbs((37, 2, false)),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB_SEPORATOR),
+                        (23, Nature::BREADCRUMB),
+                        (24, Nature::BREADCRUMB),
+                        (25, Nature::BREADCRUMB),
+                        (26, Nature::BREADCRUMB),
+                        (27, Nature::BREADCRUMB),
+                        (37, Nature::BREADCRUMB_SEPORATOR),
+                        (46, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (47, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::AddBookmark(47),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB_SEPORATOR),
+                        (23, Nature::BREADCRUMB),
+                        (24, Nature::BREADCRUMB),
+                        (25, Nature::BREADCRUMB),
+                        (26, Nature::BREADCRUMB),
+                        (27, Nature::BREADCRUMB),
+                        (37, Nature::BREADCRUMB_SEPORATOR),
+                        (46, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (47, Nature::BOOKMARK.union(Nature::EXPANDED)),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::RemoveBookmark(47),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (12, Nature::BREADCRUMB_SEPORATOR),
+                        (23, Nature::BREADCRUMB),
+                        (24, Nature::BREADCRUMB),
+                        (25, Nature::BREADCRUMB),
+                        (26, Nature::BREADCRUMB),
+                        (27, Nature::BREADCRUMB),
+                        (37, Nature::BREADCRUMB_SEPORATOR),
+                        (46, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (47, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::AddBookmark(12),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB_SEPORATOR),
+                        (10, Nature::BREADCRUMB),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BOOKMARK),
+                        (13, Nature::BREADCRUMB),
+                        (14, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (46, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (47, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::AddBookmark(3),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (3, Nature::BOOKMARK),
+                        (4, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB),
+                        (7, Nature::BREADCRUMB_SEPORATOR),
+                        (10, Nature::BREADCRUMB),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BOOKMARK),
+                        (13, Nature::BREADCRUMB),
+                        (14, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (46, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (47, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+                Action::AddBookmark(6),
+                Action::Frame((
+                    None,
+                    vec![
+                        (0, Nature::BREADCRUMB),
+                        (1, Nature::BREADCRUMB),
+                        (2, Nature::BREADCRUMB),
+                        (3, Nature::BOOKMARK),
+                        (4, Nature::BREADCRUMB),
+                        (5, Nature::BREADCRUMB),
+                        (6, Nature::BOOKMARK),
+                        (7, Nature::BREADCRUMB),
+                        (8, Nature::BREADCRUMB),
+                        (9, Nature::BREADCRUMB),
+                        (10, Nature::BREADCRUMB),
+                        (11, Nature::BREADCRUMB),
+                        (12, Nature::BOOKMARK),
+                        (13, Nature::BREADCRUMB),
+                        (14, Nature::BREADCRUMB),
+                        (30, Nature::BREADCRUMB_SEPORATOR),
+                        (46, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (47, Nature::BREADCRUMB.union(Nature::EXPANDED)),
+                        (48, Nature::BREADCRUMB),
+                        (49, Nature::BREADCRUMB),
+                    ],
+                )),
+            ],
+        ),
     ];
-    assert_eq!(frame.len(), control.len());
-    frame.indexes.iter().enumerate().for_each(|(n, i)| {
-        let (pos, nature) = control.get(n).unwrap();
-        assert_eq!(*pos, i.position);
-        assert_eq!(*nature, *i.natures.first().unwrap());
-    });
-    controller.set_mode(Mode::Breadcrumbs).unwrap();
-    let frame = controller
-        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
-        .unwrap();
-    // We are expecting to see next "picture"
-    let control: Vec<(u64, Nature)> = vec![
-        (0, Nature::Search),
-        (1, Nature::Breadcrumb),
-        (2, Nature::Breadcrumb),
-        (5, Nature::BreadcrumbSeporator),
-        (8, Nature::Breadcrumb),
-        (9, Nature::Breadcrumb),
-        (10, Nature::Search),
-        (11, Nature::Breadcrumb),
-        (12, Nature::Breadcrumb),
-        (15, Nature::BreadcrumbSeporator),
-        (18, Nature::Breadcrumb),
-        (19, Nature::Breadcrumb),
-        (20, Nature::Search),
-        (21, Nature::Breadcrumb),
-        (22, Nature::Breadcrumb),
-        (25, Nature::BreadcrumbSeporator),
-        (28, Nature::Breadcrumb),
-        (29, Nature::Breadcrumb),
-        (30, Nature::Search),
-    ];
-    assert_eq!(frame.len(), control.len());
-    frame.indexes.iter().enumerate().for_each(|(n, i)| {
-        let (pos, nature) = control.get(n).unwrap();
-        assert_eq!(*pos, i.position);
-        assert_eq!(*nature, *i.natures.first().unwrap());
-    });
-    // Increase stream len
-    controller.set_stream_len(40).unwrap();
-    let frame = controller
-        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
-        .unwrap();
-    // We are expecting to see next "picture"
-    let control: Vec<(u64, Nature)> = vec![
-        (0, Nature::Search),
-        (1, Nature::Breadcrumb),
-        (2, Nature::Breadcrumb),
-        (5, Nature::BreadcrumbSeporator),
-        (8, Nature::Breadcrumb),
-        (9, Nature::Breadcrumb),
-        (10, Nature::Search),
-        (11, Nature::Breadcrumb),
-        (12, Nature::Breadcrumb),
-        (15, Nature::BreadcrumbSeporator),
-        (18, Nature::Breadcrumb),
-        (19, Nature::Breadcrumb),
-        (20, Nature::Search),
-        (21, Nature::Breadcrumb),
-        (22, Nature::Breadcrumb),
-        (25, Nature::BreadcrumbSeporator),
-        (28, Nature::Breadcrumb),
-        (29, Nature::Breadcrumb),
-        (30, Nature::Search),
-        (31, Nature::Breadcrumb),
-        (32, Nature::Breadcrumb),
-        (35, Nature::BreadcrumbSeporator),
-        (38, Nature::Breadcrumb),
-        (39, Nature::Breadcrumb),
-    ];
-    assert_eq!(frame.len(), control.len());
-    frame.indexes.iter().enumerate().for_each(|(n, i)| {
-        let (pos, nature) = control.get(n).unwrap();
-        assert_eq!(*pos, i.position);
-        assert_eq!(*nature, *i.natures.first().unwrap());
-    });
-    // Extend bookmarks
-    controller.extend_breadcrumbs(5, 2, true).unwrap();
-    let frame = controller
-        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
-        .unwrap();
-    // We are expecting to see next "picture"
-    let control: Vec<(u64, Nature)> = vec![
-        (0, Nature::Search),
-        (1, Nature::Breadcrumb),
-        (2, Nature::Breadcrumb),
-        (3, Nature::Breadcrumb),
-        (4, Nature::Breadcrumb),
-        (5, Nature::BreadcrumbSeporator),
-        (8, Nature::Breadcrumb),
-        (9, Nature::Breadcrumb),
-        (10, Nature::Search),
-        (11, Nature::Breadcrumb),
-        (12, Nature::Breadcrumb),
-        (15, Nature::BreadcrumbSeporator),
-        (18, Nature::Breadcrumb),
-        (19, Nature::Breadcrumb),
-        (20, Nature::Search),
-        (21, Nature::Breadcrumb),
-        (22, Nature::Breadcrumb),
-        (25, Nature::BreadcrumbSeporator),
-        (28, Nature::Breadcrumb),
-        (29, Nature::Breadcrumb),
-        (30, Nature::Search),
-        (31, Nature::Breadcrumb),
-        (32, Nature::Breadcrumb),
-        (35, Nature::BreadcrumbSeporator),
-        (38, Nature::Breadcrumb),
-        (39, Nature::Breadcrumb),
-    ];
-    assert_eq!(frame.len(), control.len());
-    frame.indexes.iter().enumerate().for_each(|(n, i)| {
-        let (pos, nature) = control.get(n).unwrap();
-        assert_eq!(*pos, i.position);
-        assert_eq!(*nature, *i.natures.first().unwrap());
-    });
-    // Extend bookmarks
-    controller.extend_breadcrumbs(5, 2, false).unwrap();
-    let frame = controller
-        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
-        .unwrap();
-    // We are expecting to see next "picture"
-    let control: Vec<(u64, Nature)> = vec![
-        (0, Nature::Search),
-        (1, Nature::Breadcrumb),
-        (2, Nature::Breadcrumb),
-        (3, Nature::Breadcrumb),
-        (4, Nature::Breadcrumb),
-        (5, Nature::Breadcrumb),
-        (6, Nature::Breadcrumb),
-        (7, Nature::Breadcrumb),
-        (8, Nature::Breadcrumb),
-        (9, Nature::Breadcrumb),
-        (10, Nature::Search),
-        (11, Nature::Breadcrumb),
-        (12, Nature::Breadcrumb),
-        (15, Nature::BreadcrumbSeporator),
-        (18, Nature::Breadcrumb),
-        (19, Nature::Breadcrumb),
-        (20, Nature::Search),
-        (21, Nature::Breadcrumb),
-        (22, Nature::Breadcrumb),
-        (25, Nature::BreadcrumbSeporator),
-        (28, Nature::Breadcrumb),
-        (29, Nature::Breadcrumb),
-        (30, Nature::Search),
-        (31, Nature::Breadcrumb),
-        (32, Nature::Breadcrumb),
-        (35, Nature::BreadcrumbSeporator),
-        (38, Nature::Breadcrumb),
-        (39, Nature::Breadcrumb),
-    ];
-    assert_eq!(frame.len(), control.len());
-    frame.indexes.iter().enumerate().for_each(|(n, i)| {
-        let (pos, nature) = control.get(n).unwrap();
-        assert_eq!(*pos, i.position);
-        assert_eq!(*nature, *i.natures.first().unwrap());
-    });
-    // Increase stream len
-    controller.set_stream_len(100).unwrap();
-    let frame = controller
-        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
-        .unwrap();
-    // We are expecting to see next "picture"
-    let control: Vec<(u64, Nature)> = vec![
-        (0, Nature::Search),
-        (1, Nature::Breadcrumb),
-        (2, Nature::Breadcrumb),
-        (3, Nature::Breadcrumb),
-        (4, Nature::Breadcrumb),
-        (5, Nature::Breadcrumb),
-        (6, Nature::Breadcrumb),
-        (7, Nature::Breadcrumb),
-        (8, Nature::Breadcrumb),
-        (9, Nature::Breadcrumb),
-        (10, Nature::Search),
-        (11, Nature::Breadcrumb),
-        (12, Nature::Breadcrumb),
-        (15, Nature::BreadcrumbSeporator),
-        (18, Nature::Breadcrumb),
-        (19, Nature::Breadcrumb),
-        (20, Nature::Search),
-        (21, Nature::Breadcrumb),
-        (22, Nature::Breadcrumb),
-        (25, Nature::BreadcrumbSeporator),
-        (28, Nature::Breadcrumb),
-        (29, Nature::Breadcrumb),
-        (30, Nature::Search),
-        (31, Nature::Breadcrumb),
-        (32, Nature::Breadcrumb),
-        (65, Nature::BreadcrumbSeporator),
-        (98, Nature::Breadcrumb),
-        (99, Nature::Breadcrumb),
-    ];
-    assert_eq!(frame.len(), control.len());
-    frame.indexes.iter().enumerate().for_each(|(n, i)| {
-        let (pos, nature) = control.get(n).unwrap();
-        assert_eq!(*pos, i.position);
-        assert_eq!(*nature, *i.natures.first().unwrap());
-    });
-    //Add search
-    controller
-        .append_search_results(&get_matches(vec![97, 98]))
-        .unwrap();
-    let frame = controller
-        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
-        .unwrap();
-    // We are expecting to see next "picture"
-    let control: Vec<(u64, Nature)> = vec![
-        (0, Nature::Search),
-        (1, Nature::Breadcrumb),
-        (2, Nature::Breadcrumb),
-        (3, Nature::Breadcrumb),
-        (4, Nature::Breadcrumb),
-        (5, Nature::Breadcrumb),
-        (6, Nature::Breadcrumb),
-        (7, Nature::Breadcrumb),
-        (8, Nature::Breadcrumb),
-        (9, Nature::Breadcrumb),
-        (10, Nature::Search),
-        (11, Nature::Breadcrumb),
-        (12, Nature::Breadcrumb),
-        (15, Nature::BreadcrumbSeporator),
-        (18, Nature::Breadcrumb),
-        (19, Nature::Breadcrumb),
-        (20, Nature::Search),
-        (21, Nature::Breadcrumb),
-        (22, Nature::Breadcrumb),
-        (25, Nature::BreadcrumbSeporator),
-        (28, Nature::Breadcrumb),
-        (29, Nature::Breadcrumb),
-        (30, Nature::Search),
-        (31, Nature::Breadcrumb),
-        (32, Nature::Breadcrumb),
-        (63, Nature::BreadcrumbSeporator),
-        (95, Nature::Breadcrumb),
-        (96, Nature::Breadcrumb),
-        (97, Nature::Search),
-        (98, Nature::Search),
-        (99, Nature::Breadcrumb),
-    ];
-    assert_eq!(frame.len(), control.len());
-    frame.indexes.iter().enumerate().for_each(|(n, i)| {
-        let (pos, nature) = control.get(n).unwrap();
-        assert_eq!(*pos, i.position);
-        assert_eq!(*nature, *i.natures.first().unwrap());
-    });
-
-    //Add search & Increase stream len
-    controller.set_stream_len(120).unwrap();
-    controller
-        .append_search_results(&get_matches(vec![101, 105, 111]))
-        .unwrap();
-    let frame = controller
-        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
-        .unwrap();
-    // We are expecting to see next "picture"
-    let control: Vec<(u64, Nature)> = vec![
-        (0, Nature::Search),
-        (1, Nature::Breadcrumb),
-        (2, Nature::Breadcrumb),
-        (3, Nature::Breadcrumb),
-        (4, Nature::Breadcrumb),
-        (5, Nature::Breadcrumb),
-        (6, Nature::Breadcrumb),
-        (7, Nature::Breadcrumb),
-        (8, Nature::Breadcrumb),
-        (9, Nature::Breadcrumb),
-        (10, Nature::Search),
-        (11, Nature::Breadcrumb),
-        (12, Nature::Breadcrumb),
-        (15, Nature::BreadcrumbSeporator),
-        (18, Nature::Breadcrumb),
-        (19, Nature::Breadcrumb),
-        (20, Nature::Search),
-        (21, Nature::Breadcrumb),
-        (22, Nature::Breadcrumb),
-        (25, Nature::BreadcrumbSeporator),
-        (28, Nature::Breadcrumb),
-        (29, Nature::Breadcrumb),
-        (30, Nature::Search),
-        (31, Nature::Breadcrumb),
-        (32, Nature::Breadcrumb),
-        (63, Nature::BreadcrumbSeporator),
-        (95, Nature::Breadcrumb),
-        (96, Nature::Breadcrumb),
-        (97, Nature::Search),
-        (98, Nature::Search),
-        (99, Nature::Breadcrumb),
-        (100, Nature::Breadcrumb),
-        (101, Nature::Search),
-        (102, Nature::Breadcrumb),
-        (103, Nature::Breadcrumb),
-        (104, Nature::Breadcrumb),
-        (105, Nature::Search),
-        (106, Nature::Breadcrumb),
-        (107, Nature::Breadcrumb),
-        (108, Nature::Breadcrumb),
-        (109, Nature::Breadcrumb),
-        (110, Nature::Breadcrumb),
-        (111, Nature::Search),
-        (112, Nature::Breadcrumb),
-        (113, Nature::Breadcrumb),
-        (115, Nature::BreadcrumbSeporator),
-        (118, Nature::Breadcrumb),
-        (119, Nature::Breadcrumb),
-    ];
-    assert_eq!(frame.len(), control.len());
-    frame.indexes.iter().enumerate().for_each(|(n, i)| {
-        let (pos, nature) = control.get(n).unwrap();
-        assert_eq!(*pos, i.position);
-        assert_eq!(*nature, *i.natures.first().unwrap());
-    });
-    // Add bookmark
-    controller.add_bookmark(60).unwrap();
-    let frame = controller
-        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
-        .unwrap();
-    // We are expecting to see next "picture"
-    let control: Vec<(u64, Nature)> = vec![
-        (0, Nature::Search),
-        (1, Nature::Breadcrumb),
-        (2, Nature::Breadcrumb),
-        (5, Nature::BreadcrumbSeporator),
-        (8, Nature::Breadcrumb),
-        (9, Nature::Breadcrumb),
-        (10, Nature::Search),
-        (11, Nature::Breadcrumb),
-        (12, Nature::Breadcrumb),
-        (15, Nature::BreadcrumbSeporator),
-        (18, Nature::Breadcrumb),
-        (19, Nature::Breadcrumb),
-        (20, Nature::Search),
-        (21, Nature::Breadcrumb),
-        (22, Nature::Breadcrumb),
-        (25, Nature::BreadcrumbSeporator),
-        (28, Nature::Breadcrumb),
-        (29, Nature::Breadcrumb),
-        (30, Nature::Search),
-        (31, Nature::Breadcrumb),
-        (32, Nature::Breadcrumb),
-        (45, Nature::BreadcrumbSeporator),
-        (58, Nature::Breadcrumb),
-        (59, Nature::Breadcrumb),
-        (60, Nature::Bookmark),
-        (61, Nature::Breadcrumb),
-        (62, Nature::Breadcrumb),
-        (78, Nature::BreadcrumbSeporator),
-        (95, Nature::Breadcrumb),
-        (96, Nature::Breadcrumb),
-        (97, Nature::Search),
-        (98, Nature::Search),
-        (99, Nature::Breadcrumb),
-        (100, Nature::Breadcrumb),
-        (101, Nature::Search),
-        (102, Nature::Breadcrumb),
-        (103, Nature::Breadcrumb),
-        (104, Nature::Breadcrumb),
-        (105, Nature::Search),
-        (106, Nature::Breadcrumb),
-        (107, Nature::Breadcrumb),
-        (108, Nature::Breadcrumb),
-        (109, Nature::Breadcrumb),
-        (110, Nature::Breadcrumb),
-        (111, Nature::Search),
-        (112, Nature::Breadcrumb),
-        (113, Nature::Breadcrumb),
-        (115, Nature::BreadcrumbSeporator),
-        (118, Nature::Breadcrumb),
-        (119, Nature::Breadcrumb),
-    ];
-    assert_eq!(frame.len(), control.len());
-    frame.indexes.iter().enumerate().for_each(|(n, i)| {
-        let (pos, nature) = control.get(n).unwrap();
-        assert_eq!(*pos, i.position);
-        assert_eq!(*nature, *i.natures.first().unwrap());
-    });
-    // Remove bookmark
-    controller.remove_bookmark(60).unwrap();
-    let frame = controller
-        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
-        .unwrap();
-    // We are expecting to see next "picture"
-    let control: Vec<(u64, Nature)> = vec![
-        (0, Nature::Search),
-        (1, Nature::Breadcrumb),
-        (2, Nature::Breadcrumb),
-        (5, Nature::BreadcrumbSeporator),
-        (8, Nature::Breadcrumb),
-        (9, Nature::Breadcrumb),
-        (10, Nature::Search),
-        (11, Nature::Breadcrumb),
-        (12, Nature::Breadcrumb),
-        (15, Nature::BreadcrumbSeporator),
-        (18, Nature::Breadcrumb),
-        (19, Nature::Breadcrumb),
-        (20, Nature::Search),
-        (21, Nature::Breadcrumb),
-        (22, Nature::Breadcrumb),
-        (25, Nature::BreadcrumbSeporator),
-        (28, Nature::Breadcrumb),
-        (29, Nature::Breadcrumb),
-        (30, Nature::Search),
-        (31, Nature::Breadcrumb),
-        (32, Nature::Breadcrumb),
-        (63, Nature::BreadcrumbSeporator),
-        (95, Nature::Breadcrumb),
-        (96, Nature::Breadcrumb),
-        (97, Nature::Search),
-        (98, Nature::Search),
-        (99, Nature::Breadcrumb),
-        (100, Nature::Breadcrumb),
-        (101, Nature::Search),
-        (102, Nature::Breadcrumb),
-        (103, Nature::Breadcrumb),
-        (104, Nature::Breadcrumb),
-        (105, Nature::Search),
-        (106, Nature::Breadcrumb),
-        (107, Nature::Breadcrumb),
-        (108, Nature::Breadcrumb),
-        (109, Nature::Breadcrumb),
-        (110, Nature::Breadcrumb),
-        (111, Nature::Search),
-        (112, Nature::Breadcrumb),
-        (113, Nature::Breadcrumb),
-        (115, Nature::BreadcrumbSeporator),
-        (118, Nature::Breadcrumb),
-        (119, Nature::Breadcrumb),
-    ];
-    assert_eq!(frame.len(), control.len());
-    frame.indexes.iter().enumerate().for_each(|(n, i)| {
-        let (pos, nature) = control.get(n).unwrap();
-        assert_eq!(*pos, i.position);
-        assert_eq!(*nature, *i.natures.first().unwrap());
-    });
-    // Set selection & add bookmark
-    controller.add_selection(RangeInclusive::new(1, 9)).unwrap();
-    controller.add_bookmark(60).unwrap();
-    let frame = controller
-        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
-        .unwrap();
-    // We are expecting to see next "picture"
-    let control: Vec<(u64, Nature)> = vec![
-        (0, Nature::Search),
-        (1, Nature::Selection),
-        (2, Nature::Selection),
-        (3, Nature::Selection),
-        (4, Nature::Selection),
-        (5, Nature::Selection),
-        (6, Nature::Selection),
-        (7, Nature::Selection),
-        (8, Nature::Selection),
-        (9, Nature::Selection),
-        (10, Nature::Search),
-        (20, Nature::Search),
-        (30, Nature::Search),
-        (60, Nature::Bookmark),
-        (97, Nature::Search),
-        (98, Nature::Search),
-        (101, Nature::Search),
-        (105, Nature::Search),
-        (111, Nature::Search),
-    ];
-    assert_eq!(frame.len(), control.len());
-    frame.indexes.iter().enumerate().for_each(|(n, i)| {
-        let (pos, nature) = control.get(n).unwrap();
-        assert_eq!(*pos, i.position);
-        assert_eq!(*nature, *i.natures.first().unwrap());
-    });
-    // Back to breadcrumbs
-    controller.set_mode(Mode::Breadcrumbs).unwrap();
-    let frame = controller
-        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
-        .unwrap();
-    // We are expecting to see next "picture"
-    let control: Vec<(u64, Nature)> = vec![
-        (0, Nature::Search),
-        (1, Nature::Breadcrumb),
-        (2, Nature::Breadcrumb),
-        (5, Nature::BreadcrumbSeporator),
-        (8, Nature::Breadcrumb),
-        (9, Nature::Breadcrumb),
-        (10, Nature::Search),
-        (11, Nature::Breadcrumb),
-        (12, Nature::Breadcrumb),
-        (15, Nature::BreadcrumbSeporator),
-        (18, Nature::Breadcrumb),
-        (19, Nature::Breadcrumb),
-        (20, Nature::Search),
-        (21, Nature::Breadcrumb),
-        (22, Nature::Breadcrumb),
-        (25, Nature::BreadcrumbSeporator),
-        (28, Nature::Breadcrumb),
-        (29, Nature::Breadcrumb),
-        (30, Nature::Search),
-        (31, Nature::Breadcrumb),
-        (32, Nature::Breadcrumb),
-        (45, Nature::BreadcrumbSeporator),
-        (58, Nature::Breadcrumb),
-        (59, Nature::Breadcrumb),
-        (60, Nature::Bookmark),
-        (61, Nature::Breadcrumb),
-        (62, Nature::Breadcrumb),
-        (78, Nature::BreadcrumbSeporator),
-        (95, Nature::Breadcrumb),
-        (96, Nature::Breadcrumb),
-        (97, Nature::Search),
-        (98, Nature::Search),
-        (99, Nature::Breadcrumb),
-        (100, Nature::Breadcrumb),
-        (101, Nature::Search),
-        (102, Nature::Breadcrumb),
-        (103, Nature::Breadcrumb),
-        (104, Nature::Breadcrumb),
-        (105, Nature::Search),
-        (106, Nature::Breadcrumb),
-        (107, Nature::Breadcrumb),
-        (108, Nature::Breadcrumb),
-        (109, Nature::Breadcrumb),
-        (110, Nature::Breadcrumb),
-        (111, Nature::Search),
-        (112, Nature::Breadcrumb),
-        (113, Nature::Breadcrumb),
-        (115, Nature::BreadcrumbSeporator),
-        (118, Nature::Breadcrumb),
-        (119, Nature::Breadcrumb),
-    ];
-    // frame.indexes.iter().enumerate().for_each(|(n, i)| {
-    //     println!("{i:?}");
-    // });
-    assert_eq!(frame.len(), control.len());
-    frame.indexes.iter().enumerate().for_each(|(n, i)| {
-        let (pos, nature) = control.get(n).unwrap();
-        assert_eq!(*pos, i.position);
-        assert_eq!(*nature, *i.natures.first().unwrap());
-    });
-}
-
-#[test]
-fn test_b() {
-    let mut controller = Controller::new(None);
-    controller.set_stream_len(30).unwrap();
-    let search_matches = get_matches(vec![0, 10, 20, 30]);
-    controller.append_search_results(&search_matches).unwrap();
-    assert_eq!(controller.len(), search_matches.len());
-    let frame = controller
-        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
-        .unwrap();
-    // We are expecting to see next "picture"
-    let control: Vec<(u64, Vec<Nature>)> = vec![
-        (0, vec![Nature::Search]),
-        (10, vec![Nature::Search]),
-        (20, vec![Nature::Search]),
-        (30, vec![Nature::Search]),
-    ];
-    assert_eq!(frame.len(), control.len());
-    frame.indexes.iter().enumerate().for_each(|(n, i)| {
-        let (pos, natures) = control.get(n).unwrap();
-        assert_eq!(*pos, i.position);
-        natures.iter().for_each(|nature| {
-            assert!(i.natures.iter().any(|n| n == nature));
-        });
-        assert_eq!(natures.len(), i.natures.len());
-    });
-    // Add bookmark
-    controller.add_bookmark(15).unwrap();
-    let frame = controller
-        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
-        .unwrap();
-    // We are expecting to see next "picture"
-    let control: Vec<(u64, Vec<Nature>)> = vec![
-        (0, vec![Nature::Search]),
-        (10, vec![Nature::Search]),
-        (15, vec![Nature::Bookmark]),
-        (20, vec![Nature::Search]),
-        (30, vec![Nature::Search]),
-    ];
-    assert_eq!(frame.len(), control.len());
-    frame.indexes.iter().enumerate().for_each(|(n, i)| {
-        let (pos, natures) = control.get(n).unwrap();
-        assert_eq!(*pos, i.position);
-        natures.iter().for_each(|nature| {
-            assert!(i.natures.iter().any(|n| n == nature));
-        });
-        assert_eq!(natures.len(), i.natures.len());
-    });
-    // Switch to breadcrumbs mode
-    controller.add_bookmark(20).unwrap();
-    controller.set_mode(Mode::Breadcrumbs).unwrap();
-    controller.add_bookmark(30).unwrap();
-    let frame = controller
-        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
-        .unwrap();
-    // We are expecting to see next "picture"
-    let control: Vec<(u64, Vec<Nature>)> = vec![
-        (0, vec![Nature::Search]),
-        (1, vec![Nature::Breadcrumb]),
-        (2, vec![Nature::Breadcrumb]),
-        (5, vec![Nature::BreadcrumbSeporator]),
-        (8, vec![Nature::Breadcrumb]),
-        (9, vec![Nature::Breadcrumb]),
-        (10, vec![Nature::Search]),
-        (11, vec![Nature::Breadcrumb]),
-        (12, vec![Nature::Breadcrumb]),
-        (13, vec![Nature::Breadcrumb]),
-        (14, vec![Nature::Breadcrumb]),
-        (15, vec![Nature::Bookmark]),
-        (16, vec![Nature::Breadcrumb]),
-        (17, vec![Nature::Breadcrumb]),
-        (18, vec![Nature::Breadcrumb]),
-        (19, vec![Nature::Breadcrumb]),
-        (20, vec![Nature::Search, Nature::Bookmark]),
-        (21, vec![Nature::Breadcrumb]),
-        (22, vec![Nature::Breadcrumb]),
-        (25, vec![Nature::BreadcrumbSeporator]),
-        (28, vec![Nature::Breadcrumb]),
-        (29, vec![Nature::Breadcrumb]),
-        (30, vec![Nature::Search, Nature::Bookmark]),
-    ];
-    assert_eq!(frame.len(), control.len());
-    frame.indexes.iter().enumerate().for_each(|(n, i)| {
-        let (pos, natures) = control.get(n).unwrap();
-        assert_eq!(*pos, i.position);
-        natures.iter().for_each(|nature| {
-            assert!(i.natures.iter().any(|n| n == nature));
-        });
-        assert_eq!(natures.len(), i.natures.len());
-    });
-    // Drop search
-    controller.drop_search().unwrap();
-    let frame = controller
-        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
-        .unwrap();
-    // We are expecting to see next "picture"
-    let control: Vec<(u64, Vec<Nature>)> = vec![
-        (0, vec![Nature::Breadcrumb]),
-        (1, vec![Nature::Breadcrumb]),
-        (7, vec![Nature::BreadcrumbSeporator]),
-        (13, vec![Nature::Breadcrumb]),
-        (14, vec![Nature::Breadcrumb]),
-        (15, vec![Nature::Bookmark]),
-        (16, vec![Nature::Breadcrumb]),
-        (17, vec![Nature::Breadcrumb]),
-        (18, vec![Nature::Breadcrumb]),
-        (19, vec![Nature::Breadcrumb]),
-        (20, vec![Nature::Bookmark]),
-        (21, vec![Nature::Breadcrumb]),
-        (22, vec![Nature::Breadcrumb]),
-        (25, vec![Nature::BreadcrumbSeporator]),
-        (28, vec![Nature::Breadcrumb]),
-        (29, vec![Nature::Breadcrumb]),
-        (30, vec![Nature::Bookmark]),
-    ];
-    assert_eq!(frame.len(), control.len());
-    frame.indexes.iter().enumerate().for_each(|(n, i)| {
-        let (pos, natures) = control.get(n).unwrap();
-        assert_eq!(*pos, i.position);
-        natures.iter().for_each(|nature| {
-            assert!(i.natures.iter().any(|n| n == nature));
-        });
-        assert_eq!(natures.len(), i.natures.len());
-    });
-    // Remove bookmarks
-    controller.remove_bookmark(15).unwrap();
-    controller.remove_bookmark(20).unwrap();
-    controller.remove_bookmark(30).unwrap();
-    assert_eq!(controller.len(), 0);
-    // Add bookmarks and selection
-    controller.add_bookmark(15).unwrap();
-    controller.add_bookmark(20).unwrap();
-    controller.add_bookmark(30).unwrap();
-    controller
-        .add_selection(RangeInclusive::new(10, 29))
-        .unwrap();
-    let frame = controller
-        .frame(&mut RangeInclusive::new(0, (controller.len() - 1) as u64))
-        .unwrap();
-    // We are expecting to see next "picture"
-    let control: Vec<(u64, Vec<Nature>)> = vec![
-        (10, vec![Nature::Selection]),
-        (11, vec![Nature::Selection]),
-        (12, vec![Nature::Selection]),
-        (13, vec![Nature::Selection]),
-        (14, vec![Nature::Selection]),
-        (15, vec![Nature::Bookmark, Nature::Selection]),
-        (16, vec![Nature::Selection]),
-        (17, vec![Nature::Selection]),
-        (18, vec![Nature::Selection]),
-        (19, vec![Nature::Selection]),
-        (20, vec![Nature::Bookmark, Nature::Selection]),
-        (21, vec![Nature::Selection]),
-        (22, vec![Nature::Selection]),
-        (23, vec![Nature::Selection]),
-        (24, vec![Nature::Selection]),
-        (25, vec![Nature::Selection]),
-        (26, vec![Nature::Selection]),
-        (27, vec![Nature::Selection]),
-        (28, vec![Nature::Selection]),
-        (29, vec![Nature::Selection]),
-        (30, vec![Nature::Bookmark]),
-    ];
-    assert_eq!(frame.len(), control.len());
-    frame.indexes.iter().enumerate().for_each(|(n, i)| {
-        let (pos, natures) = control.get(n).unwrap();
-        assert_eq!(*pos, i.position);
-        natures.iter().for_each(|nature| {
-            assert!(i.natures.iter().any(|n| n == nature));
-        });
-        assert_eq!(natures.len(), i.natures.len());
+    tests.iter_mut().for_each(|test| {
+        while test.next() {}
+        println!("Test \"{}\" OK", test.name);
     });
 }
