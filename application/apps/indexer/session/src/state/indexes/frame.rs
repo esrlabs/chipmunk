@@ -6,7 +6,7 @@ use crate::{
 use indexer_base::progress::Severity;
 use std::ops::RangeInclusive;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Frame {
     pub indexes: Vec<(u64, Nature)>,
 }
