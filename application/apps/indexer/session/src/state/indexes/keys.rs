@@ -4,29 +4,25 @@ use indexer_base::progress::Severity;
 #[derive(Debug)]
 pub struct Keys {
     keys: Vec<u64>,
+    sorted: bool,
 }
 
 impl Keys {
     pub fn new() -> Self {
-        Keys { keys: vec![] }
+        Keys {
+            keys: vec![],
+            sorted: false,
+        }
     }
     pub fn add(&mut self, position: u64) {
         self.keys.push(position);
+        self.sorted = false;
     }
 
     pub fn remove(&mut self, position: &u64) {
         if let Ok(index) = self.keys.binary_search(position) {
             self.keys.remove(index);
         }
-        // self.keys
-        //     .remove(self.keys.binary_search(position).map_err(|_| NativeError {
-        //         severity: Severity::ERROR,
-        //         kind: NativeErrorKind::Grabber,
-        //         message: Some(String::from(
-        //             "Cannot insert breadcrumbs because indexes are empty",
-        //         )),
-        //     })?);
-        // Ok(())
     }
 
     pub fn clear(&mut self) {
@@ -34,7 +30,10 @@ impl Keys {
     }
 
     pub fn sort(&mut self) {
-        self.keys.sort();
+        if !self.sorted {
+            self.keys.sort();
+            self.sorted = true;
+        }
     }
 
     pub fn get_index(&mut self, position: &u64) -> Result<usize, NativeError> {
@@ -42,9 +41,7 @@ impl Keys {
         self.keys.binary_search(position).map_err(|_| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Grabber,
-            message: Some(String::from(
-                "Cannot insert breadcrumbs because indexes are empty",
-            )),
+            message: Some(format!("Cannot index for position: {position}")),
         })
     }
 
@@ -52,9 +49,22 @@ impl Keys {
         self.keys.get(index).map(|p| *p).ok_or(NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Grabber,
-            message: Some(String::from(
-                "Cannot insert breadcrumbs because indexes are empty",
-            )),
+            message: Some(format!("Cannot find position for index: {index}")),
         })
+    }
+
+    pub fn first(&mut self) -> Option<&u64> {
+        self.sort();
+        self.keys.first()
+    }
+
+    pub fn last(&mut self) -> Option<&u64> {
+        self.sort();
+        self.keys.last()
+    }
+
+    pub fn clone(&mut self) -> Vec<u64> {
+        self.sort();
+        self.keys.clone()
     }
 }
