@@ -462,7 +462,7 @@ impl Map {
         let mut before: Option<u64> = None;
         let mut after: Option<u64> = None;
         let len = self.indexes.keys().len();
-        let key_index = self.keys.get_index(&position)?;
+        let key_index = self.keys.get_index(position)?;
         if key_index > 0 {
             before = Some(self.keys.get_position(key_index - 1)?);
         }

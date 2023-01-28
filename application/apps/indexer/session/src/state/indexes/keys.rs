@@ -46,7 +46,7 @@ impl Keys {
     }
 
     pub fn get_position(&self, index: usize) -> Result<u64, NativeError> {
-        self.keys.get(index).map(|p| *p).ok_or(NativeError {
+        self.keys.get(index).copied().ok_or(NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Grabber,
             message: Some(format!("Cannot find position for index: {index}")),
