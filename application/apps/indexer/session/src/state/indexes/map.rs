@@ -1,11 +1,11 @@
 use super::{frame::Frame, keys::Keys, nature::Nature};
 use crate::events::{NativeError, NativeErrorKind};
 use indexer_base::progress::Severity;
-use std::{cmp, collections::BTreeMap, ops::RangeInclusive};
+use std::{cmp, collections::HashMap, ops::RangeInclusive};
 
 #[derive(Debug)]
 pub struct Map {
-    indexes: BTreeMap<u64, Nature>,
+    indexes: HashMap<u64, Nature>,
     keys: Keys,
     stream_len: u64,
 }
@@ -13,7 +13,7 @@ pub struct Map {
 impl Map {
     pub fn new() -> Self {
         Self {
-            indexes: BTreeMap::new(),
+            indexes: HashMap::new(),
             keys: Keys::new(),
             stream_len: 0,
         }
@@ -136,19 +136,19 @@ impl Map {
         if self.stream_len == 0 || self.is_empty() {
             return Ok(());
         }
-        let keys: Vec<u64> = self.indexes.keys().copied().collect::<Vec<u64>>();
+        let keys: Vec<u64> = self.keys.clone();
         if keys.is_empty() {
             return Ok(());
         }
-        let (first_postion, _) = self.indexes.first_key_value().ok_or(NativeError {
+        let first_postion = *self.keys.first().ok_or(NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Grabber,
             message: Some(String::from(
-                "Cannot insert breadcrumbs because indexes are empty",
+                "Keys vector is empty. Cannot extract first position",
             )),
         })?;
         self.breadcrumbs_insert_between(
-            RangeInclusive::new(0, *first_postion),
+            RangeInclusive::new(0, first_postion),
             min_distance,
             min_offset,
         )?;
@@ -158,9 +158,7 @@ impl Map {
                 return Err(NativeError {
                     severity: Severity::ERROR,
                     kind: NativeErrorKind::Grabber,
-                    message: Some(format!(
-                        "Map map is broken. Fail to compare previous and next elements. Prev: {from}; next: {to}",
-                    )),
+                    message: Some(format!("Map map is broken. Fail to compare previous and next elements. Prev: {from}; next: {to}",)),
                 });
             }
             self.breadcrumbs_insert_between(
@@ -169,15 +167,15 @@ impl Map {
                 min_offset,
             )?;
         }
-        let (last_position, _) = self.indexes.last_key_value().ok_or(NativeError {
+        let last_position = *self.keys.last().ok_or(NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Grabber,
             message: Some(String::from(
-                "Cannot insert breadcrumbs because indexes are empty",
+                "Keys vector is empty. Cannot extract last position",
             )),
         })?;
         self.breadcrumbs_insert_between(
-            RangeInclusive::new(*last_position, self.stream_len - 1),
+            RangeInclusive::new(last_position, self.stream_len - 1),
             min_distance,
             min_offset,
         )?;
@@ -558,10 +556,17 @@ impl Map {
             return Ok(());
         }
         if update_breadcrumbs {
-            if let Some((position, index)) = self.indexes.last_key_value() {
+            let last_postion = *self.keys.last().ok_or(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Grabber,
+                message: Some(String::from(
+                    "Keys vector is empty. Cannot extract last position",
+                )),
+            })?;
+            if let Some(index) = self.indexes.get(&last_postion) {
                 if index.is_pinned() {
                     self.breadcrumbs_insert_between(
-                        RangeInclusive::new(*position, self.stream_len - 1),
+                        RangeInclusive::new(last_postion, self.stream_len - 1),
                         min_distance,
                         min_offset,
                     )?;
@@ -605,20 +610,17 @@ impl Map {
                 )),
             });
         }
-        // let keys = self.indexes.keys().collect::<Vec<&u64>>();
-        // let from_position = keys[*range.start() as usize];
-        // let to_position = keys[*range.end() as usize];
         self.keys.sort();
         let mut frame = Frame::new();
-        frame.set(
-            self.indexes
-                .range(RangeInclusive::new(
-                    self.keys.get_position(*range.start() as usize)?,
-                    self.keys.get_position(*range.end() as usize)?,
-                ))
-                .map(|(pos, nature)| (*pos, *nature))
-                .collect::<Vec<(u64, Nature)>>(),
-        );
+        for index in range {
+            let position = self.keys.get_position(index as usize)?;
+            let nature = self.indexes.get(&position).ok_or(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Grabber,
+                message: Some(format!("Cannot find nature for {position}")),
+            })?;
+            frame.insert((position, *nature));
+        }
         Ok(frame)
     }
 }
