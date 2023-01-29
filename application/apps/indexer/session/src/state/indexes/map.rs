@@ -1,11 +1,12 @@
 use super::{frame::Frame, keys::Keys, nature::Nature};
 use crate::events::{NativeError, NativeErrorKind};
 use indexer_base::progress::Severity;
-use std::{cmp, collections::HashMap, ops::RangeInclusive};
+use rustc_hash::FxHashMap;
+use std::{cmp, ops::RangeInclusive};
 
 #[derive(Debug)]
 pub struct Map {
-    indexes: HashMap<u64, Nature>,
+    indexes: FxHashMap<u64, Nature>,
     keys: Keys,
     stream_len: u64,
 }
@@ -13,7 +14,7 @@ pub struct Map {
 impl Map {
     pub fn new() -> Self {
         Self {
-            indexes: HashMap::new(),
+            indexes: FxHashMap::default(),
             keys: Keys::new(),
             stream_len: 0,
         }
