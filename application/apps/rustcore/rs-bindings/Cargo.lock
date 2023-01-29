@@ -2361,6 +2361,7 @@ dependencies = [
  "merging",
  "parsers",
  "processor",
+ "rustc-hash",
  "serde",
  "serde_json",
  "sources",
