@@ -1,54 +1,29 @@
-<table  mat-table
-        matSort
+<table	matSort
         cdkDropList
-        [dataSource]="data"
+		class="files"
+		[cdkDropListLockAxis]="'y'"
         [cdkDropListData]="data.data"
         (contextmenu)="ngContextMenu($event)"
-        (matSortChange)="ngOnSortChange()"
         (cdkDropListDropped)="ngOnDropListDropped($event)">
-
-    <ng-container matColumnDef="type">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header sortActionDescription="Sort by type" class="type">
-        TYPE
-      </th>
-      <td mat-cell *matCellDef="let element" class="type">{{element.type}}</td>
-    </ng-container>
-  
-    <ng-container matColumnDef="name">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header sortActionDescription="Sort by name" class="name">
-        NAME
-      </th>
-      <td mat-cell *matCellDef="let element" class="name">{{element.name}}</td>
-    </ng-container>
-  
-    <ng-container matColumnDef="path">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header sortActionDescription="Sort by path" class="path">
-        PATH
-      </th>
-      <td mat-cell *matCellDef="let element" class="path">{{element.path}}</td>
-    </ng-container>
-  
-    <ng-container matColumnDef="size">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header sortActionDescription="Sort by size" class="size">
-        SIZE
-      </th>
-      <td mat-cell *matCellDef="let element" class="size">{{element.size}}</td>
-    </ng-container>
-
-
-    <ng-container matColumnDef="modificationDate">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header sortActionDescription="Sort by modification date" class="date">
-        MOD. DATE
-      </th>
-      <td mat-cell *matCellDef="let element" class="date">{{element.modificationDate}}</td>
-    </ng-container>
-
-    <tr mat-header-row *matHeaderRowDef="columns; sticky: true"></tr>
-    <tr mat-row
-        cdkDrag
-        *matRowDef="let row; columns: columns;"
-        [class]="row.selected ? 'selected' : ''"
-        (contextmenu)="ngContextMenu($event, row)"
-        (click)="ngOnRowSelect(row)">
-    </tr>
-  </table>
+	<tr>
+		<th class="color"></th>
+		<th class="type" mat-sort-header="type" sortActionDescription="Sort by type">TYPE</th>
+		<th class="name" mat-sort-header="name" sortActionDescription="Sort by name">NAME</th>
+		<th class="path" mat-sort-header="path" sortActionDescription="Sort by path">PATH</th>
+		<th class="size" mat-sort-header="size" sortActionDescription="Sort by size">SIZE</th>
+		<th class="modification-date" mat-sort-header="modificationDate" sortActionDescription="Sort by modification date">MOD. DATE</th>
+	</tr>
+	<tr	cdkDrag
+		*ngFor="let file of state.files"
+		[class]="'multiple-file-draggable ' + (file.selected ? 'selected-multiple-file' : '')"
+		(click)="ngOnRowSelect(file)"
+		(contextmenu)="ngContextMenu($event, file)">
+		<td class="color"><div class="color-indicator" [ngStyle]="{ 'background-color': file.color, 'opacity': file.selected ? 100 : 0 }"></div></td>
+		<td class="type">{{file.type}}</td>
+		<td class="name">{{file.name}}</td>
+		<td class="path">{{file.path}}</td>
+		<td class="size">{{file.size}}</td>
+		<td class="modification-date">{{file.modificationDate}}</td>
+		<div class="placeholder" *cdkDragPlaceholder></div>
+	</tr>
+</table>

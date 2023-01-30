@@ -5,9 +5,9 @@ import { FileType, File } from '@platform/types/files';
 import * as wasm from '@loader/wasm';
 
 export class FileHolder extends Matchee {
-    private _file: File;
+    private readonly _file: File;
     private _selected: boolean = true;
-    private _color: string;
+    private readonly _color: string;
 
     constructor(matcher: wasm.Matcher, file: File, color: string) {
         super(matcher, { name: file.name, path: file.path });

@@ -5,20 +5,18 @@ import {
     AfterContentInit,
     Input,
     ViewEncapsulation,
-    Output,
-    EventEmitter,
     AfterViewInit,
     OnDestroy,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { MatSort } from '@angular/material/sort';
-import { MatTable, MatTableDataSource } from '@angular/material/table';
+import { MatSort, Sort } from '@angular/material/sort';
+import { MatTableDataSource } from '@angular/material/table';
 import { FileHolder } from '../file.holder';
-import { Subject } from '@platform/env/subscription';
 import { FileType } from '@platform/types/files';
 import { Subscription } from 'rxjs';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { State } from '../state';
 
 export interface IEvent {
     type: EEventType;
@@ -33,6 +31,7 @@ export enum EEventType {
 }
 
 export const COLUMNS = {
+    color: 'color',
     type: 'type',
     name: 'name',
     path: 'path',
@@ -51,16 +50,13 @@ export class TabSourceMultipleFilesStructure
     extends ChangesDetector
     implements AfterContentInit, AfterViewInit, OnDestroy
 {
-    @Input() files!: FileHolder[];
-    @Input() filesUpdate!: Subject<FileHolder[]>;
-
-    @Output() event: EventEmitter<IEvent> = new EventEmitter();
+    @Input() state!: State;
 
     @ViewChild(MatSort) sort!: MatSort;
-    @ViewChild(MatTable) table!: MatTable<any>;
 
     public data!: MatTableDataSource<FileHolder>;
     public readonly columns: string[] = [
+        COLUMNS.color,
         COLUMNS.type,
         COLUMNS.name,
         COLUMNS.path,
@@ -68,44 +64,53 @@ export class TabSourceMultipleFilesStructure
         COLUMNS.modificationDate,
     ];
 
-    private _subscription!: Subscription;
+    private _sortConfig: Sort = { active: '', direction: '' };
+    private _dataConnect!: Subscription;
+    private _sortChange!: Subscription;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
 
     public ngAfterContentInit() {
-        this.data = new MatTableDataSource<FileHolder>(this.files);
-        this.env().subscriber.register(this.filesUpdate.subscribe(this._onFilesUpdate.bind(this)));
+        this.data = new MatTableDataSource<FileHolder>(this.state.files);
+        this.env().subscriber.register(
+            this.state.filesUpdate.subscribe(this._onFilesUpdate.bind(this)),
+        );
         this._subscribe();
     }
 
     public ngAfterViewInit() {
         this.data.sort = this.sort;
+        this.sort.sort({
+            id: this.state.sortConfig.active,
+            start: this.state.sortConfig.direction,
+            disableClear: false,
+        });
+        this._sortChange = this.sort.sortChange.subscribe((sortConfig: Sort) => {
+            this._sortConfig = sortConfig;
+        });
     }
 
     public ngOnDestroy() {
-        this._subscription && this._subscription.unsubscribe();
-    }
-
-    public ngOnSortChange() {
-        this.detectChanges();
-        this.table.renderRows();
+        this.state.sortConfig = this._sortConfig;
+        this._dataConnect && this._dataConnect.unsubscribe();
+        this._sortChange && this._sortChange.unsubscribe();
     }
 
     public ngOnDropListDropped(event: CdkDragDrop<FileHolder[]>) {
         this.sort.sort({ id: '', start: '', disableClear: false });
-        this._subscription && this._subscription.unsubscribe();
+        this._dataConnect && this._dataConnect.unsubscribe();
         moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
         this.data = new MatTableDataSource<FileHolder>(event.container.data);
         this._subscribe();
         this.data.sort = this.sort;
-        this.event.emit({ type: EEventType.sort, files: event.container.data });
+        this.state.event({ type: EEventType.sort, files: event.container.data });
     }
 
     public ngOnRowSelect(file: FileHolder) {
         file.reverseSelect();
-        this.event.next({ type: EEventType.select, files: [] });
+        this.state.event({ type: EEventType.select, files: [] });
     }
 
     public ngContextMenu(event: MouseEvent, file?: FileHolder) {
@@ -115,7 +120,7 @@ export class TabSourceMultipleFilesStructure
             items.push({
                 caption: 'Open File',
                 handler: () => {
-                    this.event.next({ type: EEventType.open, files: [file] });
+                    this.state.event({ type: EEventType.open, files: [file] });
                 },
                 disabled: file.type === FileType.Dlt,
             });
@@ -124,7 +129,7 @@ export class TabSourceMultipleFilesStructure
             {
                 caption: 'Open Selected',
                 handler: () => {
-                    this.event.next({
+                    this.state.event({
                         type: EEventType.open,
                         files: this.data.data.filter((file: FileHolder) => file.selected),
                     });
@@ -140,7 +145,7 @@ export class TabSourceMultipleFilesStructure
                     caption: file.selected ? 'Unselect' : 'Select',
                     handler: () => {
                         file.selected ? file.unselect() : file.select();
-                        this.event.next({ type: EEventType.select, files: [] });
+                        this.state.event({ type: EEventType.select, files: [] });
                     },
                 },
                 {
@@ -149,7 +154,7 @@ export class TabSourceMultipleFilesStructure
                         this.data.data.forEach((f: FileHolder) =>
                             f.type === file.type ? f.select() : f.unselect(),
                         );
-                        this.event.next({ type: EEventType.select, files: [] });
+                        this.state.event({ type: EEventType.select, files: [] });
                     },
                 },
                 {
@@ -160,7 +165,7 @@ export class TabSourceMultipleFilesStructure
                                 f.unselect();
                             }
                         });
-                        this.event.next({ type: EEventType.select, files: [] });
+                        this.state.event({ type: EEventType.select, files: [] });
                     },
                 },
                 {
@@ -173,21 +178,21 @@ export class TabSourceMultipleFilesStructure
                 caption: 'Select All',
                 handler: () => {
                     this.data.data.forEach((f: FileHolder) => f.select());
-                    this.event.next({ type: EEventType.select, files: [] });
+                    this.state.event({ type: EEventType.select, files: [] });
                 },
             },
             {
                 caption: 'Unselect All',
                 handler: () => {
                     this.data.data.forEach((f: FileHolder) => f.unselect());
-                    this.event.next({ type: EEventType.select, files: [] });
+                    this.state.event({ type: EEventType.select, files: [] });
                 },
             },
             {
                 caption: 'Reverse Select All',
                 handler: () => {
                     this.data.data.forEach((f: FileHolder) => f.reverseSelect());
-                    this.event.next({ type: EEventType.select, files: [] });
+                    this.state.event({ type: EEventType.select, files: [] });
                 },
             },
             {
@@ -200,7 +205,7 @@ export class TabSourceMultipleFilesStructure
                     caption: 'Remove',
                     handler: () => {
                         this.data.data = this.data.data.filter((f: FileHolder) => f !== file);
-                        this.event.next({ type: EEventType.update, files: [file] });
+                        this.state.event({ type: EEventType.update, files: [file] });
                     },
                 },
                 {
@@ -213,7 +218,7 @@ export class TabSourceMultipleFilesStructure
                         );
                         this.data.data = kept;
                         removed.length > 0 &&
-                            this.event.next({ type: EEventType.update, files: removed });
+                            this.state.event({ type: EEventType.update, files: removed });
                     },
                 },
             );
@@ -229,14 +234,14 @@ export class TabSourceMultipleFilesStructure
                     );
                     this.data.data = kept;
                     removed.length > 0 &&
-                        this.event.next({ type: EEventType.update, files: removed });
+                        this.state.event({ type: EEventType.update, files: removed });
                 },
             },
             {
                 caption: 'Remove All',
                 handler: () => {
                     this.data.data = [];
-                    this.event.next({ type: EEventType.update, files: [] });
+                    this.state.event({ type: EEventType.update, files: [] });
                 },
             },
         );
@@ -253,8 +258,7 @@ export class TabSourceMultipleFilesStructure
 
     private _subscribe() {
         if (this.data) {
-            this._subscription = this.data.connect().subscribe((files: FileHolder[]) => {
-                files === this.data.data && console.log('Same, duh');
+            this._dataConnect = this.data.connect().subscribe((files: FileHolder[]) => {
                 if (
                     files.length === this.data.data.length &&
                     files.every((file, index) => file === this.data.data[index])
@@ -262,7 +266,7 @@ export class TabSourceMultipleFilesStructure
                     return;
                 }
                 this.data.data = files;
-                this.event.emit({ type: EEventType.sort, files: files });
+                this.state.event({ type: EEventType.sort, files: files });
             });
         }
     }
