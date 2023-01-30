@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 dlt-core = "0.14"
-env_logger = "0.9"
+env_logger = "0.10"
 futures = "0.3"
 indexer_base = { path = "../indexer_base" }
 log = "0.4.17"

@@ -3,7 +3,10 @@ use dlt_core::{
     filtering::DltFilterConfig,
 };
 use futures::{pin_mut, stream::StreamExt};
-use parsers::{dlt::DltParser, MessageStreamItem};
+use parsers::{
+    dlt::{fmt::FormattableMessage, DltParser},
+    MessageStreamItem,
+};
 use sources::{producer::MessageProducer, raw::binary::BinaryByteSource};
 use std::{
     collections::HashMap,
@@ -332,38 +335,19 @@ impl FtIndexer {
         }
     }
 
-    /// Returns a list of files contained in the DLT trace of the given path, if any.
-    pub async fn index(
-        self,
-        input: &Path,
-        filter: Option<DltFilterConfig>,
-        with_storage_header: bool,
-        cancel: CancellationToken,
-    ) -> Option<Vec<FtFile>> {
-        if let Ok(file) = File::open(input) {
-            let reader = BufReader::new(&file);
-            let source = BinaryByteSource::new(reader);
-
-            return self
-                .index_from_source(source, filter, with_storage_header, cancel)
-                .await;
-        }
-
-        None
-    }
-
     /// Returns a list of files contained in the DLT trace of the given byte source, if any.
-    pub async fn index_from_source<R: Read + Seek + Sync + Send>(
+    pub async fn index_from_stream<'a, S>(
         mut self,
-        source: BinaryByteSource<R>,
-        filter: Option<DltFilterConfig>,
-        with_storage_header: bool,
+        mut stream: S,
         cancel: CancellationToken,
-    ) -> Option<Vec<FtFile>> {
-        let parser = DltParser::new(filter.map(|f| f.into()), None, with_storage_header);
-        let mut producer = MessageProducer::new(parser, source, None);
-        let stream = producer.as_stream();
-        pin_mut!(stream);
+    ) -> Option<Vec<FtFile>>
+    where
+        S: futures::Stream<Item = (usize, MessageStreamItem<FormattableMessage<'a>>)> + Unpin,
+    {
+        // let parser = DltParser::new(filter.map(|f| f.into()), None, with_storage_header);
+        // let mut producer = MessageProducer::new(parser, source, None);
+        // let stream = producer.as_stream();
+        // pin_mut!(stream);
 
         let mut index: usize = 0;
         let mut canceled = false;
@@ -690,6 +674,7 @@ impl FtStreamer {
     }
 }
 
+#[allow(clippy::get_first)]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -699,6 +684,7 @@ mod tests {
 
     const CHUNK_SIZE: usize = 10;
 
+    #[allow(clippy::vec_init_then_push)]
     fn ft_files() -> (Vec<u32>, Vec<Message>) {
         let (id1, mut messages1) =
             ft_file("ecu1", "test1.txt", &String::from("test1").into_bytes());
@@ -709,7 +695,6 @@ mod tests {
         let (id3, mut messages3) =
             ft_file("ecu3", "test3.txt", &String::from("test333").into_bytes());
         assert_eq!(3, messages3.len());
-
         let mut messages: Vec<Message> = Vec::new();
         messages.push(messages1.remove(0)); // 1
         messages.push(messages2.remove(0)); // 2
@@ -724,7 +709,7 @@ mod tests {
         (vec![id1, id2, id3], messages)
     }
 
-    fn ft_file<'a>(ecu: &str, name: &str, payload: &'a [u8]) -> (u32, Vec<Message>) {
+    fn ft_file(ecu: &str, name: &str, payload: &[u8]) -> (u32, Vec<Message>) {
         let mut rand = rand::thread_rng();
         let id: u32 = rand.gen::<u32>();
 
@@ -887,7 +872,7 @@ mod tests {
         }
     }
 
-    fn as_bytes(messages: &Vec<Message>) -> Vec<u8> {
+    fn as_bytes(messages: &[Message]) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::new();
         for message in messages.iter() {
             bytes.append(&mut message.as_bytes());
@@ -925,29 +910,31 @@ mod tests {
 
     async fn index(
         indexer: FtIndexer,
-        messages: &Vec<Message>,
+        messages: &[Message],
         filter: Option<DltFilterConfig>,
         canceled: bool,
     ) -> Option<Vec<FtFile>> {
-        let cursor = Cursor::new(as_bytes(&messages));
+        let cursor = Cursor::new(as_bytes(messages));
         let source = BinaryByteSource::new(cursor);
+        let parser = DltParser::new(filter.map(|f| f.into()), None, false);
+        let mut producer = MessageProducer::new(parser, source, None);
+        let stream = producer.as_stream();
+        pin_mut!(stream);
         let cancel = CancellationToken::new();
         if canceled {
             cancel.cancel();
         }
-        indexer
-            .index_from_source(source, filter, false, cancel)
-            .await
+        indexer.index_from_stream(stream, cancel).await
     }
 
     async fn stream(
         streamer: &mut FtStreamer,
-        messages: &Vec<Message>,
+        messages: &[Message],
         filter: Option<DltFilterConfig>,
         files: Option<Vec<&FtFile>>,
         canceled: bool,
     ) -> usize {
-        let cursor = Cursor::new(as_bytes(&messages));
+        let cursor = Cursor::new(as_bytes(messages));
         let source = BinaryByteSource::new(cursor);
         let cancel = CancellationToken::new();
         if canceled {
@@ -1107,7 +1094,7 @@ mod tests {
         assert_eq!(4, size);
         assert!(streamer.is_complete());
 
-        output.assert_file(&format!("{}_test.txt", id), "test");
+        output.assert_file(&format!("{id}_test.txt"), "test");
     }
 
     #[tokio::test]
@@ -1122,7 +1109,7 @@ mod tests {
         assert_eq!(26, size);
         assert!(streamer.is_complete());
 
-        output.assert_file(&format!("{}_test.txt", id), "abcdefghijklmnopqrstuvwxyz");
+        output.assert_file(&format!("{id}_test.txt"), "abcdefghijklmnopqrstuvwxyz");
     }
 
     #[tokio::test]
@@ -1136,7 +1123,6 @@ mod tests {
         let size = stream(&mut streamer, &messages, None, None, false).await;
         assert_eq!(5 + 6 + 7, size);
         assert!(streamer.is_complete());
-
         output.assert_file(&format!("{}_test1.txt", ids.get(0).unwrap()), "test1");
         output.assert_file(&format!("{}_test2.txt", ids.get(1).unwrap()), "test22");
         output.assert_file(&format!("{}_test3.txt", ids.get(2).unwrap()), "test333");
@@ -1165,6 +1151,7 @@ mod tests {
         output.assert_file(&format!("{}_test2.txt", ids.get(1).unwrap()), "test22");
     }
 
+    #[allow(clippy::vec_init_then_push)]
     #[tokio::test]
     async fn test_stream_files_with_index() {
         let (ids, messages) = ft_files();
@@ -1256,7 +1243,7 @@ mod tests {
         assert_eq!(0, streamer.num_streams());
         assert_eq!(1, streamer.num_errors());
 
-        output.assert_file(&format!("{}_test.txt", id), "abcdefghijklmnopqrst");
+        output.assert_file(&format!("{id}_test.txt"), "abcdefghijklmnopqrst");
     }
 
     #[tokio::test]
@@ -1276,7 +1263,7 @@ mod tests {
         assert_eq!(0, streamer.num_streams());
         assert_eq!(1, streamer.num_errors());
 
-        output.assert_file(&format!("{}_test.txt", id), "abcdefghij");
+        output.assert_file(&format!("{id}_test.txt"), "abcdefghij");
     }
 
     #[tokio::test]
@@ -1296,7 +1283,7 @@ mod tests {
         assert_eq!(1, streamer.num_streams());
         assert_eq!(0, streamer.num_errors());
 
-        output.assert_file(&format!("{}_test.txt", id), "abcdefghijklmnopqrstuvwxyz");
+        output.assert_file(&format!("{id}_test.txt"), "abcdefghijklmnopqrstuvwxyz");
     }
 
     #[tokio::test]
@@ -1330,7 +1317,7 @@ mod tests {
         assert!(!streamer.is_complete());
         assert_eq!(0, streamer.num_streams());
         assert_eq!(1, streamer.num_errors());
-        output.assert_file(&format!("{}_test.txt", id), "");
+        output.assert_file(&format!("{id}_test.txt"), "");
 
         let (id, mut messages) = ft_file("ecu", "test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
@@ -1340,14 +1327,14 @@ mod tests {
         assert!(!streamer.is_complete());
         assert_eq!(1, streamer.num_streams());
         assert_eq!(0, streamer.num_errors());
-        output.assert_file(&format!("{}_test.txt", id), "test");
+        output.assert_file(&format!("{id}_test.txt"), "test");
 
         let (id, messages) = ft_file("ecu", "test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
         let size = stream(&mut streamer, &messages, None, None, false).await;
         assert_eq!(4, size);
         assert!(streamer.is_complete());
-        output.assert_file(&format!("{}_test.txt", id), "test");
+        output.assert_file(&format!("{id}_test.txt"), "test");
     }
 
     #[tokio::test]

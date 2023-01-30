@@ -1071,10 +1071,16 @@ pub async fn main() -> Result<()> {
             println!("scan files..");
             let ft_indexer = FtIndexer::new();
             let cancel = CancellationToken::new();
-            let ft_index = ft_indexer
-                .index(file_path, filter_conf, with_storage_header, cancel)
-                .await
-                .unwrap();
+
+            let file = File::open(file_path).expect("file not found");
+            let reader = BufReader::new(&file);
+            let source = BinaryByteSource::new(reader);
+
+            let parser = DltParser::new(None, None, with_storage_header);
+            let mut producer = MessageProducer::new(parser, source, None);
+            let stream = producer.as_stream();
+            pin_mut!(stream);
+            let ft_index = ft_indexer.index_from_stream(stream, cancel).await.unwrap();
             if ft_index.is_empty() {
                 println!("no file(s) found!");
                 std::process::exit(0);
@@ -1105,7 +1111,7 @@ pub async fn main() -> Result<()> {
                 let size = ft_streamer
                     .stream(file_path, None, Some(ft_files), with_storage_header, cancel)
                     .await;
-                println!("{} bytes written", size);
+                println!("{size} bytes written");
 
                 if !ft_streamer.is_complete() {
                     eprintln!("{} streams remaining!", ft_streamer.num_streams());
