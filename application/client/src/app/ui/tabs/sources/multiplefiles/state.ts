@@ -5,45 +5,73 @@ import { Subject } from '@platform/env/subscription';
 import { EEventType, IEvent } from './structure/component';
 import { Holder } from '@module/matcher';
 import { TabControls } from '@service/session';
-import { Instance } from '@platform/env/logger';
 import { InternalAPI } from '@service/ilc';
 import { Filter } from '@ui/env/entities/filter';
 import { Level, Locker } from '@ui/service/lockers';
 import { getUniqueColorTo } from '@ui/styles/colors';
+import { Sort } from '@angular/material/sort';
+
+export interface IMultifile {
+    usedColors: string[];
+    files: FileHolder[];
+}
 
 export class State extends Holder {
-    public readonly filesUpdate: Subject<FileHolder[]> = new Subject();
-
+    private readonly _filesUpdate: Subject<FileHolder[]> = new Subject();
     private _ilc!: InternalAPI;
     private _tab!: TabControls;
     private _files: FileHolder[] = [];
     private _filter!: Filter;
-    private _log!: Instance;
     private _usedColors: string[] = [];
-    private _selectedCount: number = 0;
-    private _selectedTotalSize: number = 0;
-    private _selectedTypes: FileType[] = [];
-    private _selectedFiles: FileHolder[] = [];
+    private _selected: {
+        count: number;
+        files: FileHolder[];
+        totalSize: number;
+        typeCount: { [key: string]: number };
+        types: FileType[];
+    } = {
+        count: 0,
+        files: [],
+        totalSize: 0,
+        typeCount: {},
+        types: [],
+    };
+    private _sortConfig: Sort = { active: '', direction: '' };
 
     constructor() {
         super();
     }
 
-    public init(ilc: InternalAPI, tab: TabControls, files: File[], log: Instance) {
+    public init(ilc: InternalAPI, tab: TabControls, files: File[]): void {
         this._ilc = ilc;
         this._tab = tab;
-        this._files = files.map((file: File) => {
+        files.forEach((file: File) => {
             const color = getUniqueColorTo(this._usedColors);
             this._usedColors.push(color);
-            return new FileHolder(this.matcher, file, color);
+            this._files.push(new FileHolder(this.matcher, file, color));
         });
         this._filter = new Filter(this._ilc);
-        this._log = log;
         this._updateSummary();
     }
 
+    public restore(ilc: InternalAPI) {
+        this._ilc = ilc;
+    }
+
+    public set sortConfig(config: Sort) {
+        this._sortConfig = config;
+    }
+
+    public get sortConfig(): Sort {
+        return this._sortConfig;
+    }
+
+    public get filesUpdate(): Subject<FileHolder[]> {
+        return this._filesUpdate;
+    }
+
     public get selectedFiles(): FileHolder[] {
-        return this._selectedFiles;
+        return this._selected.files;
     }
 
     public get filter(): Filter {
@@ -55,33 +83,43 @@ export class State extends Holder {
     }
 
     public get selectedCount(): number {
-        return this._selectedCount;
+        return this._selected.count;
     }
 
     public get selectedSize(): string {
-        return bytesToStr(this._selectedTotalSize);
+        return bytesToStr(this._selected.totalSize);
     }
 
-    public buttonState(): {
-        openable: boolean;
-        concatable: boolean;
-    } {
-        return {
-            openable:
-                this._selectedFiles.length > 0 &&
-                ![FileType.Dlt, FileType.Pcap, FileType.SomeIP].some((type) =>
-                    this._selectedTypes.includes(type),
-                ),
-            concatable:
-                this._selectedFiles.length > 0 &&
-                ((this._selectedTypes.length === 1 && this._selectedTypes[0] !== FileType.SomeIP) ||
-                    (this._selectedTypes.length === 2 &&
-                        this._selectedTypes.includes(FileType.Any) &&
-                        this._selectedTypes.includes(FileType.Text))),
-        };
+    public get selectedTypes(): FileType[] {
+        return this._selected.types;
     }
 
-    public buttonAction(): {
+    public getTypeCount(type: FileType): number {
+        const count: number | undefined = this._selected.typeCount[type];
+        return count === undefined ? 0 : count;
+    }
+
+    public selectOnly(type: FileType) {
+        this._files.forEach((file: FileHolder) => {
+            if (file.type === type) {
+                file.select();
+            } else {
+                file.unselect();
+            }
+        });
+        this._updateSummary();
+    }
+
+    public isConcatable(): boolean {
+        return (
+            (this._selected.types.length === 1 && this._selected.types[0] !== FileType.SomeIP) ||
+            (this._selected.types.length === 2 &&
+                this._selected.types.includes(FileType.Any) &&
+                this._selected.types.includes(FileType.Text))
+        );
+    }
+
+    public action(): {
         cancel: () => void;
         concat: () => void;
         openEach: (files?: FileHolder[]) => void;
@@ -93,8 +131,8 @@ export class State extends Holder {
             },
             concat: () => {
                 const fileType: FileType =
-                    this._selectedTypes.length === 1 ? this._selectedTypes[0] : FileType.Text;
-                const files: string[] = this._selectedFiles.map(
+                    this._selected.types.length === 1 ? this._selected.types[0] : FileType.Text;
+                const files: string[] = this._selected.files.map(
                     (file: FileHolder) => file.filename,
                 );
                 (() => {
@@ -130,7 +168,7 @@ export class State extends Holder {
                     });
             },
             openEach: (files?: FileHolder[]) => {
-                (files === undefined ? this._selectedFiles : files).forEach((file: FileHolder) => {
+                (files === undefined ? this._selected.files : files).forEach((file: FileHolder) => {
                     switch (file.type) {
                         case FileType.Any:
                         case FileType.Text:
@@ -138,7 +176,7 @@ export class State extends Holder {
                                 .file(file.filename)
                                 .text()
                                 .catch((err: Error) => {
-                                    this._log.error(
+                                    this._ilc.logger.error(
                                         `Fail to open text file; error: ${err.message}`,
                                     );
                                 });
@@ -148,7 +186,9 @@ export class State extends Holder {
                                 .file(file.filename)
                                 .dlt()
                                 .catch((err: Error) => {
-                                    this._log.error(`Fail to open dlt file; error: ${err.message}`);
+                                    this._ilc.logger.error(
+                                        `Fail to open dlt file; error: ${err.message}`,
+                                    );
                                 });
                             break;
                         case FileType.Pcap:
@@ -156,7 +196,7 @@ export class State extends Holder {
                                 .file(file.filename)
                                 .pcap()
                                 .catch((err: Error) => {
-                                    this._log.error(
+                                    this._ilc.logger.error(
                                         `Fail to open pcap file; error: ${err.message}`,
                                     );
                                 });
@@ -184,10 +224,10 @@ export class State extends Holder {
         });
     }
 
-    public onEvent(event: IEvent) {
+    public event(event: IEvent) {
         switch (event.type) {
             case EEventType.open:
-                this.buttonAction().openEach(event.files);
+                this.action().openEach(event.files);
                 break;
             case EEventType.select:
                 this._updateSummary();
@@ -201,6 +241,7 @@ export class State extends Holder {
                     event.files.length === 0
                         ? []
                         : this._files.filter((f: FileHolder) => !event.files.includes(f));
+                this._updateSummary();
                 break;
         }
     }
@@ -217,20 +258,28 @@ export class State extends Holder {
     }
 
     public overviewColorWidth(size: number) {
-        return (size / this._selectedTotalSize) * 100;
+        return (size / this._selected.totalSize) * 100;
     }
 
     private _updateSummary() {
-        this._selectedCount = 0;
-        this._selectedTotalSize = 0;
-        this._selectedTypes = [];
-        this._selectedFiles = [];
+        this._selected = {
+            count: 0,
+            files: [],
+            totalSize: 0,
+            typeCount: {},
+            types: [],
+        };
         this._files.forEach((file: FileHolder) => {
             if (file.selected) {
-                this._selectedCount++;
-                this._selectedTotalSize += file.sizeInByte();
-                !this._selectedTypes.includes(file.type) && this._selectedTypes.push(file.type);
-                this._selectedFiles.push(file);
+                this._selected.count++;
+                this._selected.totalSize += file.sizeInByte();
+                !this._selected.types.includes(file.type) && this._selected.types.push(file.type);
+                if (this._selected.typeCount[file.type] === undefined) {
+                    this._selected.typeCount[file.type] = 1;
+                } else {
+                    this._selected.typeCount[file.type] += 1;
+                }
+                this._selected.files.push(file);
             }
         });
     }

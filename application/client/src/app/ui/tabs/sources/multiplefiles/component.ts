@@ -25,13 +25,13 @@ export class TabSourceMultipleFiles implements AfterContentInit, OnDestroy {
 
     public ngAfterContentInit() {
         const state: State | undefined = this.tab.storage<State>().get();
-        if (state === undefined) {
-            this.state = new State();
-            this.tab.storage().set(this.state);
-        } else {
+        if (state) {
             this.state = state;
+            this.state.restore(this.ilc());
+        } else {
+            this.state = new State();
+            this.state.init(this.ilc(), this.tab, this.files);
         }
-        this.state.init(this.ilc(), this.tab, this.files, this.log());
     }
 
     public ngOnDestroy() {
