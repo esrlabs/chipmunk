@@ -94,6 +94,51 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
+                    Requests.Stream.AddBookmark.Request,
+                    RequestHandlers.Stream.AddBookmark.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Stream.RemoveBookmark.Request,
+                    RequestHandlers.Stream.RemoveBookmark.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Stream.Mode.Request,
+                    RequestHandlers.Stream.Mode.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Stream.Expand.Request,
+                    RequestHandlers.Stream.Expand.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Stream.Indexed.Request,
+                    RequestHandlers.Stream.Indexed.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
                     Requests.Search.Search.Request,
                     RequestHandlers.Search.Search.handler,
                 ),
