@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate bitflags;
-
 pub mod events;
 mod handlers;
 pub mod operations;

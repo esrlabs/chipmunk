@@ -242,7 +242,7 @@ impl Map {
             return Ok(());
         }
         if let Some(index) = self.indexes.get_mut(position) {
-            if !index.contains(nature) {
+            if !index.contains(&nature) {
                 return Err(NativeError {
                     severity: Severity::ERROR,
                     kind: NativeErrorKind::Grabber,

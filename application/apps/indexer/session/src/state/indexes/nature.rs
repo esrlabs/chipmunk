@@ -1,42 +1,26 @@
-use std::ops::BitAnd;
-
 use crate::events::{NativeError, NativeErrorKind};
 use indexer_base::progress::Severity;
 
-bitflags! {
-    pub struct Nature: u8 {
-        const SEARCH /*               */ = 0b00000001; // bit_pos = 0
-        const BOOKMARK /*             */ = 0b00000010; // bit_pos = 1
-        // Internal entity to quick find frame between pinned points
-        const MARKER /*               */ = 0b00010000; // bit_pos = 4
-        const EXPANDED /*             */ = 0b00100000; // bit_pos = 5
-        const BREADCRUMB /*           */ = 0b01000000; // bit_pos = 6
-        const BREADCRUMB_SEPORATOR /* */ = 0b10000000; // bit_pos = 7
-        // Pinned points: SEARCH & BOOKMARKS
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub struct Nature(u8);
+impl Nature {
+    pub const SEARCH: Nature = Nature(1);
+    pub const BOOKMARK: Nature = Nature(1 << 2);
+    // Internal entity to quick find frame between pinned points
+    pub const MARKER: Nature = Nature(1 << 4);
+    pub const EXPANDED: Nature = Nature(1 << 5);
+    pub const BREADCRUMB: Nature = Nature(1 << 6);
+    pub const BREADCRUMB_SEPORATOR: Nature = Nature(1 << 7);
+
+    pub(crate) fn union(&self, other: Nature) -> Nature {
+        Nature(self.0 | other.0)
     }
 }
 
-impl Nature {
-    pub fn new() -> Self {
-        Nature { bits: 0b00000000 }
-    }
-
-    pub fn from(n: u8) -> Result<Self, NativeError> {
-        let mut bits: u8 = 0b00000000;
-        if Self::bit_at(n, 0) {
-            bits |= 0b00000001;
-        }
-        if Self::bit_at(n, 1) {
-            bits |= 0b00000010;
-        }
-        if Self::bit_at(n, 6) {
-            bits |= 0b01000000;
-        }
-        if Self::bit_at(n, 7) {
-            bits |= 0b10000000;
-        }
-        if !Self::bit_at(n, 0) && !Self::bit_at(n, 1) && !Self::bit_at(n, 6) && !Self::bit_at(n, 7)
-        {
+impl TryFrom<u8> for Nature {
+    type Error = NativeError;
+    fn try_from(n: u8) -> Result<Self, Self::Error> {
+        if 0b00111100 & n > 0 {
             return Err(NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::Grabber,
@@ -46,45 +30,54 @@ impl Nature {
                 )),
             });
         }
-        Ok(Nature { bits })
+        Ok(Nature(n))
+    }
+}
+// impl From<NatureKind> for Nature {
+//     fn from(n: NatureKind) -> Self {
+//         Nature(n as u8)
+//     }
+// }
+impl Nature {
+    pub fn new() -> Self {
+        Nature(0)
+    }
+
+    pub fn bits(&self) -> u8 {
+        self.0
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0 == 0
     }
 
     fn as_string(n: u8) -> String {
-        format!(
-            "|{}|{}|{}|{}|{}|{}|{}|{}|",
-            if Self::bit_at(n, 7) { 1 } else { 0 },
-            if Self::bit_at(n, 6) { 1 } else { 0 },
-            if Self::bit_at(n, 5) { 1 } else { 0 },
-            if Self::bit_at(n, 4) { 1 } else { 0 },
-            if Self::bit_at(n, 3) { 1 } else { 0 },
-            if Self::bit_at(n, 2) { 1 } else { 0 },
-            if Self::bit_at(n, 1) { 1 } else { 0 },
-            if Self::bit_at(n, 0) { 1 } else { 0 }
-        )
+        format!("{n:08b}")
     }
 
-    fn bit_at(n: u8, o: u8) -> bool {
-        if o < 8 {
-            n & (1 << o) != 0
-        } else {
-            false
+    pub fn contains(&self, nature: &Nature) -> bool {
+        let mut res = true;
+        for i in 0..=7 {
+            let mask = 1 << i;
+            res &= self.0 & mask >= nature.0 & mask;
         }
+        res
     }
 
     pub fn include(&mut self, nature: Nature) {
-        self.set(nature, true);
+        self.0 |= nature.0;
     }
 
     pub fn exclude(&mut self, nature: Nature) {
-        self.set(nature, false);
+        self.0 &= !nature.0;
     }
 
     pub fn mark(&mut self) {
-        self.set(Nature::MARKER, true);
+        self.0 |= Nature::MARKER.0;
     }
 
     pub fn unmark(&mut self) {
-        self.set(Nature::MARKER, false);
+        self.0 &= Nature::MARKER.0;
     }
 
     pub fn replace_if_empty(&mut self, nature: Nature, replacement: Nature) -> bool {
@@ -110,7 +103,7 @@ impl Nature {
     }
 
     pub fn cross(&self, nature: Nature) -> bool {
-        !self.bitand(nature).is_empty()
+        (self.0 & nature.0) != 0
     }
 
     pub fn is_pinned(&self) -> bool {
@@ -118,27 +111,27 @@ impl Nature {
     }
 
     pub fn is_marker(&self) -> bool {
-        self.contains(Nature::MARKER)
+        self.contains(&Nature::MARKER)
     }
 
     pub fn is_search(&self) -> bool {
-        self.contains(Nature::SEARCH)
+        self.contains(&Nature::SEARCH)
     }
 
     pub fn is_bookmark(&self) -> bool {
-        self.contains(Nature::BOOKMARK)
+        self.contains(&Nature::BOOKMARK)
     }
 
     pub fn is_breadcrumb(&self) -> bool {
-        self.contains(Nature::BREADCRUMB)
+        self.contains(&Nature::BREADCRUMB)
     }
 
     pub fn is_seporator(&self) -> bool {
-        self.contains(Nature::BREADCRUMB_SEPORATOR)
+        self.contains(&Nature::BREADCRUMB_SEPORATOR)
     }
 
     pub fn is_expanded(&self) -> bool {
-        self.contains(Nature::EXPANDED)
+        self.contains(&Nature::EXPANDED)
     }
 }
 
@@ -149,7 +142,7 @@ impl Default for Nature {
 }
 
 #[test]
-fn test() {
+fn test_nature() {
     let mut n = Nature::new();
     assert!(!n.is_search());
     assert!(!n.is_bookmark());
@@ -179,7 +172,7 @@ fn test() {
     assert!(!n.is_breadcrumb());
     assert!(n.is_seporator());
     let imported: u8 = n.bits();
-    let b = Nature::from(imported).unwrap();
+    let b = Nature::try_from(imported).unwrap();
     assert!(!b.is_search());
     assert!(!b.is_bookmark());
     assert!(!b.is_breadcrumb());
@@ -218,8 +211,8 @@ fn test() {
     let right = Nature::BOOKMARK
         .union(Nature::SEARCH)
         .union(Nature::BREADCRUMB);
-    assert!(right.contains(left));
-    assert!(!left.contains(right));
+    assert!(right.contains(&left));
+    assert!(!left.contains(&right));
     assert!(right.cross(left));
     let left = Nature::BOOKMARK
         .union(Nature::SEARCH)
