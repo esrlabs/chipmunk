@@ -149,7 +149,7 @@ describe('Indexes', function () {
                             [48, [NatureTypes.Breadcrumb]],
                             [49, [NatureTypes.Breadcrumb]],
                         ]);
-                        await stream.extendBreadcrumbs(45, 2, false);
+                        await stream.expandBreadcrumbs(45, 2, false);
                         len = await stream.getIndexedLen();
                         expect(len).toEqual(32);
                         items = await stream.grabIndexed(0, len);
@@ -190,7 +190,7 @@ describe('Indexes', function () {
                             [48, [NatureTypes.Breadcrumb]],
                             [49, [NatureTypes.Breadcrumb]],
                         ]);
-                        await stream.extendBreadcrumbs(45, 2, true);
+                        await stream.expandBreadcrumbs(45, 2, true);
                         len = await stream.getIndexedLen();
                         expect(len).toEqual(34);
                         items = await stream.grabIndexed(0, len);

@@ -53,7 +53,7 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract getIndexedLen(): Promise<number>;
 
-    public abstract extendBreadcrumbs(
+    public abstract expandBreadcrumbs(
         seporator: number,
         offset: number,
         above: boolean,
@@ -228,7 +228,7 @@ export abstract class RustSessionNative {
 
     public abstract getIndexedLen(): Promise<number>;
 
-    public abstract extendBreadcrumbs(
+    public abstract expandBreadcrumbs(
         seporator: number,
         offset: number,
         above: boolean,
@@ -561,18 +561,18 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
-    public extendBreadcrumbs(seporator: number, offset: number, above: boolean): Promise<void> {
+    public expandBreadcrumbs(seporator: number, offset: number, above: boolean): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._provider.debug().emit.operation('extendBreadcrumbs');
+            this._provider.debug().emit.operation('expandBreadcrumbs');
             this._native
-                .extendBreadcrumbs(seporator, offset, above)
+                .expandBreadcrumbs(seporator, offset, above)
                 .then(resolve)
                 .catch((err) => {
                     reject(
                         new NativeError(
                             NativeError.from(err),
                             Type.ContentManipulation,
-                            Source.ExtendBreadcrumbs,
+                            Source.ExpandBreadcrumbs,
                         ),
                     );
                 });

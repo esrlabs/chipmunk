@@ -1,6 +1,6 @@
 import { CancelablePromise } from 'platform/env/promise';
 import { ISearchUpdated } from 'platform/types/filter';
-import { Session } from 'rustcore';
+import { Session, IEventIndexedMapUpdated } from 'rustcore';
 import { sessions } from '@service/sessions';
 import { Subscriber } from 'platform/env/subscription';
 import { Instance as Logger } from 'platform/env/logger';
@@ -62,6 +62,21 @@ export const handler = Requests.InjectLogger<
                                 }),
                             );
                         }),
+                    );
+                    subscriber.register(
+                        session
+                            .getEvents()
+                            .IndexedMapUpdated.subscribe((event: IEventIndexedMapUpdated) => {
+                                if (!sessions.exists(uuid)) {
+                                    return;
+                                }
+                                Events.IpcEvent.emit(
+                                    new Events.Stream.IndexedMapUpdated.Event({
+                                        session: uuid,
+                                        len: event.len,
+                                    }),
+                                );
+                            }),
                     );
                     subscriber.register(
                         session.getEvents().FileRead.subscribe(() => {

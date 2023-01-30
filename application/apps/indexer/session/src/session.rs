@@ -141,14 +141,14 @@ impl Session {
             .map_err(ComputationError::NativeError)
     }
 
-    pub async fn extend_breadcrumbs(
+    pub async fn expand_breadcrumbs(
         &self,
         seporator: u64,
         offset: u64,
         above: bool,
     ) -> Result<(), ComputationError> {
         self.state
-            .extend_breadcrumbs(seporator, offset, above)
+            .expand_breadcrumbs(seporator, offset, above)
             .await
             .map_err(ComputationError::NativeError)
     }

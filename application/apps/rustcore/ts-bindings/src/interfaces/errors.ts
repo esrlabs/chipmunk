@@ -40,7 +40,7 @@ export enum Source {
     RemoveSelection = 'RemoveSelection',
     AddSelection = 'AddSelection',
     RemoveBookmark = 'RemoveBookmark',
-    ExtendBreadcrumbs = 'ExtendBreadcrumbs',
+    ExpandBreadcrumbs = 'ExpandBreadcrumbs',
     SetIndexingMode = 'SetIndexingMode',
     GetIndexedLen = 'GetIndexedLen',
     Other = 'Other',

@@ -55,7 +55,7 @@ impl ControllerTest {
             Action::SetMode(mode) => {
                 self.controller.set_mode(mode).unwrap();
             }
-            Action::ExtendBreadcrumbs((sep, offset, above)) => {
+            Action::ExpandBreadcrumbs((sep, offset, above)) => {
                 self.controller
                     .breadcrumbs_expand(sep, offset, above)
                     .unwrap();
@@ -124,7 +124,7 @@ enum Action {
     // Set mode
     SetMode(Mode),
     // Extending breadcrumbs
-    ExtendBreadcrumbs((u64, u64, bool)),
+    ExpandBreadcrumbs((u64, u64, bool)),
     // Insert bookmarks into position (used ONLY in breadcrumbs mode)
     AddBookmark(u64),
     // Remove bookmarks from position (used ONLY in breadcrumbs mode)
@@ -144,8 +144,8 @@ impl std::fmt::Display for Action {
                 Action::Search(matches) => format!("Search - {matches:?}"),
                 Action::AppendSearch(matches) => format!("AppendSearch - {matches:?}"),
                 Action::SetMode(mode) => format!("BuildBreadcrumbs - {mode:?}"),
-                Action::ExtendBreadcrumbs((sep, offset, above)) =>
-                    format!("ExtendBreadcrumbs - sep={sep}; offset={offset}; above={above}"),
+                Action::ExpandBreadcrumbs((sep, offset, above)) =>
+                    format!("ExpandBreadcrumbs - sep={sep}; offset={offset}; above={above}"),
                 Action::AddBookmark(pos) => format!("AddBookmark - {pos}"),
                 Action::RemoveBookmark(pos) => format!("RemoveBookmark - {pos}"),
                 Action::Frame((range, _)) => format!("Frame - {range:?}"),
@@ -748,7 +748,7 @@ fn test() {
                         (50, Nature::SEARCH),
                     ],
                 )),
-                Action::ExtendBreadcrumbs((35, 10, true)),
+                Action::ExpandBreadcrumbs((35, 10, true)),
                 Action::Frame((
                     None,
                     vec![
@@ -782,7 +782,7 @@ fn test() {
                         (50, Nature::SEARCH),
                     ],
                 )),
-                Action::ExtendBreadcrumbs((35, 10, true)),
+                Action::ExpandBreadcrumbs((35, 10, true)),
                 Action::Frame((
                     None,
                     vec![
@@ -818,7 +818,7 @@ fn test() {
                         (50, Nature::SEARCH),
                     ],
                 )),
-                Action::ExtendBreadcrumbs((35, 15, false)),
+                Action::ExpandBreadcrumbs((35, 15, false)),
                 Action::Frame((
                     None,
                     vec![
@@ -891,7 +891,7 @@ fn test() {
                         (19, Nature::BREADCRUMB),
                     ],
                 )),
-                Action::ExtendBreadcrumbs((4, 10, true)),
+                Action::ExpandBreadcrumbs((4, 10, true)),
                 Action::Frame((
                     None,
                     vec![
@@ -910,7 +910,7 @@ fn test() {
                         (19, Nature::BREADCRUMB),
                     ],
                 )),
-                Action::ExtendBreadcrumbs((4, 10, false)),
+                Action::ExpandBreadcrumbs((4, 10, false)),
                 Action::Frame((
                     None,
                     vec![
@@ -932,8 +932,8 @@ fn test() {
                         (19, Nature::BREADCRUMB),
                     ],
                 )),
-                Action::ExtendBreadcrumbs((15, 100, true)),
-                Action::ExtendBreadcrumbs((15, 100, false)),
+                Action::ExpandBreadcrumbs((15, 100, true)),
+                Action::ExpandBreadcrumbs((15, 100, false)),
                 Action::Frame((
                     None,
                     vec![
@@ -1260,7 +1260,7 @@ fn test() {
                         (49, Nature::BREADCRUMB),
                     ],
                 )),
-                Action::ExtendBreadcrumbs((45, 5, true)),
+                Action::ExpandBreadcrumbs((45, 5, true)),
                 Action::Frame((
                     None,
                     vec![
@@ -1361,7 +1361,7 @@ fn test() {
                         (49, Nature::BREADCRUMB),
                     ],
                 )),
-                Action::ExtendBreadcrumbs((45, 5, false)),
+                Action::ExpandBreadcrumbs((45, 5, false)),
                 Action::Frame((
                     None,
                     vec![
@@ -1412,7 +1412,7 @@ fn test() {
                         (59, Nature::BREADCRUMB),
                     ],
                 )),
-                Action::ExtendBreadcrumbs((45, 5, true)),
+                Action::ExpandBreadcrumbs((45, 5, true)),
                 Action::Frame((
                     None,
                     vec![
@@ -1492,7 +1492,7 @@ fn test() {
                         (99, Nature::BREADCRUMB),
                     ],
                 )),
-                Action::ExtendBreadcrumbs((24, 5, true)),
+                Action::ExpandBreadcrumbs((24, 5, true)),
                 Action::Frame((
                     None,
                     vec![
@@ -1648,7 +1648,7 @@ fn test() {
                         (49, Nature::BREADCRUMB),
                     ],
                 )),
-                Action::ExtendBreadcrumbs((37, 2, false)),
+                Action::ExpandBreadcrumbs((37, 2, false)),
                 Action::Frame((
                     None,
                     vec![

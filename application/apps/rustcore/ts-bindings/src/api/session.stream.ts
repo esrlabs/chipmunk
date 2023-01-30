@@ -69,8 +69,8 @@ export class SessionStream {
         return this._session.removeBookmark(row);
     }
 
-    public extendBreadcrumbs(seporator: number, offset: number, above: boolean): Promise<void> {
-        return this._session.extendBreadcrumbs(seporator, offset, above);
+    public expandBreadcrumbs(seporator: number, offset: number, above: boolean): Promise<void> {
+        return this._session.expandBreadcrumbs(seporator, offset, above);
     }
 
     public grabRanges(ranges: IRange[]): Promise<IGrabbedElement[]> {
