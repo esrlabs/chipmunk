@@ -32,23 +32,6 @@ export enum NatureTypes {
     BreadcrumbSeporator = 3,
 }
 
-/*
-        const SEARCH                = 0b00000001; // bit_pos = 0
-        const BOOKMARK              = 0b00000010; // bit_pos = 1
-        // Internal entity to quick find frame between pinned points
-        const MARKER                = 0b00010000; // bit_pos = 4
-        const EXPANDED              = 0b00100000; // bit_pos = 5
-        const BREADCRUMB            = 0b01000000; // bit_pos = 6
-        const BREADCRUMB_SEPORATOR  = 0b10000000; // bit_pos = 7
-*/
-
-// function getBits(int, len) {
-//     const bits = [];
-//     for (let i = len - 1; i > -1; --i) {
-//         bits.push(0x01 & (int >> i));
-//     }
-//     return bits;
-// }
 export class Nature {
     static getBits(int: number, len: number): number[] {
         const bits = [];

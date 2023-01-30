@@ -338,7 +338,7 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    async fn extend_breadcrumbs(
+    async fn expand_breadcrumbs(
         &self,
         seporator: i64,
         offset: i64,
@@ -350,7 +350,7 @@ impl RustSession {
             .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
         if let Some(ref session) = self.session {
             session
-                .extend_breadcrumbs(seporator, offset, above)
+                .expand_breadcrumbs(seporator, offset, above)
                 .await
                 .map_err(ComputationErrorWrapper)?;
             Ok(())

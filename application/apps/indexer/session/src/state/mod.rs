@@ -117,7 +117,7 @@ pub enum Api {
     GetIndexedMapLen(oneshot::Sender<usize>),
     AddBookmark((u64, oneshot::Sender<Result<(), NativeError>>)),
     RemoveBookmark((u64, oneshot::Sender<Result<(), NativeError>>)),
-    ExtendBreadcrumbs {
+    ExpandBreadcrumbs {
         seporator: u64,
         offset: u64,
         above: bool,
@@ -193,7 +193,7 @@ impl Display for Api {
                 Self::GetIndexedMapLen(_) => "GetIndexedMapLen",
                 Self::AddBookmark(_) => "AddBookmark",
                 Self::RemoveBookmark(_) => "RemoveBookmark",
-                Self::ExtendBreadcrumbs { .. } => "ExtendBreadcrumbs",
+                Self::ExpandBreadcrumbs { .. } => "ExpandBreadcrumbs",
                 Self::GrabRanges(_) => "GrabRanges",
                 Self::GetNearestPosition(_) => "GetNearestPosition",
                 Self::GetScaledMap(_) => "GetScaledMap",
@@ -525,7 +525,7 @@ impl SessionStateAPI {
             .await?
     }
 
-    pub async fn extend_breadcrumbs(
+    pub async fn expand_breadcrumbs(
         &self,
         seporator: u64,
         offset: u64,
@@ -533,7 +533,7 @@ impl SessionStateAPI {
     ) -> Result<(), NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(
-            Api::ExtendBreadcrumbs {
+            Api::ExpandBreadcrumbs {
                 seporator,
                 offset,
                 above,
@@ -881,7 +881,7 @@ pub async fn run(
                         NativeError::channel("Failed to respond to Api::RemoveBookmark")
                     })?;
             }
-            Api::ExtendBreadcrumbs {
+            Api::ExpandBreadcrumbs {
                 seporator,
                 offset,
                 above,
@@ -890,7 +890,7 @@ pub async fn run(
                 tx_response
                     .send(state.indexes.breadcrumbs_expand(seporator, offset, above))
                     .map_err(|_| {
-                        NativeError::channel("Failed to respond to Api::ExtendBreadcrumbs")
+                        NativeError::channel("Failed to respond to Api::ExpandBreadcrumbs")
                     })?;
             }
             Api::GrabSearch((range, tx_response)) => {

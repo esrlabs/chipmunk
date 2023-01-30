@@ -21,6 +21,7 @@ export {
     IProgressState,
     IEventMapUpdated,
     IEventMatchesUpdated,
+    IEventIndexedMapUpdated,
 } from './api/session';
 
 export {

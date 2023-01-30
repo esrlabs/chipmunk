@@ -19,6 +19,7 @@ export {
     IProgressState,
     IEventMapUpdated,
     IEventMatchesUpdated,
+    IEventIndexedMapUpdated,
 } from '../api/session.provider';
 export { Observe } from '../interfaces/index';
 export { EventProvider, SessionStream, SessionSearch };
