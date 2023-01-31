@@ -303,6 +303,27 @@ impl RustSession {
             ))
         }
     }
+
+    #[node_bindgen]
+    async fn get_around_indexes(
+        &self,
+        position: i64,
+    ) -> Result<(Option<i64>, Option<i64>), ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            session
+                .get_around_indexes(position as u64)
+                .await
+                .map(|(b, a)| (b.map(|p| p as i64), a.map(|p| p as i64)))
+                .map_err(ComputationErrorWrapper)
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    //
+
     #[node_bindgen]
     async fn add_bookmark(&self, row: i64) -> Result<(), ComputationErrorWrapper> {
         let row = u64::try_from(row)

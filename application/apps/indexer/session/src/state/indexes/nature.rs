@@ -6,8 +6,6 @@ pub struct Nature(u8);
 impl Nature {
     pub const SEARCH: Nature = Nature(1);
     pub const BOOKMARK: Nature = Nature(1 << 2);
-    // Internal entity to quick find frame between pinned points
-    pub const MARKER: Nature = Nature(1 << 4);
     pub const EXPANDED: Nature = Nature(1 << 5);
     pub const BREADCRUMB: Nature = Nature(1 << 6);
     pub const BREADCRUMB_SEPORATOR: Nature = Nature(1 << 7);
@@ -33,11 +31,7 @@ impl TryFrom<u8> for Nature {
         Ok(Nature(n))
     }
 }
-// impl From<NatureKind> for Nature {
-//     fn from(n: NatureKind) -> Self {
-//         Nature(n as u8)
-//     }
-// }
+
 impl Nature {
     pub fn new() -> Self {
         Nature(0)
@@ -72,14 +66,6 @@ impl Nature {
         self.0 &= !nature.0;
     }
 
-    pub fn mark(&mut self) {
-        self.0 |= Nature::MARKER.0;
-    }
-
-    pub fn unmark(&mut self) {
-        self.0 &= Nature::MARKER.0;
-    }
-
     pub fn replace_if_empty(&mut self, nature: Nature, replacement: Nature) -> bool {
         self.exclude(nature);
         if self.is_empty() {
@@ -108,10 +94,6 @@ impl Nature {
 
     pub fn is_pinned(&self) -> bool {
         !self.is_breadcrumb() && !self.is_seporator()
-    }
-
-    pub fn is_marker(&self) -> bool {
-        self.contains(&Nature::MARKER)
     }
 
     pub fn is_search(&self) -> bool {
@@ -171,12 +153,19 @@ fn test_nature() {
     assert!(!n.is_bookmark());
     assert!(!n.is_breadcrumb());
     assert!(n.is_seporator());
+    assert!(!n.is_empty());
+    n.exclude(Nature::BREADCRUMB_SEPORATOR);
+    assert!(n.is_empty());
+    n.include(Nature::BREADCRUMB_SEPORATOR);
     let imported: u8 = n.bits();
-    let b = Nature::try_from(imported).unwrap();
+    let mut b = Nature::try_from(imported).unwrap();
     assert!(!b.is_search());
     assert!(!b.is_bookmark());
     assert!(!b.is_breadcrumb());
     assert!(b.is_seporator());
+    b.exclude(Nature::BREADCRUMB_SEPORATOR);
+    assert!(!b.is_seporator());
+    assert!(b.is_empty());
     let n = Nature::SEARCH;
     assert!(n.is_search());
     assert!(!n.is_bookmark());
@@ -221,11 +210,6 @@ fn test_nature() {
     assert!(left.cross(Nature::BOOKMARK));
     assert!(left.cross(Nature::BREADCRUMB));
     assert!(!left.cross(Nature::BREADCRUMB_SEPORATOR));
-    assert!(!left.cross(Nature::MARKER));
-    assert!(left.cross(
-        Nature::BREADCRUMB
-            .union(Nature::BREADCRUMB_SEPORATOR)
-            .union(Nature::MARKER)
-    ));
-    assert!(!left.cross(Nature::BREADCRUMB_SEPORATOR.union(Nature::MARKER)));
+    assert!(left.cross(Nature::BREADCRUMB.union(Nature::BREADCRUMB_SEPORATOR)));
+    assert!(!left.cross(Nature::BREADCRUMB_SEPORATOR));
 }

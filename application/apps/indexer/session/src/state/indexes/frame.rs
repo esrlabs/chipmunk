@@ -54,7 +54,7 @@ impl Frame {
         ranges
     }
 
-    pub fn naturalize(&self, elements: &mut Vec<GrabbedElement>) -> Result<(), NativeError> {
+    pub fn naturalize(&self, elements: &mut [GrabbedElement]) -> Result<(), NativeError> {
         if elements.len() != self.indexes.len() {
             return Err(NativeError {
                 severity: Severity::ERROR,

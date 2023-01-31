@@ -1,5 +1,8 @@
 use super::{frame::Frame, map::Map, nature::Nature};
-use crate::events::{CallbackEvent, NativeError};
+use crate::{
+    events::{CallbackEvent, NativeError},
+    state::GrabbedElement,
+};
 use log::error;
 use processor::map::FilterMatch;
 use std::ops::RangeInclusive;
@@ -39,6 +42,7 @@ impl Controller {
             Mode::Breadcrumbs => {
                 self.map.clean(Nature::BREADCRUMB);
                 self.map.clean(Nature::BREADCRUMB_SEPORATOR);
+                self.map.clean(Nature::EXPANDED);
             }
             Mode::Regular => {
                 // Nothing to do
@@ -147,7 +151,18 @@ impl Controller {
         Ok(())
     }
 
-    pub fn breadcrumbs_expand(
+    pub(crate) fn get_around_indexes(
+        &mut self,
+        position: &u64,
+    ) -> Result<(Option<u64>, Option<u64>), NativeError> {
+        self.map.get_around_indexes(position)
+    }
+
+    pub(crate) fn naturalize(&self, elements: &mut [GrabbedElement]) {
+        self.map.naturalize(elements);
+    }
+
+    pub(crate) fn breadcrumbs_expand(
         &mut self,
         seporator: u64,
         offset: u64,
@@ -158,16 +173,16 @@ impl Controller {
         Ok(())
     }
 
-    pub fn frame(&mut self, range: &mut RangeInclusive<u64>) -> Result<Frame, NativeError> {
+    pub(crate) fn frame(&mut self, range: &mut RangeInclusive<u64>) -> Result<Frame, NativeError> {
         self.map.frame(range)
     }
 
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.map.len()
     }
 
     #[must_use]
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
