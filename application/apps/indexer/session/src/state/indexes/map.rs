@@ -256,36 +256,38 @@ impl Map {
 
     pub fn breadcrumbs_drop_and_update(
         &mut self,
-        position: &u64,
+        positions: &[u64],
         nature: Nature,
     ) -> Result<(), NativeError> {
         if self.stream_len == 0 {
             return Ok(());
         }
-        if let Some(index) = self.indexes.get_mut(position) {
-            if !index.contains(&nature) {
+        for position in positions.iter() {
+            if let Some(index) = self.indexes.get_mut(position) {
+                if !index.contains(&nature) {
+                    return Err(NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::Grabber,
+                        message: Some(format!("Index doesn't include target nature {nature:?}")),
+                    });
+                }
+                if index.cross(Nature::BREADCRUMB.union(Nature::BREADCRUMB_SEPORATOR)) {
+                    return Err(NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::Grabber,
+                        message: Some(String::from("Cannot drop Nature::BREADCRUMB | Nature::BREADCRUMB_SEPORATOR | Nature::Search to modify indexed map")),
+                    });
+                }
+                if !index.replace_if_empty(nature, Nature::BREADCRUMB) {
+                    index.set_if_cross(Nature::EXPANDED, Nature::BREADCRUMB);
+                }
+            } else {
                 return Err(NativeError {
                     severity: Severity::ERROR,
                     kind: NativeErrorKind::Grabber,
-                    message: Some(format!("Index doesn't include target nature {nature:?}")),
+                    message: Some(String::from("Fail to find Index for position {position}")),
                 });
             }
-            if index.cross(Nature::BREADCRUMB.union(Nature::BREADCRUMB_SEPORATOR)) {
-                return Err(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Grabber,
-                    message: Some(String::from("Cannot drop Nature::BREADCRUMB | Nature::BREADCRUMB_SEPORATOR | Nature::Search to modify indexed map")),
-                });
-            }
-            if !index.replace_if_empty(nature, Nature::BREADCRUMB) {
-                index.set_if_cross(Nature::EXPANDED, Nature::BREADCRUMB);
-            }
-        } else {
-            return Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
-                message: Some(String::from("Fail to find Index for position {position}")),
-            });
         }
         Ok(())
     }

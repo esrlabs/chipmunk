@@ -322,8 +322,6 @@ impl RustSession {
         }
     }
 
-    //
-
     #[node_bindgen]
     async fn add_bookmark(&self, row: i64) -> Result<(), ComputationErrorWrapper> {
         let row = u64::try_from(row)
@@ -331,6 +329,28 @@ impl RustSession {
         if let Some(ref session) = self.session {
             session
                 .add_bookmark(row)
+                .await
+                .map_err(ComputationErrorWrapper)?;
+            Ok(())
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
+    async fn set_bookmarks(&self, rows: Vec<i64>) -> Result<(), ComputationErrorWrapper> {
+        let mut converted: Vec<u64> = vec![];
+        for row in rows.iter() {
+            converted.push(
+                u64::try_from(*row)
+                    .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?,
+            );
+        }
+        if let Some(ref session) = self.session {
+            session
+                .set_bookmarks(converted)
                 .await
                 .map_err(ComputationErrorWrapper)?;
             Ok(())

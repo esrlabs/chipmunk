@@ -144,6 +144,13 @@ impl Session {
             .map_err(ComputationError::NativeError)
     }
 
+    pub async fn set_bookmarks(&self, rows: Vec<u64>) -> Result<(), ComputationError> {
+        self.state
+            .set_bookmarks(rows)
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
     pub async fn remove_bookmark(&self, row: u64) -> Result<(), ComputationError> {
         self.state
             .remove_bookmark(row)
