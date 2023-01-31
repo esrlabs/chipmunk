@@ -1,5 +1,8 @@
 use super::{frame::Frame, keys::Keys, nature::Nature};
-use crate::events::{NativeError, NativeErrorKind};
+use crate::{
+    events::{NativeError, NativeErrorKind},
+    state::GrabbedElement,
+};
 use indexer_base::progress::Severity;
 use rustc_hash::FxHashMap;
 use std::{cmp, ops::RangeInclusive};
@@ -54,6 +57,23 @@ impl Map {
                 }
             }
         });
+    }
+
+    pub fn naturalize(&self, elements: &mut [GrabbedElement]) {
+        elements.iter_mut().for_each(|el| {
+            if let Some(nature) = self.indexes.get(&(el.pos as u64)) {
+                el.set_nature(nature.bits());
+            }
+            // It's normal use-case when element isn't in indexed map. In this case nature will be
+            // equal to 0
+        });
+    }
+
+    pub fn get_around_indexes(
+        &mut self,
+        position: &u64,
+    ) -> Result<(Option<u64>, Option<u64>), NativeError> {
+        self.keys.get_positions_around(position)
     }
 
     fn remove_range(&mut self, range: RangeInclusive<u64>, nature: Nature) {
@@ -134,6 +154,7 @@ impl Map {
     ) -> Result<(), NativeError> {
         self.clean(Nature::BREADCRUMB);
         self.clean(Nature::BREADCRUMB_SEPORATOR);
+        self.clean(Nature::EXPANDED);
         if self.stream_len == 0 || self.is_empty() {
             return Ok(());
         }
@@ -530,7 +551,7 @@ impl Map {
         let mut to_be_removed: Vec<u64> = vec![];
         self.indexes.iter_mut().for_each(|(position, index)| {
             index.exclude(nature);
-            if nature.is_empty() {
+            if index.is_empty() {
                 to_be_removed.push(*position)
             }
         });

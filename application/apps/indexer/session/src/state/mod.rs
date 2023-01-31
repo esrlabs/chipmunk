@@ -115,6 +115,13 @@ pub enum Api {
     ),
     SetIndexingMode((IndexesMode, oneshot::Sender<Result<(), NativeError>>)),
     GetIndexedMapLen(oneshot::Sender<usize>),
+    #[allow(clippy::type_complexity)]
+    GetDistancesAroundIndex(
+        (
+            u64,
+            oneshot::Sender<Result<(Option<u64>, Option<u64>), NativeError>>,
+        ),
+    ),
     AddBookmark((u64, oneshot::Sender<Result<(), NativeError>>)),
     RemoveBookmark((u64, oneshot::Sender<Result<(), NativeError>>)),
     ExpandBreadcrumbs {
@@ -191,6 +198,7 @@ impl Display for Api {
                 Self::GrabIndexed(_) => "GrabIndexed",
                 Self::SetIndexingMode(_) => "SetIndexingMode",
                 Self::GetIndexedMapLen(_) => "GetIndexedMapLen",
+                Self::GetDistancesAroundIndex(_) => "GetDistancesAroundIndex",
                 Self::AddBookmark(_) => "AddBookmark",
                 Self::RemoveBookmark(_) => "RemoveBookmark",
                 Self::ExpandBreadcrumbs { .. } => "ExpandBreadcrumbs",
@@ -240,6 +248,12 @@ impl SessionState {
         }
     }
 
+    fn handle_grab(&mut self, range: &LineRange) -> Result<Vec<GrabbedElement>, NativeError> {
+        let mut elements = self.session_file.grab(range)?;
+        self.indexes.naturalize(&mut elements);
+        Ok(elements)
+    }
+
     fn handle_grab_indexed(
         &mut self,
         mut range: RangeInclusive<u64>,
@@ -285,6 +299,7 @@ impl SessionState {
             let mut session_elements = self.session_file.grab(&LineRange::from(range.clone()))?;
             elements.append(&mut session_elements);
         }
+        self.indexes.naturalize(&mut elements);
         Ok(elements)
     }
 
@@ -297,8 +312,10 @@ impl SessionState {
             let mut session_elements = self.session_file.grab(&LineRange::from(range.clone()))?;
             elements.append(&mut session_elements);
         }
+        self.indexes.naturalize(&mut elements);
         Ok(elements)
     }
+
     async fn handle_write_session_file(
         &mut self,
         source_id: u8,
@@ -512,6 +529,15 @@ impl SessionStateAPI {
     pub async fn get_indexed_len(&self) -> Result<usize, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetIndexedMapLen(tx), rx).await
+    }
+
+    pub async fn get_around_indexes(
+        &self,
+        position: u64,
+    ) -> Result<(Option<u64>, Option<u64>), NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GetDistancesAroundIndex((position, tx)), rx)
+            .await?
     }
 
     pub async fn add_bookmark(&self, row: u64) -> Result<(), NativeError> {
@@ -849,7 +875,7 @@ pub async fn run(
             }
             Api::Grab((range, tx_response)) => {
                 tx_response
-                    .send(state.session_file.grab(&range))
+                    .send(state.handle_grab(&range))
                     .map_err(|_| NativeError::channel("Failed to respond to Api::Grab"))?;
             }
             Api::GrabIndexed((range, tx_response)) => {
@@ -868,6 +894,13 @@ pub async fn run(
                 tx_response.send(state.indexes.len()).map_err(|_| {
                     NativeError::channel("Failed to respond to Api::GetIndexedMapLen")
                 })?;
+            }
+            Api::GetDistancesAroundIndex((position, tx_response)) => {
+                tx_response
+                    .send(state.indexes.get_around_indexes(&position))
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::GetIndexedMapLen")
+                    })?;
             }
             Api::AddBookmark((row, tx_response)) => {
                 tx_response

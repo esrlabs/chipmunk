@@ -53,6 +53,27 @@ impl Keys {
         })
     }
 
+    pub fn get_positions_around(
+        &mut self,
+        position: &u64,
+    ) -> Result<(Option<u64>, Option<u64>), NativeError> {
+        let mut before: Option<u64> = None;
+        let mut after: Option<u64> = None;
+        self.sort();
+        let key = self.keys.binary_search(position).map_err(|_| NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Grabber,
+            message: Some(format!("Cannot index for position: {position}")),
+        })?;
+        if key > 0 {
+            before = Some(self.keys[key - 1]);
+        }
+        if (key + 1) < self.keys.len() {
+            after = Some(self.keys[key + 1]);
+        }
+        Ok((before, after))
+    }
+
     pub fn first(&mut self) -> Option<&u64> {
         self.sort();
         self.keys.first()

@@ -2352,7 +2352,6 @@ dependencies = [
 name = "session"
 version = "0.1.0"
 dependencies = [
- "bitflags",
  "crossbeam-channel",
  "dirs",
  "futures 0.3.25",

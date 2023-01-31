@@ -127,6 +127,16 @@ impl Session {
             .map_err(ComputationError::NativeError)
     }
 
+    pub async fn get_around_indexes(
+        &self,
+        position: u64,
+    ) -> Result<(Option<u64>, Option<u64>), ComputationError> {
+        self.state
+            .get_around_indexes(position)
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
     pub async fn add_bookmark(&self, row: u64) -> Result<(), ComputationError> {
         self.state
             .add_bookmark(row)
