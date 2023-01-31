@@ -5,28 +5,17 @@ import { IRange, fromIndexes } from '@platform/types/range';
 import { Bookmarks } from '../bookmarks';
 import { Cursor } from '../cursor';
 import { Stream } from '../stream';
-import { Breadcrumbs } from './breadcrumbs';
 
 @SetupLogger()
 export class Map extends Subscriber {
     public updated: Subject<void> = new Subject();
     private _matches: number[] = [];
     private _mixed: number[] = [];
-    private readonly _modes: {
-        selections: boolean;
-        breadcrumbs: boolean;
-        bookmarks: boolean;
-    } = {
-        selections: false,
-        breadcrumbs: false,
-        bookmarks: true,
-    };
     private readonly _hash: {
         bookmarks: string;
     } = {
         bookmarks: '',
     };
-    public readonly breadcrumbs: Breadcrumbs = new Breadcrumbs();
     protected bookmarks!: Bookmarks;
     protected stream!: Stream;
     protected cursor!: Cursor;
@@ -38,11 +27,6 @@ export class Map extends Subscriber {
         this.register(
             this.bookmarks.subjects.get().updated.subscribe(() => {
                 this.build();
-            }),
-        );
-        this.register(
-            this.cursor.subjects.get().updated.subscribe(() => {
-                this._modes.selections && this.build();
             }),
         );
     }
@@ -74,65 +58,10 @@ export class Map extends Subscriber {
         };
     }
 
-    public extending(position: number, before: boolean): void {
-        const finish = this.log().measure(`Extending map for ${this._matches.length} matches`);
-        this.breadcrumbs.extending(position, before);
-        const matches = this.getMatchesWithBookmarks();
-        this._mixed = matches.concat(this.breadcrumbs.extended).sort((a, b) => (a > b ? 1 : -1));
-        finish();
-        this.updated.emit();
-    }
-
-    public modes(): {
-        selections(): boolean;
-        breadcrumbs(): boolean;
-        bookmarks(): boolean;
-        toggle(): {
-            selections(): void;
-            breadcrumbs(): void;
-            bookmarks(): void;
-        };
-    } {
-        return {
-            selections: (): boolean => {
-                return this._modes.selections;
-            },
-            breadcrumbs: (): boolean => {
-                return this._modes.breadcrumbs;
-            },
-            bookmarks: (): boolean => {
-                return this._modes.bookmarks;
-            },
-            toggle: (): {
-                selections(): void;
-                breadcrumbs(): void;
-                bookmarks(): void;
-            } => {
-                return {
-                    selections: (): void => {
-                        this._modes.selections = !this._modes.selections;
-                        this._modes.breadcrumbs = false;
-                        this.build();
-                    },
-                    breadcrumbs: (): void => {
-                        this._modes.breadcrumbs = !this._modes.breadcrumbs;
-                        this._modes.selections = false;
-                        this.build();
-                    },
-                    bookmarks: (): void => {
-                        this._modes.bookmarks = !this._modes.bookmarks;
-                        this.build();
-                    },
-                };
-            },
-        };
-    }
-
     public parse(str: string | null): Error | undefined {
         const drop = () => {
             this._matches = [];
             this._mixed = [];
-            this.breadcrumbs.drop();
             this.build();
         };
         if (str === null) {
@@ -181,11 +110,7 @@ export class Map extends Subscriber {
 
     protected getMatchesWithBookmarks(): number[] {
         return Array.from(
-            new Set(
-                this._matches.concat(
-                    this._modes.bookmarks ? this.bookmarks.getRowsPositions() : [],
-                ),
-            ).values(),
+            new Set(this._matches.concat(this.bookmarks.getRowsPositions())).values(),
         ).sort((a, b) => (a > b ? 1 : -1));
     }
 }

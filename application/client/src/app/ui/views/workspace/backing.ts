@@ -21,6 +21,7 @@ function getRows(session: Session, range: Range): Promise<IRowsPacket> {
                                 typeof row.source_id === 'string'
                                     ? parseInt(row.source_id, 10)
                                     : row.source_id,
+                            nature: row.nature,
                         });
                     }),
                     range,

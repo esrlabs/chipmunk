@@ -1,6 +1,6 @@
 import { Session } from '@service/session/session';
 import { Subject, Subscriber } from '@platform/env/subscription';
-import { IGrabbedElement } from '@platform/types/content';
+import { IGrabbedElement, Nature } from '@platform/types/content';
 import { ansiToHtml } from '@module/ansi';
 
 export enum Owner {
@@ -16,6 +16,7 @@ export interface RowInputs {
     owner: Owner;
     source: number;
     session: Session;
+    nature: number;
 }
 
 const MAX_ROW_LENGTH_LIMIT = 10000;
@@ -32,12 +33,13 @@ export class Row extends Subscriber {
     public color: string | undefined;
     public background: string | undefined;
     public columns: string[] = [];
-    public separator: boolean = false;
+    public nature: Nature;
 
     protected readonly delimiter: string | undefined;
 
     constructor(inputs: RowInputs) {
         super();
+        this.nature = new Nature(inputs.nature);
         this.session = inputs.session;
         this.cropped = inputs.content.length > MAX_ROW_LENGTH_LIMIT;
         this.content =
@@ -77,7 +79,7 @@ export class Row extends Subscriber {
         this.source !== row.source && (this.source = row.source);
         this.session !== row.session && (this.session = row.session);
         this.cropped !== row.cropped && (this.cropped = row.cropped);
-        this.separator !== row.separator && (this.separator = row.separator);
+        this.nature = row.nature;
         this.change.emit();
     }
 
@@ -130,10 +132,16 @@ export class Row extends Subscriber {
     } {
         return {
             before: (): void => {
-                this.session.search.map.extending(this.position, true);
+                if (!this.nature.seporator || this.nature.before === 0) {
+                    return;
+                }
+                this.session.indexed.expand(this.position).before();
             },
             after: (): void => {
-                this.session.search.map.extending(this.position, false);
+                if (!this.nature.seporator || this.nature.after === 0) {
+                    return;
+                }
+                this.session.indexed.expand(this.position).after();
             },
         };
     }
@@ -166,8 +174,8 @@ export class Row extends Subscriber {
                 return parsed.html;
             });
         }
-        if (this.owner === Owner.Search && this.session.search.map.modes().breadcrumbs()) {
-            this.separator = this.session.search.map.breadcrumbs.isSeparator(this.position);
-        }
+        // if (this.owner === Owner.Search && this.session.search.map.modes().breadcrumbs()) {
+        //     this.separator = this.session.search.map.breadcrumbs.isSeparator(this.position);
+        // }
     }
 }

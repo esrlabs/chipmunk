@@ -17,7 +17,7 @@ import { List } from '@env/storages/recent/list';
 import { Progress } from './progress';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { ActiveSearch } from './active';
-import { Map } from '@service/session/dependencies/search/map';
+import { Indexed } from '@service/session/dependencies/indexed';
 import { IFinish } from '@service/session/dependencies/search/state';
 import { Notification } from '@ui/service/notifications';
 
@@ -41,7 +41,7 @@ export class ViewSearchInput
     public readonly recent: List;
     public active: ActiveSearch | undefined;
     public progress!: Progress;
-    public map!: Map;
+    public indexed!: Indexed;
 
     constructor(chRef: ChangeDetectorRef) {
         super(chRef);
@@ -55,7 +55,7 @@ export class ViewSearchInput
 
     public ngAfterContentInit(): void {
         this.progress = new Progress(this.session, this.session.search.state().isInProgress());
-        this.map = this.session.search.map;
+        this.indexed = this.session.indexed;
         this.env().subscriber.register(
             this.progress.updated.subscribe(() => {
                 this.detectChanges();

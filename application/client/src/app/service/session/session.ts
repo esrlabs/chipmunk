@@ -2,6 +2,7 @@ import { TabsService, ITabAPI, ETabsListDirection, TabsOptions } from '@elements
 import { Storage } from '@env/storage';
 import { Stream } from './dependencies/stream';
 import { Search } from './dependencies/search';
+import { Indexed } from './dependencies/indexed';
 import { Cursor } from './dependencies/cursor';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { cutUuid } from '@log/index';
@@ -23,6 +24,7 @@ export class Session extends Base {
     public readonly storage: Storage = new Storage();
     public readonly stream: Stream = new Stream();
     public readonly search: Search = new Search();
+    public readonly indexed: Indexed = new Indexed();
     public readonly bookmarks: Bookmarks = new Bookmarks();
     public readonly cursor: Cursor = new Cursor();
     public readonly exporter: Exporter = new Exporter();
@@ -127,6 +129,7 @@ export class Session extends Base {
                     this.cursor.init(this._uuid);
                     this.bookmarks.init(this._uuid, this.cursor);
                     this.search.init(this._uuid, this.stream, this.bookmarks, this.cursor);
+                    this.indexed.init(this._uuid, this.stream, this.bookmarks, this.cursor);
                     this.exporter.init(this._uuid, this.stream, this.search);
                     this.inited = true;
                     resolve(this._uuid);
@@ -138,6 +141,7 @@ export class Session extends Base {
     public destroy(): Promise<void> {
         this.storage.destroy();
         this.search.destroy();
+        this.indexed.destroy();
         this.stream.destroy();
         this.bookmarks.destroy();
         this.cursor.destroy();

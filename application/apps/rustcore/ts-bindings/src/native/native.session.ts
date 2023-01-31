@@ -53,6 +53,10 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract getIndexedLen(): Promise<number>;
 
+    public abstract getAroundIndexes(
+        position: number,
+    ): Promise<{ before: number | undefined; after: number | undefined }>;
+
     public abstract expandBreadcrumbs(
         seporator: number,
         offset: number,
@@ -227,6 +231,8 @@ export abstract class RustSessionNative {
     public abstract setIndexingMode(mode: number): Promise<void>;
 
     public abstract getIndexedLen(): Promise<number>;
+
+    public abstract getAroundIndexes(position: number): Promise<[number | null, number | null]>;
 
     public abstract expandBreadcrumbs(
         seporator: number,
@@ -555,6 +561,31 @@ export class RustSessionWrapper extends RustSession {
                             NativeError.from(err),
                             Type.ContentManipulation,
                             Source.GetIndexedLen,
+                        ),
+                    );
+                });
+        });
+    }
+
+    public getAroundIndexes(
+        position: number,
+    ): Promise<{ before: number | undefined; after: number | undefined }> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('getAroundIndexes');
+            this._native
+                .getAroundIndexes(position)
+                .then((result) => {
+                    resolve({
+                        before: typeof result[0] !== 'number' ? undefined : result[0],
+                        after: typeof result[1] !== 'number' ? undefined : result[1],
+                    });
+                })
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            NativeError.from(err),
+                            Type.ContentManipulation,
+                            Source.getAroundIndexes,
                         ),
                     );
                 });
