@@ -71,7 +71,7 @@ impl MapTest {
             }
             Action::RemoveBookmark(position) => {
                 self.map
-                    .breadcrumbs_drop_and_update(&position, Nature::BOOKMARK)
+                    .breadcrumbs_drop_and_update(&[position], Nature::BOOKMARK)
                     .unwrap();
             }
             Action::Insert((pos, nature)) => {

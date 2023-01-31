@@ -75,11 +75,29 @@ impl Controller {
     pub(crate) fn remove_bookmark(&mut self, row: u64) -> Result<(), NativeError> {
         if matches!(self.mode, Mode::Breadcrumbs) {
             self.map
-                .breadcrumbs_drop_and_update(&row, Nature::BOOKMARK)?;
+                .breadcrumbs_drop_and_update(&[row], Nature::BOOKMARK)?;
         } else {
             self.map.remove(&[row], Nature::BOOKMARK);
         }
 
+        self.notify();
+        Ok(())
+    }
+
+    pub(crate) fn set_bookmarks(&mut self, rows: Vec<u64>) -> Result<(), NativeError> {
+        if matches!(self.mode, Mode::Breadcrumbs) {
+            self.map
+                .breadcrumbs_drop_and_update(&rows, Nature::BOOKMARK)?;
+            self.map.breadcrumbs_insert_and_update(
+                &rows,
+                Nature::BOOKMARK,
+                MIN_BREADCRUMBS_DISTANCE,
+                MIN_BREADCRUMBS_OFFSET,
+            )?;
+        } else {
+            self.map.remove(&rows, Nature::BOOKMARK);
+            self.map.insert(&rows, Nature::BOOKMARK);
+        }
         self.notify();
         Ok(())
     }

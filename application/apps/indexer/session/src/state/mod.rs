@@ -123,6 +123,7 @@ pub enum Api {
         ),
     ),
     AddBookmark((u64, oneshot::Sender<Result<(), NativeError>>)),
+    SetBookmarks((Vec<u64>, oneshot::Sender<Result<(), NativeError>>)),
     RemoveBookmark((u64, oneshot::Sender<Result<(), NativeError>>)),
     ExpandBreadcrumbs {
         seporator: u64,
@@ -200,6 +201,7 @@ impl Display for Api {
                 Self::GetIndexedMapLen(_) => "GetIndexedMapLen",
                 Self::GetDistancesAroundIndex(_) => "GetDistancesAroundIndex",
                 Self::AddBookmark(_) => "AddBookmark",
+                Self::SetBookmarks(_) => "SetBookmarks",
                 Self::RemoveBookmark(_) => "RemoveBookmark",
                 Self::ExpandBreadcrumbs { .. } => "ExpandBreadcrumbs",
                 Self::GrabRanges(_) => "GrabRanges",
@@ -543,6 +545,12 @@ impl SessionStateAPI {
     pub async fn add_bookmark(&self, row: u64) -> Result<(), NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::AddBookmark((row, tx)), rx).await?
+    }
+
+    pub async fn set_bookmarks(&self, rows: Vec<u64>) -> Result<(), NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::SetBookmarks((rows, tx)), rx)
+            .await?
     }
 
     pub async fn remove_bookmark(&self, row: u64) -> Result<(), NativeError> {
@@ -906,6 +914,11 @@ pub async fn run(
                 tx_response
                     .send(state.indexes.add_bookmark(row))
                     .map_err(|_| NativeError::channel("Failed to respond to Api::AddBookmark"))?;
+            }
+            Api::SetBookmarks((rows, tx_response)) => {
+                tx_response
+                    .send(state.indexes.set_bookmarks(rows))
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::SetBookmarks"))?;
             }
             Api::RemoveBookmark((row, tx_response)) => {
                 tx_response
