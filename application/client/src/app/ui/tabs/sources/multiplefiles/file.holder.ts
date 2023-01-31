@@ -7,6 +7,7 @@ import * as wasm from '@loader/wasm';
 export class FileHolder extends Matchee {
     private _file: File;
     private _selected: boolean = true;
+    private _search: number = 0;
 
     constructor(matcher: wasm.Matcher, file: File) {
         super(matcher, { name: file.name, path: file.path });
@@ -23,6 +24,14 @@ export class FileHolder extends Matchee {
 
     public unselect() {
         this._selected = false;
+    }
+
+    public set search(search: number) {
+        this._search = search;
+    }
+
+    public get search() {
+        return this._search;
     }
 
     public get filename(): string {

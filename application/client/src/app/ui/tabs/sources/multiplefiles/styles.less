@@ -1,6 +1,6 @@
 @import '../../../styles/variables.less';
 
-:host {
+& app-tabs-source-multiple-files {
   position: absolute;
   display: block;
   top: 0;
@@ -37,10 +37,10 @@
   & h1 {
       font-size: 14px;
   }
-  & button {
+  & button.mat-stroked-button {
       position: relative;
       display: inline-block;
-      margin: 6px 0 6px 6px;
+      margin: 6px 0 6px 6px!important;
   }
   & div.left {
       position: absolute;
@@ -72,6 +72,24 @@
       }
       & div.spacer{
           flex: auto;
+      }
+      & mat-card-content {
+        display: flex;
+        & mat-form-field.outline {
+            width: 85%;
+            & div.mat-form-field-flex {
+                height: 26px;
+                padding: 0px 1px;
+            }
+            & input {
+                color: @scheme-color-0;
+                background-color: @scheme-color-4;
+            }
+        }
+        & mat-spinner {
+            margin-top: 5px;
+            margin-left: 5px;
+        }
       }
   }
   & div.filter {

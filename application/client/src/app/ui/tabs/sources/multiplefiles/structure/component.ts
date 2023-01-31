@@ -17,6 +17,7 @@ import { FileHolder } from '../file.holder';
 import { MatTable } from '@angular/material/table';
 import { Subject } from '@platform/env/subscription';
 import { FileType } from '@platform/types/files';
+import { TFilesSearchResults } from '../state';
 
 export interface IContextAction {
     type: EContextActionType;
@@ -32,6 +33,7 @@ export const COLUMNS = {
     type: 'type',
     name: 'name',
     path: 'path',
+    search: 'search',
     size: 'size',
     modificationDate: 'modificationDate',
 };
@@ -51,12 +53,15 @@ export class TabSourceMultipleFilesStructure
         COLUMNS.type,
         COLUMNS.name,
         COLUMNS.path,
+        COLUMNS.search,
         COLUMNS.size,
         COLUMNS.modificationDate,
     ];
 
     @Input() files!: FileHolder[];
     @Input() filesUpdate!: Subject<FileHolder[]>;
+    @Input() searchUpdate!: Subject<TFilesSearchResults>;
+
     @Output() context: EventEmitter<IContextAction> = new EventEmitter();
 
     @ViewChild(MatSort) sort!: MatSort;
@@ -70,7 +75,10 @@ export class TabSourceMultipleFilesStructure
 
     public ngAfterContentInit() {
         this.data = new MatTableDataSource<FileHolder>(this.files);
-        this.filesUpdate.subscribe(this._onFilesUpdate.bind(this));
+        this.env().subscriber.register(this.filesUpdate.subscribe(this._onFilesUpdate.bind(this)));
+        this.env().subscriber.register(
+            this.searchUpdate.subscribe(this._onSearchUpdate.bind(this)),
+        );
     }
 
     public ngAfterViewInit() {
@@ -228,6 +236,21 @@ export class TabSourceMultipleFilesStructure
 
     private _onFilesUpdate(files: FileHolder[]) {
         this.data.data = files;
+    }
+
+    private _onSearchUpdate(result: TFilesSearchResults) {
+        if (Object.keys(result).length === 0) {
+            this.data.data.forEach((file: FileHolder) => {
+                file.search = 0;
+            });
+        } else {
+            this.data.data.forEach((file: FileHolder) => {
+                const matches: number | undefined = result[file.name];
+                if (matches !== undefined) {
+                    file.search = matches;
+                }
+            });
+        }
     }
 }
 export interface TabSourceMultipleFilesStructure extends IlcInterface {}

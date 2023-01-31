@@ -1,4 +1,11 @@
-import { Component, AfterContentInit, Input, HostListener, OnDestroy } from '@angular/core';
+import {
+    Component,
+    AfterContentInit,
+    Input,
+    HostListener,
+    OnDestroy,
+    ViewEncapsulation,
+} from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { File, FileType } from '@platform/types/files';
@@ -14,6 +21,7 @@ import { EContextActionType, IContextAction } from './structure/component';
     selector: 'app-tabs-source-multiple-files',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    encapsulation: ViewEncapsulation.None,
 })
 @Initial()
 @Ilc()
@@ -23,7 +31,7 @@ export class TabSourceMultipleFiles extends Holder implements AfterContentInit, 
 
     @HostListener('window:keydown', ['$event'])
     handleKeyDown(event: KeyboardEvent) {
-        if (this.filter.keyboard(event)) {
+        if (!this._searchInputFocused && this.filter.keyboard(event)) {
             this.matcher.search(this.filter.value());
             this.filesUpdate.emit(
                 this.state.files
@@ -37,6 +45,8 @@ export class TabSourceMultipleFiles extends Holder implements AfterContentInit, 
     public state: State = new State();
     public filesUpdate: Subject<FileHolder[]> = new Subject();
 
+    private _searchInputFocused: boolean = false;
+
     constructor() {
         super();
     }
@@ -49,7 +59,12 @@ export class TabSourceMultipleFiles extends Holder implements AfterContentInit, 
             this.state.files = this.files.map((file: File) => new FileHolder(this.matcher, file));
             this.tab.storage().set(this.state);
         }
+        this.state.log = this.log();
         this.state.countAndCheck();
+    }
+
+    public ngOnSearchFocus(focused: boolean) {
+        this._searchInputFocused = focused;
     }
 
     public ngCancel() {
@@ -57,7 +72,9 @@ export class TabSourceMultipleFiles extends Holder implements AfterContentInit, 
     }
 
     public ngOnDestroy() {
+        this.filesUpdate.destroy();
         this.tab.storage<State>().set(this.state);
+        this.state.destroy();
     }
 
     public ngConcat() {

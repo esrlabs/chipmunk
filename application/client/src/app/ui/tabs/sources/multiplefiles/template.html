@@ -4,7 +4,12 @@
             <mat-card class="top">
                 <mat-card-title>Multiple files</mat-card-title>
                 <mat-card-content>
-                    <app-tabs-source-multiplefiles-structure (context)="ngOnContext($event)" [files]="state.files" [filesUpdate]="filesUpdate"></app-tabs-source-multiplefiles-structure>
+                    <app-tabs-source-multiplefiles-structure
+                                                                (context)="ngOnContext($event)"
+                                                                [files]="state.files"
+                                                                [filesUpdate]="filesUpdate"
+                                                                [searchUpdate]="state.searchUpdate">
+                    </app-tabs-source-multiplefiles-structure>
                     <div class="filter t-medium" [class]="filter.value() !== '' ? '' : 'hidden'">{{filter.value()}}</div>
                 </mat-card-content>
             </mat-card>
@@ -32,6 +37,26 @@
                             <td>TODO</td> Destination path - Clickable to open folder selector
                         </tr>-->
                     </table>
+                </mat-card-content>
+            </mat-card>
+            <mat-card>
+                <mat-card-title>Search</mat-card-title>
+                <mat-card-content>
+                    <mat-form-field class="outline" appearance="outline">
+                        <input 
+                            #searchInput
+                            matInput
+                            tabindex="1000"
+                            type="text"
+                            placeholder="Search in files"
+                            aria-label="Filter"
+                            [formControl]="state.input.control"
+                            (focus)="ngOnSearchFocus(true)"
+                            (blur)="ngOnSearchFocus(false)"
+                            (keyup)="state.onKeyup($event)"
+                        />
+                    </mat-form-field>
+                    <mat-spinner *ngIf="state.input.searching" [diameter]="20"></mat-spinner>
                 </mat-card-content>
             </mat-card>
             <mat-card>
