@@ -72,6 +72,10 @@ export class SessionStream {
         return this._session.addBookmark(row);
     }
 
+    public setBookmarks(rows: number[]): Promise<void> {
+        return this._session.setBookmarks(rows);
+    }
+
     public removeBookmark(row: number): Promise<void> {
         return this._session.removeBookmark(row);
     }

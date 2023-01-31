@@ -37,6 +37,7 @@ export enum Source {
     Abort = 'Abort',
     Sleep = 'Sleep',
     AddBookmark = 'AddBookmark',
+    SetBookmarks = 'SetBookmarks',
     RemoveSelection = 'RemoveSelection',
     AddSelection = 'AddSelection',
     RemoveBookmark = 'RemoveBookmark',

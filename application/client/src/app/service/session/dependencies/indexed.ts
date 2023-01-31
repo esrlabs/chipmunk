@@ -2,9 +2,6 @@ import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { cutUuid } from '@log/index';
 import { Map } from './search/map';
-import { Bookmarks } from './bookmarks';
-import { Cursor } from './cursor';
-import { Stream } from './stream';
 import { IGrabbedElement, IndexingMode } from '@platform/types/content';
 import { Range, IRange } from '@platform/types/range';
 
@@ -23,7 +20,7 @@ export class Indexed extends Subscriber {
     private _uuid!: string;
     private _mode: IndexingMode = IndexingMode.Regular;
 
-    public init(uuid: string, _stream: Stream, _bookmarks: Bookmarks, _cursor: Cursor) {
+    public init(uuid: string) {
         this.setLoggerName(`Indexed: ${cutUuid(uuid)}`);
         this._uuid = uuid;
         this.register(
