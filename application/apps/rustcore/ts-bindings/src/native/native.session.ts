@@ -67,6 +67,8 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract addBookmark(row: number): Promise<void>;
 
+    public abstract setBookmarks(rows: number[]): Promise<void>;
+
     /**
      * Returns chunk of stream/session file.
      * @param start { number } row number of range's start
@@ -243,6 +245,8 @@ export abstract class RustSessionNative {
     public abstract removeBookmark(row: number): Promise<void>;
 
     public abstract addBookmark(row: number): Promise<void>;
+
+    public abstract setBookmarks(rows: number[]): Promise<void>;
 
     public abstract grabRanges(ranges: number[][]): Promise<string>;
 
@@ -640,6 +644,24 @@ export class RustSessionWrapper extends RustSession {
                             NativeError.from(err),
                             Type.ContentManipulation,
                             Source.AddBookmark,
+                        ),
+                    );
+                });
+        });
+    }
+
+    public setBookmarks(rows: number[]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('setBookmarks');
+            this._native
+                .setBookmarks(rows)
+                .then(resolve)
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            NativeError.from(err),
+                            Type.ContentManipulation,
+                            Source.SetBookmarks,
                         ),
                     );
                 });

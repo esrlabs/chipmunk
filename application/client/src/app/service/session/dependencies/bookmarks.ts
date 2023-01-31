@@ -7,6 +7,8 @@ import { Range } from '@platform/types/range';
 import { Cursor } from './cursor';
 import { hotkeys } from '@service/hotkeys';
 
+import * as Requests from '@platform/ipc/request';
+
 @SetupLogger()
 export class Bookmarks extends Subscriber {
     public readonly subjects: Subjects<{
@@ -48,16 +50,31 @@ export class Bookmarks extends Subscriber {
     }
 
     public bookmark(row: Row) {
-        const exist = this.bookmarks.find((b) => b.position === row.position);
-        if (exist) {
-            this.bookmarks = this.bookmarks.filter((b) => b.position !== row.position);
-        } else {
-            this.bookmarks.push(new Bookmark(row.position));
-        }
-        this.bookmarks.sort((a, b) => {
-            return a.position < b.position ? -1 : 1;
-        });
-        this.update();
+        (() => {
+            const exist = this.bookmarks.find((b) => b.position === row.position);
+            if (exist) {
+                return this.api()
+                    .remove(row.position)
+                    .then(() => {
+                        this.bookmarks = this.bookmarks.filter((b) => b.position !== row.position);
+                    });
+            } else {
+                return this.api()
+                    .add(row.position)
+                    .then(() => {
+                        this.bookmarks.push(new Bookmark(row.position));
+                    });
+            }
+        })()
+            .then(() => {
+                this.bookmarks.sort((a, b) => {
+                    return a.position < b.position ? -1 : 1;
+                });
+                this.update();
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to bookmark: ${err.message}`);
+            });
     }
 
     public is(stream: number): boolean {
@@ -154,6 +171,82 @@ export class Bookmarks extends Subscriber {
                     undefined,
                     undefined,
                 );
+            },
+        };
+    }
+
+    protected api(): {
+        add(row: number): Promise<void>;
+        remove(row: number): Promise<void>;
+        set(rows: number[]): Promise<void>;
+    } {
+        return {
+            add: (row: number): Promise<void> => {
+                return Requests.IpcRequest.send(
+                    Requests.Stream.AddBookmark.Response,
+                    new Requests.Stream.AddBookmark.Request({
+                        session: this._uuid,
+                        row,
+                    }),
+                )
+                    .then((response: Requests.Stream.AddBookmark.Response) => {
+                        if (typeof response.error === 'string') {
+                            this.log().error(
+                                `Fail to add bookmark to position ${row}: ${response.error}`,
+                            );
+                        }
+                    })
+                    .catch((error: Error) => {
+                        this.log().error(
+                            `Fail to add bookmark to position ${row}: ${error.message}`,
+                        );
+                    });
+            },
+            remove: (row: number): Promise<void> => {
+                return Requests.IpcRequest.send(
+                    Requests.Stream.RemoveBookmark.Response,
+                    new Requests.Stream.RemoveBookmark.Request({
+                        session: this._uuid,
+                        row,
+                    }),
+                )
+                    .then((response: Requests.Stream.RemoveBookmark.Response) => {
+                        if (typeof response.error === 'string') {
+                            this.log().error(
+                                `Fail to remove bookmark from position ${row}: ${response.error}`,
+                            );
+                        }
+                    })
+                    .catch((error: Error) => {
+                        this.log().error(
+                            `Fail to remove bookmark from position ${row}: ${error.message}`,
+                        );
+                    });
+            },
+            set: (rows: number[]): Promise<void> => {
+                return Requests.IpcRequest.send(
+                    Requests.Stream.SetBookmarks.Response,
+                    new Requests.Stream.SetBookmarks.Request({
+                        session: this._uuid,
+                        rows,
+                    }),
+                )
+                    .then((response: Requests.Stream.SetBookmarks.Response) => {
+                        if (typeof response.error === 'string') {
+                            this.log().error(
+                                `Fail to remove bookmark from positions ${rows.join(', ')}: ${
+                                    response.error
+                                }`,
+                            );
+                        }
+                    })
+                    .catch((error: Error) => {
+                        this.log().error(
+                            `Fail to remove bookmark from positions ${rows.join(', ')}: ${
+                                error.message
+                            }`,
+                        );
+                    });
             },
         };
     }

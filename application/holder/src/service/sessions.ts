@@ -103,6 +103,15 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
+                    Requests.Stream.SetBookmarks.Request,
+                    RequestHandlers.Stream.SetBookmarks.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
                     Requests.Stream.RemoveBookmark.Request,
                     RequestHandlers.Stream.RemoveBookmark.handler,
                 ),
