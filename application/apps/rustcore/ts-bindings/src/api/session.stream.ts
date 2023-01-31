@@ -61,6 +61,13 @@ export class SessionStream {
         return this._session.getIndexedLen();
     }
 
+    public getAroundIndexes(position: number): Promise<{
+        before: number | undefined;
+        after: number | undefined;
+    }> {
+        return this._session.getAroundIndexes(position);
+    }
+
     public addBookmark(row: number): Promise<void> {
         return this._session.addBookmark(row);
     }

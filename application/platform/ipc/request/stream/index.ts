@@ -5,3 +5,5 @@ export * as Mode from './mode';
 export * as Expand from './expand';
 export * as AddBookmark from './add_bookmark';
 export * as RemoveBookmark from './remove_bookmark';
+export * as IndexedLen from './indexed_len';
+export * as IndexesAround from './indexes_around';

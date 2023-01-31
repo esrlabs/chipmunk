@@ -43,6 +43,7 @@ export enum Source {
     ExpandBreadcrumbs = 'ExpandBreadcrumbs',
     SetIndexingMode = 'SetIndexingMode',
     GetIndexedLen = 'GetIndexedLen',
+    getAroundIndexes = 'getAroundIndexes',
     Other = 'Other',
 }
 

@@ -2,29 +2,50 @@ import { Session } from '@service/session';
 import { IRowsPacket, Service } from '@elements/scrollarea/controllers/service';
 import { Range, IRange } from '@platform/types/range';
 import { Row, Owner } from '@schema/content/row';
+import { IGrabbedElement } from '@platform/types/content';
 
 const SCROLLAREA_SERVICE = 'search_scroll_area_service';
 
+async function getRowFrom(
+    session: Session,
+    element: IGrabbedElement,
+    elements: IGrabbedElement[],
+    index: number,
+): Promise<Row> {
+    const row = new Row({
+        position: element.position,
+        content: element.content,
+        session: session,
+        owner: Owner.Search,
+        source:
+            typeof element.source_id === 'string'
+                ? parseInt(element.source_id, 10)
+                : element.source_id,
+        nature: element.nature,
+    });
+    if (!row.nature.seporator) {
+        return row;
+    }
+    if (index > 0 && index < elements.length - 1) {
+        row.nature.before = element.position - elements[index - 1].position - 1;
+        row.nature.after = elements[index + 1].position - element.position - 1;
+        return row;
+    }
+    const around = await session.indexed.getIndexesAround(element.position);
+    row.nature.before = around.before !== undefined ? element.position - around.before - 1 : 0;
+    row.nature.after = around.after !== undefined ? around.after - element.position - 1 : 0;
+    return row;
+}
 function getRows(session: Session, range: Range | IRange): Promise<IRowsPacket> {
     return new Promise((resolve, reject) => {
-        session.stream
-            .grab(session.search.map.get().ranges(range instanceof Range ? range.get() : range))
-            .then((elements) => {
-                resolve({
-                    rows: elements.map((el) => {
-                        return new Row({
-                            position: el.position,
-                            content: el.content,
-                            session: session,
-                            owner: Owner.Search,
-                            source:
-                                typeof el.source_id === 'string'
-                                    ? parseInt(el.source_id, 10)
-                                    : el.source_id,
-                        });
-                    }),
-                    range,
-                });
+        session.indexed
+            .grab(range)
+            .then(async (elements) => {
+                const rows = [];
+                for (let i = 0; i < elements.length; i += 1) {
+                    rows.push(await getRowFrom(session, elements[i], elements, i));
+                }
+                resolve({ rows, range });
             })
             .catch(reject);
     });
@@ -33,7 +54,6 @@ function getRows(session: Session, range: Range | IRange): Promise<IRowsPacket> 
 export function getScrollAreaService(session: Session): Service {
     const restored = session.storage.get<Service>(SCROLLAREA_SERVICE);
     if (restored === undefined) {
-        const map = session.search.map;
         const service = new Service({
             getRows: (range: Range) => {
                 return getRows(session, range);
@@ -42,23 +62,23 @@ export function getScrollAreaService(session: Session): Service {
                 getRows(session, range)
                     .then((packet) => {
                         service.setRows(packet);
-                        service.setLen(map.len());
+                        service.setLen(session.indexed.len());
                     })
                     .catch((err: Error) => {
-                        throw new Error(`Fail get search chunk: ${err.message}`);
+                        throw new Error(`Fail get indexed chunk: ${err.message}`);
                     });
             },
             getLen: (): number => {
-                return map.len();
+                return session.indexed.len();
             },
             getItemHeight: (): number => {
                 return 16;
             },
         });
-        service.setLen(map.len());
+        service.setLen(session.indexed.len());
         return service;
     } else {
-        restored.setLen(session.search.map.len());
+        restored.setLen(session.indexed.len());
         return restored;
     }
 }

@@ -1,3 +1,3 @@
-<span [attr.class]="'button codicon codicon-arrow-up ' + (left().before() === 0 ? 'disabled' : '')" (click)="before($event)"></span>
-<span class="number">{{left().before()}}  ---  {{left().after()}}</span>
-<span [attr.class]="'button codicon codicon-arrow-down ' + (left().after() === 0 ? 'disabled' : '')" (click)="after($event)"></span>
+<span [attr.class]="'button codicon codicon-arrow-up ' + (row.nature.before === 0 ? 'disabled' : '')" (click)="before($event)"></span>
+<span class="number">{{row.nature.before}}  ---  {{row.nature.after}}</span>
+<span [attr.class]="'button codicon codicon-arrow-down ' + (row.nature.after === 0 ? 'disabled' : '')" (click)="after($event)"></span>

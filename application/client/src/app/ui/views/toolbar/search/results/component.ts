@@ -56,8 +56,8 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
             }),
         );
         this.env().subscriber.register(
-            this.session.search.map.updated.subscribe((_event) => {
-                this.service.setLen(this.session.search.map.len());
+            this.session.indexed.subjects.get().updated.subscribe((len: number) => {
+                this.service.setLen(len);
                 this.service.refresh();
             }),
         );
@@ -114,7 +114,7 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
         const frame = this.service.getFrame();
         const rows = frame.getRows();
         const selected = (() => {
-            if (this.session.search.len() === 0) {
+            if (this.session.indexed.len() === 0) {
                 return undefined;
             }
             if (rows.length === 0) {

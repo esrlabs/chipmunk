@@ -13,13 +13,6 @@ export interface IGrabbedElement {
     nature: number;
 }
 
-export interface IGrabbedElementRender {
-    source_id: number;
-    content: string;
-    position: number;
-    nature: Nature;
-}
-
 export enum IndexingMode {
     Regular = 0,
     Breadcrumbs = 1,
@@ -42,6 +35,8 @@ export class Nature {
     }
 
     protected readonly bits: number[];
+    public before: number = 0;
+    public after: number = 0;
     public readonly match: boolean;
     public readonly bookmark: boolean;
     public readonly breadcrumb: boolean;
@@ -87,13 +82,4 @@ export class Nature {
         }
         return types;
     }
-}
-
-export function grabbedToRenderGrabbed(el: IGrabbedElement): IGrabbedElementRender {
-    return {
-        position: el.position,
-        content: el.content,
-        source_id: el.source_id,
-        nature: new Nature(el.nature),
-    };
 }

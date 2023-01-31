@@ -14,23 +14,9 @@ export class Separator {
 
     @HostBinding('class') classes = 'row';
 
-    public left(): {
-        before(): number;
-        after(): number;
-    } {
-        return {
-            before: (): number => {
-                return this.row.session.search.map.breadcrumbs.left(this.row.position).before();
-            },
-            after: (): number => {
-                return this.row.session.search.map.breadcrumbs.left(this.row.position).after();
-            },
-        };
-    }
-
     public before(event: MouseEvent) {
         stop(event);
-        if (this.left().before() === 0) {
+        if (this.row.nature.before === 0) {
             return;
         }
         this.row.extending().before();
@@ -38,7 +24,7 @@ export class Separator {
 
     public after(event: MouseEvent) {
         stop(event);
-        if (this.left().after() === 0) {
+        if (this.row.nature.after === 0) {
             return;
         }
         this.row.extending().after();
