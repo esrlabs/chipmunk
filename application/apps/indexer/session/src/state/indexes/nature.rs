@@ -5,7 +5,7 @@ use indexer_base::progress::Severity;
 pub struct Nature(u8);
 impl Nature {
     pub const SEARCH: Nature = Nature(1);
-    pub const BOOKMARK: Nature = Nature(1 << 2);
+    pub const BOOKMARK: Nature = Nature(1 << 1);
     pub const EXPANDED: Nature = Nature(1 << 5);
     pub const BREADCRUMB: Nature = Nature(1 << 6);
     pub const BREADCRUMB_SEPORATOR: Nature = Nature(1 << 7);
@@ -166,6 +166,18 @@ fn test_nature() {
     b.exclude(Nature::BREADCRUMB_SEPORATOR);
     assert!(!b.is_seporator());
     assert!(b.is_empty());
+    let imported: u8 = Nature::SEARCH.bits();
+    let b = Nature::try_from(imported).unwrap();
+    assert!(b.is_search());
+    assert!(!b.is_bookmark());
+    assert!(!b.is_breadcrumb());
+    assert!(!b.is_seporator());
+    let imported: u8 = Nature::BOOKMARK.bits();
+    let b = Nature::try_from(imported).unwrap();
+    assert!(!b.is_search());
+    assert!(b.is_bookmark());
+    assert!(!b.is_breadcrumb());
+    assert!(!b.is_seporator());
     let n = Nature::SEARCH;
     assert!(n.is_search());
     assert!(!n.is_bookmark());
