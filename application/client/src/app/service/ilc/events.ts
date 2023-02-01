@@ -39,6 +39,10 @@ export class Events {
         toolbar: {
             min: Subject<void>;
             max: Subject<void>;
+            occupy: Subject<void>;
+            state: Subject<
+                (state: { min: boolean; max: boolean; occupied: boolean; size: number }) => void
+            >;
             resize: Subject<void>;
             view: Subject<Declarations.AvailableToolbarTabs>;
         };
@@ -99,6 +103,19 @@ export class Events {
             toolbar: {
                 min: this._add<void>(new Subject<void>()),
                 max: this._add<void>(new Subject<void>()),
+                occupy: this._add<void>(new Subject<void>()),
+                state: this._add<
+                    (state: { min: boolean; max: boolean; occupied: boolean; size: number }) => void
+                >(
+                    new Subject<
+                        (state: {
+                            min: boolean;
+                            max: boolean;
+                            occupied: boolean;
+                            size: number;
+                        }) => void
+                    >(),
+                ),
                 resize: this._add<void>(new Subject<void>()),
                 view: this._add<Declarations.AvailableToolbarTabs>(
                     new Subject<Declarations.AvailableToolbarTabs>(),

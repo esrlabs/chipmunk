@@ -43,6 +43,10 @@ export class Emitter {
         toolbar: {
             min: Handler<void>;
             max: Handler<void>;
+            occupy: Handler<void>;
+            state: Handler<
+                (state: { min: boolean; max: boolean; occupied: boolean; size: number }) => void
+            >;
             resize: Handler<void>;
             view: Handler<Declarations.AvailableToolbarTabs>;
         };
@@ -107,6 +111,10 @@ export class Emitter {
             toolbar: {
                 min: this._add<void>(this._events.ui.toolbar.min),
                 max: this._add<void>(this._events.ui.toolbar.max),
+                occupy: this._add<void>(this._events.ui.toolbar.occupy),
+                state: this._add<
+                    (state: { min: boolean; max: boolean; occupied: boolean; size: number }) => void
+                >(this._events.ui.toolbar.state),
                 resize: this._add<void>(this._events.ui.toolbar.resize),
                 view: this._add<Declarations.AvailableToolbarTabs>(this._events.ui.toolbar.view),
             },

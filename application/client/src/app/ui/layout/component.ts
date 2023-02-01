@@ -17,8 +17,8 @@ const TOOLBAR_NORMAL_HEIGHT = 250;
 const SIDEBAR_NORMAL_WIDTH = 350;
 const TOOLBAR_MIN_HEIGHT = 50;
 const SIDEBAR_MIN_WIDTH = 50;
-const TOOLBAR_MAX_SIZE_RATE = 0.7;
-const SIDEBAR_MAX_SIZE_RATE = 0.7;
+const TOOLBAR_MAX_SIZE_RATE = 0.8;
+const SIDEBAR_MAX_SIZE_RATE = 0.8;
 
 function initialToolbarHeight(): LimittedValue {
     return new LimittedValue('toolbar.height', TOOLBAR_MIN_HEIGHT, -1, TOOLBAR_NORMAL_HEIGHT);
@@ -66,6 +66,48 @@ export class Layout extends ChangesDetector implements AfterViewInit {
         this.ilc().channel.ui.popup.updated(() => {
             this.ngZone.run(() => {
                 this.detectChanges();
+            });
+        });
+        this.ilc().channel.ui.toolbar.occupy(() => {
+            this.ngZone.run(() => {
+                this.toggle().occupy();
+            });
+        });
+        this.ilc().channel.ui.toolbar.state(
+            (
+                getter: (state: {
+                    min: boolean;
+                    max: boolean;
+                    occupied: boolean;
+                    size: number;
+                }) => void,
+            ) => {
+                getter({
+                    min: this.toolbar.is().min(),
+                    max: this.toolbar.is().max(),
+                    occupied: this.toolbar.is().max(),
+                    size: this.toolbar.value,
+                });
+            },
+        );
+        this.ilc().channel.ui.toolbar.min(() => {
+            this.ngZone.run(() => {
+                this.set().toolbar().min();
+            });
+        });
+        this.ilc().channel.ui.toolbar.max(() => {
+            this.ngZone.run(() => {
+                this.set().toolbar().max();
+            });
+        });
+        this.ilc().channel.ui.sidebar.min(() => {
+            this.ngZone.run(() => {
+                this.set().sidebar().min();
+            });
+        });
+        this.ilc().channel.ui.sidebar.max(() => {
+            this.ngZone.run(() => {
+                this.set().sidebar().max();
             });
         });
         this.env().subscriber.register(
@@ -138,6 +180,7 @@ export class Layout extends ChangesDetector implements AfterViewInit {
     protected toggle(): {
         sidebar(): void;
         toolbar(): void;
+        occupy(): void;
     } {
         const session = this.ilc().services.system.session.active().base();
         return {
@@ -146,6 +189,7 @@ export class Layout extends ChangesDetector implements AfterViewInit {
                     return;
                 }
                 this.sidebar.toggle();
+                this.ilc().emitter.ui.sidebar.resize();
                 this.detectChanges();
             },
             toolbar: (): void => {
@@ -153,7 +197,54 @@ export class Layout extends ChangesDetector implements AfterViewInit {
                     return;
                 }
                 this.toolbar.toggle();
+                this.ilc().emitter.ui.toolbar.resize();
                 this.detectChanges();
+            },
+            occupy: (): void => {
+                if (session === undefined) {
+                    return;
+                }
+                this.toolbar.occupy();
+                this.ilc().emitter.ui.toolbar.resize();
+                this.detectChanges();
+            },
+        };
+    }
+
+    protected set(): {
+        toolbar(): {
+            min(): void;
+            max(): void;
+        };
+        sidebar(): {
+            min(): void;
+            max(): void;
+        };
+    } {
+        return {
+            toolbar: () => {
+                return {
+                    min: (): void => {
+                        this.toolbar.to().min();
+                        this.detectChanges();
+                    },
+                    max: (): void => {
+                        this.toolbar.to().max();
+                        this.detectChanges();
+                    },
+                };
+            },
+            sidebar: () => {
+                return {
+                    min: (): void => {
+                        this.sidebar.to().min();
+                        this.detectChanges();
+                    },
+                    max: (): void => {
+                        this.sidebar.to().max();
+                        this.detectChanges();
+                    },
+                };
             },
         };
     }
