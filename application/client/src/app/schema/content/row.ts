@@ -104,7 +104,7 @@ export class Row extends Subscriber {
     } {
         return {
             is: (): boolean => {
-                return this.session.bookmarks.is(this.position);
+                return this.session.bookmarks.has(this.position);
             },
             toggle: (): void => {
                 this.session.bookmarks.bookmark(this);
