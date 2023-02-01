@@ -62,4 +62,41 @@ export class LimittedValue {
             this.set(this.min);
         }
     }
+
+    public occupy(): void {
+        if (this.value === this.max) {
+            this._prev !== -1 && this.set(this._prev);
+        } else {
+            this._prev = this.value;
+            this.set(this.max);
+        }
+    }
+
+    public to(): {
+        min(): void;
+        max(): void;
+    } {
+        return {
+            min: (): void => {
+                this.set(this.min);
+            },
+            max: (): void => {
+                this.set(this.max);
+            },
+        };
+    }
+
+    public is(): {
+        min(): boolean;
+        max(): boolean;
+    } {
+        return {
+            min: (): boolean => {
+                return this.value === this.min;
+            },
+            max: (): boolean => {
+                return this.value === this.max;
+            },
+        };
+    }
 }

@@ -44,6 +44,12 @@ export class Channel {
         toolbar: {
             min: (handler: Handler<void>) => Subscription;
             max: (handler: Handler<void>) => Subscription;
+            occupy: (handler: Handler<void>) => Subscription;
+            state: (
+                handler: Handler<
+                    (state: { min: boolean; max: boolean; occupied: boolean; size: number }) => void
+                >,
+            ) => Subscription;
             resize: (handler: Handler<void>) => Subscription;
             view: (handler: Handler<Declarations.AvailableToolbarTabs>) => Subscription;
         };
@@ -108,6 +114,10 @@ export class Channel {
             toolbar: {
                 min: this._add<void>(this._events.ui.toolbar.min),
                 max: this._add<void>(this._events.ui.toolbar.max),
+                occupy: this._add<void>(this._events.ui.toolbar.occupy),
+                state: this._add<
+                    (state: { min: boolean; max: boolean; occupied: boolean; size: number }) => void
+                >(this._events.ui.toolbar.state),
                 resize: this._add<void>(this._events.ui.toolbar.resize),
                 view: this._add<Declarations.AvailableToolbarTabs>(this._events.ui.toolbar.view),
             },

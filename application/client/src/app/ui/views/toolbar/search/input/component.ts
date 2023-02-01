@@ -39,6 +39,7 @@ export class ViewSearchInput
 
     public readonly input = new SearchInput();
     public readonly recent: List;
+    public occupied: boolean = false;
     public active: ActiveSearch | undefined;
     public progress!: Progress;
     public indexed!: Indexed;
@@ -59,6 +60,11 @@ export class ViewSearchInput
         this.env().subscriber.register(
             this.progress.updated.subscribe(() => {
                 this.detectChanges();
+            }),
+        );
+        this.env().subscriber.register(
+            this.ilc().channel.ui.toolbar.resize(() => {
+                this.toolbar().resized();
             }),
         );
         this.env().subscriber.register(
@@ -174,6 +180,28 @@ export class ViewSearchInput
         }
         this.session.search.store().filters().addFromFilter(this.active.filter);
         this.drop();
+    }
+
+    protected toolbar(): {
+        resized(): void;
+    } {
+        return {
+            resized: (): void => {
+                this.ilc()
+                    .services.ui.layout.toolbar()
+                    .state(
+                        (state: {
+                            min: boolean;
+                            max: boolean;
+                            occupied: boolean;
+                            size: number;
+                        }) => {
+                            this.occupied = state.occupied;
+                            this.detectChanges();
+                        },
+                    );
+            },
+        };
     }
 }
 export interface ViewSearchInput extends IlcInterface {}

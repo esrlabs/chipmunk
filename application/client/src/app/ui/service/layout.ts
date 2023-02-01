@@ -29,6 +29,15 @@ export class Service extends Implementation {
     public toolbar(): {
         min: () => void;
         max: () => void;
+        occupy: () => void;
+        state: (
+            getter: (state: {
+                min: boolean;
+                max: boolean;
+                occupied: boolean;
+                size: number;
+            }) => void,
+        ) => void;
     } {
         const emitter = this._emitter;
         return {
@@ -37,6 +46,19 @@ export class Service extends Implementation {
             },
             max(): void {
                 emitter.ui.toolbar.max();
+            },
+            occupy(): void {
+                emitter.ui.toolbar.occupy();
+            },
+            state(
+                getter: (state: {
+                    min: boolean;
+                    max: boolean;
+                    occupied: boolean;
+                    size: number;
+                }) => void,
+            ): void {
+                emitter.ui.toolbar.state(getter);
             },
         };
     }

@@ -86,6 +86,7 @@
     ></span>
     <span
         tabindex="15"
-        [attr.class]="'small-icon-button codicon codicon-fold-up '"
+        (click)="ilc().services.ui.layout.toolbar().occupy()"
+        [attr.class]="'small-icon-button codicon codicon-fold-' + (occupied ? 'down' : 'up')"
     ></span>
 </div>
