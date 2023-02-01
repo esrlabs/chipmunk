@@ -28,14 +28,14 @@ export class FiltersCollection
         );
     }
 
-    public applyTo(session: Session, _definitions: Definition[]): AfterApplyCallback {
+    public applyTo(session: Session, _definitions: Definition[]): Promise<AfterApplyCallback> {
         session.search
             .store()
             .filters()
             .overwrite(this.as().elements() as StoredEntity<FilterRequest>[]);
-        return () => {
+        return Promise.resolve(() => {
             session.search.store().filters().refresh();
-        };
+        });
     }
 
     public isSame(collection: Collection<FilterRequest>): boolean {

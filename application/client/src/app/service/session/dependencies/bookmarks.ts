@@ -41,12 +41,18 @@ export class Bookmarks extends Subscriber {
         this.subjects.destroy();
     }
 
-    public overwrite(bookmarks: Bookmark[], silence: boolean = false) {
-        this.bookmarks = bookmarks;
-        this.bookmarks.sort((a, b) => {
-            return a.position < b.position ? -1 : 1;
-        });
-        !silence && this.update();
+    public overwrite(bookmarks: Bookmark[]): Promise<void> {
+        return this.api()
+            .set(bookmarks.map((b) => b.position))
+            .then(() => {
+                this.bookmarks = bookmarks;
+                this.bookmarks.sort((a, b) => {
+                    return a.position < b.position ? -1 : 1;
+                });
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail set bookmarks: ${err.message}`);
+            });
     }
 
     public bookmark(row: Row) {

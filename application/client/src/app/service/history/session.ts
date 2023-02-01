@@ -84,7 +84,11 @@ export class HistorySession extends Subscriber {
                 const related = this.find().related();
                 if (related !== undefined) {
                     this.setCollection(related);
-                    this.collections.applyTo(this.session, this.definitions.list());
+                    this.collections
+                        .applyTo(this.session, this.definitions.list())
+                        .catch((err: Error) => {
+                            this.log().warn(`Fail to apply collection: ${err.message}`);
+                        });
                 } else {
                     this.subjects.get().suitable.emit(new Suitable());
                 }
@@ -151,7 +155,9 @@ export class HistorySession extends Subscriber {
         this.definitions.list().forEach((def) => {
             this.collections.bind(def);
         });
-        this.collections.applyTo(this.session, this.definitions.list());
+        this.collections.applyTo(this.session, this.definitions.list()).catch((err: Error) => {
+            this.log().warn(`Fail to apply collection: ${err.message}`);
+        });
     }
 
     public clear() {

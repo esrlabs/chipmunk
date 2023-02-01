@@ -23,7 +23,7 @@ export class BookmarksCollection
         );
     }
 
-    public applyTo(session: Session, definitions: Definition[]): AfterApplyCallback {
+    public async applyTo(session: Session, definitions: Definition[]): Promise<AfterApplyCallback> {
         // Bookmarks can be applied only to file
         if (
             definitions.length !== 1 ||
@@ -34,7 +34,7 @@ export class BookmarksCollection
                 /* do nothing */
             };
         }
-        session.bookmarks.overwrite(this.as().elements(), true);
+        await session.bookmarks.overwrite(this.as().elements());
         return () => {
             session.bookmarks.update();
         };

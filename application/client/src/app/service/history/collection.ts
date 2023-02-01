@@ -12,7 +12,7 @@ export abstract class Collection<T extends Json<T> & Recognizable & Equal<T>> {
     abstract subscribe(subscriber: Subscriber, session: Session): void;
     abstract extractor(): Extractor<T>;
     abstract isSame(collection: Collection<T>): boolean;
-    abstract applyTo(session: Session, definitions: Definition[]): AfterApplyCallback;
+    abstract applyTo(session: Session, definitions: Definition[]): Promise<AfterApplyCallback>;
     abstract applicableOnlyToOrigin(): boolean;
 
     public readonly elements: Map<string, T> = new Map();
