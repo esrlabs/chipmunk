@@ -83,20 +83,16 @@ export class Bookmarks extends Subscriber {
             });
     }
 
-    public is(stream: number): boolean {
-        return this.bookmarks.find((b) => b.position === stream) !== undefined;
-    }
-
-    public count(): number {
-        return this.bookmarks.length;
-    }
-
     public get(range?: Range): Bookmark[] {
         if (range === undefined) {
             return this.bookmarks;
         } else {
             return this.bookmarks.filter((b) => range.in(b.position));
         }
+    }
+
+    public has(stream: number): boolean {
+        return this.bookmarks.find((b) => b.position === stream) !== undefined;
     }
 
     public getRowsPositions(): number[] {

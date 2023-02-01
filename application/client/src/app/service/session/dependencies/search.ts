@@ -9,8 +9,6 @@ import { DisableStore } from './search/disabled/store';
 import { Highlights } from './search/highlights';
 import { State } from './search/state';
 import { Map } from './search/map';
-import { Bookmarks } from './bookmarks';
-import { Cursor } from './cursor';
 import { Stream } from './stream';
 
 import * as Requests from '@platform/ipc/request';
@@ -35,10 +33,10 @@ export class Search extends Subscriber {
     private _highlights!: Highlights;
     private _state!: State;
 
-    public init(uuid: string, stream: Stream, bookmarks: Bookmarks, cursor: Cursor) {
+    public init(uuid: string, stream: Stream) {
         this.setLoggerName(`Search: ${cutUuid(uuid)}`);
         this._uuid = uuid;
-        this.map.init(stream, bookmarks, cursor);
+        this.map.init(stream);
         this.register(
             Events.IpcEvent.subscribe(Events.Search.Updated.Event, (event) => {
                 if (event.session !== this._uuid) {
