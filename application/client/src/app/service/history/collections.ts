@@ -150,16 +150,21 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         this.relations.indexOf(definition.uuid) === -1 && this.relations.push(definition.uuid);
     }
 
-    public applyTo(session: Session, definitions: Definition[]): void {
+    public async applyTo(session: Session, definitions: Definition[]): Promise<void> {
         const origin = (() => {
             if (definitions.length === 1 && definitions[0].uuid === this.origin) {
                 return true;
             }
             return false;
         })();
-        const after = this.asCollectionsArray()
-            .filter((c) => (origin ? true : !c.applicableOnlyToOrigin()))
-            .map((c) => c.applyTo(session, definitions));
+        const collections = this.asCollectionsArray().filter((c) =>
+            origin ? true : !c.applicableOnlyToOrigin(),
+        );
+        const after = [];
+        for (const collection of collections) {
+            const cb = await collection.applyTo(session, definitions);
+            after.push(cb);
+        }
         after.forEach((cb) => cb());
     }
 

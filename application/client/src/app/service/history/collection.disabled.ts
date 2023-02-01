@@ -28,14 +28,14 @@ export class DisabledCollection
         );
     }
 
-    public applyTo(session: Session, _definitions: Definition[]): AfterApplyCallback {
+    public applyTo(session: Session, _definitions: Definition[]): Promise<AfterApplyCallback> {
         session.search
             .store()
             .disabled()
             .overwrite(this.as().elements() as StoredEntity<DisabledRequest>[]);
-        return () => {
+        return Promise.resolve(() => {
             session.search.store().disabled().refresh();
-        };
+        });
     }
 
     public isSame(collection: Collection<DisabledRequest>): boolean {
