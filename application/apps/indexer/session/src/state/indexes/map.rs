@@ -374,22 +374,29 @@ impl Map {
             });
         }
         let (before, after) = self.get_arround_positions(&seporator)?;
-        let mut self_check = false;
-        if above && before.is_some() {
+        if before.is_none() && after.is_none() {
+            return Err(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Grabber,
+                message: Some(format!(
+                    "Fail to find indexes around Nature::BREADCRUMB_SEPORATOR on {seporator}"
+                )),
+            });
+        }
+        self.remove(&[seporator], Nature::BREADCRUMB_SEPORATOR);
+        if before.is_some() && after.is_some() {
             let before_pos = Option::unwrap(before);
-            if before_pos != seporator - 1 {
-                let min = cmp::min(seporator - 1, before_pos + offset);
+            let after_pos = Option::unwrap(after);
+            let (update_before, update_after) = if above {
+                let updated = cmp::min(after_pos - 1, before_pos + offset);
                 self.insert_range(
-                    RangeInclusive::new(before_pos + 1, min),
+                    RangeInclusive::new(before_pos + 1, updated),
                     Nature::BREADCRUMB.union(Nature::EXPANDED),
                 );
-                self_check = min == seporator - 1;
-            }
-        } else if !above && after.is_some() {
-            let after_pos = Option::unwrap(after);
-            if after_pos != seporator + 1 {
-                let max = cmp::max(
-                    seporator + 1,
+                (updated, after_pos)
+            } else {
+                let updated = cmp::max(
+                    before_pos + 1,
                     if after_pos >= offset {
                         after_pos - offset
                     } else {
@@ -397,33 +404,66 @@ impl Map {
                     },
                 );
                 self.insert_range(
-                    RangeInclusive::new(max, after_pos - 1),
+                    RangeInclusive::new(updated, after_pos - 1),
                     Nature::BREADCRUMB.union(Nature::EXPANDED),
                 );
-                self_check = max == seporator + 1;
-            }
-        }
-        if self_check {
-            let (before, after) = self.get_arround_positions(&seporator)?;
-            let clear = if before.is_some() && after.is_some() {
-                let before_pos = Option::unwrap(before);
-                let after_pos = Option::unwrap(after);
-                after_pos - 1 == seporator && seporator == before_pos + 1
-            } else if before.is_some() && after.is_none() {
-                let before_pos = Option::unwrap(before);
-                seporator == before_pos + 1
-            } else if before.is_none() && after.is_some() {
-                let after_pos = Option::unwrap(after);
-                after_pos - 1 == seporator
-            } else {
-                true
+                (before_pos, updated)
             };
-            if clear {
-                self.remove(&vec![seporator][..], Nature::BREADCRUMB_SEPORATOR);
-                self.insert(
-                    &vec![seporator][..],
-                    Nature::BREADCRUMB.union(Nature::EXPANDED),
-                );
+            if update_after <= update_before {
+                // Some error during calculation
+                return Err(NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Grabber,
+                    message: Some(String::from("Error during calculation Nature::BREADCRUMB_SEPORATOR: position before grander position after")),
+                });
+            } else if update_after - update_before > 1 {
+                // Seporator is still needed
+                let middle = (update_after - update_before) / 2 + update_before;
+                self.insert(&[middle], Nature::BREADCRUMB_SEPORATOR);
+            }
+        } else if before.is_some() && after.is_none() {
+            let before_pos = Option::unwrap(before);
+            let updated = cmp::min(seporator - 1, before_pos + offset);
+            self.insert_range(
+                RangeInclusive::new(before_pos + 1, updated),
+                Nature::BREADCRUMB.union(Nature::EXPANDED),
+            );
+            if seporator <= updated {
+                // Some error during calculation
+                return Err(NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Grabber,
+                    message: Some(String::from("Error during calculation Nature::BREADCRUMB_SEPORATOR: position before grander position after")),
+                });
+            } else if seporator - updated > 1 {
+                // Seporator is still needed
+                self.insert(&[seporator], Nature::BREADCRUMB_SEPORATOR);
+            }
+        } else {
+            // before.is_none() && after.is_some()
+            let after_pos = Option::unwrap(after);
+            let updated = cmp::max(
+                seporator + 1,
+                if after_pos >= offset {
+                    after_pos - offset
+                } else {
+                    0
+                },
+            );
+            self.insert_range(
+                RangeInclusive::new(updated, after_pos - 1),
+                Nature::BREADCRUMB.union(Nature::EXPANDED),
+            );
+            if seporator <= updated {
+                // Some error during calculation
+                return Err(NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Grabber,
+                    message: Some(String::from("Error during calculation Nature::BREADCRUMB_SEPORATOR: position before grander position after")),
+                });
+            } else if seporator - updated > 1 {
+                // Seporator is still needed
+                self.insert(&[seporator], Nature::BREADCRUMB_SEPORATOR);
             }
         }
         Ok(())
@@ -508,8 +548,7 @@ impl Map {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::Grabber,
                 message: Some(format!(
-                    "Target from-key-index {from_key_index} is out of keys(); keys().len = {}",
-                    len
+                    "Target from-key-index {from_key_index} is out of keys(); keys().len = {len}",
                 )),
             });
         }
