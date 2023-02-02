@@ -136,7 +136,7 @@ export class Service extends Implementation {
             },
             select: {
                 any: (): Promise<File[]> => {
-                    return request(FileType.Any);
+                    return request(FileType.Any, `dlt,pcap,txt,log,logs`);
                 },
                 dlt: (): Promise<File[]> => {
                     return request(FileType.Dlt);

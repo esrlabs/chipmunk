@@ -74,7 +74,7 @@ export class Service extends Implementation {
                         label: 'Files',
                         submenu: [
                             {
-                                label: 'Open Any File(s)',
+                                label: 'Open File(s)',
                                 click: async () => {
                                     Actions.openFile(FileType.Any).catch((err: Error) => {
                                         this.log().error(

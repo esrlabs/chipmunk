@@ -34,6 +34,9 @@ export class Dialogs extends Implementation {
     }
 
     public async openFolder(): Promise<string[]> {
+        // Note: On Windows and Linux an open dialog can not be both a file selector and a directory selector,
+        // so if you set properties to ['openFile', 'openDirectory'] on these platforms, a directory selector
+        // will be shown.
         const result = await dialog.showOpenDialog(this._window, {
             title: 'Opening a folder',
             properties: ['openDirectory', 'multiSelections'],
@@ -55,9 +58,12 @@ export class Dialogs extends Implementation {
                         properties: ['openFile', 'multiSelections'],
                         filters:
                             ext !== undefined
-                                ? ext.split(',').map((e) => {
-                                      return { name: `*.${e}`, extensions: [e] };
-                                  })
+                                ? [
+                                      { name: 'All Files', extensions: ['*'] },
+                                      ...ext.split(',').map((e) => {
+                                          return { name: `*.${e}`, extensions: [e] };
+                                      }),
+                                  ]
                                 : [{ name: 'All Files', extensions: ['*'] }],
                     });
                     break;
