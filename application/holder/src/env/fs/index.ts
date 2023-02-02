@@ -33,11 +33,16 @@ export async function getFilesFromFolder(folders: string[], exts: string[]): Pro
     }
     let files: string[] = [];
     for (const folder of folders) {
-        files = files.concat(
-            (await fs.promises.readdir(folder, { withFileTypes: true }))
-                .filter((f) => f.isFile())
-                .map((f) => path.resolve(folder, f.name)),
-        );
+        const stat = await fs.promises.stat(folder);
+        if (stat.isFile()) {
+            files.push(folder);
+        } else {
+            files = files.concat(
+                (await fs.promises.readdir(folder, { withFileTypes: true }))
+                    .filter((f) => f.isFile())
+                    .map((f) => path.resolve(folder, f.name)),
+            );
+        }
     }
     return files.filter((file) => {
         const ext = getFileExtention(file).toLowerCase();

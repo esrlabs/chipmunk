@@ -18,7 +18,7 @@ export class Action extends Base {
     }
 
     public caption(): string {
-        return 'Open Any File(s)';
+        return 'Open Folder(s)';
     }
 
     public async apply(): Promise<void> {
