@@ -20,10 +20,13 @@ import { unique } from 'platform/env/sequence';
 import { ChipmunkGlobal } from '@register/global';
 import { exists } from '@env/fs';
 import { Update } from '@loader/exitcases/update';
+import { electron } from '@service/electron';
+import { CancelablePromise } from 'platform/env/promise';
 
 import * as path from 'path';
 import * as fs from 'fs';
 import * as Events from 'platform/ipc/event';
+import * as Requests from 'platform/ipc/request';
 
 declare const global: ChipmunkGlobal;
 
@@ -35,6 +38,7 @@ const TARGET_TAG_STARTS = 'next-';
 @DependOn(paths)
 @DependOn(settings)
 @DependOn(notifications)
+@DependOn(electron)
 @SetupService(services['updater'])
 export class Service extends Implementation {
     protected candidate:
@@ -54,6 +58,42 @@ export class Service extends Implementation {
                 },
             ),
         );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.System.CheckUpdates.Request,
+                    (
+                        _request: Requests.System.CheckUpdates.Request,
+                    ): CancelablePromise<Requests.System.CheckUpdates.Request> => {
+                        return new CancelablePromise((resolve) => {
+                            this.find(false)
+                                .candidate()
+                                .then((candidate) => {
+                                    resolve(
+                                        new Requests.System.CheckUpdates.Response({
+                                            report:
+                                                typeof candidate === 'string'
+                                                    ? candidate
+                                                    : `Found release ${candidate.release.name}. Downloading is started`,
+                                        }),
+                                    );
+                                })
+                                .catch((error: Error) => {
+                                    resolve(
+                                        new Requests.System.CheckUpdates.Response({
+                                            error: error.message,
+                                        }),
+                                    );
+                                    this.log().warn(
+                                        `Fail to check updates due error: ${error.message}`,
+                                    );
+                                });
+                        });
+                    },
+                ),
+        );
         return Promise.resolve();
     }
 
@@ -61,6 +101,9 @@ export class Service extends Implementation {
         skiping(): boolean;
         night(): Promise<{ release: IReleaseData; version: Version } | undefined>;
         latest(): Promise<{ release: IReleaseData; version: Version } | undefined>;
+        candidate(): Promise<
+            { release: IReleaseData; version: Version; compressed: string } | string
+        >;
     } {
         return {
             skiping: (): boolean => {
@@ -151,29 +194,47 @@ export class Service extends Implementation {
                 }
                 return candidate;
             },
+            candidate: async (): Promise<
+                { release: IReleaseData; version: Version; compressed: string } | string
+            > => {
+                const candidate = await this.find(force).latest();
+                if (candidate === undefined) {
+                    this.log().debug(`No updates has been found.`);
+                    return Promise.resolve(`No updates has been found.`);
+                }
+                this.log().debug(`New version has been found: ${candidate.release.name}`);
+                const release: ReleaseFile = new ReleaseFile(
+                    candidate.release.name,
+                    TARGET_TAG_STARTS,
+                );
+                this.log().debug(`Looking for: ${release.filename}`);
+                let compressed: string | undefined;
+                candidate.release.assets.forEach((asset: IReleaseAsset) => {
+                    if (release.equal(asset.name)) {
+                        compressed = asset.name;
+                    }
+                });
+                if (compressed === undefined) {
+                    this.log().warn(
+                        `Fail to find archive-file with release for current platform. `,
+                    );
+                    return Promise.resolve(
+                        `Fail to find archive-file with release for current platform. `,
+                    );
+                }
+                return { release: candidate.release, version: candidate.version, compressed };
+            },
         };
     }
 
     public async check(force: boolean): Promise<void> {
-        const candidate = await this.find(force).latest();
-        if (candidate === undefined) {
+        const candidate = await this.find(force).candidate();
+        if (typeof candidate === 'string') {
             this.log().debug(`No updates has been found.`);
             return Promise.resolve();
         }
-        this.log().debug(`New version has been found: ${candidate.release.name}`);
         const release: ReleaseFile = new ReleaseFile(candidate.release.name, TARGET_TAG_STARTS);
-        this.log().debug(`Looking for: ${release.filename}`);
-        let compressed: string | undefined;
-        candidate.release.assets.forEach((asset: IReleaseAsset) => {
-            if (release.equal(asset.name)) {
-                compressed = asset.name;
-            }
-        });
-        if (compressed === undefined) {
-            this.log().warn(`Fail to find archive-file with release for current platform. `);
-            return Promise.resolve();
-        }
-        const filename: string = path.resolve(paths.getDownloads(), compressed);
+        const filename: string = path.resolve(paths.getDownloads(), candidate.compressed);
         if (fs.existsSync(filename)) {
             // File was already downloaded
             this.log().debug(

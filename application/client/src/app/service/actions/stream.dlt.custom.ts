@@ -12,7 +12,7 @@ export class Action extends Base {
     }
 
     public caption(): string {
-        return 'Read DLT on Custom Source';
+        return 'DLT on Custom Source';
     }
 
     public async apply(): Promise<void> {

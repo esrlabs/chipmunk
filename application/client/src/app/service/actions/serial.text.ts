@@ -13,7 +13,7 @@ export class Action extends Base {
     }
 
     public caption(): string {
-        return 'Read from Serial Port';
+        return 'Plain text on Serial Port';
     }
 
     public async apply(): Promise<void> {

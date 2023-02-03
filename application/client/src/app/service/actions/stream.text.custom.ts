@@ -12,7 +12,7 @@ export class Action extends Base {
     }
 
     public caption(): string {
-        return 'Read Plaintext on Custom Source';
+        return 'Plain text on Custom Source';
     }
 
     public async apply(): Promise<void> {

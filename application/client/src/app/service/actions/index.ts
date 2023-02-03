@@ -14,6 +14,7 @@ import * as SerialDlt from './serial.dlt';
 import * as SerialText from './serial.text';
 import * as StdoutText from './stdout.text';
 import * as About from './about';
+import * as Updates from './updates';
 import * as Settings from './settings';
 
 import { Base } from './action';
@@ -34,6 +35,7 @@ export * as SerialDlt from './serial.dlt';
 export * as SerialText from './serial.text';
 export * as StdoutText from './stdout.text';
 export * as About from './about';
+export * as Updates from './updates';
 export * as Settings from './settings';
 
 export { Base } from './action';
@@ -55,6 +57,7 @@ export const all = [
     [SerialText.ACTION_UUID, SerialText.Action],
     [StdoutText.ACTION_UUID, StdoutText.Action],
     [About.ACTION_UUID, About.Action],
+    [Updates.ACTION_UUID, Updates.Action],
     [Settings.ACTION_UUID, Settings.Action],
 ];
 
