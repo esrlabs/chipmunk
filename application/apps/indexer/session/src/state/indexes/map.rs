@@ -57,6 +57,7 @@ impl Map {
                 }
             }
         });
+        self.keys.sort();
     }
 
     pub fn naturalize(&self, elements: &mut [GrabbedElement]) {
@@ -85,6 +86,7 @@ impl Map {
         if let Some(index) = self.indexes.get_mut(&position) {
             if index == &nature {
                 self.index_remove(&position);
+                self.keys.sort();
             }
         }
     }
@@ -158,7 +160,7 @@ impl Map {
         if self.stream_len == 0 || self.is_empty() {
             return Ok(());
         }
-        let keys: Vec<u64> = self.keys.clone();
+        let keys: Vec<u64> = self.keys.get();
         if keys.is_empty() {
             return Ok(());
         }
@@ -225,6 +227,7 @@ impl Map {
             if let Some(index) = self.indexes.get_mut(position) {
                 if index.is_seporator() {
                     self.index_remove(position);
+                    self.keys.sort();
                 } else {
                     index.reassign(nature);
                     // Nothing todo because we didn't insert, but reassinged
@@ -340,6 +343,7 @@ impl Map {
         expanded.iter().for_each(|position| {
             self.index_remove(position);
         });
+        self.keys.sort();
         self.breadcrumbs_insert_between(
             RangeInclusive::new(from_shifted, to_shifted),
             min_distance,
@@ -490,6 +494,7 @@ impl Map {
         to_drop.iter().for_each(|position| {
             self.index_remove(position);
         });
+        self.keys.sort();
         Ok(before)
     }
 
@@ -515,6 +520,7 @@ impl Map {
         to_drop.iter().for_each(|position| {
             self.index_remove(position);
         });
+        self.keys.sort();
         Ok(after)
     }
 
@@ -599,6 +605,7 @@ impl Map {
         to_be_removed.iter().for_each(|position| {
             self.index_remove(position);
         });
+        self.keys.sort();
     }
 
     pub fn len(&self) -> usize {

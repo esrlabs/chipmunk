@@ -35,8 +35,7 @@ export class Nature {
     }
 
     protected readonly bits: number[];
-    public before: number = 0;
-    public after: number = 0;
+    public hidden: number = 0;
     public readonly match: boolean;
     public readonly bookmark: boolean;
     public readonly breadcrumb: boolean;

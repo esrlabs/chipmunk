@@ -27,13 +27,16 @@ async function getRowFrom(
         return row;
     }
     if (index > 0 && index < elements.length - 1) {
-        row.nature.before = element.position - elements[index - 1].position - 1;
-        row.nature.after = elements[index + 1].position - element.position - 1;
+        row.nature.hidden = elements[index + 1].position - elements[index - 1].position;
         return row;
     }
     const around = await session.indexed.getIndexesAround(element.position);
-    row.nature.before = around.before !== undefined ? element.position - around.before - 1 : 0;
-    row.nature.after = around.after !== undefined ? around.after - element.position - 1 : 0;
+    row.nature.hidden =
+        around.before !== undefined
+            ? element.position - around.before - 1
+            : around.after !== undefined
+            ? around.after - element.position - 1
+            : 0;
     return row;
 }
 function getRows(session: Session, range: Range | IRange): Promise<IRowsPacket> {
