@@ -20,9 +20,9 @@ impl Keys {
     }
 
     pub fn remove(&mut self, position: &u64) {
+        self.sort();
         if let Ok(index) = self.keys.binary_search(position) {
             self.keys.remove(index);
-            self.sorted = false;
         }
     }
 
