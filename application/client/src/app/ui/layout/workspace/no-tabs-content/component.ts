@@ -32,18 +32,17 @@ export class LayoutHome extends ChangesDetector implements AfterViewInit, OnDest
             new actions.FolderDlt.Action(),
             new actions.FolderPcap.Action(),
         ],
-        stream: [
-            new actions.StreamTextOnCustom.Action(),
-            new actions.StreamDltOnCustom.Action(),
-            null,
-            new actions.SerialText.Action(),
-            new actions.StdoutText.Action(),
-            null,
+        conenctTo: [
             new actions.UdpDlt.Action(),
             new actions.TcpDlt.Action(),
             new actions.SerialDlt.Action(),
+            null,
+            new actions.SerialText.Action(),
+            null,
+            new actions.StreamTextOnCustom.Action(),
+            new actions.StreamDltOnCustom.Action(),
         ],
-        preferences: [new actions.Settings.Action()],
+        terminal: [new actions.StdoutText.Action()],
     };
     public actions: ActionsStorage = new ActionsStorage();
     public pinned: Array<Action | null> = [];

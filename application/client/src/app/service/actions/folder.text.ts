@@ -17,7 +17,7 @@ export class Action extends Base {
     }
 
     public caption(): string {
-        return 'Open Folder with Any';
+        return 'Select Folder to Concat';
     }
 
     public async apply(): Promise<void> {

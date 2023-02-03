@@ -5,15 +5,15 @@
         <mat-card-content class="menu-buttons">
           <button class="menu-button" mat-stroked-button [matMenuTriggerFor]="open_file_menu">
             <mat-icon>insert_drive_file</mat-icon>
-            <span class="t-small">Open File(s)</span>
+            <span class="t-small">File & Folder</span>
           </button>
           <button class="menu-button" mat-stroked-button [matMenuTriggerFor]="open_stream_menu">
             <mat-icon>cast_connected</mat-icon>
-            <span class="t-small">Stream(s)</span>
+            <span class="t-small">Connections</span>
           </button>
           <button class="menu-button" mat-stroked-button [matMenuTriggerFor]="open_settings_menu">
-            <mat-icon>settings</mat-icon>
-            <span class="t-small">Preferences</span>
+            <mat-icon>computer</mat-icon>
+            <span class="t-small">Terminal</span>
           </button>
         </mat-card-content>
       </mat-card>
@@ -55,7 +55,7 @@
 </mat-menu>
 
 <mat-menu #open_stream_menu="matMenu">
-  <ng-container *ngFor="let item of menu.stream">
+  <ng-container *ngFor="let item of menu.conenctTo">
     <ng-container *ngIf="item === null">
       <mat-divider></mat-divider>
     </ng-container>
@@ -64,7 +64,7 @@
 </mat-menu>
 
 <mat-menu #open_settings_menu="matMenu">
-  <ng-container *ngFor="let item of menu.preferences">
+  <ng-container *ngFor="let item of menu.terminal">
     <ng-container *ngIf="item === null">
       <mat-divider></mat-divider>
     </ng-container>

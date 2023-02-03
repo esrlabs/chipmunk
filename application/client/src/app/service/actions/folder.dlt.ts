@@ -17,7 +17,7 @@ export class Action extends Base {
     }
 
     public caption(): string {
-        return 'Open Folder with DLT';
+        return 'Select Folder with DLT';
     }
 
     public async apply(): Promise<void> {

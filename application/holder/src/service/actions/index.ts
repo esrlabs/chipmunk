@@ -3,3 +3,4 @@ export { handler as openFolder } from './open.folder';
 export { handler as stream } from './stream';
 export { handler as about } from './about';
 export { handler as settings } from './settings';
+export { handler as updates } from './updates';

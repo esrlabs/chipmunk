@@ -17,7 +17,7 @@ export class Action extends Base {
     }
 
     public caption(): string {
-        return 'Open Folder with PCAP';
+        return 'Select Folder with PCAP';
     }
 
     public async apply(): Promise<void> {

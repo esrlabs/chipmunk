@@ -191,6 +191,28 @@ export class Service extends Implementation {
                 .transport()
                 .respondent(
                     this.getName(),
+                    Requests.Actions.Updates.Request,
+                    (
+                        _request: Requests.Actions.Updates.Request,
+                    ): CancelablePromise<Requests.Actions.Updates.Response> => {
+                        return new CancelablePromise((resolve, _reject) => {
+                            new handlers.Updates.Action()
+                                .apply()
+                                .catch((err: Error) => {
+                                    this.log().error(`Fail to call Updates action: ${err.message}`);
+                                })
+                                .finally(() => {
+                                    resolve(new Requests.Actions.Updates.Response());
+                                });
+                        });
+                    },
+                ),
+        );
+        this.register(
+            api
+                .transport()
+                .respondent(
+                    this.getName(),
                     Requests.Actions.Settings.Request,
                     (
                         _request: Requests.Actions.Settings.Request,
