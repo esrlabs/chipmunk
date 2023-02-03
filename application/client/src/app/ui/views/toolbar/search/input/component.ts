@@ -80,6 +80,7 @@ export class ViewSearchInput
                 .subjects.get()
                 .finish.subscribe((result: IFinish) => {
                     this.progress.stop();
+                    this.detectChanges();
                     if (result.error !== undefined) {
                         this.log().error(result.error);
                         this.ilc().services.ui.notifications.notify(
