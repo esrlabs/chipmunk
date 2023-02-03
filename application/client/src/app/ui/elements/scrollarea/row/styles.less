@@ -51,8 +51,11 @@
     }
     & div.signature {
         display: inline-block;
-        position: relative;
+        position: sticky;
         white-space: nowrap;
+        left:0;
+        z-index: 1;
+        background-color: @scheme-color-5;
         & span.next-match-distance {
             position: relative;
             display: inline-block;
