@@ -57,7 +57,6 @@ impl Map {
                 }
             }
         });
-        self.keys.sort();
     }
 
     pub fn naturalize(&self, elements: &mut [GrabbedElement]) {
@@ -86,7 +85,6 @@ impl Map {
         if let Some(index) = self.indexes.get_mut(&position) {
             if index == &nature {
                 self.index_remove(&position);
-                self.keys.sort();
             }
         }
     }
@@ -227,7 +225,6 @@ impl Map {
             if let Some(index) = self.indexes.get_mut(position) {
                 if index.is_seporator() {
                     self.index_remove(position);
-                    self.keys.sort();
                 } else {
                     index.reassign(nature);
                     // Nothing todo because we didn't insert, but reassinged
@@ -494,7 +491,6 @@ impl Map {
         to_drop.iter().for_each(|position| {
             self.index_remove(position);
         });
-        self.keys.sort();
         Ok(before)
     }
 
@@ -520,7 +516,6 @@ impl Map {
         to_drop.iter().for_each(|position| {
             self.index_remove(position);
         });
-        self.keys.sort();
         Ok(after)
     }
 
@@ -605,7 +600,6 @@ impl Map {
         to_be_removed.iter().for_each(|position| {
             self.index_remove(position);
         });
-        self.keys.sort();
     }
 
     pub fn len(&self) -> usize {
