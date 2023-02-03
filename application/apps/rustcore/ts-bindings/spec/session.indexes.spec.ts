@@ -68,7 +68,6 @@ describe('Indexes', function () {
                 const updates: number[] = [];
                 events.IndexedMapUpdated.subscribe((event) => {
                     event.len > 0 && updates.push(event.len);
-                    console.log(`>>>>>>>>>>>>>>>>>>>>>> LEN: ${event.len}`);
                 });
                 events.StreamUpdated.subscribe(async (rows: number) => {
                     if (rows < 50 || read) {
@@ -107,13 +106,6 @@ describe('Indexes', function () {
                         let len = await stream.getIndexedLen();
                         expect(len).toEqual(30);
                         items = await stream.grabIndexed(0, len);
-                        items.forEach((i) => {
-                            console.log(
-                                `${i.position}: ${i.nature}: ${new Nature(i.nature)
-                                    .getTypes()
-                                    .join(',')}`,
-                            );
-                        });
                         expect(items.length).toEqual(len);
                         expect(
                             items.map((i) => [i.position, new Nature(i.nature).getTypes()]),
@@ -184,13 +176,56 @@ describe('Indexes', function () {
                             [40, [NatureTypes.Search]],
                             [41, [NatureTypes.Breadcrumb]],
                             [42, [NatureTypes.Breadcrumb]],
+                            [44, [NatureTypes.BreadcrumbSeporator]],
+                            [46, [NatureTypes.Breadcrumb]],
+                            [47, [NatureTypes.Breadcrumb]],
+                            [48, [NatureTypes.Breadcrumb]],
+                            [49, [NatureTypes.Breadcrumb]],
+                        ]);
+                        await stream.expandBreadcrumbs(44, 2, true);
+                        len = await stream.getIndexedLen();
+                        expect(len).toEqual(34);
+                        items = await stream.grabIndexed(0, len);
+                        expect(items.length).toEqual(len);
+                        expect(
+                            items.map((i) => [i.position, new Nature(i.nature).getTypes()]),
+                        ).toEqual([
+                            [0, [NatureTypes.Search]],
+                            [1, [NatureTypes.Breadcrumb]],
+                            [2, [NatureTypes.Breadcrumb]],
+                            [5, [NatureTypes.BreadcrumbSeporator]],
+                            [8, [NatureTypes.Breadcrumb]],
+                            [9, [NatureTypes.Breadcrumb]],
+                            [10, [NatureTypes.Search]],
+                            [11, [NatureTypes.Breadcrumb]],
+                            [12, [NatureTypes.Breadcrumb]],
+                            [15, [NatureTypes.BreadcrumbSeporator]],
+                            [18, [NatureTypes.Breadcrumb]],
+                            [19, [NatureTypes.Breadcrumb]],
+                            [20, [NatureTypes.Search]],
+                            [21, [NatureTypes.Breadcrumb]],
+                            [22, [NatureTypes.Breadcrumb]],
+                            [25, [NatureTypes.BreadcrumbSeporator]],
+                            [28, [NatureTypes.Breadcrumb]],
+                            [29, [NatureTypes.Breadcrumb]],
+                            [30, [NatureTypes.Search]],
+                            [31, [NatureTypes.Breadcrumb]],
+                            [32, [NatureTypes.Breadcrumb]],
+                            [35, [NatureTypes.BreadcrumbSeporator]],
+                            [38, [NatureTypes.Breadcrumb]],
+                            [39, [NatureTypes.Breadcrumb]],
+                            [40, [NatureTypes.Search]],
+                            [41, [NatureTypes.Breadcrumb]],
+                            [42, [NatureTypes.Breadcrumb]],
+                            [43, [NatureTypes.Breadcrumb]],
+                            [44, [NatureTypes.Breadcrumb]],
                             [45, [NatureTypes.BreadcrumbSeporator]],
                             [46, [NatureTypes.Breadcrumb]],
                             [47, [NatureTypes.Breadcrumb]],
                             [48, [NatureTypes.Breadcrumb]],
                             [49, [NatureTypes.Breadcrumb]],
                         ]);
-                        await stream.expandBreadcrumbs(45, 2, true);
+                        await stream.expandBreadcrumbs(45, 1, true);
                         len = await stream.getIndexedLen();
                         expect(len).toEqual(34);
                         items = await stream.grabIndexed(0, len);
@@ -233,45 +268,6 @@ describe('Indexes', function () {
                             [48, [NatureTypes.Breadcrumb]],
                             [49, [NatureTypes.Breadcrumb]],
                         ]);
-
-                        // // Set single index
-                        // await stream.setIndexes(1, [{ from: 2, to: 2 }]);
-                        // items = await stream.grabIndexed(0, 3);
-                        // expect(items.length).toEqual(3);
-                        // expect(items.map((i) => i.position).join(',')).toEqual([0, 2, 5].join(','));
-                        // // Remove index
-                        // await stream.unsetIndexes(1, [{ from: 2, to: 2 }]);
-                        // // Set multiple indexes
-                        // await stream.setIndexes(1, [
-                        //     { from: 6, to: 9 },
-                        //     { from: 11, to: 14 },
-                        // ]);
-                        // items = await stream.grabIndexed(0, 15);
-                        // expect(items.length).toEqual(15);
-                        // expect(items.map((i) => i.position).join(',')).toEqual(
-                        //     [0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30].join(','),
-                        // );
-                        // expect(
-                        //     (
-                        //         items.map((i) => {
-                        //             return i.nature.includes(1) ? 1 : 0;
-                        //         }) as number[]
-                        //     ).reduce((s, a) => s + a, 0),
-                        // ).toEqual(8);
-                        // // Remove multiple indexes
-                        // await stream.unsetIndexes(1, [
-                        //     { from: 6, to: 9 },
-                        //     { from: 11, to: 14 },
-                        // ]);
-                        // items = await stream.grabIndexed(0, 5);
-                        // expect(items.length).toEqual(5);
-                        // expect(items.map((i) => i.position).join(',')).toEqual(
-                        //     [0, 5, 10, 15, 20].join(','),
-                        // );
-                        // expect(items.map((i) => i.position).join(',')).toEqual(
-                        //     [0, 5, 10, 15, 20].join(','),
-                        // );
-                        // expect(items.map((i) => new Nature(i.nature).getTypes()).reduce((s, a) => s + a, 0)).toEqual(0);
                         finish(session, done);
                     } catch (err) {
                         finish(
