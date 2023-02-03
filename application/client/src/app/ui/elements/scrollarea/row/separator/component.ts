@@ -16,17 +16,11 @@ export class Separator {
 
     public before(event: MouseEvent) {
         stop(event);
-        if (this.row.nature.before === 0) {
-            return;
-        }
         this.row.extending().before();
     }
 
     public after(event: MouseEvent) {
         stop(event);
-        if (this.row.nature.after === 0) {
-            return;
-        }
         this.row.extending().after();
     }
 }

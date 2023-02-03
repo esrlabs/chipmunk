@@ -22,6 +22,7 @@ impl Keys {
     pub fn remove(&mut self, position: &u64) {
         if let Ok(index) = self.keys.binary_search(position) {
             self.keys.remove(index);
+            self.sorted = false;
         }
     }
 
@@ -84,8 +85,49 @@ impl Keys {
         self.keys.last()
     }
 
-    pub fn clone(&mut self) -> Vec<u64> {
+    pub fn get(&mut self) -> Vec<u64> {
         self.sort();
         self.keys.clone()
+    }
+}
+
+mod test {
+    #[test]
+    fn test_keys_001() {
+        let mut keys = super::Keys::new();
+        assert_eq!(keys.first(), None);
+        keys.add(13);
+        keys.add(100);
+        keys.add(12);
+        keys.add(11);
+        keys.add(200);
+        keys.add(1);
+        keys.sort();
+        keys.remove(&100);
+        assert_eq!(keys.get(), vec![1, 11, 12, 13, 200]);
+    }
+
+    #[test]
+    fn test_keys_002() {
+        let mut keys = super::Keys::new();
+        assert_eq!(keys.first(), None);
+        keys.add(13);
+        keys.add(100);
+        keys.add(12);
+        keys.add(11);
+        keys.add(200);
+        keys.add(1);
+        keys.sort();
+        keys.remove(&100);
+        keys.remove(&11);
+        keys.remove(&1);
+        assert_eq!(
+            vec![
+                keys.get_index(&12).unwrap(),
+                keys.get_index(&13).unwrap(),
+                keys.get_index(&200).unwrap()
+            ],
+            vec![0, 1, 2,]
+        );
     }
 }

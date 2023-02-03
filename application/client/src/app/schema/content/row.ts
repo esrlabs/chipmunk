@@ -132,13 +132,13 @@ export class Row extends Subscriber {
     } {
         return {
             before: (): void => {
-                if (!this.nature.seporator || this.nature.before === 0) {
+                if (!this.nature.seporator) {
                     return;
                 }
                 this.session.indexed.expand(this.position).before();
             },
             after: (): void => {
-                if (!this.nature.seporator || this.nature.after === 0) {
+                if (!this.nature.seporator) {
                     return;
                 }
                 this.session.indexed.expand(this.position).after();
