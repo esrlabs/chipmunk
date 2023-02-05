@@ -31,12 +31,16 @@ async function getRowFrom(
         return row;
     }
     const around = await session.indexed.getIndexesAround(element.position);
-    row.nature.hidden =
-        around.before !== undefined
-            ? element.position - around.before - 1
-            : around.after !== undefined
-            ? around.after - element.position - 1
-            : 0;
+    if (around.before !== undefined && around.after !== undefined) {
+        row.nature.hidden = around.after - around.before;
+    } else {
+        row.nature.hidden =
+            around.before !== undefined
+                ? element.position - around.before
+                : around.after !== undefined
+                ? around.after - element.position
+                : 0;
+    }
     return row;
 }
 function getRows(session: Session, range: Range | IRange): Promise<IRowsPacket> {
