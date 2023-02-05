@@ -1,6 +1,6 @@
 {
     "name": "chipmunk",
-    "version": "3.4.24",
+    "version": "3.5.0",
     "chipmunk": {
         "versions": {}
     },
@@ -22,7 +22,7 @@
         }
     ],
     "main": "./dist/app.js",
-    "copyright": "Copyright © 2022 year ESR Labs",
+    "copyright": "Copyright © 2023 year ESR Labs",
     "build": {
         "asar": true,
         "appId": "com.esrlabs.chipmunk",
