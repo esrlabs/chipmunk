@@ -11,7 +11,7 @@ use std::{cmp, ops::RangeInclusive};
 pub struct Map {
     indexes: FxHashMap<u64, Nature>,
     keys: Keys,
-    stream_len: u64,
+    pub stream_len: u64,
 }
 
 impl Map {
@@ -76,9 +76,12 @@ impl Map {
         self.keys.get_positions_around(position)
     }
 
-    fn remove_range(&mut self, range: RangeInclusive<u64>, nature: Nature) {
-        let positions = range.collect::<Vec<u64>>();
-        self.remove(&positions, nature);
+    fn remove_from(&mut self, position: &u64) -> Result<(), NativeError> {
+        let removed = self.keys.remove_from(position)?;
+        removed.iter().for_each(|position| {
+            self.indexes.remove(position);
+        });
+        Ok(())
     }
 
     fn remove_if(&mut self, position: u64, nature: Nature) {
@@ -645,12 +648,7 @@ impl Map {
                 )? {
                     let from = *position;
                     let to = self.stream_len - 1;
-                    if from + 1 < self.stream_len {
-                        self.remove_range(
-                            RangeInclusive::new(from + 1, to),
-                            Nature::BREADCRUMB.union(Nature::BREADCRUMB_SEPORATOR),
-                        );
-                    }
+                    self.remove_from(&from)?;
                     self.breadcrumbs_rebuild_between(from, to, min_distance, min_offset)?;
                 }
             }

@@ -1,7 +1,7 @@
 use crate::{
     events::{NativeError, NativeErrorKind},
     operations::{OperationAPI, OperationResult},
-    state::{SessionStateAPI, NOTIFY_IN_MS},
+    state::SessionStateAPI,
     tail,
 };
 use indexer_base::progress::Severity;
@@ -28,6 +28,8 @@ enum Next<T: LogMessage> {
 pub mod concat;
 pub mod file;
 pub mod stream;
+
+pub const FLUSH_TIMEOUT_IN_MS: u128 = 500;
 
 pub async fn run<S: ByteSource>(
     operation_api: OperationAPI,
@@ -85,7 +87,7 @@ pub async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     operation_api.started();
     while let Some(next) = select! {
         next_from_stream = async {
-            match timeout(Duration::from_millis(NOTIFY_IN_MS as u64), stream.next()).await {
+            match timeout(Duration::from_millis(FLUSH_TIMEOUT_IN_MS as u64), stream.next()).await {
                 Ok(item) => {
                     if let Some((_, item)) = item {
                         Some(Next::Item(item))

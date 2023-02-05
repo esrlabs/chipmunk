@@ -19,7 +19,7 @@ use std::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-pub const NOTIFY_IN_MS: u128 = 250;
+pub const FLUSH_DATA_IN_MS: u128 = 500;
 
 #[derive(Debug)]
 pub enum SessionFileState {
@@ -121,7 +121,7 @@ impl SessionFile {
         if let Some(writer) = &mut self.writer {
             writer.write_all(msg.as_bytes())?;
             self.sources.source_update(source_id);
-            if self.last_message_timestamp.elapsed().as_millis() > NOTIFY_IN_MS {
+            if self.last_message_timestamp.elapsed().as_millis() > FLUSH_DATA_IN_MS {
                 self.flush(state_cancellation_token.clone()).await
             } else {
                 Ok(SessionFileState::MaybeChanged)
