@@ -41,8 +41,6 @@ use observed::Observed;
 pub use session_file::{SessionFile, SessionFileState};
 pub use source_ids::SourceDefinition;
 
-pub const NOTIFY_IN_MS: u128 = 250;
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GrabbedElement {
     #[serde(rename = "id")]

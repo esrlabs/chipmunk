@@ -26,6 +26,23 @@ impl Keys {
         }
     }
 
+    pub fn remove_from(&mut self, position_from: &u64) -> Result<Vec<u64>, NativeError> {
+        self.sort();
+        let from_index = self
+            .keys
+            .binary_search(position_from)
+            .map_err(|_| NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Grabber,
+                message: Some(format!("Cannot find index for position: {position_from}")),
+            })?;
+        if from_index + 1 < self.keys.len() {
+            Ok(self.keys.drain((from_index + 1)..self.keys.len()).collect())
+        } else {
+            Ok(vec![])
+        }
+    }
+
     pub fn clear(&mut self) {
         self.keys.clear();
     }
@@ -42,7 +59,7 @@ impl Keys {
         self.keys.binary_search(position).map_err(|_| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Grabber,
-            message: Some(format!("Cannot index for position: {position}")),
+            message: Some(format!("Cannot find index for position: {position}")),
         })
     }
 

@@ -137,7 +137,7 @@ impl Controller {
                 .union(Nature::BREADCRUMB_SEPORATOR),
         );
         self.map.insert(
-            &matches.iter().map(|f| f.index).collect::<Vec<u64>>()[..],
+            &matches.iter().map(|f| f.index).collect::<Vec<u64>>(),
             Nature::SEARCH,
         );
         if matches!(self.mode, Mode::Breadcrumbs) {
@@ -154,14 +154,14 @@ impl Controller {
     ) -> Result<(), NativeError> {
         if matches!(self.mode, Mode::Breadcrumbs) {
             self.map.breadcrumbs_insert_and_update(
-                &matches.iter().map(|f| f.index).collect::<Vec<u64>>()[..],
+                &matches.iter().map(|f| f.index).collect::<Vec<u64>>(),
                 Nature::SEARCH,
                 4,
                 2,
             )?
         } else {
             self.map.insert(
-                &matches.iter().map(|f| f.index).collect::<Vec<u64>>()[..],
+                &matches.iter().map(|f| f.index).collect::<Vec<u64>>(),
                 Nature::SEARCH,
             );
         }

@@ -1,8 +1,11 @@
 use super::{map::Map, nature::Nature};
-use std::{ops::RangeInclusive, time::Instant};
+use std::{env, ops::RangeInclusive, time::Instant};
 
 #[test]
 fn test_build() {
+    if env::var("INDEXED_MAP_PERFORMANCE_TEST").is_err() {
+        return;
+    }
     let mut map = Map::new();
     let len: u64 = 100_000_000;
     let search_trigger = len / 100000;
@@ -87,20 +90,28 @@ fn test_build() {
 
     let start = Instant::now();
     let mut frames: u64 = 0;
-    let available = map.len() as u64;
-    for p in 0..(available - 100) {
-        if p % frames_trigger == 0 {
-            map.breadcrumbs_insert_and_update(&vec![p], Nature::BOOKMARK, 4, 2)
-                .unwrap();
-            let mut range = RangeInclusive::new(p, p + 100);
-            let _frame = map.frame(&mut range).unwrap();
-            frames += 1;
+    let step: u64 = 1000;
+    let mut next_match = *matches.last().unwrap();
+    for _ in 0..500 {
+        let mut matches: Vec<u64> = vec![];
+        for _ in 0..10 {
+            next_match += step;
+            matches.push(next_match);
         }
+        map.set_stream_len(len + next_match + step, 4, 2, true)
+            .unwrap();
+        map.breadcrumbs_insert_and_update(&matches, Nature::SEARCH, 4, 2)
+            .unwrap();
+        let mut range = RangeInclusive::new(map.len() as u64 - 200, map.len() as u64 - 100);
+        let _frame = map.frame(&mut range).unwrap();
+        frames += 1;
     }
     let duration = start.elapsed();
     println!(
-        "[UI: scroll without with updates]. 6. request with changes {frames} frames (len 100) one by one: {} ms; (each ~{}ms)",
+        "[UI: scroll without with updates]. 6. request with changes {frames} frames (len 100) one by one: {} ms; (each ~{}ms); stream = {}; map = {}",
         duration.as_millis(),
         duration.as_millis() as f64 / frames as f64,
+        map.stream_len,
+        map.len()
     );
 }

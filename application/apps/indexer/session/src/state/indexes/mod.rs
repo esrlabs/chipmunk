@@ -9,5 +9,5 @@ pub mod nature;
 pub mod tests_controller;
 #[cfg(test)]
 pub mod tests_map_cases;
-// #[cfg(test)]
-// pub mod tests_map_performance;
+#[cfg(test)]
+pub mod tests_map_performance;
