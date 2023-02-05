@@ -34,6 +34,7 @@ export class Row extends Subscriber {
     public background: string | undefined;
     public columns: string[] = [];
     public nature: Nature;
+    public seporator: boolean = false;
 
     protected readonly delimiter: string | undefined;
 
@@ -80,6 +81,7 @@ export class Row extends Subscriber {
         this.session !== row.session && (this.session = row.session);
         this.cropped !== row.cropped && (this.cropped = row.cropped);
         this.nature = row.nature;
+        this.seporator = this.isSeporator();
         this.change.emit();
     }
 
@@ -146,6 +148,13 @@ export class Row extends Subscriber {
         };
     }
 
+    protected isSeporator(): boolean {
+        if (this.owner !== Owner.Search) {
+            return false;
+        }
+        return this.nature.seporator;
+    }
+
     protected update() {
         if (this.delimiter === undefined) {
             const parsed = this.session.search.highlights().parse(this.content, this.owner, false);
@@ -174,6 +183,7 @@ export class Row extends Subscriber {
                 return parsed.html;
             });
         }
+        this.seporator = this.isSeporator();
         // if (this.owner === Owner.Search && this.session.search.map.modes().breadcrumbs()) {
         //     this.separator = this.session.search.map.breadcrumbs.isSeparator(this.position);
         // }
