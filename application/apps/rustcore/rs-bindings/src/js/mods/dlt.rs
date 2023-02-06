@@ -2,10 +2,10 @@ use crate::{
     cancellation::Cancellation,
     js::converting::attachment::{FtOptions, WrappedFtFile},
 };
-use addon::dlt_ft::{FtFile, FtIndexer, FtStreamer};
+use addon::{dlt_ft::FtFile, extract_dlt_ft, scan_dlt_ft};
 use dlt_core::statistics::{collect_dlt_stats, StatisticInfo};
 use node_bindgen::derive::node_bindgen;
-use std::path::Path;
+use std::{fs::File, path::Path};
 use uuid::Uuid;
 
 struct Dlt {
@@ -52,15 +52,13 @@ impl Dlt {
         let (uuid, cancel) = self.cancellation.create_token();
         callback(uuid.to_string());
 
-        let indexer = FtIndexer::new();
-        let result = indexer
-            .index(
-                Path::new(&input),
-                options.filter_conf,
-                options.with_storage_header,
-                cancel,
-            )
-            .await;
+        let result = scan_dlt_ft(
+            File::open(input).expect("file not found"),
+            options.filter_conf,
+            options.with_storage_header,
+            cancel,
+        )
+        .await;
         self.cancellation.remove_token(&uuid);
 
         if let Some(files) = result {
@@ -82,21 +80,19 @@ impl Dlt {
         callback(uuid.to_string());
 
         let files: Vec<FtFile> = files.iter().map(|f| f.as_file()).collect();
-
-        let mut streamer = FtStreamer::new(Path::new(&output).to_path_buf());
-        let result = streamer
-            .stream(
-                Path::new(&input),
-                options.filter_conf,
-                Some(files.iter().collect()),
-                options.with_storage_header,
-                cancel,
-            )
-            .await;
+        let result = extract_dlt_ft(
+            File::open(input).expect("file not found"),
+            Path::new(&output).to_path_buf(),
+            Some(files.iter().collect()),
+            options.filter_conf,
+            options.with_storage_header,
+            cancel,
+        )
+        .await;
         self.cancellation.remove_token(&uuid);
 
-        if streamer.is_complete() {
-            return serde_json::to_string(&result).map_err(|e| e.to_string());
+        if let Some(size) = result {
+            return serde_json::to_string(&size).map_err(|e| e.to_string());
         }
 
         Err("unable to extract dtl-ft".to_string())
@@ -112,20 +108,19 @@ impl Dlt {
         let (uuid, cancel) = self.cancellation.create_token();
         callback(uuid.to_string());
 
-        let mut streamer = FtStreamer::new(Path::new(&output).to_path_buf());
-        let result = streamer
-            .stream(
-                Path::new(&input),
-                options.filter_conf,
-                None,
-                options.with_storage_header,
-                cancel,
-            )
-            .await;
+        let result = extract_dlt_ft(
+            File::open(input).expect("file not found"),
+            Path::new(&output).to_path_buf(),
+            None,
+            options.filter_conf,
+            options.with_storage_header,
+            cancel,
+        )
+        .await;
         self.cancellation.remove_token(&uuid);
 
-        if streamer.is_complete() {
-            return serde_json::to_string(&result).map_err(|e| e.to_string());
+        if let Some(size) = result {
+            return serde_json::to_string(&size).map_err(|e| e.to_string());
         }
 
         Err("unable to extract dtl-ft".to_string())

@@ -1,21 +1,12 @@
-use dlt_core::{
-    dlt::{Argument, LogLevel, Message, MessageType, PayloadContent, Value},
-    filtering::DltFilterConfig,
-};
+use dlt_core::dlt::{Argument, LogLevel, Message, MessageType, PayloadContent, Value};
 use futures::{pin_mut, stream::StreamExt};
-use parsers::{
-    dlt::{fmt::FormattableMessage, DltParser},
-    MessageStreamItem,
-};
-use parsers::{dlt::DltParser, MessageStreamItem};
+use parsers::{dlt::fmt::FormattableMessage, MessageStreamItem};
 use serde::Serialize;
-use sources::{producer::MessageProducer, raw::binary::BinaryByteSource};
 use std::{
     collections::HashMap,
     fs::{File, OpenOptions},
-    io::{BufReader, Read, Seek, Write},
-    marker::{Send, Sync},
-    path::{Path, PathBuf},
+    io::Write,
+    path::PathBuf,
 };
 use tokio_util::sync::CancellationToken;
 
@@ -340,12 +331,14 @@ impl FtIndexer {
     /// Returns a list of files contained in the DLT trace of the given byte source, if any.
     pub async fn index_from_stream<'a, S>(
         mut self,
-        mut stream: S,
+        stream: S,
         cancel: CancellationToken,
     ) -> Option<Vec<FtFile>>
     where
-        S: futures::Stream<Item = (usize, MessageStreamItem<FormattableMessage<'a>>)> + Unpin,
+        S: futures::Stream<Item = (usize, MessageStreamItem<FormattableMessage<'a>>)>,
     {
+        pin_mut!(stream);
+
         let mut index: usize = 0;
         let mut canceled = false;
 
@@ -471,36 +464,16 @@ impl FtStreamer {
         }
     }
 
-    /// Writes the files contained in the DLT trace of the given path, if any.
-    pub async fn stream(
-        &mut self,
-        input: &Path,
-        filter: Option<DltFilterConfig>,
-        files: Option<Vec<&FtFile>>,
-        with_storage_header: bool,
-        cancel: CancellationToken,
-    ) -> usize {
-        if let Ok(file) = File::open(input) {
-            let reader = BufReader::new(&file);
-            let source = BinaryByteSource::new(reader);
-
-            return self
-                .stream_from_source(source, filter, files, with_storage_header, cancel)
-                .await;
-        }
-
-        0
-    }
-
     /// Writes the files contained in the DLT trace of the given byte source, if any.
-    pub async fn stream_from_source<R: Read + Seek + Sync + Send>(
+    pub async fn extract_from_stream<'a, S>(
         &mut self,
-        source: BinaryByteSource<R>,
-        filter: Option<DltFilterConfig>,
+        stream: S,
         files: Option<Vec<&FtFile>>,
-        with_storage_header: bool,
         cancel: CancellationToken,
-    ) -> usize {
+    ) -> usize
+    where
+        S: futures::Stream<Item = (usize, MessageStreamItem<FormattableMessage<'a>>)>,
+    {
         self.streams.drain();
         self.errors = 0;
         self.bytes = 0;
@@ -520,10 +493,7 @@ impl FtStreamer {
         }
 
         let skipped = if index_min > 0 { index_min - 1 } else { 0 };
-
-        let parser = DltParser::new(filter.map(|f| f.into()), None, with_storage_header);
-        let mut producer = MessageProducer::new(parser, source, None);
-        let stream = producer.as_stream().skip(skipped);
+        let stream = stream.skip(skipped);
         pin_mut!(stream);
 
         let mut index: usize = skipped;
@@ -675,8 +645,10 @@ impl FtStreamer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dlt_core::dlt::*;
+    use dlt_core::{dlt::*, filtering::DltFilterConfig};
+    use parsers::dlt::DltParser;
     use rand::Rng;
+    use sources::{producer::MessageProducer, raw::binary::BinaryByteSource};
     use std::{env, fs, io::Cursor};
 
     const CHUNK_SIZE: usize = 10;
@@ -916,13 +888,13 @@ mod tests {
         let source = BinaryByteSource::new(cursor);
         let parser = DltParser::new(filter.map(|f| f.into()), None, false);
         let mut producer = MessageProducer::new(parser, source, None);
-        let stream = producer.as_stream();
-        pin_mut!(stream);
         let cancel = CancellationToken::new();
         if canceled {
             cancel.cancel();
         }
-        indexer.index_from_stream(stream, cancel).await
+        indexer
+            .index_from_stream(producer.as_stream(), cancel)
+            .await
     }
 
     async fn stream(
@@ -934,12 +906,14 @@ mod tests {
     ) -> usize {
         let cursor = Cursor::new(as_bytes(messages));
         let source = BinaryByteSource::new(cursor);
+        let parser = DltParser::new(filter.map(|f| f.into()), None, false);
+        let mut producer = MessageProducer::new(parser, source, None);
         let cancel = CancellationToken::new();
         if canceled {
             cancel.cancel();
         }
         streamer
-            .stream_from_source(source, filter, files, false, cancel)
+            .extract_from_stream(producer.as_stream(), files, cancel)
             .await
     }
 
@@ -1141,9 +1115,9 @@ mod tests {
         let size = stream(&mut streamer, &messages, None, None, false).await;
         assert_eq!(5 + 6 + 7, size);
         assert!(streamer.is_complete());
-        output.assert_file(&format!("{ids.get(0).unwrap()}_test1.txt"), "test1");
-        output.assert_file(&format!("{ids.get(1).unwrap()}_test2.txt"), "test22");
-        output.assert_file(&format!("{ids.get(2).unwrap()}_test3.txt"), "test333");
+        output.assert_file(&format!("{}_test1.txt", ids.get(0).unwrap()), "test1");
+        output.assert_file(&format!("{}_test2.txt", ids.get(1).unwrap()), "test22");
+        output.assert_file(&format!("{}_test3.txt", ids.get(2).unwrap()), "test333");
     }
 
     #[tokio::test]

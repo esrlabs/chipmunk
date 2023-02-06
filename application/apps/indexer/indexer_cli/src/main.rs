@@ -22,7 +22,7 @@ mod dlt;
 mod interactive;
 
 use crate::interactive::handle_interactive_session;
-use addon::dlt_ft::*;
+use addon::{extract_dlt_ft, scan_dlt_ft};
 use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
@@ -1069,25 +1069,22 @@ pub async fn main() -> Result<()> {
         if interactive {
             // extract selected files
             println!("scan files..");
-            let file = File::open(file_path).expect("file not found");
-            let reader = BufReader::new(&file);
-            let source = BinaryByteSource::new(reader);
-            let parser = DltParser::new(filter_conf.clone(), None, with_storage_header);
-            let mut producer = MessageProducer::new(parser, source, None);
-            let stream = producer.as_stream();
-            pin_mut!(stream);
+            let scanned_files = scan_dlt_ft(
+                File::open(file_path).expect("file not found"),
+                filter_conf.clone(),
+                with_storage_header,
+                CancellationToken::new(),
+            )
+            .await
+            .unwrap();
 
-            let ft_indexer = FtIndexer::new();
-            let cancel = CancellationToken::new();
-            let ft_index = ft_indexer.index_from_stream(stream, cancel).await.unwrap();
-
-            if ft_index.is_empty() {
+            if scanned_files.is_empty() {
                 println!("no file(s) found!");
                 std::process::exit(0);
             }
-            for (pos, ft_file) in ft_index.iter().enumerate() {
+            for (pos, file) in scanned_files.iter().enumerate() {
                 let index: usize = pos + 1;
-                println!("<{}>\t{} ({} bytes)", index, ft_file.name, ft_file.size);
+                println!("<{}>\t{} ({} bytes)", index, file.name, file.size);
             }
             loop {
                 println!("enter file indexes [<num>,...] or 'q' for exit:");
@@ -1097,46 +1094,42 @@ pub async fn main() -> Result<()> {
                     std::process::exit(0)
                 }
 
-                let mut ft_files = Vec::new();
+                let mut selected_files = Vec::new();
                 for part in input.trim().split(',') {
                     if let Ok(index) = part.parse::<usize>() {
-                        if let Some(ft_file) = ft_index.get(index - 1) {
-                            ft_files.push(ft_file);
+                        if let Some(file) = scanned_files.get(index - 1) {
+                            selected_files.push(file);
                         }
                     }
                 }
 
-                let mut ft_streamer = FtStreamer::new(output_dir.clone());
-                let cancel = CancellationToken::new();
-                let size = ft_streamer
-                    .stream(
-                        file_path,
-                        filter_conf.clone(),
-                        Some(ft_files),
-                        with_storage_header,
-                        cancel,
-                    )
-                    .await;
-                println!("{} bytes written", size);
+                let size = extract_dlt_ft(
+                    File::open(file_path).expect("file not found"),
+                    Path::new(&output_dir).to_path_buf(),
+                    Some(selected_files),
+                    filter_conf.clone(),
+                    with_storage_header,
+                    CancellationToken::new(),
+                )
+                .await
+                .unwrap();
 
-                if !ft_streamer.is_complete() {
-                    eprintln!("{} streams remaining!", ft_streamer.num_streams());
-                    eprintln!("{} stream errors!", ft_streamer.num_errors());
-                }
+                println!("{size} bytes written");
             }
         } else {
             // extract all files
             println!("extract files..");
-            let mut ft_streamer = FtStreamer::new(output_dir.clone());
-            let cancel = CancellationToken::new();
-            let size = ft_streamer
-                .stream(file_path, filter_conf, None, with_storage_header, cancel)
-                .await;
 
-            if !ft_streamer.is_complete() {
-                eprintln!("{} streams remaining!", ft_streamer.num_streams());
-                eprintln!("{} stream errors!", ft_streamer.num_errors());
-            }
+            let size = extract_dlt_ft(
+                File::open(file_path).expect("file not found"),
+                Path::new(&output_dir).to_path_buf(),
+                None,
+                filter_conf,
+                with_storage_header,
+                CancellationToken::new(),
+            )
+            .await
+            .unwrap();
 
             let source_file_size = fs::metadata(file_path).expect("file size error").len();
             let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
