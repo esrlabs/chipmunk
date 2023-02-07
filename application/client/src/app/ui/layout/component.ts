@@ -189,24 +189,24 @@ export class Layout extends ChangesDetector implements AfterViewInit {
                     return;
                 }
                 this.sidebar.toggle();
-                this.ilc().emitter.ui.sidebar.resize();
                 this.detectChanges();
+                this.ilc().emitter.ui.sidebar.resize();
             },
             toolbar: (): void => {
                 if (session === undefined) {
                     return;
                 }
                 this.toolbar.toggle();
-                this.ilc().emitter.ui.toolbar.resize();
                 this.detectChanges();
+                this.ilc().emitter.ui.toolbar.resize();
             },
             occupy: (): void => {
                 if (session === undefined) {
                     return;
                 }
                 this.toolbar.occupy();
-                this.ilc().emitter.ui.toolbar.resize();
                 this.detectChanges();
+                this.ilc().emitter.ui.toolbar.resize();
             },
         };
     }
