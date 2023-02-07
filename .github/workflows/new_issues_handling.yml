@@ -1,17 +1,17 @@
 name: Handle new issues
 
 on:
-  issues:
-    types:
-      - opened
+    issues:
+        types:
+            - opened
 
 jobs:
-  set-labels:
-    runs-on: ubuntu-18.04
-    steps:
-      - name: Set issue defaults
-        uses: meatlink/issue-defaults@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          label: new
-          assignee: marcmo
+    set-labels:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Set issue defaults
+              uses: meatlink/issue-defaults@v1
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
+                  label: new
+                  assignee: marcmo
