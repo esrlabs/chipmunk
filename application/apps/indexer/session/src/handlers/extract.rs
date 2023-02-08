@@ -4,7 +4,10 @@ use crate::{
 };
 use indexer_base::progress::Severity;
 
-use processor::search::{ExtractedMatchValue, MatchesExtractor, SearchFilter};
+use processor::search::{
+    extractor::{ExtractedMatchValue, MatchesExtractor},
+    filter::SearchFilter,
+};
 use std::path::Path;
 
 pub fn handle<'a, I>(

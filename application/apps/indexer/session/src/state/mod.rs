@@ -7,7 +7,7 @@ use log::{debug, error};
 use processor::{
     grabber::LineRange,
     map::{FilterMatch, FiltersStats, NearestPosition, ScaledDistribution, SearchMap},
-    search::{SearchHolder, SearchResults},
+    search::searchers,
 };
 use serde::{Deserialize, Serialize};
 use sources::factory::ObserveOptions;
@@ -61,7 +61,7 @@ impl GrabbedElement {
 
 #[derive(Debug)]
 pub enum SearchHolderState {
-    Available(SearchHolder),
+    Available(searchers::regular::Searcher),
     InUse,
     NotInited,
 }
@@ -72,9 +72,9 @@ impl SearchHolderState {
         rows_count: u64,
         read_bytes: u64,
         cancel_token: CancellationToken,
-    ) -> Option<SearchResults> {
+    ) -> Option<searchers::regular::SearchResults> {
         match self {
-            Self::Available(h) => Some(h.execute_search(rows_count, read_bytes, cancel_token)),
+            Self::Available(h) => Some(h.execute(rows_count, read_bytes, cancel_token)),
             _ => None,
         }
     }
@@ -144,10 +144,15 @@ pub enum Api {
     ),
     GetStreamLen(oneshot::Sender<(u64, u64)>),
     GetSearchResultLen(oneshot::Sender<usize>),
-    GetSearchHolder((Uuid, oneshot::Sender<Result<SearchHolder, NativeError>>)),
+    GetSearchHolder(
+        (
+            Uuid,
+            oneshot::Sender<Result<searchers::regular::Searcher, NativeError>>,
+        ),
+    ),
     SetSearchHolder(
         (
-            Option<SearchHolder>,
+            Option<searchers::regular::Searcher>,
             Uuid,
             oneshot::Sender<Result<(), NativeError>>,
         ),
@@ -444,7 +449,10 @@ impl SessionState {
         Ok(true)
     }
 
-    fn handle_get_search_holder(&mut self, uuid: Uuid) -> Result<SearchHolder, NativeError> {
+    fn handle_get_search_holder(
+        &mut self,
+        uuid: Uuid,
+    ) -> Result<searchers::regular::Searcher, NativeError> {
         match self.search_holder {
             SearchHolderState::Available(_) => {
                 use std::mem;
@@ -464,7 +472,11 @@ impl SessionState {
             SearchHolderState::NotInited => {
                 let filename = self.session_file.filename()?;
                 self.search_holder = SearchHolderState::InUse;
-                Ok(SearchHolder::new(&filename, vec![].iter(), uuid))
+                Ok(searchers::regular::Searcher::new(
+                    &filename,
+                    vec![].iter(),
+                    uuid,
+                ))
             }
         }
     }
@@ -701,7 +713,10 @@ impl SessionStateAPI {
         self.exec_operation(Api::FileRead(tx), rx).await
     }
 
-    pub async fn get_search_holder(&self, uuid: Uuid) -> Result<SearchHolder, NativeError> {
+    pub async fn get_search_holder(
+        &self,
+        uuid: Uuid,
+    ) -> Result<searchers::regular::Searcher, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetSearchHolder((uuid, tx)), rx)
             .await?
@@ -709,7 +724,7 @@ impl SessionStateAPI {
 
     pub async fn set_search_holder(
         &self,
-        holder: Option<SearchHolder>,
+        holder: Option<searchers::regular::Searcher>,
         uuid: Uuid,
     ) -> Result<(), NativeError> {
         let (tx, rx) = oneshot::channel();

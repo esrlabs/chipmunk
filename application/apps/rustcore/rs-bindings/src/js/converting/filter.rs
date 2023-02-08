@@ -5,7 +5,7 @@ use node_bindgen::{
     },
     sys::napi_value,
 };
-use processor::search::SearchFilter;
+use processor::search::filter::SearchFilter;
 use serde::Serialize;
 #[derive(Serialize, Debug, Clone)]
 pub struct WrappedSearchFilter(SearchFilter);

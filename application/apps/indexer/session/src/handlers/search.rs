@@ -7,7 +7,7 @@ use indexer_base::progress::Severity;
 use log::debug;
 use processor::{
     map::{FilterMatch, FiltersStats},
-    search::{SearchFilter, SearchHolder, SearchResults},
+    search::{filter::SearchFilter, searchers},
 };
 use std::ops::Range;
 use tokio::{
@@ -20,8 +20,14 @@ use tokio::{
 const TRACKING_INTERVAL_MS: u64 = 250;
 
 type SearchResultChannel = (
-    Sender<(SearchHolder, SearchResults)>,
-    Receiver<(SearchHolder, SearchResults)>,
+    Sender<(
+        searchers::regular::Searcher,
+        searchers::regular::SearchResults,
+    )>,
+    Receiver<(
+        searchers::regular::Searcher,
+        searchers::regular::SearchResults,
+    )>,
 );
 
 #[allow(clippy::type_complexity)]
@@ -43,8 +49,7 @@ pub async fn handle(
         let cancel = operation_api.cancellation_token();
         let cancel_search = operation_api.cancellation_token();
         task::spawn(async move {
-            let search_results =
-                search_holder.execute_search(rows, read_bytes, cancel_search.clone());
+            let search_results = search_holder.execute(rows, read_bytes, cancel_search.clone());
             if !cancel_search.is_cancelled()
                 && tx_result
                     .send((search_holder, search_results))
@@ -59,9 +64,9 @@ pub async fn handle(
                     usize,
                     Vec<FilterMatch>,
                     FiltersStats,
-                    SearchHolder,
+                    searchers::regular::Searcher,
                 ),
-                (Option<SearchHolder>, NativeError),
+                (Option<searchers::regular::Searcher>, NativeError),
             >,
         > = select! {
             res = async {

@@ -1,6 +1,6 @@
 use crate::js::converting::filter::WrappedSearchFilter;
 use node_bindgen::derive::node_bindgen;
-use processor::search::get_filter_error as validator;
+use processor::search::filter::get_filter_error as validator;
 
 #[node_bindgen]
 fn get_filter_error(filter: WrappedSearchFilter) -> Option<String> {
