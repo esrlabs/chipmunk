@@ -7,7 +7,7 @@ use crate::{
 use indexer_base::progress::Severity;
 use log::{debug, error, warn};
 use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
-use processor::search::SearchFilter;
+use processor::search::filter::SearchFilter;
 use serde::Serialize;
 use sources::{
     factory::ObserveOptions,

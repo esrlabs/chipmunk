@@ -9,7 +9,7 @@ use crate::{
 };
 use indexer_base::progress::Severity;
 use log::{debug, error};
-use processor::{grabber::LineRange, search::SearchFilter};
+use processor::{grabber::LineRange, search::filter::SearchFilter};
 use serde::Serialize;
 use sources::factory::ObserveOptions;
 use std::{ops::RangeInclusive, path::PathBuf};

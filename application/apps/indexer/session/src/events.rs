@@ -1,6 +1,6 @@
 use crossbeam_channel as cc;
 use indexer_base::progress::{Progress, Severity};
-use processor::{grabber::GrabError, search::SearchError};
+use processor::{grabber::GrabError, search::error::SearchError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
