@@ -107,6 +107,20 @@ pub enum Api {
             oneshot::Sender<()>,
         ),
     ),
+    GetSearchValuesHolder(
+        (
+            Uuid,
+            oneshot::Sender<Result<searchers::values::Searcher, NativeError>>,
+        ),
+    ),
+    SetSearchValuesHolder(
+        (
+            Option<searchers::values::Searcher>,
+            Uuid,
+            oneshot::Sender<Result<(), NativeError>>,
+        ),
+    ),
+    DropSearchValues(oneshot::Sender<bool>),
     CloseSession(oneshot::Sender<()>),
     SetDebugMode((bool, oneshot::Sender<()>)),
     NotifyCancelingOperation(Uuid),
@@ -151,6 +165,9 @@ impl Display for Api {
                 Self::GetNearestPosition(_) => "GetNearestPosition",
                 Self::GetScaledMap(_) => "GetScaledMap",
                 Self::SetMatches(_) => "SetMatches",
+                Self::GetSearchValuesHolder(_) => "GetSearchValuesHolder",
+                Self::SetSearchValuesHolder(_) => "SetSearchValuesHolder",
+                Self::DropSearchValues(_) => "DropSearchValues",
                 Self::CloseSession(_) => "CloseSession",
                 Self::SetDebugMode(_) => "SetDebugMode",
                 Self::NotifyCancelingOperation(_) => "NotifyCancelingOperation",
@@ -444,6 +461,30 @@ impl SessionStateAPI {
                     "Failed to send to Api::NotifyCanceledOperation; error: {e}",
                 ))
             })
+    }
+
+    pub async fn get_search_values_holder(
+        &self,
+        uuid: Uuid,
+    ) -> Result<searchers::values::Searcher, NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GetSearchValuesHolder((uuid, tx)), rx)
+            .await?
+    }
+
+    pub async fn set_search_values_holder(
+        &self,
+        holder: Option<searchers::values::Searcher>,
+        uuid: Uuid,
+    ) -> Result<(), NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::SetSearchValuesHolder((holder, uuid, tx)), rx)
+            .await?
+    }
+
+    pub async fn drop_search_values(&self) -> Result<bool, NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::DropSearchValues(tx), rx).await
     }
 
     pub async fn close_session(&self) -> Result<(), NativeError> {

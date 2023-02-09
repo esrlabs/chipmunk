@@ -9,6 +9,9 @@ pub enum SearcherState<T: searchers::Base> {
 }
 
 impl<T: searchers::Base> SearcherState<T> {
+    pub fn is_using(&self) -> bool {
+        matches!(self, SearcherState::<_>::InUse)
+    }
     pub fn in_use(&mut self) {
         *self = SearcherState::<_>::InUse;
     }

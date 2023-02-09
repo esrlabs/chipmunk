@@ -5,11 +5,8 @@ use crate::{
 };
 use indexer_base::progress::Severity;
 use log::debug;
-use processor::{
-    map::{FilterMatch, FiltersStats},
-    search::{filter::SearchFilter, searchers},
-};
-use std::ops::Range;
+use processor::search::searchers;
+use std::{collections::HashMap, ops::Range};
 use tokio::{
     select,
     sync::mpsc::{channel, Receiver, Sender},
@@ -21,30 +18,30 @@ const TRACKING_INTERVAL_MS: u64 = 250;
 
 type SearchResultChannel = (
     Sender<(
-        searchers::regular::Searcher,
-        searchers::regular::SearchResults,
+        searchers::values::Searcher,
+        searchers::values::OperationResults,
     )>,
     Receiver<(
-        searchers::regular::Searcher,
-        searchers::regular::SearchResults,
+        searchers::values::Searcher,
+        searchers::values::OperationResults,
     )>,
 );
 
 #[allow(clippy::type_complexity)]
 pub async fn handle(
     operation_api: &OperationAPI,
-    filters: Vec<SearchFilter>,
+    filters: Vec<String>,
     state: SessionStateAPI,
-) -> OperationResult<u64> {
-    debug!("RUST: Search operation is requested");
-    state.drop_search().await?;
+) -> OperationResult<HashMap<u64, Vec<(u8, String)>>> {
+    debug!("RUST: Search values operation is requested");
+    state.drop_search_values().await?;
     let (rows, read_bytes) = state.get_stream_len().await?;
     if filters.is_empty() {
-        debug!("RUST: Search will be dropped. Filters are empty");
-        Ok(Some(0))
+        debug!("RUST: Search values will be dropped. Filters are empty");
+        Ok(Some(HashMap::new()))
     } else {
-        let mut holder = state.get_search_holder(operation_api.id()).await?;
-        holder.set_filters(&mut filters.iter());
+        let mut holder = state.get_search_values_holder(operation_api.id()).await?;
+        holder.set_filters(filters);
         let (tx_result, mut rx_result): SearchResultChannel = channel(1);
         let cancel = operation_api.cancellation_token();
         let cancel_search = operation_api.cancellation_token();
@@ -58,12 +55,10 @@ pub async fn handle(
             Result<
                 (
                     Range<usize>,
-                    usize,
-                    Vec<FilterMatch>,
-                    FiltersStats,
-                    searchers::regular::Searcher,
+                    HashMap<u64, Vec<(u8, String)>>,
+                    searchers::values::Searcher,
                 ),
-                (Option<searchers::regular::Searcher>, NativeError),
+                (Option<searchers::values::Searcher>, NativeError),
             >,
         > = select! {
             res = async {
@@ -79,16 +74,16 @@ pub async fn handle(
                                 Err((None, NativeError {
                                     severity: Severity::ERROR,
                                     kind: NativeErrorKind::OperationSearch,
-                                    message: Some("Fail to receive search results".to_string()),
+                                    message: Some("Fail to receive search values results".to_string()),
                                 })),
                                 |(holder, search_results)| {
                                     match search_results {
-                                        Ok((processed, matches, stats)) => Ok((processed, matches.len(), matches, stats, holder)),
+                                        Ok((processed, values)) => Ok((processed, values, holder)),
                                         Err(err) => Err((Some(holder), NativeError {
                                             severity: Severity::ERROR,
                                             kind: NativeErrorKind::OperationSearch,
                                             message: Some(format!(
-                                                "Fail to execute search. Error: {err}"
+                                                "Fail to execute search values. Error: {err}"
                                             )),
                                         }))
 
@@ -110,32 +105,35 @@ pub async fn handle(
         };
         if let Some(search_results) = search_results {
             match search_results {
-                Ok((_processed, found, matches, stats, holder)) => {
+                Ok((_processed, values, holder)) => {
                     state
-                        .set_search_holder(Some(holder), operation_api.id())
+                        .set_search_values_holder(Some(holder), operation_api.id())
                         .await?;
                     // stats - isn't big object, it's small hashmap and clone operation here will not decrease performance.
                     // even this happens just once per search
-                    state.set_matches(Some(matches), Some(stats)).await?;
-                    Ok(Some(found as u64))
+                    Ok(Some(values))
                 }
                 Err((holder, err)) => {
                     if let Some(holder) = holder {
                         state
-                            .set_search_holder(Some(holder), operation_api.id())
+                            .set_search_values_holder(Some(holder), operation_api.id())
                             .await?;
                     } else {
-                        state.set_search_holder(None, operation_api.id()).await?;
+                        state
+                            .set_search_values_holder(None, operation_api.id())
+                            .await?;
                     }
-                    state.drop_search().await?;
+                    state.drop_search_values().await?;
                     Err(err)
                 }
             }
         } else {
             // We should not recreate holder, but just drop into NotInited
-            state.set_search_holder(None, operation_api.id()).await?;
-            state.drop_search().await?;
-            Ok(Some(0))
+            state
+                .set_search_values_holder(None, operation_api.id())
+                .await?;
+            state.drop_search_values().await?;
+            Ok(Some(HashMap::new()))
         }
     }
 }

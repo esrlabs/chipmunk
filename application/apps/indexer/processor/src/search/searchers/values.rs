@@ -1,37 +1,25 @@
 use crate::search::{error::SearchError, searchers::Base};
 use regex::Regex;
 use std::{
+    collections::HashMap,
     ops::Range,
     path::{Path, PathBuf},
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-pub type OperationResults = Result<(Range<usize>, Vec<Matches>), SearchError>;
-
-/// Lists all matching filters at an index
-#[derive(Debug, Clone)]
-pub struct Matches {
-    pub index: u64,
-    pub values: Vec<(u8, String)>,
-}
-
-impl Matches {
-    pub fn new(index: u64, values: Vec<(u8, String)>) -> Self {
-        Self { index, values }
-    }
-}
+pub type OperationResults = Result<(Range<usize>, HashMap<u64, Vec<(u8, String)>>), SearchError>;
 
 #[derive(Debug)]
 struct Results {
-    indexes: Option<Vec<Matches>>,
+    indexes: Option<HashMap<u64, Vec<(u8, String)>>>,
     matchers: Vec<Regex>,
 }
 
 impl Results {
     pub fn new() -> Self {
         Self {
-            indexes: Some(vec![]),
+            indexes: Some(HashMap::new()),
             matchers: vec![],
         }
     }
@@ -115,18 +103,16 @@ impl Base for Searcher {
     }
 
     fn matching(&mut self, row: u64, line: &str) {
-        let mut matches = Matches::new(row - 1, vec![]);
+        let mut matches = vec![];
         for (index, re) in self.results.matchers.iter().enumerate() {
             if let Some(caps) = re.captures(line) {
                 if let Some(value) = caps.get(1) {
-                    matches
-                        .values
-                        .push((index as u8, value.as_str().to_owned()));
+                    matches.push((index as u8, value.as_str().to_owned()));
                 }
             }
         }
         if let Some(indexes) = self.results.indexes.as_mut() {
-            indexes.push(matches);
+            indexes.insert(row, matches);
         }
     }
 }
