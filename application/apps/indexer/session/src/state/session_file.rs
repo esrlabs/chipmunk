@@ -2,7 +2,6 @@ use super::{observed::Observed, source_ids::SourceIDs};
 use crate::{
     events::{NativeError, NativeErrorKind},
     paths,
-    state::GrabbedElement,
 };
 use indexer_base::progress::Severity;
 use log::debug;
@@ -10,6 +9,7 @@ use processor::{
     grabber::{Grabber, LineRange},
     text_source::TextFileSource,
 };
+use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
     io::{BufWriter, Write},
@@ -20,6 +20,24 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 pub const FLUSH_DATA_IN_MS: u128 = 500;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GrabbedElement {
+    #[serde(rename = "id")]
+    pub source_id: u8,
+    #[serde(rename = "c")]
+    pub content: String,
+    #[serde(rename = "p")]
+    pub pos: usize,
+    #[serde(rename = "n")]
+    pub nature: u8,
+}
+
+impl GrabbedElement {
+    pub fn set_nature(&mut self, nature: u8) {
+        self.nature = nature;
+    }
+}
 
 #[derive(Debug)]
 pub enum SessionFileState {
