@@ -1,9 +1,10 @@
-use crate::search::{error::SearchError, searchers::Base};
+use crate::search::{error::SearchError, filter, searchers::Base};
 use regex::Regex;
 use std::{
     collections::HashMap,
     ops::Range,
     path::{Path, PathBuf},
+    str::FromStr,
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
@@ -17,11 +18,19 @@ struct Results {
 }
 
 impl Results {
-    pub fn new() -> Self {
-        Self {
-            indexes: Some(HashMap::new()),
-            matchers: vec![],
+    pub fn new(filters: Option<&[String]>) -> Result<Self, SearchError> {
+        let mut matchers = vec![];
+        if let Some(filters) = filters {
+            for (pos, filter) in filters.iter().enumerate() {
+                matchers.push(Regex::from_str(filter).map_err(|err| {
+                    SearchError::Regex(format!("Failed to create regex for {filter}: {err}"))
+                })?);
+            }
         }
+        Ok(Self {
+            indexes: Some(HashMap::new()),
+            matchers,
+        })
     }
 }
 
@@ -43,7 +52,8 @@ impl Searcher {
             filters,
             bytes_read: 0,
             lines_read: 0,
-            results: Results::new(),
+            // It's safetly because we do not provide any data inside
+            results: Results::new(None).unwrap(),
         }
     }
 
@@ -68,7 +78,7 @@ impl Searcher {
         read_bytes: u64,
         cancallation: CancellationToken,
     ) -> OperationResults {
-        self.results = Results::new();
+        self.results = Results::new(Some(&self.filters))?;
         let processed = self.search(rows_count, read_bytes, cancallation)?;
         Ok((
             processed,

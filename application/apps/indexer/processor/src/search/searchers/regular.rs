@@ -142,7 +142,7 @@ impl Base for Searcher {
     }
 
     fn matching(&mut self, row: u64, line: &str) {
-        let mut line_indexes = FilterMatch::new(row - 1, vec![]);
+        let mut line_indexes = FilterMatch::new(row, vec![]);
         for (index, re) in self.results.matchers.iter().enumerate() {
             if re.is_match(line) {
                 line_indexes.filters.push(index as u8);

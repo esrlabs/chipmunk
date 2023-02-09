@@ -17,8 +17,11 @@ use std::{
 use tokio_util::sync::CancellationToken;
 
 pub mod regular;
+#[cfg(test)]
+pub mod tests_regular;
+#[cfg(test)]
+pub mod tests_values;
 pub mod values;
-
 pub trait Base {
     fn get_file_path(&self) -> &PathBuf;
     fn get_bytes_read(&self) -> u64;
@@ -95,7 +98,7 @@ pub trait Base {
                 &matcher,
                 &mut reader_handler,
                 UTF8(|row, line| {
-                    self.matching(row + lines_read, line);
+                    self.matching(row + lines_read - 1, line);
                     processed += 1;
                     Ok(true)
                 }),
