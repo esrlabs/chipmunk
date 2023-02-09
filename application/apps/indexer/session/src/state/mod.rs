@@ -29,6 +29,7 @@ pub use indexes::{
 };
 use observed::Observed;
 use searchers::{SearcherState, Searchers};
+use serde_json;
 pub use session_file::{GrabbedElement, SessionFile, SessionFileState};
 pub use source_ids::SourceDefinition;
 
@@ -148,7 +149,7 @@ impl SessionState {
                 .await?,
             SessionFileState::Changed
         ) {
-            self.update_search(state_cancellation_token, tx_callback_events)
+            self.update_searchers(state_cancellation_token, tx_callback_events)
                 .await?;
         }
         Ok(())
@@ -166,7 +167,7 @@ impl SessionState {
                 .await?,
             SessionFileState::Changed
         ) {
-            self.update_search(state_cancellation_token, tx_callback_events)
+            self.update_searchers(state_cancellation_token, tx_callback_events)
                 .await?;
         }
         Ok(())
@@ -183,7 +184,7 @@ impl SessionState {
             .update(source_id, state_cancellation_token.clone())
             .await?
         {
-            self.update_search(state_cancellation_token, tx_callback_events)
+            self.update_searchers(state_cancellation_token, tx_callback_events)
                 .await?;
             Ok(true)
         } else {
@@ -191,7 +192,7 @@ impl SessionState {
         }
     }
 
-    async fn update_search(
+    async fn update_searchers(
         &mut self,
         state_cancellation_token: CancellationToken,
         tx_callback_events: UnboundedSender<CallbackEvent>,
@@ -204,7 +205,7 @@ impl SessionState {
         match self
             .searchers
             .regular
-            .search(rows, bytes, state_cancellation_token)
+            .search(rows, bytes, state_cancellation_token.clone())
         {
             Some(Ok((_processed, mut matches, stats))) => {
                 self.indexes.append_search_results(&matches)?;
@@ -218,6 +219,23 @@ impl SessionState {
                 tx_callback_events.send(CallbackEvent::SearchMapUpdated(Some(map_updates)))?;
             }
             Some(Err(err)) => error!("Fail to append search: {}", err),
+            None => (),
+        }
+        match self
+            .searchers
+            .values
+            .search(rows, bytes, state_cancellation_token)
+        {
+            Some(Ok((_processed, values))) => {
+                tx_callback_events.send(CallbackEvent::SearchValuesUpdated(Some(
+                    serde_json::to_string(&values).map_err(|e| NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::Io,
+                        message: Some(format!("Fail to convert search values to json: {e}",)),
+                    })?,
+                )))?;
+            }
+            Some(Err(err)) => error!("Fail to update search values: {err}"),
             None => (),
         }
         Ok(())
@@ -286,10 +304,44 @@ impl SessionState {
             SearcherState::InUse => Err(NativeError::channel("Search holder is in use")),
             SearcherState::NotInited => {
                 let filename = self.session_file.filename()?;
-                self.searchers.regular = SearcherState::InUse;
+                self.searchers.regular.in_use();
                 Ok(search::searchers::regular::Searcher::new(
                     &filename,
                     vec![].iter(),
+                    uuid,
+                ))
+            }
+        }
+    }
+
+    fn handle_get_search_values_holder(
+        &mut self,
+        uuid: Uuid,
+    ) -> Result<search::searchers::values::Searcher, NativeError> {
+        match self.searchers.values {
+            SearcherState::Available(_) => {
+                use std::mem;
+                if let SearcherState::Available(holder) =
+                    mem::replace(&mut self.searchers.values, SearcherState::InUse)
+                {
+                    Ok(holder)
+                } else {
+                    Err(NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::Configuration,
+                        message: Some(String::from(
+                            "Could not replace search values holder in state",
+                        )),
+                    })
+                }
+            }
+            SearcherState::InUse => Err(NativeError::channel("Search values holder is in use")),
+            SearcherState::NotInited => {
+                let filename = self.session_file.filename()?;
+                self.searchers.values.in_use();
+                Ok(search::searchers::values::Searcher::new(
+                    &filename,
+                    vec![],
                     uuid,
                 ))
             }
@@ -503,12 +555,12 @@ pub async fn run(
                         NativeError::channel("Failed to respond to Api::GetSearchHolder")
                     })?;
             }
-            Api::SetSearchHolder((mut search_holder, _uuid_for_debug, tx_response)) => {
-                let result = if matches!(state.searchers.regular, SearcherState::InUse) {
-                    if let Some(search_holder) = search_holder.take() {
-                        state.searchers.regular = SearcherState::Available(search_holder);
+            Api::SetSearchHolder((mut holder, _uuid_for_debug, tx_response)) => {
+                let result = if state.searchers.regular.is_using() {
+                    if let Some(holder) = holder.take() {
+                        state.searchers.regular.set(holder);
                     } else {
-                        state.searchers.regular = SearcherState::NotInited;
+                        state.searchers.regular.not_inited();
                     }
                     Ok(())
                 } else {
@@ -521,10 +573,10 @@ pub async fn run(
                 })?;
             }
             Api::DropSearch(tx_response) => {
-                let result = if matches!(state.searchers.regular, SearcherState::InUse) {
+                let result = if state.searchers.regular.is_using() {
                     false
                 } else {
-                    state.searchers.regular = SearcherState::NotInited;
+                    state.searchers.regular.not_inited();
                     state.search_map.set(None, None);
                     state.indexes.drop_search()?;
                     true
@@ -551,6 +603,42 @@ pub async fn run(
                 tx_response
                     .send(())
                     .map_err(|_| NativeError::channel("Failed to respond to Api::SetMatches"))?;
+            }
+            Api::GetSearchValuesHolder((uuid, tx_response)) => {
+                tx_response
+                    .send(state.handle_get_search_values_holder(uuid))
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::GetSearchValuesHolder")
+                    })?;
+            }
+            Api::SetSearchValuesHolder((mut holder, _uuid_for_debug, tx_response)) => {
+                let result = if state.searchers.values.is_using() {
+                    if let Some(holder) = holder.take() {
+                        state.searchers.values.set(holder);
+                    } else {
+                        state.searchers.values.not_inited();
+                    }
+                    Ok(())
+                } else {
+                    Err(NativeError::channel(
+                        "Cannot set search values holder - it wasn't in use",
+                    ))
+                };
+                tx_response.send(result).map_err(|_| {
+                    NativeError::channel("Failed to respond to Api::SetSearchValuesHolder")
+                })?;
+            }
+            Api::DropSearchValues(tx_response) => {
+                let result = if state.searchers.values.is_using() {
+                    false
+                } else {
+                    state.searchers.values.not_inited();
+                    true
+                };
+                tx_callback_events.send(CallbackEvent::SearchValuesUpdated(None))?;
+                tx_response.send(result).map_err(|_| {
+                    NativeError::channel("Failed to respond to Api::DropSearchValues")
+                })?;
             }
             Api::CloseSession(tx_response) => {
                 state_cancellation_token.cancel();

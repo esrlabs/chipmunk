@@ -164,6 +164,16 @@ pub enum CallbackEvent {
      */
     SearchMapUpdated(Option<String>),
     /**
+     * Triggered on update of search values data. Used for charts
+     * @event SearchMapUpdated { Option<String> }
+     * includes JSON String of HashMap<u64, Vec<(u8, String)>> - map of all matches
+     * in search with values also called with each search update if there are streaming
+     * None - map is dropped
+     * >> Scope: session
+     * >> Kind: repeated
+     */
+    SearchValuesUpdated(Option<String>),
+    /**
      * Triggered on progress of async operation
      * @event Progress: { total: usize, done: usize }
      * >> Scope: async operation
@@ -224,6 +234,7 @@ impl std::fmt::Display for CallbackEvent {
             Self::SearchUpdated { found, stat: _ } => write!(f, "SearchUpdated({found})"),
             Self::IndexedMapUpdated { len } => write!(f, "IndexedMapUpdated({len})"),
             Self::SearchMapUpdated(_) => write!(f, "SearchMapUpdated"),
+            Self::SearchValuesUpdated(_) => write!(f, "SearchValuesUpdated"),
             Self::Progress {
                 uuid: _,
                 progress: _,
