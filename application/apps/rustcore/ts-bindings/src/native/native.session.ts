@@ -181,6 +181,8 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract search(filters: IFilter[], operationUuid: string): Promise<void>;
 
+    public abstract searchValues(filters: string[], operationUuid: string): Promise<void>;
+
     public abstract dropSearch(): Promise<boolean>;
 
     public abstract extractMatchesValues(filters: IFilter[], operationUuid: string): Promise<void>;
@@ -271,6 +273,11 @@ export abstract class RustSessionNative {
             ignore_case: boolean;
             is_word: boolean;
         }>,
+        operationUuid: string,
+    ): Promise<void>;
+
+    public abstract applySearchValuesFilters(
+        filters: string[],
         operationUuid: string,
     ): Promise<void>;
 
@@ -943,6 +950,26 @@ export class RustSessionWrapper extends RustSession {
                     });
             } catch (err) {
                 return reject(new NativeError(NativeError.from(err), Type.Other, Source.Search));
+            }
+        });
+    }
+
+    public searchValues(filters: string[], operationUuid: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            try {
+                this._provider.debug().emit.operation('applySearchValuesFilters', operationUuid);
+                this._native
+                    .applySearchValuesFilters(filters, operationUuid)
+                    .then(resolve)
+                    .catch((err: Error) => {
+                        reject(
+                            new NativeError(NativeError.from(err), Type.Other, Source.SearchValues),
+                        );
+                    });
+            } catch (err) {
+                return reject(
+                    new NativeError(NativeError.from(err), Type.Other, Source.SearchValues),
+                );
             }
         });
     }

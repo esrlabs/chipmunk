@@ -494,6 +494,29 @@ impl RustSession {
     }
 
     #[node_bindgen]
+    async fn apply_search_values_filters(
+        &self,
+        filters: Vec<String>,
+        operation_id: String,
+    ) -> Result<(), ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            info!(
+                target: targets::SESSION,
+                "Search values (operation: {}) will be done withing next filters: {:?}",
+                operation_id,
+                filters
+            );
+            session
+                .apply_search_values_filters(operations::uuid_from_str(&operation_id)?, filters)
+                .map_err(ComputationErrorWrapper)
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
     async fn drop_search(&self) -> Result<bool, ComputationErrorWrapper> {
         if let Some(ref session) = self.session {
             session.drop_search().await.map_err(ComputationErrorWrapper)

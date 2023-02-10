@@ -16,6 +16,7 @@ export enum Type {
 export enum Source {
     Assign = 'Assign',
     Search = 'Search',
+    SearchValues = 'SearchValues',
     GetMap = 'GetMap',
     ExtractMatchesValues = 'ExtractMatchesValues',
     GrabStreamChunk = 'GrabStreamChunk',

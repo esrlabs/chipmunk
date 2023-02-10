@@ -68,6 +68,18 @@
                 }
             }
         },
+        "values": {
+            "regular": {
+                "execute_only": [],
+                "list": {
+                    "1": "Test 1. Assign & single search",
+                    "2": "Test 2. Assign & multiple search",
+                    "3": "Test 3. Assign & zero search",
+                    "4": "Test 4. Assign & single not case sensitive search",
+                    "5": "Test 5. Assign & single word search"
+                }
+            }
+        },
         "extract": {
             "regular": {
                 "execute_only": [],

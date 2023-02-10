@@ -3,6 +3,7 @@ import { ISearchUpdated } from 'platform/types/filter';
 import { Computation } from '../provider/provider';
 import { EErrorKind, EErrorSeverity } from '../provider/provider.errors';
 import { IMapEntity, IMatchEntity } from '../interfaces/index';
+import { SearchValuesResultOrigin } from '../api/executors/session.stream.searchvalues.executor';
 
 export interface IProgressState {
     total: number;

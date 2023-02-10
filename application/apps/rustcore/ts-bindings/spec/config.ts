@@ -50,6 +50,9 @@ export interface IConfiguration {
         search: {
             regular: IRegularTests;
         };
+        values: {
+            regular: IRegularTests;
+        };
         ranges: {
             regular: IRegularTests;
         };
