@@ -1,7 +1,7 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
 import { File, FileType, Entity } from '@platform/types/files';
-import { StatisticInfo } from '@platform/types/parsers/dlt';
+import { StatisticInfo, FtFile, FtOptions } from '@platform/types/parsers/dlt';
 import { Entry } from '@platform/types/storage/entry';
 
 import * as Requests from '@platform/ipc/request/index';
@@ -240,6 +240,13 @@ export class Service extends Implementation {
 
     public dlt(): {
         stat(files: string[]): Promise<StatisticInfo>;
+        scan(file: string, options: FtOptions): Promise<FtFile[]>;
+        extract(
+            file: string, 
+            output: string, 
+            attachments: FtFile[] | undefined, 
+            options: FtOptions
+        ): Promise<number>;
     } {
         return {
             stat: (files: string[]): Promise<StatisticInfo> => {
@@ -252,6 +259,39 @@ export class Service extends Implementation {
                     )
                         .then((response) => {
                             resolve(response.stat);
+                        })
+                        .catch(reject);
+                });
+            },
+            scan: (file: string, options: FtOptions): Promise<FtFile[]> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Dlt.Scan.Response,
+                        new Requests.Dlt.Scan.Request({
+                            file, options,
+                        }),
+                    )
+                        .then((response) => {
+                            resolve(response.attachments);
+                        })
+                        .catch(reject);
+                });
+            },
+            extract: (
+                file: string, 
+                output: string, 
+                attachments: FtFile[] | undefined, 
+                options: FtOptions
+            ): Promise<number> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Dlt.Extract.Response,
+                        new Requests.Dlt.Extract.Request({
+                            file, output, attachments, options,
+                        }),
+                    )
+                        .then((response) => {
+                            resolve(response.size);
                         })
                         .catch(reject);
                 });
