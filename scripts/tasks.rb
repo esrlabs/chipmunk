@@ -200,6 +200,15 @@ namespace :test do
       end
     end
 
+    desc 'run values tests'
+    task :values do
+      Bindings.new(false).build
+      Reporter.print
+      Shell.chdir(Paths::TS_BINDINGS) do
+        sh "#{test_runner} spec/session.values.spec.ts"
+      end
+    end
+
     desc 'run extract tests'
     task :extract do
       Bindings.new(false).build
@@ -320,7 +329,7 @@ namespace :test do
              'test:binding:ranges', 'test:binding:exporting', 'test:binding:search',
              'test:binding:cancel', 'test:binding:errors', 'test:binding:map',
              'test:matcher:karma', 'test:matcher:rust', 'test:ansi:karma',
-             'test:binding:indexes', 'test:ansi:rust']
+             'test:binding:values', 'test:binding:indexes', 'test:ansi:rust']
 end
 
 namespace :lint do
