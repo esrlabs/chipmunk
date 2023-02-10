@@ -318,6 +318,19 @@ impl Session {
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
+    pub fn apply_search_values_filters(
+        &self,
+        operation_id: Uuid,
+        filters: Vec<String>,
+    ) -> Result<(), ComputationError> {
+        self.tx_operations
+            .send(Operation::new(
+                operation_id,
+                operations::OperationKind::SearchValues { filters },
+            ))
+            .map_err(|e| ComputationError::Communication(e.to_string()))
+    }
+
     pub async fn drop_search(&self) -> Result<bool, ComputationError> {
         self.state
             .drop_search()

@@ -11,6 +11,7 @@ import {
     INearest,
 } from '../interfaces/index';
 import { Executors } from './executors/session.stream.executors';
+import { SearchValuesResult } from './executors/session.stream.searchvalues.executor';
 
 export class SessionSearch {
     private readonly _provider: EventProvider;
@@ -22,8 +23,18 @@ export class SessionSearch {
             current: ICancelablePromise<number> | undefined;
             pending: { filters: IFilter[]; self: ICancelablePromise<number> } | undefined;
         };
+        values: {
+            current: ICancelablePromise<SearchValuesResult> | undefined;
+            pending:
+                | { filters: string[]; self: ICancelablePromise<SearchValuesResult> }
+                | undefined;
+        };
     } = {
         search: {
+            current: undefined,
+            pending: undefined,
+        },
+        values: {
             current: undefined,
             pending: undefined,
         },
@@ -130,6 +141,43 @@ export class SessionSearch {
                     filters,
                 };
                 this._tasks.search.current.abort();
+            }
+        });
+    }
+
+    public values(filters: string[]): ICancelablePromise<SearchValuesResult> {
+        const executor = (self: ICancelablePromise<SearchValuesResult>, filters: string[]) => {
+            this._tasks.values.current = Executors.values(
+                this._session,
+                this._provider,
+                this._logger,
+                filters,
+            )
+                .finally(() => {
+                    this._tasks.values.current = undefined;
+                    const pending = this._tasks.values.pending;
+                    this._tasks.values.pending = undefined;
+                    if (pending !== undefined) {
+                        executor(pending.self, pending.filters);
+                    }
+                })
+                .bind(self);
+            self.uuid(this._tasks.values.current.uuid());
+        };
+        // TODO: field "filters" of IResultSearchElement cannot be empty, at least 1 filter
+        // should be present there always. This is a right place for check of it
+        return new CancelablePromise((_resolve, _reject, _cancel, _refCancel, self) => {
+            if (this._tasks.values.current === undefined) {
+                executor(self, filters);
+            } else {
+                if (this._tasks.values.pending !== undefined) {
+                    this._tasks.values.pending.self.abort();
+                }
+                this._tasks.values.pending = {
+                    self,
+                    filters,
+                };
+                this._tasks.values.current.abort();
             }
         });
     }
