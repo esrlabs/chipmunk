@@ -1,0 +1,28 @@
+{
+  "name": "utils",
+  "version": "0.0.1",
+  "description": "Test env for utils",
+  "scripts": {
+    "build": "node_modules/.bin/webpack",
+    "start": "node_modules/.bin/webpack-dev-server",
+    "test": "node_modules/.bin/karma start"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jasmine": "^4.0.3",
+    "@wasm-tool/wasm-pack-plugin": "^1.6.0",
+    "karma": "^6.4.0",
+    "karma-chrome-launcher": "^3.1.1",
+    "karma-jasmine": "^5.1.0",
+    "karma-spec-reporter": "^0.0.34",
+    "karma-typescript": "^5.5.3",
+    "karma-webpack": "^5.0.0",
+    "ts-loader": "^9.3.1",
+    "ts-node": "^10.8.2",
+    "typescript": "^4.7.4",
+    "webpack": "^5.73.0",
+    "webpack-cli": "^4.10.0",
+    "webpack-dev-server": "^4.9.3"
+  }
+}

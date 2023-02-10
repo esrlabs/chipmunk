@@ -90,12 +90,8 @@ export class SearchInput {
                 this.actions.accept.emit();
             } else {
                 this.value = this.control.value;
-                this.error
-                    .set()
-                    .value(this.control.value)
-                    .then(() => {
-                        !this.error.hasError() && this.actions.accept.emit();
-                    });
+                this.error.set().value(this.control.value);
+                !this.error.hasError() && this.actions.accept.emit();
             }
         } else if (event.key === 'Backspace' && this.control.value === '' && this._prev === '') {
             this.actions.edit.emit();

@@ -2,15 +2,18 @@ import { scope } from '@platform/env/scope';
 
 import * as matcher from '@matcher/matcher';
 import * as ansi from '@ansi/ansi';
+import * as utils from '@utils/utils';
 
 export { Matcher } from '@matcher/matcher';
 
 const wasm: {
     matcher: typeof matcher | undefined;
     ansi: typeof ansi | undefined;
+    utils: typeof utils | undefined;
 } = {
     matcher: undefined,
     ansi: undefined,
+    utils: undefined,
 };
 
 export function load(): Promise<void> {
@@ -32,6 +35,14 @@ export function load(): Promise<void> {
             .catch((err: Error) => {
                 logger.error(`fail to load @ansi/ansi: ${err.message}`);
             }),
+        import('@utils/utils')
+            .then((module) => {
+                wasm.utils = module;
+                logger.debug(`@utils/utils is loaded`);
+            })
+            .catch((err: Error) => {
+                logger.error(`fail to load @utils/utils: ${err.message}`);
+            }),
     ])
         .catch((err: Error) => {
             logger.error(`Fail to load wasm modules: ${err.message}`);
@@ -51,4 +62,11 @@ export function getAnsi(): typeof ansi {
         throw new Error(`wasm module "ansi" isn't loaded`);
     }
     return wasm.ansi;
+}
+
+export function getUtils(): typeof utils {
+    if (wasm.utils === undefined) {
+        throw new Error(`wasm module "utils" isn't loaded`);
+    }
+    return wasm.utils;
 }

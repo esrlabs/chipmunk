@@ -71,9 +71,9 @@
     ></span>
 </div>
 <div class="summary">
-    <span class="error t-medium" *ngIf="input.error.hasError()" [attr.title]="input.error.getErrorMsg()">
+    <span class="error t-medium" *ngIf="input.error.hasError()" [attr.title]="input.error.error">
         <mat-icon>error</mat-icon>
-        <span class="message">{{input.error.getErrorMsg()}}</span>
+        <span class="message">{{input.error.error}}</span>
     </span>
     <span class="t-small color-scheme-2" *ngIf="progress.visible()">{{progress.summary()}}</span>
     <mat-spinner *ngIf="progress.working" [diameter]="20"></mat-spinner>
