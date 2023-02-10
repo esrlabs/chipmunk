@@ -3,7 +3,6 @@ import { services } from '@register/services';
 import { File, FileType, Entity } from '@platform/types/files';
 import { StatisticInfo } from '@platform/types/parsers/dlt';
 import { Entry } from '@platform/types/storage/entry';
-import { IFilter } from '@platform/interfaces/interface.rust.api.general';
 
 import * as Requests from '@platform/ipc/request/index';
 
@@ -524,31 +523,6 @@ export class Service extends Implementation {
                     )
                         .then(() => {
                             resolve(undefined);
-                        })
-                        .catch(reject);
-                });
-            },
-        };
-    }
-
-    public regex(): {
-        validate(filter: IFilter): Promise<Error | undefined>;
-    } {
-        return {
-            validate: (filter: IFilter): Promise<Error | undefined> => {
-                return new Promise((resolve, reject) => {
-                    Requests.IpcRequest.send(
-                        Requests.Search.RegEx.Response,
-                        new Requests.Search.RegEx.Request({
-                            filter,
-                        }),
-                    )
-                        .then((response) => {
-                            resolve(
-                                typeof response.error === 'string'
-                                    ? new Error(response.error)
-                                    : undefined,
-                            );
                         })
                         .catch(reject);
                 });

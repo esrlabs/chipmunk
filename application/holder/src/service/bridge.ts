@@ -200,15 +200,6 @@ export class Service extends Implementation {
                 ),
         );
         this.register(
-            electron
-                .ipc()
-                .respondent(
-                    this.getName(),
-                    Requests.Search.RegEx.Request,
-                    RequestHandlers.Regex.Validate.handler,
-                ),
-        );
-        this.register(
             Events.IpcEvent.subscribe(Events.Logs.Write.Event, (event: Events.Logs.Write.Event) => {
                 this.clientLogger !== undefined &&
                     this.clientLogger.write(event.message, event.level);
