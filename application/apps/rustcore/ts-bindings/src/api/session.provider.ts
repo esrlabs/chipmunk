@@ -3,7 +3,10 @@ import { ISearchUpdated } from 'platform/types/filter';
 import { Computation } from '../provider/provider';
 import { EErrorKind, EErrorSeverity } from '../provider/provider.errors';
 import { IMapEntity, IMatchEntity } from '../interfaces/index';
-import { SearchValuesResultOrigin } from '../api/executors/session.stream.searchvalues.executor';
+import {
+    SearchValuesResult,
+    parseOriginValues,
+} from '../api/executors/session.stream.searchvalues.executor';
 
 export interface IProgressState {
     total: number;
@@ -35,6 +38,10 @@ export interface IEventMapUpdated {
     map: IMapEntity[];
 }
 
+export interface ISearchValuesUpdated {
+    values: SearchValuesResult;
+}
+
 export interface IEventIndexedMapUpdated {
     len: number;
 }
@@ -47,6 +54,7 @@ export interface ISessionEvents {
     StreamUpdated: Subject<number>;
     FileRead: Subject<void>;
     SearchUpdated: Subject<ISearchUpdated>;
+    SearchValuesUpdated: Subject<ISearchValuesUpdated>;
     SearchMapUpdated: Subject<string>;
     MapUpdated: Subject<IEventMapUpdated>;
     IndexedMapUpdated: Subject<IEventIndexedMapUpdated>;
@@ -59,10 +67,15 @@ export interface ISessionEvents {
     OperationDone: Subject<IOperationDoneEvent>;
 }
 
+export interface ISessionEventsConvertors {
+    SearchValuesUpdated: (data: string) => ISearchValuesUpdated | Error;
+}
+
 interface ISessionEventsSignatures {
     StreamUpdated: 'StreamUpdated';
     FileRead: 'FileRead';
     SearchUpdated: 'SearchUpdated';
+    SearchValuesUpdated: 'SearchValuesUpdated';
     SearchMapUpdated: 'SearchMapUpdated';
     MapUpdated: 'MapUpdated';
     IndexedMapUpdated: 'IndexedMapUpdated';
@@ -79,6 +92,7 @@ const SessionEventsSignatures: ISessionEventsSignatures = {
     StreamUpdated: 'StreamUpdated',
     FileRead: 'FileRead',
     SearchUpdated: 'SearchUpdated',
+    SearchValuesUpdated: 'SearchValuesUpdated',
     SearchMapUpdated: 'SearchMapUpdated',
     MapUpdated: 'MapUpdated',
     IndexedMapUpdated: 'IndexedMapUpdated',
@@ -95,6 +109,7 @@ interface ISessionEventsInterfaces {
     StreamUpdated: { self: 'number' };
     FileRead: { self: null };
     SearchUpdated: { self: 'object'; found: 'number'; stat: typeof Object };
+    SearchValuesUpdated: { self: ['string', null] };
     SearchMapUpdated: { self: ['string', null] };
     MapUpdated: { self: 'object'; map: typeof Array };
     IndexedMapUpdated: { self: 'object'; len: 'number' };
@@ -122,6 +137,7 @@ const SessionEventsInterfaces: ISessionEventsInterfaces = {
     StreamUpdated: { self: 'number' },
     FileRead: { self: null },
     SearchUpdated: { self: 'object', found: 'number', stat: Object },
+    SearchValuesUpdated: { self: ['string', null] },
     SearchMapUpdated: { self: ['string', null] },
     MapUpdated: { self: 'object', map: Array },
     IndexedMapUpdated: { self: 'object', len: 'number' },
@@ -154,6 +170,7 @@ export class EventProvider extends Computation<
         StreamUpdated: new Subject<number>(),
         FileRead: new Subject<void>(),
         SearchUpdated: new Subject<ISearchUpdated>(),
+        SearchValuesUpdated: new Subject<ISearchValuesUpdated>(),
         SearchMapUpdated: new Subject<string>(),
         MapUpdated: new Subject<IEventMapUpdated>(),
         IndexedMapUpdated: new Subject<IEventIndexedMapUpdated>(),
@@ -164,6 +181,18 @@ export class EventProvider extends Computation<
         SessionDestroyed: new Subject<void>(),
         OperationStarted: new Subject<string>(),
         OperationDone: new Subject<IOperationDoneEvent>(),
+    };
+
+    private readonly _convertors: ISessionEventsConvertors = {
+        SearchValuesUpdated: (data: string): ISearchValuesUpdated | Error => {
+            const values = parseOriginValues(data);
+            if (values instanceof Error) {
+                return values;
+            }
+            return {
+                values,
+            };
+        },
     };
 
     constructor(uuid: string) {
@@ -184,5 +213,14 @@ export class EventProvider extends Computation<
 
     public getEventsInterfaces(): ISessionEventsInterfaces {
         return SessionEventsInterfaces;
+    }
+
+    public getConvertor<T, O>(event: keyof ISessionEventsSignatures, data: T): T | O | Error {
+        const convertors = this._convertors as unknown as { [key: string]: (data: T) => T | O };
+        if (typeof convertors[event] !== 'function') {
+            return data;
+        } else {
+            return convertors[event](data);
+        }
     }
 }

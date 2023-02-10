@@ -54,7 +54,11 @@ export function checkSessionDebugger(session: Session, done: () => void) {
     lockChangingLogLevel('Jasmin Tests');
 })();
 
-export function createSampleFile(lines: number, logger: Logger, creator: (i: number) => string) {
+export function createSampleFile(
+    lines: number,
+    logger: Logger,
+    creator: (i: number) => string,
+): tmp.FileResult {
     const tmpobj = tmp.fileSync();
     var content = '';
     for (let i = 0; i < lines; i++) {
@@ -63,6 +67,22 @@ export function createSampleFile(lines: number, logger: Logger, creator: (i: num
     fs.appendFileSync(tmpobj.name, content);
     const stats = fs.statSync(tmpobj.name);
     logger.debug(`Created example grabber file of size: ${stats.size}`);
+    return tmpobj;
+}
+
+export function appendToSampleFile(
+    tmpobj: tmp.FileResult,
+    lines: number,
+    logger: Logger,
+    creator: (i: number) => string,
+): tmp.FileResult {
+    var content = '';
+    for (let i = 0; i < lines; i++) {
+        content += creator(i);
+    }
+    fs.appendFileSync(tmpobj.name, content);
+    const stats = fs.statSync(tmpobj.name);
+    logger.debug(`Appened date to example file of size: ${stats.size}`);
     return tmpobj;
 }
 
