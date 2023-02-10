@@ -6,6 +6,39 @@ import { error } from 'platform/env/logger';
 export type SearchValuesResult = Map<number, Map<number, string>>;
 export type SearchValuesResultOrigin = { [key: string | number]: [number, string][] };
 
+export function parseOriginValues(data: string): SearchValuesResult | Error {
+    const results: SearchValuesResult = new Map();
+    try {
+        const parsed: SearchValuesResultOrigin = JSON.parse(data);
+        if (typeof parsed !== 'object' || parsed === null || parsed === undefined) {
+            return new Error(`Invalid format of search values results. Data: ${data}`);
+        }
+        Object.keys(parsed).forEach((key: string) => {
+            const position = typeof key === 'number' ? key : parseInt(key, 10);
+            if (isNaN(position) || !isFinite(position)) {
+                throw new Error(`Fail to parse key: ${key}`);
+            }
+            const values = parsed[key];
+            if (!(values instanceof Array)) {
+                throw new Error(`Invalid format of values on key`);
+            }
+            const matches: Map<number, string> = new Map();
+            values.forEach((v) => {
+                if (!(v instanceof Array) || v.length !== 2) {
+                    throw new Error(`Invalid format of values inside key`);
+                }
+                if (typeof v[0] !== 'number' || isNaN(v[0]) || !isFinite(v[0])) {
+                    throw new Error(`Invalid key of filter: ${v[0]}`);
+                }
+                matches.set(v[0], v[1]);
+            });
+            results.set(position, matches);
+        });
+    } catch (e) {
+        return new Error(error(e));
+    }
+    return results;
+}
 export const executor: TExecutor<SearchValuesResult, string[]> = (
     session: RustSession,
     provider: EventProvider,
@@ -25,51 +58,12 @@ export const executor: TExecutor<SearchValuesResult, string[]> = (
             resolve: (values: SearchValuesResult) => void,
             reject: (err: Error) => void,
         ) {
-            console.log(data);
-            try {
-                const parsed: SearchValuesResultOrigin = JSON.parse(data);
-                if (typeof parsed !== 'object' || parsed === null || parsed === undefined) {
-                    return reject(
-                        new Error(`Invalid format of search values results. Data: ${data}`),
-                    );
-                }
-                const results: SearchValuesResult = new Map();
-                Object.keys(parsed).forEach((key: string) => {
-                    const position = typeof key === 'number' ? key : parseInt(key, 10);
-                    if (isNaN(position) || !isFinite(position)) {
-                        throw new Error(`Fail to parse key: ${key}`);
-                    }
-                    const values = parsed[key];
-                    if (!(values instanceof Array)) {
-                        throw new Error(`Invalid format of values on key`);
-                    }
-                    const matches: Map<number, string> = new Map();
-                    values.forEach((v) => {
-                        if (!(v instanceof Array) || v.length !== 2) {
-                            throw new Error(`Invalid format of values inside key`);
-                        }
-                        if (typeof v[0] !== 'number' || isNaN(v[0]) || !isFinite(v[0])) {
-                            throw new Error(`Invalid key of filter: ${v[0]}`);
-                        }
-                        matches.set(v[0], v[1]);
-                    });
-                    results.set(position, matches);
-                });
+            const results: SearchValuesResult | Error = parseOriginValues(data);
+            if (results instanceof Error) {
+                reject(results);
+            } else {
                 resolve(results);
-            } catch (e) {
-                return reject(
-                    new Error(`Fail to parse search values results: ${error(e)}\nData: ${data}`),
-                );
             }
-
-            // const found = parseInt(data, 10);
-            // if (typeof found !== 'number' || isNaN(found) || !isFinite(found)) {
-            //     return reject(
-            //         new Error(
-            //             `Fail to parse search results. Invalid format. Expecting valid { number }.`,
-            //         ),
-            //     );
-            // }
         },
         'search',
     );

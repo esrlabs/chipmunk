@@ -4,6 +4,8 @@
 /// 3. Add performance test (grabbing)
 
 import { Subject } from 'platform/env/subscription';
+import { error } from 'platform/env/logger';
+
 import * as Logs from '../util/logging';
 
 import { TEventData, TEventEmitter, IEventData } from '../provider/provider.general';
@@ -75,6 +77,8 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
     public abstract getEventsSignatures(): IEventsSignatures;
 
     public abstract getEventsInterfaces(): IEventsInterfaces;
+
+    public abstract getConvertor<T, O>(event: string, data: T): T | O | Error;
 
     public debug(): {
         getEvents(): {
@@ -269,6 +273,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         } else {
             const type: string = Object.keys(event)[0];
             const body: any = event[type];
+
             this._emit(type, body);
         }
     }
@@ -309,18 +314,18 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                     data,
                 );
                 if (err instanceof Error) {
-                    this.debug().emit.error(
-                        `Error: ${
-                            err instanceof Error ? err.message : err
-                        }. Input: ${JSON.stringify(data)}`,
-                    );
-                    this.logger.error(
-                        `Failed to parse event "${event}" due error: ${
-                            err instanceof Error ? err.message : err
-                        }`,
-                    );
+                    this.debug().emit.error(`Error: ${error(err)}. Input: ${JSON.stringify(data)}`);
+                    this.logger.error(`Failed to parse event "${event}" due error: ${error(err)}`);
                 } else {
-                    (this.getEvents() as any)[event].emit(data);
+                    const converted = data === null ? data : this.getConvertor(event, data);
+                    if (converted instanceof Error) {
+                        this.logger.error(
+                            `Failed to convert results fro event "${event}" due error: ${error(
+                                converted,
+                            )}`,
+                        );
+                    }
+                    (this.getEvents() as any)[event].emit(converted);
                     this.logger.debug(`Event "${event}" is processed`);
                 }
             }

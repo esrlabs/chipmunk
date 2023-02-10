@@ -544,7 +544,6 @@ describe('Search', function () {
                     finish(session, done, search);
                     return;
                 }
-
                 const tmpobj = createSampleFile(
                     5000,
                     logger,
