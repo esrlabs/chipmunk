@@ -12,6 +12,8 @@ use std::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
+use super::BaseSearcher;
+
 pub type SearchResults = Result<(Range<usize>, Vec<FilterMatch>, FiltersStats), SearchError>;
 
 #[derive(Debug)]
@@ -88,7 +90,7 @@ impl Searcher {
     ///
     /// stat information shows how many times a filter matched:
     /// [(index_of_filter, count_of_matches), ...]
-    pub fn execute(
+    pub fn _execute(
         &mut self,
         rows_count: u64,
         read_bytes: u64,
@@ -136,9 +138,11 @@ impl Base for Searcher {
 
     fn matching(&mut self, row: u64, line: &str) {
         let mut line_indexes = FilterMatch::new(row, vec![]);
+        let mut matched_rows = vec![];
         for (index, re) in self.results.matchers.iter().enumerate() {
             if re.is_match(line) {
-                line_indexes.filters.push(index as u8);
+                matched_rows.push(index as u8);
+                // line_indexes.filters.push(index as u8);
                 if let Some(alias) = self.results.aliases.get(&index) {
                     if let Some(stats) = self.results.stats.as_mut() {
                         stats.inc(alias, None);
@@ -150,4 +154,87 @@ impl Base for Searcher {
             indexes.push(line_indexes);
         }
     }
+}
+
+pub struct RegularSearchState {
+    pub file_path: PathBuf,
+    pub uuid: Uuid,
+    // filters: Vec<SearchFilter>,
+    // bytes_read: u64,
+    // lines_read: u64,
+    results: Results,
+}
+impl RegularSearchState {
+    pub fn new(path: &Path, filters: Vec<SearchFilter>, uuid: Uuid) -> Self {
+        Self {
+            file_path: PathBuf::from(path),
+            uuid,
+            // filters,
+            // bytes_read: 0,
+            // lines_read: 0,
+            // It's safetly because we do not provide any data inside
+            results: Results::new(None).unwrap(),
+        }
+    }
+}
+fn collect(row: u64, line: &str, state: &mut RegularSearchState) -> Result<bool, std::io::Error> {
+    let mut line_indexes = FilterMatch::new(row, vec![]);
+    let mut matched_rows = vec![];
+    for (index, re) in state.results.matchers.iter().enumerate() {
+        if re.is_match(line) {
+            matched_rows.push(index as u8);
+            line_indexes.filters.push(index as u8);
+            if let Some(alias) = state.results.aliases.get(&index) {
+                if let Some(stats) = state.results.stats.as_mut() {
+                    stats.inc(alias, None);
+                }
+            }
+        }
+    }
+    if let Some(indexes) = state.results.indexes.as_mut() {
+        indexes.push(line_indexes);
+    }
+    Ok(true)
+}
+pub fn regulare_search(
+    path: &Path,
+    filters: Vec<SearchFilter>,
+    uuid: Uuid,
+    rows_count: u64,
+    read_bytes: u64,
+    cancallation: CancellationToken,
+) -> SearchResults {
+    let terms = filters.iter().map(filter::as_regex).collect();
+    let mut search_state = RegularSearchState::new(path, filters, uuid);
+    let mut base_searcher = BaseSearcher {
+        file_path: PathBuf::from(path),
+        uuid,
+        bytes_read: 0,
+        lines_read: 0,
+    };
+    let processed = base_searcher.search(
+        rows_count,
+        read_bytes,
+        cancallation,
+        terms,
+        &mut search_state,
+        collect,
+    )?;
+    Ok((
+        processed,
+        search_state
+            .results
+            .indexes
+            .take()
+            .ok_or(SearchError::IoOperation(String::from(
+                "Fail to get results: indexes not found",
+            )))?,
+        search_state
+            .results
+            .stats
+            .take()
+            .ok_or(SearchError::IoOperation(String::from(
+                "Fail to get results: stats not found",
+            )))?,
+    ))
 }
