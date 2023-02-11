@@ -4,17 +4,26 @@ use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SearchFilter {
-    pub value: String,
-    pub is_regex: bool,
-    pub ignore_case: bool,
-    pub is_word: bool,
+    value: String,
+    is_regex: bool,
+    ignore_case: bool,
+    is_word: bool,
 }
 
 impl SearchFilter {
-    pub fn new(value: &str) -> Self {
+    pub fn new(value: String, is_regex: bool, ignore_case: bool, is_word: bool) -> Self {
         SearchFilter {
-            value: value.to_owned(),
-            is_regex: true,
+            value,
+            is_regex,
+            ignore_case,
+            is_word,
+        }
+    }
+
+    pub fn plain(value: &str) -> Self {
+        SearchFilter {
+            value: value.into(),
+            is_regex: false,
             ignore_case: false,
             is_word: false,
         }

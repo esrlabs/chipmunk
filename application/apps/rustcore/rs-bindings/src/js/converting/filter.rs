@@ -59,12 +59,12 @@ impl JSValue<'_> for WrappedSearchFilter {
                     return Err(e);
                 }
             };
-            Ok(WrappedSearchFilter(SearchFilter {
+            Ok(WrappedSearchFilter(SearchFilter::new(
                 value,
                 is_regex,
                 ignore_case,
                 is_word,
-            }))
+            )))
         } else {
             Err(NjError::Other("not valid format".to_owned()))
         }
