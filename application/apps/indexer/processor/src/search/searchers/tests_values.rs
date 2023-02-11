@@ -74,7 +74,7 @@ fn test_002() -> Result<(), std::io::Error> {
     let mut control_0: usize = 0;
     let mut control_1: usize = 0;
     values.iter().for_each(|(pos, values)| {
-        assert!(values.len() > 0);
+        assert!(!values.is_empty());
         for (term, value) in values.iter() {
             if *term == 0 {
                 control_0 += value.parse::<usize>().unwrap();

@@ -66,7 +66,7 @@ impl MapTest {
             }
             Action::AddBookmark(position) => {
                 self.map
-                    .breadcrumbs_insert_and_update(&vec![position], Nature::BOOKMARK, 4, 2)
+                    .breadcrumbs_insert_and_update(&[position], Nature::BOOKMARK, 4, 2)
                     .unwrap();
             }
             Action::RemoveBookmark(position) => {
@@ -75,17 +75,15 @@ impl MapTest {
                     .unwrap();
             }
             Action::Insert((pos, nature)) => {
-                self.map.insert(&vec![pos], nature);
+                self.map.insert(&[pos], nature);
             }
             Action::Frame((range, control)) => {
                 let mut range = if let Some(range) = range {
                     range
+                } else if self.map.is_empty() {
+                    RangeInclusive::new(0, 0)
                 } else {
-                    if self.map.is_empty() {
-                        RangeInclusive::new(0, 0)
-                    } else {
-                        RangeInclusive::new(0, (self.map.len() - 1) as u64)
-                    }
+                    RangeInclusive::new(0, (self.map.len() - 1) as u64)
                 };
                 let frame = self.map.frame(&mut range).unwrap();
                 if control.len() != frame.indexes.len() {
@@ -104,7 +102,7 @@ impl MapTest {
                 );
             }
         }
-        return !self.actions.is_empty();
+        !self.actions.is_empty()
     }
 
     fn print_frame(&self, frame: &Frame) {
@@ -153,7 +151,7 @@ impl std::fmt::Display for Action {
                 Action::CheckLen(len) => format!("CheckLen - {len}"),
                 Action::Search(matches) => format!("Search - {matches:?}"),
                 Action::AppendSearch(matches) => format!("AppendSearch - {matches:?}"),
-                Action::BuildBreadcrumbs => format!("BuildBreadcrumbs"),
+                Action::BuildBreadcrumbs => "BuildBreadcrumbs".to_string(),
                 Action::ExpandBreadcrumbs((sep, offset, above)) =>
                     format!("ExpandBreadcrumbs - sep={sep}; offset={offset}; above={above}"),
                 Action::AddBookmark(pos) => format!("AddBookmark - {pos}"),
