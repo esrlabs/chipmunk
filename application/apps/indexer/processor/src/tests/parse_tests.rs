@@ -197,8 +197,10 @@ mod tests {
         let (timestamp, _) = extract_posix_timestamp(input, &regex, replacements)
             .expect("convert to limed line should work");
         assert_eq!(
-            NaiveDate::from_ymd(2017, 4, 4)
-                .and_hms(9, 52, 50) // UTC
+            NaiveDate::from_ymd_opt(2017, 4, 4)
+                .expect("incorrect format")
+                .and_hms_opt(9, 52, 50) // UTC
+                .expect("incorrect format")
                 .timestamp()
                 * 1000
                 + 229,
@@ -219,8 +221,10 @@ mod tests {
         let (timestamp, _) = extract_posix_timestamp(input, &regex_to_use, replacements)
             .expect("convert to limed line should work");
         assert_eq!(
-            NaiveDate::from_ymd(2017, 4, 4)
-                .and_hms(9, 52, 50) // UTC
+            NaiveDate::from_ymd_opt(2017, 4, 4)
+                .expect("incorrect format")
+                .and_hms_opt(9, 52, 50) // UTC
+                .expect("incorrect format")
                 .timestamp()
                 * 1000,
             timestamp
@@ -244,8 +248,10 @@ mod tests {
         };
         let (timestamp, _) = extract_posix_timestamp(input, &regex, replacements).unwrap();
         assert_eq!(
-            NaiveDate::from_ymd(2017, 4, 4)
-                .and_hms(9, 52, 50) // UTC
+            NaiveDate::from_ymd_opt(2017, 4, 4)
+                .expect("incorrect format")
+                .and_hms_opt(9, 52, 50) // UTC
+                .expect("incorrect format")
                 .timestamp()
                 * 1000
                 + 229,
@@ -265,8 +271,10 @@ mod tests {
         };
         let (timestamp, _) = extract_posix_timestamp(input, &regex, replacements).unwrap();
         assert_eq!(
-            NaiveDate::from_ymd(2017, 4, 4)
-                .and_hms(9, 52, 50) // UTC
+            NaiveDate::from_ymd_opt(2017, 4, 4)
+                .expect("incorrect format")
+                .and_hms_opt(9, 52, 50) // UTC
+                .expect("incorrect format")
                 .timestamp()
                 * 1000,
             timestamp
@@ -286,8 +294,10 @@ mod tests {
         };
         let (timestamp, _) = extract_posix_timestamp(input, &regex, replacements).unwrap();
         assert_eq!(
-            NaiveDate::from_ymd(2019, 7, 30)
-                .and_hms(8, 8, 2) // UTC
+            NaiveDate::from_ymd_opt(2019, 7, 30)
+                .expect("incorrect format")
+                .and_hms_opt(8, 8, 2) // UTC
+                .expect("incorrect format")
                 .timestamp()
                 * 1000
                 + 555,
@@ -309,8 +319,10 @@ mod tests {
         };
         let (timestamp, _) = extract_posix_timestamp(input, &regex, replacements).unwrap();
         assert_eq!(
-            NaiveDate::from_ymd(2019, 7, 19)
-                .and_hms(16, 14, 0)
+            NaiveDate::from_ymd_opt(2019, 7, 19)
+                .expect("incorrect format")
+                .and_hms_opt(16, 14, 0)
+                .expect("incorrect format")
                 .timestamp()
                 * 1000,
             timestamp
@@ -354,8 +366,10 @@ mod tests {
             extract_posix_timestamp_by_format(input, format, replacements)
         {
             assert_eq!(
-                NaiveDate::from_ymd(2017, 4, 4)
-                    .and_hms(9, 52, 50) // UTC
+                NaiveDate::from_ymd_opt(2017, 4, 4)
+                    .expect("incorrect format")
+                    .and_hms_opt(9, 52, 50) // UTC
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000
                     + 229,
@@ -378,8 +392,10 @@ mod tests {
             extract_posix_timestamp_by_format(input, format, replacements)
         {
             assert_eq!(
-                NaiveDate::from_ymd(2017, 4, 4)
-                    .and_hms(9, 52, 50) // UTC
+                NaiveDate::from_ymd_opt(2017, 4, 4)
+                    .expect("incorrect format")
+                    .and_hms_opt(9, 52, 50) // UTC
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000,
                 tm
@@ -402,8 +418,10 @@ mod tests {
             extract_posix_timestamp_by_format(input, format, replacements)
         {
             assert_eq!(
-                NaiveDate::from_ymd(2017, 4, 4)
-                    .and_hms(9, 52, 50) // UTC
+                NaiveDate::from_ymd_opt(2017, 4, 4)
+                    .expect("incorrect format")
+                    .and_hms_opt(9, 52, 50) // UTC
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000
                     + 229,
@@ -426,8 +444,10 @@ mod tests {
             extract_posix_timestamp_by_format(input, format, replacements)
         {
             assert_eq!(
-                NaiveDate::from_ymd(2017, 4, 4)
-                    .and_hms(9, 52, 50) // UTC
+                NaiveDate::from_ymd_opt(2017, 4, 4)
+                    .expect("incorrect format")
+                    .and_hms_opt(9, 52, 50) // UTC
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000,
                 tm
@@ -449,8 +469,10 @@ mod tests {
             extract_posix_timestamp_by_format(input, format, replacements)
         {
             assert_eq!(
-                NaiveDate::from_ymd(2019, 7, 30)
-                    .and_hms(8, 8, 2) // UTC
+                NaiveDate::from_ymd_opt(2019, 7, 30)
+                    .expect("incorrect format")
+                    .and_hms_opt(8, 8, 2) // UTC
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000
                     + 555,
@@ -474,8 +496,10 @@ mod tests {
             extract_posix_timestamp_by_format(input, format, replacements)
         {
             assert_eq!(
-                NaiveDate::from_ymd(2019, 7, 19)
-                    .and_hms(16, 14, 0)
+                NaiveDate::from_ymd_opt(2019, 7, 19)
+                    .expect("incorrect format")
+                    .and_hms_opt(16, 14, 0)
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000,
                 tm
@@ -498,8 +522,10 @@ mod tests {
             extract_posix_timestamp_by_format(input, format, replacements)
         {
             assert_eq!(
-                NaiveDate::from_ymd(2019, 7, 19)
-                    .and_hms(16, 14, 57)
+                NaiveDate::from_ymd_opt(2019, 7, 19)
+                    .expect("incorrect format")
+                    .and_hms_opt(16, 14, 57)
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000,
                 tm
@@ -669,8 +695,10 @@ mod tests {
     fn test_detect_timestamp_in_string_simple() {
         match detect_timestamp_in_string("2019-07-30 10:08:02.555", Some(0)) {
             Ok((timestamp, _, _)) => assert_eq!(
-                NaiveDate::from_ymd(2019, 7, 30)
-                    .and_hms(10, 8, 2) // UTC
+                NaiveDate::from_ymd_opt(2019, 7, 30)
+                    .expect("incorrect format")
+                    .and_hms_opt(10, 8, 2) // UTC
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000
                     + 555,
@@ -680,8 +708,10 @@ mod tests {
         }
         match detect_timestamp_in_string("2019-07-30 09:38:02.555 -00:30", None) {
             Ok((timestamp, _, _)) => assert_eq!(
-                NaiveDate::from_ymd(2019, 7, 30)
-                    .and_hms(9, 38, 2) // UTC
+                NaiveDate::from_ymd_opt(2019, 7, 30)
+                    .expect("incorrect format")
+                    .and_hms_opt(9, 38, 2) // UTC
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000
                     + 555
@@ -696,8 +726,10 @@ mod tests {
         match detect_timestamp_in_string("[2019-07-30T10:08:02.555][DEBUG][indexing]: xyz", Some(0))
         {
             Ok((timestamp, _, _)) => assert_eq!(
-                NaiveDate::from_ymd(2019, 7, 30)
-                    .and_hms(10, 8, 2) // UTC
+                NaiveDate::from_ymd_opt(2019, 7, 30)
+                    .expect("incorrect format")
+                    .and_hms_opt(10, 8, 2) // UTC
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000
                     + 555,
@@ -711,8 +743,10 @@ mod tests {
     fn test_detect_timestamp_in_string_with_t() {
         match detect_timestamp_in_string("2019-07-30T10:08:02.555", Some(0)) {
             Ok((timestamp, _, _)) => assert_eq!(
-                NaiveDate::from_ymd(2019, 7, 30)
-                    .and_hms(10, 8, 2) // UTC
+                NaiveDate::from_ymd_opt(2019, 7, 30)
+                    .expect("incorrect format")
+                    .and_hms_opt(10, 8, 2) // UTC
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000
                     + 555,
@@ -722,8 +756,10 @@ mod tests {
         }
         match detect_timestamp_in_string("2019-07-30T04:38:02.555 -05:30", None) {
             Ok((timestamp, _, _)) => assert_eq!(
-                NaiveDate::from_ymd(2019, 7, 30)
-                    .and_hms(4, 38, 2) // UTC
+                NaiveDate::from_ymd_opt(2019, 7, 30)
+                    .expect("incorrect format")
+                    .and_hms_opt(4, 38, 2) // UTC
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000
                     + 555
@@ -734,8 +770,10 @@ mod tests {
         }
         match detect_timestamp_in_string("2019-07-30T11:08:02.555+01:00", None) {
             Ok((timestamp, _, _)) => assert_eq!(
-                NaiveDate::from_ymd(2019, 7, 30)
-                    .and_hms(10, 8, 2)
+                NaiveDate::from_ymd_opt(2019, 7, 30)
+                    .expect("incorrect format")
+                    .and_hms_opt(10, 8, 2)
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000
                     + 555,
@@ -746,11 +784,13 @@ mod tests {
     }
     #[test]
     fn test_detect_timestamp_in_string_no_year() {
-        let year = Utc::now().date().year();
+        let year = Utc::now().date_naive().year();
         match detect_timestamp_in_string("07-30 10:08:02.555", Some(0)) {
             Ok((timestamp, _, _)) => assert_eq!(
-                NaiveDate::from_ymd(year, 7, 30)
-                    .and_hms(10, 8, 2)
+                NaiveDate::from_ymd_opt(year, 7, 30)
+                    .expect("incorrect format")
+                    .and_hms_opt(10, 8, 2)
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000
                     + 555,
@@ -760,8 +800,10 @@ mod tests {
         }
         match detect_timestamp_in_string("07-30 12:08:02.555 +0200", None) {
             Ok((timestamp, _, _)) => assert_eq!(
-                NaiveDate::from_ymd(year, 7, 30)
-                    .and_hms(10, 8, 2)
+                NaiveDate::from_ymd_opt(year, 7, 30)
+                    .expect("incorrect format")
+                    .and_hms_opt(10, 8, 2)
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000
                     + 555,
@@ -773,11 +815,13 @@ mod tests {
 
     #[test]
     fn test_detect_timestamp_in_string_no_year_with_t() {
-        let year = Utc::now().date().year();
+        let year = Utc::now().date_naive().year();
         match detect_timestamp_in_string("07-30T10:08:02.555", Some(0)) {
             Ok((timestamp, _, _)) => assert_eq!(
-                NaiveDate::from_ymd(year, 7, 30)
-                    .and_hms(10, 8, 2)
+                NaiveDate::from_ymd_opt(year, 7, 30)
+                    .expect("incorrect format")
+                    .and_hms_opt(10, 8, 2)
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000
                     + 555,
@@ -787,8 +831,10 @@ mod tests {
         }
         match detect_timestamp_in_string("07-30T15:08:02.555 +05:00", None) {
             Ok((timestamp, _, _)) => assert_eq!(
-                NaiveDate::from_ymd(year, 7, 30)
-                    .and_hms(10, 8, 2)
+                NaiveDate::from_ymd_opt(year, 7, 30)
+                    .expect("incorrect format")
+                    .and_hms_opt(10, 8, 2)
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000
                     + 555,
@@ -801,8 +847,10 @@ mod tests {
     fn test_detect_timestamp_in_string_year_last() {
         match detect_timestamp_in_string("07-30-2019 10:08:02.555", Some(0)) {
             Ok((timestamp, _, _)) => assert_eq!(
-                NaiveDate::from_ymd(2019, 7, 30)
-                    .and_hms(10, 8, 2)
+                NaiveDate::from_ymd_opt(2019, 7, 30)
+                    .expect("incorrect format")
+                    .and_hms_opt(10, 8, 2)
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000
                     + 555,
@@ -820,8 +868,10 @@ mod tests {
         match detect_timestamp_in_string("109.169.248.247 - - [30/Jul/2019:10:08:02] xyz", Some(0))
         {
             Ok((timestamp, _, _)) => assert_eq!(
-                NaiveDate::from_ymd(2019, 7, 30)
-                    .and_hms(10, 8, 2)
+                NaiveDate::from_ymd_opt(2019, 7, 30)
+                    .expect("incorrect format")
+                    .and_hms_opt(10, 8, 2)
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000,
                 timestamp
@@ -833,8 +883,10 @@ mod tests {
             None,
         ) {
             Ok((timestamp, _, _)) => assert_eq!(
-                NaiveDate::from_ymd(2019, 7, 30)
-                    .and_hms(12, 8, 2)
+                NaiveDate::from_ymd_opt(2019, 7, 30)
+                    .expect("incorrect format")
+                    .and_hms_opt(12, 8, 2)
+                    .expect("incorrect format")
                     .timestamp()
                     * 1000
                     - TWO_HOURS_IN_MS,
