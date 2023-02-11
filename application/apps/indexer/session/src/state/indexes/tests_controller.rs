@@ -75,12 +75,10 @@ impl ControllerTest {
             Action::Frame((range, control)) => {
                 let mut range = if let Some(range) = range {
                     range
+                } else if self.controller.is_empty() {
+                    RangeInclusive::new(0, 0)
                 } else {
-                    if self.controller.is_empty() {
-                        RangeInclusive::new(0, 0)
-                    } else {
-                        RangeInclusive::new(0, (self.controller.len() - 1) as u64)
-                    }
+                    RangeInclusive::new(0, (self.controller.len() - 1) as u64)
                 };
                 let frame = self.controller.frame(&mut range).unwrap();
                 if control.len() != frame.indexes.len() {
@@ -99,7 +97,7 @@ impl ControllerTest {
                 );
             }
         }
-        return !self.actions.is_empty();
+        !self.actions.is_empty()
     }
 
     fn print_frame(&self, frame: &Frame) {

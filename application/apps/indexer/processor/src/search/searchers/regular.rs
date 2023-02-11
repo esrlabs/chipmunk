@@ -55,14 +55,7 @@ pub struct Searcher {
 }
 
 impl Searcher {
-    pub fn new<'a, I>(path: &Path, iterator: I, uuid: Uuid) -> Self
-    where
-        I: Iterator<Item = &'a SearchFilter>,
-    {
-        let mut filters = vec![];
-        for filter in iterator {
-            filters.push(filter.clone());
-        }
+    pub fn new(path: &Path, filters: Vec<SearchFilter>, uuid: Uuid) -> Self {
         Self {
             file_path: PathBuf::from(path),
             uuid,

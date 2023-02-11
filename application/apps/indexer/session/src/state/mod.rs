@@ -307,7 +307,7 @@ impl SessionState {
                 self.searchers.regular.in_use();
                 Ok(search::searchers::regular::Searcher::new(
                     &filename,
-                    vec![].iter(),
+                    vec![],
                     uuid,
                 ))
             }

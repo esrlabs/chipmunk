@@ -42,7 +42,7 @@ fn test_build() {
     for p in 0..(len - 1) {
         if p % bookmarks_trigger == 0 {
             bookmarks += 1;
-            map.breadcrumbs_insert_and_update(&vec![p], Nature::BOOKMARK, 4, 2)
+            map.breadcrumbs_insert_and_update(&[p], Nature::BOOKMARK, 4, 2)
                 .unwrap();
         }
     }

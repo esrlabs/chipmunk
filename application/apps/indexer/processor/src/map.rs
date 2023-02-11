@@ -283,6 +283,7 @@ impl SearchMap {
     }
 }
 
+#[allow(clippy::needless_range_loop)]
 #[test]
 fn test_scaled_map() {
     let mut example_map: SearchMap = SearchMap::new();
