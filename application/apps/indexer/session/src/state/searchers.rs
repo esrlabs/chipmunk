@@ -27,13 +27,6 @@ impl<State: SearchState> SearcherState<State> {
     pub fn set(&mut self, seacher: BaseSearcher<State>) {
         *self = SearcherState::<_>::Available(seacher);
     }
-    // pub fn search(
-    //     &mut self,
-    //     rows_count: u64,
-    //     read_bytes: u64,
-    //     cancel_token: CancellationToken,
-    // ) -> Option<State::SearchResultType> {
-    // }
 }
 
 impl SearcherState<ValueSearchState> {
@@ -44,7 +37,7 @@ impl SearcherState<ValueSearchState> {
         cancel_token: CancellationToken,
     ) -> Option<OperationResults> {
         match self {
-            Self::Available(h) => Some(searchers::values::execute_search(
+            Self::Available(h) => Some(searchers::values::continue_value_search(
                 h,
                 rows_count,
                 read_bytes,

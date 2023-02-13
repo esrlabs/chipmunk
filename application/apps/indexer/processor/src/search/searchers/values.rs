@@ -16,23 +16,13 @@ pub type OperationResults = Result<(Range<usize>, HashMap<u64, Vec<(u8, String)>
 #[derive(Debug)]
 struct Results {
     indexes: Option<HashMap<u64, Vec<(u8, String)>>>,
-    matchers: Vec<Regex>,
 }
 
 impl Results {
-    pub fn new(filters: Option<&[String]>) -> Result<Self, SearchError> {
-        let mut matchers = vec![];
-        if let Some(filters) = filters {
-            for (_pos, filter) in filters.iter().enumerate() {
-                matchers.push(Regex::from_str(filter).map_err(|err| {
-                    SearchError::Regex(format!("Failed to create regex for {filter}: {err}"))
-                })?);
-            }
-        }
-        Ok(Self {
+    pub fn new() -> Self {
+        Self {
             indexes: Some(HashMap::new()),
-            matchers,
-        })
+        }
     }
 }
 
@@ -41,14 +31,23 @@ pub struct ValueSearchState {
     pub file_path: PathBuf,
     pub uuid: Uuid,
     filters: Vec<String>,
+    matchers: Vec<Regex>,
     results: Results,
 }
 
 pub type ValueSearchHolder = BaseSearcher<ValueSearchState>;
 
 impl ValueSearchHolder {
-    pub fn set_filters(&mut self, filters: Vec<String>) {
+    pub fn set_filters(&mut self, filters: Vec<String>) -> Result<(), SearchError> {
+        let mut matchers = vec![];
+        for (_pos, filter) in filters.iter().enumerate() {
+            matchers.push(Regex::from_str(filter).map_err(|err| {
+                SearchError::Regex(format!("Failed to create regex for {filter}: {err}"))
+            })?);
+        }
         self.search_state.filters = filters;
+        self.search_state.matchers = matchers;
+        Ok(())
     }
 }
 
@@ -59,7 +58,8 @@ impl SearchState for ValueSearchState {
             file_path: PathBuf::from(path),
             uuid,
             filters: vec![],
-            results: Results::new(None).unwrap(),
+            matchers: vec![],
+            results: Results::new(),
         }
     }
     fn get_terms(&self) -> Vec<String> {
@@ -69,7 +69,7 @@ impl SearchState for ValueSearchState {
 
 fn collect(row: u64, line: &str, state: &mut ValueSearchState) {
     let mut matches = vec![];
-    for (index, re) in state.results.matchers.iter().enumerate() {
+    for (index, re) in state.matchers.iter().enumerate() {
         if let Some(caps) = re.captures(line) {
             if let Some(value) = caps.get(1) {
                 matches.push((index as u8, value.as_str().to_owned()));
@@ -81,13 +81,15 @@ fn collect(row: u64, line: &str, state: &mut ValueSearchState) {
     }
 }
 
-pub fn execute_search(
+pub fn execute_fresh_value_search(
     base_searcher: &mut BaseSearcher<ValueSearchState>,
+    filters: Vec<String>,
     rows_count: u64,
     read_bytes: u64,
     cancallation: CancellationToken,
 ) -> OperationResults {
-    base_searcher.search_state.results = Results::new(Some(&base_searcher.search_state.filters))?;
+    base_searcher.search_state.results = Results::new();
+    base_searcher.set_filters(filters)?;
     Ok((
         base_searcher.search(rows_count, read_bytes, cancallation, collect)?,
         base_searcher
@@ -100,13 +102,24 @@ pub fn execute_search(
             )))?,
     ))
 }
-pub fn value_search(
-    path: &Path,
-    uuid: Uuid,
+
+pub fn continue_value_search(
+    base_searcher: &mut BaseSearcher<ValueSearchState>,
     rows_count: u64,
     read_bytes: u64,
     cancallation: CancellationToken,
 ) -> OperationResults {
-    let mut base_searcher = BaseSearcher::new(path, uuid, 0, 0);
-    execute_search(&mut base_searcher, rows_count, read_bytes, cancallation)
+    // TODO @dmitry: is it correct to reset the search results?
+    base_searcher.search_state.results = Results::new();
+    Ok((
+        base_searcher.search(rows_count, read_bytes, cancallation, collect)?,
+        base_searcher
+            .search_state
+            .results
+            .indexes
+            .take()
+            .ok_or(SearchError::IoOperation(String::from(
+                "Fail to get results: indexes not found",
+            )))?,
+    ))
 }

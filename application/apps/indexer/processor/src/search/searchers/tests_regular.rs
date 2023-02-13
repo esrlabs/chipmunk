@@ -22,9 +22,7 @@ fn filtered(content: &str, filters: Vec<SearchFilter>) -> Result<Vec<FilterMatch
     input_file.write_all(content.as_bytes())?;
     let file_size = input_file.metadata()?.len();
     let mut searcher = BaseSearcher::new(tmp_file.path(), Uuid::new_v4(), 0, 0);
-    // let mut holder = searchers::regular::Searcher::new(tmp_file.path(), filters, Uuid::new_v4());
-    // holder.execute(0, file_size, CancellationToken::new())
-    let (_range, indexes, _stats) = regular::execute_filter_search(
+    let (_range, indexes, _stats) = regular::execute_fresh_filter_search(
         &mut searcher,
         filters,
         0,

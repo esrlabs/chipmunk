@@ -35,13 +35,20 @@ pub async fn handle(
         Ok(Some(HashMap::new()))
     } else {
         let mut holder = state.get_search_values_holder(operation_api.id()).await?;
-        holder.set_filters(filters);
+        holder
+            .set_filters(filters.clone())
+            .map_err(|e| NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::OperationSearch,
+                message: Some(format!("Error setting filters: {e}")),
+            })?;
         let (tx_result, mut rx_result): SearchResultChannel = channel(1);
         let cancel = operation_api.cancellation_token();
         let cancel_search = operation_api.cancellation_token();
         task::spawn(async move {
-            let search_results = searchers::values::execute_search(
+            let search_results = searchers::values::execute_fresh_value_search(
                 &mut holder,
+                filters,
                 rows,
                 read_bytes,
                 cancel_search.clone(),
