@@ -138,6 +138,9 @@ export class SearchInput {
                 this.error.set().wholeWord(this.flags.word);
             },
             regex: () => {
+                if (!this.flags.reg && !this.error.isValidRegex) {
+                    return;
+                }
                 this.flags.reg = !this.flags.reg;
                 this.actions.flags.emit();
                 this.error.set().regex(this.flags.reg);
@@ -147,5 +150,9 @@ export class SearchInput {
 
     public onPanelClosed() {
         this.recent = false;
+    }
+
+    public activeSearchUpdate(hasActiveSearch: boolean) {
+        this.error.set().activeSearchUpdate(hasActiveSearch);
     }
 }

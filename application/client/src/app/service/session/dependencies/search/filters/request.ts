@@ -10,9 +10,9 @@ import { Key } from '../store';
 import { Equal } from '@platform/types/env/types';
 import { Updatable } from '../store';
 import { UpdateEvent } from './store.update';
+import { getFilterError } from '@module/util';
 
 import * as regexFilters from '@platform/env/filters';
-import * as regex from '@platform/env/regex';
 import * as obj from '@platform/env/obj';
 
 export interface Definition {
@@ -77,14 +77,39 @@ export class FilterRequest
     private _hash!: string;
     public found: number = 0;
 
-    static isValid(request: string | undefined): boolean {
-        if (request === undefined) {
-            return false;
-        }
-        if (!regex.isValid(request)) {
+    static isValid(
+        request: string | undefined,
+        caseSensitive: boolean,
+        wholeWord: boolean,
+        regex: boolean,
+    ): boolean {
+        if (
+            request === undefined ||
+            getFilterError(request, caseSensitive, wholeWord, regex) !== undefined
+        ) {
             return false;
         }
         return true;
+    }
+
+    static isValidErrorMessage(
+        request: string | undefined,
+        caseSensitive: boolean,
+        wholeWord: boolean,
+        regex: boolean,
+    ): string | undefined {
+        if (request === undefined) {
+            return;
+        }
+        let error: string | undefined = getFilterError(request, caseSensitive, wholeWord, regex);
+        if (error === undefined) {
+            return;
+        }
+        const match: RegExpMatchArray | null = error.match(/error:.+/i);
+        if (match !== null && match[0] !== undefined) {
+            error = match[0].trim();
+        }
+        return error;
     }
 
     static defaults(value: string): FilterRequest {

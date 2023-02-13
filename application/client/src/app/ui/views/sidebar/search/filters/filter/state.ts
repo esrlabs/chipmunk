@@ -2,6 +2,7 @@ import { IFilter } from '@platform/types/filter';
 import { Entity } from '../../providers/definitions/entity';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { ProviderFilters } from '../provider';
+import { EFlag } from './component';
 
 import * as obj from '@platform/env/obj';
 
@@ -18,12 +19,20 @@ export class State {
     public entity: Entity<FilterRequest>;
     public found: number = 0;
 
+    private _isValidRegex: boolean = true;
+    private _error: string | undefined;
+
     constructor(entity: Entity<FilterRequest>, prodider: ProviderFilters) {
         this.filter = obj.clone<IFilter>(entity.extract().definition.filter);
         this.colors = obj.clone<IFilterColors>(entity.extract().definition.colors);
         this.active = entity.extract().definition.active;
         this.provider = prodider;
         this.entity = entity;
+        this._update();
+    }
+
+    public get isValidRegex(): boolean {
+        return this._isValidRegex;
     }
 
     public setState(checked: boolean) {
@@ -53,7 +62,10 @@ export class State {
         };
     }
 
-    public toggleFilter(flag: 'cases' | 'word' | 'reg') {
+    public toggleFilter(flag: EFlag) {
+        if (!this._canToggle(flag)) {
+            return;
+        }
         this.filter.flags[flag] = !this.filter.flags[flag];
         this.entity.extract().set().flags(this.filter.flags);
     }
@@ -68,7 +80,8 @@ export class State {
                 this.provider.edit().out();
             },
             accept: (): void => {
-                if (this.filter.filter.trim() !== '' && FilterRequest.isValid(this.filter.filter)) {
+                this._update();
+                if (this.filter.filter.trim() !== '' && this._error === undefined) {
                     this.entity.extract().set().filter(this.filter.filter);
                 } else {
                     this.filter.filter = this.entity.extract().definition.filter.filter;
@@ -76,5 +89,39 @@ export class State {
                 this.provider.edit().out();
             },
         };
+    }
+
+    public get error(): string | undefined {
+        return this._error;
+    }
+
+    private _canToggle(flag: EFlag): boolean {
+        return (
+            (flag === EFlag.reg && !this.filter.flags.reg && this._isValidRegex) ||
+            this.filter.flags.reg
+        );
+    }
+
+    private _update() {
+        this._checkSpecifiedRegex();
+        this._checkGeneralRegex();
+    }
+
+    private _checkSpecifiedRegex() {
+        this._error = FilterRequest.isValidErrorMessage(
+            this.filter.filter,
+            this.filter.flags.cases,
+            this.filter.flags.word,
+            this.filter.flags.reg,
+        );
+    }
+
+    private _checkGeneralRegex() {
+        this._isValidRegex = FilterRequest.isValid(
+            this.filter.filter,
+            this.filter.flags.cases,
+            this.filter.flags.word,
+            true,
+        );
     }
 }
