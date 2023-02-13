@@ -6,10 +6,11 @@ import { IFilter, ISearchUpdated } from '@platform/types/filter';
 import { IRange } from '@platform/types/range';
 import { FiltersStore } from './search/filters/store';
 import { DisableStore } from './search/disabled/store';
+import { ChartsStore } from './search/charts/store';
 import { Highlights } from './search/highlights';
 import { State } from './search/state';
 import { Map } from './search/map';
-import { Stream } from './stream';
+import { Values } from './search/values';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -24,19 +25,20 @@ export class Search extends Subscriber {
         map: new Subject<void>(),
     });
     public readonly map: Map = new Map();
+    public readonly values: Values = new Values();
     private _len: number = 0;
     private _uuid!: string;
     private _store!: {
         filters: FiltersStore;
+        charts: ChartsStore;
         disabled: DisableStore;
     };
     private _highlights!: Highlights;
     private _state!: State;
 
-    public init(uuid: string, stream: Stream) {
+    public init(uuid: string) {
         this.setLoggerName(`Search: ${cutUuid(uuid)}`);
         this._uuid = uuid;
-        this.map.init(stream);
         this.register(
             Events.IpcEvent.subscribe(Events.Search.Updated.Event, (event) => {
                 if (event.session !== this._uuid) {
@@ -59,8 +61,21 @@ export class Search extends Subscriber {
                 }
             }),
         );
+        this.register(
+            Events.IpcEvent.subscribe(Events.Values.Updated.Event, (event) => {
+                if (event.session !== this._uuid) {
+                    return;
+                }
+                if (event.values === null) {
+                    this.values.drop();
+                } else {
+                    this.values.merge(event.values);
+                }
+            }),
+        );
         this._store = {
             filters: new FiltersStore(uuid),
+            charts: new ChartsStore(uuid),
             disabled: new DisableStore(uuid),
         };
         this.register(
@@ -79,10 +94,12 @@ export class Search extends Subscriber {
     public destroy() {
         this.unsubscribe();
         this._store.filters.destroy();
+        this._store.charts.destroy();
         this._store.disabled.destroy();
         this._highlights.destroy();
         this._state.destroy();
         this.map.destroy();
+        this.values.destroy();
         this.subjects.destroy();
     }
 
@@ -107,6 +124,38 @@ export class Search extends Subscriber {
                     }
                 })
                 .catch(reject);
+        });
+    }
+
+    public extract(filters: string[]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            Requests.IpcRequest.send(
+                Requests.Values.Extract.Response,
+                new Requests.Values.Extract.Request({
+                    session: this._uuid,
+                    filters,
+                }),
+            )
+                .then((response) => {
+                    if (typeof response.error === 'string' && response.error.trim() !== '') {
+                        reject(new Error(response.error));
+                    } else {
+                        this.values.drop(true).merge(response.values);
+                        resolve();
+                    }
+                })
+                .catch(reject);
+        });
+    }
+
+    public dropValuedFilters(): Promise<void> {
+        return Requests.IpcRequest.send(
+            Requests.Values.Drop.Response,
+            new Requests.Values.Drop.Request({
+                session: this._uuid,
+            }),
+        ).then(() => {
+            return Promise.resolve();
         });
     }
 
@@ -163,11 +212,15 @@ export class Search extends Subscriber {
 
     public store(): {
         filters(): FiltersStore;
+        charts(): ChartsStore;
         disabled(): DisableStore;
     } {
         return {
             filters: (): FiltersStore => {
                 return this._store.filters;
+            },
+            charts: (): ChartsStore => {
+                return this._store.charts;
             },
             disabled: (): DisableStore => {
                 return this._store.disabled;

@@ -54,7 +54,7 @@ export interface ISessionEvents {
     StreamUpdated: Subject<number>;
     FileRead: Subject<void>;
     SearchUpdated: Subject<ISearchUpdated>;
-    SearchValuesUpdated: Subject<ISearchValuesUpdated>;
+    SearchValuesUpdated: Subject<ISearchValuesUpdated | null>;
     SearchMapUpdated: Subject<string>;
     MapUpdated: Subject<IEventMapUpdated>;
     IndexedMapUpdated: Subject<IEventIndexedMapUpdated>;
@@ -170,7 +170,7 @@ export class EventProvider extends Computation<
         StreamUpdated: new Subject<number>(),
         FileRead: new Subject<void>(),
         SearchUpdated: new Subject<ISearchUpdated>(),
-        SearchValuesUpdated: new Subject<ISearchValuesUpdated>(),
+        SearchValuesUpdated: new Subject<ISearchValuesUpdated | null>(),
         SearchMapUpdated: new Subject<string>(),
         MapUpdated: new Subject<IEventMapUpdated>(),
         IndexedMapUpdated: new Subject<IEventIndexedMapUpdated>(),

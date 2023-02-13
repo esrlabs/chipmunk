@@ -20,6 +20,7 @@ export {
     IEventMapUpdated,
     IEventMatchesUpdated,
     IEventIndexedMapUpdated,
+    ISearchValuesUpdated,
 } from '../api/session.provider';
 export { Observe } from '../interfaces/index';
 export { EventProvider, SessionStream, SessionSearch };

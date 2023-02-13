@@ -1,4 +1,5 @@
 import { FilterRequest } from '../filters/request';
+import { ChartRequest } from '../charts/request';
 import { DisableConvertable } from './converting';
 import { Hash, Recognizable } from '@platform/types/storage/entry';
 import { Key } from '../store';
@@ -31,6 +32,12 @@ export class DisabledRequest
                     return entity;
                 }
                 return new DisabledRequest(entity);
+            } else if (def.key === Key.charts) {
+                entity = ChartRequest.fromJson(def.value);
+                if (entity instanceof Error) {
+                    return entity;
+                }
+                return new DisabledRequest(entity);
             } else {
                 return new Error(`Unsupportable content for Disabled; key = ${def.key}`);
             }
@@ -45,7 +52,7 @@ export class DisabledRequest
     constructor(entity: DisableConvertable) {
         super();
         let key: Key | undefined;
-        [FilterRequest].forEach((classRef) => {
+        [FilterRequest, ChartRequest].forEach((classRef) => {
             if (key !== undefined) {
                 return;
             }
@@ -69,6 +76,9 @@ export class DisabledRequest
         if (left instanceof FilterRequest && right instanceof FilterRequest) {
             return getFilterHash(left) === getFilterHash(right);
         }
+        if (left instanceof ChartRequest && right instanceof ChartRequest) {
+            return left.definition.filter === right.definition.filter;
+        }
         return false;
     }
 
@@ -82,10 +92,14 @@ export class DisabledRequest
 
     public as(): {
         filter(): FilterRequest | undefined;
+        chart(): ChartRequest | undefined;
     } {
         return {
             filter: (): FilterRequest | undefined => {
                 return this._entity instanceof FilterRequest ? this._entity : undefined;
+            },
+            chart: (): ChartRequest | undefined => {
+                return this._entity instanceof ChartRequest ? this._entity : undefined;
             },
         };
     }

@@ -17,3 +17,7 @@ export interface ISearchUpdated {
     found: number;
     stat: { [key: string]: number };
 }
+
+export type SearchValuesResult = Map<number, Map<number, string>>;
+
+export type SearchValuesResultOrigin = { [key: string | number]: [number, string][] };

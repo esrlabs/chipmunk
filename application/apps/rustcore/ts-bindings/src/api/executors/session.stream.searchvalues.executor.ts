@@ -2,9 +2,9 @@ import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './ex
 import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../session.provider';
 import { error } from 'platform/env/logger';
+import { SearchValuesResult, SearchValuesResultOrigin } from 'platform/types/filter';
 
-export type SearchValuesResult = Map<number, Map<number, string>>;
-export type SearchValuesResultOrigin = { [key: string | number]: [number, string][] };
+export { SearchValuesResult, SearchValuesResultOrigin };
 
 export function parseOriginValues(data: string): SearchValuesResult | Error {
     const results: SearchValuesResult = new Map();
