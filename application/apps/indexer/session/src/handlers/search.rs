@@ -41,12 +41,11 @@ pub async fn handle(
         Ok(Some(0))
     } else {
         let mut holder = state.get_search_holder(operation_api.id()).await?;
-        // holder.set_filters(filters);
         let (tx_result, mut rx_result): SearchResultChannel = channel(1);
         let cancel = operation_api.cancellation_token();
         let cancel_search = operation_api.cancellation_token();
         task::spawn(async move {
-            let search_results = searchers::regular::execute_filter_search(
+            let search_results = searchers::regular::execute_fresh_filter_search(
                 &mut holder,
                 filters,
                 rows,

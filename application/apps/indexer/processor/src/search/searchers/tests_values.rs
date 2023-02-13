@@ -18,10 +18,17 @@ fn extracted(
     input_file.write_all(content.as_bytes())?;
     let file_size = input_file.metadata()?.len();
     let mut holder = ValueSearchHolder::new(tmp_file.path(), Uuid::new_v4(), 0, 0);
-    holder.set_filters(filters);
-    let (_range, values) =
-        searchers::values::execute_search(&mut holder, 0, file_size, CancellationToken::new())
-            .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {e}")))?;
+    holder
+        .set_filters(filters.clone())
+        .expect("set_filters failed");
+    let (_range, values) = searchers::values::execute_fresh_value_search(
+        &mut holder,
+        filters,
+        0,
+        file_size,
+        CancellationToken::new(),
+    )
+    .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {e}")))?;
     Ok(values)
 }
 
