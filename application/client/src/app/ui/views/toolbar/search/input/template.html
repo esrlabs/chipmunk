@@ -43,6 +43,7 @@
             <mat-option
                 class="small"
                 *ngFor="let recent of recent.observer | async"
+                (click)="input.onRecentClick()"
                 [value]="recent.value"
             >
                 <span class="t-console t-small t-subselection" [innerHTML]="recent.html()"></span>

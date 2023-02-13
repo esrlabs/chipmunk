@@ -36,7 +36,6 @@ export class ErrorHandler {
         caseSensitive(value: boolean): void;
         wholeWord(value: boolean): void;
         regex(value: boolean): void;
-        activeSearchUpdate(hasActiveSearch: boolean): void;
     } {
         return {
             value: (value: string) => {
@@ -55,10 +54,12 @@ export class ErrorHandler {
                 this.filter.flags.reg = value;
                 this._update();
             },
-            activeSearchUpdate: (hasActiveSearch: boolean) => {
-                this._isActiveSearchValidRegex = hasActiveSearch ? this._isValidRegex : undefined;
-            },
         };
+    }
+
+    public recentSelected(value: string, hasActiveSearch: boolean) {
+        this.set().value(value);
+        this._isActiveSearchValidRegex = hasActiveSearch ? this._isValidRegex : undefined;
     }
 
     private _update() {
