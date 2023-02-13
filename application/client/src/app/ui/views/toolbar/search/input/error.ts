@@ -1,6 +1,6 @@
 import { IFilter } from '@platform/types/filter';
 import { Subject } from '@platform/env/subscription';
-import { getFilterError } from '@module/util';
+import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 
 export class ErrorHandler {
     public error: string | undefined;
@@ -14,6 +14,9 @@ export class ErrorHandler {
         },
     };
 
+    private _isValidRegex: boolean = true;
+    private _isActiveSearchValidRegex: boolean | undefined;
+
     public destroy(): void {
         this.updated.destroy();
     }
@@ -22,11 +25,18 @@ export class ErrorHandler {
         return this.error !== undefined;
     }
 
+    public get isValidRegex(): boolean {
+        return this._isActiveSearchValidRegex === undefined
+            ? this._isValidRegex
+            : this._isActiveSearchValidRegex;
+    }
+
     public set(): {
         value(value: string): void;
         caseSensitive(value: boolean): void;
         wholeWord(value: boolean): void;
         regex(value: boolean): void;
+        activeSearchUpdate(hasActiveSearch: boolean): void;
     } {
         return {
             value: (value: string) => {
@@ -45,21 +55,32 @@ export class ErrorHandler {
                 this.filter.flags.reg = value;
                 this._update();
             },
+            activeSearchUpdate: (hasActiveSearch: boolean) => {
+                this._isActiveSearchValidRegex = hasActiveSearch ? this._isValidRegex : undefined;
+            },
         };
     }
 
     private _update() {
-        this.error = getFilterError(
+        this._checkSpecifiedRegex();
+        this._checkGeneralRegex();
+    }
+
+    private _checkSpecifiedRegex() {
+        this.error = FilterRequest.isValidErrorMessage(
             this.filter.filter,
             this.filter.flags.cases,
             this.filter.flags.word,
             this.filter.flags.reg,
         );
-        if (this.error !== undefined) {
-            const match: RegExpMatchArray | null = this.error.match(/error:.+/i);
-            if (match !== null && match[0] !== undefined) {
-                this.error = match[0].trim();
-            }
-        }
+    }
+
+    private _checkGeneralRegex() {
+        this._isValidRegex = FilterRequest.isValid(
+            this.filter.filter,
+            this.filter.flags.cases,
+            this.filter.flags.word,
+            true,
+        );
     }
 }

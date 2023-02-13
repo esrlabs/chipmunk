@@ -20,6 +20,12 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
 import { stop } from '@ui/env/dom';
 
+export enum EFlag {
+    cases = 'cases',
+    word = 'word',
+    reg = 'reg',
+}
+
 @Component({
     selector: 'app-sidebar-filters-filter',
     templateUrl: './template.html',
@@ -29,7 +35,12 @@ import { stop } from '@ui/env/dom';
 @Ilc()
 export class Filter extends ChangesDetector implements AfterContentInit {
     @HostBinding('class.notvalid') get cssClassNotValid() {
-        return !FilterRequest.isValid(this.state.filter.filter);
+        return !FilterRequest.isValid(
+            this.state.filter.filter,
+            this.state.filter.flags.cases,
+            this.state.filter.flags.word,
+            this.state.filter.flags.reg,
+        );
     }
 
     @ViewChild(MatInput) _inputRefCom!: MatInput;
@@ -40,6 +51,7 @@ export class Filter extends ChangesDetector implements AfterContentInit {
 
     public state!: State;
     public directive: FilterItemDirective;
+    public EFlag = EFlag;
 
     constructor(
         cdRef: ChangeDetectorRef,
@@ -88,7 +100,7 @@ export class Filter extends ChangesDetector implements AfterContentInit {
         this.directive.ignoreMouseClick();
     }
 
-    public _ng_flagsToggle(event: MouseEvent, flag: 'cases' | 'word' | 'reg') {
+    public _ng_flagsToggle(event: MouseEvent, flag: EFlag) {
         this.state.toggleFilter(flag);
         stop(event);
     }

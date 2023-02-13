@@ -127,6 +127,7 @@ export class ViewSearchInput
                     .setActive(filter)
                     .then(() => {
                         this.active = new ActiveSearch(this.session.search, filter);
+                        this.input.activeSearchUpdate(true);
                         this.input.drop();
                     })
                     .catch((err: Error) => {
@@ -157,12 +158,14 @@ export class ViewSearchInput
         const active = this.session.search.state().getActive();
         if (active !== undefined) {
             this.active = new ActiveSearch(this.session.search, active);
+            this.input.activeSearchUpdate(true);
             this.input.drop();
         }
     }
 
     public drop() {
         this.active = undefined;
+        this.input.activeSearchUpdate(false);
         this.session.search
             .state()
             .reset()
