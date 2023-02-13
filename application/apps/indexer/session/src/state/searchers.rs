@@ -1,14 +1,19 @@
-use processor::search::searchers;
+use processor::search::searchers::{
+    self,
+    regular::{self, RegularSearchState},
+    values::{OperationResults, ValueSearchState},
+    BaseSearcher, SearchState,
+};
 use tokio_util::sync::CancellationToken;
 
 #[derive(Debug)]
-pub enum SearcherState<T: searchers::Base> {
-    Available(T),
+pub enum SearcherState<State: SearchState> {
+    Available(BaseSearcher<State>),
     InUse,
     NotInited,
 }
 
-impl<T: searchers::Base> SearcherState<T> {
+impl<State: SearchState> SearcherState<State> {
     pub fn is_using(&self) -> bool {
         matches!(self, SearcherState::<_>::InUse)
     }
@@ -19,34 +24,50 @@ impl<T: searchers::Base> SearcherState<T> {
         *self = SearcherState::<_>::NotInited;
     }
 
-    pub fn set(&mut self, seacher: T) {
+    pub fn set(&mut self, seacher: BaseSearcher<State>) {
         *self = SearcherState::<_>::Available(seacher);
     }
+    // pub fn search(
+    //     &mut self,
+    //     rows_count: u64,
+    //     read_bytes: u64,
+    //     cancel_token: CancellationToken,
+    // ) -> Option<State::SearchResultType> {
+    // }
 }
 
-impl SearcherState<searchers::regular::Searcher> {
+impl SearcherState<ValueSearchState> {
     pub fn search(
         &mut self,
         rows_count: u64,
         read_bytes: u64,
         cancel_token: CancellationToken,
-    ) -> Option<searchers::regular::SearchResults> {
+    ) -> Option<OperationResults> {
         match self {
-            Self::Available(h) => Some(h.execute(rows_count, read_bytes, cancel_token)),
+            Self::Available(h) => Some(searchers::values::execute_search(
+                h,
+                rows_count,
+                read_bytes,
+                cancel_token,
+            )),
             _ => None,
         }
     }
 }
-
-impl SearcherState<searchers::values::Searcher> {
+impl SearcherState<RegularSearchState> {
     pub fn search(
         &mut self,
         rows_count: u64,
         read_bytes: u64,
         cancel_token: CancellationToken,
-    ) -> Option<searchers::values::OperationResults> {
+    ) -> Option<regular::SearchResults> {
         match self {
-            Self::Available(h) => Some(h.execute(rows_count, read_bytes, cancel_token)),
+            Self::Available(h) => Some(searchers::regular::execute_search(
+                h,
+                rows_count,
+                read_bytes,
+                cancel_token,
+            )),
             _ => None,
         }
     }
@@ -54,6 +75,6 @@ impl SearcherState<searchers::values::Searcher> {
 
 #[derive(Debug)]
 pub struct Searchers {
-    pub regular: SearcherState<searchers::regular::Searcher>,
-    pub values: SearcherState<searchers::values::Searcher>,
+    pub regular: SearcherState<RegularSearchState>,
+    pub values: SearcherState<ValueSearchState>,
 }

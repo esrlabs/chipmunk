@@ -6,6 +6,8 @@ use std::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
+use super::values::ValueSearchHolder;
+
 // create tmp file with content, apply search
 fn extracted(
     content: &str,
@@ -15,15 +17,16 @@ fn extracted(
     let input_file = tmp_file.as_file_mut();
     input_file.write_all(content.as_bytes())?;
     let file_size = input_file.metadata()?.len();
-    let mut holder = searchers::values::Searcher::new(tmp_file.path(), filters, Uuid::new_v4());
-    let (_range, values) = holder
-        .execute(0, file_size, CancellationToken::new())
-        .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {e}")))?;
+    let mut holder = ValueSearchHolder::new(tmp_file.path(), Uuid::new_v4(), 0, 0);
+    holder.set_filters(filters);
+    let (_range, values) =
+        searchers::values::execute_search(&mut holder, 0, file_size, CancellationToken::new())
+            .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {e}")))?;
     Ok(values)
 }
 
 #[test]
-fn test_001() -> Result<(), std::io::Error> {
+fn test_value_search() -> Result<(), std::io::Error> {
     let mut sum: usize = 0;
     let mut rows: Vec<String> = vec![];
     for n in 0..100 {
@@ -48,7 +51,7 @@ fn test_001() -> Result<(), std::io::Error> {
 }
 
 #[test]
-fn test_002() -> Result<(), std::io::Error> {
+fn test_value_search2() -> Result<(), std::io::Error> {
     let mut sum_0: usize = 0;
     let mut sum_1: usize = 0;
     let mut rows: Vec<String> = vec![];

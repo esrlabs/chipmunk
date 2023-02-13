@@ -1,7 +1,11 @@
 use crate::events::{CallbackEvent, NativeError, NativeErrorKind};
 use indexer_base::progress::Severity;
 use log::{debug, error};
-use processor::{grabber::LineRange, map::SearchMap, search};
+use processor::{
+    grabber::LineRange,
+    map::SearchMap,
+    search::searchers::{regular::RegularSearchHolder, values::ValueSearchHolder},
+};
 use std::{
     collections::HashMap,
     fs::File,
@@ -282,10 +286,7 @@ impl SessionState {
         Ok(true)
     }
 
-    fn handle_get_search_holder(
-        &mut self,
-        uuid: Uuid,
-    ) -> Result<search::searchers::regular::Searcher, NativeError> {
+    fn handle_get_search_holder(&mut self, uuid: Uuid) -> Result<RegularSearchHolder, NativeError> {
         match self.searchers.regular {
             SearcherState::Available(_) => {
                 use std::mem;
@@ -305,11 +306,7 @@ impl SessionState {
             SearcherState::NotInited => {
                 let filename = self.session_file.filename()?;
                 self.searchers.regular.in_use();
-                Ok(search::searchers::regular::Searcher::new(
-                    &filename,
-                    vec![],
-                    uuid,
-                ))
+                Ok(RegularSearchHolder::new(&filename, uuid, 0, 0))
             }
         }
     }
@@ -317,7 +314,7 @@ impl SessionState {
     fn handle_get_search_values_holder(
         &mut self,
         uuid: Uuid,
-    ) -> Result<search::searchers::values::Searcher, NativeError> {
+    ) -> Result<ValueSearchHolder, NativeError> {
         match self.searchers.values {
             SearcherState::Available(_) => {
                 use std::mem;
@@ -339,11 +336,7 @@ impl SessionState {
             SearcherState::NotInited => {
                 let filename = self.session_file.filename()?;
                 self.searchers.values.in_use();
-                Ok(search::searchers::values::Searcher::new(
-                    &filename,
-                    vec![],
-                    uuid,
-                ))
+                Ok(ValueSearchHolder::new(&filename, uuid, 0, 0))
             }
         }
     }

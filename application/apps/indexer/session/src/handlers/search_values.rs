@@ -5,7 +5,7 @@ use crate::{
 };
 use indexer_base::progress::Severity;
 use log::debug;
-use processor::search::searchers;
+use processor::search::searchers::{self, values::ValueSearchHolder};
 use std::{collections::HashMap, ops::Range};
 use tokio::{
     select,
@@ -17,14 +17,8 @@ use tokio::{
 const TRACKING_INTERVAL_MS: u64 = 250;
 
 type SearchResultChannel = (
-    Sender<(
-        searchers::values::Searcher,
-        searchers::values::OperationResults,
-    )>,
-    Receiver<(
-        searchers::values::Searcher,
-        searchers::values::OperationResults,
-    )>,
+    Sender<(ValueSearchHolder, searchers::values::OperationResults)>,
+    Receiver<(ValueSearchHolder, searchers::values::OperationResults)>,
 );
 
 #[allow(clippy::type_complexity)]
@@ -46,7 +40,12 @@ pub async fn handle(
         let cancel = operation_api.cancellation_token();
         let cancel_search = operation_api.cancellation_token();
         task::spawn(async move {
-            let search_results = holder.execute(rows, read_bytes, cancel_search.clone());
+            let search_results = searchers::values::execute_search(
+                &mut holder,
+                rows,
+                read_bytes,
+                cancel_search.clone(),
+            );
             if !cancel_search.is_cancelled()
                 && tx_result.send((holder, search_results)).await.is_ok()
             {}
@@ -56,9 +55,9 @@ pub async fn handle(
                 (
                     Range<usize>,
                     HashMap<u64, Vec<(u8, String)>>,
-                    searchers::values::Searcher,
+                    ValueSearchHolder,
                 ),
-                (Option<searchers::values::Searcher>, NativeError),
+                (Option<ValueSearchHolder>, NativeError),
             >,
         > = select! {
             res = async {
