@@ -34,8 +34,10 @@ export class SearchInput {
         edit: new Subject(),
         flags: new Subject(),
     };
+
     private _prev: string = '';
     private _panel!: MatAutocompleteTrigger;
+    private _hasActiveSearch: boolean = false;
 
     public destroy() {
         this.actions.accept.destroy();
@@ -152,7 +154,11 @@ export class SearchInput {
         this.recent = false;
     }
 
+    public onRecentClick() {
+        this.error.recentSelected(this.control.value, this._hasActiveSearch);
+    }
+
     public activeSearchUpdate(hasActiveSearch: boolean) {
-        this.error.set().activeSearchUpdate(hasActiveSearch);
+        this._hasActiveSearch = hasActiveSearch;
     }
 }
