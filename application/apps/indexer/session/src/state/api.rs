@@ -9,7 +9,7 @@ use crate::{
 use processor::{
     grabber::LineRange,
     map::{FilterMatch, FiltersStats, NearestPosition, ScaledDistribution},
-    search::searchers,
+    search::searchers::{regular::RegularSearchHolder, values::ValueSearchHolder},
 };
 use sources::factory::ObserveOptions;
 use std::{fmt::Display, ops::RangeInclusive, path::PathBuf};
@@ -87,12 +87,12 @@ pub enum Api {
     GetSearchHolder(
         (
             Uuid,
-            oneshot::Sender<Result<searchers::regular::Searcher, NativeError>>,
+            oneshot::Sender<Result<RegularSearchHolder, NativeError>>,
         ),
     ),
     SetSearchHolder(
         (
-            Option<searchers::regular::Searcher>,
+            Option<RegularSearchHolder>,
             Uuid,
             oneshot::Sender<Result<(), NativeError>>,
         ),
@@ -110,12 +110,12 @@ pub enum Api {
     GetSearchValuesHolder(
         (
             Uuid,
-            oneshot::Sender<Result<searchers::values::Searcher, NativeError>>,
+            oneshot::Sender<Result<ValueSearchHolder, NativeError>>,
         ),
     ),
     SetSearchValuesHolder(
         (
-            Option<searchers::values::Searcher>,
+            Option<ValueSearchHolder>,
             Uuid,
             oneshot::Sender<Result<(), NativeError>>,
         ),
@@ -409,10 +409,7 @@ impl SessionStateAPI {
         self.exec_operation(Api::FileRead(tx), rx).await
     }
 
-    pub async fn get_search_holder(
-        &self,
-        uuid: Uuid,
-    ) -> Result<searchers::regular::Searcher, NativeError> {
+    pub async fn get_search_holder(&self, uuid: Uuid) -> Result<RegularSearchHolder, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetSearchHolder((uuid, tx)), rx)
             .await?
@@ -420,7 +417,7 @@ impl SessionStateAPI {
 
     pub async fn set_search_holder(
         &self,
-        holder: Option<searchers::regular::Searcher>,
+        holder: Option<RegularSearchHolder>,
         uuid: Uuid,
     ) -> Result<(), NativeError> {
         let (tx, rx) = oneshot::channel();
@@ -466,7 +463,7 @@ impl SessionStateAPI {
     pub async fn get_search_values_holder(
         &self,
         uuid: Uuid,
-    ) -> Result<searchers::values::Searcher, NativeError> {
+    ) -> Result<ValueSearchHolder, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetSearchValuesHolder((uuid, tx)), rx)
             .await?
@@ -474,7 +471,7 @@ impl SessionStateAPI {
 
     pub async fn set_search_values_holder(
         &self,
-        holder: Option<searchers::values::Searcher>,
+        holder: Option<ValueSearchHolder>,
         uuid: Uuid,
     ) -> Result<(), NativeError> {
         let (tx, rx) = oneshot::channel();

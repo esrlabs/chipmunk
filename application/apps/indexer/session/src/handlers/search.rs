@@ -7,7 +7,10 @@ use indexer_base::progress::Severity;
 use log::debug;
 use processor::{
     map::{FilterMatch, FiltersStats},
-    search::{filter::SearchFilter, searchers},
+    search::{
+        filter::SearchFilter,
+        searchers::{self, regular::RegularSearchHolder},
+    },
 };
 use std::ops::Range;
 use tokio::{
@@ -20,14 +23,8 @@ use tokio::{
 const TRACKING_INTERVAL_MS: u64 = 250;
 
 type SearchResultChannel = (
-    Sender<(
-        searchers::regular::Searcher,
-        searchers::regular::SearchResults,
-    )>,
-    Receiver<(
-        searchers::regular::Searcher,
-        searchers::regular::SearchResults,
-    )>,
+    Sender<(RegularSearchHolder, searchers::regular::SearchResults)>,
+    Receiver<(RegularSearchHolder, searchers::regular::SearchResults)>,
 );
 
 #[allow(clippy::type_complexity)]
@@ -44,12 +41,19 @@ pub async fn handle(
         Ok(Some(0))
     } else {
         let mut holder = state.get_search_holder(operation_api.id()).await?;
-        holder.set_filters(&mut filters.iter());
+        // holder.set_filters(filters);
         let (tx_result, mut rx_result): SearchResultChannel = channel(1);
         let cancel = operation_api.cancellation_token();
         let cancel_search = operation_api.cancellation_token();
         task::spawn(async move {
-            let search_results = holder.execute(rows, read_bytes, cancel_search.clone());
+            let search_results = searchers::regular::execute_filter_search(
+                &mut holder,
+                filters,
+                rows,
+                read_bytes,
+                cancel_search.clone(),
+            );
+
             if !cancel_search.is_cancelled()
                 && tx_result.send((holder, search_results)).await.is_ok()
             {}
@@ -61,9 +65,9 @@ pub async fn handle(
                     usize,
                     Vec<FilterMatch>,
                     FiltersStats,
-                    searchers::regular::Searcher,
+                    RegularSearchHolder,
                 ),
-                (Option<searchers::regular::Searcher>, NativeError),
+                (Option<RegularSearchHolder>, NativeError),
             >,
         > = select! {
             res = async {

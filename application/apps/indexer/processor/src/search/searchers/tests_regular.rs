@@ -1,12 +1,9 @@
-use crate::{
-    map::FilterMatch,
-    search::{filter::SearchFilter, searchers},
-};
+use crate::{map::FilterMatch, search::filter::SearchFilter};
 use std::io::{Error, ErrorKind, Write};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-use super::regular::regulare_search;
+use super::{regular, BaseSearcher};
 
 #[cfg(test)]
 const LOGS: &[&str] = &[
@@ -24,12 +21,12 @@ fn filtered(content: &str, filters: Vec<SearchFilter>) -> Result<Vec<FilterMatch
     let input_file = tmp_file.as_file_mut();
     input_file.write_all(content.as_bytes())?;
     let file_size = input_file.metadata()?.len();
+    let mut searcher = BaseSearcher::new(tmp_file.path(), Uuid::new_v4(), 0, 0);
     // let mut holder = searchers::regular::Searcher::new(tmp_file.path(), filters, Uuid::new_v4());
     // holder.execute(0, file_size, CancellationToken::new())
-    let (_range, indexes, _stats) = regulare_search(
-        tmp_file.path(),
+    let (_range, indexes, _stats) = regular::execute_filter_search(
+        &mut searcher,
         filters,
-        Uuid::new_v4(),
         0,
         file_size,
         CancellationToken::new(),
@@ -52,7 +49,6 @@ fn test_ripgrep_regex_non_regex() -> Result<(), std::io::Error> {
     ];
 
     let matches = filtered(&LOGS.join("\n"), filters)?;
-    println!("matches: {matches:?}");
     assert_eq!(2, matches.len());
     assert_eq!(1, matches[0].index);
     assert_eq!(3, matches[1].index);
@@ -73,7 +69,6 @@ fn test_ripgrep_case_sensitivity() -> Result<(), std::io::Error> {
     ];
 
     let matches = filtered(&LOGS.join("\n"), filters)?;
-    println!("matches: {matches:?}");
     assert_eq!(1, matches.len());
     assert_eq!(3, matches[0].index);
     Ok(())
