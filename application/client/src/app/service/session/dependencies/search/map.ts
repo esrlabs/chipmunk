@@ -2,17 +2,11 @@ import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { error } from '@platform/env/logger';
 import { Subject, Subscriber } from '@platform/env/subscription';
 import { IRange, fromIndexes } from '@platform/types/range';
-import { Stream } from '../stream';
 
 @SetupLogger()
 export class Map extends Subscriber {
     public updated: Subject<void> = new Subject();
     private _matches: number[] = [];
-    protected stream!: Stream;
-
-    public init(stream: Stream): void {
-        this.stream = stream;
-    }
 
     public destroy(): void {
         this.updated.destroy();

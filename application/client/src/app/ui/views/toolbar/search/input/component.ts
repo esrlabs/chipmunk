@@ -18,7 +18,7 @@ import { Progress } from './progress';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { ActiveSearch } from './active';
 import { Indexed } from '@service/session/dependencies/indexed';
-import { IFinish } from '@service/session/dependencies/search/state';
+import { ISearchFinishEvent } from '@service/session/dependencies/search/state';
 import { Notification } from '@ui/service/notifications';
 
 @Component({
@@ -55,7 +55,7 @@ export class ViewSearchInput
     }
 
     public ngAfterContentInit(): void {
-        this.progress = new Progress(this.session, this.session.search.state().isInProgress());
+        this.progress = new Progress(this.session, this.session.search.state().progress().search());
         this.indexed = this.session.indexed;
         this.env().subscriber.register(
             this.progress.updated.subscribe(() => {
@@ -75,7 +75,7 @@ export class ViewSearchInput
         this.env().subscriber.register(
             this.session.search
                 .state()
-                .subjects.get()
+                .subjects.search.get()
                 .start.subscribe(() => {
                     this.progress.start();
                 }),
@@ -83,8 +83,8 @@ export class ViewSearchInput
         this.env().subscriber.register(
             this.session.search
                 .state()
-                .subjects.get()
-                .finish.subscribe((result: IFinish) => {
+                .subjects.search.get()
+                .finish.subscribe((result: ISearchFinishEvent) => {
                     this.progress.stop();
                     this.detectChanges();
                     if (result.error !== undefined) {
@@ -166,6 +166,7 @@ export class ViewSearchInput
         this.session.search
             .state()
             .reset()
+            .search()
             .catch((err: Error) => {
                 this.log().error(`Fail to drop a search: ${err.message}`);
             })

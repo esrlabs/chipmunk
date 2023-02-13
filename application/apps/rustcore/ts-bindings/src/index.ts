@@ -22,6 +22,7 @@ export {
     IEventMapUpdated,
     IEventMatchesUpdated,
     IEventIndexedMapUpdated,
+    ISearchValuesUpdated,
 } from './api/session';
 
 export {

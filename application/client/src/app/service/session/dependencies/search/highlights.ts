@@ -31,7 +31,7 @@ export class Highlights extends Subscriber {
         this.register(
             this._session
                 .state()
-                .subjects.get()
+                .subjects.search.get()
                 .active.subscribe(() => {
                     this.subjects.get().update.emit();
                 }),

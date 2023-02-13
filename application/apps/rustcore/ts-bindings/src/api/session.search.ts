@@ -11,7 +11,7 @@ import {
     INearest,
 } from '../interfaces/index';
 import { Executors } from './executors/session.stream.executors';
-import { SearchValuesResult } from './executors/session.stream.searchvalues.executor';
+import { SearchValuesResult } from 'platform/types/filter';
 
 export class SessionSearch {
     private readonly _provider: EventProvider;

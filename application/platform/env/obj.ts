@@ -149,6 +149,23 @@ export function getAsBool(src: any, key: string, defaults?: boolean): boolean {
     return src[key];
 }
 
+export function getAsMap(src: any, key: string): any {
+    if (!(src[key] instanceof Map)) {
+        throw new Error(`Parameter "${key}" should be a Map`);
+    }
+    return src[key];
+}
+
+export function getAsMapOrNull(src: any, key: string): any {
+    if (!(src[key] instanceof Map)) {
+        if (src[key] === null) {
+            return null;
+        }
+        throw new Error(`Parameter "${key}" should be a Map or NULL`);
+    }
+    return src[key];
+}
+
 export function getAsObj(src: any, key: string, defaults?: unknown): any {
     if (typeof src[key] !== 'object') {
         if (defaults !== undefined) {

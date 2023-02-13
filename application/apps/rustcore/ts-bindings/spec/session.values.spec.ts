@@ -170,6 +170,10 @@ describe('Search', function () {
                         valuesAreDropped = true;
                         return;
                     }
+                    if (event === null) {
+                        expect(event === null).toBe(false);
+                        return;
+                    }
                     results = new Map([...results].concat([...event.values]));
                     let control = 0;
                     results.forEach((values, position) => {

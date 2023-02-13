@@ -7,3 +7,4 @@ export * as Observe from './observe';
 export * as Hotkey from './hotkey';
 export * as Cli from './cli';
 export * as Logs from './logs';
+export * as Values from './values';

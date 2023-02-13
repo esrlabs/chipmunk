@@ -1,6 +1,6 @@
 import { CancelablePromise } from 'platform/env/promise';
 import { ISearchUpdated } from 'platform/types/filter';
-import { Session, IEventIndexedMapUpdated } from 'rustcore';
+import { Session, IEventIndexedMapUpdated, ISearchValuesUpdated } from 'rustcore';
 import { sessions } from '@service/sessions';
 import { Subscriber } from 'platform/env/subscription';
 import { Instance as Logger } from 'platform/env/logger';
@@ -49,6 +49,21 @@ export const handler = Requests.InjectLogger<
                                 }),
                             );
                         }),
+                    );
+                    subscriber.register(
+                        session
+                            .getEvents()
+                            .SearchValuesUpdated.subscribe((event: ISearchValuesUpdated | null) => {
+                                if (!sessions.exists(uuid)) {
+                                    return;
+                                }
+                                Events.IpcEvent.emit(
+                                    new Events.Values.Updated.Event({
+                                        session: uuid,
+                                        values: event === null ? null : event.values,
+                                    }),
+                                );
+                            }),
                     );
                     subscriber.register(
                         session.getEvents().SearchMapUpdated.subscribe((map: string | null) => {
