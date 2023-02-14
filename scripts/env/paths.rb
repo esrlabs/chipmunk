@@ -45,6 +45,7 @@ module Paths
   CONFIG = 'scripts/config.json'
   MATCHER = 'application/apps/webassembly/matcher'
   ANSI = 'application/apps/webassembly/ansi'
+  UTILS = 'application/apps/webassembly/utils'
   UPDATER = 'application/apps/precompiled/updater'
   RELEASE = 'application/holder/release'
   RELEASE_BIN = "#{RELEASE}/#{Paths.get_release_bin_folder}"

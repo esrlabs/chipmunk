@@ -18,6 +18,7 @@ module Owner
   Bindings = 'Bindings'
   Matcher = 'Matcher'
   Ansi = 'Ansi'
+  Utils = 'Utils'
   Updater = 'Updater'
   Release = 'Release'
   Compressor = 'Compressor'
