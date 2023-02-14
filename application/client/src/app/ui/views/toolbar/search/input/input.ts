@@ -25,19 +25,16 @@ export class SearchInput {
         accept: Subject<void>;
         recent: Subject<void>;
         edit: Subject<void>;
-        flags: Subject<void>;
     } = {
         drop: new Subject(),
         clear: new Subject(),
         accept: new Subject(),
         recent: new Subject(),
         edit: new Subject(),
-        flags: new Subject(),
     };
 
     private _prev: string = '';
     private _panel!: MatAutocompleteTrigger;
-    private _hasActiveSearch: boolean = false;
 
     public destroy() {
         this.actions.accept.destroy();
@@ -65,6 +62,13 @@ export class SearchInput {
     public asFilter(): IFilter {
         return {
             filter: this.value,
+            flags: this.flags,
+        };
+    }
+
+    public getNonActive(): IFilter {
+        return {
+            filter: this.control.value,
             flags: this.flags,
         };
     }
@@ -131,20 +135,17 @@ export class SearchInput {
             },
             caseSensitive: () => {
                 this.flags.cases = !this.flags.cases;
-                this.actions.flags.emit();
                 this.error.set().caseSensitive(this.flags.cases);
             },
             wholeWord: () => {
                 this.flags.word = !this.flags.word;
-                this.actions.flags.emit();
                 this.error.set().wholeWord(this.flags.word);
             },
             regex: () => {
-                if (!this.flags.reg && !this.error.isValidRegex) {
+                if (!this.flags.reg && !this.error.isValidRegex()) {
                     return;
                 }
                 this.flags.reg = !this.flags.reg;
-                this.actions.flags.emit();
                 this.error.set().regex(this.flags.reg);
             },
         };
@@ -152,13 +153,5 @@ export class SearchInput {
 
     public onPanelClosed() {
         this.recent = false;
-    }
-
-    public onRecentClick() {
-        this.error.recentSelected(this.control.value, this._hasActiveSearch);
-    }
-
-    public activeSearchUpdate(hasActiveSearch: boolean) {
-        this._hasActiveSearch = hasActiveSearch;
     }
 }

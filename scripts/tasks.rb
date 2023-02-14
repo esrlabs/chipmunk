@@ -430,7 +430,7 @@ namespace :clippy do
     Shell.chdir("#{Paths::UTILS}/src") do
       sh Paths::CLIPPY_NIGHTLY
     end
-    Reporter.add(Jobs.Clippy, Owner::Utils, "checked: #{Paths::UTILS}", '')
+    Reporter.add(Jobs::Clippy, Owner::Utils, "checked: #{Paths::UTILS}", '')
   end
 
   desc 'Clippy updater'

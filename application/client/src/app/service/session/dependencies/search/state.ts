@@ -48,6 +48,14 @@ export class State {
         search: false,
         charts: false,
     };
+    private _nonActive: IFilter = {
+        filter: '',
+        flags: {
+            cases: false,
+            word: false,
+            reg: true,
+        },
+    };
 
     constructor(search: Search) {
         this._controller = search;
@@ -56,6 +64,14 @@ export class State {
     public destroy() {
         this.subjects.search.destroy();
         this.subjects.charts.destroy();
+    }
+
+    public get nonActive(): IFilter {
+        return this._nonActive;
+    }
+
+    public set nonActive(filter: IFilter) {
+        this._nonActive = filter;
     }
 
     public getActive(): IFilter | undefined {
