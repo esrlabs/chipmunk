@@ -20,6 +20,7 @@ import { ActiveSearch } from './active';
 import { Indexed } from '@service/session/dependencies/indexed';
 import { ISearchFinishEvent } from '@service/session/dependencies/search/state';
 import { Notification } from '@ui/service/notifications';
+import { IFilter } from '@platform/types/filter';
 
 @Component({
     selector: 'app-views-search-input',
@@ -50,6 +51,7 @@ export class ViewSearchInput
     }
 
     public ngOnDestroy(): void {
+        this.session.search.state().nonActive = this.input.getNonActive();
         this.input.destroy();
         this.progress.destroy();
     }
@@ -96,6 +98,16 @@ export class ViewSearchInput
                 }),
         );
         this.env().subscriber.register(
+            this.session.search
+                .state()
+                .subjects.get()
+                .active.subscribe((filter: IFilter | undefined) => {
+                    if (filter !== undefined) {
+                        this.active = new ActiveSearch(this.session.search, filter);
+                    }
+                }),
+        );
+        this.env().subscriber.register(
             this.ilc().services.system.hotkeys.listen('Ctrl + F', () => {
                 this.input.focus();
             }),
@@ -104,20 +116,6 @@ export class ViewSearchInput
 
     public ngAfterViewInit(): void {
         this.input.bind(this.searchInputRef.nativeElement, this.recentPanelRef);
-        this.input.actions.flags.subscribe(() => {
-            if (this.active === undefined) {
-                return;
-            }
-            this.active
-                .setFlags(this.input.flags)
-                .apply()
-                .catch((err: Error) => {
-                    this.log().error(`Fail to set flags on search search: ${err.message}`);
-                })
-                .finally(() => {
-                    this.markChangesForCheck();
-                });
-        });
         this.input.actions.accept.subscribe(() => {
             if (this.active === undefined) {
                 const filter = this.input.asFilter();
@@ -127,7 +125,6 @@ export class ViewSearchInput
                     .setActive(filter)
                     .then(() => {
                         this.active = new ActiveSearch(this.session.search, filter);
-                        this.input.activeSearchUpdate(true);
                         this.input.drop();
                     })
                     .catch((err: Error) => {
@@ -147,7 +144,7 @@ export class ViewSearchInput
             if (this.active === undefined) {
                 return;
             }
-            this.input.set().value(this.active.filter.filter);
+            this.input.set().value(this.active.filter);
             this.drop();
             this.markChangesForCheck();
         });
@@ -158,14 +155,13 @@ export class ViewSearchInput
         const active = this.session.search.state().getActive();
         if (active !== undefined) {
             this.active = new ActiveSearch(this.session.search, active);
-            this.input.activeSearchUpdate(true);
             this.input.drop();
         }
+        this._restoreNonActiveSearch();
     }
 
     public drop() {
         this.active = undefined;
-        this.input.activeSearchUpdate(false);
         this.session.search
             .state()
             .reset()
@@ -206,6 +202,10 @@ export class ViewSearchInput
                     );
             },
         };
+    }
+
+    private _restoreNonActiveSearch() {
+        this.input.set().value(this.session.search.state().nonActive);
     }
 }
 export interface ViewSearchInput extends IlcInterface {}

@@ -3,7 +3,6 @@ import { Subject } from '@platform/env/subscription';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 
 export class ErrorHandler {
-    public error: string | undefined;
     public updated: Subject<void> = new Subject();
     public readonly filter: IFilter = {
         filter: '',
@@ -14,21 +13,22 @@ export class ErrorHandler {
         },
     };
 
-    private _isValidRegex: boolean = true;
-    private _isActiveSearchValidRegex: boolean | undefined;
+    private _error: string | undefined;
 
     public destroy(): void {
         this.updated.destroy();
     }
 
-    public hasError(): boolean {
-        return this.error !== undefined;
+    public get error(): string | undefined {
+        return this.filter.flags.reg ? this._error : undefined;
     }
 
-    public get isValidRegex(): boolean {
-        return this._isActiveSearchValidRegex === undefined
-            ? this._isValidRegex
-            : this._isActiveSearchValidRegex;
+    public hasError(): boolean {
+        return this.filter.flags.reg && this.error !== undefined;
+    }
+
+    public isValidRegex(): boolean {
+        return this._error === undefined;
     }
 
     public set(): {
@@ -40,44 +40,29 @@ export class ErrorHandler {
         return {
             value: (value: string) => {
                 this.filter.filter = value;
-                this._update();
+                this._checkRegex();
             },
             caseSensitive: (value: boolean) => {
                 this.filter.flags.cases = value;
-                this._update();
+                this._checkRegex();
             },
             wholeWord: (value: boolean) => {
                 this.filter.flags.word = value;
-                this._update();
+                this._checkRegex();
             },
             regex: (value: boolean) => {
                 this.filter.flags.reg = value;
-                this._update();
+                this._checkRegex();
             },
         };
     }
 
-    public recentSelected(value: string, hasActiveSearch: boolean) {
+    public recentSelected(value: string) {
         this.set().value(value);
-        this._isActiveSearchValidRegex = hasActiveSearch ? this._isValidRegex : undefined;
     }
 
-    private _update() {
-        this._checkSpecifiedRegex();
-        this._checkGeneralRegex();
-    }
-
-    private _checkSpecifiedRegex() {
-        this.error = FilterRequest.isValidErrorMessage(
-            this.filter.filter,
-            this.filter.flags.cases,
-            this.filter.flags.word,
-            this.filter.flags.reg,
-        );
-    }
-
-    private _checkGeneralRegex() {
-        this._isValidRegex = FilterRequest.isValid(
+    private _checkRegex() {
+        this._error = FilterRequest.isValidErrorMessage(
             this.filter.filter,
             this.filter.flags.cases,
             this.filter.flags.word,

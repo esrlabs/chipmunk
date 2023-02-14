@@ -43,7 +43,7 @@
             <mat-option
                 class="small"
                 *ngFor="let recent of recent.observer | async"
-                (click)="input.onRecentClick()"
+                (click)="input.error.set().value(recent.value)"
                 [value]="recent.value"
             >
                 <span class="t-console t-small t-subselection" [innerHTML]="recent.html()"></span>
@@ -67,7 +67,7 @@
     <span
         tabindex="13"
         title="Use Regular Expression"
-        [attr.class]="'small-icon-button codicon codicon-regex ' + (input.flags.reg ? 'active' : input.error.isValidRegex ? 'inactive' : 'invalid')"
+        [attr.class]="'small-icon-button codicon codicon-regex ' + (input.flags.reg ? 'active' : input.error.isValidRegex() ? 'inactive' : 'invalid')"
         (click)="input.set().regex()"
     ></span>
 </div>
