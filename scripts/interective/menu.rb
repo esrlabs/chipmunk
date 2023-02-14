@@ -114,10 +114,11 @@ module Screens
       { name: 'Rebuild holder (+ platform + bindings) [rake developing:holder_platform_bindings]', value: 6 },
       { name: 'Build matcher [rake build:matcher]', value: 7 },
       { name: 'Build updater [rake build:updater]', value: 8 },
-      { name: 'Clean everything', value: 9 },
-      { name: 'Clean & Rebuild everything', value: 10 },
-      { name: 'back', value: 11 },
-      { name: 'exit', value: 12 }
+      { name: 'Build utils [rake build:utils]', value: 9 },
+      { name: 'Clean everything', value: 10 },
+      { name: 'Clean & Rebuild everything', value: 11 },
+      { name: 'back', value: 12 },
+      { name: 'exit', value: 13 }
     ]
     case prompt.select('Actions groups', choices)
     when 1
@@ -137,10 +138,12 @@ module Screens
     when 8
       Rake::Task['build:updater'].invoke
     when 9
-      Rake::Task['developing:clean_all'].invoke
+      Rake::Task['build:utils'].invoke
     when 10
-      Rake::Task['developing:clean_rebuild_all'].invoke
+      Rake::Task['developing:clean_all'].invoke
     when 11
+      Rake::Task['developing:clean_rebuild_all'].invoke
+    when 12
       Screens.welcome(prompt)
     else
       puts 'Goodbye!'
@@ -183,9 +186,11 @@ module Screens
       { name: 'Test binding map [rake test:binding:map]', value: 9 },
       { name: 'Test matcher karma [rake test:matcher:karma]', value: 10 },
       { name: 'Test matcher rust [rake test:matcher:rust', value: 11 },
-      { name: 'Test all [rake test:all', value: 12 },
-      { name: 'back', value: 13 },
-      { name: 'exit', value: 14 }
+      { name: 'Test utils karma [rake test:utils:karma]', value: 12},
+      { name: 'Test utils rust [rake test:utils:rust]', value: 13},
+      { name: 'Test all [rake test:all', value: 14 },
+      { name: 'back', value: 15 },
+      { name: 'exit', value: 16 }
     ]
     case prompt.select('Actions groups', choices)
     when 1
@@ -211,8 +216,12 @@ module Screens
     when 11
       Rake::Task['test:matcher:rust'].invoke
     when 12
-      Rake::Task['test:all'].invoke
+      Rake::Task['test:utils:karma'].invoke
     when 13
+      Rake::Task['test:utils:rust'].invoke
+    when 14
+      Rake::Task['test:all'].invoke
+    when 15
       Screens.checks(prompt)
     else
       puts 'Goodbye!'

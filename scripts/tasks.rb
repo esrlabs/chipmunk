@@ -72,6 +72,12 @@ namespace :build do
     Ansi.new(false, false).build
     Reporter.print
   end
+
+  desc 'Build utils'
+  task :utils do
+    Utils.new(false, false).build
+    Reporter.print
+  end
 end
 
 namespace :rebuild do
@@ -152,6 +158,7 @@ namespace :developing do
     Updater.new.clean
     Matcher.new(true, true).clean
     Ansi.new(true, true).clean
+    Utils.new(true, true).clean
     Client.new(true, true).clean
     Bindings.new(true).clean
     Platform.new(true, true).clean
@@ -164,6 +171,7 @@ namespace :developing do
     Updater.new.clean
     Matcher.new(true, true).clean
     Ansi.new(true, true).clean
+    Utils.new(true, true).clean
     Client.new(true, true).clean
     Bindings.new(true).clean
     Platform.new(true, true).clean
@@ -324,12 +332,30 @@ namespace :test do
       end
     end
   end
+  namespace :utils do
+    desc 'run karma tests'
+    task :karma do
+      Reporter.print
+      Utils.new(false, false).install
+      Shell.chdir("#{Paths::UTILS}/spec") do
+        sh 'npm run test'
+      end
+    end
+    desc 'run rust tests'
+    task :rust do
+      Reporter.print
+      Shell.chdir(Paths::UTILS) do
+        sh 'wasm-pack test --node'
+      end
+    end
+  end
   desc 'run all test'
   task all: ['test:binding:observe', 'test:binding:concat', 'test:binding:extract',
              'test:binding:ranges', 'test:binding:exporting', 'test:binding:search',
              'test:binding:cancel', 'test:binding:errors', 'test:binding:map',
              'test:matcher:karma', 'test:matcher:rust', 'test:ansi:karma',
-             'test:binding:values', 'test:binding:indexes', 'test:ansi:rust']
+             'test:binding:values', 'test:binding:indexes', 'test:ansi:rust',
+             'test:utils:karma', 'test:utils:rust']
 end
 
 namespace :lint do
@@ -399,6 +425,14 @@ namespace :clippy do
     Reporter.add(Jobs::Clippy, Owner::Ansi, "checked: #{Paths::ANSI}", '')
   end
 
+  desc 'Clippy utils'
+  task :utils do
+    Shell.chdir("#{Paths::UTILS}/src") do
+      sh Paths::CLIPPY_NIGHTLY
+    end
+    Reporter.add(Jobs.Clippy, Owner::Utils, "checked: #{Paths::UTILS}", '')
+  end
+
   desc 'Clippy updater'
   task :updater do
     Shell.chdir("#{Paths::UPDATER}") do
@@ -409,7 +443,7 @@ namespace :clippy do
 
   desc 'Clippy all'
   task all: ['clippy:nightly', 'clippy:indexer', 'clippy:rs_bindings', 'clippy:matcher', 'clippy:ansi',
-             'clippy:updater'] do
+             'clippy:utils', 'clippy:updater'] do
     Reporter.print
   end
 end

@@ -1,7 +1,6 @@
 extern crate wasm_bindgen;
 
 use regex::Regex;
-use std::any::type_name;
 use std::str::FromStr;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_test::*;
