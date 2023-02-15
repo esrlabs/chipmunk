@@ -62,11 +62,13 @@ export class ErrorHandler {
     }
 
     private _checkRegex() {
-        this._error = FilterRequest.isValidErrorMessage(
-            this.filter.filter,
-            this.filter.flags.cases,
-            this.filter.flags.word,
-            true,
-        );
+        this._error = FilterRequest.getValidationError({
+            filter: this.filter.filter,
+            flags: {
+                cases: this.filter.flags.cases,
+                word: this.filter.flags.word,
+                reg: true,
+            },
+        });
     }
 }

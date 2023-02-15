@@ -1,8 +1,7 @@
-import { IFilter } from '@platform/types/filter';
+import { EFlag, IFilter } from '@platform/types/filter';
 import { Entity } from '../../providers/definitions/entity';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { ProviderFilters } from '../provider';
-import { EFlag } from './component';
 
 import * as obj from '@platform/env/obj';
 
@@ -108,20 +107,17 @@ export class State {
     }
 
     private _checkSpecifiedRegex() {
-        this._error = FilterRequest.isValidErrorMessage(
-            this.filter.filter,
-            this.filter.flags.cases,
-            this.filter.flags.word,
-            this.filter.flags.reg,
-        );
+        this._error = FilterRequest.getValidationError(this.filter);
     }
 
     private _checkGeneralRegex() {
-        this._isValidRegex = FilterRequest.isValid(
-            this.filter.filter,
-            this.filter.flags.cases,
-            this.filter.flags.word,
-            true,
-        );
+        this._isValidRegex = FilterRequest.isValid({
+            filter: this.filter.filter,
+            flags: {
+                cases: this.filter.flags.cases,
+                word: this.filter.flags.word,
+                reg: true,
+            },
+        });
     }
 }

@@ -151,13 +151,7 @@ export class ViewSearchInput
         this.input.actions.recent.subscribe(() => {
             this.markChangesForCheck();
         });
-
-        const active = this.session.search.state().getActive();
-        if (active !== undefined) {
-            this.active = new ActiveSearch(this.session.search, active);
-            this.input.drop();
-        }
-        this._restoreNonActiveSearch();
+        this._restore();
     }
 
     public drop() {
@@ -204,7 +198,12 @@ export class ViewSearchInput
         };
     }
 
-    private _restoreNonActiveSearch() {
+    private _restore() {
+        const active = this.session.search.state().getActive();
+        if (active !== undefined) {
+            this.active = new ActiveSearch(this.session.search, active);
+            this.input.drop();
+        }
         this.input.set().value(this.session.search.state().nonActive);
     }
 }

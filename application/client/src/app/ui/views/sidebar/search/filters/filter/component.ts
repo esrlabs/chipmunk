@@ -19,12 +19,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
 import { stop } from '@ui/env/dom';
-
-export enum EFlag {
-    cases = 'cases',
-    word = 'word',
-    reg = 'reg',
-}
+import { EFlag } from '@platform/types/filter';
 
 @Component({
     selector: 'app-sidebar-filters-filter',
@@ -35,12 +30,14 @@ export enum EFlag {
 @Ilc()
 export class Filter extends ChangesDetector implements AfterContentInit {
     @HostBinding('class.notvalid') get cssClassNotValid() {
-        return !FilterRequest.isValid(
-            this.state.filter.filter,
-            this.state.filter.flags.cases,
-            this.state.filter.flags.word,
-            this.state.filter.flags.reg,
-        );
+        return !FilterRequest.isValid({
+            filter: this.state.filter.filter,
+            flags: {
+                cases: this.state.filter.flags.cases,
+                word: this.state.filter.flags.word,
+                reg: this.state.filter.flags.reg,
+            },
+        });
     }
 
     @ViewChild(MatInput) _inputRefCom!: MatInput;
