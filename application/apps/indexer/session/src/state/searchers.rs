@@ -37,7 +37,7 @@ impl SearcherState<ValueSearchState> {
         cancel_token: CancellationToken,
     ) -> Option<OperationResults> {
         match self {
-            Self::Available(h) => Some(searchers::values::continue_value_search(
+            Self::Available(h) => Some(searchers::values::search(
                 h,
                 rows_count,
                 read_bytes,
@@ -55,7 +55,7 @@ impl SearcherState<RegularSearchState> {
         cancel_token: CancellationToken,
     ) -> Option<regular::SearchResults> {
         match self {
-            Self::Available(h) => Some(searchers::regular::execute_search(
+            Self::Available(h) => Some(searchers::regular::search(
                 h,
                 rows_count,
                 read_bytes,

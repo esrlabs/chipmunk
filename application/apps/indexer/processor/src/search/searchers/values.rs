@@ -38,7 +38,7 @@ pub struct ValueSearchState {
 pub type ValueSearchHolder = BaseSearcher<ValueSearchState>;
 
 impl ValueSearchHolder {
-    pub fn set_filters(&mut self, filters: Vec<String>) -> Result<(), SearchError> {
+    pub fn setup(&mut self, filters: Vec<String>) -> Result<(), SearchError> {
         let mut matchers = vec![];
         for (_pos, filter) in filters.iter().enumerate() {
             matchers.push(Regex::from_str(filter).map_err(|err| {
@@ -81,35 +81,12 @@ fn collect(row: u64, line: &str, state: &mut ValueSearchState) {
     }
 }
 
-pub fn execute_fresh_value_search(
-    base_searcher: &mut BaseSearcher<ValueSearchState>,
-    filters: Vec<String>,
-    rows_count: u64,
-    read_bytes: u64,
-    cancallation: CancellationToken,
-) -> OperationResults {
-    base_searcher.search_state.results = Results::new();
-    base_searcher.set_filters(filters)?;
-    Ok((
-        base_searcher.search(rows_count, read_bytes, cancallation, collect)?,
-        base_searcher
-            .search_state
-            .results
-            .indexes
-            .take()
-            .ok_or(SearchError::IoOperation(String::from(
-                "Fail to get results: indexes not found",
-            )))?,
-    ))
-}
-
-pub fn continue_value_search(
+pub fn search(
     base_searcher: &mut BaseSearcher<ValueSearchState>,
     rows_count: u64,
     read_bytes: u64,
     cancallation: CancellationToken,
 ) -> OperationResults {
-    // TODO @dmitry: is it correct to reset the search results?
     base_searcher.search_state.results = Results::new();
     Ok((
         base_searcher.search(rows_count, read_bytes, cancallation, collect)?,

@@ -44,7 +44,7 @@ pub struct RegularSearchState {
 pub type RegularSearchHolder = BaseSearcher<RegularSearchState>;
 
 impl RegularSearchHolder {
-    pub fn set_filters(&mut self, filters: Vec<SearchFilter>) -> Result<(), SearchError> {
+    pub fn setup(&mut self, filters: Vec<SearchFilter>) -> Result<(), SearchError> {
         let mut aliases = HashMap::new();
         let mut matchers = vec![];
         for (pos, filter) in filters.iter().enumerate() {
@@ -97,24 +97,13 @@ fn collect(row: u64, line: &str, state: &mut RegularSearchState) {
     }
 }
 
-pub fn execute_fresh_filter_search(
+pub fn search(
     base_searcher: &mut BaseSearcher<RegularSearchState>,
-    filters: Vec<SearchFilter>,
     rows_count: u64,
     read_bytes: u64,
     cancallation: CancellationToken,
 ) -> SearchResults {
     base_searcher.search_state.results = Results::new();
-    base_searcher.set_filters(filters)?;
-    execute_search(base_searcher, rows_count, read_bytes, cancallation)
-}
-
-pub fn execute_search(
-    base_searcher: &mut BaseSearcher<RegularSearchState>,
-    rows_count: u64,
-    read_bytes: u64,
-    cancallation: CancellationToken,
-) -> SearchResults {
     Ok((
         base_searcher.search(rows_count, read_bytes, cancallation, collect)?,
         base_searcher

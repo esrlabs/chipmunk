@@ -41,17 +41,17 @@ pub async fn handle(
         Ok(Some(0))
     } else {
         let mut holder = state.get_search_holder(operation_api.id()).await?;
+        holder.setup(filters).map_err(|e| NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::OperationSearch,
+            message: Some(format!("Fail to setup search terms: {e}")),
+        })?;
         let (tx_result, mut rx_result): SearchResultChannel = channel(1);
         let cancel = operation_api.cancellation_token();
         let cancel_search = operation_api.cancellation_token();
         task::spawn(async move {
-            let search_results = searchers::regular::execute_fresh_filter_search(
-                &mut holder,
-                filters,
-                rows,
-                read_bytes,
-                cancel_search.clone(),
-            );
+            let search_results =
+                searchers::regular::search(&mut holder, rows, read_bytes, cancel_search.clone());
 
             if !cancel_search.is_cancelled()
                 && tx_result.send((holder, search_results)).await.is_ok()
