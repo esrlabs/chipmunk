@@ -16,44 +16,240 @@ extern crate log;
 
 pub mod dlt_ft;
 
-use crate::dlt_ft::{FtFile, FtIndexer, FtStreamer};
+use crate::dlt_ft::{FileExtractor, FtFile, FtScanner};
 use dlt_core::filtering::DltFilterConfig;
-use parsers::dlt::DltParser;
+use futures::pin_mut;
+use parsers::{dlt::DltParser, MessageStreamItem};
 use sources::{producer::MessageProducer, raw::binary::BinaryByteSource};
 use std::{fs::File, io::BufReader, path::PathBuf};
 use tokio_util::sync::CancellationToken;
 
 pub async fn scan_dlt_ft(
-    input: File,
+    input: PathBuf,
     filter: Option<DltFilterConfig>,
     with_storage_header: bool,
     cancel: CancellationToken,
-) -> Option<Vec<FtFile>> {
-    let reader = BufReader::new(&input);
-    let source = BinaryByteSource::new(reader);
-    let parser = DltParser::new(filter.map(|f| f.into()), None, with_storage_header);
-    let mut producer = MessageProducer::new(parser, source, None);
-    let indexer = FtIndexer::new();
-    indexer.index_from_stream(producer.as_stream(), cancel).await
+) -> Result<Vec<FtFile>, String> {
+    match File::open(input) {
+        Ok(input) => {
+            let reader = BufReader::new(&input);
+            let source = BinaryByteSource::new(reader);
+            let parser = DltParser::new(filter.map(|f| f.into()), None, with_storage_header);
+            let mut producer = MessageProducer::new(parser, source, None);
+            let stream = producer.as_stream();
+            pin_mut!(stream);
+
+            let mut scanner = FtScanner::new();
+            let mut canceled = false;
+            let mut offset = 0;
+
+            loop {
+                tokio::select! {
+                    _ = cancel.cancelled() => {
+                        debug!("scan canceled");
+                        canceled = true;
+                        break;
+                    }
+                    item = tokio_stream::StreamExt::next(&mut stream) => {
+                        match item {
+                            Some((consumed, item)) => {
+                                if let MessageStreamItem::Item(item) = item {
+                                    scanner.process(offset, &item.message);
+                                }
+                                offset += consumed;
+                            }
+                            _ => {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if canceled {
+                return Ok(Vec::new());
+            }
+
+            Ok(scanner.into())
+        }
+        Err(error) => Err(format!("failed to open file: {error}")),
+    }
 }
 
-pub async fn extract_dlt_ft(
-    input: File,
+pub fn extract_dlt_ft(
+    input: PathBuf,
     output: PathBuf,
-    files: Option<Vec<&FtFile>>,
-    filter: Option<DltFilterConfig>,
-    with_storage_header: bool,
-    cancel: CancellationToken,
-) -> Option<usize> {
-    let reader = BufReader::new(&input);
-    let source = BinaryByteSource::new(reader);
-    let parser = DltParser::new(filter.map(|f| f.into()), None, with_storage_header);
-    let mut producer = MessageProducer::new(parser, source, None);
-    let mut streamer = FtStreamer::new(output);
-    let result = streamer.extract_from_stream(producer.as_stream(), files, cancel).await;
-    if streamer.is_complete() {
-        return Some(result);
+    files: Vec<FtFile>,
+) -> Result<usize, String> {
+    let mut total_size: usize = 0;
+
+    for file in files {
+        match FileExtractor::extract(
+            input.clone(),
+            output.join(file.save_name()),
+            file.chunks.clone(),
+        ) {
+            Ok(size) => {
+                total_size += size;
+            }
+            Err(error) => {
+                return Err(format!("extract failed after {total_size} bytes: {error}"));
+            }
+        }
     }
 
-    None
+    Ok(total_size)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dlt_ft::tests::TempDir;
+    use std::path::Path;
+
+    #[tokio::test]
+    async fn test_scan_dlt_ft() {
+        let input: PathBuf = Path::new("tests/ft-sample.dlt").into();
+
+        let cancel = CancellationToken::new();
+        if let Ok(files) = scan_dlt_ft(input, None, true, cancel).await {
+            assert_eq!(files.len(), 3);
+            assert_eq!("test1.txt", files.get(0).unwrap().name);
+            assert_eq!("test2.txt", files.get(1).unwrap().name);
+            assert_eq!("test3.txt", files.get(2).unwrap().name);
+        } else {
+            panic!();
+        }
+    }
+
+    #[tokio::test]
+    async fn test_scan_dlt_ft_with_filter() {
+        let input: PathBuf = Path::new("tests/ft-sample.dlt").into();
+        let filter = DltFilterConfig {
+            min_log_level: None,
+            app_ids: None,
+            ecu_ids: Some(vec!["ecu2".to_string()]),
+            context_ids: None,
+            app_id_count: 0,
+            context_id_count: 0,
+        };
+
+        let cancel = CancellationToken::new();
+        if let Ok(files) = scan_dlt_ft(input, Some(filter), true, cancel).await {
+            assert_eq!(files.len(), 1);
+            assert_eq!("test2.txt", files.get(0).unwrap().name);
+        } else {
+            panic!();
+        }
+    }
+
+    #[tokio::test]
+    async fn test_extract_dlt_ft() {
+        let input: PathBuf = Path::new("tests/ft-sample.dlt").into();
+        let output = TempDir::new();
+        let ids: [usize; 3] = [129721424, 1005083951, 2406339683];
+
+        let cancel = CancellationToken::new();
+        if let Ok(files) = scan_dlt_ft(input.clone(), None, true, cancel).await {
+            if let Ok(size) = extract_dlt_ft(input, output.dir.clone(), files) {
+                assert_eq!(size, 18);
+            } else {
+                panic!();
+            }
+        } else {
+            panic!();
+        }
+
+        output.assert_file(&format!("{}_test1.txt", ids.get(0).unwrap()), "test1");
+        output.assert_file(&format!("{}_test2.txt", ids.get(1).unwrap()), "test22");
+        output.assert_file(&format!("{}_test3.txt", ids.get(2).unwrap()), "test333");
+    }
+
+    #[tokio::test]
+    async fn test_extract_dlt_ft_with_filter() {
+        let input: PathBuf = Path::new("tests/ft-sample.dlt").into();
+        let output = TempDir::new();
+        let ids: [usize; 3] = [129721424, 1005083951, 2406339683];
+
+        let filter = DltFilterConfig {
+            min_log_level: None,
+            app_ids: None,
+            ecu_ids: Some(vec!["ecu2".to_string()]),
+            context_ids: None,
+            app_id_count: 0,
+            context_id_count: 0,
+        };
+
+        let cancel = CancellationToken::new();
+        if let Ok(files) = scan_dlt_ft(input.clone(), Some(filter), true, cancel).await {
+            if let Ok(size) = extract_dlt_ft(input, output.dir.clone(), files) {
+                assert_eq!(size, 6);
+            } else {
+                panic!();
+            }
+        } else {
+            panic!();
+        }
+
+        output.assert_file(&format!("{}_test2.txt", ids.get(1).unwrap()), "test22");
+    }
+
+    #[tokio::test]
+    async fn test_extract_dlt_ft_with_index() {
+        let input: PathBuf = Path::new("tests/ft-sample.dlt").into();
+        let output = TempDir::new();
+        let ids: [usize; 3] = [129721424, 1005083951, 2406339683];
+
+        let cancel = CancellationToken::new();
+        if let Ok(files) = scan_dlt_ft(input.clone(), None, true, cancel).await {
+            assert_eq!(files.len(), 3);
+            if let Ok(size) = extract_dlt_ft(
+                input,
+                output.dir.clone(),
+                vec![files.get(1).unwrap().clone()],
+            ) {
+                assert_eq!(size, 6);
+            } else {
+                panic!();
+            }
+        } else {
+            panic!();
+        }
+
+        output.assert_file(&format!("{}_test2.txt", ids.get(1).unwrap()), "test22");
+    }
+
+    #[tokio::test]
+    async fn test_extract_dlt_ft_with_filtered_index() {
+        let input: PathBuf = Path::new("tests/ft-sample.dlt").into();
+        let output = TempDir::new();
+        let ids: [usize; 3] = [129721424, 1005083951, 2406339683];
+
+        let filter = DltFilterConfig {
+            min_log_level: None,
+            app_ids: None,
+            ecu_ids: Some(vec!["ecu2".to_string()]),
+            context_ids: None,
+            app_id_count: 0,
+            context_id_count: 0,
+        };
+
+        let cancel = CancellationToken::new();
+        if let Ok(files) = scan_dlt_ft(input.clone(), Some(filter), true, cancel).await {
+            assert_eq!(files.len(), 1);
+            if let Ok(size) = extract_dlt_ft(
+                input,
+                output.dir.clone(),
+                vec![files.get(0).unwrap().clone()],
+            ) {
+                assert_eq!(size, 6);
+            } else {
+                panic!();
+            }
+        } else {
+            panic!();
+        }
+
+        output.assert_file(&format!("{}_test2.txt", ids.get(1).unwrap()), "test22");
+    }
 }

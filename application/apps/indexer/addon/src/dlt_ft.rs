@@ -1,14 +1,11 @@
 use dlt_core::dlt::{Argument, LogLevel, Message, MessageType, PayloadContent, Value};
-use futures::{pin_mut, stream::StreamExt};
-use parsers::{dlt::fmt::FormattableMessage, MessageStreamItem};
 use serde::Serialize;
 use std::{
     collections::HashMap,
-    fs::{File, OpenOptions},
-    io::Write,
+    fs::File,
+    io::{Read, Seek, SeekFrom, Write},
     path::PathBuf,
 };
-use tokio_util::sync::CancellationToken;
 
 const FT_START_TAG: &str = "FLST";
 const FT_DATA_TAG: &str = "FLDA";
@@ -40,23 +37,6 @@ pub struct FileStart {
     pub created: String,
     /// The total number of packets.
     pub packets: u32,
-}
-
-impl FileStart {
-    /// Returns a file-system save name, prefixed by either
-    /// the timestamp of the DLT message, or if not available
-    /// the id of the file.
-    pub fn save_name(&self) -> String {
-        format!(
-            "{}_{}",
-            if let Some(timestamp) = self.timestamp {
-                timestamp
-            } else {
-                self.id
-            },
-            self.name.replace(['\\', '/'], "$").replace(' ', "_")
-        )
-    }
 }
 
 /// A DLT-FT data message.
@@ -301,108 +281,98 @@ impl FtMessageParser {
     }
 }
 
-/// An indexed DLT-FT file.
+/// A DLT-FT file info.
 #[derive(Debug, Clone, Serialize)]
 pub struct FtFile {
+    /// The timestamp of the original DLT message, if any.
+    pub timestamp: Option<u32>,
+    /// The id of the file.
+    pub id: u32,
     /// The name of the file.
     pub name: String,
     /// The total size of the file.
     pub size: u32,
     /// The creation date of the file.
     pub created: String,
-    /// The 1-based indexes of the original DLT messages.
+    /// The DLT message indexes (1-based) within the original DLT trace.
     pub messages: Vec<usize>,
+    /// The data chunks with byte offset and length within the original DLT trace.
+    pub chunks: Vec<(usize, usize)>,
 }
 
-/// An indexer for DLT-FT files contained in a DLT trace.
+impl FtFile {
+    /// Returns a file-system save name, prefixed by either
+    /// the timestamp of the DLT message, or if not available
+    /// the id of the file.
+    pub fn save_name(&self) -> String {
+        format!(
+            "{}_{}",
+            if let Some(timestamp) = self.timestamp {
+                timestamp
+            } else {
+                self.id
+            },
+            self.name.replace(['\\', '/'], "$").replace(' ', "_")
+        )
+    }
+}
+
+/// An scanner for DLT-FT files contained in a DLT trace.
 #[derive(Debug)]
-pub struct FtIndexer {
+pub struct FtScanner {
     files: HashMap<u32, FtFile>,
+    index: usize,
 }
 
-impl FtIndexer {
-    /// Creates a new indexer.
+impl FtScanner {
+    /// Creates a new scanner.
     pub fn new() -> Self {
         Self {
             files: HashMap::new(),
+            index: 0,
         }
     }
 
-    /// Returns a list of files contained in the DLT trace of the given byte source, if any.
-    pub async fn index_from_stream<'a, S>(
-        mut self,
-        stream: S,
-        cancel: CancellationToken,
-    ) -> Option<Vec<FtFile>>
-    where
-        S: futures::Stream<Item = (usize, MessageStreamItem<FormattableMessage<'a>>)>,
-    {
-        pin_mut!(stream);
-
-        let mut index: usize = 0;
-        let mut canceled = false;
-
-        loop {
-            tokio::select! {
-                _ = cancel.cancelled() => {
-                    debug!("ft-index canceled");
-                    canceled = true;
-                    break;
-                }
-                item = tokio_stream::StreamExt::next(&mut stream) => {
-                    match item {
-                        Some((_, item)) => {
-                            index += 1;
-                            if let MessageStreamItem::Item(item) = item {
-                                self.process(index, &item.message);
-                            }
-                        }
-                        _ => {
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        if canceled {
-            return None;
-        }
-
-        Some(self.into())
-    }
-
-    /// Converts the indexer to the resulting list of indexed files.
-    fn into(self) -> Vec<FtFile> {
+    /// Converts the scanner to the resulting list of indexed files.
+    pub fn into(self) -> Vec<FtFile> {
         let mut result: Vec<FtFile> = self.files.into_values().collect();
         result.sort_by(|d1, d2| d1.name.cmp(&d2.name));
         result
     }
 
     /// Processes the next DLT message of the trace.
-    fn process(&mut self, index: usize, message: &Message) {
+    pub fn process(&mut self, offset: usize, message: &Message) {
+        self.index += 1;
         if let Some(ft_message) = FtMessageParser::parse(message) {
             match ft_message {
                 FtMessage::Start(ft_start) => {
                     self.files.insert(
                         ft_start.id,
                         FtFile {
+                            timestamp: ft_start.timestamp,
+                            id: ft_start.id,
                             name: ft_start.name.clone(),
                             size: ft_start.size,
                             created: ft_start.created,
-                            messages: vec![index],
+                            messages: vec![self.index],
+                            chunks: Vec::new(),
                         },
                     );
                 }
                 FtMessage::Data(ft_data) => {
                     if let Some(mut ft_file) = self.files.remove(&ft_data.id) {
-                        ft_file.messages.push(index);
+                        ft_file.messages.push(self.index);
+                        let header_len: usize =
+                            (message.byte_len() - message.header.payload_length) as usize;
+                        let chunk_offset = offset + header_len + 49; // FLDA header
+                        let chunk_size = ft_data.bytes.len();
+                        ft_file.chunks.push((chunk_offset, chunk_size));
                         self.files.insert(ft_data.id, ft_file);
                     }
                 }
                 FtMessage::End(ft_end) => {
                     if let Some(mut ft_file) = self.files.remove(&ft_end.id) {
-                        ft_file.messages.push(index);
+                        ft_file.messages.push(self.index);
                         self.files.insert(ft_end.id, ft_file);
                     }
                 }
@@ -411,247 +381,71 @@ impl FtIndexer {
     }
 }
 
-impl Default for FtIndexer {
+impl Default for FtScanner {
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// A stream of a DLT-FT file.
-#[derive(Debug, Clone)]
-struct FtStream {
-    path: PathBuf,
-    size: u32,
-    index: u32,
-    bytes: u32,
-}
+/// A file extractor.
+pub struct FileExtractor;
 
-impl FtStream {
-    /// Answers if the stream is complete.
-    fn is_complete(&self) -> bool {
-        self.size == self.bytes
-    }
+impl FileExtractor {
+    /// Extracts data chunks from a file and returns the total size of bytes being extracted or and error.
+    ///
+    /// # Arguments
+    ///
+    /// * `origin` - The origin file to extract from.
+    /// * `destination` - The destination file to extract to.
+    /// * `chunks` - The data chunks with byte offset and length to extract.
+    pub fn extract(
+        origin: PathBuf,
+        destination: PathBuf,
+        chunks: Vec<(usize, usize)>,
+    ) -> Result<usize, String> {
+        let mut bytes: usize = 0;
 
-    /// Updates state for number of received bytes.
-    fn packet_received(&mut self, bytes: u32) {
-        self.bytes += bytes;
-        self.index += 1
-    }
-
-    /// Returns the next expected packet index.
-    fn next_index(&self) -> u32 {
-        self.index + 1
-    }
-}
-
-/// A streamer for DLT-FT files contained in a DLT trace.
-#[derive(Debug)]
-pub struct FtStreamer {
-    streams: HashMap<u32, FtStream>,
-    output: PathBuf,
-    errors: usize,
-    bytes: usize,
-}
-
-impl FtStreamer {
-    /// Creates a new streamer for the given output directory.
-    pub fn new(output: PathBuf) -> Self {
-        Self {
-            streams: HashMap::new(),
-            output,
-            errors: 0,
-            bytes: 0,
-        }
-    }
-
-    /// Writes the files contained in the DLT trace of the given byte source, if any.
-    pub async fn extract_from_stream<'a, S>(
-        &mut self,
-        stream: S,
-        files: Option<Vec<&FtFile>>,
-        cancel: CancellationToken,
-    ) -> usize
-    where
-        S: futures::Stream<Item = (usize, MessageStreamItem<FormattableMessage<'a>>)>,
-    {
-        self.streams.drain();
-        self.errors = 0;
-        self.bytes = 0;
-
-        let mut indexes: Option<Vec<&usize>> = None;
-        let mut index_min: usize = 0;
-        let mut index_max: usize = 0;
-
-        if let Some(ref files) = files {
-            let mut messages: Vec<&usize> = files.iter().flat_map(|file| &file.messages).collect();
-            messages.sort();
-            messages.dedup();
-
-            index_min = **messages.iter().min().unwrap_or(&&0);
-            index_max = **messages.iter().max().unwrap_or(&&0);
-            indexes = Some(messages);
-        }
-
-        let skipped = if index_min > 0 { index_min - 1 } else { 0 };
-        let stream = stream.skip(skipped);
-        pin_mut!(stream);
-
-        let mut index: usize = skipped;
-        let mut canceled = false;
-
-        loop {
-            tokio::select! {
-                _ = cancel.cancelled() => {
-                    debug!("ft-stream canceled");
-                    canceled = true;
-                    break;
-                }
-                item = tokio_stream::StreamExt::next(&mut stream) => {
-                    match item {
-                        Some((_, item)) => {
-                            index += 1;
-                            if let MessageStreamItem::Item(item) = item {
-                                if let Some(ref indexes) = indexes {
-                                    if index > index_max {
-                                        break;
-                                    } else if indexes.contains(&&index) {
-                                        self.process(&item.message);
-                                    }
-                                } else {
-                                    self.process(&item.message);
-                                }
-                            }
+        match File::open(origin) {
+            Ok(mut input) => match File::create(destination) {
+                Ok(mut output) => {
+                    for (offset, size) in chunks {
+                        let mut buffer: Vec<u8> = vec![0; size];
+                        if let Err(error) = input.seek(SeekFrom::Start(offset as u64)) {
+                            return Err(format!("{error}"));
                         }
-                        _ => {
-                            break;
+                        if let Err(error) = input.read_exact(&mut buffer) {
+                            return Err(format!("{error}"));
                         }
+                        if let Err(error) = output.write_all(&buffer) {
+                            return Err(format!("{error}"));
+                        }
+
+                        bytes += size;
                     }
                 }
+                Err(error) => {
+                    return Err(format!("failed to create file: {error}"));
+                }
+            },
+            Err(error) => {
+                return Err(format!("failed to open file: {error}"));
             }
         }
 
-        if canceled {
-            return 0;
-        }
-
-        self.bytes
-    }
-
-    /// Answers if the streamer is completed without errors.
-    pub fn is_complete(&self) -> bool {
-        self.num_streams() == 0 && self.num_errors() == 0
-    }
-
-    /// Returns the number of active streams.
-    pub fn num_streams(&self) -> usize {
-        self.streams.len()
-    }
-
-    /// Returns the number of stream errors.
-    pub fn num_errors(&self) -> usize {
-        self.errors
-    }
-
-    /// Processes the next DLT message of the trace.
-    fn process(&mut self, message: &Message) {
-        if let Some(ft_message) = FtMessageParser::parse(message) {
-            match ft_message {
-                FtMessage::Start(ft_start) => {
-                    let path = self.output.join(ft_start.save_name());
-                    debug!("extract: {} ({} bytes)", path.display(), ft_start.size);
-                    match File::create(path.clone()) {
-                        Ok(_) => {
-                            self.streams.insert(
-                                ft_start.id,
-                                FtStream {
-                                    path,
-                                    size: ft_start.size,
-                                    index: 0,
-                                    bytes: 0,
-                                },
-                            );
-                        }
-                        Err(error) => {
-                            eprintln!("ft-start: failed to create {} ({})", path.display(), error);
-                            self.errors += 1;
-                        }
-                    };
-                }
-                FtMessage::Data(ft_data) => {
-                    if let Some(mut ft_stream) = self.streams.remove(&ft_data.id) {
-                        if ft_stream.next_index() == ft_data.packet {
-                            match OpenOptions::new()
-                                .write(true)
-                                .append(true)
-                                .open(ft_stream.path.clone())
-                            {
-                                Ok(mut file) => {
-                                    match file.write_all(ft_data.bytes) {
-                                        Ok(_) => {
-                                            ft_stream.packet_received(ft_data.bytes.len() as u32);
-                                            self.streams.insert(ft_data.id, ft_stream);
-                                        }
-                                        Err(error) => {
-                                            eprintln!(
-                                                "ft-data: failed to append {} ({})",
-                                                ft_stream.path.display(),
-                                                error
-                                            );
-                                            self.errors += 1;
-                                        }
-                                    };
-                                }
-                                Err(error) => {
-                                    eprintln!(
-                                        "ft-data: failed to open {} ({})",
-                                        ft_stream.path.display(),
-                                        error
-                                    );
-                                    self.errors += 1;
-                                }
-                            }
-                        } else {
-                            eprintln!(
-                                "ft-data: packet mismatch (expected: {}, got: {}) for {}",
-                                ft_stream.next_index(),
-                                ft_data.packet,
-                                ft_stream.path.display()
-                            );
-                            self.errors += 1;
-                        }
-                    }
-                }
-                FtMessage::End(ft_end) => {
-                    if let Some(ft_stream) = self.streams.remove(&ft_end.id) {
-                        if ft_stream.is_complete() {
-                            self.bytes += ft_stream.bytes as usize;
-                        } else {
-                            eprintln!(
-                                "ft-end: invalid size (expected: {}, got: {}) for {}",
-                                ft_stream.size,
-                                ft_stream.bytes,
-                                ft_stream.path.display()
-                            );
-                            self.errors += 1;
-                        }
-                    }
-                }
-            }
-        }
+        Ok(bytes)
     }
 }
 
 #[allow(clippy::get_first)]
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
-    use dlt_core::{dlt::*, filtering::DltFilterConfig};
-    use parsers::dlt::DltParser;
+    use dlt_core::dlt::*;
     use rand::Rng;
-    use sources::{producer::MessageProducer, raw::binary::BinaryByteSource};
-    use std::{env, fs, io::Cursor};
+    use std::{env, fs};
 
-    const CHUNK_SIZE: usize = 10;
+    const DLT_HEADER_SIZE: usize = 16;
+    const DLT_FT_CHUNK_SIZE: usize = 10;
 
     #[allow(clippy::vec_init_then_push)]
     fn ft_files() -> (Vec<u32>, Vec<Message>) {
@@ -684,8 +478,8 @@ mod tests {
         let id: u32 = rand.gen::<u32>();
 
         let size: usize = payload.len();
-        let mut packets: usize = size / CHUNK_SIZE;
-        if size % CHUNK_SIZE != 0 {
+        let mut packets: usize = size / DLT_FT_CHUNK_SIZE;
+        if size % DLT_FT_CHUNK_SIZE != 0 {
             packets += 1;
         }
 
@@ -706,9 +500,9 @@ mod tests {
         for packet in 1..(packets + 1) {
             let mut bytes: Vec<u8> = Vec::new();
             let bytes_left: usize = size - offset;
-            if bytes_left > CHUNK_SIZE {
-                bytes.append(&mut payload[offset..offset + CHUNK_SIZE].to_vec());
-                offset += CHUNK_SIZE;
+            if bytes_left > DLT_FT_CHUNK_SIZE {
+                bytes.append(&mut payload[offset..offset + DLT_FT_CHUNK_SIZE].to_vec());
+                offset += DLT_FT_CHUNK_SIZE;
             } else {
                 bytes.append(&mut payload[offset..offset + bytes_left].to_vec());
                 offset += bytes_left;
@@ -842,21 +636,38 @@ mod tests {
         }
     }
 
-    fn as_bytes(messages: &[Message]) -> Vec<u8> {
-        let mut bytes: Vec<u8> = Vec::new();
-        for message in messages.iter() {
-            bytes.append(&mut message.as_bytes());
+    fn write_dlt_file(output: PathBuf, messages: &[Message]) {
+        let mut file = File::create(output).unwrap();
+
+        let header: [u8; DLT_HEADER_SIZE] = [
+            0x44, 0x4C, 0x54, 0x01, // dlt-pattern
+            0x00, 0x00, 0x00, 0x00, // timestamp
+            0x00, 0x00, 0x00, 0x00, //
+            0x65, 0x63, 0x75, 0x00, // ecu-id
+        ];
+        for message in messages {
+            file.write_all(&header).unwrap();
+            file.write_all(&message.as_bytes()).unwrap();
         }
-        bytes
+    }
+
+    fn scan_messages(messages: &[Message]) -> Vec<FtFile> {
+        let mut scanner = FtScanner::new();
+        let mut offset: usize = 0;
+        for message in messages {
+            scanner.process(offset, &message);
+            offset += DLT_HEADER_SIZE + message.as_bytes().len();
+        }
+        scanner.into()
     }
 
     /// A temporary directory with lock scope.
-    struct TempDir {
-        dir: PathBuf,
+    pub struct TempDir {
+        pub dir: PathBuf,
     }
 
     impl TempDir {
-        fn new() -> Self {
+        pub fn new() -> Self {
             let mut rand = rand::thread_rng();
             let dir = env::current_dir()
                 .unwrap()
@@ -865,7 +676,7 @@ mod tests {
             TempDir { dir }
         }
 
-        fn assert_file(&self, name: &str, content: &str) {
+        pub fn assert_file(&self, name: &str, content: &str) {
             let path = self.dir.join(name);
             let string = fs::read_to_string(path).unwrap();
             assert_eq!(string, content);
@@ -875,65 +686,6 @@ mod tests {
     impl Drop for TempDir {
         fn drop(&mut self) {
             fs::remove_dir_all(self.dir.clone()).unwrap();
-        }
-    }
-
-    async fn index(
-        indexer: FtIndexer,
-        messages: &[Message],
-        filter: Option<DltFilterConfig>,
-        canceled: bool,
-    ) -> Option<Vec<FtFile>> {
-        let cursor = Cursor::new(as_bytes(messages));
-        let source = BinaryByteSource::new(cursor);
-        let parser = DltParser::new(filter.map(|f| f.into()), None, false);
-        let mut producer = MessageProducer::new(parser, source, None);
-        let cancel = CancellationToken::new();
-        if canceled {
-            cancel.cancel();
-        }
-        indexer
-            .index_from_stream(producer.as_stream(), cancel)
-            .await
-    }
-
-    async fn stream(
-        streamer: &mut FtStreamer,
-        messages: &[Message],
-        filter: Option<DltFilterConfig>,
-        files: Option<Vec<&FtFile>>,
-        canceled: bool,
-    ) -> usize {
-        let cursor = Cursor::new(as_bytes(messages));
-        let source = BinaryByteSource::new(cursor);
-        let parser = DltParser::new(filter.map(|f| f.into()), None, false);
-        let mut producer = MessageProducer::new(parser, source, None);
-        let cancel = CancellationToken::new();
-        if canceled {
-            cancel.cancel();
-        }
-        streamer
-            .extract_from_stream(producer.as_stream(), files, cancel)
-            .await
-    }
-
-    #[test]
-    #[ignore]
-    fn write_sample_file() {
-        let (_, messages) = ft_files();
-
-        let path = "ft-sample.dlt";
-        let mut file = File::create(path).unwrap();
-
-        let header = [
-            0x44, 0x4C, 0x54, 0x01, // dlt-pattern
-            0x00, 0x00, 0x00, 0x00, // timestamp
-            0x00, 0x00, 0x00, 0x00, //
-            0x65, 0x63, 0x75, 0x00, // ecu-id
-        ];
-        for message in messages {
-            file.write_all(&header).unwrap();
-            file.write_all(&message.as_bytes()).unwrap();
         }
     }
 
@@ -973,369 +725,129 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_ft_name() {
-        let mut file = FileStart {
-            timestamp: Some(123),
-            id: 321,
-            name: String::from("test.txt"),
-            size: 4,
-            created: String::from("date"),
-            packets: 1,
-        };
-        assert_eq!(file.save_name(), String::from("123_test.txt"));
-
-        file.timestamp = None;
-        assert_eq!(file.save_name(), String::from("321_test.txt"))
-    }
-
     #[tokio::test]
-    async fn test_index_single_file() {
-        let (_, messages) = ft_file("ecu", "test.txt", "test".as_bytes());
+    async fn test_scan_single_file() {
+        let (id, messages) = ft_file("ecu", "test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
 
-        let indexer = FtIndexer::new();
-        let index = index(indexer, &messages, None, false).await.unwrap();
+        let index = scan_messages(&messages);
         assert_eq!(1, index.len());
 
         let file = index.get(0).unwrap();
+        assert!(file.timestamp.is_none());
+        assert_eq!(file.id, id);
         assert_eq!(file.name, String::from("test.txt"));
         assert_eq!(file.created, String::from("date"));
         assert_eq!(file.size, 4);
         assert_eq!(file.messages, vec![1, 2, 3]);
+        assert_eq!(file.chunks, vec![(181, 4)]);
     }
 
     #[tokio::test]
-    async fn test_index_single_file_multiple_chunks() {
-        let (_, messages) = ft_file("ecu", "test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
+    async fn test_scan_single_file_multiple_chunks() {
+        let (id, messages) = ft_file("ecu", "test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
         assert_eq!(5, messages.len());
 
-        let indexer = FtIndexer::new();
-        let index = index(indexer, &messages, None, false).await.unwrap();
+        let index = scan_messages(&messages);
         assert_eq!(1, index.len());
 
         let file = index.get(0).unwrap();
+        assert!(file.timestamp.is_none());
+        assert_eq!(file.id, id);
         assert_eq!(file.name, String::from("test.txt"));
         assert_eq!(file.created, String::from("date"));
         assert_eq!(file.size, 26);
         assert_eq!(file.messages, vec![1, 2, 3, 4, 5]);
+        assert_eq!(file.chunks, vec![(181, 10), (269, 10), (357, 6)]);
     }
 
     #[tokio::test]
-    async fn test_index_multiple_files() {
-        let (_, messages) = ft_files();
+    async fn test_scan_multiple_files() {
+        let (ids, messages) = ft_files();
+        assert_eq!(9, messages.len());
 
-        let indexer = FtIndexer::new();
-        let index = index(indexer, &messages, None, false).await.unwrap();
+        let index = scan_messages(&messages);
         assert_eq!(3, index.len());
 
         let file = index.get(0).unwrap();
+        assert!(file.timestamp.is_none());
+        assert_eq!(file.id, ids[0]);
         assert_eq!(file.name, String::from("test1.txt"));
+        assert_eq!(file.created, String::from("date"));
+        assert_eq!(file.size, 5);
         assert_eq!(file.messages, vec![1, 3, 7]);
+        assert_eq!(file.chunks, vec![(297, 5)]);
 
         let file = index.get(1).unwrap();
+        assert!(file.timestamp.is_none());
+        assert_eq!(file.id, ids[1]);
         assert_eq!(file.name, String::from("test2.txt"));
+        assert_eq!(file.created, String::from("date"));
+        assert_eq!(file.size, 6);
         assert_eq!(file.messages, vec![2, 4, 8]);
+        assert_eq!(file.chunks, vec![(380, 6)]);
 
         let file = index.get(2).unwrap();
+        assert!(file.timestamp.is_none());
+        assert_eq!(file.id, ids[2]);
         assert_eq!(file.name, String::from("test3.txt"));
+        assert_eq!(file.created, String::from("date"));
+        assert_eq!(file.size, 7);
         assert_eq!(file.messages, vec![5, 6, 9]);
+        assert_eq!(file.chunks, vec![(579, 7)]);
     }
 
     #[tokio::test]
-    async fn test_index_files_with_filter() {
-        let (_, messages) = ft_files();
-
-        let indexer = FtIndexer::new();
-        let filter = DltFilterConfig {
-            min_log_level: None,
-            app_ids: None,
-            ecu_ids: Some(vec!["ecu2".to_string()]),
-            context_ids: None,
-            app_id_count: 0,
-            context_id_count: 0,
-        };
-        let index = index(indexer, &messages, Some(filter), false)
-            .await
-            .unwrap();
-        assert_eq!(1, index.len());
-
-        let file = index.get(0).unwrap();
-        assert_eq!(file.name, String::from("test2.txt"));
-        assert_eq!(file.messages, vec![2, 4, 8]);
-    }
-
-    #[tokio::test]
-    async fn test_index_canceled() {
-        let (_, messages) = ft_files();
-
-        let indexer = FtIndexer::new();
-        let index = index(indexer, &messages, None, true).await;
-        assert!(index.is_none());
-    }
-
-    #[tokio::test]
-    async fn test_stream_single_file() {
+    async fn test_extract_single_file() {
         let output = TempDir::new();
 
         let (id, messages) = ft_file("ecu", "test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
 
-        let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None, None, false).await;
-        assert_eq!(4, size);
-        assert!(streamer.is_complete());
+        let dlt = output.dir.join("sample.dlt");
+        write_dlt_file(dlt.clone(), &messages);
 
-        output.assert_file(&format!("{id}_test.txt"), "test");
+        let file = FtFile {
+            timestamp: None,
+            id,
+            name: "test.txt".to_string(),
+            size: 4,
+            created: "date".to_string(),
+            messages: vec![1, 2, 3],
+            chunks: vec![(181, 4)],
+        };
+
+        let name = file.save_name();
+        let size = FileExtractor::extract(dlt, output.dir.join(name.clone()), file.chunks).unwrap();
+        assert_eq!(file.size as usize, size);
+
+        output.assert_file(&name, "test");
     }
 
     #[tokio::test]
-    async fn test_stream_single_file_multiple_chunks() {
+    async fn test_extract_single_file_multiple_chunks() {
         let output = TempDir::new();
 
         let (id, messages) = ft_file("ecu", "test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
         assert_eq!(5, messages.len());
 
-        let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None, None, false).await;
-        assert_eq!(26, size);
-        assert!(streamer.is_complete());
+        let dlt = output.dir.join("sample.dlt");
+        write_dlt_file(dlt.clone(), &messages);
 
-        output.assert_file(&format!("{id}_test.txt"), "abcdefghijklmnopqrstuvwxyz");
-    }
-
-    #[tokio::test]
-    async fn test_stream_multiple_files() {
-        let output = TempDir::new();
-
-        let (ids, messages) = ft_files();
-        assert_eq!(3, ids.len());
-
-        let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None, None, false).await;
-        assert_eq!(5 + 6 + 7, size);
-        assert!(streamer.is_complete());
-        output.assert_file(&format!("{}_test1.txt", ids.get(0).unwrap()), "test1");
-        output.assert_file(&format!("{}_test2.txt", ids.get(1).unwrap()), "test22");
-        output.assert_file(&format!("{}_test3.txt", ids.get(2).unwrap()), "test333");
-    }
-
-    #[tokio::test]
-    async fn test_stream_files_with_filter() {
-        let output = TempDir::new();
-
-        let (ids, messages) = ft_files();
-        assert_eq!(3, ids.len());
-
-        let mut streamer = FtStreamer::new(output.dir.clone());
-        let filter = DltFilterConfig {
-            min_log_level: None,
-            app_ids: None,
-            ecu_ids: Some(vec!["ecu2".to_string()]),
-            context_ids: None,
-            app_id_count: 0,
-            context_id_count: 0,
+        let file = FtFile {
+            timestamp: None,
+            id,
+            name: "test.txt".to_string(),
+            size: 26,
+            created: "date".to_string(),
+            messages: vec![1, 2, 3, 4, 5],
+            chunks: vec![(181, 10), (269, 10), (357, 6)],
         };
-        let size = stream(&mut streamer, &messages, Some(filter), None, false).await;
-        assert_eq!(6, size);
-        assert!(streamer.is_complete());
 
-        output.assert_file(&format!("{}_test2.txt", ids.get(1).unwrap()), "test22");
-    }
+        let name = file.save_name();
+        let size = FileExtractor::extract(dlt, output.dir.join(name.clone()), file.chunks).unwrap();
+        assert_eq!(file.size as usize, size);
 
-    #[allow(clippy::vec_init_then_push)]
-    #[tokio::test]
-    async fn test_stream_files_with_index() {
-        let (ids, messages) = ft_files();
-        assert_eq!(3, ids.len());
-
-        let indexer = FtIndexer::new();
-        let index = index(indexer, &messages, None, false).await.unwrap();
-        assert_eq!(3, index.len());
-
-        {
-            // file at start
-            let output = TempDir::new();
-
-            let mut files = Vec::new();
-            files.push(index.get(0).unwrap());
-
-            let mut streamer = FtStreamer::new(output.dir.clone());
-            let size = stream(&mut streamer, &messages, None, Some(files), false).await;
-            assert_eq!(5, size);
-            assert!(streamer.is_complete());
-
-            output.assert_file(&format!("{}_test1.txt", ids.get(0).unwrap()), "test1");
-        }
-
-        {
-            // file in middle
-            let output = TempDir::new();
-
-            let mut files = Vec::new();
-            files.push(index.get(1).unwrap());
-
-            let mut streamer = FtStreamer::new(output.dir.clone());
-            let size = stream(&mut streamer, &messages, None, Some(files), false).await;
-            assert_eq!(6, size);
-            assert!(streamer.is_complete());
-
-            output.assert_file(&format!("{}_test2.txt", ids.get(1).unwrap()), "test22");
-        }
-
-        {
-            // file at end
-            let output = TempDir::new();
-
-            let mut files = Vec::new();
-            files.push(index.get(2).unwrap());
-
-            let mut streamer = FtStreamer::new(output.dir.clone());
-            let size = stream(&mut streamer, &messages, None, Some(files), false).await;
-            assert_eq!(7, size);
-            assert!(streamer.is_complete());
-
-            output.assert_file(&format!("{}_test3.txt", ids.get(2).unwrap()), "test333");
-        }
-
-        {
-            // all files
-            let output = TempDir::new();
-
-            let mut files = Vec::new();
-            files.push(index.get(0).unwrap());
-            files.push(index.get(1).unwrap());
-            files.push(index.get(2).unwrap());
-
-            let mut streamer = FtStreamer::new(output.dir.clone());
-            let size = stream(&mut streamer, &messages, None, Some(files), false).await;
-            assert_eq!(5 + 6 + 7, size);
-            assert!(streamer.is_complete());
-
-            output.assert_file(&format!("{}_test1.txt", ids.get(0).unwrap()), "test1");
-            output.assert_file(&format!("{}_test2.txt", ids.get(1).unwrap()), "test22");
-            output.assert_file(&format!("{}_test3.txt", ids.get(2).unwrap()), "test333");
-        }
-    }
-
-    #[tokio::test]
-    async fn test_stream_missing_data_packet() {
-        let output = TempDir::new();
-
-        let (id, mut messages) =
-            ft_file("ecu", "test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
-        assert_eq!(5, messages.len());
-        messages.remove(3);
-
-        let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None, None, false).await;
-        assert_eq!(0, size);
-
-        assert!(!streamer.is_complete());
-        assert_eq!(0, streamer.num_streams());
-        assert_eq!(1, streamer.num_errors());
-
-        output.assert_file(&format!("{id}_test.txt"), "abcdefghijklmnopqrst");
-    }
-
-    #[tokio::test]
-    async fn test_stream_mismatched_data_packet() {
-        let output = TempDir::new();
-
-        let (id, mut messages) =
-            ft_file("ecu", "test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
-        assert_eq!(5, messages.len());
-        messages.swap(2, 3);
-
-        let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None, None, false).await;
-        assert_eq!(0, size);
-
-        assert!(!streamer.is_complete());
-        assert_eq!(0, streamer.num_streams());
-        assert_eq!(1, streamer.num_errors());
-
-        output.assert_file(&format!("{id}_test.txt"), "abcdefghij");
-    }
-
-    #[tokio::test]
-    async fn test_stream_missing_end_packet() {
-        let output = TempDir::new();
-
-        let (id, mut messages) =
-            ft_file("ecu", "test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
-        assert_eq!(5, messages.len());
-        messages.remove(4);
-
-        let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None, None, false).await;
-        assert_eq!(0, size);
-
-        assert!(!streamer.is_complete());
-        assert_eq!(1, streamer.num_streams());
-        assert_eq!(0, streamer.num_errors());
-
-        output.assert_file(&format!("{id}_test.txt"), "abcdefghijklmnopqrstuvwxyz");
-    }
-
-    #[tokio::test]
-    async fn test_stream_io_error() {
-        let (_, messages) = ft_file("ecu", "test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
-        assert_eq!(5, messages.len());
-
-        let mut streamer;
-        {
-            let output = TempDir::new(); // scoped!
-            streamer = FtStreamer::new(output.dir.clone());
-        }
-        let size = stream(&mut streamer, &messages, None, None, false).await;
-        assert_eq!(0, size);
-
-        assert!(!streamer.is_complete());
-        assert_eq!(0, streamer.num_streams());
-        assert_eq!(1, streamer.num_errors());
-    }
-
-    #[tokio::test]
-    async fn test_stream_clears_state_on_rerun() {
-        let output = TempDir::new();
-        let mut streamer = FtStreamer::new(output.dir.clone());
-
-        let (id, mut messages) = ft_file("ecu", "test.txt", "test".as_bytes());
-        assert_eq!(3, messages.len());
-        messages.remove(1);
-        let size = stream(&mut streamer, &messages, None, None, false).await;
-        assert_eq!(0, size);
-        assert!(!streamer.is_complete());
-        assert_eq!(0, streamer.num_streams());
-        assert_eq!(1, streamer.num_errors());
-        output.assert_file(&format!("{id}_test.txt"), "");
-
-        let (id, mut messages) = ft_file("ecu", "test.txt", "test".as_bytes());
-        assert_eq!(3, messages.len());
-        messages.remove(2);
-        let size = stream(&mut streamer, &messages, None, None, false).await;
-        assert_eq!(0, size);
-        assert!(!streamer.is_complete());
-        assert_eq!(1, streamer.num_streams());
-        assert_eq!(0, streamer.num_errors());
-        output.assert_file(&format!("{id}_test.txt"), "test");
-
-        let (id, messages) = ft_file("ecu", "test.txt", "test".as_bytes());
-        assert_eq!(3, messages.len());
-        let size = stream(&mut streamer, &messages, None, None, false).await;
-        assert_eq!(4, size);
-        assert!(streamer.is_complete());
-        output.assert_file(&format!("{id}_test.txt"), "test");
-    }
-
-    #[tokio::test]
-    async fn test_stream_canceled() {
-        let output = TempDir::new();
-        let (_, messages) = ft_files();
-
-        let mut streamer = FtStreamer::new(output.dir.clone());
-        let size = stream(&mut streamer, &messages, None, None, true).await;
-        assert_eq!(0, size);
+        output.assert_file(&name, "abcdefghijklmnopqrstuvwxyz");
     }
 }

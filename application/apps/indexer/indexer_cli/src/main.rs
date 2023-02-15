@@ -439,7 +439,7 @@ pub async fn main() -> Result<()> {
             filter_config,
             interactive,
             raw,
-        } => handle_dlt_ft_subcommand(&input, output, filter_config, interactive, raw, start).await,
+        } => handle_dlt_ft_subcommand(input, output, filter_config, interactive, raw, start).await,
         Chip::DltPcap {
             input,
             tag,
@@ -1037,7 +1037,7 @@ pub async fn main() -> Result<()> {
     }
 
     async fn handle_dlt_ft_subcommand(
-        file_path: &Path,
+        file_path: PathBuf,
         out_path: Option<PathBuf>,
         filter_config: Option<PathBuf>,
         interactive: bool,
@@ -1069,8 +1069,8 @@ pub async fn main() -> Result<()> {
         if interactive {
             // extract selected files
             println!("scan files..");
-            let scanned_files = scan_dlt_ft(
-                File::open(file_path).expect("file not found"),
+            let files = scan_dlt_ft(
+                file_path.clone(),
                 filter_conf.clone(),
                 with_storage_header,
                 CancellationToken::new(),
@@ -1078,11 +1078,11 @@ pub async fn main() -> Result<()> {
             .await
             .unwrap();
 
-            if scanned_files.is_empty() {
+            if files.is_empty() {
                 println!("no file(s) found!");
                 std::process::exit(0);
             }
-            for (pos, file) in scanned_files.iter().enumerate() {
+            for (pos, file) in files.iter().enumerate() {
                 let index: usize = pos + 1;
                 println!("<{}>\t{} ({} bytes)", index, file.name, file.size);
             }
@@ -1097,39 +1097,42 @@ pub async fn main() -> Result<()> {
                 let mut selected_files = Vec::new();
                 for part in input.trim().split(',') {
                     if let Ok(index) = part.parse::<usize>() {
-                        if let Some(file) = scanned_files.get(index - 1) {
-                            selected_files.push(file);
+                        if let Some(file) = files.get(index - 1) {
+                            selected_files.push(file.clone());
                         }
                     }
                 }
 
                 let size = extract_dlt_ft(
-                    File::open(file_path).expect("file not found"),
+                    file_path.clone(),
                     Path::new(&output_dir).to_path_buf(),
-                    Some(selected_files),
-                    filter_conf.clone(),
-                    with_storage_header,
-                    CancellationToken::new(),
+                    selected_files,
                 )
-                .await
                 .unwrap();
 
                 println!("{size} bytes written");
             }
         } else {
             // extract all files
-            println!("extract files..");
-
-            let size = extract_dlt_ft(
-                File::open(file_path).expect("file not found"),
-                Path::new(&output_dir).to_path_buf(),
-                None,
-                filter_conf,
+            println!("scan files..");
+            let files = scan_dlt_ft(
+                file_path.clone(),
+                filter_conf.clone(),
                 with_storage_header,
                 CancellationToken::new(),
             )
             .await
             .unwrap();
+
+            println!("extract files..");
+            let size = extract_dlt_ft(
+                file_path.clone(),
+                Path::new(&output_dir).to_path_buf(),
+                files,
+            )
+            .unwrap();
+
+            println!("{size} bytes written");
 
             let source_file_size = fs::metadata(file_path).expect("file size error").len();
             let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
