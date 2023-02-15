@@ -100,7 +100,7 @@ export class ViewSearchInput
         this.env().subscriber.register(
             this.session.search
                 .state()
-                .subjects.get()
+                .subjects.search.get()
                 .active.subscribe((filter: IFilter | undefined) => {
                     if (filter !== undefined) {
                         this.active = new ActiveSearch(this.session.search, filter);
