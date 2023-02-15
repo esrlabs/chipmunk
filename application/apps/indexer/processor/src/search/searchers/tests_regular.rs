@@ -1,9 +1,15 @@
-use crate::{map::FilterMatch, search::filter::SearchFilter};
+use crate::{
+    map::FilterMatch,
+    search::{
+        filter::SearchFilter,
+        searchers::{regular::RegularSearchState, BaseSearcher},
+    },
+};
 use std::io::{Error, ErrorKind, Write};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-use super::{regular, BaseSearcher};
+use super::regular;
 
 #[cfg(test)]
 const LOGS: &[&str] = &[
@@ -21,15 +27,14 @@ fn filtered(content: &str, filters: Vec<SearchFilter>) -> Result<Vec<FilterMatch
     let input_file = tmp_file.as_file_mut();
     input_file.write_all(content.as_bytes())?;
     let file_size = input_file.metadata()?.len();
-    let mut searcher = BaseSearcher::new(tmp_file.path(), Uuid::new_v4(), 0, 0);
-    let (_range, indexes, _stats) = regular::execute_fresh_filter_search(
-        &mut searcher,
-        filters,
-        0,
-        file_size,
-        CancellationToken::new(),
-    )
-    .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {e}")))?;
+    let mut searcher: BaseSearcher<RegularSearchState> =
+        BaseSearcher::new(tmp_file.path(), Uuid::new_v4(), 0, 0);
+    searcher
+        .setup(filters)
+        .map_err(|e| Error::new(ErrorKind::Other, format!("Fail to setup search: {e}")))?;
+    let (_range, indexes, _stats) =
+        regular::search(&mut searcher, 0, file_size, CancellationToken::new())
+            .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {e}")))?;
     Ok(indexes)
 }
 
