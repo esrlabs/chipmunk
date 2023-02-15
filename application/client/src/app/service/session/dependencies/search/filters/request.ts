@@ -77,37 +77,29 @@ export class FilterRequest
     private _hash!: string;
     public found: number = 0;
 
-    static isValid(
-        request: string | undefined,
-        caseSensitive: boolean,
-        wholeWord: boolean,
-        regex: boolean,
-    ): boolean {
-        if (
-            request === undefined ||
-            getFilterError(request, caseSensitive, wholeWord, regex) !== undefined
-        ) {
-            return false;
-        }
-        return true;
+    static isValid(filter: IFilter): boolean {
+        return (
+            getFilterError(
+                filter.filter,
+                filter.flags.cases,
+                filter.flags.word,
+                filter.flags.reg,
+            ) === undefined
+        );
     }
 
-    static isValidErrorMessage(
-        request: string | undefined,
-        caseSensitive: boolean,
-        wholeWord: boolean,
-        regex: boolean,
-    ): string | undefined {
-        if (request === undefined) {
-            return;
-        }
-        let error: string | undefined = getFilterError(request, caseSensitive, wholeWord, regex);
-        if (error === undefined) {
-            return;
-        }
-        const match: RegExpMatchArray | null = error.match(/error:.+/i);
-        if (match !== null && match[0] !== undefined) {
-            error = match[0].trim();
+    static getValidationError(filter: IFilter): string | undefined {
+        let error: string | undefined = getFilterError(
+            filter.filter,
+            filter.flags.cases,
+            filter.flags.word,
+            filter.flags.reg,
+        );
+        if (error !== undefined) {
+            const match: RegExpMatchArray | null = error.match(/error:.+/i);
+            if (match !== null && match[0] !== undefined) {
+                error = match[0].trim();
+            }
         }
         return error;
     }

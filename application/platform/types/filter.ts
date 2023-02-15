@@ -21,3 +21,9 @@ export interface ISearchUpdated {
 export type SearchValuesResult = Map<number, Map<number, string>>;
 
 export type SearchValuesResultOrigin = { [key: string | number]: [number, string][] };
+
+export enum EFlag {
+    cases = 'cases',
+    word = 'word',
+    reg = 'reg',
+}
