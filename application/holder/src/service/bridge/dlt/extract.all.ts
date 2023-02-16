@@ -6,13 +6,13 @@ import { jobs } from '@service/jobs';
 import * as Requests from 'platform/ipc/request';
 
 export const handler = Requests.InjectLogger<
-    Requests.Dlt.Extract.Request,
-    CancelablePromise<Requests.Dlt.Extract.Response>
+    Requests.Dlt.ExtractAll.Request,
+    CancelablePromise<Requests.Dlt.ExtractAll.Response>
 >(
     (
         log: Logger,
-        request: Requests.Dlt.Extract.Request,
-    ): CancelablePromise<Requests.Dlt.Extract.Response> => {
+        request: Requests.Dlt.ExtractAll.Request,
+    ): CancelablePromise<Requests.Dlt.ExtractAll.Response> => {
         return new CancelablePromise((resolve, reject) => {
             const scanning = jobs
                 .create({
@@ -20,10 +20,10 @@ export const handler = Requests.InjectLogger<
                     desc: `file: ${request.file}`,
                 })
                 .start();
-            dlt.extractSelectedFiles(
+            dlt.extractAllFiles(
                 request.file,
                 request.output,
-                request.attachments,
+                request.options
             )
                 .then((size: number) => {
                     resolve(

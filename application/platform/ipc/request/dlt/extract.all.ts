@@ -1,28 +1,28 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { FtFile } from '../../../types/parsers/dlt';
+import { FtOptions } from '../../../types/parsers/dlt';
 import * as validator from '../../../env/obj';
 
-@Define({ name: 'DltExtractRequest' })
+@Define({ name: 'DltExtractAllRequest' })
 export class Request extends SignatureRequirement {
     public file: string;
     public output: string;
-    public attachments: FtFile[];
+    public options: FtOptions;
 
     constructor(input: { 
         file: string, 
         output: string, 
-        attachments: FtFile[], 
+        options: FtOptions
     }) {
         super();
         validator.isObject(input);
         this.file = validator.getAsNotEmptyString(input, 'file');
         this.output = validator.getAsNotEmptyString(input, 'output');
-        this.attachments = validator.getAsArray(input, 'attachments');
+        this.options = validator.getAsObj(input, 'options');
     }
 }
 export interface Request extends Interface {}
 
-@Define({ name: 'DltExtractResponse' })
+@Define({ name: 'DltExtractAllResponse' })
 export class Response extends SignatureRequirement {
     public size: number;
 

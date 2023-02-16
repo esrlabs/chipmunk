@@ -244,7 +244,11 @@ export class Service extends Implementation {
         extract(
             file: string, 
             output: string, 
-            attachments: FtFile[] | undefined, 
+            attachments: FtFile[]
+        ): Promise<number>;
+        extractAll(
+            file: string, 
+            output: string, 
             options: FtOptions
         ): Promise<number>;
     } {
@@ -280,14 +284,31 @@ export class Service extends Implementation {
             extract: (
                 file: string, 
                 output: string, 
-                attachments: FtFile[] | undefined, 
-                options: FtOptions
+                attachments: FtFile[]
             ): Promise<number> => {
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(
                         Requests.Dlt.Extract.Response,
                         new Requests.Dlt.Extract.Request({
-                            file, output, attachments, options,
+                            file, output, attachments,
+                        }),
+                    )
+                        .then((response) => {
+                            resolve(response.size);
+                        })
+                        .catch(reject);
+                });
+            },
+            extractAll: (
+                file: string, 
+                output: string, 
+                options: FtOptions
+            ): Promise<number> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Dlt.ExtractAll.Response,
+                        new Requests.Dlt.ExtractAll.Request({
+                            file, output, options,
                         }),
                     )
                         .then((response) => {
