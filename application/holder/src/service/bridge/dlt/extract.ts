@@ -42,7 +42,6 @@ export const handler = Requests.InjectLogger<
                     request.file,
                     request.output,
                     request.attachments,
-                    request.options
                 )
                     .then((size: number) => {
                         resolve(

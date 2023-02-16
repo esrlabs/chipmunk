@@ -21,6 +21,29 @@ impl WrappedFtFile {
 impl JSValue<'_> for WrappedFtFile {
     fn convert_to_rust(env: &JsEnv, n_value: napi_value) -> Result<Self, NjError> {
         if let Ok(js_obj) = env.convert_to_rust::<JsObject>(n_value) {
+            let timestamp: Option<u32> = match js_obj.get_property("timestamp") {
+                Ok(Some(value)) => match value.as_value() {
+                    Ok(val) => Some(val),
+                    _ => None,
+                },
+                Ok(None) => {
+                    return Err(NjError::Other(
+                        "[timestamp] property is not found".to_owned(),
+                    ));
+                }
+                Err(e) => {
+                    return Err(e);
+                }
+            };
+            let id: u32 = match js_obj.get_property("id") {
+                Ok(Some(value)) => value.as_value()?,
+                Ok(None) => {
+                    return Err(NjError::Other("[id] property is not found".to_owned()));
+                }
+                Err(e) => {
+                    return Err(e);
+                }
+            };
             let name: String = match js_obj.get_property("name") {
                 Ok(Some(value)) => value.as_value()?,
                 Ok(None) => {
@@ -59,11 +82,26 @@ impl JSValue<'_> for WrappedFtFile {
                     return Err(e);
                 }
             };
+            let chunks: Vec<(u32, u32)> = match js_obj.get_property("chunks") {
+                Ok(Some(value)) => value.as_value()?,
+                Ok(None) => {
+                    return Err(NjError::Other("[chunks] property is not found".to_owned()));
+                }
+                Err(e) => {
+                    return Err(e);
+                }
+            };
             Ok(WrappedFtFile(FtFile {
+                timestamp,
+                id,
                 name,
                 size,
                 created,
                 messages: messages.iter().map(|m| *m as usize).collect(),
+                chunks: chunks
+                    .iter()
+                    .map(|c| (c.0 as usize, c.1 as usize))
+                    .collect(),
             }))
         } else {
             Err(NjError::Other(
@@ -78,7 +116,6 @@ pub struct FtOptions {
     pub filter_conf: Option<DltFilterConfig>,
     pub with_storage_header: bool,
 }
-
 pub struct WrappedDltFilterConfig(DltFilterConfig);
 
 impl WrappedDltFilterConfig {

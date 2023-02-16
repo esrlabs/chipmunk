@@ -70,12 +70,12 @@ export function scanContainedFiles(input: string, options: FtOptions): ICancelab
  * @param options The DLT filter and parsing options.
  * @returns A cancelable promise with the number of bytes extracted.
  */
-export function extractSelectedFiles(input: string, output: string, files: FtFile[], options: FtOptions): ICancelablePromise<number> {
+export function extractSelectedFiles(input: string, output: string, files: FtFile[]): ICancelablePromise<number> {
     return new CancelablePromise((resolve, reject, _cancel, _refCancel, self) => {
         const DltRef = getNativeModule().Dlt;
         const dlt = new DltRef();
         let uuid: string | undefined;
-        dlt.extractSelectedFiles(input, output, files, options, (_uuid: string) => { uuid = _uuid; })
+        dlt.extractSelectedFiles(input, output, files, (_uuid: string) => { uuid = _uuid; })
             .then((result: string) => {
                 try {
                     resolve(JSON.parse(result));

@@ -178,10 +178,13 @@ export const NUM_LOGS_LEVELS: { [key: number]: string } = {
 };
 
 export interface FtFile {
+    timestamp: number | undefined;
+    id: number;
     name: string;
     size: number;
     created: string;
     messages: number[];
+    chunks: [number, number][];
 }
 
 export interface FtOptions {

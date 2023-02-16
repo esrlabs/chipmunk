@@ -731,6 +731,24 @@ pub mod tests {
         );
     }
 
+    #[test]
+    fn test_file_name() {
+        let mut file = FtFile {
+            timestamp: Some(123),
+            id: 321,
+            name: String::from("\\dir/foo bar.txt"),
+            size: 0,
+            created: String::from("date"),
+            messages: Vec::new(),
+            chunks: Vec::new(),
+        };
+
+        assert_eq!(file.save_name(), String::from("123_$dir$foo_bar.txt"));
+
+        file.timestamp = None;
+        assert_eq!(file.save_name(), String::from("321_$dir$foo_bar.txt"));
+    }
+
     #[tokio::test]
     async fn test_scan_file() {
         let (id, messages) = ft_file("ecu", "test.txt", "test".as_bytes());

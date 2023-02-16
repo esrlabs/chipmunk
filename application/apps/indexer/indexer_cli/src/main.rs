@@ -1107,7 +1107,9 @@ pub async fn main() -> Result<()> {
                     file_path.clone(),
                     Path::new(&output_dir).to_path_buf(),
                     selected_files,
+                    CancellationToken::new(),
                 )
+                .await
                 .unwrap();
 
                 println!("{size} bytes written");
@@ -1129,7 +1131,9 @@ pub async fn main() -> Result<()> {
                 file_path.clone(),
                 Path::new(&output_dir).to_path_buf(),
                 files,
+                CancellationToken::new(),
             )
+            .await
             .unwrap();
 
             println!("{size} bytes written");

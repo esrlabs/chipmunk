@@ -33,6 +33,7 @@ describe('Dlt', function () {
                 expect(file.size).toEqual(5);
                 expect(file.created).toEqual("date");
                 expect(file.messages).toEqual([1, 3, 7]);
+                expect(file.chunks).toEqual([[297, 5]]);
             }
             {
                 let file: FtFile = result[1];
@@ -40,6 +41,7 @@ describe('Dlt', function () {
                 expect(file.size).toEqual(6);
                 expect(file.created).toEqual("date");
                 expect(file.messages).toEqual([2, 4, 8]);
+                expect(file.chunks).toEqual([[380, 6]]);
             }
             {
                 let file: FtFile = result[2];
@@ -47,6 +49,7 @@ describe('Dlt', function () {
                 expect(file.size).toEqual(7);
                 expect(file.created).toEqual("date");
                 expect(file.messages).toEqual([5, 6, 9]);
+                expect(file.chunks).toEqual([[579, 7]]);
             }
             done();
         })
@@ -89,7 +92,8 @@ describe('Dlt', function () {
                 expect(file.name).toEqual("test2.txt");
                 expect(file.size).toEqual(6);
                 expect(file.created).toEqual("date");
-                expect(file.messages).toEqual([2, 4, 8]);
+                expect(file.messages).toEqual([1, 2, 3]);
+                expect(file.chunks).toEqual([[380, 6]]);
             }
             done();
         })
@@ -150,7 +154,7 @@ describe('Dlt', function () {
             const output = tmp.dirSync();
             let files: FtFile[] = [result[0], result[2]];
 
-            dlt.extractSelectedFiles(sample, output.name, files, options)
+            dlt.extractSelectedFiles(sample, output.name, files)
             .then((result) => {
                 expect(result).toEqual(12);
                 done();
@@ -204,7 +208,7 @@ describe('Dlt', function () {
             const output = tmp.dirSync();
             let files: FtFile[] = [result[0]];
             
-            dlt.extractSelectedFiles(sample, output.name, files, options)
+            dlt.extractSelectedFiles(sample, output.name, files)
             .then((result) => {
                 expect(result).toEqual(6);
                 done();
@@ -250,7 +254,7 @@ describe('Dlt', function () {
             const output = tmp.dirSync();
             let files: FtFile[] = [result[0], result[2]];
 
-            dlt.extractSelectedFiles(sample, output.name, files, options)
+            dlt.extractSelectedFiles(sample, output.name, files)
             .canceled(() => {
                 done();
             })

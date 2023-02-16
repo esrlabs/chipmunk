@@ -76,14 +76,21 @@ pub async fn scan_dlt_ft(
     }
 }
 
-pub fn extract_dlt_ft(
+pub async fn extract_dlt_ft(
     input: PathBuf,
     output: PathBuf,
     files: Vec<FtFile>,
+    cancel: CancellationToken,
 ) -> Result<usize, String> {
     let mut result: usize = 0;
 
+    let mut canceled = false;
     for file in files {
+        if cancel.is_cancelled() {
+            debug!("extract canceled");
+            canceled = true;
+            break;
+        }
         match FileExtractor::extract(
             input.clone(),
             output.join(file.save_name()),
@@ -96,6 +103,10 @@ pub fn extract_dlt_ft(
                 return Err(format!("failed after {result} bytes: {error}"));
             }
         }
+    }
+
+    if canceled {
+        return Ok(0);
     }
 
     Ok(result)
@@ -115,13 +126,16 @@ mod tests {
         let input: PathBuf = Path::new(DLT_FT_SAMPLE).into();
 
         let cancel = CancellationToken::new();
-        if let Ok(files) = scan_dlt_ft(input, None, true, cancel).await {
-            assert_eq!(files.len(), 3);
-            assert_eq!("test1.txt", files.get(0).unwrap().name);
-            assert_eq!("test2.txt", files.get(1).unwrap().name);
-            assert_eq!("test3.txt", files.get(2).unwrap().name);
-        } else {
-            panic!();
+        match scan_dlt_ft(input, None, true, cancel).await {
+            Ok(files) => {
+                assert_eq!(files.len(), 3);
+                assert_eq!("test1.txt", files.get(0).unwrap().name);
+                assert_eq!("test2.txt", files.get(1).unwrap().name);
+                assert_eq!("test3.txt", files.get(2).unwrap().name);
+            }
+            Err(error) => {
+                panic!("{}", format!("{error}"));
+            }
         }
     }
 
@@ -132,10 +146,13 @@ mod tests {
         let cancel = CancellationToken::new();
         cancel.cancel();
 
-        if let Ok(files) = scan_dlt_ft(input, None, true, cancel).await {
-            assert_eq!(files.len(), 0);
-        } else {
-            panic!();
+        match scan_dlt_ft(input, None, true, cancel).await {
+            Ok(files) => {
+                assert_eq!(files.len(), 0);
+            }
+            Err(error) => {
+                panic!("{}", format!("{error}"));
+            }
         }
     }
 
@@ -153,11 +170,14 @@ mod tests {
         };
 
         let cancel = CancellationToken::new();
-        if let Ok(files) = scan_dlt_ft(input, Some(filter), true, cancel).await {
-            assert_eq!(files.len(), 1);
-            assert_eq!("test2.txt", files.get(0).unwrap().name);
-        } else {
-            panic!();
+        match scan_dlt_ft(input, Some(filter), true, cancel).await {
+            Ok(files) => {
+                assert_eq!(files.len(), 1);
+                assert_eq!("test2.txt", files.get(0).unwrap().name);
+            }
+            Err(error) => {
+                panic!("{}", format!("{error}"));
+            }
         }
     }
 
@@ -167,14 +187,21 @@ mod tests {
         let output = TempDir::new();
 
         let cancel = CancellationToken::new();
-        if let Ok(files) = scan_dlt_ft(input.clone(), None, true, cancel).await {
-            if let Ok(size) = extract_dlt_ft(input, output.dir.clone(), files) {
-                assert_eq!(size, 18);
-            } else {
-                panic!();
+        match scan_dlt_ft(input.clone(), None, true, cancel).await {
+            Ok(files) => {
+                let cancel = CancellationToken::new();
+                match extract_dlt_ft(input, output.dir.clone(), files, cancel).await {
+                    Ok(size) => {
+                        assert_eq!(size, 18);
+                    }
+                    Err(error) => {
+                        panic!("{}", format!("{error}"));
+                    }
+                }
             }
-        } else {
-            panic!();
+            Err(error) => {
+                panic!("{}", format!("{error}"));
+            }
         }
 
         output.assert_file(
@@ -192,6 +219,31 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_extract_dlt_ft_canceled() {
+        let input: PathBuf = Path::new(DLT_FT_SAMPLE).into();
+        let output = TempDir::new();
+
+        let cancel = CancellationToken::new();
+        match scan_dlt_ft(input.clone(), None, true, cancel).await {
+            Ok(files) => {
+                let cancel = CancellationToken::new();
+                cancel.cancel();
+                match extract_dlt_ft(input, output.dir.clone(), files, cancel).await {
+                    Ok(size) => {
+                        assert_eq!(size, 0);
+                    }
+                    Err(error) => {
+                        panic!("{}", format!("{error}"));
+                    }
+                }
+            }
+            Err(error) => {
+                panic!("{}", format!("{error}"));
+            }
+        }
+    }
+
+    #[tokio::test]
     async fn test_extract_dlt_ft_with_filter() {
         let input: PathBuf = Path::new(DLT_FT_SAMPLE).into();
         let output = TempDir::new();
@@ -206,14 +258,21 @@ mod tests {
         };
 
         let cancel = CancellationToken::new();
-        if let Ok(files) = scan_dlt_ft(input.clone(), Some(filter), true, cancel).await {
-            if let Ok(size) = extract_dlt_ft(input, output.dir.clone(), files) {
-                assert_eq!(size, 6);
-            } else {
-                panic!();
+        match scan_dlt_ft(input.clone(), Some(filter), true, cancel).await {
+            Ok(files) => {
+                let cancel = CancellationToken::new();
+                match extract_dlt_ft(input, output.dir.clone(), files, cancel).await {
+                    Ok(size) => {
+                        assert_eq!(size, 6);
+                    }
+                    Err(error) => {
+                        panic!("{}", format!("{error}"));
+                    }
+                }
             }
-        } else {
-            panic!();
+            Err(error) => {
+                panic!("{}", format!("{error}"));
+            }
         }
 
         output.assert_file(
@@ -228,19 +287,28 @@ mod tests {
         let output = TempDir::new();
 
         let cancel = CancellationToken::new();
-        if let Ok(files) = scan_dlt_ft(input.clone(), None, true, cancel).await {
-            assert_eq!(files.len(), 3);
-            if let Ok(size) = extract_dlt_ft(
-                input,
-                output.dir.clone(),
-                vec![files.get(1).unwrap().clone()],
-            ) {
-                assert_eq!(size, 6);
-            } else {
-                panic!();
+        match scan_dlt_ft(input.clone(), None, true, cancel).await {
+            Ok(files) => {
+                let cancel = CancellationToken::new();
+                match extract_dlt_ft(
+                    input,
+                    output.dir.clone(),
+                    vec![files.get(1).unwrap().clone()],
+                    cancel,
+                )
+                .await
+                {
+                    Ok(size) => {
+                        assert_eq!(size, 6);
+                    }
+                    Err(error) => {
+                        panic!("{}", format!("{error}"));
+                    }
+                }
             }
-        } else {
-            panic!();
+            Err(error) => {
+                panic!("{}", format!("{error}"));
+            }
         }
 
         output.assert_file(
@@ -264,19 +332,28 @@ mod tests {
         };
 
         let cancel = CancellationToken::new();
-        if let Ok(files) = scan_dlt_ft(input.clone(), Some(filter), true, cancel).await {
-            assert_eq!(files.len(), 1);
-            if let Ok(size) = extract_dlt_ft(
-                input,
-                output.dir.clone(),
-                vec![files.get(0).unwrap().clone()],
-            ) {
-                assert_eq!(size, 6);
-            } else {
-                panic!();
+        match scan_dlt_ft(input.clone(), Some(filter), true, cancel).await {
+            Ok(files) => {
+                let cancel = CancellationToken::new();
+                match extract_dlt_ft(
+                    input,
+                    output.dir.clone(),
+                    vec![files.get(0).unwrap().clone()],
+                    cancel,
+                )
+                .await
+                {
+                    Ok(size) => {
+                        assert_eq!(size, 6);
+                    }
+                    Err(error) => {
+                        panic!("{}", format!("{error}"));
+                    }
+                }
             }
-        } else {
-            panic!();
+            Err(error) => {
+                panic!("{}", format!("{error}"));
+            }
         }
 
         output.assert_file(

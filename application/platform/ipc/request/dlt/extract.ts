@@ -7,20 +7,20 @@ export class Request extends SignatureRequirement {
     public file: string;
     public output: string;
     public attachments: FtFile[] | undefined;
-    public options: FtOptions;
+    public options: FtOptions | undefined;
 
     constructor(input: { 
         file: string, 
         output: string, 
         attachments: FtFile[] | undefined, 
-        options: FtOptions 
+        options: FtOptions | undefined
     }) {
         super();
         validator.isObject(input);
         this.file = validator.getAsNotEmptyString(input, 'file');
         this.output = validator.getAsNotEmptyString(input, 'output');
         this.attachments = validator.getAsArrayOrUndefined(input, 'attachments');
-        this.options = validator.getAsObj(input, 'options');
+        this.options = validator.getAsObjOrUndefined(input, 'options');
     }
 }
 export interface Request extends Interface {}
