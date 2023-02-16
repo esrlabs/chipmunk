@@ -11,6 +11,8 @@ const FT_START_TAG: &str = "FLST";
 const FT_DATA_TAG: &str = "FLDA";
 const FT_END_TAG: &str = "FLFI";
 
+const FT_DATA_HEADER_SIZE: usize = 49;
+
 /// List of DLT-FT messages.
 #[derive(Debug, PartialEq, Eq)]
 pub enum FtMessage<'a> {
@@ -333,7 +335,7 @@ impl FtScanner {
         }
     }
 
-    /// Converts the scanner to the resulting list of indexed files.
+    /// Converts the scanner to the resulting list of files.
     pub fn into(self) -> Vec<FtFile> {
         let mut result: Vec<FtFile> = self.files.into_values().collect();
         result.sort_by(|d1, d2| d1.name.cmp(&d2.name));
@@ -341,6 +343,11 @@ impl FtScanner {
     }
 
     /// Processes the next DLT message of the trace.
+    ///
+    /// # Arguments
+    ///
+    /// * `offset` - The offset of the message in the original DLT trace.
+    /// * `message` - The message to be processed.
     pub fn process(&mut self, offset: usize, message: &Message) {
         self.index += 1;
         if let Some(ft_message) = FtMessageParser::parse(message) {
@@ -364,7 +371,7 @@ impl FtScanner {
                         ft_file.messages.push(self.index);
                         let header_len: usize =
                             (message.byte_len() - message.header.payload_length) as usize;
-                        let chunk_offset = offset + header_len + 49; // FLDA header
+                        let chunk_offset = offset + header_len + FT_DATA_HEADER_SIZE;
                         let chunk_size = ft_data.bytes.len();
                         ft_file.chunks.push((chunk_offset, chunk_size));
                         self.files.insert(ft_data.id, ft_file);
@@ -387,7 +394,7 @@ impl Default for FtScanner {
     }
 }
 
-/// A file extractor.
+/// An extractor for data chunks contained in a file.
 pub struct FileExtractor;
 
 impl FileExtractor {
@@ -661,7 +668,6 @@ pub mod tests {
         scanner.into()
     }
 
-    /// A temporary directory with lock scope.
     pub struct TempDir {
         pub dir: PathBuf,
     }
@@ -690,7 +696,7 @@ pub mod tests {
     }
 
     #[test]
-    fn test_parse_ft_messages() {
+    fn test_parse_messages() {
         let (id, messages) = ft_file("ecu", "test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
 
@@ -726,7 +732,7 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn test_scan_single_file() {
+    async fn test_scan_file() {
         let (id, messages) = ft_file("ecu", "test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
 
@@ -744,7 +750,7 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn test_scan_single_file_multiple_chunks() {
+    async fn test_scan_file_with_multiple_chunks() {
         let (id, messages) = ft_file("ecu", "test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
         assert_eq!(5, messages.len());
 
@@ -762,7 +768,7 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn test_scan_multiple_files() {
+    async fn test_scan_files() {
         let (ids, messages) = ft_files();
         assert_eq!(9, messages.len());
 
@@ -798,7 +804,7 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn test_extract_single_file() {
+    async fn test_extract_file() {
         let output = TempDir::new();
 
         let (id, messages) = ft_file("ecu", "test.txt", "test".as_bytes());
@@ -825,7 +831,7 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn test_extract_single_file_multiple_chunks() {
+    async fn test_extract_file_with_multiple_chunks() {
         let output = TempDir::new();
 
         let (id, messages) = ft_file("ecu", "test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());

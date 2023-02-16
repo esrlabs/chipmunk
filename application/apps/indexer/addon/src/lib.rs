@@ -81,7 +81,7 @@ pub fn extract_dlt_ft(
     output: PathBuf,
     files: Vec<FtFile>,
 ) -> Result<usize, String> {
-    let mut total_size: usize = 0;
+    let mut result: usize = 0;
 
     for file in files {
         match FileExtractor::extract(
@@ -90,15 +90,15 @@ pub fn extract_dlt_ft(
             file.chunks.clone(),
         ) {
             Ok(size) => {
-                total_size += size;
+                result += size;
             }
             Err(error) => {
-                return Err(format!("extract failed after {total_size} bytes: {error}"));
+                return Err(format!("failed after {result} bytes: {error}"));
             }
         }
     }
 
-    Ok(total_size)
+    Ok(result)
 }
 
 #[cfg(test)]
@@ -107,9 +107,12 @@ mod tests {
     use crate::dlt_ft::tests::TempDir;
     use std::path::Path;
 
+    const DLT_FT_SAMPLE: &str = "tests/ft-sample.dlt";
+    const DLT_FT_IDS: [usize; 3] = [129721424, 1005083951, 2406339683];
+
     #[tokio::test]
     async fn test_scan_dlt_ft() {
-        let input: PathBuf = Path::new("tests/ft-sample.dlt").into();
+        let input: PathBuf = Path::new(DLT_FT_SAMPLE).into();
 
         let cancel = CancellationToken::new();
         if let Ok(files) = scan_dlt_ft(input, None, true, cancel).await {
@@ -123,8 +126,23 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_scan_dlt_ft_canceled() {
+        let input: PathBuf = Path::new(DLT_FT_SAMPLE).into();
+
+        let cancel = CancellationToken::new();
+        cancel.cancel();
+
+        if let Ok(files) = scan_dlt_ft(input, None, true, cancel).await {
+            assert_eq!(files.len(), 0);
+        } else {
+            panic!();
+        }
+    }
+
+    #[tokio::test]
     async fn test_scan_dlt_ft_with_filter() {
-        let input: PathBuf = Path::new("tests/ft-sample.dlt").into();
+        let input: PathBuf = Path::new(DLT_FT_SAMPLE).into();
+
         let filter = DltFilterConfig {
             min_log_level: None,
             app_ids: None,
@@ -145,9 +163,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_extract_dlt_ft() {
-        let input: PathBuf = Path::new("tests/ft-sample.dlt").into();
+        let input: PathBuf = Path::new(DLT_FT_SAMPLE).into();
         let output = TempDir::new();
-        let ids: [usize; 3] = [129721424, 1005083951, 2406339683];
 
         let cancel = CancellationToken::new();
         if let Ok(files) = scan_dlt_ft(input.clone(), None, true, cancel).await {
@@ -160,16 +177,24 @@ mod tests {
             panic!();
         }
 
-        output.assert_file(&format!("{}_test1.txt", ids.get(0).unwrap()), "test1");
-        output.assert_file(&format!("{}_test2.txt", ids.get(1).unwrap()), "test22");
-        output.assert_file(&format!("{}_test3.txt", ids.get(2).unwrap()), "test333");
+        output.assert_file(
+            &format!("{}_test1.txt", DLT_FT_IDS.get(0).unwrap()),
+            "test1",
+        );
+        output.assert_file(
+            &format!("{}_test2.txt", DLT_FT_IDS.get(1).unwrap()),
+            "test22",
+        );
+        output.assert_file(
+            &format!("{}_test3.txt", DLT_FT_IDS.get(2).unwrap()),
+            "test333",
+        );
     }
 
     #[tokio::test]
     async fn test_extract_dlt_ft_with_filter() {
-        let input: PathBuf = Path::new("tests/ft-sample.dlt").into();
+        let input: PathBuf = Path::new(DLT_FT_SAMPLE).into();
         let output = TempDir::new();
-        let ids: [usize; 3] = [129721424, 1005083951, 2406339683];
 
         let filter = DltFilterConfig {
             min_log_level: None,
@@ -191,14 +216,16 @@ mod tests {
             panic!();
         }
 
-        output.assert_file(&format!("{}_test2.txt", ids.get(1).unwrap()), "test22");
+        output.assert_file(
+            &format!("{}_test2.txt", DLT_FT_IDS.get(1).unwrap()),
+            "test22",
+        );
     }
 
     #[tokio::test]
     async fn test_extract_dlt_ft_with_index() {
-        let input: PathBuf = Path::new("tests/ft-sample.dlt").into();
+        let input: PathBuf = Path::new(DLT_FT_SAMPLE).into();
         let output = TempDir::new();
-        let ids: [usize; 3] = [129721424, 1005083951, 2406339683];
 
         let cancel = CancellationToken::new();
         if let Ok(files) = scan_dlt_ft(input.clone(), None, true, cancel).await {
@@ -216,14 +243,16 @@ mod tests {
             panic!();
         }
 
-        output.assert_file(&format!("{}_test2.txt", ids.get(1).unwrap()), "test22");
+        output.assert_file(
+            &format!("{}_test2.txt", DLT_FT_IDS.get(1).unwrap()),
+            "test22",
+        );
     }
 
     #[tokio::test]
     async fn test_extract_dlt_ft_with_filtered_index() {
-        let input: PathBuf = Path::new("tests/ft-sample.dlt").into();
+        let input: PathBuf = Path::new(DLT_FT_SAMPLE).into();
         let output = TempDir::new();
-        let ids: [usize; 3] = [129721424, 1005083951, 2406339683];
 
         let filter = DltFilterConfig {
             min_log_level: None,
@@ -250,6 +279,9 @@ mod tests {
             panic!();
         }
 
-        output.assert_file(&format!("{}_test2.txt", ids.get(1).unwrap()), "test22");
+        output.assert_file(
+            &format!("{}_test2.txt", DLT_FT_IDS.get(1).unwrap()),
+            "test22",
+        );
     }
 }
