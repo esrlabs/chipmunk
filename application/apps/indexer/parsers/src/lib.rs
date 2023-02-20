@@ -1,6 +1,7 @@
 pub mod dlt;
 pub mod someip;
 pub mod text;
+use chrono::NaiveDate;
 use serde::Serialize;
 use std::{fmt::Display, io::Write};
 
@@ -32,6 +33,22 @@ pub trait Parser<T> {
         input: &'a [u8],
         timestamp: Option<u64>,
     ) -> Result<(&'a [u8], Option<T>), Error>;
+
+    fn collector(&self) -> Option<Box<dyn Collector<T>>> {
+        None
+    }
+}
+
+pub struct Attachement {
+    pub name: Option<String>,
+    pub size: usize,
+    pub created_date: Option<NaiveDate>,
+    pub modified_date: Option<NaiveDate>,
+}
+
+pub trait Collector<T> {
+    fn register_message(&mut self, offset: usize, msg: &T);
+    fn attachement_indexes(&self) -> Vec<(Attachement, Vec<(usize, usize)>)>;
 }
 
 pub trait LineFormat {
