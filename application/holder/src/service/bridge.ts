@@ -168,6 +168,33 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
+                    Requests.Dlt.Scan.Request,
+                    RequestHandlers.Dlt.Scan.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Dlt.Extract.Request,
+                    RequestHandlers.Dlt.Extract.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Dlt.ExtractAll.Request,
+                    RequestHandlers.Dlt.ExtractAll.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
                     Requests.Os.List.Request,
                     RequestHandlers.Os.List.handler,
                 ),
