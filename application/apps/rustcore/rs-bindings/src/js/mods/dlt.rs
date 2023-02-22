@@ -43,7 +43,7 @@ impl Dlt {
         serde_json::to_string(&stat).map_err(|e| e.to_string())
     }
     #[node_bindgen]
-    async fn scan_contained_files<F: Fn(String) + Send + 'static>(
+    async fn scan<F: Fn(String) + Send + 'static>(
         &mut self,
         input: String,
         options: FtOptions,
@@ -67,7 +67,7 @@ impl Dlt {
         }
     }
     #[node_bindgen]
-    async fn extract_selected_files<F: Fn(String) + Send + 'static>(
+    async fn extract<F: Fn(String) + Send + 'static>(
         &mut self,
         input: String,
         output: String,
@@ -92,7 +92,7 @@ impl Dlt {
         }
     }
     #[node_bindgen]
-    async fn extract_all_files<F: Fn(String) + Send + 'static>(
+    async fn extract_all<F: Fn(String) + Send + 'static>(
         &mut self,
         input: String,
         output: String,

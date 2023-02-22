@@ -20,7 +20,7 @@ export const handler = Requests.InjectLogger<
                     desc: `file: ${request.file}`,
                 })
                 .start();
-            dlt.extractAllFiles(
+            dlt.extractAll(
                 request.file,
                 request.output,
                 request.options

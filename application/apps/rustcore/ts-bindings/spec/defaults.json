@@ -195,7 +195,6 @@
         },
         "dlt": {
             "regular": {
-                "execute_only": [1, 2, 3, 4, 5, 6, 7, 8, 9],
                 "list": {
                     "1": "Test 1. Scan for attachments",
                     "2": "Test 2. Scan for attachments with filter",

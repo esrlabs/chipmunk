@@ -24,7 +24,7 @@ describe('Dlt', function () {
             with_storage_header: true,
         };
 
-        dlt.scanContainedFiles(sample, options)
+        dlt.scan(sample, options)
         .then((result) => {
             expect(result.length).toEqual(3);
             {
@@ -84,7 +84,7 @@ describe('Dlt', function () {
             with_storage_header: true,
         };
 
-        dlt.scanContainedFiles(sample, options)
+        dlt.scan(sample, options)
         .then((result) => {
             expect(result.length).toEqual(1);
             {
@@ -120,7 +120,7 @@ describe('Dlt', function () {
             with_storage_header: true,
         };
 
-        dlt.scanContainedFiles(sample, options)
+        dlt.scan(sample, options)
         .canceled(() => {
             done();
         })
@@ -148,13 +148,13 @@ describe('Dlt', function () {
             with_storage_header: true,
         };
 
-        dlt.scanContainedFiles(sample, options)
+        dlt.scan(sample, options)
         .then((result) => {
             expect(result.length).toEqual(3);
             const output = tmp.dirSync();
             let files: FtFile[] = [result[0], result[2]];
 
-            dlt.extractSelectedFiles(sample, output.name, files)
+            dlt.extract(sample, output.name, files)
             .then((result) => {
                 expect(result).toEqual(12);
                 done();
@@ -202,13 +202,13 @@ describe('Dlt', function () {
             with_storage_header: true,
         };
 
-        dlt.scanContainedFiles(sample, options)
+        dlt.scan(sample, options)
         .then((result) => {
             expect(result.length).toEqual(1);
             const output = tmp.dirSync();
             let files: FtFile[] = [result[0]];
             
-            dlt.extractSelectedFiles(sample, output.name, files)
+            dlt.extract(sample, output.name, files)
             .then((result) => {
                 expect(result).toEqual(6);
                 done();
@@ -248,13 +248,13 @@ describe('Dlt', function () {
             with_storage_header: true,
         };
 
-        dlt.scanContainedFiles(sample, options)
+        dlt.scan(sample, options)
         .then((result) => {
             expect(result.length).toEqual(3);
             const output = tmp.dirSync();
             let files: FtFile[] = [result[0], result[2]];
 
-            dlt.extractSelectedFiles(sample, output.name, files)
+            dlt.extract(sample, output.name, files)
             .canceled(() => {
                 done();
             })
@@ -296,7 +296,7 @@ describe('Dlt', function () {
 
         const output = tmp.dirSync();
 
-        dlt.extractAllFiles(sample, output.name, options)
+        dlt.extractAll(sample, output.name, options)
         .then((result) => {
             expect(result).toEqual(18);
             done();
@@ -334,7 +334,7 @@ describe('Dlt', function () {
 
         const output = tmp.dirSync();
 
-        dlt.extractAllFiles(sample, output.name, options)
+        dlt.extractAll(sample, output.name, options)
         .then((result) => {
             expect(result).toEqual(6);
             done();
@@ -362,12 +362,12 @@ describe('Dlt', function () {
             with_storage_header: true,
         };
 
-        dlt.scanContainedFiles(sample, options)
+        dlt.scan(sample, options)
         .then((result) => {
             expect(result.length).toEqual(3);
             const output = tmp.dirSync();
 
-            dlt.extractAllFiles(sample, output.name, options)
+            dlt.extractAll(sample, output.name, options)
             .canceled(() => {
                 done();
             })

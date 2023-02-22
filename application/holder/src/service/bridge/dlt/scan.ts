@@ -20,7 +20,7 @@ export const handler = Requests.InjectLogger<
                     desc: `file: ${request.file}`,
                 })
                 .start();
-            dlt.scanContainedFiles(request.file, request.options)
+            dlt.scan(request.file, request.options)
                 .then((attachments: dlt.Types.FtFile[]) => {
                     resolve(
                         new Requests.Dlt.Scan.Response({
