@@ -28,7 +28,7 @@ node-bindgen = {git = "https://github.com/infinyon/node-bindgen.git", branch = "
 # node-bindgen = { version = "5.0", features = ["serde-json"] }
 processor = { path = "../../indexer/processor" }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde_json = "^1.0"
 session = { path = "../../indexer/session" }
 sources = { path = "../../indexer/sources" }
 thiserror = "1.0"
@@ -36,3 +36,4 @@ tokio = { version = "1.24", features = ["full"] }
 tokio-serial = "5.4"
 tokio-util = "0.7"
 uuid = { version = "1.2", features = ["serde", "v4"] }
+envvars = {git = "https://github.com/DmitryAstafyev/envvars.git", branch = "master" }

@@ -34,6 +34,17 @@
                 }
             }
         },
+        "shells": {
+            "regular": {
+                "execute_only": [],
+                "list": {
+                    "1": "Test 1. Get profiles",
+                    "2": "Test 2. Get envvars"
+                },
+                "files": {
+                }
+            }
+        },
         "concat": {
             "regular": {
                 "execute_only": [],

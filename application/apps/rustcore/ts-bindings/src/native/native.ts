@@ -7,6 +7,7 @@ import * as Logs from '../util/logging';
 export interface IRustModuleExports {
     RustSession: any;
     Dlt: any;
+    Shells: any;
     Serial: any;
     Files: any;
     getFilterError: (filter: {

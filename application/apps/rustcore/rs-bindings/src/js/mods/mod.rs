@@ -3,3 +3,4 @@ pub mod serial;
 pub mod tools;
 pub mod files;
 pub mod regex;
+pub mod shells;

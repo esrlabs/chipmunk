@@ -78,6 +78,7 @@
         "./types/env/types": "./dist/types/env/types.js",
         "./types/sde/common": "./dist/types/sde/common.js",
         "./types/sde/serial": "./dist/types/sde/serial.js",
+        "./types/shells": "./dist/types/shells.js",
         "./types/files": "./dist/types/files.js",
         "./types/content": "./dist/types/content.js",
         "./types/filter": "./dist/types/filter.js",
