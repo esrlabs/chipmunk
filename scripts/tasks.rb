@@ -199,6 +199,15 @@ test_runner = './node_modules/.bin/electron ./node_modules/jasmine-ts/lib/index.
 
 namespace :test do
   namespace :binding do
+    desc 'run shells tests'
+    task :shells do
+      Bindings.new(false).build
+      Reporter.print
+      Shell.chdir(Paths::TS_BINDINGS) do
+        sh "#{test_runner} spec/session.shells.spec.ts"
+      end
+    end
+
     desc 'run search tests'
     task :search do
       Bindings.new(false).build
@@ -355,7 +364,7 @@ namespace :test do
              'test:binding:cancel', 'test:binding:errors', 'test:binding:map',
              'test:matcher:karma', 'test:matcher:rust', 'test:ansi:karma',
              'test:binding:values', 'test:binding:indexes', 'test:ansi:rust',
-             'test:utils:karma', 'test:utils:rust']
+             'test:utils:karma', 'test:utils:rust', 'test:binding:shells']
 end
 
 namespace :lint do
