@@ -1,0 +1,33 @@
+@import '../../../../styles/variables.less';
+
+
+:host {
+    position: relative;
+    display: block;
+    width: 100%;
+    & mat-card {
+        margin: 12px 6px 12px 12px;
+        & mat-card-content {
+            text-align: right;
+        }
+        & mat-card-title {
+            color: @scheme-color-1;
+            font-size: 16px;
+        }
+        & mat-card-subtitle {
+            color: @scheme-color-3;
+            font-size: 12px;
+        }
+        &.no-left-margin {
+            margin-left: 6px;
+        }
+    }
+    & h1 {
+        font-size: 14px;
+    }
+    & button {
+        position: relative;
+        display: inline-block;
+        margin: 6px 0 6px 6px;
+    }
+}

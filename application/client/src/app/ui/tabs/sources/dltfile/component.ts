@@ -19,6 +19,8 @@ import { LockToken } from '@platform/env/lock.token';
 import { Timezone } from '@elements/timezones/timezone';
 import { components } from '@env/decorators/initial';
 import { Action } from '../common/actions/action';
+import { Attachment } from './attachments/attachment';
+import { FtOptions } from '@platform/types/parsers/dlt';
 
 @Component({
     selector: 'app-tabs-source-dltfile',
@@ -53,6 +55,7 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
         { value: EMTIN.DLT_LOG_DEBUG, caption: 'Debug' },
         { value: EMTIN.DLT_LOG_VERBOSE, caption: 'Verbose' },
     ];
+    public attachment: Attachment = new Attachment(this.ilc(), this.log());
     public action: Action = new Action();
 
     private _filterLockTocken: LockToken = LockToken.simple(false);
@@ -72,6 +75,43 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
         if (this.options !== undefined) {
             this.state.fromOptions(this.options);
         }
+        this.env().subscriber.register(
+            this.attachment.subjects.get().scanned.subscribe(() => {
+                let options: FtOptions = { // TODO
+                    filter_config: undefined,
+                    with_storage_header: true,
+                };
+                this.attachment.doScan(this.files, options);
+            }),
+        );
+        this.env().subscriber.register(
+            this.attachment.subjects.get().extracted.subscribe(() => {
+                this.ilc().services.system.bridge.folders().select()
+                .then((folders) => {
+                    if (folders.length === 0) {
+                        return; // aborted
+                    } else if (folders.length === 1) {
+                        let folder = folders[0];
+                        if (this.attachment.isScanned()) {
+                            this.attachment.doExtract(folder);
+                        } else {
+                            let options: FtOptions = { // TODO
+                                filter_config: undefined,
+                                with_storage_header: true,
+                            };
+                            this.attachment.doExtractAll(this.files, folder, options);
+                        } 
+                    } else {
+                        this.log().error(`Invalid number of folders: ${folders.length}`);
+                        return;
+                    }
+                })              
+                .catch((err: Error) => {
+                    this.log().error(`Fail to select folder: ${err.message}`);
+                    return;
+                });
+            }),
+        );
         this.env().subscriber.register(
             this.action.subjects.get().applied.subscribe(() => {
                 this.done(this.state.asOptions());

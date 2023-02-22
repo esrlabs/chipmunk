@@ -16,9 +16,10 @@ import { MatListModule } from '@angular/material/list';
 import { TabSourceDltFile } from './component';
 import { TabSourceDltFileStructure } from './structure/component';
 import { SourcesCommonModule } from '../common/module';
+import { Attachments } from './attachments/component';
 
-const entryComponents = [TabSourceDltFile, TabSourceDltFileStructure];
-const components = [TabSourceDltFile, TabSourceDltFileStructure];
+const entryComponents = [TabSourceDltFile, TabSourceDltFileStructure, Attachments];
+const components = [TabSourceDltFile, TabSourceDltFileStructure, Attachments];
 
 @NgModule({
     entryComponents: [...entryComponents],
