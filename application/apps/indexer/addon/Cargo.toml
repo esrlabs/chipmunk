@@ -7,6 +7,7 @@ edition = "2021"
 dlt-core = "0.14"
 env_logger = "0.10"
 futures = "0.3"
+chrono = { version = "0.4", features = ["serde"] }
 indexer_base = { path = "../indexer_base" }
 log = "0.4.17"
 parsers = { path = "../parsers" }

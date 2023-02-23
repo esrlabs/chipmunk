@@ -7,7 +7,7 @@ edition = "2021"
 buf_redux = "0.8"
 byteorder = "1.4"
 crossbeam-channel = "0.5"
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
 chrono-tz = "0.8"
 dlt-core = "0.14"
 humantime = "2.1"

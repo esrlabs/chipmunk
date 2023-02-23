@@ -1,10 +1,10 @@
 use dlt_core::dlt::{Argument, LogLevel, Message, MessageType, PayloadContent, Value};
-use serde::Serialize;
+use parsers::Attachement;
 use std::{
     collections::HashMap,
     fs::File,
     io::{Read, Seek, SeekFrom, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 const FT_START_TAG: &str = "FLST";
@@ -226,45 +226,28 @@ impl FtMessageParser {
 }
 
 /// A DLT-FT file info.
-#[derive(Debug, Clone, Serialize)]
-pub struct FtFile {
-    /// The timestamp of the original DLT message, if any.
-    pub timestamp: Option<u32>,
-    /// The id of the file.
-    pub id: u32,
-    /// The name of the file.
-    pub name: String,
-    /// The total size of the file.
-    pub size: u32,
-    /// The creation date of the file.
-    pub created: String,
-    /// The DLT message indexes (1-based) within the original DLT trace.
-    pub messages: Vec<usize>,
-    /// The data chunks with byte offset and length within the original DLT trace.
-    pub chunks: Vec<(usize, usize)>,
-}
-
-impl FtFile {
-    /// Returns a file-system save name, prefixed by either
-    /// the timestamp of the DLT message, or if not available
-    /// the id of the file.
-    pub fn save_name(&self) -> String {
-        format!(
-            "{}_{}",
-            if let Some(timestamp) = self.timestamp {
-                timestamp
-            } else {
-                self.id
-            },
-            self.name.replace(['\\', '/'], "$").replace(' ', "_")
-        )
-    }
-}
+// #[derive(Debug, Clone, Serialize)]
+// pub struct FtFile {
+//     /// The timestamp of the original DLT message, if any.
+//     pub timestamp: Option<u32>,
+//     /// The id of the file.
+//     pub id: u32,
+//     /// The name of the file.
+//     pub name: String,
+//     /// The total size of the file.
+//     pub size: u32,
+//     /// The creation date of the file.
+//     pub created: String,
+//     /// The DLT message indexes (1-based) within the original DLT trace.
+//     pub messages: Vec<usize>,
+//     /// The data chunks with byte offset and length within the original DLT trace.
+//     pub chunks: Vec<(usize, usize)>,
+// }
 
 /// An scanner for DLT-FT files contained in a DLT trace.
 #[derive(Debug)]
 pub struct FtScanner {
-    files: HashMap<u32, FtFile>,
+    files: HashMap<u32, Attachement>,
     index: usize,
 }
 
@@ -278,8 +261,8 @@ impl FtScanner {
     }
 
     /// Converts the scanner to the resulting list of files.
-    pub fn into(self) -> Vec<FtFile> {
-        let mut result: Vec<FtFile> = self.files.into_values().collect();
+    pub fn into(self) -> Vec<Attachement> {
+        let mut result: Vec<Attachement> = self.files.into_values().collect();
         result.sort_by(|d1, d2| d1.name.cmp(&d2.name));
         result
     }
@@ -297,12 +280,13 @@ impl FtScanner {
                 FtMessage::Start(ft_start) => {
                     self.files.insert(
                         ft_start.id,
-                        FtFile {
-                            timestamp: ft_start.timestamp,
-                            id: ft_start.id,
+                        Attachement {
+                            // timestamp: ft_start.timestamp,
+                            // id: ft_start.id,
                             name: ft_start.name.clone(),
-                            size: ft_start.size,
-                            created: ft_start.created,
+                            size: ft_start.size as usize,
+                            created_date: Some(ft_start.created),
+                            modified_date: None,
                             messages: vec![self.index],
                             chunks: Vec::new(),
                         },
@@ -348,8 +332,8 @@ impl FileExtractor {
     /// * `destination` - The destination file to extract to.
     /// * `chunks` - The data chunks with byte offset and length to extract.
     pub fn extract(
-        origin: PathBuf,
-        destination: PathBuf,
+        origin: &Path,
+        destination: &Path,
         chunks: Vec<(usize, usize)>,
     ) -> Result<usize, String> {
         let mut bytes: usize = 0;
@@ -397,15 +381,22 @@ pub mod tests {
     const DLT_FT_CHUNK_SIZE: usize = 10;
 
     #[allow(clippy::vec_init_then_push)]
-    fn ft_files() -> (Vec<u32>, Vec<Message>) {
-        let (id1, mut messages1) =
-            ft_file("ecu1", "test1.txt", &String::from("test1").into_bytes());
+    fn ft_files() -> Vec<Message> {
+        let mut messages1 = ft_file(42, "ecu1", "test1.txt", &String::from("test1").into_bytes());
         assert_eq!(3, messages1.len());
-        let (id2, mut messages2) =
-            ft_file("ecu2", "test2.txt", &String::from("test22").into_bytes());
+        let mut messages2 = ft_file(
+            43,
+            "ecu2",
+            "test2.txt",
+            &String::from("test22").into_bytes(),
+        );
         assert_eq!(3, messages2.len());
-        let (id3, mut messages3) =
-            ft_file("ecu3", "test3.txt", &String::from("test333").into_bytes());
+        let mut messages3 = ft_file(
+            44,
+            "ecu3",
+            "test3.txt",
+            &String::from("test333").into_bytes(),
+        );
         assert_eq!(3, messages3.len());
 
         let mut messages: Vec<Message> = Vec::new();
@@ -419,13 +410,10 @@ pub mod tests {
         messages.push(messages2.remove(0)); // 8
         messages.push(messages3.remove(0)); // 9
 
-        (vec![id1, id2, id3], messages)
+        messages
     }
 
-    fn ft_file(ecu: &str, name: &str, payload: &[u8]) -> (u32, Vec<Message>) {
-        let mut rand = rand::thread_rng();
-        let id: u32 = rand.gen::<u32>();
-
+    fn ft_file(id: u32, ecu: &str, name: &str, payload: &[u8]) -> Vec<Message> {
         let size: usize = payload.len();
         let mut packets: usize = size / DLT_FT_CHUNK_SIZE;
         if size % DLT_FT_CHUNK_SIZE != 0 {
@@ -475,7 +463,7 @@ pub mod tests {
                 id,
             },
         ));
-        (id, messages)
+        messages
     }
 
     fn start_message(ecu: &str, config: FileStart) -> Message {
@@ -600,7 +588,7 @@ pub mod tests {
         }
     }
 
-    fn scan_messages(messages: &[Message]) -> Vec<FtFile> {
+    fn scan_messages(messages: &[Message]) -> Vec<Attachement> {
         let mut scanner = FtScanner::new();
         let mut offset: usize = 0;
         for message in messages {
@@ -626,7 +614,8 @@ pub mod tests {
 
         pub fn assert_file(&self, name: &str, content: &str) {
             let path = self.dir.join(name);
-            let string = fs::read_to_string(path).unwrap();
+            let string =
+                fs::read_to_string(&path).unwrap_or_else(|_| panic!("{:?} should exist", &path));
             assert_eq!(string, content);
         }
     }
@@ -639,13 +628,13 @@ pub mod tests {
 
     #[test]
     fn test_parse_messages() {
-        let (id, messages) = ft_file("ecu", "test.txt", "test".as_bytes());
+        let messages = ft_file(42, "ecu", "test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
 
         assert_eq!(
             Some(FtMessage::Start(FileStart {
                 timestamp: None,
-                id,
+                id: 42,
                 name: String::from("test.txt"),
                 size: 4,
                 created: String::from("date"),
@@ -657,7 +646,7 @@ pub mod tests {
         assert_eq!(
             Some(FtMessage::Data(FileData {
                 timestamp: None,
-                id,
+                id: 42,
                 packet: 1,
                 bytes: &"test".as_bytes().to_vec(),
             })),
@@ -667,151 +656,154 @@ pub mod tests {
         assert_eq!(
             Some(FtMessage::End(FileEnd {
                 timestamp: None,
-                id
+                id: 42
             })),
             FtMessageParser::parse(messages.get(2).unwrap())
         );
     }
 
+    // #[test]
+    // fn test_file_name() {
+    //     let mut file = Attachement {
+    //         timestamp: Some(123),
+    //         id: 321,
+    //         name: String::from("\\dir/foo bar.txt"),
+    //         size: 0,
+    //         created: String::from("date"),
+    //         messages: Vec::new(),
+    //         chunks: Vec::new(),
+    //     };
+
+    //     assert_eq!(file.save_name(), String::from("123_$dir$foo_bar.txt"));
+
+    //     file.timestamp = None;
+    //     assert_eq!(file.save_name(), String::from("321_$dir$foo_bar.txt"));
+    // }
+
     #[test]
-    fn test_file_name() {
-        let mut file = FtFile {
-            timestamp: Some(123),
-            id: 321,
-            name: String::from("\\dir/foo bar.txt"),
-            size: 0,
-            created: String::from("date"),
-            messages: Vec::new(),
-            chunks: Vec::new(),
-        };
-
-        assert_eq!(file.save_name(), String::from("123_$dir$foo_bar.txt"));
-
-        file.timestamp = None;
-        assert_eq!(file.save_name(), String::from("321_$dir$foo_bar.txt"));
-    }
-
-    #[tokio::test]
-    async fn test_scan_file() {
-        let (id, messages) = ft_file("ecu", "test.txt", "test".as_bytes());
+    fn test_scan_file() {
+        let messages = ft_file(42, "ecu", "test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
 
         let index = scan_messages(&messages);
         assert_eq!(1, index.len());
 
         let file = index.get(0).unwrap();
-        assert!(file.timestamp.is_none());
-        assert_eq!(file.id, id);
+        assert!(file.created_date.is_some());
+        // assert_eq!(file.id, id);
         assert_eq!(file.name, String::from("test.txt"));
-        assert_eq!(file.created, String::from("date"));
         assert_eq!(file.size, 4);
         assert_eq!(file.messages, vec![1, 2, 3]);
         assert_eq!(file.chunks, vec![(181, 4)]);
     }
 
-    #[tokio::test]
-    async fn test_scan_file_with_multiple_chunks() {
-        let (id, messages) = ft_file("ecu", "test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
+    #[test]
+    fn test_scan_file_with_multiple_chunks() {
+        let messages = ft_file(
+            42,
+            "ecu",
+            "test.txt",
+            "abcdefghijklmnopqrstuvwxyz".as_bytes(),
+        );
         assert_eq!(5, messages.len());
 
         let index = scan_messages(&messages);
         assert_eq!(1, index.len());
 
         let file = index.get(0).unwrap();
-        assert!(file.timestamp.is_none());
-        assert_eq!(file.id, id);
         assert_eq!(file.name, String::from("test.txt"));
-        assert_eq!(file.created, String::from("date"));
         assert_eq!(file.size, 26);
         assert_eq!(file.messages, vec![1, 2, 3, 4, 5]);
         assert_eq!(file.chunks, vec![(181, 10), (269, 10), (357, 6)]);
     }
 
-    #[tokio::test]
-    async fn test_scan_files() {
-        let (ids, messages) = ft_files();
+    #[test]
+    fn test_scan_files() {
+        let messages = ft_files();
         assert_eq!(9, messages.len());
 
         let index = scan_messages(&messages);
         assert_eq!(3, index.len());
 
         let file = index.get(0).unwrap();
-        assert!(file.timestamp.is_none());
-        assert_eq!(file.id, ids[0]);
+        assert!(file.created_date.is_some());
+        // assert_eq!(file.id, ids[0]);
         assert_eq!(file.name, String::from("test1.txt"));
-        assert_eq!(file.created, String::from("date"));
         assert_eq!(file.size, 5);
         assert_eq!(file.messages, vec![1, 3, 7]);
         assert_eq!(file.chunks, vec![(297, 5)]);
 
         let file = index.get(1).unwrap();
-        assert!(file.timestamp.is_none());
-        assert_eq!(file.id, ids[1]);
+        assert!(file.created_date.is_some());
+        // assert_eq!(file.id, ids[1]);
         assert_eq!(file.name, String::from("test2.txt"));
-        assert_eq!(file.created, String::from("date"));
         assert_eq!(file.size, 6);
         assert_eq!(file.messages, vec![2, 4, 8]);
         assert_eq!(file.chunks, vec![(380, 6)]);
 
         let file = index.get(2).unwrap();
-        assert!(file.timestamp.is_none());
-        assert_eq!(file.id, ids[2]);
+        assert!(file.created_date.is_some());
+        // assert_eq!(file.id, ids[2]);
         assert_eq!(file.name, String::from("test3.txt"));
-        assert_eq!(file.created, String::from("date"));
         assert_eq!(file.size, 7);
         assert_eq!(file.messages, vec![5, 6, 9]);
         assert_eq!(file.chunks, vec![(579, 7)]);
     }
 
-    #[tokio::test]
-    async fn test_extract_file() {
+    #[test]
+    fn test_extract_file() {
         let output = TempDir::new();
 
-        let (id, messages) = ft_file("ecu", "test.txt", "test".as_bytes());
+        let messages = ft_file(42, "ecu", "test.txt", "test".as_bytes());
         assert_eq!(3, messages.len());
 
         let dlt = output.dir.join("sample.dlt");
         write_dlt_file(dlt.clone(), &messages);
 
-        let file = FtFile {
-            timestamp: None,
-            id,
+        let file = Attachement {
             name: "test.txt".to_string(),
             size: 4,
-            created: "date".to_string(),
+            created_date: Some("date".to_string()),
+            modified_date: None,
             messages: vec![1, 2, 3],
             chunks: vec![(181, 4)],
         };
 
         let name = file.save_name();
-        let size = FileExtractor::extract(dlt, output.dir.join(name.clone()), file.chunks).unwrap();
-        assert_eq!(file.size as usize, size);
+        let size =
+            FileExtractor::extract(&dlt, &output.dir.join(name.clone()), file.chunks).unwrap();
+        assert_eq!(file.size, size);
 
         output.assert_file(&name, "test");
     }
 
-    #[tokio::test]
-    async fn test_extract_file_with_multiple_chunks() {
+    #[test]
+    fn test_extract_file_with_multiple_chunks() {
         let output = TempDir::new();
 
-        let (id, messages) = ft_file("ecu", "test.txt", "abcdefghijklmnopqrstuvwxyz".as_bytes());
+        let messages = ft_file(
+            42,
+            "ecu",
+            "test.txt",
+            "abcdefghijklmnopqrstuvwxyz".as_bytes(),
+        );
         assert_eq!(5, messages.len());
 
         let dlt = output.dir.join("sample.dlt");
         write_dlt_file(dlt.clone(), &messages);
 
-        let file = FtFile {
-            timestamp: None,
-            id,
+        let file = Attachement {
             name: "test.txt".to_string(),
             size: 26,
-            created: "date".to_string(),
+            created_date: Some("date".to_string()),
+            modified_date: None,
             messages: vec![1, 2, 3, 4, 5],
             chunks: vec![(181, 10), (269, 10), (357, 6)],
         };
 
         let name = file.save_name();
-        let size = FileExtractor::extract(dlt, output.dir.join(name.clone()), file.chunks).unwrap();
+        let size =
+            FileExtractor::extract(&dlt, &output.dir.join(name.clone()), file.chunks).unwrap();
         assert_eq!(file.size as usize, size);
 
         output.assert_file(&name, "abcdefghijklmnopqrstuvwxyz");

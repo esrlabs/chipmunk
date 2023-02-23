@@ -39,16 +39,34 @@ pub trait Parser<T> {
     }
 }
 
+#[derive(Debug, Clone, Serialize)]
 pub struct Attachement {
-    pub name: Option<String>,
+    pub name: String,
     pub size: usize,
-    pub created_date: Option<NaiveDate>,
-    pub modified_date: Option<NaiveDate>,
+    pub created_date: Option<String>,
+    pub modified_date: Option<String>,
+    pub messages: Vec<usize>,
+    /// The data chunks with byte offset and length within the original DLT trace.
+    pub chunks: Vec<(usize, usize)>,
+}
+
+impl Attachement {
+    /// Returns a file-system save name, prefixed by either
+    /// the timestamp of the DLT message, or if not available
+    /// the id of the file.
+    pub fn save_name(&self) -> String {
+        format!(
+            "{}_{}",
+            self.modified_date.as_ref().unwrap_or(&"".into()),
+            self.name.replace(['\\', '/'], "$").replace(' ', "_")
+        )
+    }
 }
 
 pub trait Collector<T> {
     fn register_message(&mut self, offset: usize, msg: &T);
-    fn attachement_indexes(&self) -> Vec<(Attachement, Vec<(usize, usize)>)>;
+    fn attachement_indexes(&self) -> Vec<Attachement>;
+    fn save_name(&self, attachment: &Attachement) -> String;
 }
 
 pub trait LineFormat {

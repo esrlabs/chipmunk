@@ -27,6 +27,7 @@ dependencies = [
 name = "addon"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "dlt-core",
  "env_logger",
  "futures 0.3.25",
@@ -292,6 +293,7 @@ dependencies = [
  "js-sys",
  "num-integer",
  "num-traits",
+ "serde",
  "time",
  "wasm-bindgen",
  "winapi 0.3.9",

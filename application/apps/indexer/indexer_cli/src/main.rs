@@ -1103,13 +1103,14 @@ pub async fn main() -> Result<()> {
                     }
                 }
 
+                let files_with_names =
+                    std::iter::zip(selected_files, (0..100).map(|i| format!("{i}"))).collect();
                 let size = extract_dlt_ft(
-                    file_path.clone(),
-                    Path::new(&output_dir).to_path_buf(),
-                    selected_files,
+                    &file_path,
+                    &Path::new(&output_dir),
+                    files_with_names,
                     CancellationToken::new(),
                 )
-                .await
                 .unwrap();
 
                 println!("{size} bytes written");
@@ -1127,13 +1128,14 @@ pub async fn main() -> Result<()> {
             .unwrap();
 
             println!("extract files..");
+            let files_with_names =
+                std::iter::zip(files, (0..100).map(|i| format!("{i}"))).collect();
             let size = extract_dlt_ft(
-                file_path.clone(),
-                Path::new(&output_dir).to_path_buf(),
-                files,
+                &file_path,
+                Path::new(&output_dir),
+                files_with_names,
                 CancellationToken::new(),
             )
-            .await
             .unwrap();
 
             println!("{size} bytes written");
