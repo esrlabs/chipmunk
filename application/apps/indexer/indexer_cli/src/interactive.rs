@@ -1,6 +1,6 @@
 use crate::{duration_report, Instant};
 use futures::{pin_mut, stream::StreamExt};
-use parsers::{dlt::DltParser, MessageStreamItem};
+use parsers::{dlt::DltParser, MessageStreamItem, ParseYield};
 use processor::grabber::LineRange;
 use rustyline::{error::ReadlineError, Editor};
 use session::session::Session;
@@ -55,8 +55,14 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                                     }
                                     item = msg_stream.next() => {
                                         match item {
-                                            Some((_, MessageStreamItem::Item(msg))) => {
+                                            Some((_, MessageStreamItem::Item(ParseYield::Message(msg)))) => {
                                                 println!("msg: {msg}");
+                                            }
+                                            Some((_, MessageStreamItem::Item(ParseYield::MessageAndAttachement((msg, attachement))))) => {
+                                                println!("msg: {msg}, attachement: {attachement:?}");
+                                            }
+                                            Some((_, MessageStreamItem::Item(ParseYield::Attachement(attachement)))) => {
+                                                println!("attachement: {attachement:?}");
                                             }
                                             _ => println!("no msg"),
                                         }

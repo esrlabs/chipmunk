@@ -1,4 +1,4 @@
-use crate::{Error, LogMessage, Parser};
+use crate::{Error, LogMessage, ParseYield, Parser};
 use std::{borrow::Cow, fmt, fmt::Display, io::Write};
 
 use someip_messages::*;
@@ -35,7 +35,7 @@ impl<'m> Parser<SomeipLogMessage> for SomeipParser<'m> {
         &mut self,
         input: &'a [u8],
         timestamp: Option<u64>,
-    ) -> Result<(&'a [u8], Option<SomeipLogMessage>), Error> {
+    ) -> Result<(&'a [u8], Option<ParseYield<SomeipLogMessage>>), Error> {
         let time = timestamp.unwrap_or(0);
         match Message::from_slice(input) {
             Ok(Message::Sd(header, payload)) => {
@@ -43,10 +43,10 @@ impl<'m> Parser<SomeipLogMessage> for SomeipParser<'m> {
                 debug!("at {} : SD Message ({:?} bytes)", time, len);
                 Ok((
                     &input[len..],
-                    Some(SomeipLogMessage::from(
+                    Some(ParseYield::from(SomeipLogMessage::from(
                         sd_message_string(&payload),
                         input[..len].to_vec(),
-                    )),
+                    ))),
                 ))
             }
 
@@ -55,10 +55,10 @@ impl<'m> Parser<SomeipLogMessage> for SomeipParser<'m> {
                 debug!("at {} : RPC Message ({:?} bytes)", time, len);
                 Ok((
                     &input[len..],
-                    Some(SomeipLogMessage::from(
+                    Some(ParseYield::from(SomeipLogMessage::from(
                         rpc_message_string(&header, &payload, self.model),
                         input[..len].to_vec(),
-                    )),
+                    ))),
                 ))
             }
 
@@ -66,10 +66,10 @@ impl<'m> Parser<SomeipLogMessage> for SomeipParser<'m> {
                 debug!("at {} : MCC Message", time);
                 Ok((
                     &input[Header::LENGTH..],
-                    Some(SomeipLogMessage::from(
+                    Some(ParseYield::from(SomeipLogMessage::from(
                         String::from("Magic-Cookie-Client"),
                         input[..Header::LENGTH].to_vec(),
-                    )),
+                    ))),
                 ))
             }
 
@@ -77,10 +77,10 @@ impl<'m> Parser<SomeipLogMessage> for SomeipParser<'m> {
                 debug!("at {} : MCS Message", time);
                 Ok((
                     &input[Header::LENGTH..],
-                    Some(SomeipLogMessage::from(
+                    Some(ParseYield::from(SomeipLogMessage::from(
                         String::from("Magic-Cookie-Server"),
                         input[..Header::LENGTH].to_vec(),
-                    )),
+                    ))),
                 ))
             }
 
@@ -361,7 +361,7 @@ mod test {
         assert!(output.is_empty());
         assert_eq!(
             "SOME/IP Magic-Cookie-Client",
-            format!("{}", message.unwrap())
+            format!("{:?}", message.unwrap())
         );
     }
 
@@ -380,7 +380,7 @@ mod test {
         assert!(output.is_empty());
         assert_eq!(
             "SOME/IP Magic-Cookie-Server",
-            format!("{}", message.unwrap())
+            format!("{:?}", message.unwrap())
         );
     }
 
@@ -406,7 +406,7 @@ mod test {
             - UnknownService::UnknownMethod
         "#;
 
-        assert_str(expected, &format!("{}", message.unwrap()));
+        assert_str(expected, &format!("{:?}", message.unwrap()));
     }
 
     #[test]
@@ -433,7 +433,7 @@ mod test {
             - TestService::emptyEvent
         "#;
 
-        assert_str(expected, &format!("{}", message.unwrap()));
+        assert_str(expected, &format!("{:?}", message.unwrap()));
     }
 
     #[test]
@@ -459,7 +459,7 @@ mod test {
             - UnknownService::UnknownMethod (UnknownType)
         "#;
 
-        assert_str(expected, &format!("{}", message.unwrap()));
+        assert_str(expected, &format!("{:?}", message.unwrap()));
     }
 
     #[test]
@@ -490,7 +490,7 @@ mod test {
             }
         "#;
 
-        assert_str(expected, &format!("{}", message.unwrap()));
+        assert_str(expected, &format!("{:?}", message.unwrap()));
     }
 
     #[test]
@@ -515,7 +515,7 @@ mod test {
             - Flags: R,U
         "#;
 
-        assert_str(expected, &format!("{}", message.unwrap()));
+        assert_str(expected, &format!("{:?}", message.unwrap()));
     }
 
     #[test]
@@ -559,6 +559,6 @@ mod test {
               |- 127.0.0.1:30000 (UDP)
         "#;
 
-        assert_str(expected, &format!("{}", message.unwrap()));
+        assert_str(expected, &format!("{:?}", message.unwrap()));
     }
 }

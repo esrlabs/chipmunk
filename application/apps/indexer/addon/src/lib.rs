@@ -14,12 +14,12 @@ extern crate indexer_base;
 #[macro_use]
 extern crate log;
 
-pub mod dlt_ft;
-
-use crate::dlt_ft::{FileExtractor, FtScanner};
 use dlt_core::filtering::DltFilterConfig;
 use futures::pin_mut;
-use parsers::{dlt::DltParser, Attachement, MessageStreamItem};
+use parsers::{
+    dlt::{attachement::FileExtractor, DltParser},
+    Attachement, MessageStreamItem, ParseYield,
+};
 use sources::{producer::MessageProducer, raw::binary::BinaryByteSource};
 use std::{
     fs::File,
@@ -43,10 +43,9 @@ pub async fn scan_dlt_ft(
             let stream = producer.as_stream();
             pin_mut!(stream);
 
-            let mut scanner = FtScanner::new();
             let mut canceled = false;
-            let mut offset = 0;
 
+            let mut attachements = vec![];
             loop {
                 tokio::select! {
                     _ = cancel.cancelled() => {
@@ -56,11 +55,12 @@ pub async fn scan_dlt_ft(
                     }
                     item = tokio_stream::StreamExt::next(&mut stream) => {
                         match item {
-                            Some((consumed, item)) => {
-                                if let MessageStreamItem::Item(item) = item {
-                                    scanner.process(offset, &item.message);
+                            Some((_, item)) => {
+                                if let MessageStreamItem::Item(ParseYield::MessageAndAttachement((_msg, attachement))) = item {
+                                    attachements.push(attachement);
+                                } else if let MessageStreamItem::Item(ParseYield::Attachement(attachement)) = item {
+                                    attachements.push(attachement);
                                 }
-                                offset += consumed;
                             }
                             _ => {
                                 break;
@@ -74,7 +74,7 @@ pub async fn scan_dlt_ft(
                 return Ok(Vec::new());
             }
 
-            Ok(scanner.into())
+            Ok(attachements)
         }
         Err(error) => Err(format!("failed to open file: {error}")),
     }
@@ -114,12 +114,12 @@ pub fn extract_dlt_ft(
 
 #[cfg(test)]
 mod tests {
+    use parsers::dlt::attachement::TempDir;
+
     use super::*;
-    use crate::dlt_ft::tests::TempDir;
     use std::path::Path;
 
     const DLT_FT_SAMPLE: &str = "tests/ft-sample.dlt";
-    const DLT_FT_IDS: [usize; 3] = [129721424, 1005083951, 2406339683];
 
     #[tokio::test]
     async fn test_scan_dlt_ft() {

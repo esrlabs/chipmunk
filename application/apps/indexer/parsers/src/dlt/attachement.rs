@@ -1,11 +1,12 @@
 use dlt_core::dlt::{Argument, LogLevel, Message, MessageType, PayloadContent, Value};
-use parsers::Attachement;
 use std::{
     collections::HashMap,
     fs::File,
     io::{Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
 };
+
+use crate::Attachement;
 
 const FT_START_TAG: &str = "FLST";
 const FT_DATA_TAG: &str = "FLDA";
@@ -259,21 +260,16 @@ impl FtScanner {
             index: 0,
         }
     }
+}
 
-    /// Converts the scanner to the resulting list of files.
-    pub fn into(self) -> Vec<Attachement> {
-        let mut result: Vec<Attachement> = self.files.into_values().collect();
-        result.sort_by(|d1, d2| d1.name.cmp(&d2.name));
-        result
-    }
-
+impl FtScanner {
     /// Processes the next DLT message of the trace.
     ///
     /// # Arguments
     ///
     /// * `offset` - The offset of the message in the original DLT trace.
     /// * `message` - The message to be processed.
-    pub fn process(&mut self, offset: usize, message: &Message) {
+    pub fn process(&mut self, offset: usize, message: &Message) -> Option<Attachement> {
         self.index += 1;
         if let Some(ft_message) = FtMessageParser::parse(message) {
             match ft_message {
@@ -291,6 +287,7 @@ impl FtScanner {
                             chunks: Vec::new(),
                         },
                     );
+                    None
                 }
                 FtMessage::Data(ft_data) => {
                     if let Some(mut ft_file) = self.files.remove(&ft_data.id) {
@@ -302,14 +299,19 @@ impl FtScanner {
                         ft_file.chunks.push((chunk_offset, chunk_size));
                         self.files.insert(ft_data.id, ft_file);
                     }
+                    None
                 }
                 FtMessage::End(ft_end) => {
                     if let Some(mut ft_file) = self.files.remove(&ft_end.id) {
                         ft_file.messages.push(self.index);
-                        self.files.insert(ft_end.id, ft_file);
+                        Some(ft_file)
+                    } else {
+                        None
                     }
                 }
             }
+        } else {
+            None
         }
     }
 }
@@ -374,8 +376,6 @@ impl FileExtractor {
 pub mod tests {
     use super::*;
     use dlt_core::dlt::*;
-    use rand::Rng;
-    use std::{env, fs};
 
     const DLT_HEADER_SIZE: usize = 16;
     const DLT_FT_CHUNK_SIZE: usize = 10;
@@ -591,39 +591,14 @@ pub mod tests {
     fn scan_messages(messages: &[Message]) -> Vec<Attachement> {
         let mut scanner = FtScanner::new();
         let mut offset: usize = 0;
+        let mut result_vec = vec![];
         for message in messages {
-            scanner.process(offset, &message);
+            if let Some(attachement) = scanner.process(offset, message) {
+                result_vec.push(attachement);
+            }
             offset += DLT_HEADER_SIZE + message.as_bytes().len();
         }
-        scanner.into()
-    }
-
-    pub struct TempDir {
-        pub dir: PathBuf,
-    }
-
-    impl TempDir {
-        pub fn new() -> Self {
-            let mut rand = rand::thread_rng();
-            let dir = env::current_dir()
-                .unwrap()
-                .join(format!("temp_{}", rand.gen::<u64>()));
-            fs::create_dir(dir.clone()).unwrap();
-            TempDir { dir }
-        }
-
-        pub fn assert_file(&self, name: &str, content: &str) {
-            let path = self.dir.join(name);
-            let string =
-                fs::read_to_string(&path).unwrap_or_else(|_| panic!("{:?} should exist", &path));
-            assert_eq!(string, content);
-        }
-    }
-
-    impl Drop for TempDir {
-        fn drop(&mut self) {
-            fs::remove_dir_all(self.dir.clone()).unwrap();
-        }
+        result_vec
     }
 
     #[test]
@@ -662,24 +637,6 @@ pub mod tests {
         );
     }
 
-    // #[test]
-    // fn test_file_name() {
-    //     let mut file = Attachement {
-    //         timestamp: Some(123),
-    //         id: 321,
-    //         name: String::from("\\dir/foo bar.txt"),
-    //         size: 0,
-    //         created: String::from("date"),
-    //         messages: Vec::new(),
-    //         chunks: Vec::new(),
-    //     };
-
-    //     assert_eq!(file.save_name(), String::from("123_$dir$foo_bar.txt"));
-
-    //     file.timestamp = None;
-    //     assert_eq!(file.save_name(), String::from("321_$dir$foo_bar.txt"));
-    // }
-
     #[test]
     fn test_scan_file() {
         let messages = ft_file(42, "ecu", "test.txt", "test".as_bytes());
@@ -690,7 +647,6 @@ pub mod tests {
 
         let file = index.get(0).unwrap();
         assert!(file.created_date.is_some());
-        // assert_eq!(file.id, id);
         assert_eq!(file.name, String::from("test.txt"));
         assert_eq!(file.size, 4);
         assert_eq!(file.messages, vec![1, 2, 3]);
@@ -804,8 +760,38 @@ pub mod tests {
         let name = file.save_name();
         let size =
             FileExtractor::extract(&dlt, &output.dir.join(name.clone()), file.chunks).unwrap();
-        assert_eq!(file.size as usize, size);
+        assert_eq!(file.size, size);
 
         output.assert_file(&name, "abcdefghijklmnopqrstuvwxyz");
+    }
+}
+
+pub struct TempDir {
+    pub dir: PathBuf,
+}
+
+impl TempDir {
+    pub fn new() -> Self {
+        use rand::Rng;
+        use std::{env, fs};
+        let mut rand = rand::thread_rng();
+        let dir = env::current_dir()
+            .unwrap()
+            .join(format!("temp_{}", rand.gen::<u64>()));
+        fs::create_dir(dir.clone()).unwrap();
+        TempDir { dir }
+    }
+
+    pub fn assert_file(&self, name: &str, content: &str) {
+        let path = self.dir.join(name);
+        let string =
+            std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("{:?} should exist", &path));
+        assert_eq!(string, content);
+    }
+}
+
+impl Drop for TempDir {
+    fn drop(&mut self) {
+        std::fs::remove_dir_all(self.dir.clone()).unwrap();
     }
 }

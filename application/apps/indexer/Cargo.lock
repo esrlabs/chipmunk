@@ -1766,6 +1766,7 @@ dependencies = [
  "lazy_static",
  "log",
  "memchr",
+ "rand 0.8.5",
  "rustc-hash",
  "serde",
  "someip-messages",

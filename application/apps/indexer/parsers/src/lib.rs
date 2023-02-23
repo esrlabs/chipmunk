@@ -1,7 +1,6 @@
 pub mod dlt;
 pub mod someip;
 pub mod text;
-use chrono::NaiveDate;
 use serde::Serialize;
 use std::{fmt::Display, io::Write};
 
@@ -19,6 +18,19 @@ pub enum Error {
     Eof,
 }
 
+#[derive(Debug)]
+pub enum ParseYield<T> {
+    Message(T),
+    Attachement(Attachement),
+    MessageAndAttachement((T, Attachement)),
+}
+
+impl<T> From<T> for ParseYield<T> {
+    fn from(item: T) -> Self {
+        Self::Message(item)
+    }
+}
+
 /// Parser trait that needs to be implemented for any parser we support
 /// in chipmunk
 pub trait Parser<T> {
@@ -32,11 +44,7 @@ pub trait Parser<T> {
         &mut self,
         input: &'a [u8],
         timestamp: Option<u64>,
-    ) -> Result<(&'a [u8], Option<T>), Error>;
-
-    fn collector(&self) -> Option<Box<dyn Collector<T>>> {
-        None
-    }
+    ) -> Result<(&'a [u8], Option<ParseYield<T>>), Error>;
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -86,7 +94,7 @@ pub trait LogMessage: Display + Serialize {
 
 #[derive(Debug)]
 pub enum MessageStreamItem<T: LogMessage> {
-    Item(T),
+    Item(ParseYield<T>),
     Skipped,
     Incomplete,
     Empty,

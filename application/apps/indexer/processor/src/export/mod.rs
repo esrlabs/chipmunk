@@ -2,7 +2,7 @@ use std::{io::BufWriter, path::Path};
 
 use futures::StreamExt;
 use indexer_base::config::IndexSection;
-use parsers::{LogMessage, MessageStreamItem};
+use parsers::{LogMessage, MessageStreamItem, ParseYield};
 use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 
@@ -72,9 +72,17 @@ where
                 return Err(ExportError::Cancelled);
             }
             match item {
-                MessageStreamItem::Item(i) => {
-                    i.to_writer(&mut out_writer)?;
+                MessageStreamItem::Item(ParseYield::Message(msg)) => {
+                    msg.to_writer(&mut out_writer)?;
                     exported += 1;
+                }
+                MessageStreamItem::Item(ParseYield::MessageAndAttachement((msg, _attachement))) => {
+                    msg.to_writer(&mut out_writer)?;
+                    exported += 1;
+                    // TODO @kevin: use attachement
+                }
+                MessageStreamItem::Item(ParseYield::Attachement(_attachement)) => {
+                    // TODO @kevin: use attachement
                 }
                 MessageStreamItem::Skipped => {}
                 MessageStreamItem::Incomplete => {}
@@ -109,12 +117,19 @@ where
             }
         }
         match item {
-            MessageStreamItem::Item(i) => {
+            MessageStreamItem::Item(ParseYield::Message(msg)) => {
                 if inside {
-                    i.to_writer(&mut out_writer)?;
+                    msg.to_writer(&mut out_writer)?;
                 }
                 current_index += 1;
             }
+            MessageStreamItem::Item(ParseYield::MessageAndAttachement((msg, _attachement))) => {
+                if inside {
+                    msg.to_writer(&mut out_writer)?;
+                }
+                current_index += 1;
+            }
+            MessageStreamItem::Item(ParseYield::Attachement(_attachement)) => {}
             MessageStreamItem::Skipped => {}
             MessageStreamItem::Incomplete => {}
             MessageStreamItem::Empty => {}
