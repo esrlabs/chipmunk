@@ -6,6 +6,7 @@ import {
     AfterViewInit,
     OnDestroy,
     ViewChild,
+    ViewEncapsulation,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -17,11 +18,13 @@ import { AutocompleteInput } from '@elements/autocomplete/component';
 import { Subject } from '@platform/env/subscription';
 import { CmdErrorState } from './error';
 import { components } from '@env/decorators/initial';
+import { ShellProfile } from '@platform/types/shells';
 
 @Component({
     selector: 'app-transport-process',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    encapsulation: ViewEncapsulation.None,
 })
 @Ilc()
 export class TransportProcess
@@ -132,7 +135,7 @@ export class TransportProcess
             });
     }
 
-    public ngEdit(target: 'cmd' | 'cwd', value: string): void {
+    public edit(target: 'cmd' | 'cwd', value: string): void {
         if (target === 'cmd') {
             this.state.command = value;
             this.action.setDisabled(value.trim() === '');
@@ -142,7 +145,7 @@ export class TransportProcess
         }
     }
 
-    public ngEnter(target: 'cmd' | 'cwd'): void {
+    public enter(target: 'cmd' | 'cwd'): void {
         if (this.cwdInputRef.error.is() || this.cmdInputRef.error.is()) {
             return;
         }
@@ -152,7 +155,7 @@ export class TransportProcess
         this.markChangesForCheck();
     }
 
-    public ngPanel(): void {
+    public panel(): void {
         this.markChangesForCheck();
     }
 
@@ -161,12 +164,17 @@ export class TransportProcess
             component: {
                 factory: components.get('app-elements-pairs'),
                 inputs: {
-                    map: this.state.envvars,
+                    map: this.state.getSelectedEnvs(),
                 },
             },
             closeOnKey: 'Escape',
             uuid: 'app-elements-pairs',
         });
+    }
+
+    public importEnvVars(profile: ShellProfile | undefined) {
+        this.state.importEnvvarsFromShell(profile);
+        this.detectChanges();
     }
 }
 export interface TransportProcess extends IlcInterface {}

@@ -56,4 +56,8 @@ export class ShellProfile {
         this.name = name;
         this.envvars = envvars;
     }
+
+    public getEnvvarsCount(): number {
+        return this.envvars === undefined ? 0 : this.envvars.size;
+    }
 }

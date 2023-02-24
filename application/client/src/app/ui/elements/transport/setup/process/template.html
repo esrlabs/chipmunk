@@ -1,22 +1,25 @@
 <div class="command">
     <app-autocomplete-input #cmd [options]="inputs.cmd"
-        (edit)="ngEdit('cmd', $event)"
-        (enter)="ngEnter('cmd')"
-        (panel)="ngPanel()"></app-autocomplete-input>
+        (edit)="edit('cmd', $event)"
+        (enter)="enter('cmd')"
+        (panel)="panel()"></app-autocomplete-input>
     <button tabindex="-1" class="flat-codicon-button" [matMenuTriggerFor]="menu">
         <span class="codicon codicon-terminal"></span>
-        Default environment
+        {{(state.current === undefined ? 'Default environment' : state.current)}}
     </button>
 </div>
 <app-folderinput-input #cwd [options]="inputs.cwd"
-    (edit)="ngEdit('cwd', $event)"
-    (enter)="ngEnter('cwd')"
-    (panel)="ngPanel()"></app-folderinput-input>
-<mat-menu #menu="matMenu">
-    <button mat-menu-item>Use default environment</button>
+    (edit)="edit('cwd', $event)"
+    (enter)="enter('cwd')"
+    (panel)="panel()"></app-folderinput-input>
+<mat-menu #menu="matMenu" class="app-transport-process-menu">
+    <button mat-menu-item (click)="importEnvVars(undefined)">Use default environment</button>
     <mat-divider></mat-divider>
     <p class="material-menu-label">Import variables from:</p>
-    <button *ngFor="let shell of state.getProfileNames()" mat-menu-item>{{shell}}</button>
+    <button *ngFor="let profile of state.getValidProfiles()" mat-menu-item (click)="importEnvVars(profile)">
+        <span [attr.class]="'shell-name ' + (state.isShellSelected(profile) ? 'selected' :'')">{{profile.name}}</span>
+        <span class="envvars-count">{{(' (has ' + profile.getEnvvarsCount() + ' vars)')}}</span>
+        </button>
     <mat-divider></mat-divider>
     <button mat-menu-item (click)="showEnvVars()">Show current variables</button>
 </mat-menu>
