@@ -274,3 +274,23 @@ export function getSafeObj(dest: unknown): { [key: string]: string } | Error {
     });
     return result;
 }
+
+export function mapToObj<V>(map: Map<string | number | symbol, V>): {
+    [key: string | number | symbol]: V;
+} {
+    const output: {
+        [key: string | number | symbol]: V;
+    } = {};
+    map.forEach((v, k) => {
+        output[k] = v;
+    });
+    return output;
+}
+
+export function objToMap<V>(obj: {
+    [key: string | number | symbol]: V;
+}): Map<string | number | symbol, V> {
+    const output: Map<string | number | symbol, V> = new Map();
+    Object.keys(obj).forEach((k) => output.set(k, obj[k]));
+    return output;
+}

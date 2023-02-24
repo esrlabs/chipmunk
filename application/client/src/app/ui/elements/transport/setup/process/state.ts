@@ -12,6 +12,7 @@ export class State extends Base<ProcessTransportSettings> {
     public profiles: ShellProfile[] = [];
     // No context envvars
     public envvars: Map<string, string> = new Map();
+    public current: string | undefined;
 
     public from(opt: ProcessTransportSettings) {
         this.cwd = opt.cwd;
@@ -29,13 +30,34 @@ export class State extends Base<ProcessTransportSettings> {
         };
     }
 
-    public getProfileNames(): string[] {
-        const names: string[] = [];
+    public getValidProfiles(): ShellProfile[] {
+        const valid: ShellProfile[] = [];
         this.profiles.forEach((profile) => {
-            !names.includes(profile.name) &&
+            valid.find((p) => p.name === profile.name) === undefined &&
                 profile.envvars !== undefined &&
-                names.push(profile.name);
+                valid.push(profile);
         });
-        return names;
+        return valid;
+    }
+
+    public importEnvvarsFromShell(profile: ShellProfile | undefined) {
+        if (profile === undefined) {
+            this.current = undefined;
+            this.env = obj.mapToObj(this.envvars);
+        } else {
+            if (profile.envvars === undefined) {
+                return;
+            }
+            this.env = obj.mapToObj(profile.envvars);
+            this.current = profile.name;
+        }
+    }
+
+    public getSelectedEnvs(): Map<string | number | symbol, string> {
+        return obj.objToMap<string>(this.env);
+    }
+
+    public isShellSelected(profile: ShellProfile): boolean {
+        return profile.name === this.current;
     }
 }
