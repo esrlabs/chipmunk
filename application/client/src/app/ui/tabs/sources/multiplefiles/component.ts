@@ -1,9 +1,17 @@
-import { Component, AfterContentInit, Input, HostListener, OnDestroy } from '@angular/core';
+import {
+    Component,
+    AfterContentInit,
+    Input,
+    OnDestroy,
+    AfterViewInit,
+    ViewChild,
+} from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { File } from '@platform/types/files';
 import { State } from './state';
 import { TabControls } from '@service/session';
+import { HiddenFilter } from '@elements/filter.hidden/component';
 
 @Component({
     selector: 'app-tabs-source-multiple-files',
@@ -12,14 +20,11 @@ import { TabControls } from '@service/session';
 })
 @Initial()
 @Ilc()
-export class TabSourceMultipleFiles implements AfterContentInit, OnDestroy {
+export class TabSourceMultipleFiles implements AfterContentInit, OnDestroy, AfterViewInit {
     @Input() files!: File[];
     @Input() tab!: TabControls;
 
-    @HostListener('window:keydown', ['$event'])
-    handleKeyDown(event: KeyboardEvent) {
-        this.state.onKeydown(event);
-    }
+    @ViewChild('filter') filter!: HiddenFilter;
 
     public state!: State;
 
@@ -32,6 +37,19 @@ export class TabSourceMultipleFiles implements AfterContentInit, OnDestroy {
             this.state = new State();
             this.state.init(this.ilc(), this.tab, this.files);
         }
+    }
+
+    public ngAfterViewInit(): void {
+        this.env().subscriber.register(
+            this.filter.filter.subjects.get().change.subscribe((value: string) => {
+                this.state.filter(value);
+            }),
+        );
+        this.env().subscriber.register(
+            this.filter.filter.subjects.get().drop.subscribe(() => {
+                this.state.filter('');
+            }),
+        );
     }
 
     public ngOnDestroy() {

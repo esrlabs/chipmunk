@@ -84,9 +84,5 @@ export function syncHasFocusedInput(): boolean {
         return false;
     }
     const tag: string = document.activeElement.tagName.toLowerCase();
-    if (['input', 'textarea'].indexOf(tag) !== -1) {
-        return false;
-    } else {
-        return true;
-    }
+    return ['input', 'textarea'].indexOf(tag) !== -1;
 }

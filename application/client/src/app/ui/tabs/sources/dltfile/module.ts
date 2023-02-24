@@ -12,6 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatListModule } from '@angular/material/list';
+import { HiddenFilterModule } from '@elements/filter.hidden/module';
 
 import { TabSourceDltFile } from './component';
 import { TabSourceDltFileStructure } from './structure/component';
@@ -38,6 +39,7 @@ const components = [TabSourceDltFile, TabSourceDltFileStructure];
         MatSelectModule,
         MatListModule,
         SourcesCommonModule,
+        HiddenFilterModule,
     ],
     declarations: [...components],
     exports: [...components],

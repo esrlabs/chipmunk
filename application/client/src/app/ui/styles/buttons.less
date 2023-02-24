@@ -4,3 +4,22 @@
 button.major-button {
     background-color: @scheme-color-active;
 }
+
+button.flat-codicon-button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    border: none;
+    padding: 0 6px;
+    white-space: nowrap;
+    background: none;
+    color: @scheme-color-1;
+    height: 24px;
+    outline: none;
+    &:hover {
+        background: @scheme-color-4;
+    }
+    & span {
+        padding-right: 6px;
+    }
+}

@@ -1,3 +1,4 @@
+<app-filter-hidden #filter></app-filter-hidden>
 <mat-selection-list [multiple]="false">
   <mat-list-option *ngFor="let timezone of timezones()" (click)="ngOnSelect(timezone)">
     <div class="timezone">
@@ -7,4 +8,3 @@
     </div>
   </mat-list-option>
 </mat-selection-list>
-<div class="filter t-medium" *ngIf="!state.filter.isEmpty()">{{state.filter.value()}}</div>

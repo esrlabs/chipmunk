@@ -11,7 +11,9 @@ export class ShellProfile {
             const name: string = obj.getAsNotEmptyString(smth, 'name');
             const path: string = obj.getAsNotEmptyString(smth, 'path');
             let envvars: Map<string, string> | undefined = undefined;
-            if (
+            if ((smth as any).envvars instanceof Map) {
+                envvars = (smth as any).envvars;
+            } else if (
                 (smth as any).envvars !== null &&
                 (smth as any).envvars !== undefined &&
                 typeof (smth as any).envvars === 'object'

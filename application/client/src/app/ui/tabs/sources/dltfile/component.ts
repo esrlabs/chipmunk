@@ -4,7 +4,7 @@ import {
     AfterViewInit,
     Input,
     AfterContentInit,
-    HostListener,
+    ViewChild,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
@@ -19,6 +19,7 @@ import { LockToken } from '@platform/env/lock.token';
 import { Timezone } from '@elements/timezones/timezone';
 import { components } from '@env/decorators/initial';
 import { Action } from '../common/actions/action';
+import { HiddenFilter } from '@elements/filter.hidden/component';
 
 @Component({
     selector: 'app-tabs-source-dltfile',
@@ -33,16 +34,7 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
     @Input() options: IDLTOptions | undefined;
     @Input() tab!: TabControls;
 
-    @HostListener('window:keydown', ['$event'])
-    handleKeyDown(event: KeyboardEvent) {
-        if (this._filterLockTocken.isLocked()) {
-            return;
-        }
-        if (this.state.filters.entities.keyboard(event)) {
-            this.state.struct().filter();
-            this.detectChanges();
-        }
-    }
+    @ViewChild('filter') filter!: HiddenFilter;
 
     public state: State;
     public logLevels: Array<{ value: string; caption: string }> = [
@@ -59,7 +51,7 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
-        this.state = new State(this.ilc());
+        this.state = new State();
     }
 
     public ngAfterContentInit(): void {
@@ -111,6 +103,21 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
             .catch((err: Error) => {
                 this.log().error(`Fail to get DLT stat info: ${err.message}`);
             });
+        this.env().subscriber.register(
+            this.filter.filter.subjects.get().change.subscribe((value: string) => {
+                if (this._filterLockTocken.isLocked()) {
+                    return;
+                }
+                this.state.struct().filter(value);
+                this.detectChanges();
+            }),
+        );
+        this.env().subscriber.register(
+            this.filter.filter.subjects.get().drop.subscribe(() => {
+                this.state.struct().filter('');
+                this.detectChanges();
+            }),
+        );
     }
 
     public getFilesStat(): {
@@ -160,9 +167,7 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
 
     public ngTimezoneSelect() {
         this._filterLockTocken.lock();
-        if (this.state.filters.entities.drop()) {
-            this.state.struct().filter();
-        }
+        this.filter.filter.drop();
         this.ilc().services.ui.popup.open({
             component: {
                 factory: components.get('app-elements-timezone-selector'),

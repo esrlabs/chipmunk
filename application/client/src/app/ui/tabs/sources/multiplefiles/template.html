@@ -1,3 +1,4 @@
+<app-filter-hidden #filter></app-filter-hidden>
 <div class="preset-container" appMatDragDropFileFeature (dropped)="state.onDropped($event)">
     <div class="preset-container-content">
         <div class="left">
@@ -5,7 +6,6 @@
                 <mat-card-title>Multiple files</mat-card-title>
                 <mat-card-content>
                     <app-tabs-source-multiplefiles-structure [state]="state"></app-tabs-source-multiplefiles-structure>
-                    <div class="filter t-medium" [class]="state.filter.value() !== '' ? '' : 'hidden'">{{state.filter.value()}}</div>
                 </mat-card-content>
             </mat-card>
         </div>

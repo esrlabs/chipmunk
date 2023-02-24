@@ -16,6 +16,7 @@ import { Options as FoldersOptions, FolderInput } from '@elements/folderinput/co
 import { AutocompleteInput } from '@elements/autocomplete/component';
 import { Subject } from '@platform/env/subscription';
 import { CmdErrorState } from './error';
+import { components } from '@env/decorators/initial';
 
 @Component({
     selector: 'app-transport-process',
@@ -96,6 +97,24 @@ export class TransportProcess
             .finally(() => {
                 this.markChangesForCheck();
             });
+        this.ilc()
+            .services.system.bridge.os()
+            .envvars()
+            .then((envvars) => {
+                this.state.envvars = envvars;
+            })
+            .catch((err: Error) => {
+                this.log().warn(`Fail to get no context envvars: ${err.message}`);
+            });
+        this.ilc()
+            .services.system.bridge.os()
+            .shells()
+            .then((profiles) => {
+                this.state.profiles = profiles;
+            })
+            .catch((err: Error) => {
+                this.log().warn(`Fail to get a list of shell's profiles: ${err.message}`);
+            });
     }
 
     public ngAfterViewInit(): void {
@@ -135,6 +154,19 @@ export class TransportProcess
 
     public ngPanel(): void {
         this.markChangesForCheck();
+    }
+
+    public showEnvVars() {
+        this.ilc().services.ui.popup.open({
+            component: {
+                factory: components.get('app-elements-pairs'),
+                inputs: {
+                    map: this.state.envvars,
+                },
+            },
+            closeOnKey: 'Escape',
+            uuid: 'app-elements-pairs',
+        });
     }
 }
 export interface TransportProcess extends IlcInterface {}

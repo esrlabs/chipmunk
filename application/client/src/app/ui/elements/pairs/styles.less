@@ -1,0 +1,32 @@
+@import '../../../ui/styles/variables.less';
+
+
+app-elements-pairs {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    & table {
+        width: 100%;
+        max-width: 100%;
+    }
+    & div.filter {
+        position: sticky;
+        z-index: 1000;
+        padding: 6px 12px;
+        background: @scheme-color-warning-light;
+        top: 6px;
+        right: 6px;
+        box-shadow: 3px 3px 3px rgb(0 0 0 / 40%);
+        border-radius: 3px;
+    }
+    & span.name,
+    & span.value{
+        word-break: break-all;
+        white-space: normal;
+        & > span {
+            background-color: @scheme-color-3;
+            color: @scheme-color-1;
+        }
+    }
+}

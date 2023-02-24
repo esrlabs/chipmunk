@@ -42,7 +42,7 @@ export class TabSourcePcapFile extends ChangesDetector implements AfterViewInit,
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
-        this.state = new State(this.ilc());
+        this.state = new State();
     }
 
     public ngAfterContentInit(): void {

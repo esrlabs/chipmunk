@@ -125,4 +125,8 @@ export const ui: { [key: string]: Inputs } = {
         name: `Lockers`,
         uuid: v4(),
     },
+    filters: {
+        name: 'Filters',
+        uuid: v4(),
+    },
 };

@@ -6,6 +6,7 @@ import { AppDirectiviesModule } from '@ui/env/directives/module';
 import { MatSortModule } from '@angular/material/sort';
 import { CommonModule } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop';
+import { HiddenFilterModule } from '@elements/filter.hidden/module';
 
 import { TabSourceMultipleFilesStructure } from './structure/component';
 import { TabSourceMultipleFiles } from './component';
@@ -19,6 +20,7 @@ const imports = [
     MatSortModule,
     CommonModule,
     DragDropModule,
+    HiddenFilterModule,
 ];
 
 @NgModule({

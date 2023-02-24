@@ -5,6 +5,7 @@ import { TabSourcePcapFileModule } from '@tabs/sources/pcapfile/module';
 import { TabSourceDltStreamModule } from '@tabs/sources/dltstream/module';
 import { TabSourceTextStreamModule } from '@tabs/sources/textstream/module';
 import { TimezoneSelectorModule } from '@elements/timezones/module';
+import { PairsModule } from '@elements/pairs/module';
 import { TabSourceMultipleFilesModule } from '@ui/tabs/sources/multiplefiles/module';
 import { DialogsModule } from '@ui/views/dialogs/module';
 import { SettingsModule } from '@ui/tabs/settings/module';
@@ -18,6 +19,7 @@ import { SettingsModule } from '@ui/tabs/settings/module';
         TabSourcePcapFileModule,
         TabSourceDltStreamModule,
         TimezoneSelectorModule,
+        PairsModule,
         TabSourceTextStreamModule,
         TabSourceMultipleFilesModule,
         SettingsModule,
@@ -27,6 +29,7 @@ import { SettingsModule } from '@ui/tabs/settings/module';
         TabSourcePcapFileModule,
         TabSourceDltStreamModule,
         TimezoneSelectorModule,
+        PairsModule,
         TabSourceTextStreamModule,
         TabSourceMultipleFilesModule,
         DialogsModule,
