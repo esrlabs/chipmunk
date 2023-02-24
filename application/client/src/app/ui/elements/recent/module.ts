@@ -4,6 +4,7 @@ import { ContainersModule } from '@elements/containers/module';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { HiddenFilterModule } from '@elements/filter.hidden/module';
 
 import { RecentFile } from './file/component';
 import { RecentFileBase } from './file/base/component';
@@ -26,7 +27,14 @@ const components = [
 ];
 @NgModule({
     entryComponents: [...components],
-    imports: [CommonModule, ContainersModule, MatButtonModule, MatIconModule, MatMenuModule],
+    imports: [
+        CommonModule,
+        ContainersModule,
+        MatButtonModule,
+        MatIconModule,
+        MatMenuModule,
+        HiddenFilterModule,
+    ],
     declarations: [...components],
     exports: [...components],
 })

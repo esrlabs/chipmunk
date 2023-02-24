@@ -1,7 +1,5 @@
-<span *ngIf="options.label !== undefined" class="small-icon-button codicon codicon-home" (click)="home()"></span>
-<span *ngIf="options.label !== undefined" class="small-icon-button codicon codicon-new-folder" (click)="select()"></span>
-<span class="label t-normal" *ngIf="options.label !== undefined">{{options.label}}</span>
 <mat-form-field class="outline" appearance="outline">
+    <span class="label t-normal" *ngIf="options.label !== undefined">{{options.label}}</span>
     <input
         #input
         tabindex="3"
@@ -33,5 +31,5 @@
         </mat-option>
     </mat-autocomplete>
 </mat-form-field>
-<span *ngIf="options.label === undefined" class="small-icon-button codicon codicon-home" (click)="home()"></span>
-<span *ngIf="options.label === undefined" class="small-icon-button codicon codicon-new-folder no-right-marging" (click)="select()"></span>
+<span class="small-icon-button codicon codicon-home" (click)="home()"></span>
+<span class="small-icon-button codicon codicon-new-folder" (click)="select()"></span>

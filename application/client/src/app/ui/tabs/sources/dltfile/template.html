@@ -1,3 +1,4 @@
+<app-filter-hidden #filter></app-filter-hidden>
 <div class="preset-container">
     <div class="preset-container-content w-1400">
         <div class="left">
@@ -12,7 +13,6 @@
                     (select)="ngOnEntitySelect($event)"
                     [section]="section"></app-tabs-source-dltfile-structure>
                 </mat-card-content>
-                <div class="filter t-medium" *ngIf="!state.filters.entities.isEmpty()">{{state.filters.entities.value()}}</div>
             </mat-card>
         </div>
         <div class="right">

@@ -11,11 +11,9 @@ import {
 import { StatEntity } from './structure/statentity';
 import { Section } from './structure/section';
 import { getTypedProp } from '@platform/env/obj';
-import { Filter } from '@ui/env/entities/filter';
 import { Summary } from './summary';
 import { Timezone } from '@elements/timezones/timezone';
 import { bridge } from '@service/bridge';
-import { InternalAPI } from '@service/ilc';
 import { Holder } from '@module/matcher';
 
 export const ENTITIES = {
@@ -35,9 +33,6 @@ export class State extends Holder {
     public structure: Section[] = [];
     public fibex: File[] = [];
     public stat: StatisticInfo | undefined;
-    public filters: {
-        entities: Filter;
-    };
     public summary: {
         total: Summary;
         selected: Summary;
@@ -46,13 +41,6 @@ export class State extends Holder {
         selected: new Summary(),
     };
     public timezone: Timezone | undefined;
-
-    constructor(ilc: InternalAPI) {
-        super();
-        this.filters = {
-            entities: new Filter(ilc),
-        };
-    }
 
     public isStatLoaded(): boolean {
         return this.stat !== undefined;
@@ -100,7 +88,7 @@ export class State extends Holder {
 
     public struct(): {
         build(preselection?: IDLTFilters): void;
-        filter(): void;
+        filter(value: string): void;
     } {
         return {
             build: (preselection?: IDLTFilters): void => {
@@ -133,8 +121,8 @@ export class State extends Holder {
                 this.structure = structure;
                 this.buildSummary().all();
             },
-            filter: (): void => {
-                this.matcher.search(this.filters.entities.value());
+            filter: (value: string): void => {
+                this.matcher.search(value);
                 this.structure.forEach((structure) => {
                     structure.entities.sort(
                         (a: StatEntity, b: StatEntity) => b.getScore() - a.getScore(),

@@ -195,6 +195,24 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
+                    Requests.Os.Shells.Request,
+                    RequestHandlers.Os.Shells.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Os.EnvVars.Request,
+                    RequestHandlers.Os.EnvVars.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
                     Requests.Serial.Ports.Request,
                     RequestHandlers.Serial.Ports.handler,
                 ),

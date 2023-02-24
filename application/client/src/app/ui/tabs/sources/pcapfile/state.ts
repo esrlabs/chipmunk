@@ -6,10 +6,8 @@ import {
     NUM_LOGS_LEVELS,
     IDLTFilters,
 } from '@platform/types/parsers/dlt';
-import { Filter } from '@ui/env/entities/filter';
 import { Timezone } from '@elements/timezones/timezone';
 import { bridge } from '@service/bridge';
-import { InternalAPI } from '@service/ilc';
 import { Holder } from '@module/matcher';
 
 export const ENTITIES = {
@@ -27,17 +25,7 @@ export const NAMES: { [key: string]: string } = {
 export class State extends Holder {
     public logLevel: EMTIN = EMTIN.DLT_LOG_VERBOSE;
     public fibex: File[] = [];
-    public filters: {
-        entities: Filter;
-    };
     public timezone: Timezone | undefined;
-
-    constructor(ilc: InternalAPI) {
-        super();
-        this.filters = {
-            entities: new Filter(ilc),
-        };
-    }
 
     public asOptions(): IDLTOptions {
         const filters: IDLTFilters = {};
@@ -64,5 +52,4 @@ export class State extends Holder {
                 });
         }
     }
-
 }

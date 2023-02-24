@@ -1,11 +1,16 @@
 import { InternalAPI } from '@service/ilc';
 import { Subject, Subjects } from '@platform/env/subscription';
+import { syncHasFocusedInput } from '@ui/env/globals';
+import { unique } from '@platform/env/sequence';
+import { filters } from '@ui/service/filters';
 
 export type Handler = () => void;
 
 export class Filter {
     private _filter: string = '';
-    private _ilc: InternalAPI;
+    private readonly _ilc: InternalAPI;
+    private readonly _uuid: string = unique();
+
     public readonly subjects: Subjects<{
         change: Subject<string>;
         drop: Subject<void>;
@@ -19,9 +24,32 @@ export class Filter {
         this._ilc.channel.ui.input.focused(() => {
             this.drop();
         });
+        filters.add(this._uuid);
+        this.keyboard = this.keyboard.bind(this);
+    }
+
+    public destroy() {
+        this.unbind();
+        filters.remove(this._uuid);
+    }
+
+    public bind(): Filter {
+        window.addEventListener('keyup', this.keyboard);
+        return this;
+    }
+
+    public unbind(): Filter {
+        window.removeEventListener('keyup', this.keyboard);
+        return this;
     }
 
     public keyboard(event: KeyboardEvent): boolean {
+        if (!filters.isEnabled(this._uuid)) {
+            return false;
+        }
+        if (syncHasFocusedInput()) {
+            return false;
+        }
         if (this._ilc.services.system.state.states().ui.input) {
             return false;
         }
@@ -63,5 +91,8 @@ export class Filter {
         this._filter = '';
         this.subjects.get().drop.emit();
         return true;
+    }
+    public uuid(): string {
+        return this._uuid;
     }
 }

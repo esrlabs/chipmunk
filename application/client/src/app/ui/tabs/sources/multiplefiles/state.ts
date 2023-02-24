@@ -6,7 +6,6 @@ import { EEventType, IEvent } from './structure/component';
 import { Holder } from '@module/matcher';
 import { TabControls } from '@service/session';
 import { InternalAPI } from '@service/ilc';
-import { Filter } from '@ui/env/entities/filter';
 import { Level, Locker } from '@ui/service/lockers';
 import { getUniqueColorTo } from '@ui/styles/colors';
 import { Sort } from '@angular/material/sort';
@@ -21,7 +20,6 @@ export class State extends Holder {
     private _ilc!: InternalAPI;
     private _tab!: TabControls;
     private _files: FileHolder[] = [];
-    private _filter!: Filter;
     private _usedColors: string[] = [];
     private _selected: {
         count: number;
@@ -50,7 +48,6 @@ export class State extends Holder {
             this._usedColors.push(color);
             this._files.push(new FileHolder(this.matcher, file, color));
         });
-        this._filter = new Filter(this._ilc);
         this._updateSummary();
     }
 
@@ -72,10 +69,6 @@ export class State extends Holder {
 
     public get selectedFiles(): FileHolder[] {
         return this._selected.files;
-    }
-
-    public get filter(): Filter {
-        return this._filter;
     }
 
     public get files(): FileHolder[] {
@@ -246,15 +239,13 @@ export class State extends Holder {
         }
     }
 
-    public onKeydown(event: KeyboardEvent) {
-        if (this._filter.keyboard(event)) {
-            this.matcher.search(this._filter.value());
-            this.filesUpdate.emit(
-                this._files
-                    .sort((a: FileHolder, b: FileHolder) => b.getScore() - a.getScore())
-                    .filter((file: FileHolder) => file.getScore() > 0),
-            );
-        }
+    public filter(value: string) {
+        this.matcher.search(value);
+        this.filesUpdate.emit(
+            this._files
+                .sort((a: FileHolder, b: FileHolder) => b.getScore() - a.getScore())
+                .filter((file: FileHolder) => file.getScore() > 0),
+        );
     }
 
     public overviewColorWidth(size: number) {

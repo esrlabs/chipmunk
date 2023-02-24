@@ -1,3 +1,4 @@
+<app-filter-hidden #filter></app-filter-hidden>
 <div class="action" *ngFor="let action of state.getFilteredActions()" (click)="onDefaultAction(action.action)" (contextmenu)="onAllActions($event, action.action)">
     <p class="t-medium nowrap description">
         <span class="major" [innerHTML]="safeHtml(action.description().major)"></span>
@@ -5,4 +6,3 @@
     </p>
     <lib-containers-dynamic [component]="action.action.as().component()"></lib-containers-dynamic>
 </div>
-<div class="filter t-medium" *ngIf="!state.filter.isEmpty()">{{state.filter.value()}}</div>

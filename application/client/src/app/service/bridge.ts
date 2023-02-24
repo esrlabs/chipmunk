@@ -1,6 +1,7 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
 import { File, FileType, Entity } from '@platform/types/files';
+import { ShellProfile } from '@platform/types/shells';
 import { StatisticInfo } from '@platform/types/parsers/dlt';
 import { Entry } from '@platform/types/storage/entry';
 
@@ -357,6 +358,8 @@ export class Service extends Implementation {
 
     public os(): {
         homedir(): Promise<string>;
+        shells(): Promise<ShellProfile[]>;
+        envvars(): Promise<Map<string, string>>;
     } {
         return {
             homedir: (): Promise<string> => {
@@ -367,6 +370,34 @@ export class Service extends Implementation {
                     )
                         .then((response) => {
                             resolve(response.path);
+                        })
+                        .catch(reject);
+                });
+            },
+            shells: (): Promise<ShellProfile[]> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Os.Shells.Response,
+                        new Requests.Os.Shells.Request(),
+                    )
+                        .then((response) => {
+                            resolve(
+                                response.profiles
+                                    .map((p) => ShellProfile.fromObj(p))
+                                    .filter((p) => p instanceof ShellProfile) as ShellProfile[],
+                            );
+                        })
+                        .catch(reject);
+                });
+            },
+            envvars: (): Promise<Map<string, string>> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Os.EnvVars.Response,
+                        new Requests.Os.EnvVars.Request(),
+                    )
+                        .then((response) => {
+                            resolve(response.envvars);
                         })
                         .catch(reject);
                 });

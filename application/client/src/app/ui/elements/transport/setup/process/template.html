@@ -1,8 +1,22 @@
-<app-autocomplete-input #cmd [options]="inputs.cmd"
-    (edit)="ngEdit('cmd', $event)"
-    (enter)="ngEnter('cmd')"
-    (panel)="ngPanel()"></app-autocomplete-input>
+<div class="command">
+    <app-autocomplete-input #cmd [options]="inputs.cmd"
+        (edit)="ngEdit('cmd', $event)"
+        (enter)="ngEnter('cmd')"
+        (panel)="ngPanel()"></app-autocomplete-input>
+    <button tabindex="-1" class="flat-codicon-button" [matMenuTriggerFor]="menu">
+        <span class="codicon codicon-terminal"></span>
+        Default environment
+    </button>
+</div>
 <app-folderinput-input #cwd [options]="inputs.cwd"
     (edit)="ngEdit('cwd', $event)"
     (enter)="ngEnter('cwd')"
     (panel)="ngPanel()"></app-folderinput-input>
+<mat-menu #menu="matMenu">
+    <button mat-menu-item>Use default environment</button>
+    <mat-divider></mat-divider>
+    <p class="material-menu-label">Import variables from:</p>
+    <button *ngFor="let shell of state.getProfileNames()" mat-menu-item>{{shell}}</button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="showEnvVars()">Show current variables</button>
+</mat-menu>

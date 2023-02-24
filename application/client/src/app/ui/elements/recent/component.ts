@@ -4,6 +4,8 @@ import {
     ChangeDetectionStrategy,
     ChangeDetectorRef,
     ViewEncapsulation,
+    ViewChild,
+    AfterViewInit,
     Input,
     Output,
     EventEmitter,
@@ -16,6 +18,7 @@ import { State } from './state';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ParserName, Origin } from '@platform/types/observe';
 import { SourceDefinition } from '@platform/types/transport';
+import { HiddenFilter } from '@elements/filter.hidden/component';
 
 @Component({
     selector: 'app-recent-actions',
@@ -26,13 +29,15 @@ import { SourceDefinition } from '@platform/types/transport';
 })
 @Initial()
 @Ilc()
-export class RecentActions extends ChangesDetector implements AfterContentInit {
+export class RecentActions extends ChangesDetector implements AfterContentInit, AfterViewInit {
     @Input() public parser?: ParserName;
     @Input() public origin?: Origin;
     @Input() public after?: AfterHandler;
     @Input() public before?: (source: SourceDefinition) => boolean;
 
     @Output() public applied: EventEmitter<void> = new EventEmitter();
+
+    @ViewChild('filter') filter!: HiddenFilter;
 
     public state!: State;
 
@@ -46,6 +51,19 @@ export class RecentActions extends ChangesDetector implements AfterContentInit {
         this.env().subscriber.register(
             this.state.update.subscribe(() => {
                 this.detectChanges();
+            }),
+        );
+    }
+
+    public ngAfterViewInit(): void {
+        this.env().subscriber.register(
+            this.filter.filter.subjects.get().change.subscribe((value: string) => {
+                this.state.filtering(value);
+            }),
+        );
+        this.env().subscriber.register(
+            this.filter.filter.subjects.get().drop.subscribe(() => {
+                this.state.filtering('');
             }),
         );
     }
