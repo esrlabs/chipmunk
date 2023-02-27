@@ -5,11 +5,13 @@ export class ShellProfile {
     public readonly name: string;
     public readonly path: string;
     public readonly envvars: Map<string, string> | undefined;
+    public readonly symlink: boolean;
 
     public static fromObj(smth: unknown): ShellProfile | Error {
         try {
             const name: string = obj.getAsNotEmptyString(smth, 'name');
             const path: string = obj.getAsNotEmptyString(smth, 'path');
+            const symlink: boolean = obj.getAsBool(smth, 'symlink');
             let envvars: Map<string, string> | undefined = undefined;
             if ((smth as any).envvars instanceof Map) {
                 envvars = (smth as any).envvars;
@@ -23,7 +25,7 @@ export class ShellProfile {
                     envvars?.set(key, (smth as any).envvars[key]);
                 });
             }
-            return new ShellProfile(name, path, envvars);
+            return new ShellProfile(name, path, symlink, envvars);
         } catch (err) {
             return new Error(error(err));
         }
@@ -34,6 +36,7 @@ export class ShellProfile {
             const profile = JSON.parse(str);
             const name: string = obj.getAsNotEmptyString(profile, 'name');
             const path: string = obj.getAsNotEmptyString(profile, 'path');
+            const symlink: boolean = obj.getAsBool(profile, 'symlink');
             let envvars: Map<string, string> | undefined = undefined;
             if (
                 profile.envvars !== null &&
@@ -45,15 +48,21 @@ export class ShellProfile {
                     envvars?.set(key, profile.envvars[key]);
                 });
             }
-            return new ShellProfile(name, path, envvars);
+            return new ShellProfile(name, path, symlink, envvars);
         } catch (err) {
             return new Error(error(err));
         }
     }
 
-    constructor(name: string, path: string, envvars: Map<string, string> | undefined) {
+    constructor(
+        name: string,
+        path: string,
+        symlink: boolean,
+        envvars: Map<string, string> | undefined,
+    ) {
         this.path = path;
         this.name = name;
+        this.symlink = symlink;
         this.envvars = envvars;
     }
 

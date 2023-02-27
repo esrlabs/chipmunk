@@ -9,20 +9,31 @@ import * as Requests from '@platform/ipc/request/index';
 
 @SetupService(services['bridge'])
 export class Service extends Implementation {
-	protected cache: {
-		shells: ShellProfile[] | undefined;
-	} = {
-		shells: undefined
-	};
+    protected cache: {
+        shells: ShellProfile[] | undefined;
+    } = {
+        shells: undefined,
+    };
+    protected queue: {
+        shells: Array<{
+            resolve: (profiles: ShellProfile[]) => void;
+            reject: (err: Error) => void;
+        }>;
+    } = {
+        shells: [],
+    };
 
-	public override ready(): Promise<void> {
-		this.os().shells().then(() => {
-			this.log().debug(`List of shell's profiles is cached`);
-		}).catch((err: Error) => {
-			this.log().error(`Fail to get list of shell's profiles: ${err.message}`);
-		});
-		return Promise.resolve();
-	}
+    public override ready(): Promise<void> {
+        this.os()
+            .shells()
+            .then(() => {
+                this.log().debug(`List of shell's profiles is cached`);
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to get list of shell's profiles: ${err.message}`);
+            });
+        return Promise.resolve();
+    }
     public files(): {
         getByPath(filenames: string[]): Promise<File[]>;
         ls(path: string): Promise<Entity[]>;
@@ -388,23 +399,34 @@ export class Service extends Implementation {
                         .catch(reject);
                 });
             },
-			shells: (): Promise<ShellProfile[]> => {
-				return new Promise((resolve, reject) => {
-					if (this.cache.shells !== undefined) {
-						resolve(this.cache.shells);
-					} else {
-						Requests.IpcRequest
-							.send(Requests.Os.Shells.Response, new Requests.Os.Shells.Request())
-							.then((response) => {
-								this.cache.shells = response.profiles
-									.map((p) => ShellProfile.fromObj(p))
-									.filter((p) => p instanceof ShellProfile) as ShellProfile[];
-								resolve(this.cache.shells);
-							})
-							.catch(reject);
-					}
-				});
-			},
+            shells: (): Promise<ShellProfile[]> => {
+                return new Promise((resolve, reject) => {
+                    if (this.cache.shells !== undefined) {
+                        resolve(this.cache.shells);
+                    } else {
+                        this.queue.shells.push({ resolve, reject });
+                        this.queue.shells.length === 1 &&
+                            Requests.IpcRequest.send(
+                                Requests.Os.Shells.Response,
+                                new Requests.Os.Shells.Request(),
+                            )
+                                .then((response) => {
+                                    this.cache.shells = response.profiles
+                                        .map((p) => ShellProfile.fromObj(p))
+                                        .filter((p) => p instanceof ShellProfile) as ShellProfile[];
+                                    this.queue.shells
+                                        .map((h) => h.resolve)
+                                        .forEach((r) => r(this.cache.shells as ShellProfile[]));
+                                })
+                                .catch((err: Error) => {
+                                    this.queue.shells.map((h) => h.reject).forEach((r) => r(err));
+                                })
+                                .finally(() => {
+                                    this.queue.shells = [];
+                                });
+                    }
+                });
+            },
             envvars: (): Promise<Map<string, string>> => {
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(

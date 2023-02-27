@@ -98,7 +98,7 @@ export class TransportProcess
                 this.log().error(`Fail to get envvars path: ${err.message}`);
             })
             .finally(() => {
-                this.markChangesForCheck();
+                this.detectChanges();
             });
         this.ilc()
             .services.system.bridge.os()
@@ -108,15 +108,36 @@ export class TransportProcess
             })
             .catch((err: Error) => {
                 this.log().warn(`Fail to get no context envvars: ${err.message}`);
+            })
+            .finally(() => {
+                this.detectChanges();
             });
         this.ilc()
             .services.system.bridge.os()
             .shells()
             .then((profiles) => {
-                this.state.profiles = profiles;
+                this.state
+                    .setProfiles(profiles)
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to set profiles: ${err.message}`);
+                    })
+                    .finally(() => {
+                        this.detectChanges();
+                    });
             })
             .catch((err: Error) => {
                 this.log().warn(`Fail to get a list of shell's profiles: ${err.message}`);
+                this.state
+                    .setProfiles([])
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to set profiles: ${err.message}`);
+                    })
+                    .finally(() => {
+                        this.detectChanges();
+                    });
+            })
+            .finally(() => {
+                this.detectChanges();
             });
     }
 
@@ -132,6 +153,9 @@ export class TransportProcess
             })
             .catch((err: Error) => {
                 this.log().error(`Fail to get cwd path: ${err.message}`);
+            })
+            .finally(() => {
+                this.detectChanges();
             });
     }
 
@@ -173,7 +197,9 @@ export class TransportProcess
     }
 
     public importEnvVars(profile: ShellProfile | undefined) {
-        this.state.importEnvvarsFromShell(profile);
+        this.state.importEnvvarsFromShell(profile).catch((err: Error) => {
+            this.log().error(`Fail to save selected profile: ${err.message}`);
+        });
         this.detectChanges();
     }
 }

@@ -24,21 +24,43 @@ app-transport-process {
 }
 .app-transport-process-menu {
     & .mat-menu-item {
-        & > span.selected {
+        & > div.shell-profile {
             position: relative;
+            margin-top: -7px;
+            & > span {
+                height: 16px;
+                line-height: 16px;
+            }
+            & > span.envvars-count {
+                color: @scheme-color-3;
+            }
+            & > span.shell-path {
+                position: relative;
+                display: block;
+                color: @scheme-color-3;
+                font-size: 10px;
+                max-width: 250px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                margin-top: -8px;
+                white-space: nowrap;
+                direction: rtl;
+                max-width: 200px;
+            }    
+        }
+    }
+    & .mat-menu-item[data-selected="true"] {
+        & > div.shell-profile {
             &::before {
                 display: block;
                 position: absolute;
                 width: 2px;
-                height: 20px;
+                height: 24px;
                 background: @scheme-color-accent;
                 left: -9px;
-                top: 0;
+                top: 11px;
                 content: '';
-            }
-        }
-        & > span.envvars-count {
-            color: @scheme-color-3;
+            }    
         }
     }
 }
