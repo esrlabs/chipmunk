@@ -1,18 +1,28 @@
 import { ProcessTransportSettings } from '@platform/types/transport/process';
 import { Base } from '../common/state';
 import { ShellProfile } from '@platform/types/shells';
+import { bridge } from '@service/bridge';
 
 import * as obj from '@platform/env/obj';
+
+const ROOTS_STORAGE_KEY = 'user_selected_profile';
+const ENTRY_KEY = 'selected_profile_path';
 
 export class State extends Base<ProcessTransportSettings> {
     public cwd: string = '';
     public command: string = '';
     // Previously selected envvars
     public env: { [key: string]: string } = {};
-    public profiles: ShellProfile[] = [];
+    public profiles: {
+        all: ShellProfile[] | undefined;
+        valid: ShellProfile[] | undefined;
+    } = {
+        all: undefined,
+        valid: undefined,
+    };
     // No context envvars
     public envvars: Map<string, string> = new Map();
-    public current: string | undefined;
+    public current: ShellProfile | undefined;
 
     public from(opt: ProcessTransportSettings) {
         this.cwd = opt.cwd;
@@ -30,26 +40,42 @@ export class State extends Base<ProcessTransportSettings> {
         };
     }
 
-    public getValidProfiles(): ShellProfile[] {
+    public setProfiles(profiles: ShellProfile[]): Promise<void> {
         const valid: ShellProfile[] = [];
-        this.profiles.forEach((profile) => {
-            valid.find((p) => p.name === profile.name) === undefined &&
+        profiles.forEach((profile) => {
+            valid.find((p) => p.path === profile.path) === undefined &&
                 profile.envvars !== undefined &&
+                !profile.symlink &&
                 valid.push(profile);
         });
-        return valid;
+        this.profiles.all = profiles;
+        this.profiles.valid = valid;
+        return this.storage()
+            .get()
+            .then((path: string | undefined) => {
+                this.current = this.profiles.all?.find((p) => p.path === path);
+                if (this.current !== undefined && this.current.envvars !== undefined) {
+                    this.env = obj.mapToObj(this.current.envvars);
+                }
+            });
     }
 
-    public importEnvvarsFromShell(profile: ShellProfile | undefined) {
+    public isProfilesLoaded(): boolean {
+        return this.profiles.all !== undefined;
+    }
+
+    public importEnvvarsFromShell(profile: ShellProfile | undefined): Promise<void> {
         if (profile === undefined) {
             this.current = undefined;
             this.env = obj.mapToObj(this.envvars);
+            return this.storage().set(undefined);
         } else {
             if (profile.envvars === undefined) {
-                return;
+                return Promise.resolve();
             }
             this.env = obj.mapToObj(profile.envvars);
-            this.current = profile.name;
+            this.current = profile;
+            return this.storage().set(profile.path);
         }
     }
 
@@ -58,6 +84,37 @@ export class State extends Base<ProcessTransportSettings> {
     }
 
     public isShellSelected(profile: ShellProfile): boolean {
-        return profile.name === this.current;
+        return this.current ? profile.path === this.current.path : false;
+    }
+
+    protected storage(): {
+        get(): Promise<string | undefined>;
+        set(path: string | undefined): Promise<void>;
+    } {
+        return {
+            get: (): Promise<string | undefined> => {
+                return new Promise((resolve, reject) => {
+                    bridge
+                        .entries({ key: ROOTS_STORAGE_KEY })
+                        .get()
+                        .then((entries) => {
+                            resolve(entries.length === 0 ? undefined : entries[0].content);
+                        })
+                        .catch(reject);
+                });
+            },
+            set: (path: string | undefined): Promise<void> => {
+                if (path === undefined) {
+                    return bridge.entries({ key: ROOTS_STORAGE_KEY }).delete([ENTRY_KEY]);
+                } else {
+                    return bridge.entries({ key: ROOTS_STORAGE_KEY }).overwrite([
+                        {
+                            uuid: ENTRY_KEY,
+                            content: path,
+                        },
+                    ]);
+                }
+            },
+        };
     }
 }
