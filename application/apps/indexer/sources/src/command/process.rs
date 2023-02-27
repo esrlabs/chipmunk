@@ -14,6 +14,9 @@ use tokio::{
 use tokio_stream::StreamExt;
 use tokio_util::codec::{self, FramedRead, LinesCodec};
 
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
 lazy_static! {
     static ref GROUP_RE: Regex =
         Regex::new(r#"".*?""#).expect("Regex must compile (fail with GROUP_RE)");
@@ -73,6 +76,44 @@ impl ProcessSource {
             .collect())
     }
 
+    #[cfg(windows)]
+    fn spawn(
+        cmd: OsString,
+        args: Vec<OsString>,
+        cwd: PathBuf,
+        envs: HashMap<String, String>,
+    ) -> Result<Child, ProcessError> {
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        Command::new(cmd)
+            .args(args)
+            .current_dir(OsString::from(cwd))
+            .envs(envs)
+            .creation_flags(CREATE_NO_WINDOW)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .stdin(Stdio::piped())
+            .spawn()
+            .map_err(|e| ProcessError::Setup(format!("{e}")))
+    }
+
+    #[cfg(not(windows))]
+    fn spawn(
+        cmd: OsString,
+        args: Vec<OsString>,
+        cwd: PathBuf,
+        envs: HashMap<String, String>,
+    ) -> Result<Child, ProcessError> {
+        Command::new(cmd)
+            .args(args)
+            .current_dir(OsString::from(cwd))
+            .envs(envs)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .stdin(Stdio::piped())
+            .spawn()
+            .map_err(|e| ProcessError::Setup(format!("{e}")))
+    }
+
     pub async fn new(
         command: String,
         cwd: PathBuf,
@@ -86,15 +127,7 @@ impl ProcessSource {
         } else {
             args.remove(0)
         };
-        let mut process = Command::new(cmd)
-            .args(args)
-            .current_dir(OsString::from(cwd))
-            .envs(envs)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .stdin(Stdio::piped())
-            .spawn()
-            .map_err(|e| ProcessError::Setup(format!("{e}")))?;
+        let mut process = ProcessSource::spawn(cmd, args, cwd, envs)?;
         let stdout = codec::FramedRead::new(
             process
                 .stdout
