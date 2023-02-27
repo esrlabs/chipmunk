@@ -9,6 +9,20 @@ import * as Requests from '@platform/ipc/request/index';
 
 @SetupService(services['bridge'])
 export class Service extends Implementation {
+	protected cache: {
+		shells: ShellProfile[] | undefined;
+	} = {
+		shells: undefined
+	};
+
+	public override ready(): Promise<void> {
+		this.os().shells().then(() => {
+			this.log().debug(`List of shell's profiles is cached`);
+		}).catch((err: Error) => {
+			this.log().error(`Fail to get list of shell's profiles: ${err.message}`);
+		});
+		return Promise.resolve();
+	}
     public files(): {
         getByPath(filenames: string[]): Promise<File[]>;
         ls(path: string): Promise<Entity[]>;
@@ -374,22 +388,23 @@ export class Service extends Implementation {
                         .catch(reject);
                 });
             },
-            shells: (): Promise<ShellProfile[]> => {
-                return new Promise((resolve, reject) => {
-                    Requests.IpcRequest.send(
-                        Requests.Os.Shells.Response,
-                        new Requests.Os.Shells.Request(),
-                    )
-                        .then((response) => {
-                            resolve(
-                                response.profiles
-                                    .map((p) => ShellProfile.fromObj(p))
-                                    .filter((p) => p instanceof ShellProfile) as ShellProfile[],
-                            );
-                        })
-                        .catch(reject);
-                });
-            },
+			shells: (): Promise<ShellProfile[]> => {
+				return new Promise((resolve, reject) => {
+					if (this.cache.shells !== undefined) {
+						resolve(this.cache.shells);
+					} else {
+						Requests.IpcRequest
+							.send(Requests.Os.Shells.Response, new Requests.Os.Shells.Request())
+							.then((response) => {
+								this.cache.shells = response.profiles
+									.map((p) => ShellProfile.fromObj(p))
+									.filter((p) => p instanceof ShellProfile) as ShellProfile[];
+								resolve(this.cache.shells);
+							})
+							.catch(reject);
+					}
+				});
+			},
             envvars: (): Promise<Map<string, string>> => {
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(
