@@ -3,8 +3,8 @@
     <p class="name t-large color-scheme-0">CHIPMUNK</p>
     <p class="t-medium color-scheme-2">version: <b class="color-scheme-0">{{version}}</b></p>
     <div class="controlls" >
-        <button mat-stroked-button>GitHub</button>
-        <button mat-stroked-button>Star</button>
-        <button mat-stroked-button>Report Error</button>
+        <button mat-stroked-button (click)="open('https://github.com/esrlabs/chipmunk')">GitHub</button>
+        <button mat-stroked-button (click)="open('https://github.com/esrlabs/chipmunk')">Star</button>
+        <button mat-stroked-button (click)="open('https://github.com/esrlabs/chipmunk/issues/new/choose')">Report Error</button>
     </div>
 </div>

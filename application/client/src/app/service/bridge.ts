@@ -341,6 +341,25 @@ export class Service extends Implementation {
         };
     }
 
+    public brower(): {
+        url(url: string): Promise<void>;
+    } {
+        return {
+            url: (url: string): Promise<void> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Actions.UrlInBrowser.Response,
+                        new Requests.Actions.UrlInBrowser.Request({ url }),
+                    )
+                        .then((_response) => {
+                            resolve();
+                        })
+                        .catch(reject);
+                });
+            },
+        };
+    }
+
     public cwd(): {
         set(uuid: string | undefined, path: string): Promise<void>;
         get(uuid: string | undefined): Promise<string>;
