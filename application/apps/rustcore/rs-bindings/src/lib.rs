@@ -1,3 +1,3 @@
-// use crate::js::session;
+extern crate lazy_static;
 mod js;
 mod logging;

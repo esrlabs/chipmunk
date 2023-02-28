@@ -47,3 +47,13 @@ export * as shells from './native/native.shells';
 export { Units, Events, Interfaces };
 
 setUuidGenerator(v4);
+import { ProgressTrackerNoType } from "./native/native";
+export function createTracker() {
+    console.log(ProgressTrackerNoType);
+    const tracker = new ProgressTrackerNoType();
+    tracker.init((arg: any) => {
+        console.log("tracker-callback in JS");
+    });
+    return tracker;
+
+}
