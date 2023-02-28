@@ -6,6 +6,7 @@ import * as Logs from '../util/logging';
 
 export interface IRustModuleExports {
     RustSession: any;
+    ProgressTracker: any;
     Dlt: any;
     Shells: any;
     Serial: any;
@@ -25,8 +26,8 @@ export function getNativeModule(): IRustModuleExports {
     return require(modulePath);
 }
 
-const { RustSession: RustSessionNoType, Dlt: RustDltTools } = getNativeModule();
+const { RustSession: RustSessionNoType, Dlt: RustDltTools, ProgressTracker: ProgressTrackerNoType } = getNativeModule();
 
-export { RustSessionNoType, RustDltTools };
+export { RustSessionNoType, RustDltTools, ProgressTrackerNoType };
 
 setUuidGenerator(v4);

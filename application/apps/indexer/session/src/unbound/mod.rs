@@ -1,13 +1,17 @@
+mod commands;
 mod folder;
 
 use log::debug;
 use std::collections::HashMap;
 
-use folder::get_folder_content;
 use thiserror::Error;
 use tokio::{sync::mpsc, task::JoinError};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
+
+use crate::unbound::commands::process;
+
+use self::commands::Command;
 
 #[derive(Error, Debug)]
 pub enum ExecutionError {
@@ -20,23 +24,9 @@ impl From<JoinError> for ExecutionError {
     }
 }
 
-pub enum Command {
-    FolderContent(String, mpsc::Sender<(Uuid, String)>),
-}
-
 pub enum JobOutcome {
     Finished(String),
     Aborted,
-}
-
-async fn process(command: Command, uuid: Uuid, cancel: CancellationToken) {
-    match command {
-        Command::FolderContent(path, tx) => {
-            let res = get_folder_content(&path, cancel);
-            debug!("command result: {res}");
-            let _ = tx.send((uuid, res)).await;
-        }
-    }
 }
 
 pub struct UnboundExecutor {
