@@ -4,8 +4,14 @@
         (enter)="enter('cmd')"
         (panel)="panel()"></app-autocomplete-input>
     <button tabindex="-1" class="flat-codicon-button" [matMenuTriggerFor]="menu">
-        <span class="codicon codicon-terminal"></span>
-        {{(state.current === undefined ? 'Default environment' : state.current.name)}}
+        <ng-container *ngIf="state.isProfilesLoaded()">
+            <span class="codicon codicon-terminal"></span>
+            {{(state.current === undefined ? 'Default environment' : state.current.name)}}
+        </ng-container>
+        <ng-container *ngIf="!state.isProfilesLoaded()">
+            <span>Loading profiles...</span>
+            <mat-spinner [diameter]="16"></mat-spinner>
+        </ng-container>
     </button>
 </div>
 <app-folderinput-input #cwd [options]="inputs.cwd"
