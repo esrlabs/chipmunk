@@ -24,6 +24,15 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
+                    Requests.Actions.UrlInBrowser.Request,
+                    RequestHandlers.Actions.BrowserUrl.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
                     Requests.App.Version.Request,
                     RequestHandlers.App.Version.handler,
                 ),

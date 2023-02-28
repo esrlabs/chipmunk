@@ -29,5 +29,14 @@ export class About extends ChangesDetector implements AfterViewInit {
                 this.log().error(`Fail to get application version: ${err.message}`);
             });
     }
+
+    public open(url: string): void {
+        this.ilc()
+            .services.system.bridge.brower()
+            .url(url)
+            .catch((err: Error) => {
+                this.log().error(`Fail to open URL "${url}": ${err.message}`);
+            });
+    }
 }
 export interface About extends IlcInterface {}
