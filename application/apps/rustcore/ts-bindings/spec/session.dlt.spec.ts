@@ -7,7 +7,7 @@
 import { dlt } from '../src/index';
 import { finish, } from './common';
 import { readConfigurationFile } from './config';
-import { FtFile, FtOptions, DltFilterConf } from 'platform/types/parsers/dlt';
+import { Attachment, FtOptions, DltFilterConf } from 'platform/types/parsers/dlt';
 import * as tmp from 'tmp';
 
 const config = readConfigurationFile().get().tests.dlt;
@@ -28,26 +28,29 @@ describe('Dlt', function () {
         .then((result) => {
             expect(result.length).toEqual(3);
             {
-                let file: FtFile = result[0];
+                let file: Attachment = result[0];
                 expect(file.name).toEqual("test1.txt");
                 expect(file.size).toEqual(5);
-                expect(file.created).toEqual("date");
+                expect(file.created_date).toEqual("date");
+                expect(file.modified_date).toBeUndefined;
                 expect(file.messages).toEqual([1, 3, 7]);
                 expect(file.chunks).toEqual([[297, 5]]);
             }
             {
-                let file: FtFile = result[1];
+                let file: Attachment = result[1];
                 expect(file.name).toEqual("test2.txt");
                 expect(file.size).toEqual(6);
-                expect(file.created).toEqual("date");
+                expect(file.created_date).toEqual("date");
+                expect(file.modified_date).toBeUndefined;
                 expect(file.messages).toEqual([2, 4, 8]);
                 expect(file.chunks).toEqual([[380, 6]]);
             }
             {
-                let file: FtFile = result[2];
+                let file: Attachment = result[2];
                 expect(file.name).toEqual("test3.txt");
                 expect(file.size).toEqual(7);
-                expect(file.created).toEqual("date");
+                expect(file.created_date).toEqual("date");
+                expect(file.modified_date).toBeUndefined;
                 expect(file.messages).toEqual([5, 6, 9]);
                 expect(file.chunks).toEqual([[579, 7]]);
             }
@@ -88,10 +91,11 @@ describe('Dlt', function () {
         .then((result) => {
             expect(result.length).toEqual(1);
             {
-                let file: FtFile = result[0];
+                let file: Attachment = result[0];
                 expect(file.name).toEqual("test2.txt");
                 expect(file.size).toEqual(6);
-                expect(file.created).toEqual("date");
+                expect(file.created_date).toEqual("date");
+                expect(file.modified_date).toBeUndefined;
                 expect(file.messages).toEqual([1, 2, 3]);
                 expect(file.chunks).toEqual([[380, 6]]);
             }
@@ -152,9 +156,9 @@ describe('Dlt', function () {
         .then((result) => {
             expect(result.length).toEqual(3);
             const output = tmp.dirSync();
-            let files: FtFile[] = [result[0], result[2]];
+            let files_with_names: [Attachment, string][] = [[result[0], result[0].name], [result[2], result[2].name]];
 
-            dlt.extract(sample, output.name, files)
+            dlt.extract(sample, output.name, files_with_names)
             .then((result) => {
                 expect(result).toEqual(12);
                 done();
@@ -206,9 +210,9 @@ describe('Dlt', function () {
         .then((result) => {
             expect(result.length).toEqual(1);
             const output = tmp.dirSync();
-            let files: FtFile[] = [result[0]];
+            let files_with_names: [Attachment, string][] = [[result[0], result[0].name]];
             
-            dlt.extract(sample, output.name, files)
+            dlt.extract(sample, output.name, files_with_names)
             .then((result) => {
                 expect(result).toEqual(6);
                 done();
@@ -252,9 +256,9 @@ describe('Dlt', function () {
         .then((result) => {
             expect(result.length).toEqual(3);
             const output = tmp.dirSync();
-            let files: FtFile[] = [result[0], result[2]];
+            let files_with_names: [Attachment, string][] = [[result[0], result[0].name]];
 
-            dlt.extract(sample, output.name, files)
+            dlt.extract(sample, output.name, files_with_names)
             .canceled(() => {
                 done();
             })

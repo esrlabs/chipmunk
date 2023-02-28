@@ -1,7 +1,7 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
 import { File, FileType, Entity } from '@platform/types/files';
-import { StatisticInfo, FtFile, FtOptions } from '@platform/types/parsers/dlt';
+import { StatisticInfo, Attachment, FtOptions } from '@platform/types/parsers/dlt';
 import { Entry } from '@platform/types/storage/entry';
 
 import * as Requests from '@platform/ipc/request/index';
@@ -240,11 +240,11 @@ export class Service extends Implementation {
 
     public dlt(): {
         stat(files: string[]): Promise<StatisticInfo>;
-        scan(file: string, options: FtOptions): Promise<FtFile[]>;
+        scan(file: string, options: FtOptions): Promise<Attachment[]>;
         extract(
             file: string, 
             output: string, 
-            attachments: FtFile[]
+            attachments: [Attachment, string][]
         ): Promise<number>;
         extractAll(
             file: string, 
@@ -267,7 +267,7 @@ export class Service extends Implementation {
                         .catch(reject);
                 });
             },
-            scan: (file: string, options: FtOptions): Promise<FtFile[]> => {
+            scan: (file: string, options: FtOptions): Promise<Attachment[]> => {
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(
                         Requests.Dlt.Scan.Response,
@@ -284,7 +284,7 @@ export class Service extends Implementation {
             extract: (
                 file: string, 
                 output: string, 
-                attachments: FtFile[]
+                attachments: [Attachment, string][]
             ): Promise<number> => {
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(

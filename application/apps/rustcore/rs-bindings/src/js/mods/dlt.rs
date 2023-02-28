@@ -1,10 +1,11 @@
 use crate::{
     cancellation::Cancellation,
-    js::converting::attachment::{FtOptions, WrappedFtFile},
+    js::converting::attachment::{FtOptions, WrappedAttachment},
 };
 use addon::{extract_dlt_ft, scan_dlt_ft};
 use dlt_core::statistics::{collect_dlt_stats, StatisticInfo};
 use node_bindgen::derive::node_bindgen;
+use parsers::dlt::attachment::FileExtractor;
 use std::path::Path;
 use uuid::Uuid;
 
@@ -71,19 +72,21 @@ impl Dlt {
         &mut self,
         input: String,
         output: String,
-        files: Vec<WrappedFtFile>,
+        files_with_names: Vec<(WrappedAttachment, String)>,
         callback: F,
     ) -> Result<String, String> {
         let (uuid, cancel) = self.cancellation.create_token();
         callback(uuid.to_string());
 
         let result = extract_dlt_ft(
-            Path::new(&input).to_path_buf(),
-            Path::new(&output).to_path_buf(),
-            files.iter().map(|f| f.as_file()).collect(),
+            Path::new(&input),
+            Path::new(&output),
+            files_with_names
+                .iter()
+                .map(|f| (f.0.as_attachment(), f.1.clone()))
+                .collect(),
             cancel,
-        )
-        .await;
+        );
         self.cancellation.remove_token(&uuid);
 
         match result {
@@ -112,12 +115,11 @@ impl Dlt {
         {
             Ok(files) => {
                 let result = extract_dlt_ft(
-                    Path::new(&input).to_path_buf(),
-                    Path::new(&output).to_path_buf(),
-                    files,
+                    Path::new(&input),
+                    Path::new(&output),
+                    FileExtractor::files_with_names_prefixed(files),
                     cancel,
-                )
-                .await;
+                );
                 self.cancellation.remove_token(&uuid);
                 match result {
                     Ok(size) => serde_json::to_string(&size).map_err(|e| e.to_string()),

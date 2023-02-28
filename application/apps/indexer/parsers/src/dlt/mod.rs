@@ -1,4 +1,4 @@
-pub mod attachement;
+pub mod attachment;
 pub mod fmt;
 
 use crate::{dlt::fmt::FormattableMessage, Error, LogMessage, ParseYield, Parser};
@@ -15,7 +15,7 @@ use dlt_core::{
 use serde::Serialize;
 use std::{io::Write, ops::Range};
 
-use self::attachement::FtScanner;
+use self::attachment::FtScanner;
 
 impl LogMessage for FormattableMessage<'_> {
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
@@ -70,6 +70,7 @@ pub struct DltParser<'m> {
     pub fibex_metadata: Option<&'m FibexMetadata>,
     pub with_storage_header: bool,
     ft_scanner: FtScanner,
+    offset: usize,
 }
 
 #[derive(Default)]
@@ -106,6 +107,7 @@ impl<'m> DltParser<'m> {
             fibex_metadata,
             with_storage_header,
             ft_scanner: FtScanner::new(),
+            offset: 0,
         }
     }
 }
@@ -119,15 +121,15 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
         match dlt_message(input, self.filter_config.as_ref(), self.with_storage_header)
             .map_err(|e| Error::Parse(format!("{e}")))?
         {
-            (rest, dlt_core::parse::ParsedMessage::FilteredOut(_n)) => Ok((rest, None)),
-
+            (rest, dlt_core::parse::ParsedMessage::FilteredOut(_n)) => {
+                self.offset += input.len() - rest.len();
+                Ok((rest, None))
+            }
             (_, dlt_core::parse::ParsedMessage::Invalid) => {
                 Err(Error::Parse("Invalid parse".to_owned()))
             }
             (rest, dlt_core::parse::ParsedMessage::Item(i)) => {
-                // TODO @kevin: check offset
-                let scan_offset = input.len();
-                let attachement = self.ft_scanner.process(scan_offset, &i);
+                let attachment = self.ft_scanner.process(self.offset, &i);
                 let msg_with_storage_header = if i.storage_header.is_some() {
                     i
                 } else {
@@ -138,10 +140,11 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
                     fibex_metadata: self.fibex_metadata,
                     options: None,
                 };
+                self.offset += input.len() - rest.len();
                 Ok((
                     rest,
-                    if let Some(attachement) = attachement {
-                        Some(ParseYield::MessageAndAttachement((msg, attachement)))
+                    if let Some(attachment) = attachment {
+                        Some(ParseYield::MessageAndAttachment((msg, attachment)))
                     } else {
                         Some(ParseYield::Message(msg))
                     },

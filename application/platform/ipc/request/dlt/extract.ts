@@ -1,17 +1,17 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { FtFile } from '../../../types/parsers/dlt';
+import { Attachment } from '../../../types/parsers/dlt';
 import * as validator from '../../../env/obj';
 
 @Define({ name: 'DltExtractRequest' })
 export class Request extends SignatureRequirement {
     public file: string;
     public output: string;
-    public attachments: FtFile[];
+    public attachments: [Attachment, string][];
 
     constructor(input: { 
         file: string, 
         output: string, 
-        attachments: FtFile[], 
+        attachments: [Attachment, string][], 
     }) {
         super();
         validator.isObject(input);

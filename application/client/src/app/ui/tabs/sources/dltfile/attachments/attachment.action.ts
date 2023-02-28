@@ -1,11 +1,11 @@
 import { Subject, Subjects } from '@platform/env/subscription';
 import { File } from '@platform/types/files';
-import { FtFile } from '@platform/types/parsers/dlt';
+import { Attachment } from '@platform/types/parsers/dlt';
 import { FtOptions } from '@platform/types/parsers/dlt';
 import { InternalAPI } from '@service/ilc';
 import { Instance as Logger } from '@platform/env/logger';
 
-export class Attachment {
+export class AttachmentAction {
     public subjects: Subjects<{
         scan: Subject<void>;
         scanned: Subject<void>;
@@ -22,7 +22,7 @@ export class Attachment {
     private log: Logger;
 
     // scanned attachments with: name, path and details
-    public index: [string, string, FtFile[]][] | undefined;
+    public index: [string, string, Attachment[]][] | undefined;
 
     constructor(ilc: InternalAPI, log: Logger) {
         this.ilc = ilc;
@@ -45,8 +45,8 @@ export class Attachment {
     public doScan(files: File[], options: FtOptions) {
         this.index = [];
         for (let i = 0; i < files.length; i++) {
-            let name: string = files[i].name;
-            let path: string = files[i].filename;
+            const name: string = files[i].name;
+            const path: string = files[i].filename;
             this.ilc.services.system.bridge.dlt()
             .scan(path, options)
             .then((attachments) => {
@@ -61,9 +61,21 @@ export class Attachment {
     public doExtract(folder: string) {
         if (this.index != undefined) {
             for (let i = 0; i < this.index.length; i++) {
-                let entry = this.index[i];
+                const entry = this.index[i];
+                const attachment_list = entry[2];
+                const attachments_with_names: [Attachment, string][] = [];
+                for (let j = 0; j < attachment_list.length; j++)  {
+                    const attachment = attachment_list[j];
+                    let attachment_name = attachment.name.replaceAll(' ', "_");
+                    attachment_name = attachment_name.replaceAll('\\', "$");
+                    attachment_name = attachment_name.replaceAll('/', "$");
+                    attachments_with_names.push([
+                        attachment, 
+                        attachment_name
+                    ]);
+                }
                 this.ilc.services.system.bridge.dlt()
-                .extract(entry[1], folder, entry[2])
+                .extract(entry[1], folder, attachments_with_names)
                 .then((size) => {
                     this.log.debug(`Extracted ${size} bytes from ${entry[1]}`);
                 })
@@ -76,7 +88,7 @@ export class Attachment {
 
     public doExtractAll(files: File[], folder: string, options: FtOptions) {
         for (let i = 0; i < files.length; i++) {
-            let path: string = files[i].filename;
+            const path: string = files[i].filename;
             this.ilc.services.system.bridge.dlt()
             .extractAll(path, folder, options)
             .then((size) => {
@@ -98,7 +110,7 @@ export class Attachment {
         }
         let info: string = "";
         for (let i = 0; i < this.index.length; i++) {
-            let entry = this.index[i];
+            const entry = this.index[i];
             info += entry[0] + " : " + entry[2].length + " files\n";
         }
         return info;

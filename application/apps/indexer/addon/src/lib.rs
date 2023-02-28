@@ -17,8 +17,8 @@ extern crate log;
 use dlt_core::filtering::DltFilterConfig;
 use futures::pin_mut;
 use parsers::{
-    dlt::{attachement::FileExtractor, DltParser},
-    Attachement, MessageStreamItem, ParseYield,
+    dlt::{attachment::FileExtractor, DltParser},
+    Attachment, MessageStreamItem, ParseYield,
 };
 use sources::{producer::MessageProducer, raw::binary::BinaryByteSource};
 use std::{
@@ -33,7 +33,7 @@ pub async fn scan_dlt_ft(
     filter: Option<DltFilterConfig>,
     with_storage_header: bool,
     cancel: CancellationToken,
-) -> Result<Vec<Attachement>, String> {
+) -> Result<Vec<Attachment>, String> {
     match File::open(input) {
         Ok(input) => {
             let reader = BufReader::new(&input);
@@ -45,7 +45,7 @@ pub async fn scan_dlt_ft(
 
             let mut canceled = false;
 
-            let mut attachements = vec![];
+            let mut attachments = vec![];
             loop {
                 tokio::select! {
                     _ = cancel.cancelled() => {
@@ -56,10 +56,10 @@ pub async fn scan_dlt_ft(
                     item = tokio_stream::StreamExt::next(&mut stream) => {
                         match item {
                             Some((_, item)) => {
-                                if let MessageStreamItem::Item(ParseYield::MessageAndAttachement((_msg, attachement))) = item {
-                                    attachements.push(attachement);
-                                } else if let MessageStreamItem::Item(ParseYield::Attachement(attachement)) = item {
-                                    attachements.push(attachement);
+                                if let MessageStreamItem::Item(ParseYield::MessageAndAttachment((_msg, attachment))) = item {
+                                    attachments.push(attachment);
+                                } else if let MessageStreamItem::Item(ParseYield::Attachment(attachment)) = item {
+                                    attachments.push(attachment);
                                 }
                             }
                             _ => {
@@ -74,7 +74,7 @@ pub async fn scan_dlt_ft(
                 return Ok(Vec::new());
             }
 
-            Ok(attachements)
+            Ok(attachments)
         }
         Err(error) => Err(format!("failed to open file: {error}")),
     }
@@ -83,13 +83,13 @@ pub async fn scan_dlt_ft(
 pub fn extract_dlt_ft(
     input: &Path,
     output: &Path,
-    files: Vec<(Attachement, String)>,
+    files_with_names: Vec<(Attachment, String)>,
     cancel: CancellationToken,
 ) -> Result<usize, String> {
     let mut result: usize = 0;
 
     let mut canceled = false;
-    for (file, name) in files {
+    for (file, name) in files_with_names {
         if cancel.is_cancelled() {
             debug!("extract canceled");
             canceled = true;
@@ -114,7 +114,7 @@ pub fn extract_dlt_ft(
 
 #[cfg(test)]
 mod tests {
-    use parsers::dlt::attachement::TempDir;
+    use parsers::dlt::attachment::TempDir;
 
     use super::*;
     use std::path::Path;
@@ -182,7 +182,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_extract_dlt_ft2() {
+    async fn test_extract_dlt_ft() {
         let input: PathBuf = Path::new(DLT_FT_SAMPLE).into();
         let output = TempDir::new();
 
@@ -190,9 +190,12 @@ mod tests {
         match scan_dlt_ft(input.clone(), None, true, cancel).await {
             Ok(files) => {
                 let cancel = CancellationToken::new();
-                let files_with_names =
-                    std::iter::zip(files, (0..100).map(|i| format!("{i}.txt"))).collect();
-                match extract_dlt_ft(&input, &output.dir, files_with_names, cancel) {
+                match extract_dlt_ft(
+                    &input,
+                    &output.dir,
+                    FileExtractor::files_with_names_prefixed(files),
+                    cancel,
+                ) {
                     Ok(size) => {
                         assert_eq!(size, 18);
                     }
@@ -206,9 +209,9 @@ mod tests {
             }
         }
 
-        output.assert_file("0.txt", "test1");
-        output.assert_file("1.txt", "test22");
-        output.assert_file("2.txt", "test333");
+        output.assert_file("00000000_test1.txt", "test1");
+        output.assert_file("00000001_test2.txt", "test22");
+        output.assert_file("00000002_test3.txt", "test333");
     }
 
     #[tokio::test]
@@ -221,9 +224,12 @@ mod tests {
             Ok(files) => {
                 let cancel = CancellationToken::new();
                 cancel.cancel();
-                let files_with_names =
-                    std::iter::zip(files, (0..100).map(|i| format!("{i}"))).collect();
-                match extract_dlt_ft(&input, &output.dir, files_with_names, cancel) {
+                match extract_dlt_ft(
+                    &input,
+                    &output.dir,
+                    FileExtractor::files_with_names(files),
+                    cancel,
+                ) {
                     Ok(size) => {
                         assert_eq!(size, 0);
                     }
@@ -256,40 +262,10 @@ mod tests {
         match scan_dlt_ft(input.clone(), Some(filter), true, cancel).await {
             Ok(files) => {
                 let cancel = CancellationToken::new();
-                let files_with_names =
-                    std::iter::zip(files, (0..100).map(|i| format!("output_test{i}.txt")))
-                        .collect();
-                match extract_dlt_ft(&input, &output.dir, files_with_names, cancel) {
-                    Ok(size) => {
-                        assert_eq!(size, 6);
-                    }
-                    Err(error) => {
-                        panic!("{}", format!("{error}"));
-                    }
-                }
-            }
-            Err(error) => {
-                panic!("{}", format!("{error}"));
-            }
-        }
-
-        output.assert_file("output_test0.txt", "test22");
-    }
-
-    #[tokio::test]
-    async fn test_extract_dlt_ft_with_index() {
-        let input: PathBuf = Path::new(DLT_FT_SAMPLE).into();
-        let output = TempDir::new();
-
-        let cancel = CancellationToken::new();
-        let dest_name = "test_output_file.txt".to_string();
-        match scan_dlt_ft(input.clone(), None, true, cancel).await {
-            Ok(files) => {
-                let cancel = CancellationToken::new();
                 match extract_dlt_ft(
                     &input,
                     &output.dir,
-                    vec![(files.get(1).unwrap().clone(), dest_name.clone())],
+                    FileExtractor::files_with_names(files),
                     cancel,
                 ) {
                     Ok(size) => {
@@ -305,7 +281,38 @@ mod tests {
             }
         }
 
-        output.assert_file(&dest_name, "test22");
+        output.assert_file("test2.txt", "test22");
+    }
+
+    #[tokio::test]
+    async fn test_extract_dlt_ft_with_index() {
+        let input: PathBuf = Path::new(DLT_FT_SAMPLE).into();
+        let output = TempDir::new();
+
+        let cancel = CancellationToken::new();
+        match scan_dlt_ft(input.clone(), None, true, cancel).await {
+            Ok(files) => {
+                let cancel = CancellationToken::new();
+                match extract_dlt_ft(
+                    &input,
+                    &output.dir,
+                    FileExtractor::files_with_names(vec![files.get(1).unwrap().clone()]),
+                    cancel,
+                ) {
+                    Ok(size) => {
+                        assert_eq!(size, 6);
+                    }
+                    Err(error) => {
+                        panic!("{}", format!("{error}"));
+                    }
+                }
+            }
+            Err(error) => {
+                panic!("{}", format!("{error}"));
+            }
+        }
+
+        output.assert_file("test2.txt", "test22");
     }
 
     #[tokio::test]
@@ -323,14 +330,13 @@ mod tests {
         };
 
         let cancel = CancellationToken::new();
-        let dest_name = "test_output_file.txt".to_string();
         match scan_dlt_ft(input.clone(), Some(filter), true, cancel).await {
             Ok(files) => {
                 let cancel = CancellationToken::new();
                 match extract_dlt_ft(
                     &input,
                     &output.dir,
-                    vec![(files.get(0).unwrap().clone(), dest_name.clone())],
+                    FileExtractor::files_with_names(files),
                     cancel,
                 ) {
                     Ok(size) => {
@@ -346,6 +352,6 @@ mod tests {
             }
         }
 
-        output.assert_file(&dest_name, "test22");
+        output.assert_file("test2.txt", "test22");
     }
 }

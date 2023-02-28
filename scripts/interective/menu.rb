@@ -191,6 +191,7 @@ module Screens
       { name: 'Test all [rake test:all', value: 14 },
       { name: 'back', value: 15 },
       { name: 'exit', value: 16 }
+    ]
     case prompt.select('Actions groups', choices)
     when 1
       Rake::Task['test:binding:search'].invoke

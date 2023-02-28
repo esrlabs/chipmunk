@@ -3,7 +3,7 @@ import { getNativeModule } from './native';
 import { ICancelablePromise, CancelablePromise } from '../index';
 import { error } from '../util/logging';
 import { Types } from '../interfaces/dlt';
-import { FtFile, FtOptions } from 'platform/types/parsers/dlt';
+import { Attachment, FtOptions } from 'platform/types/parsers/dlt';
 export { Types };
 
 export function stats(files: string[]): Promise<Types.StatisticInfo> {
@@ -30,7 +30,7 @@ export function stats(files: string[]): Promise<Types.StatisticInfo> {
  * @param options The DLT filter and parsing options.
  * @returns A cancelable promise with the list of contained attachments.
  */
-export function scan(input: string, options: FtOptions): ICancelablePromise<FtFile[]> {
+export function scan(input: string, options: FtOptions): ICancelablePromise<Attachment[]> {
     return new CancelablePromise((resolve, reject, _cancel, _refCancel, self) => {
         const DltRef = getNativeModule().Dlt;
         const dlt = new DltRef();
@@ -50,7 +50,7 @@ export function scan(input: string, options: FtOptions): ICancelablePromise<FtFi
                 uuid = undefined;
             });
         self.canceled(() => {
-            let logger: Logs.Logger = Logs.getLogger(`DLT-FT`);
+            const logger: Logs.Logger = Logs.getLogger(`DLT-FT`);
             if (uuid === undefined) {
                 logger.debug(`nothing to cancel`);
                 return;
@@ -72,12 +72,12 @@ export function scan(input: string, options: FtOptions): ICancelablePromise<FtFi
  * @param options The DLT filter and parsing options.
  * @returns A cancelable promise with the number of bytes extracted.
  */
-export function extract(input: string, output: string, files: FtFile[]): ICancelablePromise<number> {
+export function extract(input: string, output: string, files_with_names: [Attachment, string][]): ICancelablePromise<number> {
     return new CancelablePromise((resolve, reject, _cancel, _refCancel, self) => {
         const DltRef = getNativeModule().Dlt;
         const dlt = new DltRef();
         let uuid: string | undefined;
-        dlt.extract(input, output, files, (_uuid: string) => { uuid = _uuid; })
+        dlt.extract(input, output, files_with_names, (_uuid: string) => { uuid = _uuid; })
             .then((result: string) => {
                 try {
                     resolve(JSON.parse(result));
@@ -92,7 +92,7 @@ export function extract(input: string, output: string, files: FtFile[]): ICancel
                 uuid = undefined;
             });
         self.canceled(() => {
-            let logger: Logs.Logger = Logs.getLogger(`DLT-FT`);
+            const logger: Logs.Logger = Logs.getLogger(`DLT-FT`);
             if (uuid === undefined) {
                 logger.debug(`nothing to cancel`);
                 return;
@@ -133,7 +133,7 @@ export function extractAll(input: string, output: string, options: FtOptions): I
                 uuid = undefined;
             });
         self.canceled(() => {
-            let logger: Logs.Logger = Logs.getLogger(`DLT-FT`);
+            const logger: Logs.Logger = Logs.getLogger(`DLT-FT`);
             if (uuid === undefined) {
                 logger.debug(`nothing to cancel`);
                 return;

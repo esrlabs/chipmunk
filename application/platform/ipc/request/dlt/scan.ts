@@ -1,5 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { FtFile, FtOptions } from '../../../types/parsers/dlt';
+import { Attachment, FtOptions } from '../../../types/parsers/dlt';
 import * as validator from '../../../env/obj';
 
 @Define({ name: 'DltScanRequest' })
@@ -18,9 +18,9 @@ export interface Request extends Interface {}
 
 @Define({ name: 'DltScanResponse' })
 export class Response extends SignatureRequirement {
-    public attachments: FtFile[];
+    public attachments: Attachment[];
 
-    constructor(input: { attachments: FtFile[] }) {
+    constructor(input: { attachments: Attachment[] }) {
         super();
         validator.isObject(input);
         this.attachments = validator.getAsArray(input, 'attachments');

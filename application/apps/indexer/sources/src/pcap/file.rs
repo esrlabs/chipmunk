@@ -505,14 +505,14 @@ where
                                 trace!("received msg event");
                                 output.consume_msg(msg).await?;
                             }
-                            MessageStreamItem::Item(ParseYield::MessageAndAttachement((msg, _attachement))) => {
-                                trace!("received msg event AND attachement");
+                            MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _attachment))) => {
+                                trace!("received msg event AND attachment");
                                 output.consume_msg(msg).await?;
-                                // TODO @kevin: use attachement
+                                // TODO @kevin: use attachment
                             }
-                            MessageStreamItem::Item(ParseYield::Attachement(_attachement)) => {
-                                trace!("received attachement event");
-                                // TODO @kevin: use attachement
+                            MessageStreamItem::Item(ParseYield::Attachment(_attachment)) => {
+                                trace!("received attachment event");
+                                // TODO @kevin: use attachment
                             }
                             MessageStreamItem::Skipped => {
                                 trace!("msg was skipped due to filters");

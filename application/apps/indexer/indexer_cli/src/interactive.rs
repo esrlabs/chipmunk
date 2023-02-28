@@ -58,11 +58,11 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                                             Some((_, MessageStreamItem::Item(ParseYield::Message(msg)))) => {
                                                 println!("msg: {msg}");
                                             }
-                                            Some((_, MessageStreamItem::Item(ParseYield::MessageAndAttachement((msg, attachement))))) => {
-                                                println!("msg: {msg}, attachement: {attachement:?}");
+                                            Some((_, MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, attachment))))) => {
+                                                println!("msg: {msg}, attachment: {attachment:?}");
                                             }
-                                            Some((_, MessageStreamItem::Item(ParseYield::Attachement(attachement)))) => {
-                                                println!("attachement: {attachement:?}");
+                                            Some((_, MessageStreamItem::Item(ParseYield::Attachment(attachment)))) => {
+                                                println!("attachment: {attachment:?}");
                                             }
                                             _ => println!("no msg"),
                                         }

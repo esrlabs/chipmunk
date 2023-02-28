@@ -177,12 +177,11 @@ export const NUM_LOGS_LEVELS: { [key: number]: string } = {
     [6]: EMTIN.DLT_LOG_VERBOSE,
 };
 
-export interface FtFile {
-    timestamp: number | undefined;
-    id: number;
+export interface Attachment {
     name: string;
     size: number;
-    created: string;
+    created_date: string | undefined;
+    modified_date: string | undefined;
     messages: number[];
     chunks: [number, number][];
 }

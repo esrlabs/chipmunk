@@ -110,16 +110,16 @@ pub async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
                             .write_session_file(source_id, format!("{item}\n"))
                             .await?;
                     }
-                    MessageStreamItem::Item(ParseYield::MessageAndAttachement((
+                    MessageStreamItem::Item(ParseYield::MessageAndAttachment((
                         item,
-                        _attachement,
+                        _attachment,
                     ))) => {
                         state
                             .write_session_file(source_id, format!("{item}\n"))
                             .await?;
                     }
-                    MessageStreamItem::Item(ParseYield::Attachement(_attachement)) => {
-                        trace!("found an attachement");
+                    MessageStreamItem::Item(ParseYield::Attachment(_attachment)) => {
+                        trace!("found an attachment");
                     }
                     MessageStreamItem::Done => {
                         trace!("observe, message stream is done");

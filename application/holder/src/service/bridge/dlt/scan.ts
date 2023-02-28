@@ -21,7 +21,7 @@ export const handler = Requests.InjectLogger<
                 })
                 .start();
             dlt.scan(request.file, request.options)
-                .then((attachments: dlt.Types.FtFile[]) => {
+                .then((attachments: dlt.Types.Attachment[]) => {
                     resolve(
                         new Requests.Dlt.Scan.Response({
                             attachments,

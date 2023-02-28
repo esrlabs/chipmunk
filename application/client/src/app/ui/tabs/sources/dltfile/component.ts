@@ -19,7 +19,7 @@ import { LockToken } from '@platform/env/lock.token';
 import { Timezone } from '@elements/timezones/timezone';
 import { components } from '@env/decorators/initial';
 import { Action } from '../common/actions/action';
-import { Attachment } from './attachments/attachment';
+import { AttachmentAction } from './attachments/attachment.action';
 import { FtOptions } from '@platform/types/parsers/dlt';
 
 @Component({
@@ -55,7 +55,7 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
         { value: EMTIN.DLT_LOG_DEBUG, caption: 'Debug' },
         { value: EMTIN.DLT_LOG_VERBOSE, caption: 'Verbose' },
     ];
-    public attachment: Attachment = new Attachment(this.ilc(), this.log());
+    public attachment: AttachmentAction = new AttachmentAction(this.ilc(), this.log());
     public action: Action = new Action();
 
     private _filterLockTocken: LockToken = LockToken.simple(false);
@@ -77,7 +77,7 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
         }
         this.env().subscriber.register(
             this.attachment.subjects.get().scanned.subscribe(() => {
-                let options: FtOptions = { // TODO
+                const options: FtOptions = { // TODO
                     filter_config: undefined,
                     with_storage_header: true,
                 };
@@ -91,11 +91,11 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
                     if (folders.length === 0) {
                         return; // aborted
                     } else if (folders.length === 1) {
-                        let folder = folders[0];
+                        const folder = folders[0];
                         if (this.attachment.isScanned()) {
                             this.attachment.doExtract(folder);
                         } else {
-                            let options: FtOptions = { // TODO
+                            const options: FtOptions = { // TODO
                                 filter_config: undefined,
                                 with_storage_header: true,
                             };

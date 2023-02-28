@@ -76,13 +76,13 @@ where
                     msg.to_writer(&mut out_writer)?;
                     exported += 1;
                 }
-                MessageStreamItem::Item(ParseYield::MessageAndAttachement((msg, _attachement))) => {
+                MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _attachment))) => {
                     msg.to_writer(&mut out_writer)?;
                     exported += 1;
-                    // TODO @kevin: use attachement
+                    // TODO @kevin: use attachment
                 }
-                MessageStreamItem::Item(ParseYield::Attachement(_attachement)) => {
-                    // TODO @kevin: use attachement
+                MessageStreamItem::Item(ParseYield::Attachment(_attachment)) => {
+                    // TODO @kevin: use attachment
                 }
                 MessageStreamItem::Skipped => {}
                 MessageStreamItem::Incomplete => {}
@@ -123,13 +123,13 @@ where
                 }
                 current_index += 1;
             }
-            MessageStreamItem::Item(ParseYield::MessageAndAttachement((msg, _attachement))) => {
+            MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _attachment))) => {
                 if inside {
                     msg.to_writer(&mut out_writer)?;
                 }
                 current_index += 1;
             }
-            MessageStreamItem::Item(ParseYield::Attachement(_attachement)) => {}
+            MessageStreamItem::Item(ParseYield::Attachment(_attachment)) => {}
             MessageStreamItem::Skipped => {}
             MessageStreamItem::Incomplete => {}
             MessageStreamItem::Empty => {}

@@ -1,7 +1,7 @@
 import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Attachment } from './attachment';
+import { AttachmentAction } from './attachment.action';
 
 @Component({
     selector: 'app-tabs-source-attachments',
@@ -10,7 +10,7 @@ import { Attachment } from './attachment';
 })
 @Ilc()
 export class Attachments extends ChangesDetector implements AfterContentInit {
-    @Input() attachment!: Attachment;
+    @Input() attachment!: AttachmentAction;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);

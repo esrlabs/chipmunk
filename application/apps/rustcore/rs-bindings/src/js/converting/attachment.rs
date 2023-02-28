@@ -1,4 +1,3 @@
-use addon::dlt_ft::FtFile;
 use dlt_core::filtering::DltFilterConfig;
 use node_bindgen::{
     core::{
@@ -7,43 +6,21 @@ use node_bindgen::{
     },
     sys::napi_value,
 };
+use parsers::Attachment;
 use serde::Serialize;
 
 #[derive(Serialize, Debug, Clone)]
-pub struct WrappedFtFile(FtFile);
+pub struct WrappedAttachment(Attachment);
 
-impl WrappedFtFile {
-    pub fn as_file(&self) -> FtFile {
+impl WrappedAttachment {
+    pub fn as_attachment(&self) -> Attachment {
         self.0.clone()
     }
 }
 
-impl JSValue<'_> for WrappedFtFile {
+impl JSValue<'_> for WrappedAttachment {
     fn convert_to_rust(env: &JsEnv, n_value: napi_value) -> Result<Self, NjError> {
         if let Ok(js_obj) = env.convert_to_rust::<JsObject>(n_value) {
-            let timestamp: Option<u32> = match js_obj.get_property("timestamp") {
-                Ok(Some(value)) => match value.as_value() {
-                    Ok(val) => Some(val),
-                    _ => None,
-                },
-                Ok(None) => {
-                    return Err(NjError::Other(
-                        "[timestamp] property is not found".to_owned(),
-                    ));
-                }
-                Err(e) => {
-                    return Err(e);
-                }
-            };
-            let id: u32 = match js_obj.get_property("id") {
-                Ok(Some(value)) => value.as_value()?,
-                Ok(None) => {
-                    return Err(NjError::Other("[id] property is not found".to_owned()));
-                }
-                Err(e) => {
-                    return Err(e);
-                }
-            };
             let name: String = match js_obj.get_property("name") {
                 Ok(Some(value)) => value.as_value()?,
                 Ok(None) => {
@@ -53,8 +30,8 @@ impl JSValue<'_> for WrappedFtFile {
                     return Err(e);
                 }
             };
-            let size: u32 = match js_obj.get_property("size") {
-                Ok(Some(value)) => value.as_value()?,
+            let size: usize = match js_obj.get_property("size") {
+                Ok(Some(value)) => value.as_value::<u32>()? as usize,
                 Ok(None) => {
                     return Err(NjError::Other("[size] property is not found".to_owned()));
                 }
@@ -62,11 +39,22 @@ impl JSValue<'_> for WrappedFtFile {
                     return Err(e);
                 }
             };
-            let created: String = match js_obj.get_property("created") {
-                Ok(Some(value)) => value.as_value()?,
-                Ok(None) => {
-                    return Err(NjError::Other("[created] property is not found".to_owned()));
+            let created_date: Option<String> = match js_obj.get_property("created_date") {
+                Ok(Some(value)) => match value.as_value() {
+                    Ok(val) => Some(val),
+                    _ => None,
+                },
+                Ok(None) => None,
+                Err(e) => {
+                    return Err(e);
                 }
+            };
+            let modified_date: Option<String> = match js_obj.get_property("modified_date") {
+                Ok(Some(value)) => match value.as_value() {
+                    Ok(val) => Some(val),
+                    _ => None,
+                },
+                Ok(None) => None,
                 Err(e) => {
                     return Err(e);
                 }
@@ -91,12 +79,11 @@ impl JSValue<'_> for WrappedFtFile {
                     return Err(e);
                 }
             };
-            Ok(WrappedFtFile(FtFile {
-                timestamp,
-                id,
+            Ok(WrappedAttachment(Attachment {
                 name,
                 size,
-                created,
+                created_date,
+                modified_date,
                 messages: messages.iter().map(|m| *m as usize).collect(),
                 chunks: chunks
                     .iter()
@@ -105,7 +92,7 @@ impl JSValue<'_> for WrappedFtFile {
             }))
         } else {
             Err(NjError::Other(
-                "not valid format (WrappedFtFile)".to_owned(),
+                "not valid format (WrappedAttachment)".to_owned(),
             ))
         }
     }

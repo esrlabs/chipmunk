@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::Attachement;
+use crate::Attachment;
 
 const FT_START_TAG: &str = "FLST";
 const FT_DATA_TAG: &str = "FLDA";
@@ -226,29 +226,10 @@ impl FtMessageParser {
     }
 }
 
-/// A DLT-FT file info.
-// #[derive(Debug, Clone, Serialize)]
-// pub struct FtFile {
-//     /// The timestamp of the original DLT message, if any.
-//     pub timestamp: Option<u32>,
-//     /// The id of the file.
-//     pub id: u32,
-//     /// The name of the file.
-//     pub name: String,
-//     /// The total size of the file.
-//     pub size: u32,
-//     /// The creation date of the file.
-//     pub created: String,
-//     /// The DLT message indexes (1-based) within the original DLT trace.
-//     pub messages: Vec<usize>,
-//     /// The data chunks with byte offset and length within the original DLT trace.
-//     pub chunks: Vec<(usize, usize)>,
-// }
-
 /// An scanner for DLT-FT files contained in a DLT trace.
 #[derive(Debug)]
 pub struct FtScanner {
-    files: HashMap<u32, Attachement>,
+    files: HashMap<u32, Attachment>,
     index: usize,
 }
 
@@ -269,14 +250,14 @@ impl FtScanner {
     ///
     /// * `offset` - The offset of the message in the original DLT trace.
     /// * `message` - The message to be processed.
-    pub fn process(&mut self, offset: usize, message: &Message) -> Option<Attachement> {
+    pub fn process(&mut self, offset: usize, message: &Message) -> Option<Attachment> {
         self.index += 1;
         if let Some(ft_message) = FtMessageParser::parse(message) {
             match ft_message {
                 FtMessage::Start(ft_start) => {
                     self.files.insert(
                         ft_start.id,
-                        Attachement {
+                        Attachment {
                             // timestamp: ft_start.timestamp,
                             // id: ft_start.id,
                             name: ft_start.name.clone(),
@@ -368,6 +349,33 @@ impl FileExtractor {
         }
 
         Ok(bytes)
+    }
+
+    /// Returns the list of files with their file-system save names.
+    pub fn files_with_names(files: Vec<Attachment>) -> Vec<(Attachment, String)> {
+        let names: Vec<String> = files
+            .iter()
+            .map(|f| FileExtractor::file_name(&f.name))
+            .collect();
+        std::iter::zip(files, (0..names.len()).map(|i| names[i].to_string())).collect()
+    }
+
+    /// Returns the list of files with their file-system save names prefixed.
+    pub fn files_with_names_prefixed(files: Vec<Attachment>) -> Vec<(Attachment, String)> {
+        let names: Vec<String> = files
+            .iter()
+            .map(|f| FileExtractor::file_name(&f.name))
+            .collect();
+        std::iter::zip(
+            files,
+            (0..names.len()).map(|i| format!("{:0>8}_{}", i, names[i])),
+        )
+        .collect()
+    }
+
+    /// Returns a file-system save name.
+    pub fn file_name(name: &str) -> String {
+        name.replace(['\\', '/'], "$").replace(' ', "_")
     }
 }
 
@@ -588,13 +596,13 @@ pub mod tests {
         }
     }
 
-    fn scan_messages(messages: &[Message]) -> Vec<Attachement> {
+    fn scan_messages(messages: &[Message]) -> Vec<Attachment> {
         let mut scanner = FtScanner::new();
         let mut offset: usize = 0;
         let mut result_vec = vec![];
         for message in messages {
-            if let Some(attachement) = scanner.process(offset, message) {
-                result_vec.push(attachement);
+            if let Some(attachment) = scanner.process(offset, message) {
+                result_vec.push(attachment);
             }
             offset += DLT_HEADER_SIZE + message.as_bytes().len();
         }
@@ -716,7 +724,7 @@ pub mod tests {
         let dlt = output.dir.join("sample.dlt");
         write_dlt_file(dlt.clone(), &messages);
 
-        let file = Attachement {
+        let file = Attachment {
             name: "test.txt".to_string(),
             size: 4,
             created_date: Some("date".to_string()),
@@ -725,12 +733,10 @@ pub mod tests {
             chunks: vec![(181, 4)],
         };
 
-        let name = file.save_name();
-        let size =
-            FileExtractor::extract(&dlt, &output.dir.join(name.clone()), file.chunks).unwrap();
+        let size = FileExtractor::extract(&dlt, &output.dir.join(&file.name), file.chunks).unwrap();
         assert_eq!(file.size, size);
 
-        output.assert_file(&name, "test");
+        output.assert_file(&file.name, "test");
     }
 
     #[test]
@@ -748,7 +754,7 @@ pub mod tests {
         let dlt = output.dir.join("sample.dlt");
         write_dlt_file(dlt.clone(), &messages);
 
-        let file = Attachement {
+        let file = Attachment {
             name: "test.txt".to_string(),
             size: 26,
             created_date: Some("date".to_string()),
@@ -757,12 +763,46 @@ pub mod tests {
             chunks: vec![(181, 10), (269, 10), (357, 6)],
         };
 
-        let name = file.save_name();
-        let size =
-            FileExtractor::extract(&dlt, &output.dir.join(name.clone()), file.chunks).unwrap();
+        let size = FileExtractor::extract(&dlt, &output.dir.join(&file.name), file.chunks).unwrap();
         assert_eq!(file.size, size);
 
-        output.assert_file(&name, "abcdefghijklmnopqrstuvwxyz");
+        output.assert_file(&file.name, "abcdefghijklmnopqrstuvwxyz");
+    }
+
+    #[test]
+    fn test_file_name() {
+        assert_eq!(
+            FileExtractor::file_name("\\dir/foo bar.txt"),
+            String::from("$dir$foo_bar.txt")
+        );
+    }
+
+    #[test]
+    fn test_files_with_names() {
+        let index = scan_messages(&ft_files());
+        assert_eq!(3, index.len());
+
+        let files = FileExtractor::files_with_names(index);
+        assert_eq!(files[0].0.name, "test1.txt");
+        assert_eq!(files[0].1, "test1.txt");
+        assert_eq!(files[1].0.name, "test2.txt");
+        assert_eq!(files[1].1, "test2.txt");
+        assert_eq!(files[2].0.name, "test3.txt");
+        assert_eq!(files[2].1, "test3.txt");
+    }
+
+    #[test]
+    fn test_files_with_names_prefixed() {
+        let index = scan_messages(&ft_files());
+        assert_eq!(3, index.len());
+
+        let files = FileExtractor::files_with_names_prefixed(index);
+        assert_eq!(files[0].0.name, "test1.txt");
+        assert_eq!(files[0].1, "00000000_test1.txt");
+        assert_eq!(files[1].0.name, "test2.txt");
+        assert_eq!(files[1].1, "00000001_test2.txt");
+        assert_eq!(files[2].0.name, "test3.txt");
+        assert_eq!(files[2].1, "00000002_test3.txt");
     }
 }
 
@@ -793,5 +833,11 @@ impl TempDir {
 impl Drop for TempDir {
     fn drop(&mut self) {
         std::fs::remove_dir_all(self.dir.clone()).unwrap();
+    }
+}
+
+impl Default for TempDir {
+    fn default() -> Self {
+        Self::new()
     }
 }
