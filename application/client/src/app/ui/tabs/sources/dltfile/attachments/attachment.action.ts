@@ -58,32 +58,18 @@ export class AttachmentAction {
         }
     }
 
-    public doExtract(folder: string) {
-        if (this.index != undefined) {
-            for (let i = 0; i < this.index.length; i++) {
-                const entry = this.index[i];
-                const attachment_list = entry[2];
-                const attachments_with_names: [Attachment, string][] = [];
-                for (let j = 0; j < attachment_list.length; j++)  {
-                    const attachment = attachment_list[j];
-                    let attachment_name = attachment.name.replaceAll(' ', "_");
-                    attachment_name = attachment_name.replaceAll('\\', "$");
-                    attachment_name = attachment_name.replaceAll('/', "$");
-                    attachments_with_names.push([
-                        attachment, 
-                        attachment_name
-                    ]);
-                }
-                this.ilc.services.system.bridge.dlt()
-                .extract(entry[1], folder, attachments_with_names)
-                .then((size) => {
-                    this.log.debug(`Extracted ${size} bytes from ${entry[1]}`);
-                })
-                .catch((err: Error) => {
-                    this.log.error(`Fail to extract attachments: ${err.message}`);
-                });
-            }
-        }
+    public doExtract(file: string, folder: string, attachment: Attachment) {
+        let name = attachment.name.replaceAll(' ', "_");
+        name = name.replaceAll('\\', "$");
+        name = name.replaceAll('/', "$");
+        this.ilc.services.system.bridge.dlt()
+        .extract(file, folder, [[attachment, name]])
+        .then((size) => {
+            this.log.debug(`Extracted ${size} bytes from ${file}`);
+        })
+        .catch((err: Error) => {
+            this.log.error(`Fail to extract attachments: ${err.message}`);
+        });
     }
 
     public doExtractAll(files: File[], folder: string, options: FtOptions) {
@@ -100,19 +86,37 @@ export class AttachmentAction {
         }
     }
 
+    public doReset() {
+        this.index = undefined;
+    }
+
     public isScanned(): boolean {
         return this.index != undefined;
     }
 
     public getInfo(): string {
         if (this.index === undefined) {
-            return "";
+            return "Run scan to select items or extract all.";
         }
         let info: string = "";
         for (let i = 0; i < this.index.length; i++) {
             const entry = this.index[i];
-            info += entry[0] + " : " + entry[2].length + " files\n";
+            info += entry[0] + " : " + entry[2].length + " items\n";
         }
         return info;
+    }
+
+    public getList(): [string, Attachment][] {
+        if (this.index === undefined) {
+            return [];
+        }
+        const result: [string, Attachment][] = [];
+        for (let i = 0; i < this.index.length; i++) {
+            const entry = this.index[i];
+            for (let j = 0; j < entry[2].length; j++) {
+                result.push([entry[1], entry[2][j]]);
+            }
+        }
+        return result;
     }
 }

@@ -20,6 +20,7 @@ import { Timezone } from '@elements/timezones/timezone';
 import { components } from '@env/decorators/initial';
 import { Action } from '../common/actions/action';
 import { AttachmentAction } from './attachments/attachment.action';
+import { AttachmentInfo } from './attachments/list/attachment.info';
 import { FtOptions } from '@platform/types/parsers/dlt';
 
 @Component({
@@ -59,6 +60,7 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
     public action: Action = new Action();
 
     private _filterLockTocken: LockToken = LockToken.simple(false);
+    private _attachmentLockTocken: LockToken = LockToken.simple(false);
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -77,39 +79,43 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
         }
         this.env().subscriber.register(
             this.attachment.subjects.get().scanned.subscribe(() => {
-                const options: FtOptions = { // TODO
-                    filter_config: undefined,
-                    with_storage_header: true,
-                };
-                this.attachment.doScan(this.files, options);
+                if (!this.attachment.isScanned()) {
+                    const options: FtOptions = { // TODO
+                        filter_config: undefined,
+                        with_storage_header: true,
+                    };
+                    this.attachment.doScan(this.files, options);
+                } else if (confirm("Reset attachments?")) {
+                    this.attachment.doReset();
+                }
             }),
         );
         this.env().subscriber.register(
             this.attachment.subjects.get().extracted.subscribe(() => {
-                this.ilc().services.system.bridge.folders().select()
-                .then((folders) => {
-                    if (folders.length === 0) {
-                        return; // aborted
-                    } else if (folders.length === 1) {
-                        const folder = folders[0];
-                        if (this.attachment.isScanned()) {
-                            this.attachment.doExtract(folder);
-                        } else {
+                if (this.attachment.isScanned()) {
+                    this.ngAttachmentSelect();
+                } else if (confirm("Extract all attachments?")) {
+                    this.ilc().services.system.bridge.folders().select()
+                    .then((folders) => {
+                        if (folders.length === 0) {
+                            return; // aborted
+                        } else if (folders.length === 1) {
+                            const folder = folders[0];
                             const options: FtOptions = { // TODO
                                 filter_config: undefined,
                                 with_storage_header: true,
                             };
                             this.attachment.doExtractAll(this.files, folder, options);
-                        } 
-                    } else {
-                        this.log().error(`Invalid number of folders: ${folders.length}`);
+                        } else {
+                            this.log().error(`Invalid number of folders: ${folders.length}`);
+                            return;
+                        }
+                    })              
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to select folder: ${err.message}`);
                         return;
-                    }
-                })              
-                .catch((err: Error) => {
-                    this.log().error(`Fail to select folder: ${err.message}`);
-                    return;
-                });
+                    });
+                }
             }),
         );
         this.env().subscriber.register(
@@ -326,6 +332,45 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
             ],
             x: event.x,
             y: event.y,
+        });
+    }
+
+    public ngAttachmentSelect() {
+        this._attachmentLockTocken.lock();
+        if (this.state.filters.entities.drop()) {
+            this.state.struct().filter();
+        }
+        this.ilc().services.ui.popup.open({
+            component: {
+                factory: components.get('app-attachments-list'),
+                inputs: {
+                    list: this.attachment.getList(),
+                    selected: (attachment: AttachmentInfo): void => {
+                        this.ilc().services.system.bridge.folders().select()
+                        .then((folders) => {
+                            if (folders.length === 0) {
+                                return; // aborted
+                            } else if (folders.length === 1) {
+                                const folder = folders[0];
+                                this.attachment.doExtract(attachment.path, folder, attachment.attachment);
+                            } else {
+                                this.log().error(`Invalid number of folders: ${folders.length}`);
+                                return;
+                            }
+                        })              
+                        .catch((err: Error) => {
+                            this.log().error(`Fail to select folder: ${err.message}`);
+                            return;
+                        });
+                    },
+                },
+            },
+            closeOnKey: 'Escape',
+            width: 750,
+            closed: () => {
+                this._attachmentLockTocken.unlock();
+            },
+            uuid: 'app-attachments-list',
         });
     }
 }

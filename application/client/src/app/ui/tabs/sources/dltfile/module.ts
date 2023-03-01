@@ -17,6 +17,7 @@ import { TabSourceDltFile } from './component';
 import { TabSourceDltFileStructure } from './structure/component';
 import { SourcesCommonModule } from '../common/module';
 import { Attachments } from './attachments/component';
+import { AttachmentsList } from './attachments/list/module';
 
 const entryComponents = [TabSourceDltFile, TabSourceDltFileStructure, Attachments];
 const components = [TabSourceDltFile, TabSourceDltFileStructure, Attachments];
@@ -39,6 +40,7 @@ const components = [TabSourceDltFile, TabSourceDltFileStructure, Attachments];
         MatSelectModule,
         MatListModule,
         SourcesCommonModule,
+        AttachmentsList,
     ],
     declarations: [...components],
     exports: [...components],
