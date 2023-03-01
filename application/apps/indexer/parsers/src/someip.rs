@@ -359,10 +359,12 @@ mod test {
         let (output, message) = parser.parse(input, None).unwrap();
 
         assert!(output.is_empty());
-        assert_eq!(
-            "SOME/IP Magic-Cookie-Client",
-            format!("{:?}", message.unwrap())
-        );
+
+        if let ParseYield::Message(item) = message.unwrap() {
+            assert_str("SOME/IP Magic-Cookie-Client", &format!("{}", item));
+        } else {
+            panic!("unexpected parse yield");
+        }
     }
 
     #[test]
@@ -378,10 +380,12 @@ mod test {
         let (output, message) = parser.parse(input, None).unwrap();
 
         assert!(output.is_empty());
-        assert_eq!(
-            "SOME/IP Magic-Cookie-Server",
-            format!("{:?}", message.unwrap())
-        );
+
+        if let ParseYield::Message(item) = message.unwrap() {
+            assert_str("SOME/IP Magic-Cookie-Server", &format!("{}", item));
+        } else {
+            panic!("unexpected parse yield");
+        }
     }
 
     #[test]
@@ -406,7 +410,11 @@ mod test {
             - UnknownService::UnknownMethod
         "#;
 
-        assert_str(expected, &format!("{:?}", message.unwrap()));
+        if let ParseYield::Message(item) = message.unwrap() {
+            assert_str(expected, &format!("{}", item));
+        } else {
+            panic!("unexpected parse yield");
+        }
     }
 
     #[test]
@@ -433,7 +441,11 @@ mod test {
             - TestService::emptyEvent
         "#;
 
-        assert_str(expected, &format!("{:?}", message.unwrap()));
+        if let ParseYield::Message(item) = message.unwrap() {
+            assert_str(expected, &format!("{}", item));
+        } else {
+            panic!("unexpected parse yield");
+        }
     }
 
     #[test]
@@ -459,7 +471,11 @@ mod test {
             - UnknownService::UnknownMethod (UnknownType)
         "#;
 
-        assert_str(expected, &format!("{:?}", message.unwrap()));
+        if let ParseYield::Message(item) = message.unwrap() {
+            assert_str(expected, &format!("{}", item));
+        } else {
+            panic!("unexpected parse yield");
+        }
     }
 
     #[test]
@@ -490,7 +506,11 @@ mod test {
             }
         "#;
 
-        assert_str(expected, &format!("{:?}", message.unwrap()));
+        if let ParseYield::Message(item) = message.unwrap() {
+            assert_str(expected, &format!("{}", item));
+        } else {
+            panic!("unexpected parse yield");
+        }
     }
 
     #[test]
@@ -515,7 +535,11 @@ mod test {
             - Flags: R,U
         "#;
 
-        assert_str(expected, &format!("{:?}", message.unwrap()));
+        if let ParseYield::Message(item) = message.unwrap() {
+            assert_str(expected, &format!("{}", item));
+        } else {
+            panic!("unexpected parse yield");
+        }
     }
 
     #[test]
@@ -559,6 +583,10 @@ mod test {
               |- 127.0.0.1:30000 (UDP)
         "#;
 
-        assert_str(expected, &format!("{:?}", message.unwrap()));
+        if let ParseYield::Message(item) = message.unwrap() {
+            assert_str(expected, &format!("{}", item));
+        } else {
+            panic!("unexpected parse yield");
+        }
     }
 }

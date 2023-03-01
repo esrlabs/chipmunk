@@ -20,7 +20,7 @@ import { Timezone } from '@elements/timezones/timezone';
 import { components } from '@env/decorators/initial';
 import { Action } from '../common/actions/action';
 import { AttachmentAction } from './attachments/attachment.action';
-import { AttachmentInfo } from './attachments/list/attachment.info';
+import { AttachmentItem } from './attachments/list/attachment.item';
 import { FtOptions } from '@platform/types/parsers/dlt';
 
 @Component({
@@ -85,7 +85,7 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
                         with_storage_header: true,
                     };
                     this.attachment.doScan(this.files, options);
-                } else if (confirm("Reset attachments?")) {
+                } else if (confirm("Reset scanned attachments?")) {
                     this.attachment.doReset();
                 }
             }),
@@ -345,7 +345,7 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
                 factory: components.get('app-attachments-list'),
                 inputs: {
                     list: this.attachment.getList(),
-                    selected: (attachment: AttachmentInfo): void => {
+                    selected: (attachment: AttachmentItem): void => {
                         this.ilc().services.system.bridge.folders().select()
                         .then((folders) => {
                             if (folders.length === 0) {

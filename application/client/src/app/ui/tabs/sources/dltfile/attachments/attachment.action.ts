@@ -96,7 +96,7 @@ export class AttachmentAction {
 
     public getInfo(): string {
         if (this.index === undefined) {
-            return "Run scan to select items or extract all.";
+            return "Run scan to select items or extract all";
         }
         let info: string = "";
         for (let i = 0; i < this.index.length; i++) {

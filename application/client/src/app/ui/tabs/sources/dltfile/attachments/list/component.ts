@@ -8,7 +8,7 @@ import {
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { AttachmentInfo } from './attachment.info';
+import { AttachmentItem } from './attachment.item';
 import { State } from './state';
 import { Initial } from '@env/decorators/initial';
 import { Attachment } from '@platform/types/parsers/dlt';
@@ -23,7 +23,7 @@ import { Attachment } from '@platform/types/parsers/dlt';
 @Ilc()
 export class AttachmentsListSelector extends ChangesDetector {
     @Input() public list!: [string, Attachment][];
-    @Input() public selected!: (attachment: AttachmentInfo) => void;
+    @Input() public selected!: (attachment: AttachmentItem) => void;
     @Input() public close!: () => void;
     @HostListener('window:keydown', ['$event'])
     handleKeyDown(event: KeyboardEvent) {
@@ -43,7 +43,7 @@ export class AttachmentsListSelector extends ChangesDetector {
         this.state = new State(this.ilc(), this.list);
     }
 
-    public ngOnSelect(attachment: AttachmentInfo) {
+    public ngOnSelect(attachment: AttachmentItem) {
         this.selected(attachment);
         this.close();
     }
@@ -52,7 +52,7 @@ export class AttachmentsListSelector extends ChangesDetector {
         return this._sanitizer.bypassSecurityTrustHtml(html);
     }
 
-    public attachments(): AttachmentInfo[] {
+    public attachments(): AttachmentItem[] {
         return this.state.list.filter((item) => !item.hidden());
     }
 }

@@ -3,7 +3,7 @@ import { Attachment } from '@platform/types/parsers/dlt';
 
 import { Matchee } from '@module/matcher';
 
-export class AttachmentInfo extends Matchee {
+export class AttachmentItem extends Matchee {
     public readonly path: string;
     public readonly attachment: Attachment;
 
@@ -11,7 +11,7 @@ export class AttachmentInfo extends Matchee {
 
     constructor(path: string, attachment: Attachment, matcher: wasm.Matcher) {
         super(matcher, { name: attachment.name });
-        AttachmentInfo.matcher = matcher;
+        AttachmentItem.matcher = matcher;
         this.path = path;
         this.attachment = attachment;
     }

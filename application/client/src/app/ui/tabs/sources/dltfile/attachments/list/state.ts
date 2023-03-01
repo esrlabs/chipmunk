@@ -1,5 +1,5 @@
 import { Filter } from '@ui/env/entities/filter';
-import { AttachmentInfo } from './attachment.info';
+import { AttachmentItem } from './attachment.item';
 import { InternalAPI } from '@service/ilc';
 
 import { Holder } from '@module/matcher';
@@ -7,13 +7,13 @@ import { Attachment } from '@platform/types/parsers/dlt';
 
 export class State extends Holder {
     public filter: Filter;
-    public list: AttachmentInfo[] = [];
+    public list: AttachmentItem[] = [];
 
     constructor(ilc: InternalAPI, list: [string, Attachment][]) {
         super();
         this.filter = new Filter(ilc);
         this.list = list.map((item: [string, Attachment]) => {
-            return new AttachmentInfo(
+            return new AttachmentItem(
                 item[0],
                 item[1],
                 this.matcher,
@@ -25,7 +25,7 @@ export class State extends Holder {
     public update(): void {
         this.matcher.search(this.filter.value());
         this.list = this.list.sort(
-            (a: AttachmentInfo, b: AttachmentInfo) => b.getScore() - a.getScore(),
+            (a: AttachmentItem, b: AttachmentItem) => b.getScore() - a.getScore(),
         );
     }
 }
