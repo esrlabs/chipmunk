@@ -45,6 +45,16 @@
                 }
             }
         },
+        "jobs": {
+            "regular": {
+                "execute_only": [],
+                "list": {
+                    "1": "Test 1. Usage"
+                },
+                "files": {
+                }
+            }
+        },
         "concat": {
             "regular": {
                 "execute_only": [],
