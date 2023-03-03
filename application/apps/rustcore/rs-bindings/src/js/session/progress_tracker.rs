@@ -1,7 +1,7 @@
 use log::debug;
 use node_bindgen::derive::node_bindgen;
 use session::events::ComputationError;
-use std::{collections::HashMap, process::Command, thread};
+use std::{collections::HashMap, thread};
 use tokio::{runtime::Runtime, sync::mpsc};
 
 use lazy_static::lazy_static;
@@ -11,7 +11,7 @@ use uuid::Uuid;
 use super::events::{CallbackEventWrapper, ComputationErrorWrapper};
 
 lazy_static! {
-    pub static ref tracker_channel: Mutex<(
+    pub static ref TRACKER_CHANNEL: Mutex<(
         mpsc::UnboundedSender<String>,
         Option<mpsc::UnboundedReceiver<String>>
     )> = {
@@ -42,7 +42,7 @@ impl ProgressTracker {
             ComputationError::Process(format!("Could not start tokio runtime: {e}"))
         })?;
         let uuid = self.uuid;
-        let mut rx = tracker_channel
+        let mut rx = TRACKER_CHANNEL
             .lock()
             .map_err(|e| {
                 ComputationError::Communication(format!("Cannot init channels from mutex: {e}"))
