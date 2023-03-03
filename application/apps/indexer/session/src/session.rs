@@ -43,12 +43,7 @@ impl Session {
     /// The operations loop is the entry point to pass opartion requests from an outside thread.
     /// The state loop is responsible for all state manipulations of the session.
     ///
-    pub async fn new(
-        uuid: Uuid,
-        tx: mpsc::UnboundedSender<String>,
-    ) -> (Self, UnboundedReceiver<CallbackEvent>) {
-        tx.send("hello from rust".to_string())
-            .expect("we should be able to send");
+    pub async fn new(uuid: Uuid) -> (Self, UnboundedReceiver<CallbackEvent>) {
         let (tx_operations, rx_operations): OperationsChannel = unbounded_channel();
         let (tracker_api, rx_tracker_api) = OperationTrackerAPI::new();
         let (state_api, rx_state_api) = SessionStateAPI::new(tracker_api.clone());

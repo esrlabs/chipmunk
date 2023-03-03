@@ -22,8 +22,6 @@ use std::{convert::TryFrom, ops::RangeInclusive, path::PathBuf, thread};
 use tokio::{runtime::Runtime, sync::oneshot};
 use uuid::Uuid;
 
-use self::progress_tracker::tracker_channel;
-
 struct RustSession {
     session: Option<Session>,
     uuid: Uuid,
@@ -59,8 +57,7 @@ impl RustSession {
         let uuid = self.uuid;
         thread::spawn(move || {
             rt.block_on(async {
-                let (session, mut rx_callback_events) =
-                    Session::new(uuid, tracker_channel.lock().unwrap().0.clone()).await;
+                let (session, mut rx_callback_events) = Session::new(uuid).await;
                 if tx_session.send(session).is_err() {
                     error!("Cannot setup session instance");
                     return;
