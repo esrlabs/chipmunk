@@ -47,6 +47,9 @@ export interface IConfiguration {
         shells: {
             regular: IRegularTests;
         };
+        jobs: {
+            regular: IRegularTests;
+        };
         concat: {
             regular: IRegularTests;
         };

@@ -46,6 +46,8 @@ export * as shells from './native/native.shells';
 
 export { Units, Events, Interfaces };
 
+export { Jobs } from './native/native.jobs';
+
 setUuidGenerator(v4);
 import { ProgressTrackerNoType } from "./native/native";
 export function createTracker() {
