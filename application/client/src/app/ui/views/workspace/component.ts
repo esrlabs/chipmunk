@@ -7,6 +7,7 @@ import { Service } from '@elements/scrollarea/controllers/service';
 import { getScrollAreaService, setScrollAreaService } from './backing';
 import { Columns } from '@schema/render/columns';
 import { Owner } from '@schema/content/row';
+import { ColumnsHeaders } from './headers/component';
 
 @Component({
     selector: 'app-views-workspace',
@@ -17,6 +18,7 @@ import { Owner } from '@schema/content/row';
 @Ilc()
 export class ViewWorkspace implements AfterContentInit, OnDestroy {
     @ViewChild(ScrollAreaComponent) scrollAreaComponent!: ScrollAreaComponent;
+    @ViewChild('headers') headers!: ColumnsHeaders;
 
     @Input() public session!: Session;
 
@@ -73,6 +75,13 @@ export class ViewWorkspace implements AfterContentInit, OnDestroy {
         );
         const bound = this.session.render.getBoundEntity();
         this.columns = bound instanceof Columns ? bound : undefined;
+    }
+
+    public onHorizontalScrolling(offset: number): void {
+        if (this.headers === undefined || this.headers === null) {
+            return;
+        }
+        this.headers.setOffset(offset);
     }
 
     protected move(): {

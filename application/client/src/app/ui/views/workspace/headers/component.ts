@@ -47,6 +47,7 @@ class RenderedHeader {
 @Ilc()
 export class ColumnsHeaders extends ChangesDetector implements AfterContentInit {
     public readonly Direction = Direction;
+    public offset: number = 0;
 
     @Input() public controller!: Columns;
     @Input() public session!: Session;
@@ -73,6 +74,7 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
         return {
             width: `${this.session.stream.rank.width()}px`,
             minWidth: `${this.session.stream.rank.width()}px`,
+            marginLeft: `-${this.offset}px`,
         };
     }
 
@@ -80,6 +82,11 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
         header.resize(width);
         this.markChangesForCheck();
         this.controller.subjects.get().resized.emit(index);
+    }
+
+    public setOffset(left: number): void {
+        this.offset = left;
+        this.detectChanges();
     }
 }
 export interface ColumnsHeaders extends IlcInterface {}
