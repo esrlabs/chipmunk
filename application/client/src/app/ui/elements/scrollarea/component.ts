@@ -9,6 +9,8 @@ import {
     ChangeDetectionStrategy,
     HostBinding,
     HostListener,
+    Output,
+    EventEmitter,
 } from '@angular/core';
 import { Subscriber } from '@platform/env/subscription';
 import { Row } from '@schema/content/row';
@@ -44,6 +46,8 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
 
     @Input() public service!: Service;
     @Input() public tabIndex!: number;
+
+    @Output() public offset = new EventEmitter<number>();
 
     private readonly _subscriber: Subscriber = new Subscriber();
     private _id: string = unique();
@@ -182,6 +186,14 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
 
     public onScrolling(position: number) {
         this.frame.moveTo(position, ChangesInitiator.Scrolling);
+    }
+
+    public onContainerScrolling(event: Event) {
+        const target = event.target as HTMLElement;
+        if (target.scrollLeft === undefined) {
+            return;
+        }
+        this.offset.emit(target.scrollLeft);
     }
 
     public onWheel(event: WheelEvent) {

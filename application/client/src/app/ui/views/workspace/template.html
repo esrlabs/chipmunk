@@ -1,7 +1,7 @@
 <div class="header" *ngIf="columns !== undefined">
-    <app-scrollarea-row-columns-headers [controller]="columns" [session]="session"></app-scrollarea-row-columns-headers>
+    <app-scrollarea-row-columns-headers #headers [controller]="columns" [session]="session"></app-scrollarea-row-columns-headers>
 </div>
 <div class="content">
-    <app-scrollarea class="noreset" [service]="service" [tabIndex]="5"></app-scrollarea>
+    <app-scrollarea class="noreset" [service]="service" [tabIndex]="5" (offset)="onHorizontalScrolling($event)"></app-scrollarea>
     <app-views-content-map [session]="session"></app-views-content-map>
 </div>
