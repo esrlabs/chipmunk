@@ -65,8 +65,17 @@ function setup() {
         ).argParser(parser(CLI_HANDLERS['search'])),
     );
     const files = cli
-        .command('files', { isDefault: true })
-        .description('Opens file(s) or concat files');
+        .command('files [filename...]', { isDefault: true })
+        .description('Opens file(s) or concat files')
+        .action((args: string[]) => {
+            if (args.length === 0) {
+                return;
+            }
+            // Opening file as defualt option for "files" command.
+            // Note, "files" command also is a default command.
+            // It makes "./chipmunk file_name" to open a file
+            parser(CLI_HANDLERS['open'])(args[0], '');
+        });
     files.option(
         '-o, --open <filename...>',
         'Opens file(s) in separated sessions (tabs). Ex: cm -o /path/file_name_a /path/file_name_b',
