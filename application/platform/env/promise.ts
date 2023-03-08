@@ -253,7 +253,6 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
     }
 
     private _doCancellation(reason?: C) {
-        this._handlers.clear();
         if (this._cancellation === undefined) {
             return;
         }
