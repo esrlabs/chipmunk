@@ -89,13 +89,21 @@ export class Jobs {
         });
     }
 
+    // This method is an example of wrapped into CancelablePromise job
     public jobCancelTest(num_a: number, num_b: number): CancelablePromise<number> {
         const job = this.execute(
-            (res: number) => {
+            // We should define validation callback. As argument it takes result of job,
+            // which should be checked for type. In case it type is correct, callback
+            // should return true
+            (res: number): boolean => {
                 return typeof res === 'number';
             },
+            // As second argument of executor we should provide native function of job.
             this._native.jobCancelTest(
                 (uuid: string) => {
+                    // To make cancalation possible we should emit event "uuid" in the
+                    // scope of CancelablePromise. This function should be used for all
+                    // jobs in same way.
                     job.emit('uuid', uuid);
                 },
                 num_a,
