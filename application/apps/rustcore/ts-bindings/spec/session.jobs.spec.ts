@@ -4,6 +4,7 @@
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 
+import * as fs from 'fs';
 import { Session, Observe } from '../src/api/session';
 import { Jobs } from '../src/index';
 import { getLogger } from '../src/util/logging';
@@ -26,6 +27,17 @@ function ingore(id: string | number, done: () => void) {
 }
 
 describe('Jobs', function () {
+    it(config.regular.list[2], async function (done) {
+        const testName = config.regular.list[1];
+        const path = config.regular.files["path"];
+        if (!fs.existsSync(path)) {
+            console.log(`Path ${path} doesn't exist, test skipped`);
+            done();
+            return;
+        }
+
+    })
+
     it(config.regular.list[1], async function (done) {
         const testName = config.regular.list[1];
         if (ingore(1, done)) {
@@ -59,3 +71,5 @@ describe('Jobs', function () {
         finish(undefined, done);
     });
 });
+
+// fn do_double(x: u64) -> u64

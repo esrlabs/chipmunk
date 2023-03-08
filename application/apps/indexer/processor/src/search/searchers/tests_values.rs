@@ -22,7 +22,7 @@ fn extracted(
     let file_size = input_file.metadata()?.len();
     let mut holder: BaseSearcher<ValueSearchState> =
         ValueSearchHolder::new(tmp_file.path(), Uuid::new_v4(), 0, 0);
-    holder.setup(filters.clone()).expect("set_filters failed");
+    holder.setup(filters).expect("set_filters failed");
     let (_range, values) =
         searchers::values::search(&mut holder, 0, file_size, CancellationToken::new())
             .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {e}")))?;

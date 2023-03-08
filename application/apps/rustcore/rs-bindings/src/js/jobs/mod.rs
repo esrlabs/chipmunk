@@ -1,10 +1,15 @@
 use crate::js::session::events::ComputationErrorWrapper;
 use log::{debug, error};
-use node_bindgen::derive::node_bindgen;
+use node_bindgen::{
+    core::{val::JsEnv, NjError, TryIntoJs},
+    derive::node_bindgen,
+    sys::napi_value,
+};
+use serde::Serialize;
 use session::{
     events::ComputationError,
     operations,
-    unbound::{api::SessionAPI, session::Session},
+    unbound::{api::SessionAPI, commands::CommandOutcome, session::UnboundSession},
 };
 use std::thread;
 use tokio::runtime::Runtime;
@@ -13,6 +18,20 @@ use tokio_util::sync::CancellationToken;
 struct Jobs {
     api: Option<SessionAPI>,
     finished: CancellationToken,
+}
+
+pub(crate) struct CommandOutcomeWrapper<T: Serialize>(pub CommandOutcome<T>);
+
+impl<T: Serialize> TryIntoJs for CommandOutcomeWrapper<T> {
+    /// serialize into json object
+    fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
+        match serde_json::to_string(&self.0) {
+            Ok(s) => js_env.create_string_utf8(&s),
+            Err(e) => Err(NjError::Other(format!(
+                "Could not convert Callback event to json: {e}"
+            ))),
+        }
+    }
 }
 
 #[node_bindgen]
@@ -31,7 +50,7 @@ impl Jobs {
         let rt = Runtime::new().map_err(|e| {
             ComputationError::Process(format!("Could not start tokio runtime: {e}"))
         })?;
-        let (mut session, api) = Session::new();
+        let (mut session, api) = UnboundSession::new();
         self.api = Some(api);
         let confirmation = self.finished.clone();
         thread::spawn(move || {
@@ -49,16 +68,13 @@ impl Jobs {
         Ok(())
     }
 
-    /// Kills unbound session as itself with jump to line 42.
     #[node_bindgen]
     async fn destroy(&self) -> Result<(), ComputationErrorWrapper> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)
-            .map_err(ComputationErrorWrapper)?
+            .ok_or(ComputationError::SessionUnavailable)?
             .shutdown()
-            .await
-            .map_err(ComputationErrorWrapper)?;
+            .await?;
         self.finished.cancelled().await;
         Ok(())
     }
@@ -68,8 +84,7 @@ impl Jobs {
     async fn abort(&self, operation_uuid: String) -> Result<(), ComputationErrorWrapper> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)
-            .map_err(ComputationErrorWrapper)?
+            .ok_or(ComputationError::SessionUnavailable)?
             .cancel_job(
                 &operations::uuid_from_str(&operation_uuid).map_err(ComputationErrorWrapper)?,
             )
@@ -79,18 +94,33 @@ impl Jobs {
 
     // Custom methods (jobs)
     #[node_bindgen]
+    async fn list_folder_content<F: Fn(String) + Send + 'static>(
+        &self,
+        send_operation_uuid: F,
+        path: String,
+    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
+        self.api
+            .as_ref()
+            .ok_or(ComputationError::SessionUnavailable)?
+            .list_folder_content(send_operation_uuid, path)
+            .await
+            .map_err(ComputationErrorWrapper)
+            .map(CommandOutcomeWrapper)
+    }
+
+    #[node_bindgen]
     async fn job_cancel_test<F: Fn(String) + Send + 'static>(
         &self,
         send_operation_uuid: F,
         custom_arg_a: i64,
         custom_arg_b: i64,
-    ) -> Result<i64, ComputationErrorWrapper> {
+    ) -> Result<CommandOutcomeWrapper<i64>, ComputationErrorWrapper> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)
-            .map_err(ComputationErrorWrapper)?
+            .ok_or(ComputationError::SessionUnavailable)?
             .cancel_test(send_operation_uuid, custom_arg_a, custom_arg_b)
             .await
             .map_err(ComputationErrorWrapper)
+            .map(CommandOutcomeWrapper)
     }
 }

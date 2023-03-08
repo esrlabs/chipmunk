@@ -14,7 +14,7 @@
                 },
                 "files": {
                     "pcapng": "/storage/projects/esrlabs/logs-examples/test.pcapng",
-                    "dlt": "/storage/projects/esrlabs/logs-examples/dlt_receive_2.dlt"    
+                    "dlt": "/storage/projects/esrlabs/logs-examples/dlt_receive_2.dlt"
                 }
             },
             "performance": {
@@ -49,9 +49,11 @@
             "regular": {
                 "execute_only": [],
                 "list": {
-                    "1": "Test 1. Usage"
+                    "1": "Test 1. Usage",
+                    "2": "Test 2. Folder Example"
                 },
                 "files": {
+                    "path": "/storage/projects/esrlabs/logs-examples/test.pcapng"
                 }
             }
         },
@@ -65,7 +67,7 @@
                 },
                 "files": {
                     "pcapng": "/storage/projects/esrlabs/logs-examples/test.pcapng",
-                    "dlt": ["/storage/projects/esrlabs/logs-examples/dlt_receive_2.dlt", "/storage/projects/esrlabs/logs-examples/FzgProg_SPss.dlt"]    
+                    "dlt": ["/storage/projects/esrlabs/logs-examples/dlt_receive_2.dlt", "/storage/projects/esrlabs/logs-examples/FzgProg_SPss.dlt"]
                 }
             }
         },
@@ -128,7 +130,7 @@
                     "dlt": [
                         "/storage/projects/esrlabs/logs-examples/chipmunk_example_data-master/dlt/morten_1.dlt",
                         "/storage/projects/esrlabs/logs-examples/chipmunk_example_data-master/dlt/testfile.dlt"
-                    ]    
+                    ]
                 }
             }
         },
@@ -154,7 +156,7 @@
                         }
                     }
                 }
-                
+
             }
         },
         "errors": {
