@@ -2,8 +2,6 @@ use crate::{
     events::ComputationError,
     unbound::{
         api::{SessionAPI, API},
-        job,
-        job::Job,
         signal::Signal,
     },
 };
@@ -13,12 +11,12 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-pub struct Session {
+pub struct UnboundSession {
     rx: Option<UnboundedReceiver<API>>,
     pub finished: CancellationToken,
 }
 
-impl Session {
+impl UnboundSession {
     pub fn new() -> (Self, SessionAPI) {
         let (tx, rx): (UnboundedSender<API>, UnboundedReceiver<API>) = unbounded_channel();
         (
@@ -28,16 +26,6 @@ impl Session {
             },
             SessionAPI::new(tx),
         )
-    }
-
-    async fn run(job: Job, signal: &Signal) -> Result<(), ComputationError> {
-        match job {
-            Job::CancelTest(custom_arg_a, custom_arg_b, tx_results) => tx_results
-                .send(job::cancel_test::handler(custom_arg_a, custom_arg_b, signal.clone()).await)
-                .map_err(|_| {
-                    ComputationError::Communication(String::from("Channel of job is closed"))
-                }),
-        }
     }
 
     pub async fn init(&mut self) -> Result<(), ComputationError> {
@@ -56,14 +44,7 @@ impl Session {
                         tokio::spawn(async move {
                             let job_alias = job.to_string();
                             debug!("Job {job_alias} has been called");
-                            match Session::run(job, &signal).await {
-                                Ok(_) => {
-                                    debug!("Job {job_alias} is executed and done or canceled");
-                                }
-                                Err(err) => {
-                                    error!("Job {job_alias} executed with error: {err}");
-                                }
-                            }
+                            crate::unbound::commands::process(job, signal.clone()).await;
                             signal.confirm();
                         });
                         if tx_uuid.send(uuid).is_err() {

@@ -6,10 +6,10 @@ import * as Logs from '../util/logging';
 
 export interface IRustModuleExports {
     RustSession: any;
-    ProgressTracker: any;
     Jobs: any;
     Dlt: any;
     Shells: any;
+    ProgressTracker: any;
     Serial: any;
     Files: any;
     getFilterError: (filter: {

@@ -1,20 +1,23 @@
-use crate::{events::ComputationError, unbound::signal::Signal};
+use crate::{
+    events::ComputationError,
+    unbound::{commands::CommandOutcome, signal::Signal},
+};
 use tokio::{
     select,
     time::{sleep, Duration},
 };
 
-pub async fn handler(
+pub async fn cancel_test(
     custom_arg_a: i64,
     custom_arg_b: i64,
     signal: Signal,
-) -> Result<i64, ComputationError> {
-    select! {
+) -> Result<CommandOutcome<i64>, ComputationError> {
+    Ok(select! {
         _ = signal.cancelled() => {
-            Ok(0)
+            CommandOutcome::Cancelled
         }
         _ = sleep(Duration::from_millis(3000)) => {
-            Ok(custom_arg_a + custom_arg_b)
+            CommandOutcome::Finished(custom_arg_a + custom_arg_b)
         }
-    }
+    })
 }
