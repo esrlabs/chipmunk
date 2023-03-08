@@ -16,7 +16,7 @@ pub async fn cancel_test(
         _ = signal.cancelled() => {
             CommandOutcome::Cancelled
         }
-        _ = sleep(Duration::from_millis(3000)) => {
+        _ = sleep(Duration::from_millis(500)) => {
             CommandOutcome::Finished(custom_arg_a + custom_arg_b)
         }
     })

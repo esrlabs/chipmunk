@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as Logs from '../util/logging';
 
+import { CancelablePromise } from 'platform/env/promise';
+import { error } from 'platform/env/logger';
 import { getNativeModule } from './native';
 
 export abstract class JobsNative {
@@ -14,8 +16,10 @@ export abstract class JobsNative {
         uuid: (uuid: string) => void,
         num_a: number,
         num_b: number,
-    ): Promise<number>;
+    ): Promise<string>;
 }
+
+export type JobResult<T> = { Finished: T } | 'Cancelled';
 
 export class Jobs {
     private readonly _logger: Logs.Logger = Logs.getLogger(`Jobs`);
@@ -38,7 +42,6 @@ export class Jobs {
                     this._logger.error(
                         `Fail to init Jobs session: ${err instanceof Error ? err.message : err}`,
                     );
-                    console.log(err);
                     reject(err);
                 });
         });
@@ -62,7 +65,6 @@ export class Jobs {
                             err instanceof Error ? err.message : err
                         }`,
                     );
-                    console.log(err);
                     reject(err);
                 })
                 .finally(() => {
@@ -82,30 +84,67 @@ export class Jobs {
                             err instanceof Error ? err.message : err
                         }`,
                     );
-                    console.log(err);
                     reject(err);
                 });
         });
     }
 
-    public async jobCancelTest(
-        uuid: (uuid: string) => void,
-        num_a: number,
-        num_b: number,
-    ): Promise<number> {
-        return new Promise((resolve, reject) => {
-            this._native
-                .jobCancelTest(uuid, num_a, num_b)
-                .then(resolve)
-                .catch((err: Error) => {
-                    this._logger.error(
-                        `Fail to do "some" operation due error: ${
-                            err instanceof Error ? err.message : err
-                        }`,
-                    );
-                    console.log(err);
-                    reject(err);
+    public jobCancelTest(num_a: number, num_b: number): CancelablePromise<number> {
+        const job = this.execute(
+            (res: number) => {
+                return typeof res === 'number';
+            },
+            this._native.jobCancelTest(
+                (uuid: string) => {
+                    job.emit('uuid', uuid);
+                },
+                num_a,
+                num_b,
+            ),
+        );
+        return job;
+    }
+
+    protected execute<T>(
+        validate: (result: T) => boolean,
+        task: Promise<string>,
+    ): CancelablePromise<T> {
+        return new CancelablePromise((resolve, reject, cancel, refCancel, self) => {
+            let jobUuid: string | undefined;
+            refCancel(() => {
+                if (jobUuid === undefined) {
+                    // Cancelation will be started as soon as UUID of operation will be gotten
+                    return;
+                }
+                this.abort(jobUuid).catch((err: Error) => {
+                    this._logger.error(`Fail to cancel ${error(err)}`);
                 });
+            });
+            self.on('uuid', (uuid: string) => {
+                jobUuid = uuid;
+                if (self.isCanceling()) {
+                    this.abort(jobUuid).catch((err: Error) => {
+                        this._logger.error(`Fail to cancel ${error(err)}`);
+                    });
+                }
+            });
+            task.then((income: string) => {
+                try {
+                    const result: JobResult<T> = JSON.parse(income);
+                    if (result === 'Cancelled') {
+                        cancel();
+                    } else if (validate(result.Finished)) {
+                        resolve(result.Finished);
+                    } else {
+                        reject(new Error(`Fail to parse results: ${income}`));
+                    }
+                } catch (e) {
+                    reject(new Error(`Fail to parse results (${income}): ${error(e)}`));
+                }
+            }).catch((err: Error) => {
+                this._logger.error(`Fail to do "some" operation due error: ${error(err)}`);
+                reject(new Error(error(err)));
+            });
         });
     }
 }

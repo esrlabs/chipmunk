@@ -29,14 +29,14 @@ function ingore(id: string | number, done: () => void) {
 describe('Jobs', function () {
     it(config.regular.list[2], async function (done) {
         const testName = config.regular.list[1];
-        const path = config.regular.files["path"];
+        const path = config.regular.files['path'];
         if (!fs.existsSync(path)) {
             console.log(`Path ${path} doesn't exist, test skipped`);
             done();
             return;
         }
-
-    })
+        done();
+    });
 
     it(config.regular.list[1], async function (done) {
         const testName = config.regular.list[1];
@@ -47,29 +47,36 @@ describe('Jobs', function () {
         const logger = getLogger(testName);
         const jobs = new Jobs();
         await jobs.init();
-        const a = await jobs.jobCancelTest(
-            (uuid: string) => {
-                console.log(`Operation UUID: ${uuid}`);
-            },
-            50,
-            50,
-        );
-        expect(a).toBe(100);
-        const b = await jobs.jobCancelTest(
-            (uuid: string) => {
-                console.log(`Operation UUID: ${uuid}`);
-                jobs.abort(uuid).catch((err: Error) => {
-                    console.log(`Fail to abort`);
-                    console.log(err);
-                });
-            },
-            50,
-            50,
-        );
-        expect(b).toBe(0);
-        await jobs.destroy();
-        finish(undefined, done);
+        jobs.jobCancelTest(50, 50)
+            .then((a) => {
+                // Job is resolved, but not cancelled
+                expect(a).toBe(100);
+                // Try to cancel job
+                const job = jobs
+                    .jobCancelTest(50, 50)
+                    .then((_res) => {
+                        finish(
+                            undefined,
+                            done,
+                            new Error(`This job should be cancelled, but not done`),
+                        );
+                    })
+                    .canceled(async () => {
+                        jobs.destroy()
+                            .then(() => {
+                                finish(undefined, done);
+                            })
+                            .catch((err: Error) => {
+                                finish(undefined, done, err);
+                            });
+                    })
+                    .catch((err: Error) => {
+                        finish(undefined, done, err);
+                    });
+                job.abort();
+            })
+            .catch((err: Error) => {
+                finish(undefined, done, err);
+            });
     });
 });
-
-// fn do_double(x: u64) -> u64
