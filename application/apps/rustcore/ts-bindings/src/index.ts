@@ -54,7 +54,7 @@ export function createTracker() {
     console.log(ProgressTrackerNoType);
     const tracker = new ProgressTrackerNoType();
     tracker.init((arg: any) => {
-        console.log("tracker-callback in JS");
+        console.log("tracker-callback in JS" + arg);
     });
     return tracker;
 
