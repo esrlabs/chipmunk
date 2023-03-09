@@ -27,7 +27,7 @@ function ignore(id: string | number, done: () => void) {
 }
 
 describe('Observe', function () {
-    it(config.regular.list[1], function (done) {
+    it(config.regular.list[1], async function (done) {
         const testName = config.regular.list[1];
         if (ignore(1, done)) {
             return;
@@ -102,6 +102,8 @@ describe('Observe', function () {
                     ),
                 );
             });
+
+            await tracker.shutdown();
     });
 
     it(config.regular.list[2], function (done) {

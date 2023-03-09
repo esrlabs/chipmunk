@@ -1,4 +1,5 @@
 use crate::events::ComputationError;
+use futures::Future;
 use serde::Serialize;
 use tokio::sync::{mpsc::UnboundedSender, oneshot};
 use uuid::Uuid;
@@ -9,15 +10,15 @@ use super::commands::{Command, CommandOutcome};
 pub enum API {
     Shutdown(oneshot::Sender<()>),
     CancelJob(Uuid),
-    Run(Command, oneshot::Sender<Uuid>),
+    Run(Command, Uuid),
 }
 
 #[derive(Clone, Debug)]
-pub struct SessionAPI {
+pub struct UnboundSessionAPI {
     tx: UnboundedSender<API>,
 }
 
-impl SessionAPI {
+impl UnboundSessionAPI {
     pub fn new(tx: UnboundedSender<API>) -> Self {
         Self { tx }
     }
@@ -40,51 +41,60 @@ impl SessionAPI {
         })
     }
 
-    async fn process_command<F: Fn(String) + Send + 'static, T: Serialize>(
+    async fn process_command<T: Serialize>(
         &self,
-        send_operation_uuid: F,
+        uuid: Uuid,
         rx_results: oneshot::Receiver<Result<CommandOutcome<T>, ComputationError>>,
         command: Command,
     ) -> Result<CommandOutcome<T>, ComputationError> {
-        let (tx_uuid, rx_uuid) = oneshot::channel();
-        self.tx.send(API::Run(command, tx_uuid)).map_err(|_| {
+        println!("indexer: process command for {command}");
+        self.tx.send(API::Run(command, uuid)).map_err(|_| {
             ComputationError::Communication(String::from("Fail to send call Job::SomeJob"))
         })?;
-        let uuid = rx_uuid.await.map_err(|_| {
-            ComputationError::Communication(String::from("Fail to get uuid of Job::SomeJob"))
-        })?;
-        send_operation_uuid(uuid.to_string());
         rx_results
             .await
             .map_err(|e| ComputationError::Communication(format!("channel error: {e}")))?
     }
 
-    pub async fn cancel_test<F: Fn(String) + Send + 'static>(
+    pub fn cancel_test(
         &self,
-        send_operation_uuid: F,
         custom_arg_a: i64,
         custom_arg_b: i64,
-    ) -> Result<CommandOutcome<i64>, ComputationError> {
-        let (tx_results, rx_results) = oneshot::channel();
-        self.process_command(
-            send_operation_uuid,
-            rx_results,
-            Command::CancelTest(custom_arg_a, custom_arg_b, tx_results),
+    ) -> (
+        impl Future<Output = Result<CommandOutcome<i64>, ComputationError>> + '_,
+        Uuid,
+    ) {
+        let uuid = Uuid::new_v4();
+        (
+            async move {
+                let (tx_results, rx_results) = oneshot::channel();
+                self.process_command(
+                    uuid,
+                    rx_results,
+                    Command::CancelTest(custom_arg_a, custom_arg_b, tx_results),
+                )
+                .await
+            },
+            uuid,
         )
-        .await
     }
 
-    pub async fn list_folder_content<F: Fn(String) + Send + 'static>(
+    pub fn list_folder_content(
         &self,
-        send_operation_uuid: F,
         path: String,
-    ) -> Result<CommandOutcome<String>, ComputationError> {
-        let (tx_results, rx_results) = oneshot::channel();
-        self.process_command(
-            send_operation_uuid,
-            rx_results,
-            Command::FolderContent(path, tx_results),
+    ) -> (
+        impl Future<Output = Result<CommandOutcome<String>, ComputationError>> + '_,
+        Uuid,
+    ) {
+        let uuid = Uuid::new_v4();
+        (
+            async move {
+                println!("indexer: list_folder_content");
+                let (tx_results, rx_results) = oneshot::channel();
+                self.process_command(uuid, rx_results, Command::FolderContent(path, tx_results))
+                    .await
+            },
+            uuid,
         )
-        .await
     }
 }

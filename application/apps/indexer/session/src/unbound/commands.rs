@@ -55,7 +55,10 @@ impl std::fmt::Display for Command {
 pub async fn process(command: Command, signal: Signal) {
     match command {
         Command::FolderContent(path, tx) => {
-            let _ = tx.send(get_folder_content(&path, signal));
+            println!("process command: FolderContent");
+            let res = get_folder_content(&path, signal);
+            println!("done with command: FolderContent, sending back results");
+            let _ = tx.send(res);
         }
         Command::CancelTest(a, b, tx) => {
             let _ = tx.send(cancel_test::cancel_test(a, b, signal).await);

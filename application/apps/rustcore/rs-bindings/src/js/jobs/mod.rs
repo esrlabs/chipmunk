@@ -7,17 +7,20 @@ use node_bindgen::{
 };
 use serde::Serialize;
 use session::{
-    events::ComputationError,
+    events::{ComputationError, LifecycleTransition},
     operations,
-    unbound::{api::SessionAPI, commands::CommandOutcome, session::UnboundSession},
+    unbound::{api::UnboundSessionAPI, commands::CommandOutcome, session::UnboundSession},
 };
 use std::thread;
-use tokio::runtime::Runtime;
+use tokio::{runtime::Runtime, sync::mpsc::UnboundedSender};
 use tokio_util::sync::CancellationToken;
 
-struct Jobs {
-    api: Option<SessionAPI>,
+use super::session::progress_tracker::TRACKER_CHANNEL;
+
+struct UnboundJobs {
+    api: Option<UnboundSessionAPI>,
     finished: CancellationToken,
+    tracker_tx: Option<UnboundedSender<LifecycleTransition>>,
 }
 
 pub(crate) struct CommandOutcomeWrapper<T: Serialize>(pub CommandOutcome<T>);
@@ -35,13 +38,14 @@ impl<T: Serialize> TryIntoJs for CommandOutcomeWrapper<T> {
 }
 
 #[node_bindgen]
-impl Jobs {
+impl UnboundJobs {
     // Self methods
     #[node_bindgen(constructor)]
     pub fn new() -> Self {
         Self {
             api: None,
             finished: CancellationToken::new(),
+            tracker_tx: None,
         }
     }
 
@@ -50,6 +54,16 @@ impl Jobs {
         let rt = Runtime::new().map_err(|e| {
             ComputationError::Process(format!("Could not start tokio runtime: {e}"))
         })?;
+        let tracker_tx = TRACKER_CHANNEL
+            .lock()
+            .map(|channels| channels.0.clone())
+            .map_err(|e| {
+                ComputationErrorWrapper(ComputationError::Process(format!(
+                    "Could not start an unbound session, tracker_tx unavailable {e}"
+                )))
+            })?;
+        self.tracker_tx = Some(tracker_tx);
+
         let (mut session, api) = UnboundSession::new();
         self.api = Some(api);
         let confirmation = self.finished.clone();
@@ -99,11 +113,19 @@ impl Jobs {
         send_operation_uuid: F,
         path: String,
     ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
-        self.api
+        println!("rs_bindings: list_folder_content");
+        let (job_future, job_uuid) = self
+            .api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
-            .list_folder_content(send_operation_uuid, path)
-            .await
+            .list_folder_content(path);
+        self.register_job_start(job_uuid.to_string());
+        send_operation_uuid(job_uuid.to_string());
+
+        let job_result = job_future.await;
+        self.register_job_end(job_uuid.to_string());
+
+        job_result
             .map_err(ComputationErrorWrapper)
             .map(CommandOutcomeWrapper)
     }
@@ -115,12 +137,31 @@ impl Jobs {
         custom_arg_a: i64,
         custom_arg_b: i64,
     ) -> Result<CommandOutcomeWrapper<i64>, ComputationErrorWrapper> {
-        self.api
+        let (job_future, job_uuid) = self
+            .api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
-            .cancel_test(send_operation_uuid, custom_arg_a, custom_arg_b)
-            .await
+            .cancel_test(custom_arg_a, custom_arg_b);
+        self.register_job_start(job_uuid.to_string());
+        send_operation_uuid(job_uuid.to_string());
+
+        let job_result = job_future.await;
+        self.register_job_end(job_uuid.to_string());
+
+        job_result
             .map_err(ComputationErrorWrapper)
             .map(CommandOutcomeWrapper)
+    }
+
+    fn register_job_start(&self, uuid: String) {
+        if let Some(tracker_tx) = self.tracker_tx.as_ref() {
+            let _ = tracker_tx.send(LifecycleTransition::Started(uuid));
+        }
+    }
+
+    fn register_job_end(&self, uuid: String) {
+        if let Some(tracker_tx) = self.tracker_tx.as_ref() {
+            let _ = tracker_tx.send(LifecycleTransition::Stopped(uuid));
+        }
     }
 }

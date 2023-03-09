@@ -6,7 +6,7 @@
 
 import * as fs from 'fs';
 import { Session, Observe } from '../src/api/session';
-import { Jobs } from '../src/index';
+import { createTracker, Jobs } from '../src/index';
 import { getLogger } from '../src/util/logging';
 import { readConfigurationFile } from './config';
 import { finish } from './common';
@@ -28,13 +28,22 @@ function ingore(id: string | number, done: () => void) {
 
 describe('Jobs', function () {
     it(config.regular.list[2], async function (done) {
-        const testName = config.regular.list[1];
+        const testName = config.regular.list[2];
+        console.log(`\nStarting: ${testName}`);
+        const tracker = createTracker();
         const path = config.regular.files['path'];
         if (!fs.existsSync(path)) {
             console.log(`Path ${path} doesn't exist, test skipped`);
             done();
             return;
         }
+        const jobs = new Jobs();
+        await jobs.init();
+        jobs.jobListContent(path).then((res) => {
+            console.log("listing: " + res);
+        })
+        await new Promise(r => setTimeout(r, 10));
+        await tracker.shutdown();
         done();
     });
 

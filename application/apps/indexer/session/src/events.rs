@@ -263,6 +263,12 @@ impl std::fmt::Display for CallbackEvent {
     }
 }
 
+#[derive(Debug, Serialize)]
+pub enum LifecycleTransition {
+    Started(String),
+    Stopped(String),
+}
+
 #[derive(Error, Debug, Serialize)]
 pub enum ComputationError {
     #[error("Destination path should be defined to stream from MassageProducer")]
