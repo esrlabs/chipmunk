@@ -1,5 +1,6 @@
 pub mod events;
 pub mod progress_tracker;
+use self::progress_tracker::TRACKER_CHANNEL;
 
 use crate::{
     js::{
@@ -13,7 +14,7 @@ use log::{debug, error, info, warn};
 use node_bindgen::derive::node_bindgen;
 use processor::grabber::LineRange;
 use session::{
-    events::{CallbackEvent, ComputationError, NativeError},
+    events::{CallbackEvent, ComputationError, LifecycleTransition, NativeError},
     factory::ObserveOptions,
     operations,
     session::Session,
@@ -57,18 +58,28 @@ impl RustSession {
         let uuid = self.uuid;
         thread::spawn(move || {
             rt.block_on(async {
-                let (session, mut rx_callback_events) = Session::new(uuid).await;
-                if tx_session.send(session).is_err() {
-                    error!("Cannot setup session instance");
-                    return;
+                match TRACKER_CHANNEL.lock().map(|channels| channels.0.clone()) {
+                    Ok(tracker_tx) => {
+                        let (session, mut rx_callback_events) = Session::new(uuid).await;
+                        let _ = tracker_tx.send(LifecycleTransition::Started(uuid.to_string()));
+                        if tx_session.send(session).is_err() {
+                            error!("Cannot setup session instance");
+                            return;
+                        }
+                        debug!("task is started");
+                        while let Some(event) = rx_callback_events.recv().await {
+                            callback(event.into())
+                        }
+                        debug!("sending SessionDestroyed event");
+                        callback(CallbackEvent::SessionDestroyed.into());
+                        let _ = tracker_tx.send(LifecycleTransition::Stopped(uuid.to_string()));
+                        debug!("task is finished");
+                    }
+                    Err(e) => {
+                        error!("Could not start session, tracker channel not available({e})");
+                        drop(tx_session);
+                    }
                 }
-                debug!("task is started");
-                while let Some(event) = rx_callback_events.recv().await {
-                    callback(event.into())
-                }
-                debug!("sending SessionDestroyed event");
-                callback(CallbackEvent::SessionDestroyed.into());
-                debug!("task is finished");
             })
         });
         self.session = Some(rx_session.await.map_err(|_| {

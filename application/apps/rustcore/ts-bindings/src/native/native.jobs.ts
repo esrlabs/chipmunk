@@ -17,6 +17,11 @@ export abstract class JobsNative {
         num_a: number,
         num_b: number,
     ): Promise<string>;
+
+    public abstract listFolderContent(
+        uuid: (uuid: string) => void,
+        path: string,
+    ): Promise<string>;
 }
 
 export type JobResult<T> = { Finished: T } | 'Cancelled';
@@ -26,7 +31,7 @@ export class Jobs {
     private readonly _native: JobsNative;
 
     constructor() {
-        this._native = new (getNativeModule().Jobs)() as JobsNative;
+        this._native = new (getNativeModule().UnboundJobs)() as JobsNative;
         this._logger.debug(`Rust Jobs native session is created`);
     }
 
@@ -108,6 +113,29 @@ export class Jobs {
                 },
                 num_a,
                 num_b,
+            ),
+        );
+        return job;
+    }
+
+    public jobListContent(path: string): CancelablePromise<string> {
+        const job = this.execute(
+            // We should define validation callback. As argument it takes result of job,
+            // which should be checked for type. In case it type is correct, callback
+            // should return true
+            (res: string): boolean => {
+                return typeof res === 'string';
+            },
+            // As second argument of executor we should provide native function of job.
+            this._native.listFolderContent(
+                (uuid: string) => {
+                    // To make cancalation possible we should emit event "uuid" in the
+                    // scope of CancelablePromise. This function should be used for all
+                    // jobs in same way.
+                    console.log("in JS listFolderContent for " + uuid);
+                    job.emit('uuid', uuid);
+                },
+                path,
             ),
         );
         return job;
