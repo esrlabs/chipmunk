@@ -1,6 +1,7 @@
 import { tools } from 'rustcore';
 import { program as cli, Option } from 'commander';
 import { CLIAction } from '@service/cli/action';
+import { spawn } from 'child_process';
 
 import * as handlers from '@service/cli/index';
 
@@ -116,6 +117,16 @@ function setup() {
     cli.parse();
 }
 
+function lock() {
+    [process.stdin, process.stdout, process.stderr].forEach((stream) => {
+        stream.end();
+        stream.destroy();
+    });
+}
+
+function exit() {
+    process.exit(0);
+}
 function check() {
     // TODO:
     // - send as argument PID of current process
@@ -140,13 +151,23 @@ function check() {
         errors.forEach((err) => {
             process.stdout.write(`${err.message}\n`);
         });
-        process.stdin.end();
-        process.stdin.destroy();
-        process.exit(0);
+        lock();
+        exit();
     }
-    tools.execute(executor, args).catch((err: Error) => {
-        console.log(`Fail to detach application process: ${err.message}`);
+    spawn(executor, args, {
+        shell: true,
+        detached: true,
+        stdio: 'ignore',
     });
-    process.exit(0);
+    // tools
+    //     .execute(executor, args)
+    //     .catch((err: Error) => {
+    //         console.log(`Fail to detach application process: ${err.message}`);
+    //     })
+    //     .finally(() => {
+    //         exit();
+    //     });
+    lock();
+    exit();
 }
 check();
