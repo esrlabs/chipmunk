@@ -67,12 +67,7 @@ function setup() {
             'Collection of filters, which would be applied to each opened session (tab). Ex: cm files -o /path/file_name -s "error" "warning"',
         ).argParser(parser(CLI_HANDLERS['search'])),
     );
-    cli.addOption(
-        new Option(
-            RESTARTING_FLAG,
-            'Hidden option to manage CLI usage',
-        ).hideHelp(),
-    );
+    cli.addOption(new Option(RESTARTING_FLAG, 'Hidden option to manage CLI usage').hideHelp());
     const files = cli
         .command('files [filename...]', { isDefault: true })
         .description('Opens file(s) or concat files')
@@ -139,7 +134,7 @@ function exit() {
 function isSyncWriteStream(std: unknown): boolean {
     // Note SyncWriteStream is depricated, but it doesn't mean
     // it isn't used
-    return (std as { constructor: { name: string }}).constructor.name === 'SyncWriteStream';
+    return (std as { constructor: { name: string } }).constructor.name === 'SyncWriteStream';
 }
 
 function isTTY(): boolean {
@@ -162,15 +157,6 @@ function isRestartedAlready() {
 }
 
 function check() {
-//     fs.writeFileSync('C:\\Users\\dmitry\\projects\\out.txt', `=======
-// process.stdout.isTTY: ${process.stdout.isTTY}
-// process.stdout.readable: ${process.stdout.readable}
-// process.stdin.writable: ${process.stdin.writable}
-// process.stdout.constructor: ${(process.stdout as any).constructor.name}
-// process.stdout is Socket: ${process.stdout instanceof Socket}
-// process.stdout is WriteStream: ${process.stdout instanceof WriteStream}
-// process.stdout is Writable: ${process.stdout instanceof Writable}
-// process.stdin.constructor: ${(process.stdin as any).constructor.name}`);
     // TODO:
     // - send as argument PID of current process
     // - check and kill previous process by given PID
