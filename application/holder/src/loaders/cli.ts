@@ -1,12 +1,14 @@
-import { tools } from 'rustcore';
 import { program as cli, Option } from 'commander';
 import { CLIAction } from '@service/cli/action';
 import { spawn } from 'child_process';
+import { Socket } from 'net';
+import { WriteStream } from 'fs';
 
 import * as handlers from '@service/cli/index';
 
 const DEV_EXECUTOR_PATH = 'node_modules/electron/dist/electron';
 const DEV_EXECUTOR_PATH_DARVIN = 'node_modules/electron/dist/Electron.app/Contents/MacOS/Electron';
+const RESTARTING_FLAG = '--app_restarted';
 
 export function getDevExecutorPath(): string {
     if (process.platform === 'darwin') {
@@ -65,6 +67,12 @@ function setup() {
             'Collection of filters, which would be applied to each opened session (tab). Ex: cm files -o /path/file_name -s "error" "warning"',
         ).argParser(parser(CLI_HANDLERS['search'])),
     );
+    cli.addOption(
+        new Option(
+            RESTARTING_FLAG,
+            'Hidden option to manage CLI usage',
+        ).hideHelp(),
+    );
     const files = cli
         .command('files [filename...]', { isDefault: true })
         .description('Opens file(s) or concat files')
@@ -119,7 +127,7 @@ function setup() {
 
 function lock() {
     [process.stdin, process.stdout, process.stderr].forEach((stream) => {
-        stream.end();
+        typeof stream.end === 'function' && stream.end();
         stream.destroy();
     });
 }
@@ -127,13 +135,50 @@ function lock() {
 function exit() {
     process.exit(0);
 }
+
+function isSyncWriteStream(std: unknown): boolean {
+    // Note SyncWriteStream is depricated, but it doesn't mean
+    // it isn't used
+    return (std as { constructor: { name: string }}).constructor.name === 'SyncWriteStream';
+}
+
+function isTTY(): boolean {
+    if (typeof process.stdout.isTTY === 'boolean') {
+        return process.stdout.isTTY;
+    }
+    if ((process.stdout as unknown) instanceof Socket) {
+        // On windows: gitbash
+        return true;
+    }
+    if (isSyncWriteStream(process.stdout) || (process.stdout as unknown) instanceof WriteStream) {
+        // On windows: CMD, PowerShell
+        return true;
+    }
+    return false;
+}
+
+function isRestartedAlready() {
+    return process.argv.includes(RESTARTING_FLAG);
+}
+
 function check() {
+//     fs.writeFileSync('C:\\Users\\dmitry\\projects\\out.txt', `=======
+// process.stdout.isTTY: ${process.stdout.isTTY}
+// process.stdout.readable: ${process.stdout.readable}
+// process.stdin.writable: ${process.stdin.writable}
+// process.stdout.constructor: ${(process.stdout as any).constructor.name}
+// process.stdout is Socket: ${process.stdout instanceof Socket}
+// process.stdout is WriteStream: ${process.stdout instanceof WriteStream}
+// process.stdout is Writable: ${process.stdout instanceof Writable}
+// process.stdin.constructor: ${(process.stdin as any).constructor.name}`);
     // TODO:
     // - send as argument PID of current process
     // - check and kill previous process by given PID
     setup();
-    if (!process.stdout.isTTY) {
-        // Application runs out of terminal. No needs to do any with CLI
+    if (isRestartedAlready()) {
+        return;
+    }
+    if (!isTTY()) {
         return;
     }
     const args = process.argv.slice();
@@ -154,19 +199,12 @@ function check() {
         lock();
         exit();
     }
+    args.push(RESTARTING_FLAG);
     spawn(executor, args, {
-        shell: true,
+        shell: false,
         detached: true,
         stdio: 'ignore',
     });
-    // tools
-    //     .execute(executor, args)
-    //     .catch((err: Error) => {
-    //         console.log(`Fail to detach application process: ${err.message}`);
-    //     })
-    //     .finally(() => {
-    //         exit();
-    //     });
     lock();
     exit();
 }
