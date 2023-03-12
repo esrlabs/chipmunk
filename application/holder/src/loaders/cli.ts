@@ -141,6 +141,12 @@ function isTTY(): boolean {
     if (typeof process.stdout.isTTY === 'boolean') {
         return process.stdout.isTTY;
     }
+    if (
+        (process.platform === 'linux' || process.platform === 'darwin') &&
+        process.stdout.isTTY === undefined
+    ) {
+        return false;
+    }
     if ((process.stdout as unknown) instanceof Socket) {
         // On windows: gitbash
         return true;
