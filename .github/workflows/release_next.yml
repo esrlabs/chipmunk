@@ -44,7 +44,11 @@ jobs:
             - name: install node
               uses: actions/setup-node@master
               with:
-                  node-version: "current"
+                  node-version: "latest"
+            - name: Node GYP
+              if: runner.os == 'Windows'
+              run: |
+                  npm install -g node-gyp
             - name: install rust
               uses: hecrj/setup-rust-action@v1
               with:
