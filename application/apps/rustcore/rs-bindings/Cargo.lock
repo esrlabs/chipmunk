@@ -791,8 +791,8 @@ dependencies = [
 
 [[package]]
 name = "envvars"
-version = "0.1.0"
-source = "git+https://github.com/DmitryAstafyev/envvars.git?branch=master#5a3e4330c6beda24e89b2363e66a70237d3bd462"
+version = "0.1.5"
+source = "git+https://github.com/esrlabs/envvars.git?branch=master#e06290bac3f00c1d884210e371463e3e9d563db0"
 dependencies = [
  "blake3",
  "fs_extra",
@@ -2136,9 +2136,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.24"
+version = "1.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50686e0021c4136d1d453b2dfe059902278681512a34d4248435dc34b6b5c8ec"
+checksum = "4424af4bf778aae2051a77b60283332f386554255d722233d09fbfc7e30da2fc"
 dependencies = [
  "proc-macro2",
 ]
