@@ -30,6 +30,10 @@ jobs:
                 os: [ubuntu-latest, windows-latest, macOS-latest]
                 rust: [stable]
         steps:
+            - name: Visual C++ build tools workload for Visual Studio 2022 Build Tools 1.0.0
+              if: runner.os == 'Windows'
+              run: |
+                  choco install --yes visualstudio2022-workload-vctools
             - name: Checkout
               uses: actions/checkout@v3
             - name: install ruby
