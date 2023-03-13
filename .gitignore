@@ -8,6 +8,7 @@ application/client.core/**
 application/electron/**
 application/client.libs/**
 application/node.libs/**
+tmp/**
 # Compiled source #
 ###################
 *.com

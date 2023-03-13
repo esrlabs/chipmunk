@@ -23,6 +23,7 @@ module Owner
   Release = 'Release'
   Compressor = 'Compressor'
   Env = 'Env'
+  Envvars = 'Envvars'
 end
 
 class Reporter

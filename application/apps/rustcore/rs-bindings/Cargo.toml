@@ -36,4 +36,4 @@ tokio = { version = "1.24", features = ["full"] }
 tokio-serial = "5.4"
 tokio-util = "0.7"
 uuid = { version = "1.2", features = ["serde", "v4"] }
-envvars = "0.1"
+envvars = {git = "https://github.com/DmitryAstafyev/envvars.git", branch = "master" }

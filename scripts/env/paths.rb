@@ -28,6 +28,11 @@ module Paths
       'mac/chipmunk.app/Contents/Resources'
     end
   end
+
+  def self.cwd
+    "#{File.dirname(__FILE__)}/../../"
+  end
+
   TS_BINDINGS = 'application/apps/rustcore/ts-bindings'
   RS_BINDINGS = 'application/apps/rustcore/rs-bindings'
   CLIENT = 'application/client'
@@ -51,4 +56,5 @@ module Paths
   RELEASE_BIN = "#{RELEASE}/#{Paths.get_release_bin_folder}"
   RELEASE_RESOURCES = "#{RELEASE}/#{Paths.get_release_resources_folder}"
   RELEASE_BUILD = "#{RELEASE}/#{Paths.get_release_build_folder}"
+  TMP = 'tmp'
 end
