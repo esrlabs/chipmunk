@@ -4,6 +4,7 @@ class Envvars
     @dest = "#{Paths::TMP}/output"
     Dir.mkdir(Paths::TMP) unless File.exist?(Paths::TMP)
     ENV['ENVVARS_CRATE_EXTRACTOR_TEMP_DIR'] = "#{Paths.cwd}/#{@dest}"
+    ENV['ENVVARS_CARGO_LOG_LEVEL'] = 'warning'
   end
 
   def clean
