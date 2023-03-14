@@ -1657,7 +1657,7 @@ dependencies = [
 [[package]]
 name = "nj-build"
 version = "0.2.4"
-source = "git+https://github.com/infinyon/node-bindgen.git?branch=master#bf019530ec63d6de76adbf89a9a84febafd27440"
+source = "git+https://github.com/infinyon/node-bindgen.git?rev=e5c5856224006efdac29c901c750ac7e35c6eeef#e5c5856224006efdac29c901c750ac7e35c6eeef"
 dependencies = [
  "cc",
  "http_req",
@@ -1666,7 +1666,7 @@ dependencies = [
 [[package]]
 name = "nj-core"
 version = "5.0.1"
-source = "git+https://github.com/infinyon/node-bindgen.git?branch=master#bf019530ec63d6de76adbf89a9a84febafd27440"
+source = "git+https://github.com/infinyon/node-bindgen.git?rev=e5c5856224006efdac29c901c750ac7e35c6eeef#e5c5856224006efdac29c901c750ac7e35c6eeef"
 dependencies = [
  "async-trait",
  "ctor",
@@ -1684,7 +1684,7 @@ dependencies = [
 [[package]]
 name = "nj-derive"
 version = "3.4.1"
-source = "git+https://github.com/infinyon/node-bindgen.git?branch=master#bf019530ec63d6de76adbf89a9a84febafd27440"
+source = "git+https://github.com/infinyon/node-bindgen.git?rev=e5c5856224006efdac29c901c750ac7e35c6eeef#e5c5856224006efdac29c901c750ac7e35c6eeef"
 dependencies = [
  "Inflector",
  "proc-macro2",
@@ -1695,12 +1695,12 @@ dependencies = [
 [[package]]
 name = "nj-sys"
 version = "3.0.0"
-source = "git+https://github.com/infinyon/node-bindgen.git?branch=master#bf019530ec63d6de76adbf89a9a84febafd27440"
+source = "git+https://github.com/infinyon/node-bindgen.git?rev=e5c5856224006efdac29c901c750ac7e35c6eeef#e5c5856224006efdac29c901c750ac7e35c6eeef"
 
 [[package]]
 name = "node-bindgen"
-version = "5.1.0"
-source = "git+https://github.com/infinyon/node-bindgen.git?branch=master#bf019530ec63d6de76adbf89a9a84febafd27440"
+version = "5.0.0"
+source = "git+https://github.com/infinyon/node-bindgen.git?rev=e5c5856224006efdac29c901c750ac7e35c6eeef#e5c5856224006efdac29c901c750ac7e35c6eeef"
 dependencies = [
  "nj-build",
  "nj-core",
