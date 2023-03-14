@@ -1657,7 +1657,7 @@ dependencies = [
 [[package]]
 name = "nj-build"
 version = "0.2.4"
-source = "git+https://github.com/DmitryAstafyev/node-bindgen.git?branch=master#45013d9bf592deccb53b107c6fc6b01e793d8b12"
+source = "git+https://github.com/DmitryAstafyev/node-bindgen.git?branch=master#553efba3fb063ba22ada97278deb8ec26f1c765c"
 dependencies = [
  "cc",
  "http_req",
@@ -1666,7 +1666,7 @@ dependencies = [
 [[package]]
 name = "nj-core"
 version = "5.0.1"
-source = "git+https://github.com/DmitryAstafyev/node-bindgen.git?branch=master#45013d9bf592deccb53b107c6fc6b01e793d8b12"
+source = "git+https://github.com/DmitryAstafyev/node-bindgen.git?branch=master#553efba3fb063ba22ada97278deb8ec26f1c765c"
 dependencies = [
  "async-trait",
  "ctor",
@@ -1684,7 +1684,7 @@ dependencies = [
 [[package]]
 name = "nj-derive"
 version = "3.4.1"
-source = "git+https://github.com/DmitryAstafyev/node-bindgen.git?branch=master#45013d9bf592deccb53b107c6fc6b01e793d8b12"
+source = "git+https://github.com/DmitryAstafyev/node-bindgen.git?branch=master#553efba3fb063ba22ada97278deb8ec26f1c765c"
 dependencies = [
  "Inflector",
  "proc-macro2",
@@ -1695,12 +1695,12 @@ dependencies = [
 [[package]]
 name = "nj-sys"
 version = "3.0.0"
-source = "git+https://github.com/DmitryAstafyev/node-bindgen.git?branch=master#45013d9bf592deccb53b107c6fc6b01e793d8b12"
+source = "git+https://github.com/DmitryAstafyev/node-bindgen.git?branch=master#553efba3fb063ba22ada97278deb8ec26f1c765c"
 
 [[package]]
 name = "node-bindgen"
 version = "5.1.0"
-source = "git+https://github.com/DmitryAstafyev/node-bindgen.git?branch=master#45013d9bf592deccb53b107c6fc6b01e793d8b12"
+source = "git+https://github.com/DmitryAstafyev/node-bindgen.git?branch=master#553efba3fb063ba22ada97278deb8ec26f1c765c"
 dependencies = [
  "nj-build",
  "nj-core",
