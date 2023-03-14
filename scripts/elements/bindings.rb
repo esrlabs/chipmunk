@@ -39,7 +39,6 @@ class Bindings
     install
     Platform.check(Paths::TS_BINDINGS, false)
     Shell.chdir(Paths::RS_BINDINGS) do
-      Shell.sh 'cargo build --release'
       Shell.sh "./#{@build_env} #{@nj_cli} build --release"
       Reporter.add(Jobs::Building, Owner::Bindings, 'rs bindings', '')
     end
