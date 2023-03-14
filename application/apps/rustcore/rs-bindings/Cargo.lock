@@ -792,7 +792,8 @@ dependencies = [
 [[package]]
 name = "envvars"
 version = "0.1.5"
-source = "git+https://github.com/esrlabs/envvars.git?branch=master#e06290bac3f00c1d884210e371463e3e9d563db0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9538e4a4aab858f75280ad398d87377c2036c08c86e6ba3ffb6e7f9fc44785c4"
 dependencies = [
  "blake3",
  "fs_extra",
