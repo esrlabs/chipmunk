@@ -181,6 +181,13 @@ pub enum CallbackEvent {
      */
     Progress { uuid: Uuid, progress: Progress },
     /**
+     * Triggered when an unbound job is started or finished
+     * or when a session is started or stopped
+     * >> Scope: async operation
+     * >> Kind: repeated
+     */
+    Lifecycle(LifecycleTransition),
+    /**
      * Triggered on error in the scope of session
      * >> Scope: session
      * >> Kind: repeated
@@ -251,6 +258,7 @@ impl std::fmt::Display for CallbackEvent {
                 uuid: _,
                 progress: _,
             } => write!(f, "Progress"),
+            Self::Lifecycle(_e) => write!(f, "Lifecycle"),
             Self::SessionError(err) => write!(f, "SessionError: {err:?}"),
             Self::OperationError { uuid, error } => {
                 write!(f, "OperationError: {uuid}: {error:?}")
@@ -263,10 +271,19 @@ impl std::fmt::Display for CallbackEvent {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum LifecycleTransition {
     Started(String),
     Stopped(String),
+}
+
+impl LifecycleTransition {
+    pub fn uuid(&self) -> String {
+        match self {
+            Self::Started(uuid) => uuid.clone(),
+            Self::Stopped(uuid) => uuid.clone(),
+        }
+    }
 }
 
 #[derive(Error, Debug, Serialize)]

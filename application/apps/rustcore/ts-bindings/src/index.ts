@@ -53,7 +53,9 @@ import { ProgressTrackerNoType } from "./native/native";
 export function createTracker() {
     console.log(ProgressTrackerNoType);
     const tracker = new ProgressTrackerNoType();
-    tracker.init();
+    tracker.init((event: any) => {
+        console.log("Progress Tracker:: event " + event);
+    });
     return tracker;
 
 }
