@@ -1,8 +1,10 @@
+use crate::js::session::events::CallbackEventWrapper;
+
 use super::events::ComputationErrorWrapper;
 use lazy_static::lazy_static;
 use node_bindgen::derive::node_bindgen;
 use session::{
-    events::{ComputationError, LifecycleTransition},
+    events::{CallbackEvent, ComputationError, LifecycleTransition},
     progress::{ProgressCommand, ProgressTrackerAPI, ProgressTrackerHandle},
 };
 use std::{sync::Mutex, thread};
@@ -38,7 +40,10 @@ impl RustProgressTracker {
     }
 
     #[node_bindgen(mt)]
-    fn init(&mut self) -> Result<(), ComputationErrorWrapper> {
+    fn init<F: Fn(CallbackEventWrapper) + Send + 'static>(
+        &mut self,
+        callback: F,
+    ) -> Result<(), ComputationErrorWrapper> {
         let rt = Runtime::new().map_err(|e| {
             ComputationError::Process(format!("Could not start tokio runtime: {e}"))
         })?;
@@ -53,7 +58,12 @@ impl RustProgressTracker {
                 rt.block_on(async {
                     println!("progress_tracker thread running");
                     let mut progress_tracker = ProgressTrackerHandle::new(rx_events);
-                    progress_tracker.track(rx).await
+                    if let Ok(mut rx) = progress_tracker.track(rx).await {
+                        while let Some(progress_report) = rx.recv().await {
+                            let callback_event = CallbackEvent::Lifecycle(progress_report);
+                            callback(callback_event.into())
+                        }
+                    }
                 })
             });
             Ok(())
