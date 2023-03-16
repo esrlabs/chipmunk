@@ -14,7 +14,7 @@ use tokio::sync::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-pub enum Api {
+pub enum TrackerCommand {
     AddOperation(
         (
             Uuid,
@@ -34,7 +34,7 @@ pub enum Api {
     Shutdown,
 }
 
-impl std::fmt::Display for Api {
+impl std::fmt::Display for TrackerCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
@@ -62,23 +62,22 @@ pub struct OperationTracker {
 
 #[derive(Clone, Debug)]
 pub struct OperationTrackerAPI {
-    tx_api: UnboundedSender<Api>,
+    tx_api: UnboundedSender<TrackerCommand>,
 }
 
-#[allow(clippy::type_complexity)]
 impl OperationTrackerAPI {
-    pub fn new() -> (Self, UnboundedReceiver<Api>) {
-        let (tx_api, rx_api): (UnboundedSender<Api>, UnboundedReceiver<Api>) = unbounded_channel();
+    pub fn new() -> (Self, UnboundedReceiver<TrackerCommand>) {
+        let (tx_api, rx_api) = unbounded_channel();
         (OperationTrackerAPI { tx_api }, rx_api)
     }
 
     async fn exec_operation<T>(
         &self,
-        api: Api,
+        command: TrackerCommand,
         rx_response: oneshot::Receiver<T>,
     ) -> Result<T, NativeError> {
-        let api_str = format!("{api}");
-        self.tx_api.send(api).map_err(|e| {
+        let api_str = format!("{command}");
+        self.tx_api.send(command).map_err(|e| {
             NativeError::channel(&format!("Failed to send to Api::{api_str}; error: {e}"))
         })?;
         rx_response.await.map_err(|_| {
@@ -96,7 +95,7 @@ impl OperationTrackerAPI {
     ) -> Result<bool, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(
-            Api::AddOperation((uuid, name, tx_sde, canceler, done, tx)),
+            TrackerCommand::AddOperation((uuid, name, tx_sde, canceler, done, tx)),
             rx,
         )
         .await
@@ -104,40 +103,42 @@ impl OperationTrackerAPI {
 
     pub async fn remove_operation(&self, uuid: Uuid) -> Result<bool, NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::RemoveOperation((uuid, tx)), rx)
+        self.exec_operation(TrackerCommand::RemoveOperation((uuid, tx)), rx)
             .await
     }
 
     pub async fn cancel_operation(&self, uuid: Uuid) -> Result<bool, NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::CancelOperation((uuid, tx)), rx)
+        self.exec_operation(TrackerCommand::CancelOperation((uuid, tx)), rx)
             .await
     }
 
     pub async fn cancel_all(&self) -> Result<(), NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::CancelAll(tx), rx).await
+        self.exec_operation(TrackerCommand::CancelAll(tx), rx).await
     }
 
     pub async fn set_debug(&self, debug: bool) -> Result<(), NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::SetDebugMode((debug, tx)), rx)
+        self.exec_operation(TrackerCommand::SetDebugMode((debug, tx)), rx)
             .await?;
         Ok(())
     }
 
     pub async fn get_operations_stat(&self) -> Result<String, NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::GetOperationsStat(tx), rx).await?
+        self.exec_operation(TrackerCommand::GetOperationsStat(tx), rx)
+            .await?
     }
 
     pub async fn get_sde_sender(&self, uuid: Uuid) -> Result<Option<SdeSender>, NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::GetSdeSender((uuid, tx)), rx).await
+        self.exec_operation(TrackerCommand::GetSdeSender((uuid, tx)), rx)
+            .await
     }
 
     pub fn shutdown(&self) -> Result<(), NativeError> {
-        self.tx_api.send(Api::Shutdown).map_err(|e| {
+        self.tx_api.send(TrackerCommand::Shutdown).map_err(|e| {
             NativeError::channel(&format!("fail to send to Api::Shutdown; error: {e}",))
         })
     }
@@ -145,7 +146,7 @@ impl OperationTrackerAPI {
 
 pub async fn run(
     state: SessionStateAPI,
-    mut rx_api: UnboundedReceiver<Api>,
+    mut rx_api: UnboundedReceiver<TrackerCommand>,
 ) -> Result<(), NativeError> {
     let mut tracker = OperationTracker {
         operations: HashMap::new(),
@@ -155,7 +156,14 @@ pub async fn run(
     debug!("task is started");
     while let Some(msg) = rx_api.recv().await {
         match msg {
-            Api::AddOperation((uuid, name, tx_sde, cancalation_token, done_token, tx_response)) => {
+            TrackerCommand::AddOperation((
+                uuid,
+                name,
+                tx_sde,
+                cancalation_token,
+                done_token,
+                tx_response,
+            )) => {
                 if tracker.debug {
                     tracker
                         .stat
@@ -176,7 +184,7 @@ pub async fn run(
                     ));
                 }
             }
-            Api::RemoveOperation((uuid, tx_response)) => {
+            TrackerCommand::RemoveOperation((uuid, tx_response)) => {
                 if let Err(err) = state.canceled_operation(uuid).await {
                     error!(
                         "fail to notify state about canceled operation {}; err: {:?}",
@@ -200,7 +208,7 @@ pub async fn run(
                     ));
                 }
             }
-            Api::CancelOperation((uuid, tx_response)) => {
+            TrackerCommand::CancelOperation((uuid, tx_response)) => {
                 if let Err(err) = state.canceling_operation(uuid).await {
                     error!(
                         "Failed to notify state about cancelation operation {}; err: {:?}",
@@ -232,7 +240,7 @@ pub async fn run(
                         NativeError::channel("Failed to respond to Api::CancelOperation")
                     })?;
             }
-            Api::CancelAll(tx_response) => {
+            TrackerCommand::CancelAll(tx_response) => {
                 for (uuid, (_tx_sde, operation_cancalation_token, done_token)) in
                     &tracker.operations
                 {
@@ -250,7 +258,7 @@ pub async fn run(
                     ));
                 }
             }
-            Api::SetDebugMode((debug, tx_response)) => {
+            TrackerCommand::SetDebugMode((debug, tx_response)) => {
                 tracker.debug = debug;
                 if tx_response.send(()).is_err() {
                     return Err(NativeError::channel(
@@ -258,7 +266,7 @@ pub async fn run(
                     ));
                 }
             }
-            Api::GetOperationsStat(tx_response) => {
+            TrackerCommand::GetOperationsStat(tx_response) => {
                 if tx_response
                     .send(match serde_json::to_string(&tracker.stat) {
                         Ok(serialized) => Ok(serialized),
@@ -275,7 +283,7 @@ pub async fn run(
                     ));
                 }
             }
-            Api::GetSdeSender((uuid, tx_response)) => {
+            TrackerCommand::GetSdeSender((uuid, tx_response)) => {
                 if tx_response
                     .send(
                         if let Some((tx_sde, _, _)) = tracker.operations.get(&uuid) {
@@ -291,7 +299,7 @@ pub async fn run(
                     ));
                 }
             }
-            Api::Shutdown => {
+            TrackerCommand::Shutdown => {
                 debug!("shutdown has been requested");
                 break;
             }

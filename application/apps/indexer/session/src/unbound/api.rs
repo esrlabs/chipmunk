@@ -47,7 +47,6 @@ impl UnboundSessionAPI {
         rx_results: oneshot::Receiver<Result<CommandOutcome<T>, ComputationError>>,
         command: Command,
     ) -> Result<CommandOutcome<T>, ComputationError> {
-        println!("indexer: process command for {command}");
         self.tx.send(API::Run(command, uuid)).map_err(|_| {
             ComputationError::Communication(String::from("Fail to send call Job::SomeJob"))
         })?;

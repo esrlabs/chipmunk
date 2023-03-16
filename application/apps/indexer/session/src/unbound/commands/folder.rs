@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::events::ComputationError;
+use crate::{events::ComputationError, unbound::signal::Signal};
 
-use super::{commands::CommandOutcome, signal::Signal};
+use super::CommandOutcome;
 
 #[derive(Serialize, Deserialize)]
 struct FolderContent {

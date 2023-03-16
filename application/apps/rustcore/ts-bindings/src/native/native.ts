@@ -9,7 +9,7 @@ export interface IRustModuleExports {
     UnboundJobs: any;
     Dlt: any;
     Shells: any;
-    ProgressTracker: any;
+    RustProgressTracker: any;
     Serial: any;
     Files: any;
     getFilterError: (filter: {
@@ -27,7 +27,7 @@ export function getNativeModule(): IRustModuleExports {
     return require(modulePath);
 }
 
-const { RustSession: RustSessionNoType, Dlt: RustDltTools, ProgressTracker: ProgressTrackerNoType } = getNativeModule();
+const { RustSession: RustSessionNoType, Dlt: RustDltTools, RustProgressTracker: ProgressTrackerNoType } = getNativeModule();
 
 export { RustSessionNoType, RustDltTools, ProgressTrackerNoType };
 
