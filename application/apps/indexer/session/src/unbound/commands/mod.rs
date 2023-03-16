@@ -1,9 +1,13 @@
+mod cancel_test;
+mod folder;
+
 use crate::events::ComputationError;
 
-use super::{folder::get_folder_content, job::cancel_test, signal::Signal};
 use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
 use uuid::Uuid;
+
+use super::signal::Signal;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum CommandOutcome<T> {
@@ -56,7 +60,7 @@ pub async fn process(command: Command, signal: Signal) {
     match command {
         Command::FolderContent(path, tx) => {
             println!("process command: FolderContent");
-            let res = get_folder_content(&path, signal);
+            let res = folder::get_folder_content(&path, signal);
             println!("done with command: FolderContent, sending back results");
             let _ = tx.send(res);
         }

@@ -9,7 +9,7 @@ use serde::Serialize;
 use session::{
     events::{ComputationError, LifecycleTransition},
     operations,
-    unbound::{api::UnboundSessionAPI, commands::CommandOutcome, session::UnboundSession},
+    unbound::{api::UnboundSessionAPI, commands::CommandOutcome, UnboundSession},
 };
 use std::thread;
 use tokio::{runtime::Runtime, sync::mpsc::UnboundedSender};
