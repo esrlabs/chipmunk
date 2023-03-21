@@ -50,12 +50,17 @@ export { Jobs } from './native/native.jobs';
 
 setUuidGenerator(v4);
 import { ProgressTrackerNoType } from "./native/native";
-export function createTracker() {
+export function createTracker() : any|Error {
     console.log(ProgressTrackerNoType);
     const tracker = new ProgressTrackerNoType();
-    tracker.init((event: any) => {
-        console.log("Progress Tracker:: event " + event);
-    });
-    return tracker;
+    try {
+        tracker.init((event: any) => {
+            console.log("Progress Tracker:: event " + event);
+        });
+        return tracker;
+    } catch(error) {
+        console.log(error);
+        return new Error(error as string);
+    }
 
 }

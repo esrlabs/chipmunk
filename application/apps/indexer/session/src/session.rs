@@ -6,6 +6,7 @@ use crate::{
     state::{GrabbedElement, IndexesMode, SessionStateAPI, SourceDefinition},
     tracker,
     tracker::OperationTrackerAPI,
+    TRACKER_CHANNEL,
 };
 use indexer_base::progress::Severity;
 use log::{debug, error};
@@ -45,10 +46,14 @@ impl Session {
     ///
     pub async fn new(
         uuid: Uuid,
-        // tx: mpsc::UnboundedSender<String>,
-    ) -> (Self, UnboundedReceiver<CallbackEvent>) {
-        // tx.send("hello from rust".to_string())
-        //     .expect("we should be able to send");
+    ) -> Result<(Self, UnboundedReceiver<CallbackEvent>), ComputationError> {
+        let tracker_tx = {
+            let tx_rx = TRACKER_CHANNEL.lock().map_err(|e| {
+                ComputationError::Communication(format!("Cannot init channels from mutex: {e}"))
+            })?;
+            tx_rx.0.clone()
+            // scope will release Mutex lock
+        };
         let (tx_operations, rx_operations): OperationsChannel = unbounded_channel();
         let (tracker_api, rx_tracker_api) = OperationTrackerAPI::new();
         let (state_api, rx_state_api) = SessionStateAPI::new(tracker_api.clone());
@@ -82,12 +87,12 @@ impl Session {
                     result
                 },
                 state::run(rx_state_api, tx_callback_events_state),
-                tracker::run(state_api.clone(), rx_tracker_api),
+                tracker::run(state_api.clone(), rx_tracker_api, tracker_tx),
             );
             destroyed.cancel();
             debug!("Session is finished");
         });
-        (session, rx_callback_events)
+        Ok((session, rx_callback_events))
     }
 
     pub fn get_uuid(&self) -> Uuid {

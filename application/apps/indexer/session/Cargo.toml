@@ -9,6 +9,7 @@ crossbeam-channel = "0.5"
 dirs = "4.0"
 futures = "0.3"
 indexer_base = { path = "../indexer_base" }
+lazy_static = "1.4"
 log = "0.4"
 merging = { path = "../merging" }
 parsers = { path = "../parsers" }

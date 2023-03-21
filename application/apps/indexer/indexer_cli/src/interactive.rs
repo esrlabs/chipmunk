@@ -19,7 +19,7 @@ use uuid::Uuid;
 pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
     let uuid = Uuid::new_v4();
     // let (tx, _rx) = mpsc::unbounded_channel();
-    let (session, mut receiver) = Session::new(uuid).await;
+    let (session, mut receiver) = Session::new(uuid).await.expect("Session should be created");
     let (tx, mut rx) = mpsc::unbounded_channel();
     let cancel = CancellationToken::new();
 
