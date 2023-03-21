@@ -1,27 +1,14 @@
 use crate::js::session::events::CallbackEventWrapper;
 
 use super::events::ComputationErrorWrapper;
-use lazy_static::lazy_static;
+use log::trace;
 use node_bindgen::derive::node_bindgen;
 use session::{
-    events::{CallbackEvent, ComputationError, LifecycleTransition},
-    progress::{ProgressCommand, ProgressTrackerAPI, ProgressTrackerHandle},
+    events::{CallbackEvent, ComputationError},
+    progress::{run_tracking, ProgressCommand, ProgressTrackerAPI},
 };
-use std::{sync::Mutex, thread};
-use tokio::{
-    runtime::Runtime,
-    sync::mpsc::{self, UnboundedReceiver},
-};
-
-lazy_static! {
-    pub static ref TRACKER_CHANNEL: Mutex<(
-        mpsc::UnboundedSender<LifecycleTransition>,
-        Option<mpsc::UnboundedReceiver<LifecycleTransition>>
-    )> = {
-        let (tx, rx) = mpsc::unbounded_channel();
-        Mutex::new((tx, Some(rx)))
-    };
-}
+use std::thread;
+use tokio::{runtime::Runtime, sync::mpsc::UnboundedReceiver};
 
 struct RustProgressTracker {
     tracker_api: ProgressTrackerAPI,
@@ -47,26 +34,33 @@ impl RustProgressTracker {
         let rt = Runtime::new().map_err(|e| {
             ComputationError::Process(format!("Could not start tokio runtime: {e}"))
         })?;
-        let mut tx_rx = TRACKER_CHANNEL.lock().map_err(|e| {
-            ComputationError::Communication(format!("Cannot init channels from mutex: {e}"))
-        })?;
-        let rx = tx_rx.1.take().ok_or(ComputationError::Communication(
-            "channel not initialized".to_string(),
-        ))?;
         if let Some(rx_events) = self.rx_events.take() {
+            let (result_tx, result_rx) = std::sync::mpsc::channel();
             thread::spawn(move || {
                 rt.block_on(async {
-                    println!("progress_tracker thread running");
-                    let mut progress_tracker = ProgressTrackerHandle::new(rx_events);
-                    if let Ok(mut rx) = progress_tracker.track(rx).await {
-                        while let Some(progress_report) = rx.recv().await {
-                            let callback_event = CallbackEvent::Lifecycle(progress_report);
-                            callback(callback_event.into())
+                    trace!("progress_tracker thread running");
+                    match run_tracking(rx_events).await {
+                        Ok(mut rx) => {
+                            let _ = result_tx.send(Ok(()));
+                            while let Some(progress_report) = rx.recv().await {
+                                let callback_event = CallbackEvent::Lifecycle(progress_report);
+                                callback(callback_event.into())
+                            }
+                        }
+                        Err(e) => {
+                            let _ = result_tx.send(Err(e));
                         }
                     }
                 })
             });
-            Ok(())
+            result_rx
+                .recv()
+                .map_err(|_| {
+                    ComputationErrorWrapper(ComputationError::Protocol(
+                        "could not setup tracking".to_string(),
+                    ))
+                })?
+                .map_err(ComputationErrorWrapper)
         } else {
             Err(ComputationErrorWrapper(ComputationError::Protocol(
                 "Could not init progress_tracker".to_string(),

@@ -1,6 +1,5 @@
 pub mod events;
 pub mod progress_tracker;
-use self::progress_tracker::TRACKER_CHANNEL;
 
 use crate::{
     js::{
@@ -14,7 +13,7 @@ use log::{debug, error, info, warn};
 use node_bindgen::derive::node_bindgen;
 use processor::grabber::LineRange;
 use session::{
-    events::{CallbackEvent, ComputationError, LifecycleTransition, NativeError},
+    events::{CallbackEvent, ComputationError, NativeError},
     factory::ObserveOptions,
     operations,
     session::Session,
@@ -53,16 +52,13 @@ impl RustSession {
         let rt = Runtime::new().map_err(|e| {
             ComputationError::Process(format!("Could not start tokio runtime: {e}"))
         })?;
-        let (tx_session, rx_session): (oneshot::Sender<Session>, oneshot::Receiver<Session>) =
-            oneshot::channel();
+        let (tx_session, rx_session) = oneshot::channel();
         let uuid = self.uuid;
         thread::spawn(move || {
             rt.block_on(async {
-                match TRACKER_CHANNEL.lock().map(|channels| channels.0.clone()) {
-                    Ok(tracker_tx) => {
-                        let (session, mut rx_callback_events) = Session::new(uuid).await;
-                        let _ = tracker_tx.send(LifecycleTransition::Started(uuid.to_string()));
-                        if tx_session.send(session).is_err() {
+                match Session::new(uuid).await {
+                    Ok((session, mut rx_callback_events)) => {
+                        if tx_session.send(Some(session)).is_err() {
                             error!("Cannot setup session instance");
                             return;
                         }
@@ -72,21 +68,22 @@ impl RustSession {
                         }
                         debug!("sending SessionDestroyed event");
                         callback(CallbackEvent::SessionDestroyed.into());
-                        let _ = tracker_tx.send(LifecycleTransition::Stopped(uuid.to_string()));
                         debug!("task is finished");
                     }
                     Err(e) => {
-                        error!("Could not start session, tracker channel not available({e})");
-                        drop(tx_session);
+                        error!("Cannot create session instance: {e}");
+                        if tx_session.send(None).is_err() {
+                            error!("Cannot setup session instance");
+                        }
                     }
                 }
             })
         });
-        self.session = Some(rx_session.await.map_err(|_| {
+        self.session = rx_session.await.map_err(|_| {
             ComputationErrorWrapper(ComputationError::Communication(String::from(
                 "Fail to get session instance to setup",
             )))
-        })?);
+        })?;
         Ok(())
     }
 

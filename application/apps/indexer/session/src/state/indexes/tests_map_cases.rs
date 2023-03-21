@@ -1,7 +1,7 @@
 use super::{frame::Frame, map::Map, nature::Nature};
 use std::ops::RangeInclusive;
 
-lazy_static! {
+lazy_static::lazy_static! {
     // If you need to execute some specific test, just define a name
     // of test(s) here.
     static ref RUN_ONLY: Vec<String> = vec![];

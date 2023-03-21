@@ -1,4 +1,7 @@
-use crate::events::{ComputationError, LifecycleTransition};
+use crate::{
+    events::{ComputationError, LifecycleTransition},
+    TRACKER_CHANNEL,
+};
 use log::info;
 use std::collections::HashSet;
 use tokio::{
@@ -52,79 +55,56 @@ impl ProgressTrackerAPI {
     }
 }
 
-pub struct ProgressTracker {
-    ongoing_operations: HashSet<String>,
-}
+pub async fn run_tracking(
+    mut command_rx: UnboundedReceiver<ProgressCommand>,
+) -> Result<mpsc::Receiver<LifecycleTransition>, ComputationError> {
+    let mut ongoing_operations: HashSet<String> = HashSet::new();
+    let lifecycle_events_channel = mpsc::channel(1);
 
-impl ProgressTracker {
-    fn new() -> Self {
-        Self {
-            ongoing_operations: HashSet::new(),
-        }
-    }
-}
+    let mut lifecycle_events = {
+        let mut tx_rx = TRACKER_CHANNEL.lock().map_err(|e| {
+            ComputationError::Communication(format!("Cannot init channels from mutex: {e}"))
+        })?;
+        tx_rx.1.take().ok_or(ComputationError::Communication(
+            "ProgressTracker channel already taken".to_string(),
+        ))?
+    };
 
-pub struct ProgressTrackerHandle {
-    rx_tracker_api: Option<UnboundedReceiver<ProgressCommand>>,
-    tracker_join_handle: Option<tokio::task::JoinHandle<()>>,
-}
-
-impl ProgressTrackerHandle {
-    pub fn new(event_rx: UnboundedReceiver<ProgressCommand>) -> Self {
-        Self {
-            rx_tracker_api: Some(event_rx),
-            tracker_join_handle: None,
-        }
-    }
-
-    pub async fn track(
-        &mut self,
-        mut lifecycle_events: UnboundedReceiver<LifecycleTransition>,
-    ) -> Result<mpsc::Receiver<LifecycleTransition>, ComputationError> {
-        let mut progress_tracker = ProgressTracker::new();
-        let lifecycle_events_channel = mpsc::channel(1);
-        if let Some(mut rx_tracker) = self.rx_tracker_api.take() {
-            self.tracker_join_handle = Some(tokio::spawn(async move {
-                loop {
-                    select! {
-                        command = rx_tracker.recv() => {
-                            match command {
-                                Some(ProgressCommand::Content(result_channel)) => {
-                                    let res = serde_json::to_string(&progress_tracker.ongoing_operations)
-                                        .map_err(|e| ComputationError::Process(format!("{e}")));
-                                    let _ = result_channel.send(res);
-                                }
-                                Some(ProgressCommand::Abort(result_channel)) => {
-                                    let _ = result_channel.send(Ok(()));
-                                    break;
-                                }
-                                None => break,
-                            }
+    tokio::spawn(async move {
+        loop {
+            select! {
+                command = command_rx.recv() => {
+                    match command {
+                        Some(ProgressCommand::Content(result_channel)) => {
+                            let res = serde_json::to_string(&ongoing_operations)
+                                .map_err(|e| ComputationError::Process(format!("{e}")));
+                            let _ = result_channel.send(res);
                         }
-                        lifecycle_event = lifecycle_events.recv() => {
-                            match lifecycle_event {
-                                Some(LifecycleTransition::Started(uuid)) => {
-                                    info!("job {uuid} started");
-                                    progress_tracker.ongoing_operations.insert(uuid.clone());
-                                    let _ = lifecycle_events_channel.0.send(LifecycleTransition::Started(uuid)).await;
-                                }
-                                Some(LifecycleTransition::Stopped(uuid)) => {
-                                    info!("job {uuid} stopped");
-                                    progress_tracker.ongoing_operations.remove(&uuid);
-                                    let _ = lifecycle_events_channel.0.send(LifecycleTransition::Stopped(uuid)).await;
-                                }
-                                None => break,
-
-                            }
+                        Some(ProgressCommand::Abort(result_channel)) => {
+                            let _ = result_channel.send(Ok(()));
+                            break;
                         }
+                        None => break,
                     }
                 }
-            }));
-            Ok(lifecycle_events_channel.1)
-        } else {
-            Err(ComputationError::Process(
-                "tracker cannot be initiated".to_string(),
-            ))
+                lifecycle_event = lifecycle_events.recv() => {
+                    match lifecycle_event {
+                        Some(LifecycleTransition::Started(uuid)) => {
+                            info!("job {uuid} started");
+                            ongoing_operations.insert(uuid.clone());
+                            let _ = lifecycle_events_channel.0.send(LifecycleTransition::Started(uuid)).await;
+                        }
+                        Some(LifecycleTransition::Stopped(uuid)) => {
+                            info!("job {uuid} stopped");
+                            ongoing_operations.remove(&uuid);
+                            let _ = lifecycle_events_channel.0.send(LifecycleTransition::Stopped(uuid)).await;
+                        }
+                        None => break,
+
+                    }
+                }
+            }
         }
-    }
+    });
+    Ok(lifecycle_events_channel.1)
 }

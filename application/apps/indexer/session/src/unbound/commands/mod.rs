@@ -3,6 +3,7 @@ mod folder;
 
 use crate::events::ComputationError;
 
+use log::trace;
 use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
 use uuid::Uuid;
@@ -59,9 +60,9 @@ impl std::fmt::Display for Command {
 pub async fn process(command: Command, signal: Signal) {
     match command {
         Command::FolderContent(path, tx) => {
-            println!("process command: FolderContent");
+            trace!("process command: FolderContent");
             let res = folder::get_folder_content(&path, signal);
-            println!("done with command: FolderContent, sending back results");
+            trace!("done with command: FolderContent, sending back results");
             let _ = tx.send(res);
         }
         Command::CancelTest(a, b, tx) => {

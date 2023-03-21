@@ -11,6 +11,8 @@ pub enum API {
     Shutdown(oneshot::Sender<()>),
     CancelJob(Uuid),
     Run(Command, Uuid),
+    /// remove finished jobs from registry
+    Remove(Uuid),
 }
 
 #[derive(Clone, Debug)]
@@ -55,6 +57,13 @@ impl UnboundSessionAPI {
             .map_err(|e| ComputationError::Communication(format!("channel error: {e}")))?
     }
 
+    pub(crate) fn remove_command(&self, uuid: Uuid) -> Result<(), ComputationError> {
+        self.tx.send(API::Remove(uuid)).map_err(|_| {
+            ComputationError::Communication(String::from("Fail to send call Job::SomeJob"))
+        })?;
+        Ok(())
+    }
+
     pub fn cancel_test(
         &self,
         custom_arg_a: i64,
@@ -88,7 +97,6 @@ impl UnboundSessionAPI {
         let uuid = Uuid::new_v4();
         (
             async move {
-                println!("indexer: list_folder_content");
                 let (tx_results, rx_results) = oneshot::channel();
                 self.process_command(uuid, rx_results, Command::FolderContent(path, tx_results))
                     .await
