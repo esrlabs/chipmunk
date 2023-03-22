@@ -40,20 +40,30 @@ pub enum Progress {
     Stopped,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct Ticks {
     pub count: u64,
-    pub total: u64,
+    pub total: Option<u64>,
 }
 
 impl Ticks {
     pub fn done(&self) -> bool {
-        self.count == self.total
+        match self.total {
+            Some(total) => self.count == total,
+            None => false,
+        }
+    }
+
+    pub fn new() -> Self {
+        Ticks {
+            count: 0,
+            total: None,
+        }
     }
 }
 
 impl Progress {
-    pub fn ticks(count: u64, total: u64) -> Self {
+    pub fn ticks(count: u64, total: Option<u64>) -> Self {
         Self::Ticks(Ticks { count, total })
     }
 }

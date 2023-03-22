@@ -345,9 +345,7 @@ pub async fn create_index_and_mapping_dlt_from_socket(
             }
         }
         Err(e) => {
-            let content = format!(
-                "Could not determine last line number of {out_path:?} ({e})"
-            );
+            let content = format!("Could not determine last line number of {out_path:?} ({e})");
             let _ = update_channel.send(Err(Notification {
                 severity: Severity::ERROR,
                 content: content.clone(),
@@ -454,7 +452,7 @@ impl SessionProcessor {
                 }
                 Progress::Ticks(Ticks { count, total }) => {
                     let _ = self.update_channel.send(Ok(IndexingProgress::Progress {
-                        ticks: (count, total),
+                        ticks: (count, total.unwrap_or(0)),
                     }));
                 }
                 Progress::Stopped => {

@@ -1,5 +1,5 @@
 use crossbeam_channel as cc;
-use indexer_base::progress::{Progress, Severity};
+use indexer_base::progress::{Progress, Severity, Ticks};
 use processor::{grabber::GrabError, search::error::SearchError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -273,15 +273,17 @@ impl std::fmt::Display for CallbackEvent {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum LifecycleTransition {
-    Started(String),
-    Stopped(String),
+    Started(Uuid),
+    Ticks((Uuid, Ticks)),
+    Stopped(Uuid),
 }
 
 impl LifecycleTransition {
-    pub fn uuid(&self) -> String {
+    pub fn uuid(&self) -> Uuid {
         match self {
-            Self::Started(uuid) => uuid.clone(),
-            Self::Stopped(uuid) => uuid.clone(),
+            Self::Started(uuid) => *uuid,
+            Self::Ticks((uuid, _)) => *uuid,
+            Self::Stopped(uuid) => *uuid,
         }
     }
 }
