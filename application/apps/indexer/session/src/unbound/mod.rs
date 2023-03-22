@@ -55,7 +55,7 @@ impl UnboundSession {
                 jobs.retain(|uuid, signal| {
                     let cancelled = signal.is_cancelled();
                     if cancelled {
-                        let _ = tracker_tx.send(LifecycleTransition::Stopped(uuid.to_string()));
+                        let _ = tracker_tx.send(LifecycleTransition::Stopped(*uuid));
                     }
                     !cancelled
                 });
@@ -63,7 +63,7 @@ impl UnboundSession {
                     API::Run(job, uuid) => {
                         let signal = Signal::new(job.to_string());
                         jobs.insert(uuid, signal.clone());
-                        let _ = tracker_tx.send(LifecycleTransition::Started(uuid.to_string()));
+                        let _ = tracker_tx.send(LifecycleTransition::Started(uuid));
 
                         let api = session_api.clone();
                         tokio::spawn(async move {
@@ -90,7 +90,7 @@ impl UnboundSession {
                         });
                         for (uuid, signal) in jobs.iter() {
                             signal.confirmed().await;
-                            let _ = tracker_tx.send(LifecycleTransition::Stopped(uuid.to_string()));
+                            let _ = tracker_tx.send(LifecycleTransition::Stopped(*uuid));
                         }
                         jobs.clear();
                         if tx.send(()).is_err() {
@@ -100,7 +100,7 @@ impl UnboundSession {
                     }
                     API::Remove(uuid) => {
                         if jobs.remove(&uuid).is_some() {
-                            let _ = tracker_tx.send(LifecycleTransition::Stopped(uuid.to_string()));
+                            let _ = tracker_tx.send(LifecycleTransition::Stopped(uuid));
                         }
                     }
                 }

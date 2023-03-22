@@ -200,7 +200,7 @@ pub async fn run(
                         error!("fail to find operation in stat: {}", str_uuid);
                     }
                 }
-                let _ = tracker_tx.send(LifecycleTransition::Stopped(uuid.to_string()));
+                let _ = tracker_tx.send(LifecycleTransition::Stopped(uuid));
                 if tx_response
                     .send(tracker.operations.remove(&uuid).is_some())
                     .is_err()
@@ -226,8 +226,7 @@ pub async fn run(
                                 operation_cancalation_token.cancel();
                                 debug!("Waiting for operation {} would confirm done-state", uuid);
                                 done_token.cancelled().await;
-                                let _ =
-                                    tracker_tx.send(LifecycleTransition::Stopped(uuid.to_string()));
+                                let _ = tracker_tx.send(LifecycleTransition::Stopped(uuid));
                             }
                             if let Err(err) = state.canceled_operation(uuid).await {
                                 error!(
@@ -253,7 +252,7 @@ pub async fn run(
                         debug!("waiting for operation {} would confirm done-state", uuid);
                         // TODO: add timeout to preven situation with waiting forever. 2-3 sec.
                         done_token.cancelled().await;
-                        let _ = tracker_tx.send(LifecycleTransition::Stopped(uuid.to_string()));
+                        let _ = tracker_tx.send(LifecycleTransition::Stopped(*uuid));
                     }
                 }
                 tracker.operations.clear();

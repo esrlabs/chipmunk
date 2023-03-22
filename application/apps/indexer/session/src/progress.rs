@@ -2,8 +2,9 @@ use crate::{
     events::{ComputationError, LifecycleTransition},
     TRACKER_CHANNEL,
 };
+use indexer_base::progress::Ticks;
 use log::info;
-use std::collections::HashSet;
+use std::collections::HashMap;
 use tokio::{
     select,
     sync::{
@@ -11,19 +12,25 @@ use tokio::{
         oneshot,
     },
 };
+use uuid::Uuid;
 
+/// Commands used to control/query the progress tracking
 #[derive(Debug)]
 pub enum ProgressCommand {
     Content(oneshot::Sender<Result<String, ComputationError>>),
     Abort(oneshot::Sender<Result<(), ComputationError>>),
 }
 
+/// The ProgressTrackerAPI enables safe access to the state of the progress of
+/// all ongoing operations (all unbound jobs and all operations in every session)
 #[derive(Clone, Debug)]
 pub struct ProgressTrackerAPI {
     tx_api: UnboundedSender<ProgressCommand>,
 }
 
 impl ProgressTrackerAPI {
+    /// creates a ProgressTrackerAPI along with a channel that needs
+    /// to be passed to the run_tracking function
     pub fn new() -> (Self, UnboundedReceiver<ProgressCommand>) {
         let (tx_api, rx_api) = unbounded_channel();
         (Self { tx_api }, rx_api)
@@ -55,10 +62,14 @@ impl ProgressTrackerAPI {
     }
 }
 
+/// Keep track of all ongoing operations and jobs
+/// All jobs and operations are identified with UUIDs. Here we receive updates about the
+/// progress of those long-runing operations.
+/// At any time, we can then track the progress of everything that is going on
 pub async fn run_tracking(
     mut command_rx: UnboundedReceiver<ProgressCommand>,
 ) -> Result<mpsc::Receiver<LifecycleTransition>, ComputationError> {
-    let mut ongoing_operations: HashSet<String> = HashSet::new();
+    let mut ongoing_operations: HashMap<Uuid, Ticks> = HashMap::new();
     let lifecycle_events_channel = mpsc::channel(1);
 
     let mut lifecycle_events = {
@@ -91,12 +102,17 @@ pub async fn run_tracking(
                     match lifecycle_event {
                         Some(LifecycleTransition::Started(uuid)) => {
                             info!("job {uuid} started");
-                            ongoing_operations.insert(uuid.clone());
+                            ongoing_operations.insert(uuid, Ticks::new());
                             let _ = lifecycle_events_channel.0.send(LifecycleTransition::Started(uuid)).await;
                         }
                         Some(LifecycleTransition::Stopped(uuid)) => {
                             info!("job {uuid} stopped");
                             ongoing_operations.remove(&uuid);
+                            let _ = lifecycle_events_channel.0.send(LifecycleTransition::Stopped(uuid)).await;
+                        }
+                        Some(LifecycleTransition::Ticks((uuid, ticks))) => {
+                            info!("job {uuid} reported progress: {ticks:?}");
+                            ongoing_operations.insert(uuid, Ticks::new());
                             let _ = lifecycle_events_channel.0.send(LifecycleTransition::Stopped(uuid)).await;
                         }
                         None => break,

@@ -42,7 +42,10 @@ pub async fn handle(
                     let (count, total) = ticks;
                     CallbackEvent::Progress {
                         uuid: operation_api.id(),
-                        progress: Progress::Ticks(Ticks { count, total }),
+                        progress: Progress::Ticks(Ticks {
+                            count,
+                            total: Some(total),
+                        }),
                     }
                 }
                 IndexingProgress::GotItem { item } => {
