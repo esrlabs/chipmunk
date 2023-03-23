@@ -84,7 +84,6 @@ pub async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
     let stream = producer.as_stream();
     futures::pin_mut!(stream);
     let cancel_on_tail = cancel.clone();
-    operation_api.started();
     while let Some(next) = select! {
         next_from_stream = async {
             match timeout(Duration::from_millis(FLUSH_TIMEOUT_IN_MS as u64), stream.next()).await {

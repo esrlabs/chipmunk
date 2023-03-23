@@ -48,6 +48,12 @@ impl SourceIDs {
         key
     }
 
+    pub fn get_source(&mut self, alias: String) -> Option<u8> {
+        self.sources
+            .iter()
+            .find_map(|(key, val)| if val == &alias { Some(*key) } else { None })
+    }
+
     pub fn is_source_same(&self, source_id: u8) -> bool {
         if let Some(id) = self.recent {
             id == source_id

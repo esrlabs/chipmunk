@@ -34,7 +34,6 @@ pub async fn listen<'a>(
             state.file_read().await?;
             // Switching to tail
             let cancel = operation_api.cancellation_token();
-            operation_api.started();
             let (result, tracker) = join!(
                 async {
                     let result = select! {
@@ -81,7 +80,6 @@ pub async fn listen<'a>(
             );
             listening
         }
-
         ParserType::Pcap(_) => {
             let source = PcapngByteSource::new(input_file(filename)?)?;
             let (_, listening) = join!(
