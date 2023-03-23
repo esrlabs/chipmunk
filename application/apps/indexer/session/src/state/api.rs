@@ -27,6 +27,7 @@ pub enum Api {
     FlushSessionFile(oneshot::Sender<Result<(), NativeError>>),
     UpdateSession((u8, oneshot::Sender<Result<bool, NativeError>>)),
     AddSource((String, oneshot::Sender<u8>)),
+    GetSource((String, oneshot::Sender<Option<u8>>)),
     GetSourcesDefinitions(oneshot::Sender<Vec<SourceDefinition>>),
     #[allow(clippy::large_enum_variant)]
     AddExecutedObserve((ObserveOptions, oneshot::Sender<()>)),
@@ -140,6 +141,7 @@ impl Display for Api {
                 Self::FlushSessionFile(_) => "FlushSessionFile",
                 Self::UpdateSession(_) => "UpdateSession",
                 Self::AddSource(_) => "AddSource",
+                Self::GetSource(_) => "GetSource",
                 Self::GetSourcesDefinitions(_) => "GetSourcesDefinitions",
                 Self::AddExecutedObserve(_) => "AddExecutedObserve",
                 Self::GetExecutedHolder(_) => "GetExecutedHolder",
@@ -359,6 +361,12 @@ impl SessionStateAPI {
     pub async fn add_source(&self, uuid: &str) -> Result<u8, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::AddSource((uuid.to_owned(), tx)), rx)
+            .await
+    }
+
+    pub async fn get_source(&self, uuid: &str) -> Result<Option<u8>, NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GetSource((uuid.to_owned(), tx)), rx)
             .await
     }
 

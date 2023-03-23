@@ -409,6 +409,11 @@ pub async fn run(
                     .send(state.session_file.sources.add_source(uuid))
                     .map_err(|_| NativeError::channel("Failed to respond to Api::AddSource"))?;
             }
+            Api::GetSource((uuid, tx_response)) => {
+                tx_response
+                    .send(state.session_file.sources.get_source(uuid))
+                    .map_err(|_| NativeError::channel("Failed to respond to Api::AddSource"))?;
+            }
             Api::GetSourcesDefinitions(tx_response) => {
                 tx_response
                     .send(state.session_file.sources.get_sources_definitions())

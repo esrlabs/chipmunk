@@ -280,7 +280,13 @@ impl OperationAPI {
         let api = self.clone();
         let state = self.state_api.clone();
         let tracker = self.tracker_api.clone();
+        let session_file = if matches!(operation.kind, OperationKind::Extract { .. }) {
+            Some(state.get_session_file().await?)
+        } else {
+            None
+        };
         spawn(async move {
+            api.started();
             let operation_str = &format!("{}", operation.kind);
             match operation.kind {
                 OperationKind::Observe(options) => {
@@ -319,12 +325,11 @@ impl OperationAPI {
                     .await;
                 }
                 OperationKind::Extract { filters } => {
-                    let session_file = match state.get_session_file().await {
-                        Ok(session_file) => session_file,
-                        Err(err) => {
-                            warn!("Fail to call OperationKind::Extract; error: {:?}", err);
-                            return;
-                        }
+                    let session_file = if let Some(session_file) = session_file {
+                        session_file
+                    } else {
+                        warn!("Fail to call OperationKind::Extract: no session file");
+                        return;
                     };
                     api.finish(
                         handlers::extract::handle(&session_file, filters.iter()),

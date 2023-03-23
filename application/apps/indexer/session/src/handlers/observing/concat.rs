@@ -15,8 +15,20 @@ pub async fn listen<'a>(
     parser: &'a ParserType,
 ) -> OperationResult<()> {
     for file in files.iter() {
+        let (uuid, _filename) = file;
+        state.add_source(uuid).await?;
+    }
+    for file in files.iter() {
         let (uuid, filename) = file;
-        let source_id = state.add_source(uuid).await?;
+        let source_id = state.get_source(uuid).await?.ok_or(NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Io,
+            message: Some(format!(
+                "Cannot find source id for file {} with alias {}",
+                filename.to_string_lossy(),
+                uuid,
+            )),
+        })?;
         let input_file = File::open(filename).map_err(|e| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Io,
