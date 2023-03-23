@@ -1,0 +1,18 @@
+@import '../../../../styles/variables.less';
+
+:host {
+    position: relative;
+    display: flex;
+    padding: 0;
+    margin: 0;
+    flex-direction: row;
+    align-items: center;
+    width: ~"calc(100% - 24px)";
+    height: 32px;
+    overflow: hidden;
+    padding: 3px 24px;
+    cursor: default;
+    &:hover {
+        background: @scheme-color-5;
+    }
+}

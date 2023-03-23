@@ -19,6 +19,7 @@ export class HistorySession extends Subscriber {
         definitions: StorageDefinitions;
     };
     protected readonly session: Session;
+    protected readonly sources: string[] = [];
 
     public readonly definitions: Definitions;
     public collections: Collections;

@@ -11,8 +11,12 @@ import * as Requests from '@platform/ipc/request/index';
 export class Service extends Implementation {
     protected cache: {
         shells: ShellProfile[] | undefined;
+        files: Map<string, File>;
+        checksums: Map<string, string>;
     } = {
         shells: undefined,
+        files: new Map<string, File>(),
+        checksums: new Map<string, string>(),
     };
     protected queue: {
         shells: Array<{
@@ -36,9 +40,11 @@ export class Service extends Implementation {
     }
     public files(): {
         getByPath(filenames: string[]): Promise<File[]>;
+        getByPathWithCache(filenames: string[]): Promise<File[]>;
         ls(path: string): Promise<Entity[]>;
         stat(path: string): Promise<Entity>;
         checksum(filename: string): Promise<string>;
+        checksumWithCache(filename: string): Promise<string>;
         exists(path: string): Promise<boolean>;
         name(
             path: string,
@@ -78,6 +84,34 @@ export class Service extends Implementation {
                     )
                         .then((response) => {
                             resolve(response.files);
+                        })
+                        .catch(reject);
+                });
+            },
+            getByPathWithCache: (filenames: string[]): Promise<File[]> => {
+                return new Promise((resolve, reject) => {
+                    const result: File[] = [];
+                    const toBeRequested: string[] = [];
+                    filenames.forEach((filename) => {
+                        const file = this.cache.files.get(filename);
+                        if (file === undefined) {
+                            toBeRequested.push(filename);
+                        } else {
+                            result.push(file);
+                        }
+                    });
+
+                    if (toBeRequested.length === 0) {
+                        return resolve(result);
+                    }
+                    this.files()
+                        .getByPath(toBeRequested)
+                        .then((files) => {
+                            result.push(...files);
+                            files.forEach((file) => {
+                                this.cache.files.set(file.filename, file);
+                            });
+                            resolve(result);
                         })
                         .catch(reject);
                 });
@@ -158,6 +192,18 @@ export class Service extends Implementation {
                         return Promise.reject(new Error(`Unknown error`));
                     }
                 });
+            },
+            checksumWithCache: (filename: string): Promise<string> => {
+                const checksum = this.cache.checksums.get(filename);
+                if (checksum !== undefined) {
+                    return Promise.resolve(checksum);
+                }
+                return this.files()
+                    .checksum(filename)
+                    .then((checksum) => {
+                        this.cache.checksums.set(filename, checksum);
+                        return Promise.resolve(checksum);
+                    });
             },
             select: {
                 any: (): Promise<File[]> => {

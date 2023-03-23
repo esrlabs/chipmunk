@@ -1,0 +1,40 @@
+<div class="command">
+    <app-autocomplete-input #cmd [options]="inputs.cmd"
+        (edit)="edit('cmd', $event)"
+        (enter)="enter('cmd')"
+        (panel)="panel()"></app-autocomplete-input>
+    <button tabindex="-1" class="flat-codicon-button" [matMenuTriggerFor]="menu">
+        <ng-container *ngIf="state.isProfilesLoaded()">
+            <span class="codicon codicon-terminal"></span>
+            {{(state.current === undefined ? 'Default environment' : state.current.name)}}
+        </ng-container>
+        <ng-container *ngIf="!state.isProfilesLoaded()">
+            <span>Loading profiles...</span>
+            <mat-spinner [diameter]="16"></mat-spinner>
+        </ng-container>
+    </button>
+</div>
+<app-folderinput-input #cwd [options]="inputs.cwd"
+    (edit)="edit('cwd', $event)"
+    (enter)="enter('cwd')"
+    (panel)="panel()"></app-folderinput-input>
+<mat-menu #menu="matMenu" class="app-transport-process-menu">
+    <button mat-menu-item (click)="importEnvVars(undefined)">Use default environment</button>
+    <mat-divider></mat-divider>
+    <ng-container *ngIf="state.isProfilesLoaded()">
+        <p class="material-menu-label">Import variables from:</p>
+        <button *ngFor="let profile of state.profiles.valid" [attr.data-selected]="state.isShellSelected(profile)" mat-menu-item (click)="importEnvVars(profile)">
+            <div class="shell-profile">
+                <span class="shell-name">{{profile.name}}</span>
+                <span class="envvars-count">{{(' (has ' + profile.getEnvvarsCount() + ' vars)')}}</span>
+                <span class="shell-path">{{profile.path}}</span>
+            </div>
+        </button>
+    </ng-container>
+    <ng-container *ngIf="!state.isProfilesLoaded()">
+        <p class="material-menu-label">Loading profiles...</p>
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    </ng-container>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="showEnvVars()">Show current variables</button>
+</mat-menu>

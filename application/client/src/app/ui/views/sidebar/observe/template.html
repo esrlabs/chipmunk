@@ -1,38 +1,41 @@
-<mat-card class="list">
-    <mat-card-title>Observing</mat-card-title>
-    <mat-card-content>
-        <p *ngIf="observed.running.length === 0" class="info t-medium">No running observe operations</p>
-        <app-transport-review *ngFor="let holder of observed.running"
-            [attr.class]="ngGetCssClass(holder)"
-            [source]="holder.source"
-            [observer]="holder.observer"
-            [session]="session"
-            [finished]="false"
-            (click)="ngSelect(holder)"></app-transport-review>
-    </mat-card-content>
-</mat-card>
-<mat-card class="list" *ngIf="observed.done.length > 0">
-    <mat-card-title>Finished</mat-card-title>
-    <mat-card-content>
-        <app-transport-review *ngFor="let holder of observed.done"
-            [attr.class]="ngGetCssClass(holder)"
-            [source]="holder.source"
-            [session]="session"
-            [finished]="true"
-            (click)="ngSelect(holder)"></app-transport-review>
-    </mat-card-content>
-</mat-card>
-<mat-card *ngIf="selected !== undefined">
-    <mat-card-title>Details</mat-card-title>
-    <mat-card-content>
-        <app-transport-details
-            [source]="selected.source"
-            [observer]="selected.observer"
-            [session]="session"></app-transport-details>
-    </mat-card-content>
-</mat-card>
-<div class="controlls">
-    <button mat-stroked-button *ngIf="attachableAs().stream()" (click)="attach().stream()">Attach New</button>
-    <button mat-stroked-button *ngIf="attachableAs().file()" (click)="attach().file()">Add File(s)</button>
+<div class="caption">
+    <span class="title">Observing Sources</span>
+    <span class="subtitle">({{providers.count()}})</span>
+    <span class="filler"></span>
+    <span class="small-icon-button codicon codicon-add" [matMenuTriggerFor]="menu"></span>
 </div>
+<ng-container *ngFor="let provider of providers.list | keyvalue">
+    <mat-expansion-panel
+        *ngIf="!provider.value.isEmpty() || provider.value.panels.nocontent.comp !== undefined"
+        [disabled]="true"
+        [hideToggle]="true"
+        [expanded]="true"
+    >
+        <mat-expansion-panel-header>
+            <mat-panel-title>{{provider.value.panels.list.name}}</mat-panel-title>
+            <mat-panel-description>{{provider.value.panels.list.desc}}</mat-panel-description>
+        </mat-expansion-panel-header>
+        <div *ngIf="!provider.value.isEmpty()">
+            <lib-containers-dynamic
+                [component]="provider.value.panels.list.comp"
+            ></lib-containers-dynamic>
+        </div>
+        <lib-containers-dynamic
+            *ngIf="provider.value.isEmpty() && provider.value.panels.nocontent.comp !== undefined"
+            [component]="provider.value.panels.nocontent.comp"
+        ></lib-containers-dynamic>
+    </mat-expansion-panel>
+</ng-container>
+<mat-menu #menu="matMenu" class="attach-new-source-menu">
+    <p *ngIf="attach().disabled()" class="t-normal attach-menu-warning">{{attach().error()}}</p>
+    <ng-container *ngIf="!attach().disabled()">
+        <ng-container *ngFor="let action of actions">
+            <button *ngIf="action !== null" mat-menu-item (click)="action.handler()">
+                <mat-icon>{{action.icon}}</mat-icon>
+                <span>{{action.title}}</span>
+            </button>
+            <mat-divider *ngIf="action === null"></mat-divider>
+        </ng-container>   
+    </ng-container>
+</mat-menu>
 

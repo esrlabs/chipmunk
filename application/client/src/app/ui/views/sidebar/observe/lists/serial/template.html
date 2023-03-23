@@ -1,0 +1,8 @@
+<div *ngIf="tailing.length > 0">
+    <app-views-observed-list-title [title]="'Connected'" [subtitle]="tailing.length.toString()"></app-views-observed-list-title>
+    <app-views-observed-list-item *ngFor="let element of tailing" [element]="element"></app-views-observed-list-item>
+</div>
+<div *ngIf="offline.length > 0">
+    <app-views-observed-list-title [title]="'Disconnected'" [subtitle]="offline.length.toString()"></app-views-observed-list-title>
+    <app-views-observed-list-item *ngFor="let element of offline" [element]="element"></app-views-observed-list-item>
+</div>

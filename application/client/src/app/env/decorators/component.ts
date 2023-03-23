@@ -1,7 +1,7 @@
 import { singleDecoratorFactory, DecoratorConstructor } from '@platform/env/decorators';
 import { scope } from '@platform/env/scope';
 import { Instance as Logger } from '@platform/env/logger';
-import { getComponentSelector } from '@env/reflect';
+import { getSelector } from '@env/reflect';
 import {
     ilc,
     Channel,
@@ -98,7 +98,7 @@ function removeIlcInstance(entity: any): void {
 }
 
 export const Ilc = singleDecoratorFactory((constructor: DecoratorConstructor) => {
-    const selector: string | undefined = getComponentSelector(constructor);
+    const selector: string | undefined = getSelector(constructor);
     if (selector === undefined) {
         throw new Error(`Fail to detect selector for angular component`);
     }

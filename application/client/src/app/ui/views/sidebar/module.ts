@@ -1,11 +1,11 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FiltersModule } from './search/module';
-import { ObserveListModule } from './observe/module';
+import { ObservedModule } from './observe/module';
 
 @NgModule({
     entryComponents: [],
-    imports: [CommonModule, FiltersModule, ObserveListModule],
+    imports: [CommonModule, FiltersModule, ObservedModule],
     declarations: [],
     exports: [FiltersModule],
 })

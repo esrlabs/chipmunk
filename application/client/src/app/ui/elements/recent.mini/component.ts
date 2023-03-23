@@ -15,6 +15,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State, CloseHandler } from './state';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { InputFilter } from '@elements/filter/component';
+import { ParserName, Origin } from '@platform/types/observe';
 
 @Component({
     selector: 'app-recent-actions-mini',
@@ -28,20 +29,22 @@ import { InputFilter } from '@elements/filter/component';
 export class RecentActionsMini extends ChangesDetector implements AfterViewInit, AfterContentInit {
     @ViewChild('filter') public filterInputRef!: InputFilter;
     @Input() close: CloseHandler | undefined;
+    @Input() public parser?: ParserName;
+    @Input() public origin?: Origin;
 
-    public readonly state: State;
+    public state!: State;
 
     constructor(cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
         super(cdRef);
-        this.state = new State(this);
+    }
+
+    public ngAfterContentInit(): void {
+        this.state = new State(this, this.origin, this.parser);
         this.env().subscriber.register(
             this.state.update.subscribe(() => {
                 this.detectChanges();
             }),
         );
-    }
-
-    public ngAfterContentInit(): void {
         this.close !== undefined && this.state.bind(this.close);
     }
 

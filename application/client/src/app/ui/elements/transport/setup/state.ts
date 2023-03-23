@@ -1,7 +1,7 @@
-import { State as UdpState } from './udp/state';
-import { State as TcpState } from './tcp/state';
-import { State as SerialState } from './serial/state';
-import { State as ProcessState } from './process/state';
+import { State as UdpState } from './states/udp';
+import { State as TcpState } from './states/tcp';
+import { State as SerialState } from './states/serial';
+import { State as ProcessState } from './states/process';
 import { Subject } from '@platform/env/subscription';
 
 import { Source, SourceDefinition } from '@platform/types/transport';

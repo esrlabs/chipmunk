@@ -24,7 +24,7 @@ export const handler = Requests.InjectLogger<
                     .observe()
                     .start(
                         Observe.DataSource.stream()
-                            .upd(request.source.udp)
+                            .udp(request.source.udp)
                             .dlt(optionsToParserSettings(request.options, false, 0, 0)),
                     )
                     .then(() => {

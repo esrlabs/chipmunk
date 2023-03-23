@@ -6,6 +6,7 @@ import { Rank } from './rank';
 import { IGrabbedElement } from '@platform/types/content';
 import { DataSource, ObservedSourceLink } from '@platform/types/observe';
 import { ObserveOperation } from './observe/operation';
+import { ObserveSource } from './observe/source';
 import { error } from '@platform/env/logger';
 import { SourceDefinition } from '@platform/types/transport';
 import { IDLTOptions, parserSettingsToOptions } from '@platform/types/parsers/dlt';
@@ -218,9 +219,10 @@ export class Stream extends Subscriber {
         abort(uuid: string): Promise<void>;
         restart(uuid: string, source: DataSource): Promise<void>;
         list(): Promise<Map<string, DataSource>>;
-        sources(): DataSource[];
+        sources(): ObserveSource[];
         descriptions: {
             get(id: number): ObservedSourceLink | undefined;
+            id(alias: string): number | undefined;
             request(): Promise<ObservedSourceLink[]>;
             count(): number;
         };
@@ -293,14 +295,34 @@ export class Stream extends Subscriber {
                         });
                 });
             },
-            sources: (): DataSource[] => {
-                return Array.from(this.observed.running.values())
-                    .map((o) => o.asSource())
-                    .concat(Array.from(this.observed.done.values()));
+            sources: (): ObserveSource[] => {
+                const sources: ObserveSource[] = [];
+                Array.from(this.observed.running.values()).forEach((observed: ObserveOperation) => {
+                    const source = observed.asSource();
+                    if (source.childs.length !== 0) {
+                        sources.push(...source.childs.map((s) => new ObserveSource(s, observed)));
+                    } else {
+                        sources.push(new ObserveSource(source, observed));
+                    }
+                });
+                Array.from(this.observed.done.values()).forEach((source: DataSource) => {
+                    if (source.childs.length !== 0) {
+                        sources.push(...source.childs.map((s) => new ObserveSource(s)));
+                    } else {
+                        sources.push(new ObserveSource(source));
+                    }
+                });
+                return sources;
             },
             descriptions: {
                 get: (id: number): ObservedSourceLink | undefined => {
                     return this.observed.map.get(id);
+                },
+                id: (alias: string): number | undefined => {
+                    const link = Array.from(this.observed.map.values()).find(
+                        (s) => s.alias === alias,
+                    );
+                    return link !== undefined ? link.id : undefined;
                 },
                 request: (): Promise<ObservedSourceLink[]> => {
                     return new Promise((resolve, reject) => {
