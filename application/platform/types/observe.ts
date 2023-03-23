@@ -1,4 +1,7 @@
-import { DltParserSettings } from './parsers/dlt';
+import {
+    DltParserSettings,
+    defaultParserSettings as defaultDLTParserSettings,
+} from './parsers/dlt';
 import { PcapParserSettings } from './parsers/pcap';
 import { SomeIPParserSettings } from './parsers/someip';
 import { UDPTransportSettings } from './transport/udp';
@@ -9,6 +12,14 @@ import { SerialTransportSettings } from './transport/serial';
 import { filename, basefolder } from '../env/str';
 import { SourceDefinition, Source as SourceRef } from './transport/index';
 import { unique } from '../env/sequence';
+
+export {
+    ProcessTransportSettings,
+    UDPTransportSettings,
+    TCPTransportSettings,
+    SerialTransportSettings,
+    defaultDLTParserSettings,
+};
 
 export interface ObservedSourceLink {
     id: number;
@@ -173,7 +184,7 @@ export class DataSource {
     public static stream(): {
         serial(Serial: SerialTransportSettings): SourcesFactory;
         process(Process: ProcessTransportSettings): SourcesFactory;
-        upd(UDP: UDPTransportSettings): SourcesFactory;
+        udp(UDP: UDPTransportSettings): SourcesFactory;
         tcp(TCP: TCPTransportSettings): SourcesFactory;
     } {
         return {
@@ -225,7 +236,7 @@ export class DataSource {
                     },
                 };
             },
-            upd: (UDP: UDPTransportSettings): SourcesFactory => {
+            udp: (UDP: UDPTransportSettings): SourcesFactory => {
                 const origin: IOrigin = { Stream: [unique(), { UDP }] };
                 return {
                     dlt: (settings: DltParserSettings): DataSource => {
@@ -370,6 +381,18 @@ export class DataSource {
             return ParserName.Text;
         } else {
             return new Error(`Unknown parser`);
+        }
+    }
+
+    public getOrigin(): Origin | Error {
+        if (this.is().concat) {
+            return Origin.Concat;
+        } else if (this.is().file) {
+            return Origin.File;
+        } else if (this.asStream() !== undefined) {
+            return Origin.Stream;
+        } else {
+            return new Error(`Cannot detect Origin of DataSource`);
         }
     }
 
@@ -536,7 +559,7 @@ export class DataSource {
             };
         } else if (streaming.UDP !== undefined) {
             return {
-                name: `UPD: ${streaming.UDP.bind_addr}`,
+                name: `UDP: ${streaming.UDP.bind_addr}`,
                 desc:
                     streaming.UDP.multicast.length === 0
                         ? `Connecting to ${streaming.UDP.bind_addr} via UDP (no multicasts)`
@@ -557,6 +580,16 @@ export class DataSource {
             };
         }
         return new Error(`Unknown source`);
+    }
+
+    public alias(): string {
+        if (this.origin.File !== undefined) {
+            return this.origin.File[0];
+        }
+        if (this.origin.Stream !== undefined) {
+            return this.origin.Stream[0];
+        }
+        return '';
     }
 
     public toJSON(): string {

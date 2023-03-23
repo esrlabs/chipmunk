@@ -23,7 +23,7 @@ export const handler = Requests.InjectLogger<
             if (request.source.udp !== undefined) {
                 stored
                     .observe()
-                    .start(Observe.DataSource.stream().upd(request.source.udp).text())
+                    .start(Observe.DataSource.stream().udp(request.source.udp).text())
                     .then(() => {
                         resolve(
                             new Requests.Connect.Text.Response({

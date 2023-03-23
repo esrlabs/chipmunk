@@ -61,6 +61,10 @@ export class AutocompleteInput extends ChangesDetector implements AfterContentIn
         this.control = new Controll();
         this.recent = new List(this.control.control, this.options.name, this.options.storage);
         this.error = this.options.error !== undefined ? this.options.error : new NullErrorState();
+        this.control.set(this.options.defaults);
+    }
+
+    public ngAfterViewInit(): void {
         this.control.actions.edit.subscribe((value: string) => {
             this.edit.emit(value);
         });
@@ -81,10 +85,6 @@ export class AutocompleteInput extends ChangesDetector implements AfterContentIn
                 this.detectChanges();
             }),
         );
-        this.control.set(this.options.defaults);
-    }
-
-    public ngAfterViewInit(): void {
         this.control.bind(this.inputRef.nativeElement, this.panelRef);
     }
 

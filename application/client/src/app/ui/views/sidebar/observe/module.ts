@@ -2,12 +2,19 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ContainersModule } from '@elements/containers/module';
 import { MatButtonModule } from '@angular/material/button';
-import { ObserveList } from './component';
+import { Observed } from './component';
 import { MatCardModule } from '@angular/material/card';
-import { TransportReviewModule } from '@elements/transport/listed/module';
-import { TransportDetailsModule } from '@elements/transport/details/module';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDividerModule } from '@angular/material/divider';
+import { ListModule as FileListModule } from './lists/file/module';
+import { ListModule as ProcessListModule } from './lists/process/module';
+import { ListModule as SerialListModule } from './lists/serial/module';
+import { ListModule as TcpListModule } from './lists/tcp/module';
+import { ListModule as UdpListModule } from './lists/udp/module';
 
-const entryComponents = [ObserveList];
+const entryComponents = [Observed];
 const components = [...entryComponents];
 
 @NgModule({
@@ -16,11 +23,18 @@ const components = [...entryComponents];
         CommonModule,
         ContainersModule,
         MatButtonModule,
-        TransportReviewModule,
-        TransportDetailsModule,
         MatCardModule,
+        MatExpansionModule,
+        FileListModule,
+        ProcessListModule,
+        SerialListModule,
+        TcpListModule,
+        UdpListModule,
+        MatMenuModule,
+        MatIconModule,
+        MatDividerModule,
     ],
     declarations: [...components],
     exports: [...components],
 })
-export class ObserveListModule {}
+export class ObservedModule {}

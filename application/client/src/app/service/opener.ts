@@ -6,19 +6,20 @@ import { TabControls } from './session/tab';
 import { File, FileType } from '@platform/types/files';
 import { SourceDefinition, Source as SourceRef } from '@platform/types/transport';
 import { IDLTOptions, parserSettingsToOptions } from '@platform/types/parsers/dlt';
+import { DataSource, ParserName } from '@platform/types/observe';
 
 import * as Files from './opener/file/index';
 import * as Concat from './opener/concat/index';
 import * as Streams from './opener/stream/index';
-import { DataSource } from './session/dependencies/stream';
 
-export { Session, TabControls };
+export { Session, TabControls, SourceRef, ParserName };
 
 export interface StreamConnectFuncs {
     dlt(options?: IDLTOptions): Promise<string>;
     text(options?: {}): Promise<string>;
     source(src: DataSource): Promise<string>;
     assign(session: Session | undefined): StreamConnectFuncs;
+    byParser(parser: ParserName): Promise<string>;
 }
 
 export interface FileOpenFuncs {
@@ -26,6 +27,7 @@ export interface FileOpenFuncs {
     dlt(options?: IDLTOptions): Promise<string>;
     pcap(options?: IDLTOptions): Promise<string>;
     assign(session: Session | undefined): FileOpenFuncs;
+    byParser(parser: ParserName): Promise<string>;
     auto(): Promise<string>;
 }
 
@@ -74,8 +76,64 @@ export class Service extends Implementation {
                 }
                 return Promise.reject(new Error(`Unsupported type of source`));
             },
+            byParser: (parser: ParserName): Promise<string> => {
+                if (parser === ParserName.Dlt) {
+                    return new Streams.Dlt(this._services, this.log())
+                        .assign(scope)
+                        .stream(source, undefined, openPresetSettings, preselected);
+                } else if (parser === ParserName.Text) {
+                    return new Streams.Text(this._services, this.log())
+                        .assign(scope)
+                        .stream(source, undefined, openPresetSettings, preselected);
+                } else {
+                    return Promise.reject(
+                        new Error(`Parser ${parser} isn't supported for stream.`),
+                    );
+                }
+            },
         };
         return out;
+    }
+
+    public from(source: DataSource): Promise<string> {
+        const origin = source.origin;
+        const parser = source.parser;
+        if (origin.File !== undefined) {
+            const open = this.file(origin.File[1]);
+            if (parser.Text !== undefined) {
+                return open.text();
+            } else if (parser.Dlt !== undefined) {
+                return open.dlt(parserSettingsToOptions(parser.Dlt));
+            } else if (parser.Pcap !== undefined) {
+                return open.pcap(parserSettingsToOptions(parser.Pcap.dlt));
+            } else {
+                return Promise.reject(new Error(`Unsupported parser`));
+            }
+        } else if (origin.Stream !== undefined) {
+            const sourceDef = source.asSourceDefinition();
+            const sourceRef = source.asSourceRef();
+            if (sourceDef instanceof Error) {
+                return Promise.reject(sourceDef);
+            }
+            return this.stream(
+                sourceDef,
+                false,
+                sourceRef instanceof Error ? undefined : sourceRef,
+            ).source(source);
+        } else if (origin.Concat !== undefined) {
+            const concat = this.concat(origin.Concat.map((c) => c[1]));
+            if (parser.Text !== undefined) {
+                return concat.text();
+            } else if (parser.Dlt !== undefined) {
+                return concat.dlt(parserSettingsToOptions(parser.Dlt));
+            } else if (parser.Pcap !== undefined) {
+                return concat.pcap(parserSettingsToOptions(parser.Pcap.dlt));
+            } else {
+                return Promise.reject(new Error(`Unsupported parser`));
+            }
+        } else {
+            return Promise.reject(new Error(`Unsupported source of data`));
+        }
     }
 
     public file(file: File | string): FileOpenFuncs {
@@ -95,6 +153,25 @@ export class Service extends Implementation {
             assign: (session: Session | undefined): FileOpenFuncs => {
                 scope = session;
                 return out;
+            },
+            byParser: (parser: ParserName): Promise<string> => {
+                if (parser === ParserName.Dlt) {
+                    return new Files.Dlt(this._services, this.log())
+                        .assign(scope)
+                        .open(file, undefined);
+                } else if (parser === ParserName.Pcap) {
+                    return new Files.Pcap(this._services, this.log())
+                        .assign(scope)
+                        .open(file, undefined);
+                } else if (parser === ParserName.Text) {
+                    return new Files.Text(this._services, this.log())
+                        .assign(scope)
+                        .open(file, undefined);
+                } else {
+                    return Promise.reject(
+                        new Error(`Parser ${parser} isn't supported for stream.`),
+                    );
+                }
             },
             auto: async (): Promise<string> => {
                 if (typeof file === 'string') {
@@ -138,6 +215,25 @@ export class Service extends Implementation {
             assign: (session: Session | undefined): FileOpenFuncs => {
                 scope = session;
                 return out;
+            },
+            byParser: (parser: ParserName): Promise<string> => {
+                if (parser === ParserName.Dlt) {
+                    return new Concat.Dlt(this._services, this.log())
+                        .assign(scope)
+                        .open(files, undefined);
+                } else if (parser === ParserName.Pcap) {
+                    return new Concat.Pcap(this._services, this.log())
+                        .assign(scope)
+                        .open(files, undefined);
+                } else if (parser === ParserName.Text) {
+                    return new Concat.Text(this._services, this.log())
+                        .assign(scope)
+                        .open(files, undefined);
+                } else {
+                    return Promise.reject(
+                        new Error(`Parser ${parser} isn't supported for stream.`),
+                    );
+                }
             },
             auto: (): Promise<string> => {
                 return Promise.reject(

@@ -1,6 +1,6 @@
 @import '../../../styles/variables.less';
 
-:host {
+app-views-observe-list {
     position: absolute;
     display: block;
     padding: 0;
@@ -9,43 +9,64 @@
     right: 0.5rem;
     left: 0.5rem;
     top: 0.5rem;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     outline: none;
-    & mat-card {
-        margin-bottom: 12px;
-        & mat-card-title {
-            font-size: 15px;
-            color: @scheme-color-3; 
-            font-weight: 400;
+    & > div.caption {
+        position: sticky !important;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        background: @scheme-color-5;
+        display: flex;
+        padding: 0 24px;
+        margin: 0;
+        text-align: left;
+        align-items: center;
+        white-space: nowrap;
+        font-size: 0.9rem;
+        font-weight: 400;
+        span.title{
+            color: @scheme-color-2;
         }
-    }
-    & mat-card.list {
-        & mat-card-content {
-            margin-left: -16px;
-            width: ~"calc(100% + 32px)";
-            & p.info {
-                padding: 12px 18px;
-                color: @scheme-color-2;
+        span.subtitle{
+            padding-left: 6px;
+            color: @scheme-color-3;
+        }
+        & span.filler {
+            flex: auto;
+        }
+        & span.small-icon-button {
+            display: inline-block;
+            height: 24px;
+            width: 24px;
+            color: @scheme-color-2;
+            text-align: center;
+            box-sizing: border-box;
+            margin: 8px 0px 0px 0px;
+            &:hover{
+                color: @scheme-color-3;
             }
         }
     }
-    & app-transport-review {
-        &:hover{
-            background: @scheme-color-5;
-        }
-        &.selected{
-            background: fadeout(@scheme-color-accent, 50%);
-        }
+    & mat-expansion-panel {
+        margin: 6px 0!important;
+    }
+    & div.mat-expansion-panel-body {
+        padding-left: 0;
+        padding-right: 0;
     }
 
-    & div.controlls {
-        text-align: right;
-        color: @scheme-color-0;
-        margin-top: 12px;
-        white-space: nowrap;
-        overflow: hidden;
-        & button {
-            margin-left: 12px;
-        }
+}
+p.attach-menu-warning {
+    padding: 12px 24px;
+    color: @scheme-color-1;
+}
+div.attach-new-source-menu {
+    & .mat-icon {
+        width: 16px;
+        height: 16px;
+        font-size: 16px;
+        color: @scheme-color-1;
     }
 }

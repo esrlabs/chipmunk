@@ -29,6 +29,9 @@ export class Action {
     }
 
     public setDisabled(disabled: boolean): void {
+        if (this.disabled === disabled) {
+            return;
+        }
         this.disabled = disabled;
         this.subjects.get().updated.emit();
     }

@@ -1,0 +1,16 @@
+<ng-container *ngIf="serial === undefined">
+    <span>No data about serial connection</span>
+</ng-container>
+<ng-container *ngIf="serial !== undefined">
+    <span class="ext">
+        <span [attr.class]="('codicon codicon-debug-disconnect ' + (isActive() ? 'active' : ''))"></span>
+    </span>
+    <div class="info">
+        <span class="name t-normal">{{serial.path}}</span>
+        <span class="path t-normal">boud rate: {{serial.baud_rate.toString()}}</span>
+    </div>
+    <div class="controlls" >
+        <span class="small-icon-button codicon codicon-play-circle" *ngIf="element.source.observer === undefined" (click)="restart()"></span>
+        <span class="small-icon-button codicon codicon-stop-circle" *ngIf="element.source.observer !== undefined" (click)="stop()"></span>
+    </div>
+</ng-container>

@@ -7,7 +7,7 @@ import {
     EActions,
     IDoubleclickEvent,
 } from './definitions/provider';
-import { Subject, Subscription, unsubscribeAllInHolder } from '@platform/env/subscription';
+import { Subject, unsubscribeAllInHolder } from '@platform/env/subscription';
 import { Session } from '@service/session/session';
 import { KeyboardListener } from './definitions/keyboard.listener';
 import { IMenuItem } from '@ui/service/contextmenu';
@@ -47,7 +47,6 @@ export class Providers {
     ];
 
     private readonly _providers: Map<ProviderData, Provider<any>> = new Map();
-    private readonly _selsubs: { [key: string]: Subscription } = {};
     private readonly _keyboard: KeyboardListener = new KeyboardListener();
 
     constructor(session: Session, draganddrop: DragAndDropService, logger: Logger) {

@@ -5,10 +5,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
-import { TransportUdpModule } from './udp/module';
-import { TransportTcpModule } from './tcp/module';
-import { TransportSerialModule } from './serial/module';
-import { TransportProcessModule } from './process/module';
+import { SetupModule as UdpSetupModule } from './complete/udp/module';
+import { SetupModule as TcpSetupModule } from './complete/tcp/module';
+import { SetupModule as SerialSetupModule } from './complete/serial/module';
+import { SetupModule as ProcessSetupModule } from './complete/process/module';
 
 import { Transport } from './component';
 
@@ -22,18 +22,12 @@ import { Transport } from './component';
         MatDividerModule,
         MatFormFieldModule,
         MatSelectModule,
-        TransportUdpModule,
-        TransportTcpModule,
-        TransportSerialModule,
-        TransportProcessModule,
+        UdpSetupModule,
+        TcpSetupModule,
+        SerialSetupModule,
+        ProcessSetupModule,
     ],
     declarations: [Transport],
-    exports: [
-        Transport,
-        TransportUdpModule,
-        TransportTcpModule,
-        TransportSerialModule,
-        TransportProcessModule,
-    ],
+    exports: [Transport, UdpSetupModule, TcpSetupModule, SerialSetupModule, ProcessSetupModule],
 })
 export class TransportModule {}

@@ -22,12 +22,12 @@ export class FileDesc implements IFileDesc {
         return FileDesc.fromFilename(filename);
     }
     static async fromFilename(filename: string): Promise<IFileDesc | undefined> {
-        const file = (await bridge.files().getByPath([filename]))[0];
+        const file = (await bridge.files().getByPathWithCache([filename]))[0];
         if (file === undefined) {
             throw new Error(`Fail to get file(s) stat info`);
         }
         return {
-            checksum: await bridge.files().checksum(file.filename),
+            checksum: await bridge.files().checksumWithCache(file.filename),
             extention: file.ext.toLowerCase(),
             filename: file.name.toLowerCase(),
             parent: getParentFolder(file.filename).toLowerCase(),

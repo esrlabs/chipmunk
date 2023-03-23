@@ -63,8 +63,9 @@ export class Controll {
             this._panel.openPanel();
             this.actions.panel.emit(true);
         }
+        const prev = this.value;
         this.value = this.control.value;
-        this.actions.edit.emit(this.value);
+        prev !== this.value && this.actions.edit.emit(this.value);
     }
 
     public drop() {
@@ -74,8 +75,9 @@ export class Controll {
 
     public set(value: string) {
         this.control.setValue(value);
+        const prev = this.value;
         this.value = this.control.value;
-        this.actions.edit.emit(this.value);
+        prev !== this.value && this.actions.edit.emit(this.value);
     }
 
     public onPanelClosed() {
