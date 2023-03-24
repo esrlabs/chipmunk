@@ -73,8 +73,6 @@ export class List extends ChangesDetector implements AfterContentInit {
     protected update(): List {
         const tailing = this.provider.sources().filter((s) => s.observer !== undefined);
         const offline = this.provider.sources().filter((s) => s.observer === undefined);
-        this.tailing = [];
-        this.offline = [];
         const attachNewSourceErr = this.provider.getNewSourceError();
         this.warning = attachNewSourceErr instanceof Error ? attachNewSourceErr.message : undefined;
         this.ilc()
@@ -84,6 +82,8 @@ export class List extends ChangesDetector implements AfterContentInit {
                 ...offline.map((s) => s.source.asFile() as string),
             ])
             .then((files: File[]) => {
+                this.tailing = [];
+                this.offline = [];
                 files.forEach((file) => {
                     const tailingSource = tailing.find((s) => s.source.asFile() === file.filename);
                     const offlineSource = offline.find((s) => s.source.asFile() === file.filename);

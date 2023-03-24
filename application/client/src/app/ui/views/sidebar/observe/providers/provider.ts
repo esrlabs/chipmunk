@@ -119,8 +119,6 @@ export abstract class Provider<S extends State> {
                 ),
             );
         }
-        console.log(sourceDef);
-        console.log(source);
         return this.session.stream
             .connect(sourceDef)
             .source(source)

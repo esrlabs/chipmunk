@@ -22,18 +22,18 @@ export class Stream extends Subscriber {
     public readonly subjects: Subjects<{
         // Stream is updated (new rows came)
         updated: Subject<number>;
-        // List of observing operations is changed
-        observe: Subject<Map<string, ObserveOperation>>;
         // New observe operation is started
-        source: Subject<DataSource>;
+        started: Subject<DataSource>;
+        // Observe operation for source is finished
+        finished: Subject<DataSource>;
         // List of sources (observed operations has been changed)
         sources: Subject<void>;
         // Session rank is changed
         rank: Subject<number>;
     }> = new Subjects({
         updated: new Subject<number>(),
-        observe: new Subject<Map<string, ObserveOperation>>(),
-        source: new Subject<DataSource>(),
+        started: new Subject<DataSource>(),
+        finished: new Subject<DataSource>(),
         sources: new Subject<void>(),
         rank: new Subject<number>(),
     });
@@ -99,8 +99,7 @@ export class Stream extends Subscriber {
                     .catch((err: Error) => {
                         this.log().error(`Fail get sources description: ${err.message}`);
                     });
-                this.subjects.get().observe.emit(this.observed.running);
-                this.subjects.get().source.emit(source);
+                this.subjects.get().started.emit(source);
             }),
         );
         this.register(
@@ -114,7 +113,7 @@ export class Stream extends Subscriber {
                 }
                 this.observed.done.set(event.operation, stored.asSource());
                 this.observed.running.delete(event.operation);
-                this.subjects.get().observe.emit(this.observed.running);
+                this.subjects.get().finished.emit(stored.asSource());
             }),
         );
     }
