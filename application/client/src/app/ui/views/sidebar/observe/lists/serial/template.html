@@ -1,3 +1,7 @@
+<app-views-observed-list-title [title]="'New Connection'" [buttons]="buttons" [opened]="state.quicksetup" (toggled)="toggled($event)"></app-views-observed-list-title>
+<div *ngIf="state.quicksetup" class="quicksetup">
+    <app-serial-quicksetup #quicksetupref [session]="provider.session" [action]="action"></app-serial-quicksetup>
+</div>
 <div *ngIf="tailing.length > 0">
     <app-views-observed-list-title [title]="'Connected'" [subtitle]="tailing.length.toString()"></app-views-observed-list-title>
     <app-views-observed-list-item *ngFor="let element of tailing" [element]="element"></app-views-observed-list-item>

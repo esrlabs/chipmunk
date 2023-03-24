@@ -30,5 +30,9 @@ export class QuickSetup extends SetupBase implements AfterViewInit, OnDestroy {
         this.state = stored === undefined ? new State() : stored;
         super.ngAfterViewInit();
     }
+
+    public connect() {
+        this.action.apply();
+    }
 }
 export interface QuickSetup extends IlcInterface {}
