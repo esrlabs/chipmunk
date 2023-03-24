@@ -127,20 +127,20 @@ impl SessionFile {
         }
     }
 
-    pub async fn write(
+    pub fn write(
         &mut self,
         source_id: u8,
         state_cancellation_token: CancellationToken,
         msg: String,
     ) -> Result<SessionFileState, NativeError> {
         if !self.sources.is_source_same(source_id) {
-            self.flush(state_cancellation_token.clone()).await?;
+            self.flush(state_cancellation_token.clone(), false)?;
         }
         if let Some(writer) = &mut self.writer {
             writer.write_all(msg.as_bytes())?;
             self.sources.source_update(source_id);
             if self.last_message_timestamp.elapsed().as_millis() > FLUSH_DATA_IN_MS {
-                self.flush(state_cancellation_token.clone()).await
+                self.flush(state_cancellation_token, true)
             } else {
                 Ok(SessionFileState::MaybeChanged)
             }
@@ -155,18 +155,20 @@ impl SessionFile {
         }
     }
 
-    pub async fn flush(
+    pub fn flush(
         &mut self,
         state_cancellation_token: CancellationToken,
+        drop_timestamp: bool,
     ) -> Result<SessionFileState, NativeError> {
-        self.last_message_timestamp = Instant::now();
+        if drop_timestamp {
+            self.last_message_timestamp = Instant::now();
+        }
         if let Some(writer) = &mut self.writer {
             writer.flush()?;
             self.update(
                 self.sources.get_recent_source_id(),
                 state_cancellation_token,
             )
-            .await
         } else {
             Err(NativeError {
                 severity: Severity::ERROR,
@@ -178,7 +180,7 @@ impl SessionFile {
         }
     }
 
-    pub async fn update(
+    pub fn update(
         &mut self,
         source_id: u8,
         state_cancellation_token: CancellationToken,

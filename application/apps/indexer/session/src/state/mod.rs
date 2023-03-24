@@ -149,8 +149,7 @@ impl SessionState {
     ) -> Result<(), NativeError> {
         if matches!(
             self.session_file
-                .write(source_id, state_cancellation_token.clone(), msg)
-                .await?,
+                .write(source_id, state_cancellation_token.clone(), msg)?,
             SessionFileState::Changed
         ) {
             self.update_searchers(state_cancellation_token, tx_callback_events)
@@ -167,8 +166,7 @@ impl SessionState {
     ) -> Result<(), NativeError> {
         if matches!(
             self.session_file
-                .flush(state_cancellation_token.clone(),)
-                .await?,
+                .flush(state_cancellation_token.clone(), true)?,
             SessionFileState::Changed
         ) {
             self.update_searchers(state_cancellation_token, tx_callback_events)
@@ -185,8 +183,7 @@ impl SessionState {
     ) -> Result<bool, NativeError> {
         if let SessionFileState::Changed = self
             .session_file
-            .update(source_id, state_cancellation_token.clone())
-            .await?
+            .update(source_id, state_cancellation_token.clone())?
         {
             self.update_searchers(state_cancellation_token, tx_callback_events)
                 .await?;
