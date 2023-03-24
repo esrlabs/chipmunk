@@ -284,8 +284,10 @@ export interface ISubscription {
 
 export class Subscriber {
     private _subscriptions: Map<string, ISubscription> = new Map();
-    public register(subscription: ISubscription) {
-        this._subscriptions.set(unique(), subscription);
+    public register(...subscription: ISubscription[]) {
+        subscription.forEach((sub) => {
+            this._subscriptions.set(unique(), sub);
+        });
     }
     public unsubscribe() {
         this._subscriptions.forEach((subscription) => {

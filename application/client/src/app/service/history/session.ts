@@ -20,6 +20,7 @@ export class HistorySession extends Subscriber {
     };
     protected readonly session: Session;
     protected readonly sources: string[] = [];
+    protected readonly globals: Subscriber = new Subscriber();
 
     public readonly definitions: Definitions;
     public collections: Collections;
@@ -41,8 +42,10 @@ export class HistorySession extends Subscriber {
         this.storage = storage;
         this.session = session;
         this.setLoggerName(`History: ${this.session.uuid()}`);
-        this.session.stream.subjects.get().source.subscribe(this.handleNewSource.bind(this));
         this.collections = this.setCollection(Collections.from(session, storage.collections));
+        this.globals.register(
+            this.session.stream.subjects.get().started.subscribe(this.handleNewSource.bind(this)),
+        );
     }
 
     protected handleNewSource(source: DataSource) {
@@ -110,7 +113,6 @@ export class HistorySession extends Subscriber {
     protected setCollection(collections: Collections): Collections {
         this.unsubscribe();
         this.collections = collections;
-        this.session.stream.subjects.get().source.subscribe(this.handleNewSource.bind(this));
         this.collections.subscribe(this, this.session);
         this.register(
             this.collections.updated.subscribe(() => {
@@ -123,6 +125,7 @@ export class HistorySession extends Subscriber {
 
     public destroy() {
         this.unsubscribe();
+        this.globals.unsubscribe();
         this.subjects.destroy();
     }
 

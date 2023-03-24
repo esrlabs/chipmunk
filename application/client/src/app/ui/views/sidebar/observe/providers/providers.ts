@@ -25,9 +25,7 @@ export class Providers extends Subscriber {
             session.stream.subjects.get().sources.subscribe(() => {
                 this.update();
             }),
-        );
-        this.register(
-            session.stream.subjects.get().observe.subscribe(() => {
+            session.stream.subjects.get().finished.subscribe(() => {
                 this.update();
             }),
         );
@@ -35,7 +33,7 @@ export class Providers extends Subscriber {
     }
 
     public destroy() {
-        super.unsubscribe();
+        this.unsubscribe();
         this.list.forEach((provider: Provider<BaseState>) => {
             provider.destroy();
         });
