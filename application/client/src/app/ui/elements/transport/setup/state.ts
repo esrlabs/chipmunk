@@ -44,6 +44,18 @@ export class State {
             this.switch(Source.Udp);
             return;
         }
+        if (source.tcp !== undefined) {
+            this.tcp = this._backup.tcp;
+            this.tcp.from(source.tcp);
+            this.switch(Source.Tcp);
+            return;
+        }
+        if (source.serial !== undefined) {
+            this.serial = this._backup.serial;
+            this.serial.from(source.serial);
+            this.switch(Source.Serial);
+            return;
+        }
         if (source.process !== undefined) {
             this.process = this._backup.process;
             this.process.from(source.process);
