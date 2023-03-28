@@ -40,9 +40,11 @@ export function AsyncResultsExecutor<TResult, TOptions>(
         } = {
             abortOperationId: undefined,
             destroy: provider.getEvents().SessionDestroyed.subscribe(() => {
+                logger.debug('Async result operation state: destroy');
                 reject(new Error(logger.warn(`Session was destroyed. Operation: ${self.uuid()}`)));
             }),
             error: provider.getEvents().OperationError.subscribe((event: IErrorEvent) => {
+                logger.debug('Async result operation state: error');
                 if (event.uuid !== self.uuid()) {
                     return; // Ignore. This is another operation
                 }
@@ -54,6 +56,7 @@ export function AsyncResultsExecutor<TResult, TOptions>(
                 reject(new Error(event.error.message));
             }),
             done: provider.getEvents().OperationDone.subscribe((event: IOperationDoneEvent) => {
+                logger.debug('Async result operation state: done');
                 if (event.uuid !== self.uuid() && event.uuid !== lifecircle.abortOperationId) {
                     return; // Ignore. This is another operation
                 }
@@ -69,6 +72,7 @@ export function AsyncResultsExecutor<TResult, TOptions>(
                 lifecircle.done.destroy();
             },
             cancel(): void {
+                logger.debug('Async result operation state: cancel');
                 if (lifecircle.abortOperationId !== undefined) {
                     logger.warn(`Operation has been already canceled`);
                     return;
@@ -110,6 +114,7 @@ export function AsyncResultsExecutor<TResult, TOptions>(
         // Call operation
         runner(session, options, self.uuid()).catch((err: Error) => {
             if (self.isProcessing()) {
+                logger.debug('Async result operation state: rejecting because is in progress');
                 reject(
                     new Error(
                         `Fail to run "${name}" operation due error: ${
