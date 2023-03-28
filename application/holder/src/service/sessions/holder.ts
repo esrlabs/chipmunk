@@ -64,12 +64,12 @@ export class Holder {
     }
 
     public observe(): {
-        start(source: Observe.DataSource): Promise<void>;
+        start(source: Observe.DataSource): Promise<string>;
         cancel(uuid: string): Promise<void>;
         list(): { [key: string]: string };
     } {
         return {
-            start: (source: Observe.DataSource): Promise<void> => {
+            start: (source: Observe.DataSource): Promise<string> => {
                 if (this._shutdown) {
                     return Promise.reject(new Error(`Session is closing`));
                 }
@@ -102,7 +102,16 @@ export class Holder {
                                     source: source.toJSON(),
                                 }),
                             );
-                            resolve();
+                            resolve(observer.uuid());
+                        })
+                        .on('processing', () => {
+                            Events.IpcEvent.emit(
+                                new Events.Observe.Processing.Event({
+                                    session: this.session.getUUID(),
+                                    operation: observer.uuid(),
+                                    source: source.toJSON(),
+                                }),
+                            );
                         })
                         .catch((err: Error) => {
                             this._logger.error(`Fail to call observe. Error: ${err.message}`);
