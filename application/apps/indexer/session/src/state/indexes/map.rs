@@ -4,8 +4,47 @@ use crate::{
     state::GrabbedElement,
 };
 use indexer_base::progress::Severity;
+use log::error;
 use rustc_hash::FxHashMap;
 use std::{cmp, ops::RangeInclusive};
+
+// This trigger is used to choose a way to remove key from a map.
+// If count of keys, which should be removed grander than TRIGGER,
+// whole map would be dropped and rebuilt; if not - keys will be
+// removed one by one.
+//
+// Bench tests (creating ranges from indexes)
+// keys: 800 000 000
+// created ranges: 200 000 000 in 8923 ms (8923908630 nn)
+// ==========================================================
+// keys: 80 000 000
+// created ranges: 20 000 000 in 366 ms (366996208 nn)
+// ==========================================================
+// keys: 8 000 000
+// created ranges: 2 000 000 in 20 ms (20743126 nn)
+// ==========================================================
+// keys: 800 000
+// created ranges: 200 000 in 4 ms (4432853 nn)
+// ==========================================================
+// keys: 80 000
+// created ranges: 20 000 in 0 ms (433805 nn)
+// ==========================================================
+// Conclusion: ranges could be created if keys < ~100K
+//
+// Bench tests (removing keys one by one with binary search)
+// keys: 80 000
+// removed keys: 80 000 in 681 ms (681925515 nn)
+// ==========================================================
+// keys: 8 000
+// removed keys: 8 000 in 4 ms (4864688 nn)
+// ==========================================================
+// keys: 800
+// removed keys: 800 in 0 ms (59724 nn)
+// ==========================================================
+// Conclusion: removing keys one by one reasonable if keys <= ~1K
+
+const KEYS_ITERATIONS_LIMIT: usize = 500; // based on bench test < 1K
+const RANGES_LIMIT: usize = 10000; // based on bench test < 100K
 
 #[derive(Debug)]
 pub struct Map {
@@ -23,14 +62,91 @@ impl Map {
         }
     }
 
-    pub fn index_add(&mut self, position: u64, nature: Nature) {
-        self.indexes.insert(position, nature);
-        self.keys.add(position);
+    fn as_ranges(values: &mut [u64]) -> Vec<RangeInclusive<u64>> {
+        let mut ranges = vec![];
+        let mut from: u64 = 0;
+        let mut to: u64 = 0;
+        values.sort();
+        for (i, value) in values.iter().enumerate() {
+            if i == 0 {
+                from = *value;
+            } else if to + 1 != *value {
+                ranges.push(RangeInclusive::new(from, to));
+                from = *value;
+            }
+            to = *value;
+        }
+        if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from)
+            || (ranges.is_empty() && !values.is_empty())
+        {
+            ranges.push(RangeInclusive::new(from, to));
+        }
+        ranges
     }
 
-    pub fn index_remove(&mut self, position: &u64) {
+    fn index_add(&mut self, position: u64, nature: Nature) {
+        if self.indexes.insert(position, nature).is_none() {
+            self.keys.add(position);
+        }
+    }
+
+    fn index_remove(&mut self, position: &u64, remove_key: bool) {
         self.indexes.remove(position);
-        self.keys.remove(position);
+        if remove_key {
+            self.keys.remove(position);
+        }
+    }
+
+    fn indexes_remove(&mut self, positions: &mut [u64]) {
+        let ranges = if positions.len() < RANGES_LIMIT {
+            let ranges = Self::as_ranges(positions);
+            if ranges.len() < KEYS_ITERATIONS_LIMIT {
+                Some(ranges)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        positions.iter().for_each(|p| {
+            self.index_remove(p, false);
+        });
+        let drop = if let Some(ranges) = ranges.as_ref() {
+            if let Err(err) = self.keys.remove_ranges(ranges) {
+                error!("Cannot cleanup keys by ranges: {err}; map will be dropped");
+                true
+            } else {
+                false
+            }
+        } else {
+            true
+        };
+        if drop {
+            self.keys
+                .clear()
+                .import(self.indexes.keys().cloned().collect::<Vec<u64>>());
+        }
+    }
+
+    fn insert_range(&mut self, range: RangeInclusive<u64>, nature: Nature) {
+        let positions = range.collect::<Vec<u64>>();
+        self.insert(&positions, nature);
+    }
+
+    fn remove_from(&mut self, position: &u64) -> Result<(), NativeError> {
+        let removed = self.keys.remove_from(position)?;
+        removed.iter().for_each(|position| {
+            self.indexes.remove(position);
+        });
+        Ok(())
+    }
+
+    fn remove_if(&mut self, position: u64, nature: Nature) {
+        if let Some(index) = self.indexes.get_mut(&position) {
+            if index == &nature {
+                self.index_remove(&position, true);
+            }
+        }
     }
 
     pub fn insert(&mut self, positions: &[u64], nature: Nature) {
@@ -43,20 +159,17 @@ impl Map {
         });
     }
 
-    pub fn insert_range(&mut self, range: RangeInclusive<u64>, nature: Nature) {
-        let positions = range.collect::<Vec<u64>>();
-        self.insert(&positions, nature);
-    }
-
     pub fn remove(&mut self, positions: &[u64], nature: Nature) {
+        let mut to_be_removed = Vec::new();
         positions.iter().for_each(|position| {
             if let Some(index) = self.indexes.get_mut(position) {
                 index.exclude(nature);
                 if index.is_empty() {
-                    self.index_remove(position);
+                    to_be_removed.push(*position);
                 }
             }
         });
+        self.indexes_remove(&mut to_be_removed);
     }
 
     pub fn naturalize(&self, elements: &mut [GrabbedElement]) {
@@ -74,22 +187,6 @@ impl Map {
         position: &u64,
     ) -> Result<(Option<u64>, Option<u64>), NativeError> {
         self.keys.get_positions_around(position)
-    }
-
-    fn remove_from(&mut self, position: &u64) -> Result<(), NativeError> {
-        let removed = self.keys.remove_from(position)?;
-        removed.iter().for_each(|position| {
-            self.indexes.remove(position);
-        });
-        Ok(())
-    }
-
-    fn remove_if(&mut self, position: u64, nature: Nature) {
-        if let Some(index) = self.indexes.get_mut(&position) {
-            if index == &nature {
-                self.index_remove(&position);
-            }
-        }
     }
 
     fn breadcrumbs_insert_between(
@@ -227,7 +324,7 @@ impl Map {
         for position in positions.iter() {
             if let Some(index) = self.indexes.get_mut(position) {
                 if index.is_seporator() {
-                    self.index_remove(position);
+                    self.index_remove(position, true);
                 } else {
                     index.reassign(nature);
                     // Nothing todo because we didn't insert, but reassinged
@@ -339,10 +436,8 @@ impl Map {
                 }
             }
         }
-        let expanded = [expanded_before, expanded_after].concat();
-        expanded.iter().for_each(|position| {
-            self.index_remove(position);
-        });
+        let mut expanded = [expanded_before, expanded_after].concat();
+        self.indexes_remove(&mut expanded);
         self.keys.sort();
         self.breadcrumbs_insert_between(
             RangeInclusive::new(from_shifted, to_shifted),
@@ -491,9 +586,7 @@ impl Map {
                 }
             }
         }
-        to_drop.iter().for_each(|position| {
-            self.index_remove(position);
-        });
+        self.indexes_remove(&mut to_drop);
         Ok(before)
     }
 
@@ -516,9 +609,7 @@ impl Map {
                 }
             }
         }
-        to_drop.iter().for_each(|position| {
-            self.index_remove(position);
-        });
+        self.indexes_remove(&mut to_drop);
         Ok(after)
     }
 
@@ -600,9 +691,7 @@ impl Map {
                 to_be_removed.push(*position)
             }
         });
-        to_be_removed.iter().for_each(|position| {
-            self.index_remove(position);
-        });
+        self.indexes_remove(&mut to_be_removed);
     }
 
     pub fn len(&self) -> usize {
