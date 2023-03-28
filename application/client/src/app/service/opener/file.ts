@@ -5,7 +5,6 @@ import { components } from '@env/decorators/initial';
 import { File } from '@platform/types/files';
 import { Base } from './base';
 import { isRenderMatch } from '@schema/render/tools';
-import { lockers, Locker, Level } from '@ui/service/lockers';
 import { Session } from '@service/session';
 
 export abstract class FileOpener<Options, NamedOptions> extends Base<
@@ -56,19 +55,15 @@ export abstract class FileOpener<Options, NamedOptions> extends Base<
                         new Error(`Combination of renders in the scope of session isn't supported`),
                     );
                 }
-                return this.session.stream.file({
-                    filename: target.filename,
-                    name: target.name,
-                    type: target.type,
-                    options: options === undefined ? {} : (this.getNamedOptions(options) as {}),
-                });
+                return this.session.stream
+                    .file({
+                        filename: target.filename,
+                        name: target.name,
+                        type: target.type,
+                        options: options === undefined ? {} : (this.getNamedOptions(options) as {}),
+                    })
+                    .open();
             } else {
-                const progress = lockers.lock(
-                    new Locker(true, 'indexing file...').set().group(target.filename).end(),
-                    {
-                        closable: false,
-                    },
-                );
                 return this.services.system.session
                     .add()
                     .file(
@@ -83,7 +78,6 @@ export abstract class FileOpener<Options, NamedOptions> extends Base<
                     )
                     .then((session: Session) => {
                         this.assign(session);
-                        progress.popup.close();
                         this.services.system.recent
                             .add()
                             .file(
@@ -98,7 +92,6 @@ export abstract class FileOpener<Options, NamedOptions> extends Base<
                         return Promise.resolve(undefined);
                     })
                     .catch((err: Error) => {
-                        progress.locker.set().message(err.message).type(Level.error).spinner(false);
                         return Promise.reject(err);
                     });
             }

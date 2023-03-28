@@ -13,7 +13,6 @@ export class Request extends SignatureRequirement {
         validator.isObject(input);
         this.file = validator.getAsObj(input, 'file');
         this.session = validator.getAsNotEmptyString(input, 'session');
-
     }
 }
 export interface Request extends Interface {}
@@ -21,13 +20,15 @@ export interface Request extends Interface {}
 @Define({ name: 'OpenFileResponse' })
 export class Response extends SignatureRequirement {
     public error?: string;
+    public observer?: string;
     public session: string;
 
-    constructor(input: { session: string; error?: string }) {
+    constructor(input: { session: string; error?: string; observer?: string }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
         this.error = validator.getAsNotEmptyStringOrAsUndefined(input, 'error');
+        this.observer = validator.getAsNotEmptyStringOrAsUndefined(input, 'observer');
     }
 }
 

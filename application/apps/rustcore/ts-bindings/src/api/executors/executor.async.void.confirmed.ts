@@ -29,6 +29,7 @@ export function AsyncVoidConfirmedExecutor<TOptions>(
             error: Subscription;
             done: Subscription;
             confirmed: Subscription;
+            processing: Subscription;
             cancel(): void;
             unsunscribe(): void;
         } = {
@@ -59,6 +60,12 @@ export function AsyncVoidConfirmedExecutor<TOptions>(
                 }
                 self.emit('confirmed');
             }),
+            processing: provider.getEvents().OperationProcessing.subscribe((uuid: string) => {
+                if (uuid !== self.uuid()) {
+                    return;
+                }
+                self.emit('processing');
+            }),
             unsunscribe(): void {
                 lifecircle.destroy.destroy();
                 lifecircle.error.destroy();
@@ -82,7 +89,9 @@ export function AsyncVoidConfirmedExecutor<TOptions>(
                 if (state instanceof NativeError) {
                     lifecircle.abortOperationId = undefined;
                     self.stopCancelation();
-                    logger.error(`Fail to cancel operation ${self.uuid()}; error: ${state.message}`);
+                    logger.error(
+                        `Fail to cancel operation ${self.uuid()}; error: ${state.message}`,
+                    );
                     reject(new Error(`Fail to cancel operation. Error: ${state.message}`));
                 } else {
                     logger.debug(`Cancel signal for operation ${self.uuid()} has been sent`);

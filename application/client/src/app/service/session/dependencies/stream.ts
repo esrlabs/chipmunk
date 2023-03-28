@@ -17,6 +17,15 @@ import * as Events from '@platform/ipc/event';
 
 export { ObserveOperation, DataSource };
 
+type Handler = () => void;
+
+interface OpenFile {
+    open(): Promise<void>;
+    onProcessing(handler: Handler): OpenFile;
+}
+
+const PROCESSING_PREFIX = 'processing_';
+
 @SetupLogger()
 export class Stream extends Subscriber {
     public readonly subjects: Subjects<{
@@ -39,6 +48,7 @@ export class Stream extends Subscriber {
     });
     private _len: number = 0;
     private _uuid!: string;
+    private _handlers: Map<string, Handler> = new Map();
 
     public readonly observed: {
         running: Map<string, ObserveOperation>;
@@ -103,6 +113,17 @@ export class Stream extends Subscriber {
             }),
         );
         this.register(
+            Events.IpcEvent.subscribe(Events.Observe.Processing.Event, (event) => {
+                if (event.session !== this._uuid) {
+                    return;
+                }
+                const key = `${PROCESSING_PREFIX}${event.operation}`;
+                const handler = this._handlers.get(key);
+                this._handlers.delete(key);
+                handler !== undefined && handler();
+            }),
+        );
+        this.register(
             Events.IpcEvent.subscribe(Events.Observe.Finished.Event, (event) => {
                 if (event.session !== this._uuid) {
                     return;
@@ -123,7 +144,40 @@ export class Stream extends Subscriber {
         this.subjects.destroy();
     }
 
-    public file(file: TargetFile): Promise<void> {
+    public file(file: TargetFile): OpenFile {
+        let onProcessingHandler: undefined | Handler;
+        const output = {
+            open: (): Promise<void> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send<Requests.File.Open.Response>(
+                        Requests.File.Open.Response,
+                        new Requests.File.Open.Request({ session: this._uuid, file }),
+                    )
+                        .then((response) => {
+                            if (typeof response.error === 'string' && response.error !== '') {
+                                reject(new Error(response.error));
+                            } else {
+                                if (onProcessingHandler !== undefined) {
+                                    this._handlers.set(
+                                        `${PROCESSING_PREFIX}${response.observer}`,
+                                        onProcessingHandler,
+                                    );
+                                }
+                                resolve(undefined);
+                            }
+                        })
+                        .catch(reject);
+                });
+            },
+            onProcessing: (handler: Handler): OpenFile => {
+                onProcessingHandler = handler;
+                return output;
+            },
+        };
+        return output;
+    }
+
+    public open(file: TargetFile): Promise<void> {
         return new Promise((resolve, reject) => {
             Requests.IpcRequest.send<Requests.File.Open.Response>(
                 Requests.File.Open.Response,

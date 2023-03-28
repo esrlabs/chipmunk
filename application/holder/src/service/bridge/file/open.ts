@@ -36,10 +36,11 @@ export const handler = Requests.InjectLogger<
                         stored
                             .observe()
                             .start(Observe.DataSource.file(request.file.filename).text())
-                            .then(() => {
+                            .then((uuid: string) => {
                                 resolve(
                                     new Requests.File.Open.Response({
                                         session: stored.session.getUUID(),
+                                        observer: uuid,
                                     }),
                                 );
                             })
@@ -67,10 +68,11 @@ export const handler = Requests.InjectLogger<
                                           ),
                                 ),
                             )
-                            .then(() => {
+                            .then((uuid: string) => {
                                 resolve(
                                     new Requests.File.Open.Response({
                                         session: stored.session.getUUID(),
+                                        observer: uuid,
                                     }),
                                 );
                             })
@@ -99,10 +101,11 @@ export const handler = Requests.InjectLogger<
                                               ),
                                 }),
                             )
-                            .then(() => {
+                            .then((uuid: string) => {
                                 resolve(
                                     new Requests.File.Open.Response({
                                         session: stored.session.getUUID(),
+                                        observer: uuid,
                                     }),
                                 );
                             })
