@@ -92,39 +92,6 @@ export abstract class RustSession extends RustSessionRequiered {
     public abstract getUuid(): string;
 
     /**
-     * Bind filters with current session. Rust core should break (stop) search (if it wasn't
-     * finished before) and start new with defined filters. Search results should be stored
-     * in search results file.
-     * Search results would be requested with @method grabSearchChunk, which should return
-     * whole rows with matches
-     *
-     * @param filters { IFilter[] } list of filters for session search
-     * @returns { void }
-     *
-     * @error { NativeError }
-     */
-    public abstract setFilters(filters: IFilter[]): NativeError | string;
-
-    /**
-     * Returns a list of filters, which are bound with session
-     * @returns { IFilter[] }
-     *
-     * @error { NativeError }
-     */
-    public abstract getFilters(): IFilter[] | NativeError;
-
-    /**
-     * Bind filters with current session. Rust core should break (stop) search of matches (if
-     * it wasn't finished before) and start new with defined filters.
-     * Results of search matches would be requested with @method grabMatchesChunk
-     * @param filters { IFilter[] } list of filters for session search
-     * @returns { void }
-     *
-     * @error { NativeError }
-     */
-    public abstract setMatches(filters: IFilter[]): NativeError | undefined;
-
-    /**
      * Returns reference to option's type, which should be defined for @method append
      * Would be called each time before @method append
      * @param filename { string } full filename
@@ -804,18 +771,6 @@ export class RustSessionWrapper extends RustSession {
     }
 
     public grabMatchesChunk(start: number, len: number): string[] | NativeError {
-        return new NativeError(new Error('Not implemented yet'), Type.Other, Source.GetSocketPath);
-    }
-
-    public setFilters(filters: IFilter[]): NativeError | string {
-        return new NativeError(new Error('Not implemented yet'), Type.Other, Source.GetSocketPath);
-    }
-
-    public getFilters(): IFilter[] | NativeError {
-        return new NativeError(new Error('Not implemented yet'), Type.Other, Source.GetFilters);
-    }
-
-    public setMatches(filters: IFilter[]): NativeError | undefined {
         return new NativeError(new Error('Not implemented yet'), Type.Other, Source.GetSocketPath);
     }
 
