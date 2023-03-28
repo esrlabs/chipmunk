@@ -128,7 +128,7 @@ export class Service extends Implementation {
                 }
             });
         });
-        listeners > 0 && this.log().debug(`Activated ${listeners} hotkeys listeners`);
+        listeners > 0 && this.log().verbose(`Activated ${listeners} hotkeys listeners`);
     }
 
     protected unbind(): void {
@@ -149,7 +149,7 @@ export class Service extends Implementation {
                 }
             });
         });
-        listeners > 0 && this.log().debug(`Deactivated ${listeners} hotkeys listeners`);
+        listeners > 0 && this.log().verbose(`Deactivated ${listeners} hotkeys listeners`);
     }
 
     protected resume() {
