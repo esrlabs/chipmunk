@@ -1,12 +1,12 @@
 import { ISearchMap } from '@platform/interfaces/interface.rust.api.general';
 import { Session } from '@service/session';
-import { scheme_color_match } from '@styles/colors';
+import { scheme_color_5, scheme_color_match } from '@styles/colors';
 
 export class State {
     static COLUMN_WIDTH = 4;
 
-    public width: number = 12;
-    public height: number = 100;
+    public width: number = 0;
+    public height: number = 0;
 
     protected session!: Session;
     protected holderElementRef!: HTMLElement;
@@ -63,11 +63,8 @@ export class State {
             .get()
             .filter((f) => f.definition.active);
         const isActive = this.session.search.state().getActive() !== undefined;
-        const count = isActive ? 1 : filters.length;
-        this.context.fillStyle = 'rgb(0,0,0)';
+        this.context.fillStyle = scheme_color_5;
         this.context.fillRect(0, 0, this.width, this.height);
-        this.width = count * State.COLUMN_WIDTH;
-        this.detectChanges();
         const scale = (() => {
             if (this.map.length === 0 || this.height === 0) {
                 return 1;
@@ -77,6 +74,23 @@ export class State {
                 return 1;
             }
         })();
+        const indexes: { [key: number]: number } = {};
+        if (isActive) {
+            this.width = State.COLUMN_WIDTH;
+        } else {
+            let index = 0;
+            this.map.forEach((value: number[][]) => {
+                value.forEach((matches) => {
+                    if (indexes[matches[0]] === undefined) {
+                        indexes[matches[0]] = index;
+                        index += 1;
+                    }
+                });
+            });
+            this.width = Object.keys(indexes).length * State.COLUMN_WIDTH;
+        }
+        this.context.fillRect(0, 0, this.width, this.height);
+        this.detectChanges();
         this.map.forEach((value: number[][], top: number) => {
             value.forEach((matches) => {
                 if (isActive) {
@@ -89,7 +103,7 @@ export class State {
                             : filter.definition.colors.background;
                 }
                 this.context.fillRect(
-                    matches[0] * State.COLUMN_WIDTH,
+                    isActive ? 0 : indexes[matches[0]] * State.COLUMN_WIDTH,
                     top * scale,
                     State.COLUMN_WIDTH,
                     scale,
