@@ -136,10 +136,8 @@ impl Controller {
                 .union(Nature::BREADCRUMB)
                 .union(Nature::BREADCRUMB_SEPORATOR),
         );
-        self.map.insert(
-            &matches.iter().map(|f| f.index).collect::<Vec<u64>>(),
-            Nature::SEARCH,
-        );
+        let collected = matches.iter().map(|f| f.index).collect::<Vec<u64>>();
+        self.map.insert(&collected, Nature::SEARCH);
         if matches!(self.mode, Mode::Breadcrumbs) {
             self.map
                 .breadcrumbs_build(MIN_BREADCRUMBS_DISTANCE, MIN_BREADCRUMBS_OFFSET)?;

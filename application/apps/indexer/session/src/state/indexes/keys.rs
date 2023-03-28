@@ -1,5 +1,6 @@
 use crate::events::{NativeError, NativeErrorKind};
 use indexer_base::progress::Severity;
+use std::ops::RangeInclusive;
 
 #[derive(Debug)]
 pub struct Keys {
@@ -26,6 +27,21 @@ impl Keys {
         }
     }
 
+    pub fn remove_ranges(&mut self, ranges: &[RangeInclusive<u64>]) -> Result<(), String> {
+        self.sort();
+        for range in ranges.iter() {
+            if let (Ok(start), Ok(end)) = (
+                self.keys.binary_search(range.start()),
+                self.keys.binary_search(range.end()),
+            ) {
+                self.keys.drain(start..=end);
+            } else {
+                return Err(format!("Fail to find indexes for range: {range:?}"));
+            }
+        }
+        Ok(())
+    }
+
     pub fn remove_from(&mut self, position_from: &u64) -> Result<Vec<u64>, NativeError> {
         self.sort();
         let from_index = self
@@ -43,8 +59,9 @@ impl Keys {
         }
     }
 
-    pub fn clear(&mut self) {
+    pub fn clear(&mut self) -> &mut Self {
         self.keys.clear();
+        self
     }
 
     pub fn sort(&mut self) {
@@ -52,6 +69,11 @@ impl Keys {
             self.keys.sort();
             self.sorted = true;
         }
+    }
+
+    pub fn import(&mut self, indexes: Vec<u64>) {
+        self.keys = indexes;
+        self.sorted = false;
     }
 
     pub fn get_index(&mut self, position: &u64) -> Result<usize, NativeError> {
@@ -109,6 +131,7 @@ impl Keys {
 }
 
 mod test {
+
     #[test]
     fn test_keys_001() {
         let mut keys = super::Keys::new();
@@ -146,5 +169,36 @@ mod test {
             ],
             vec![0, 1, 2,]
         );
+    }
+
+    #[test]
+    fn test_keys_003() {
+        use std::ops::RangeInclusive;
+        let mut keys = super::Keys::new();
+        assert_eq!(keys.first(), None);
+        keys.add(100);
+        keys.add(101);
+        keys.add(102);
+        keys.add(103);
+        keys.add(104);
+        keys.add(105);
+        keys.add(11);
+        keys.add(12);
+        keys.add(13);
+        keys.add(14);
+        keys.add(15);
+        keys.add(7);
+        keys.sort();
+        assert_eq!(
+            keys.remove_ranges(&vec![
+                RangeInclusive::new(11, 15),
+                RangeInclusive::new(100, 105),
+            ]),
+            Ok(())
+        );
+        assert_eq!(keys.keys.len(), 1);
+        assert_eq!(keys.first(), Some(&7));
+        keys.remove(&7);
+        assert_eq!(keys.first(), None);
     }
 }
