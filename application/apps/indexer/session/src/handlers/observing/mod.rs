@@ -80,6 +80,7 @@ pub async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
 ) -> OperationResult<()> {
     use log::debug;
     state.set_session_file(None).await?;
+    operation_api.processing();
     let cancel = operation_api.cancellation_token();
     let stream = producer.as_stream();
     futures::pin_mut!(stream);
