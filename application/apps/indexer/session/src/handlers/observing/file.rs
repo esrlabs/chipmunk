@@ -30,6 +30,7 @@ pub async fn listen<'a>(
             state.set_session_file(Some(filename.to_path_buf())).await?;
             // Grab main file content
             state.update_session(source_id).await?;
+            operation_api.processing();
             // Confirm: main file content has been read
             state.file_read().await?;
             // Switching to tail

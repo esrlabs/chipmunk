@@ -193,11 +193,23 @@ pub enum CallbackEvent {
      */
     OperationError { uuid: Uuid, error: NativeError },
     /**
-     * Triggered on continues asynch operation like observe
+     * Operations is created; task is spawned.
+     * This even is triggeres always
+     * Triggered on all continues asynch operation like observe
      * >> Scope: async operation
      * >> Kind: repeated
      */
     OperationStarted(Uuid),
+    /**
+     * All initializations are done and operation is processing now.
+     * There are no garantie an event would be triggered. It depends
+     * on each specific operation. This event can be triggered multiple
+     * times in the scope of one operation (for example concat).
+     * Could be triggered on continues asynch operation like observe
+     * >> Scope: async operation
+     * >> Kind: repeated
+     */
+    OperationProcessing(Uuid),
     /**
      * Triggered on some asynch operation is done
      * >> Scope: async operation
@@ -244,6 +256,7 @@ impl std::fmt::Display for CallbackEvent {
                 write!(f, "OperationError: {uuid}: {error:?}")
             }
             Self::OperationStarted(uuid) => write!(f, "OperationStarted: {uuid}"),
+            Self::OperationProcessing(uuid) => write!(f, "OperationProcessing: {uuid}"),
             Self::OperationDone(info) => write!(f, "OperationDone: {}", info.uuid),
             Self::SessionDestroyed => write!(f, "SessionDestroyed"),
         }

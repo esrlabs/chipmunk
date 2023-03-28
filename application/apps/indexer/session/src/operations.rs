@@ -200,6 +200,10 @@ impl OperationAPI {
         self.emit(CallbackEvent::OperationStarted(self.id()));
     }
 
+    pub fn processing(&self) {
+        self.emit(CallbackEvent::OperationProcessing(self.id()));
+    }
+
     pub async fn finish<T>(&self, result: OperationResult<T>, alias: &str)
     where
         T: Serialize + std::fmt::Debug,
