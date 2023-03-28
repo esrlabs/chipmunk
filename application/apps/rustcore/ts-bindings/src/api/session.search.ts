@@ -82,7 +82,10 @@ export class SessionSearch {
     public drop(): Promise<boolean> {
         return new Promise((resolve, reject) => {
             this.managers.search.drop().finally(() => {
-                this.session.dropSearch().then(resolve).catch(reject);
+                this.session
+                    .dropSearch()
+                    .then(resolve)
+                    .catch(reject);
             });
         });
     }

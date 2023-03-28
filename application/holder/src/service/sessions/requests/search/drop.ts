@@ -37,9 +37,7 @@ export const handler = Requests.InjectLogger<
                                 }),
                             );
                         })
-                        .catch((error: Error) => {
-                            reject(error);
-                        });
+                        .catch(reject);
                 });
         });
     },

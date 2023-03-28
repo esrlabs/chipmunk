@@ -1,11 +1,16 @@
 import { IFilter } from '@platform/types/filter';
 import { Subjects, Subject } from '@platform/env/subscription';
 import { Search } from '@service/session/dependencies/search';
+import { unique } from '@platform/env/sequence';
 
 import * as obj from '@platform/env/obj';
 
 export interface ISearchFinishEvent {
     found: number;
+    error?: string;
+}
+
+export interface IChartsFinishEvent {
     error?: string;
 }
 
@@ -18,7 +23,7 @@ export class State {
         }>;
         charts: Subjects<{
             start: Subject<void>;
-            finish: Subject<void>;
+            finish: Subject<IChartsFinishEvent>;
         }>;
     } = {
         search: new Subjects({
@@ -28,7 +33,7 @@ export class State {
         }),
         charts: new Subjects({
             start: new Subject<void>(),
-            finish: new Subject<void>(),
+            finish: new Subject<IChartsFinishEvent>(),
         }),
     };
 
@@ -42,11 +47,11 @@ export class State {
         charts: undefined,
     };
     private _progress: {
-        search: boolean;
-        charts: boolean;
+        search: Set<string>;
+        charts: Set<string>;
     } = {
-        search: false,
-        charts: false,
+        search: new Set(),
+        charts: new Set(),
     };
     private _nonActive: IFilter = {
         filter: '',
@@ -82,33 +87,27 @@ export class State {
         return new Promise((resolve, reject) => {
             this._active = obj.clone(filter);
             this._hash.search = undefined;
-            this._progress.search = true;
+            const finish = this.lifecycle().search();
             this._controller
                 .drop()
                 .then(() => {
-                    this.subjects.search.get().start.emit();
                     this.subjects.search.get().active.emit(obj.clone(filter));
                     this._controller
                         .search([filter])
                         .then((found: number) => {
-                            this.subjects.search.get().finish.emit({ found: found });
+                            finish({ found });
                             resolve(found);
                         })
                         .catch((err: Error) => {
                             this._active = undefined;
                             this.subjects.search.get().active.emit(undefined);
-                            this.subjects.search
-                                .get()
-                                .finish.emit({ found: 0, error: err.message });
+                            finish({ found: 0, error: err.message });
                             reject(err);
-                        })
-                        .finally(() => {
-                            this._progress.search = false;
                         });
                 })
                 .catch((err: Error) => {
                     this._active = undefined;
-                    this._progress.search = false;
+                    finish({ found: 0, error: err.message });
                     reject(err);
                 });
         });
@@ -118,93 +117,76 @@ export class State {
         if (this._active !== undefined) {
             return Promise.resolve();
         }
-        const filters = this._controller
-            .store()
-            .filters()
-            .get()
-            .filter((request) => request.definition.active)
-            .map((request) => request.as().filter());
-        const hash = this._controller
-            .store()
-            .filters()
-            .get()
-            .filter((request) => request.definition.active)
-            .map((request) => request.hash())
-            .join('_');
-        if (hash === this._hash.search) {
+        if (!this.hash().search.changed()) {
             return Promise.resolve();
         }
-        this._hash.search = hash;
         return new Promise((resolve, reject) => {
-            this._progress.search = true;
+            const finish = this.lifecycle().search();
             this._controller
                 .drop()
                 .then(() => {
+                    const filters = this._controller
+                        .store()
+                        .filters()
+                        .get()
+                        .filter((request) => request.definition.active)
+                        .map((request) => request.as().filter());
+                    this.hash().search.update();
                     if (filters.length === 0) {
-                        this._progress.search = false;
+                        finish({ found: 0 });
                         return resolve();
                     }
-                    this.subjects.search.get().start.emit();
                     this._controller
                         .search(filters)
                         .then((found: number) => {
-                            this.subjects.search.get().finish.emit({ found: found });
+                            finish({ found: found });
                             resolve();
                         })
                         .catch((err: Error) => {
-                            this.subjects.search
-                                .get()
-                                .finish.emit({ found: 0, error: err.message });
+                            finish({ found: 0, error: err.message });
                             reject(err);
-                        })
-                        .finally(() => {
-                            this._progress.search = false;
                         });
                 })
                 .catch((err: Error) => {
-                    this._progress.search = false;
+                    finish({ found: 0, error: err.message });
                     reject(err);
                 });
         });
     }
 
     public charts(): Promise<void> {
-        const charts = this._controller
-            .store()
-            .charts()
-            .get()
-            .filter((request) => request.definition.active)
-            .map((request) => request.as().filter());
-        const hash = charts.join('_');
-        if (hash === this._hash.charts) {
+        if (!this.hash().charts.changed()) {
             return Promise.resolve();
         }
-        this._hash.charts = hash;
         return new Promise((resolve, reject) => {
-            this._progress.charts = true;
+            const finish = this.lifecycle().charts();
             this._controller
                 .drop()
                 .then(() => {
+                    const charts = this._controller
+                        .store()
+                        .charts()
+                        .get()
+                        .filter((request) => request.definition.active)
+                        .map((request) => request.as().filter());
+                    this.hash().charts.update();
                     if (charts.length === 0) {
-                        this._progress.charts = false;
+                        finish({});
                         return resolve();
                     }
-                    this.subjects.charts.get().start.emit();
                     this._controller
                         .extract(charts)
                         .then(() => {
+                            finish({});
                             resolve();
                         })
                         .catch((err: Error) => {
+                            finish({ error: err.message });
                             reject(err);
-                        })
-                        .finally(() => {
-                            this._progress.charts = false;
-                            this.subjects.charts.get().finish.emit();
                         });
                 })
                 .catch((err: Error) => {
-                    this._progress.charts = false;
+                    finish({ error: err.message });
                     reject(err);
                 });
         });
@@ -212,10 +194,14 @@ export class State {
 
     public progress(): {
         search(): boolean;
+        charts(): boolean;
     } {
         return {
             search: (): boolean => {
-                return this._progress.search;
+                return this._progress.search.size > 0;
+            },
+            charts: (): boolean => {
+                return this._progress.charts.size > 0;
             },
         };
     }
@@ -236,6 +222,88 @@ export class State {
                 this._hash.search = undefined;
                 this.subjects.search.get().active.emit(undefined);
                 return this.filters();
+            },
+        };
+    }
+
+    protected lifecycle(): {
+        search(): (event: ISearchFinishEvent) => void;
+        charts(): (event: IChartsFinishEvent) => void;
+    } {
+        return {
+            search: (): ((event: ISearchFinishEvent) => void) => {
+                const uuid = unique();
+                this._progress.search.add(uuid);
+                this.subjects.search.get().start.emit();
+                return (event: ISearchFinishEvent) => {
+                    this._progress.search.delete(uuid);
+                    if (this._progress.search.size !== 0) {
+                        return;
+                    }
+                    this.subjects.search.get().finish.emit(event);
+                };
+            },
+            charts: (): ((event: IChartsFinishEvent) => void) => {
+                const uuid = unique();
+                this._progress.charts.add(uuid);
+                this.subjects.charts.get().start.emit();
+                return (event: IChartsFinishEvent) => {
+                    this._progress.charts.delete(uuid);
+                    if (this._progress.charts.size !== 0) {
+                        return;
+                    }
+                    this.subjects.charts.get().finish.emit(event);
+                };
+            },
+        };
+    }
+
+    protected hash(): {
+        search: {
+            get(): string;
+            update(): void;
+            changed(): boolean;
+        };
+        charts: {
+            get(): string;
+            update(): void;
+            changed(): boolean;
+        };
+    } {
+        return {
+            search: {
+                get: (): string => {
+                    return this._controller
+                        .store()
+                        .filters()
+                        .get()
+                        .filter((request) => request.definition.active)
+                        .map((request) => request.hash())
+                        .join('_');
+                },
+                update: (): void => {
+                    this._hash.search = this.hash().search.get();
+                },
+                changed: (): boolean => {
+                    return this.hash().search.get() !== this._hash.search;
+                },
+            },
+            charts: {
+                get: (): string => {
+                    return this._controller
+                        .store()
+                        .charts()
+                        .get()
+                        .filter((request) => request.definition.active)
+                        .map((request) => request.hash())
+                        .join('_');
+                },
+                update: (): void => {
+                    this._hash.charts = this.hash().charts.get();
+                },
+                changed: (): boolean => {
+                    return this.hash().charts.get() !== this._hash.charts;
+                },
             },
         };
     }
