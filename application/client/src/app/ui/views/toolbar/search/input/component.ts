@@ -80,6 +80,7 @@ export class ViewSearchInput
                 .subjects.search.get()
                 .start.subscribe(() => {
                     this.progress.start();
+                    this.detectChanges();
                 }),
         );
         this.env().subscriber.register(

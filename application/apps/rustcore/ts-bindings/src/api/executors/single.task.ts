@@ -36,8 +36,10 @@ export abstract class TaskManager<T, R> {
                 this.logger.error(`Fail to drop all task: ${err.message}`);
             })
             .then(() => {
-                this.dropping = false;
                 return Promise.resolve();
+            })
+            .finally(() => {
+                this.dropping = false;
             });
     }
 
