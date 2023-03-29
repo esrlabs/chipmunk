@@ -96,6 +96,8 @@ export abstract class Store<T> extends Subscriber {
 
     public abstract key(): Key;
 
+    public abstract has(entity: T): boolean;
+
     public hash(): string {
         return Array.from(this._entities.values())
             .map((entry) => entry.hash())

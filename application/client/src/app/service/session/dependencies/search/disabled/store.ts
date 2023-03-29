@@ -14,4 +14,8 @@ export class DisableStore extends Store<DisabledRequest> {
             entities.map((en) => new DisabledRequest(en) as StoredEntity<DisabledRequest>),
         );
     }
+
+    public has(request: DisabledRequest): boolean {
+        return this.get().find((entity) => entity.isSame(request)) !== undefined;
+    }
 }
