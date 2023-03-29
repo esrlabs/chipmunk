@@ -12,6 +12,9 @@ export class ChartsStore extends Store<ChartRequest> {
 
     public addFromFilter(filter: IFilter): void {
         const request = new ChartRequest({ filter: filter.filter });
+        if (this.has(request)) {
+            return;
+        }
         this.update([request as StoredEntity<ChartRequest>]);
     }
 
@@ -26,5 +29,9 @@ export class ChartsStore extends Store<ChartRequest> {
 
     public getActiveCount(): number {
         return this.get().filter((request) => request.definition.active).length;
+    }
+
+    public has(request: ChartRequest): boolean {
+        return this.get().find((entity) => entity.isSame(request)) !== undefined;
     }
 }

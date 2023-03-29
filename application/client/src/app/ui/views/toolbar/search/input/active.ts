@@ -1,5 +1,7 @@
 import { IFilter } from '@platform/types/filter';
 import { Search } from '@service/session/dependencies/search';
+import { FilterRequest } from '@service/session/dependencies/search/filters/request';
+import { ChartRequest } from '@service/session/dependencies/search/charts/request';
 
 export class ActiveSearch {
     public filter: IFilter;
@@ -15,10 +17,22 @@ export class ActiveSearch {
     }
 
     public isPossibleToSaveAsFilter(): boolean {
-        return true;
+        console.log(
+            this.search
+                .store()
+                .filters()
+                .has(new FilterRequest({ filter: this.filter })),
+        );
+        return !this.search
+            .store()
+            .filters()
+            .has(new FilterRequest({ filter: this.filter }));
     }
 
     public isPossibleToSaveAsChart(): boolean {
-        return false;
+        return !this.search
+            .store()
+            .charts()
+            .has(new ChartRequest({ filter: this.filter.filter }));
     }
 }
