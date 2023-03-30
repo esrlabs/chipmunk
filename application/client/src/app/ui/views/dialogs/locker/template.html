@@ -1,8 +1,14 @@
-<mat-spinner *ngIf="locker.spinner" [diameter]="24"></mat-spinner>
-<mat-icon *ngIf="locker.type === Level.error">highlight_off</mat-icon>
-<mat-icon *ngIf="locker.type === Level.warning">report_problem</mat-icon>
-<p *ngIf="locker.message !== undefined">{{locker.message}}</p>
-<div class="controls" *ngIf="locker.buttons.length > 0">
-    <button mat-stroked-button *ngFor="let button of locker.buttons" (click)="button.handler()">{{button.caption}}</button>
+<div class="progress" *ngIf="locker.type === Level.progress">
+    <p *ngIf="locker.message !== undefined">{{locker.message}}</p>
+    <mat-progress-bar *ngIf="locker.spinner" mode="indeterminate"></mat-progress-bar>
 </div>
-<button mat-stroked-button *ngIf="popup.options.closable" (click)="ngClose()">Close</button>
+<div class="modal" *ngIf="locker.type !== Level.progress">
+    <mat-spinner *ngIf="locker.spinner" [diameter]="24"></mat-spinner>
+    <mat-icon *ngIf="locker.type === Level.error">highlight_off</mat-icon>
+    <mat-icon *ngIf="locker.type === Level.warning">report_problem</mat-icon>
+    <p *ngIf="locker.message !== undefined">{{locker.message}}</p>
+    <div class="controls" *ngIf="locker.buttons.length > 0">
+        <button mat-stroked-button *ngFor="let button of locker.buttons" (click)="button.handler()">{{button.caption}}</button>
+    </div>
+    <button mat-stroked-button *ngIf="popup.options.closable" (click)="ngClose()">Close</button>    
+</div>

@@ -17,7 +17,7 @@ import { TargetFile } from '@platform/types/files';
 import { TabControls } from './session/tab';
 import { unique } from '@platform/env/sequence';
 import { history } from '@service/history';
-import { lockers, Locker } from '@ui/service/lockers';
+import { lockers, Locker, Level } from '@ui/service/lockers';
 import { Render } from '@schema/render';
 
 export { Session, TabControls, UnboundTab, Base };
@@ -139,7 +139,11 @@ export class Service extends Implementation {
                 }
                 return new Promise((resolve, reject) => {
                     const progress = lockers.lock(
-                        new Locker(true, 'opening file...').set().group(file.filename).end(),
+                        new Locker(true, 'opening file...')
+                            .set()
+                            .type(Level.progress)
+                            .group(file.filename)
+                            .end(),
                         {
                             closable: false,
                         },

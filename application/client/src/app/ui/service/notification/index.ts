@@ -3,4 +3,5 @@ export enum Level {
     error = 'error',
     warning = 'warning',
     accent = 'accent',
+    progress = 'progress',
 }
