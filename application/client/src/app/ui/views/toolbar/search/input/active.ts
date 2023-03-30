@@ -1,6 +1,7 @@
 import { IFilter } from '@platform/types/filter';
 import { Search } from '@service/session/dependencies/search';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
+import { DisabledRequest } from '@service/session/dependencies/search/disabled/request';
 import { ChartRequest } from '@service/session/dependencies/search/charts/request';
 
 export class ActiveSearch {
@@ -17,22 +18,18 @@ export class ActiveSearch {
     }
 
     public isPossibleToSaveAsFilter(): boolean {
-        console.log(
-            this.search
-                .store()
-                .filters()
-                .has(new FilterRequest({ filter: this.filter })),
+        const request = new FilterRequest({ filter: this.filter });
+        return (
+            !this.search.store().filters().has(request) &&
+            !this.search.store().disabled().has(new DisabledRequest(request))
         );
-        return !this.search
-            .store()
-            .filters()
-            .has(new FilterRequest({ filter: this.filter }));
     }
 
     public isPossibleToSaveAsChart(): boolean {
-        return !this.search
-            .store()
-            .charts()
-            .has(new ChartRequest({ filter: this.filter.filter }));
+        const request = new ChartRequest({ filter: this.filter.filter });
+        return (
+            !this.search.store().charts().has(request) &&
+            !this.search.store().disabled().has(new DisabledRequest(request))
+        );
     }
 }
