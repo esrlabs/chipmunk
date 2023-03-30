@@ -62,7 +62,10 @@ impl Map {
         }
     }
 
-    fn as_ranges(values: &mut [u64]) -> Vec<RangeInclusive<u64>> {
+    fn as_ranges(values: &mut [u64]) -> Option<Vec<RangeInclusive<u64>>> {
+        if values.len() > RANGES_LIMIT {
+            return None;
+        }
         let mut ranges = vec![];
         let mut from: u64 = 0;
         let mut to: u64 = 0;
@@ -72,6 +75,9 @@ impl Map {
                 from = *value;
             } else if to + 1 != *value {
                 ranges.push(RangeInclusive::new(from, to));
+                if ranges.len() >= KEYS_ITERATIONS_LIMIT {
+                    return None;
+                }
                 from = *value;
             }
             to = *value;
@@ -81,7 +87,7 @@ impl Map {
         {
             ranges.push(RangeInclusive::new(from, to));
         }
-        ranges
+        Some(ranges)
     }
 
     fn index_add(&mut self, position: u64, nature: Nature) {
@@ -98,16 +104,7 @@ impl Map {
     }
 
     fn indexes_remove(&mut self, positions: &mut [u64]) {
-        let ranges = if positions.len() < RANGES_LIMIT {
-            let ranges = Self::as_ranges(positions);
-            if ranges.len() < KEYS_ITERATIONS_LIMIT {
-                Some(ranges)
-            } else {
-                None
-            }
-        } else {
-            None
-        };
+        let ranges = Self::as_ranges(positions);
         positions.iter().for_each(|p| {
             self.index_remove(p, false);
         });
