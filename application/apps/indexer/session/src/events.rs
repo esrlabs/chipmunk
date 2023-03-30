@@ -194,7 +194,7 @@ pub enum CallbackEvent {
     OperationError { uuid: Uuid, error: NativeError },
     /**
      * Operations is created; task is spawned.
-     * This even is triggeres always
+     * This even is triggered always
      * Triggered on all continues asynch operation like observe
      * >> Scope: async operation
      * >> Kind: repeated
@@ -202,7 +202,7 @@ pub enum CallbackEvent {
     OperationStarted(Uuid),
     /**
      * All initializations are done and operation is processing now.
-     * There are no garantie an event would be triggered. It depends
+     * There are no guarantees an event would be triggered. It depends
      * on each specific operation. This event can be triggered multiple
      * times in the scope of one operation (for example concat).
      * Could be triggered on continues asynch operation like observe
