@@ -34,6 +34,11 @@ const UPDATER = 'updater';
 const AUTO = { key: 'autoUpdateCheck', path: 'general' };
 const REPO = 'chipmunk';
 const TARGET_TAG_STARTS = 'next-';
+enum LatestReleaseNotFound {
+    NoUpdates,
+    NoNextGeneration,
+    Skipped,
+}
 
 @DependOn(paths)
 @DependOn(settings)
@@ -100,7 +105,7 @@ export class Service extends Implementation {
     protected find(force: boolean): {
         skiping(): boolean;
         night(): Promise<{ release: IReleaseData; version: Version } | undefined>;
-        latest(): Promise<{ release: IReleaseData; version: Version } | undefined>;
+        latest(): Promise<{ release: IReleaseData; version: Version } | LatestReleaseNotFound>;
         candidate(): Promise<
             { release: IReleaseData; version: Version; compressed: string } | string
         >;
@@ -157,9 +162,11 @@ export class Service extends Implementation {
                 });
                 return candidate;
             },
-            latest: async (): Promise<{ release: IReleaseData; version: Version } | undefined> => {
+            latest: async (): Promise<
+                { release: IReleaseData; version: Version } | LatestReleaseNotFound
+            > => {
                 if (this.find(force).skiping()) {
-                    return undefined;
+                    return LatestReleaseNotFound.Skipped;
                 }
                 const github = new GitHubClient();
                 const latest: IReleaseData = await github.getLatestRelease({ repo: REPO });
@@ -167,7 +174,7 @@ export class Service extends Implementation {
                     this.log().warn(
                         `Found release "${latest.name} (tag: ${latest.tag_name})", but this is not NEXT-series release`,
                     );
-                    return undefined;
+                    return LatestReleaseNotFound.NoNextGeneration;
                 }
                 const current: Version = new Version(version.getVersion());
                 let candidate: { release: IReleaseData; version: Version } | undefined;
@@ -178,7 +185,7 @@ export class Service extends Implementation {
                             this.log().debug(
                                 `Release "${latest.name} (tag: ${latest.tag_name})", ignored, because candidate ${candidate.release.tag_name}`,
                             );
-                            return;
+                            return LatestReleaseNotFound.NoUpdates;
                         }
                         candidate = {
                             release: latest,
@@ -192,24 +199,33 @@ export class Service extends Implementation {
                         })", but version isn't valid: ${error(err)}`,
                     );
                 }
-                return candidate;
+                return candidate === undefined ? LatestReleaseNotFound.NoUpdates : candidate;
             },
             candidate: async (): Promise<
                 { release: IReleaseData; version: Version; compressed: string } | string
             > => {
-                const candidate = await this.find(force).latest();
-                if (candidate === undefined) {
-                    this.log().debug(`No updates has been found.`);
+                const latest = await this.find(force).latest();
+                if (latest === LatestReleaseNotFound.NoUpdates) {
+                    this.log().debug(`No updates has been found in latest release.`);
+                    return Promise.resolve(`No updates has been found.`);
+                } else if (latest === LatestReleaseNotFound.Skipped) {
+                    return Promise.resolve(this.log().debug(`Checking of updates is skipped`));
+                } else if (latest === LatestReleaseNotFound.NoNextGeneration) {
+                    this.log().debug(`Updates aren't found in latest. Will look in pre-releases`);
+                }
+                const prerelease = await this.find(force).night();
+                if (prerelease === undefined) {
+                    this.log().debug(`No updates has been found in pre-releases.`);
                     return Promise.resolve(`No updates has been found.`);
                 }
-                this.log().debug(`New version has been found: ${candidate.release.name}`);
+                this.log().debug(`New version has been found: ${prerelease.release.name}`);
                 const release: ReleaseFile = new ReleaseFile(
-                    candidate.release.name,
+                    prerelease.release.name,
                     TARGET_TAG_STARTS,
                 );
                 this.log().debug(`Looking for: ${release.filename}`);
                 let compressed: string | undefined;
-                candidate.release.assets.forEach((asset: IReleaseAsset) => {
+                prerelease.release.assets.forEach((asset: IReleaseAsset) => {
                     if (release.equal(asset.name)) {
                         compressed = asset.name;
                     }
@@ -222,7 +238,7 @@ export class Service extends Implementation {
                         `Fail to find archive-file with release for current platform. `,
                     );
                 }
-                return { release: candidate.release, version: candidate.version, compressed };
+                return { release: prerelease.release, version: prerelease.version, compressed };
             },
         };
     }
