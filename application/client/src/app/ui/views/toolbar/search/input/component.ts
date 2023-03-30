@@ -105,6 +105,9 @@ export class ViewSearchInput
                 .active.subscribe((filter: IFilter | undefined) => {
                     if (filter !== undefined) {
                         this.active = new ActiveSearch(this.session.search, filter);
+                        this.input.drop();
+                    } else {
+                        this.active = undefined;
                     }
                 }),
         );
@@ -124,10 +127,6 @@ export class ViewSearchInput
                 this.session.search
                     .state()
                     .setActive(filter)
-                    .then(() => {
-                        this.active = new ActiveSearch(this.session.search, filter);
-                        this.input.drop();
-                    })
                     .catch((err: Error) => {
                         this.log().error(`Fail to accept search: ${err.message}`);
                     })
