@@ -356,17 +356,12 @@ impl OperationAPI {
                     }
                 }
                 OperationKind::Merge {
-                    files,
-                    out_path,
-                    append,
-                    source_id,
+                    files: _,
+                    out_path: _,
+                    append: _,
+                    source_id: _,
                 } => {
-                    api.finish(
-                        handlers::merge::handle(&api, files, &out_path, append, source_id, state)
-                            .await,
-                        operation_str,
-                    )
-                    .await;
+                    unimplemented!("merging not yet supported");
                 }
                 OperationKind::Sleep(ms) => {
                     api.finish(handlers::sleep::handle(&api, ms).await, operation_str)

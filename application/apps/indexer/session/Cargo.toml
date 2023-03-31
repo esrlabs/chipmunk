@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 crossbeam-channel = "0.5"
-dirs = "5.0"
+dirs = "4.0"
 futures = "0.3"
 indexer_base = { path = "../indexer_base" }
 lazy_static = "1.4"

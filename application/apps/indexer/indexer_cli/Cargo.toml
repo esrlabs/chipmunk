@@ -19,7 +19,6 @@ indicatif = "0.17"
 lazy_static = "1.4"
 log = "0.4"
 addon = { path = "../addon" }
-merging = { path = "../merging" }
 parsers = { path = "../parsers" }
 processor = { path = "../processor" }
 session = { path = "../session" }

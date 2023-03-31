@@ -12,13 +12,12 @@
 extern crate chrono;
 extern crate dirs;
 extern crate indexer_base;
-extern crate merging;
+// extern crate merging;
 extern crate processor;
 
 #[macro_use]
 extern crate lazy_static;
 
-mod dlt;
 mod interactive;
 
 use crate::interactive::handle_interactive_session;
@@ -26,54 +25,36 @@ use addon::{extract_dlt_ft, scan_dlt_ft};
 use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
-use dlt::dlt_net::*;
 use dlt_core::{
-    fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
+    fibex::FibexConfig,
     filtering::{read_filter_options, DltFilterConfig},
     parse::DltParseError,
     statistics::{collect_dlt_stats, count_dlt_messages as count_dlt_messages_old},
 };
 use env_logger::Env;
 use futures::{pin_mut, stream::StreamExt};
-use indexer_base::{
-    chunks::{serialize_chunks, Chunk, ChunkResults, VoidResults},
-    config::*,
-    error_reporter::*,
-    export::export_file_line_based,
-    progress::IndexingResults,
-    utils::{create_tagged_line_d, next_line_nr},
-};
+use indexer_base::{config::*, error_reporter::*, progress::IndexingResults};
 use indicatif::{ProgressBar, ProgressStyle};
-use merging::merger::merge_files_use_config_file;
 use parsers::{
     dlt::{attachment::FileExtractor, DltParser, DltRangeParser},
     someip::SomeipParser,
     text::StringTokenizer,
     LogMessage, MessageStreamItem, ParseYield,
 };
-use processor::{
-    export::export_raw,
-    grabber::{GrabError, Grabber},
-    text_source::TextFileSource,
-};
+use processor::{export::export_raw, grabber::GrabError, text_source::TextFileSource};
 use sources::{
-    pcap::file::{
-        convert_from_pcapng, create_index_and_mapping_from_pcapng, print_from_pcapng,
-        PcapngByteSource,
-    },
+    pcap::file::{print_from_pcapng, PcapngByteSource, VoidResults},
     producer::MessageProducer,
     raw::binary::BinaryByteSource,
 };
 use std::{
     fs::File,
-    io::{BufReader, BufWriter, Write},
+    io::BufReader,
     path::{Path, PathBuf},
 };
 use structopt::StructOpt;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
-
-use tokio::sync;
 
 lazy_static! {
     static ref EXAMPLE_FIBEX: std::path::PathBuf =
@@ -607,168 +588,170 @@ pub async fn main() -> Result<()> {
 
     #[allow(clippy::too_many_arguments)]
     async fn handle_index_subcommand(
-        file_path: &Path,
-        output_path: Option<PathBuf>,
-        tag: &str,
-        chunk_size: usize,
-        start: std::time::Instant,
-        status_updates: bool,
-        append: bool,
-        watch: bool,
-        timestamps: bool,
+        _file_path: &Path,
+        _output_path: Option<PathBuf>,
+        _tag: &str,
+        _chunk_size: usize,
+        _start: std::time::Instant,
+        _status_updates: bool,
+        _append: bool,
+        _watch: bool,
+        _timestamps: bool,
     ) {
-        let total = fs::metadata(file_path).expect("file size error").len();
-        let progress_bar = initialize_progress_bar(total);
-        let tag_string = tag.to_string();
-        let fallback_out = format!("{}.out", file_path.to_string_lossy());
-        let out_path = output_path.unwrap_or_else(|| PathBuf::from(fallback_out.as_str()));
-        let mapping_out_path: PathBuf =
-            PathBuf::from(format!("{}.map.json", file_path.to_string_lossy()));
+        unimplemented!("needs implmementation using stream architecture");
+        // let total = fs::metadata(file_path).expect("file size error").len();
+        // let progress_bar = initialize_progress_bar(total);
+        // let tag_string = tag.to_string();
+        // let fallback_out = format!("{}.out", file_path.to_string_lossy());
+        // let out_path = output_path.unwrap_or_else(|| PathBuf::from(fallback_out.as_str()));
+        // let mapping_out_path: PathBuf =
+        //     PathBuf::from(format!("{}.map.json", file_path.to_string_lossy()));
 
-        let source_file_size = match fs::metadata(file_path) {
-            Ok(file_meta) => file_meta.len(),
-            Err(_) => {
-                report_error("could not find out size of source file");
-                std::process::exit(2);
-            }
-        };
-        let (tx, rx): (
-            cc::Sender<IndexingResults<Chunk>>,
-            cc::Receiver<ChunkResults>,
-        ) = unbounded();
+        // let source_file_size = match fs::metadata(file_path) {
+        //     Ok(file_meta) => file_meta.len(),
+        //     Err(_) => {
+        //         report_error("could not find out size of source file");
+        //         std::process::exit(2);
+        //     }
+        // };
+        // let (tx, rx): (
+        //     cc::Sender<IndexingResults<Chunk>>,
+        //     cc::Receiver<ChunkResults>,
+        // ) = unbounded();
 
-        let in_file = PathBuf::from(file_path);
-        let _h = tokio::spawn(async move {
-            if let Err(why) = processor::processor::create_index_and_mapping(
-                IndexingConfig {
-                    tag: tag_string,
-                    chunk_size,
-                    in_file,
-                    out_path,
-                    append,
-                    watch,
-                },
-                source_file_size,
-                timestamps,
-                tx,
-                None,
-            )
-            .await
-            {
-                report_error(format!("couldn't process: {why}"));
-                std::process::exit(2)
-            }
-        });
-        loop {
-            let mut chunks: Vec<Chunk> = vec![];
-            match rx.recv() {
-                Ok(Ok(IndexingProgress::Finished)) => {
-                    trace!("finished...");
-                    serialize_chunks(&chunks, &mapping_out_path).unwrap();
-                    let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
-                    if status_updates {
-                        duration_report_throughput(
-                            start,
-                            format!("processing ~{} MB", file_size_in_mb.round()),
-                            file_size_in_mb,
-                            "MB".to_string(),
-                        );
-                    }
-                    progress_bar.finish_and_clear();
-                    break;
-                }
-                Ok(Ok(IndexingProgress::Progress { ticks })) => {
-                    let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
-                    trace!("progress... ({:.0} %)", progress_fraction * 100.0);
-                    progress_bar.set_position((progress_fraction * (total as f64)) as u64);
-                }
-                Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
-                    chunks.push(chunk);
-                }
-                Ok(Err(Notification {
-                    severity,
-                    content,
-                    line,
-                })) => {
-                    if severity == Severity::WARNING {
-                        report_warning_ln(content, line);
-                    } else {
-                        report_error_ln(content, line);
-                    }
-                }
-                Ok(Ok(IndexingProgress::Stopped)) => {
-                    trace!("stopped...");
-                    report_warning("IndexingProgress::Stopped");
-                }
-                Err(_) => {
-                    report_error("couldn't process");
-                    std::process::exit(2)
-                }
-            }
-        }
+        // let in_file = PathBuf::from(file_path);
+        // let _h = tokio::spawn(async move {
+        //     if let Err(why) = processor::processor::create_index_and_mapping(
+        //         IndexingConfig {
+        //             tag: tag_string,
+        //             chunk_size,
+        //             in_file,
+        //             out_path,
+        //             append,
+        //             watch,
+        //         },
+        //         source_file_size,
+        //         timestamps,
+        //         tx,
+        //         None,
+        //     )
+        //     .await
+        //     {
+        //         report_error(format!("couldn't process: {why}"));
+        //         std::process::exit(2)
+        //     }
+        // });
+        // loop {
+        //     let mut chunks: Vec<Chunk> = vec![];
+        //     match rx.recv() {
+        //         Ok(Ok(IndexingProgress::Finished)) => {
+        //             trace!("finished...");
+        //             serialize_chunks(&chunks, &mapping_out_path).unwrap();
+        //             let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
+        //             if status_updates {
+        //                 duration_report_throughput(
+        //                     start,
+        //                     format!("processing ~{} MB", file_size_in_mb.round()),
+        //                     file_size_in_mb,
+        //                     "MB".to_string(),
+        //                 );
+        //             }
+        //             progress_bar.finish_and_clear();
+        //             break;
+        //         }
+        //         Ok(Ok(IndexingProgress::Progress { ticks })) => {
+        //             let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
+        //             trace!("progress... ({:.0} %)", progress_fraction * 100.0);
+        //             progress_bar.set_position((progress_fraction * (total as f64)) as u64);
+        //         }
+        //         Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
+        //             chunks.push(chunk);
+        //         }
+        //         Ok(Err(Notification {
+        //             severity,
+        //             content,
+        //             line,
+        //         })) => {
+        //             if severity == Severity::WARNING {
+        //                 report_warning_ln(content, line);
+        //             } else {
+        //                 report_error_ln(content, line);
+        //             }
+        //         }
+        //         Ok(Ok(IndexingProgress::Stopped)) => {
+        //             trace!("stopped...");
+        //             report_warning("IndexingProgress::Stopped");
+        //         }
+        //         Err(_) => {
+        //             report_error("couldn't process");
+        //             std::process::exit(2)
+        //         }
+        //     }
+        // }
     }
 
     async fn handle_merge_subcommand(
-        merge_conf_path: PathBuf,
-        append: bool,
-        out_path: PathBuf,
-        chunk_size: usize,
+        _merge_conf_path: PathBuf,
+        _append: bool,
+        _out_path: PathBuf,
+        _chunk_size: usize,
     ) {
-        debug!("handle_merge_subcommand");
-        // let concat_conf_path_string_res: clap::Result<String> = matches.value_of_t("concat_config");
-        let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
+        unimplemented!("needs implmementation using stream architecture");
+        // debug!("handle_merge_subcommand");
+        // // let concat_conf_path_string_res: clap::Result<String> = matches.value_of_t("concat_config");
+        // let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
 
-        let progress_bar = initialize_progress_bar(100_u64);
-        thread::spawn(move || {
-            if let Err(why) = merge_files_use_config_file(
-                &merge_conf_path,
-                &out_path,
-                append,
-                chunk_size,
-                tx,
-                None,
-            ) {
-                report_error(format!("couldn't process: {why}"));
-                std::process::exit(2)
-            }
-        });
-        let mut chunks: Vec<Chunk> = vec![];
-        loop {
-            match rx.recv() {
-                Err(why) => {
-                    report_error(format!("couldn't process: {why}"));
-                    std::process::exit(2)
-                }
-                Ok(Ok(IndexingProgress::Finished { .. })) => {
-                    println!("received finish event");
-                    progress_bar.finish_and_clear();
-                    break;
-                }
-                Ok(Ok(IndexingProgress::Progress { ticks })) => {
-                    let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
-                    let pos = (progress_fraction * 100f64) as u64;
-                    progress_bar.set_position(pos);
-                }
-                Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
-                    chunks.push(chunk);
-                }
-                Ok(Err(Notification {
-                    severity,
-                    content,
-                    line,
-                })) => {
-                    if severity == Severity::WARNING {
-                        report_warning_ln(content, line);
-                    } else {
-                        report_error_ln(content, line);
-                    }
-                }
-                Ok(_) => report_warning("process finished without result"),
-            }
-        }
+        // let progress_bar = initialize_progress_bar(100_u64);
+        // thread::spawn(move || {
+        //     if let Err(why) = merge_files_use_config_file(
+        //         &merge_conf_path,
+        //         &out_path,
+        //         append,
+        //         chunk_size,
+        //         tx,
+        //         None,
+        //     ) {
+        //         report_error(format!("couldn't process: {why}"));
+        //         std::process::exit(2)
+        //     }
+        // });
+        // let mut chunks: Vec<Chunk> = vec![];
+        // loop {
+        //     match rx.recv() {
+        //         Err(why) => {
+        //             report_error(format!("couldn't process: {why}"));
+        //             std::process::exit(2)
+        //         }
+        //         Ok(Ok(IndexingProgress::Finished { .. })) => {
+        //             println!("received finish event");
+        //             progress_bar.finish_and_clear();
+        //             break;
+        //         }
+        //         Ok(Ok(IndexingProgress::Progress { ticks })) => {
+        //             let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
+        //             let pos = (progress_fraction * 100f64) as u64;
+        //             progress_bar.set_position(pos);
+        //         }
+        //         Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
+        //             chunks.push(chunk);
+        //         }
+        //         Ok(Err(Notification {
+        //             severity,
+        //             content,
+        //             line,
+        //         })) => {
+        //             if severity == Severity::WARNING {
+        //                 report_warning_ln(content, line);
+        //             } else {
+        //                 report_error_ln(content, line);
+        //             }
+        //         }
+        //         Ok(_) => report_warning("process finished without result"),
+        //     }
+        // }
 
-        println!("done with handle_merge_subcommand");
-        std::process::exit(0)
+        // println!("done with handle_merge_subcommand");
+        // std::process::exit(0)
     }
 
     async fn handle_format_subcommand(
@@ -851,9 +834,9 @@ pub async fn main() -> Result<()> {
     async fn handle_export_subcommand(
         file_path: &Path,
         out_path: Option<PathBuf>,
-        was_session_file: bool,
+        _was_session_file: bool,
         sections_string: String,
-        old_way: bool,
+        _old_way: bool,
         _start: std::time::Instant,
     ) {
         debug!("handle_export_subcommand");
@@ -892,21 +875,22 @@ pub async fn main() -> Result<()> {
             .expect("export_raw failed");
         } else {
             trace!("was regular file");
-            if old_way {
-                let (tx, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
-                println!("was regular file (legacy way)");
-                export_file_line_based(
-                    file_path,
-                    out_path,
-                    SectionConfig { sections },
-                    was_session_file,
-                    tx,
-                )
-                .expect("export did not work");
-            } else {
-                println!("regular file, new way");
-                todo!("use grabber for export");
-            }
+            unimplemented!("needs implmementation using stream architecture");
+            // if old_way {
+            //     let (tx, _rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
+            //     println!("was regular file (legacy way)");
+            //     export_file_line_based(
+            //         file_path,
+            //         out_path,
+            //         SectionConfig { sections },
+            //         was_session_file,
+            //         tx,
+            //     )
+            //     .expect("export did not work");
+            // } else {
+            //     println!("regular file, new way");
+            //     todo!("use grabber for export");
+            // }
         };
 
         println!("done with handle_export_subcommand");
@@ -915,147 +899,16 @@ pub async fn main() -> Result<()> {
 
     #[allow(clippy::too_many_arguments)]
     async fn handle_dlt_subcommand(
-        file_path: &Path,
-        out_path: Option<PathBuf>,
-        tag_string: String,
-        filter_config: Option<PathBuf>,
-        fibex: Option<String>,
-        append: bool,
-        start: std::time::Instant,
-        no_storage_header: bool,
+        _file_path: &Path,
+        _out_path: Option<PathBuf>,
+        _tag_string: String,
+        _filter_config: Option<PathBuf>,
+        _fibex: Option<String>,
+        _append: bool,
+        _start: std::time::Instant,
+        _no_storage_header: bool,
     ) {
-        debug!("handle_dlt_subcommand");
-        {
-            let filter_conf: Option<DltFilterConfig> = match filter_config {
-                Some(config_path) => {
-                    let mut cnf_file = match fs::File::open(&config_path) {
-                        Ok(file) => file,
-                        Err(_) => {
-                            report_error(format!("could not open filter config {config_path:?}"));
-                            std::process::exit(2)
-                        }
-                    };
-                    read_filter_options(&mut cnf_file)
-                }
-                None => None,
-            };
-            let fallback_out = format!("{}.out", file_path.to_string_lossy());
-            let out_path = out_path.unwrap_or_else(|| PathBuf::from(fallback_out));
-
-            let mut line_nr = if append {
-                next_line_nr(&out_path).unwrap()
-            } else {
-                0
-            };
-            let mut grabber = match Grabber::lazy(TextFileSource::new(file_path)) {
-                Ok(grabber) => Some(grabber),
-                Err(err) => {
-                    report_error(format!("could not create grabber {err:?}"));
-                    std::process::exit(2)
-                }
-            };
-            let fibex_metadata: Option<FibexMetadata> = if let Some(fibex_path) = fibex {
-                gather_fibex_data(FibexConfig {
-                    fibex_file_paths: vec![fibex_path],
-                })
-            } else {
-                None
-            };
-            let dlt_parser = DltParser::new(
-                filter_conf.map(|f| f.into()),
-                fibex_metadata.as_ref(),
-                !no_storage_header,
-            );
-            let in_file = File::open(file_path).unwrap();
-            let reader = BufReader::new(&in_file);
-            let out_file = File::create(&out_path).expect("could not create file");
-            let mut out_writer = BufWriter::new(out_file);
-            // let mut wtr = csv::Writer::from_path(&out_path).unwrap();
-            // DATETIME,
-            // ECUID,
-            // Version
-            // SessionId
-            // message-count
-            // timestamp
-            // EID,
-            // APID,
-            // CTID,
-            // MSTP,
-            // PAYLOAD,
-            println!("dynamic producer");
-            let source = BinaryByteSource::new(reader);
-            let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source, None);
-            let dlt_stream = dlt_msg_producer.as_stream();
-            pin_mut!(dlt_stream);
-            let mut last_grab_call = Instant::now();
-            while let Some((_, item)) = dlt_stream.next().await {
-                match item {
-                    MessageStreamItem::Item(ParseYield::Message(msg)) => {
-                        create_tagged_line_d(&tag_string, &mut out_writer, &msg, line_nr, true)
-                            .unwrap();
-                        line_nr += 1;
-                        if let Some(grabber) = grabber.as_mut() {
-                            if last_grab_call.elapsed().as_millis() > 500 {
-                                last_grab_call = Instant::now();
-                                if let Err(err) = grabber.update_from_file(None) {
-                                    report_error(format!(
-                                        "fail to update grabber metadata {err:?}"
-                                    ));
-                                    std::process::exit(2)
-                                }
-                            }
-                        }
-                    }
-                    MessageStreamItem::Item(ParseYield::MessageAndAttachment((
-                        msg,
-                        _attachment,
-                    ))) => {
-                        create_tagged_line_d(&tag_string, &mut out_writer, &msg, line_nr, true)
-                            .unwrap();
-                        line_nr += 1;
-                        if let Some(grabber) = grabber.as_mut() {
-                            if last_grab_call.elapsed().as_millis() > 500 {
-                                last_grab_call = Instant::now();
-                                if let Err(err) = grabber.update_from_file(None) {
-                                    report_error(format!(
-                                        "fail to update grabber metadata {err:?}"
-                                    ));
-                                    std::process::exit(2)
-                                }
-                            }
-                        }
-                    }
-                    MessageStreamItem::Item(ParseYield::Attachment(_attachment)) => {
-                        println!("--- attachment")
-                    }
-                    MessageStreamItem::Empty => println!("--- empty"),
-                    MessageStreamItem::Done => println!("--- done"),
-                    MessageStreamItem::Incomplete => println!("--- incomplete"),
-                    MessageStreamItem::Skipped => println!("--- skipped"),
-                }
-            }
-            // wtr.flush().unwrap();
-            out_writer.flush().unwrap();
-
-            let source_file_size = fs::metadata(file_path).expect("file size error").len();
-            let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
-            let out_file_size = fs::metadata(&out_path).expect("file size error").len();
-            let out_file_size_in_mb = out_file_size as f64 / 1024.0 / 1024.0;
-            duration_report_throughput(
-                start,
-                format!(
-                    "processing ~{} MB ({} dlt messages) (wrote ~{} MB text file)",
-                    file_size_in_mb.round(),
-                    line_nr,
-                    out_file_size_in_mb.round(),
-                ),
-                file_size_in_mb,
-                "MB".to_string(),
-            );
-        }
-
-        println!("done with handle_dlt_subcommand");
-        std::process::exit(0)
+        unimplemented!();
     }
 
     async fn handle_dlt_ft_subcommand(
@@ -1225,218 +1078,220 @@ pub async fn main() -> Result<()> {
 
     #[allow(clippy::too_many_arguments)]
     async fn handle_dlt_pcap_subcommand(
-        file_path: &Path,
-        output: Option<PathBuf>,
-        tag: &str,
-        filter_config_path: Option<PathBuf>,
-        in_one_go: bool,
-        append: bool,
-        chunk_size: usize,
-        start: std::time::Instant,
+        _file_path: &Path,
+        _output: Option<PathBuf>,
+        _tag: &str,
+        _filter_config_path: Option<PathBuf>,
+        _in_one_go: bool,
+        _append: bool,
+        _chunk_size: usize,
+        _start: std::time::Instant,
     ) {
-        debug!("handle_dlt_pcap_subcommand");
+        unimplemented!("needs implmementation using stream architecture");
+        // debug!("handle_dlt_pcap_subcommand");
 
-        let filter_conf: Option<DltFilterConfig> = match filter_config_path {
-            Some(config_path) => {
-                let mut cnf_file = match fs::File::open(&config_path) {
-                    Ok(file) => file,
-                    Err(_) => {
-                        report_error(format!("could not open filter config {config_path:?}"));
-                        std::process::exit(2)
-                    }
-                };
-                read_filter_options(&mut cnf_file)
-            }
-            None => None,
-        };
-        let fallback_out = format!("{}.out", file_path.to_string_lossy());
-        let out_path = output.unwrap_or_else(|| PathBuf::from(fallback_out.as_str()));
-        let mapping_out_path = PathBuf::from(format!("{}.map.json", file_path.to_string_lossy()));
-        let tag_string = tag.to_string();
-        let source_file_size = fs::metadata(file_path).expect("file size error").len();
-        // let progress_bar = initialize_progress_bar(total);
+        // let filter_conf: Option<DltFilterConfig> = match filter_config_path {
+        //     Some(config_path) => {
+        //         let mut cnf_file = match fs::File::open(&config_path) {
+        //             Ok(file) => file,
+        //             Err(_) => {
+        //                 report_error(format!("could not open filter config {config_path:?}"));
+        //                 std::process::exit(2)
+        //             }
+        //         };
+        //         read_filter_options(&mut cnf_file)
+        //     }
+        //     None => None,
+        // };
+        // let fallback_out = format!("{}.out", file_path.to_string_lossy());
+        // let out_path = output.unwrap_or_else(|| PathBuf::from(fallback_out.as_str()));
+        // let mapping_out_path = PathBuf::from(format!("{}.map.json", file_path.to_string_lossy()));
+        // let tag_string = tag.to_string();
+        // let source_file_size = fs::metadata(file_path).expect("file size error").len();
+        // // let progress_bar = initialize_progress_bar(total);
 
-        let cancel = CancellationToken::new();
-        let fibex_config = load_test_fibex();
-        let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex_config);
-        let dlt_parser = DltParser::new(
-            filter_conf.map(|f| f.into()),
-            fibex_metadata.as_ref(),
-            false,
-        );
-        if in_one_go {
-            println!("one-go");
-            let (tx, rx): (mpsc::Sender<VoidResults>, mpsc::Receiver<VoidResults>) =
-                mpsc::channel(100);
-            let (_, res) = tokio::join! {
-                progress_listener(source_file_size, rx, start),
-                convert_from_pcapng(file_path, &out_path, tx, cancel, dlt_parser),
-            };
-            println!("total res was: {res:?}");
-        } else {
-            println!("NOT one-go");
-            let (tx, mut rx): (mpsc::Sender<ChunkResults>, mpsc::Receiver<ChunkResults>) =
-                mpsc::channel(100);
-            let in_file = File::open(file_path).expect("cannot open file");
-            let source = PcapngByteSource::new(in_file).expect("cannot create source");
-            let res = create_index_and_mapping_from_pcapng(
-                IndexingConfig {
-                    tag: tag_string,
-                    chunk_size,
-                    in_file: PathBuf::from(file_path),
-                    out_path,
-                    append,
-                    watch: false,
-                },
-                &tx,
-                cancel,
-                dlt_parser,
-                source,
-            )
-            .await;
+        // let cancel = CancellationToken::new();
+        // let fibex_config = load_test_fibex();
+        // let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex_config);
+        // let dlt_parser = DltParser {
+        //     filter_config: filter_conf.map(|f| f.into()),
+        //     fibex_metadata: fibex_metadata.as_ref(),
+        //     with_storage_header: false,
+        // };
+        // if in_one_go {
+        //     println!("one-go");
+        //     let (tx, rx): (mpsc::Sender<VoidResults>, mpsc::Receiver<VoidResults>) =
+        //         mpsc::channel(100);
+        //     let (_, res) = tokio::join! {
+        //         progress_listener(source_file_size, rx, start),
+        //         convert_from_pcapng(file_path, &out_path, tx, cancel, dlt_parser),
+        //     };
+        //     println!("total res was: {res:?}");
+        // } else {
+        //     println!("NOT one-go");
+        //     let (tx, mut rx): (mpsc::Sender<ChunkResults>, mpsc::Receiver<ChunkResults>) =
+        //         mpsc::channel(100);
+        //     let in_file = File::open(file_path).expect("cannot open file");
+        //     let source = PcapngByteSource::new(in_file).expect("cannot create source");
+        //     let res = create_index_and_mapping_from_pcapng(
+        //         IndexingConfig {
+        //             tag: tag_string,
+        //             chunk_size,
+        //             in_file: PathBuf::from(file_path),
+        //             out_path,
+        //             append,
+        //             watch: false,
+        //         },
+        //         &tx,
+        //         cancel,
+        //         dlt_parser,
+        //         source,
+        //     )
+        //     .await;
 
-            if let Err(reason) = res {
-                report_error(format!("couldn't process: {reason}"));
-                std::process::exit(2)
-            }
-            // });
-            let mut chunks: Vec<Chunk> = vec![];
-            loop {
-                match rx.recv().await {
-                    None => {
-                        report_error("couldn't receive from channel".to_string());
-                        std::process::exit(2)
-                    }
-                    Some(Ok(IndexingProgress::Finished { .. })) => {
-                        serialize_chunks(&chunks, &mapping_out_path).unwrap();
-                        // progress_bar.finish_and_clear();
-                        break;
-                    }
-                    Some(Ok(IndexingProgress::Progress { ticks })) => {
-                        let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
-                        trace!("progress... ({:.0} %)", progress_fraction * 100.0);
-                        // progress_bar.set_position((progress_fraction * (total as f64)) as u64);
-                    }
-                    Some(Ok(IndexingProgress::GotItem { item: chunk })) => {
-                        println!("{chunk:?}");
-                        chunks.push(chunk);
-                    }
-                    Some(Err(Notification {
-                        severity,
-                        content,
-                        line,
-                    })) => {
-                        if severity == Severity::WARNING {
-                            report_warning_ln(content, line);
-                        } else {
-                            report_error_ln(content, line);
-                        }
-                    }
-                    Some(_) => report_warning("process finished without result"),
-                }
-            }
+        //     if let Err(reason) = res {
+        //         report_error(format!("couldn't process: {reason}"));
+        //         std::process::exit(2)
+        //     }
+        //     // });
+        //     let mut chunks: Vec<Chunk> = vec![];
+        //     loop {
+        //         match rx.recv().await {
+        //             None => {
+        //                 report_error("couldn't receive from channel".to_string());
+        //                 std::process::exit(2)
+        //             }
+        //             Some(Ok(IndexingProgress::Finished { .. })) => {
+        //                 serialize_chunks(&chunks, &mapping_out_path).unwrap();
+        //                 // progress_bar.finish_and_clear();
+        //                 break;
+        //             }
+        //             Some(Ok(IndexingProgress::Progress { ticks })) => {
+        //                 let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
+        //                 trace!("progress... ({:.0} %)", progress_fraction * 100.0);
+        //                 // progress_bar.set_position((progress_fraction * (total as f64)) as u64);
+        //             }
+        //             Some(Ok(IndexingProgress::GotItem { item: chunk })) => {
+        //                 println!("{chunk:?}");
+        //                 chunks.push(chunk);
+        //             }
+        //             Some(Err(Notification {
+        //                 severity,
+        //                 content,
+        //                 line,
+        //             })) => {
+        //                 if severity == Severity::WARNING {
+        //                     report_warning_ln(content, line);
+        //                 } else {
+        //                     report_error_ln(content, line);
+        //                 }
+        //             }
+        //             Some(_) => report_warning("process finished without result"),
+        //         }
+        //     }
 
-            println!("done with handle_dlt_pcap_subcommand");
-            std::process::exit(0)
-        }
+        //     println!("done with handle_dlt_pcap_subcommand");
+        //     std::process::exit(0)
+        // }
     }
 
     async fn handle_dlt_udp_subcommand(
-        ip_address: &str,
-        tag: &str,
-        output_path: &Path,
-        config_path: Option<PathBuf>,
+        _ip_address: &str,
+        _tag: &str,
+        _output_path: &Path,
+        _config_path: Option<PathBuf>,
     ) {
-        debug!("handle_dlt_udp_subcommand");
+        unimplemented!("needs implmementation using stream architecture");
+        // debug!("handle_dlt_udp_subcommand");
 
-        let filter_conf: Option<DltFilterConfig> = match config_path {
-            Some(config_path) => {
-                let mut cnf_file = match fs::File::open(&config_path) {
-                    Ok(file) => file,
-                    Err(_) => {
-                        report_error(format!("could not open filter config {config_path:?}"));
-                        std::process::exit(2)
-                    }
-                };
-                read_filter_options(&mut cnf_file)
-            }
-            None => None,
-        };
-        let mapping_out_path: PathBuf =
-            PathBuf::from(format!("{}.map.json", output_path.to_string_lossy()));
+        // let filter_conf: Option<DltFilterConfig> = match config_path {
+        //     Some(config_path) => {
+        //         let mut cnf_file = match fs::File::open(&config_path) {
+        //             Ok(file) => file,
+        //             Err(_) => {
+        //                 report_error(format!("could not open filter config {config_path:?}"));
+        //                 std::process::exit(2)
+        //             }
+        //         };
+        //         read_filter_options(&mut cnf_file)
+        //     }
+        //     None => None,
+        // };
+        // let mapping_out_path: PathBuf =
+        //     PathBuf::from(format!("{}.map.json", output_path.to_string_lossy()));
 
-        let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
-        let shutdown_channel = sync::mpsc::channel(1);
-        let tag_string = tag.to_string();
-        let socket_conf = SocketConfig {
-            udp_connection_info: Some(UdpConnectionInfo {
-                multicast_addr: vec![MulticastInfo {
-                    multiaddr: ip_address.to_string(),
-                    interface: None,
-                }],
-            }),
-            bind_addr: "0.0.0.0".to_string(),
-            port: "8888".to_string(),
-        };
+        // let (tx, rx): (cc::Sender<ChunkResults>, cc::Receiver<ChunkResults>) = unbounded();
+        // let shutdown_channel = sync::mpsc::channel(1);
+        // let tag_string = tag.to_string();
+        // let socket_conf = SocketConfig {
+        //     udp_connection_info: Some(UdpConnectionInfo {
+        //         multicast_addr: vec![MulticastInfo {
+        //             multiaddr: ip_address.to_string(),
+        //             interface: None,
+        //         }],
+        //     }),
+        //     bind_addr: "0.0.0.0".to_string(),
+        //     port: "8888".to_string(),
+        // };
 
-        use chrono::Local;
-        let now = Local::now();
-        let session_id = format!("dlt_session_id_{}.dlt", now.format("%Y%b%d_%H-%M-%S"));
-        let out_path = PathBuf::from(output_path);
-        tokio::spawn(async move {
-            let res = create_index_and_mapping_dlt_from_socket(
-                session_id,
-                socket_conf,
-                tag_string.as_str(),
-                &out_path,
-                filter_conf,
-                &tx,
-                shutdown_channel.1,
-                Some(load_test_fibex()),
-            )
-            .await;
+        // use chrono::Local;
+        // let now = Local::now();
+        // let session_id = format!("dlt_session_id_{}.dlt", now.format("%Y%b%d_%H-%M-%S"));
+        // let out_path = PathBuf::from(output_path);
+        // tokio::spawn(async move {
+        //     let res = create_index_and_mapping_dlt_from_socket(
+        //         session_id,
+        //         socket_conf,
+        //         tag_string.as_str(),
+        //         &out_path,
+        //         filter_conf,
+        //         &tx,
+        //         shutdown_channel.1,
+        //         Some(load_test_fibex()),
+        //     )
+        //     .await;
 
-            if let Err(reason) = res {
-                report_error(format!("couldn't process: {reason}"));
-                std::process::exit(2)
-            }
-        });
-        let mut chunks: Vec<Chunk> = vec![];
-        loop {
-            match rx.recv() {
-                Err(why) => {
-                    report_error(format!("couldn't process: {why}"));
-                    std::process::exit(2)
-                }
-                Ok(Ok(IndexingProgress::Finished { .. })) => {
-                    serialize_chunks(&chunks, &mapping_out_path).unwrap();
-                    break;
-                }
-                Ok(Ok(IndexingProgress::Progress { ticks })) => {
-                    let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
-                    trace!("progress... ({:.0} %)", progress_fraction * 100.0);
-                }
-                Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
-                    println!("{chunk:?}");
-                    chunks.push(chunk);
-                }
-                Ok(Err(Notification {
-                    severity,
-                    content,
-                    line,
-                })) => {
-                    if severity == Severity::WARNING {
-                        report_warning_ln(content, line);
-                    } else {
-                        report_error_ln(content, line);
-                    }
-                }
-                Ok(_) => report_warning("process finished without result"),
-            }
-        }
+        //     if let Err(reason) = res {
+        //         report_error(format!("couldn't process: {reason}"));
+        //         std::process::exit(2)
+        //     }
+        // });
+        // let mut chunks: Vec<Chunk> = vec![];
+        // loop {
+        //     match rx.recv() {
+        //         Err(why) => {
+        //             report_error(format!("couldn't process: {why}"));
+        //             std::process::exit(2)
+        //         }
+        //         Ok(Ok(IndexingProgress::Finished { .. })) => {
+        //             serialize_chunks(&chunks, &mapping_out_path).unwrap();
+        //             break;
+        //         }
+        //         Ok(Ok(IndexingProgress::Progress { ticks })) => {
+        //             let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
+        //             trace!("progress... ({:.0} %)", progress_fraction * 100.0);
+        //         }
+        //         Ok(Ok(IndexingProgress::GotItem { item: chunk })) => {
+        //             println!("{chunk:?}");
+        //             chunks.push(chunk);
+        //         }
+        //         Ok(Err(Notification {
+        //             severity,
+        //             content,
+        //             line,
+        //         })) => {
+        //             if severity == Severity::WARNING {
+        //                 report_warning_ln(content, line);
+        //             } else {
+        //                 report_error_ln(content, line);
+        //             }
+        //         }
+        //         Ok(_) => report_warning("process finished without result"),
+        //     }
+        // }
 
-        println!("done with handle_dlt_udp_subcommand");
-        std::process::exit(0)
+        // println!("done with handle_dlt_udp_subcommand");
+        // std::process::exit(0)
     }
 
     async fn handle_discover_subcommand(
@@ -1734,7 +1589,7 @@ fn duration_report_throughput(
     eprintln!("{report} took {duration_in_s:.3}s! ({amount_per_second:.3} {unit}/s)");
 }
 
-fn load_test_fibex() -> FibexConfig {
+fn _load_test_fibex() -> FibexConfig {
     FibexConfig {
         fibex_file_paths: vec![format!("{}", EXAMPLE_FIBEX.to_string_lossy())],
     }

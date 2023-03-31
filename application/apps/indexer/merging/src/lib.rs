@@ -10,13 +10,12 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 
-#[macro_use]
 extern crate log;
 
-pub mod concatenator;
+// pub mod concatenator;
 pub mod merger;
 // WIP for new merger api
 // pub mod merger_async;
 
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
+// mod tests;

@@ -2482,7 +2482,6 @@ dependencies = [
  "indexer_base",
  "lazy_static",
  "log",
- "merging",
  "mime_guess",
  "parsers",
  "processor",
