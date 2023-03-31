@@ -15,7 +15,6 @@ use std::fs;
 use thiserror::Error;
 
 pub type ChunkResults = std::result::Result<IndexingProgress<Chunk>, Notification>;
-pub type VoidResults = std::result::Result<IndexingProgress<()>, Notification>;
 
 #[derive(Error, Debug)]
 pub enum Error {

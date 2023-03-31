@@ -5,12 +5,7 @@ use crate::{
 use async_trait::async_trait;
 use buf_redux::Buffer;
 use futures::pin_mut;
-use indexer_base::{
-    chunks::{ChunkFactory, ChunkResults, VoidResults},
-    config::IndexingConfig,
-    progress::*,
-    utils,
-};
+use indexer_base::{progress::*, utils};
 use log::{debug, error, trace, warn};
 use parsers::{LogMessage, MessageStreamItem, ParseYield, Parser};
 use pcap_parser::{traits::PcapReaderIterator, PcapBlockOwned, PcapError, PcapNGReader};
@@ -24,6 +19,7 @@ use tokio::sync::mpsc::Sender;
 use tokio_stream::Stream;
 use tokio_util::sync::CancellationToken;
 
+pub type VoidResults = std::result::Result<IndexingProgress<()>, Notification>;
 const PROGRESS_PARTS: u64 = 20;
 
 #[derive(Error, Debug)]
@@ -327,90 +323,6 @@ impl Output for DltFileOutput {
     }
 }
 
-struct ChunkOutput {
-    tag: String,
-    line_nr: usize,
-    chunk_factory: ChunkFactory,
-    chunk_count: usize,
-    buf_writer: BufWriter<File>,
-    update_channel: Sender<ChunkResults>,
-}
-
-impl ChunkOutput {
-    pub fn new(
-        tag: &str,
-        append: bool,
-        out_path: &Path,
-        chunk_size: usize,
-        initial_line_nr: usize,
-        update_channel: Sender<ChunkResults>,
-    ) -> Result<Self, Error> {
-        let (out_file, current_out_file_size) = utils::get_out_file_and_size(append, out_path)
-            .map_err(|e| Error::Unrecoverable(format!("{e}")))?;
-        let chunk_factory = ChunkFactory::new(chunk_size, current_out_file_size);
-        let buf_writer = BufWriter::with_capacity(10 * 1024 * 1024, out_file);
-        Ok(Self {
-            tag: tag.to_string(),
-            line_nr: initial_line_nr,
-            chunk_factory,
-            chunk_count: 0,
-            buf_writer,
-            update_channel,
-        })
-    }
-}
-
-#[async_trait]
-impl Output for ChunkOutput {
-    async fn consume_msg<T>(&mut self, msg: T) -> Result<(), Error>
-    where
-        T: LogMessage + Send,
-    {
-        let written_bytes_len =
-            utils::create_tagged_line_d(&self.tag, &mut self.buf_writer, &msg, self.line_nr, true)?;
-        self.line_nr += 1;
-        if let Some(chunk) = self
-            .chunk_factory
-            .add_bytes(self.line_nr, written_bytes_len)
-        {
-            self.buf_writer.flush()?;
-            self.chunk_count += 1;
-            self.update_channel
-                .send(Ok(IndexingProgress::GotItem { item: chunk }))
-                .await
-                .expect("update_channel closed");
-        }
-        Ok(())
-    }
-
-    async fn done(&mut self) -> Result<(), Error> {
-        self.buf_writer.flush()?;
-        if let Some(chunk) = self
-            .chunk_factory
-            .create_last_chunk(self.line_nr, self.chunk_count == 0)
-        {
-            trace!("index: add last chunk {:?}", chunk);
-            self.update_channel
-                .send(Ok(IndexingProgress::GotItem { item: chunk }))
-                .await
-                .expect("UpdateChannel closed");
-        }
-        Ok(())
-    }
-
-    async fn progress(&mut self, progress: Result<OutputProgress, Notification>) {
-        self.update_channel
-            .send(match progress {
-                Ok(OutputProgress::Progress { ticks }) => Ok(IndexingProgress::Progress { ticks }),
-                Ok(OutputProgress::Stopped) => Ok(IndexingProgress::Stopped),
-                Ok(OutputProgress::Finished) => Ok(IndexingProgress::Finished),
-                Err(notification) => Err(notification),
-            })
-            .await
-            .expect("Could not use update channel");
-    }
-}
-
 /// print log messages from a PCAPNG file
 pub async fn print_from_pcapng<T: LogMessage + std::marker::Unpin + Send, P: Parser<T> + Unpin>(
     pcap_path: &std::path::Path,
@@ -564,72 +476,4 @@ where
         }))
         .await;
     Ok(())
-}
-
-pub async fn create_index_and_mapping_from_pcapng<
-    T: LogMessage + Unpin + Send,
-    P: Parser<T> + Unpin,
-    S: ByteSource,
->(
-    config: IndexingConfig,
-    update_channel: &Sender<ChunkResults>,
-    cancel: CancellationToken,
-    parser: P,
-    source: S,
-) -> Result<(), Error> {
-    trace!("create_index_and_mapping_from_pcapng");
-    match utils::next_line_nr(&config.out_path) {
-        Ok(initial_line_nr) => {
-            let mut pcap_msg_producer = MessageProducer::new(parser, source, None);
-            let output = ChunkOutput::new(
-                &config.tag,
-                config.append,
-                &config.out_path,
-                config.chunk_size,
-                initial_line_nr,
-                update_channel.clone(),
-            )?;
-            let msg_stream = pcap_msg_producer.as_stream();
-            pin_mut!(msg_stream);
-
-            let total = config.in_file.metadata().map(|md| md.len())?;
-            match index_from_message_stream(
-                // config,
-                total, // initial_line_nr,
-                // update_channel.clone(),
-                cancel, msg_stream, output,
-            )
-            .await
-            {
-                Ok(()) => Ok(()),
-                Err(e) => {
-                    let content = format!("{e}");
-                    update_channel
-                        .send(Err(Notification {
-                            severity: Severity::ERROR,
-                            content,
-                            line: None,
-                        }))
-                        .await
-                        .expect("UpdateChannel closed");
-                    Err(e)
-                }
-            }
-        }
-        Err(e) => {
-            let content = format!(
-                "could not determine last line number of {:?} ({})",
-                config.out_path, e
-            );
-            update_channel
-                .send(Err(Notification {
-                    severity: Severity::ERROR,
-                    content,
-                    line: None,
-                }))
-                .await
-                .expect("UpdateChannel closed");
-            Err(Error::Unrecoverable(format!("{e}")))
-        }
-    }
 }

@@ -1,3 +1,4 @@
+use processor::parse::DateParseError;
 // Copyright (c) 2019 E.S.R.Labs. All rights reserved.
 //
 // NOTICE:  All information contained herein is, and remains
@@ -9,27 +10,20 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-use crossbeam_channel as cc;
-use indexer_base::{
-    chunks::{Chunk, ChunkFactory, ChunkResults},
-    error_reporter::*,
-    progress::{IndexingProgress, ProgressReporter},
-    timedline::*,
-    utils,
-};
-use processor::parse::{line_to_timed_line, lookup_regex_for_format_str, DateParseError};
-use regex::Regex;
+// use crossbeam_channel as cc;
+// use indexer_base::{
+//     error_reporter::*,
+//     progress::{IndexingProgress, ProgressReporter},
+//     timedline::*,
+//     utils,
+// };
+// use processor::parse::{line_to_timed_line, lookup_regex_for_format_str, DateParseError};
+// use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::{
-    fmt::Debug,
-    fs::{self, File},
-    io::{BufRead, BufReader, BufWriter, Read, Write},
-    iter::{Iterator, Peekable},
-    path::{Path, PathBuf},
-};
+use std::fmt::Debug;
 use thiserror::Error;
-use tokio_stream::Stream;
-use tokio_util::sync::CancellationToken;
+// use tokio_stream::Stream;
+// use tokio_util::sync::CancellationToken;
 
 #[derive(Debug, Error)]
 pub enum MergeError {
@@ -58,6 +52,8 @@ pub struct FileMergeOptions {
     /// how we interpret the date string in each line
     pub format: String,
 }
+
+/*
 
 pub fn read_merge_options(
     f: &mut File,
@@ -499,3 +495,5 @@ impl IndexOutput {
         Ok(())
     }
 }
+
+*/

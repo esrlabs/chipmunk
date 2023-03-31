@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 use std::{
     net::{IpAddr, SocketAddr},
     ops::RangeInclusive,
-    path,
 };
 use thiserror::Error;
 
@@ -67,16 +66,6 @@ impl IndexSection {
             last_line: (*range.end()) as usize,
         }
     }
-}
-
-#[derive(Debug)]
-pub struct IndexingConfig {
-    pub tag: String,
-    pub chunk_size: usize,
-    pub in_file: path::PathBuf,
-    pub out_path: path::PathBuf,
-    pub append: bool,
-    pub watch: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
