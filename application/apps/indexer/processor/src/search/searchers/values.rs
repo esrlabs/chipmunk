@@ -26,6 +26,10 @@ impl Results {
     }
 }
 
+pub fn as_regex(filter: &str) -> String {
+    format!("(?i){filter}(?-i)")
+}
+
 #[derive(Debug)]
 pub struct ValueSearchState {
     pub file_path: PathBuf,
@@ -41,7 +45,7 @@ impl ValueSearchHolder {
     pub fn setup(&mut self, filters: Vec<String>) -> Result<(), SearchError> {
         let mut matchers = vec![];
         for (_pos, filter) in filters.iter().enumerate() {
-            matchers.push(Regex::from_str(filter).map_err(|err| {
+            matchers.push(Regex::from_str(&as_regex(filter)).map_err(|err| {
                 SearchError::Regex(format!("Failed to create regex for {filter}: {err}"))
             })?);
         }
@@ -63,7 +67,7 @@ impl SearchState for ValueSearchState {
         }
     }
     fn get_terms(&self) -> Vec<String> {
-        self.filters.clone()
+        self.filters.iter().map(|f| as_regex(f)).collect()
     }
 }
 
