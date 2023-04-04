@@ -160,30 +160,22 @@ export class State {
         }
         return new Promise((resolve, reject) => {
             const finish = this.lifecycle().charts();
+            const charts = this._controller
+                .store()
+                .charts()
+                .get()
+                .filter((request) => request.definition.active)
+                .map((request) => request.as().filter());
+            this.hash().charts.update();
+            if (charts.length === 0) {
+                finish({});
+                return resolve();
+            }
             this._controller
-                .drop()
+                .extract(charts)
                 .then(() => {
-                    const charts = this._controller
-                        .store()
-                        .charts()
-                        .get()
-                        .filter((request) => request.definition.active)
-                        .map((request) => request.as().filter());
-                    this.hash().charts.update();
-                    if (charts.length === 0) {
-                        finish({});
-                        return resolve();
-                    }
-                    this._controller
-                        .extract(charts)
-                        .then(() => {
-                            finish({});
-                            resolve();
-                        })
-                        .catch((err: Error) => {
-                            finish({ error: err.message });
-                            reject(err);
-                        });
+                    finish({});
+                    resolve();
                 })
                 .catch((err: Error) => {
                     finish({ error: err.message });

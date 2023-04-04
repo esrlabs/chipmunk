@@ -148,17 +148,6 @@ export class Search extends Subscriber {
         });
     }
 
-    public dropValuedFilters(): Promise<void> {
-        return Requests.IpcRequest.send(
-            Requests.Values.Drop.Response,
-            new Requests.Values.Drop.Request({
-                session: this._uuid,
-            }),
-        ).then(() => {
-            return Promise.resolve();
-        });
-    }
-
     public getScaledMap(len: number, range?: IRange): Promise<ISearchMap> {
         return new Promise((resolve, reject) => {
             Requests.IpcRequest.send(
