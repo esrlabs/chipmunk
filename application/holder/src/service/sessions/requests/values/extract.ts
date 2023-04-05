@@ -22,7 +22,7 @@ export const handler = Requests.InjectLogger<
             if (stored.isShutdowning()) {
                 return reject(new Error(`Session is closing`));
             }
-            stored.register(Jobs.search).registerAsUnknown(
+            stored.register(Jobs.values).registerAsUnknown(
                 stored.session
                     .getSearch()
                     .values(request.filters)
