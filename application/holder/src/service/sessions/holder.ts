@@ -11,6 +11,7 @@ import * as Events from 'platform/ipc/event';
 
 export enum Jobs {
     search = 'search',
+    values = 'values',
 }
 
 export class Holder {
