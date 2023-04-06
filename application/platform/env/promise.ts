@@ -31,14 +31,17 @@ export interface ICancelablePromise<T = void, C = void, EN = string, EH = TEvent
     isCanceling(): boolean;
     emit(event: EN, ...args: any[]): void;
     uuid(uuid?: string): string;
-    stopCancelation(): void;
+    tryToStopCancellation(): boolean;
     grab(): {
-        resolvers: Array<TResolver<T>>;
-        rejectors: TRejector[];
-        cancelers: Array<TCanceler<C>>;
-        finishes: TFinally[];
+        resolve: (boundCall: boolean, value: T) => void;
+        reject: (boundCall: boolean, error: Error) => void;
+        cancel: (boundCall: boolean, reason?: C) => void;
+        finally: (boundCall: boolean) => void;
     };
-    bind(source: ICancelablePromise<T, C, EN, EH>): CancelablePromise<T, C, EN, EH>;
+    bind(
+        source: ICancelablePromise<T, C, EN, EH>,
+        boundCall?: boolean,
+    ): CancelablePromise<T, C, EN, EH>;
 }
 
 export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandler>
@@ -65,17 +68,13 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
             executor(
                 resolve,
                 reject,
-                this._doCancel.bind(this),
+                this._doCancel.bind(this, false),
                 this._refCancellationCallback.bind(this),
                 self,
             );
         })
-            .then((value: T) => {
-                this._doResolve(value);
-            })
-            .catch((error: Error) => {
-                this._doReject(error);
-            });
+            .then(this._doResolve.bind(this, false))
+            .catch(this._doReject.bind(this, false));
     }
 
     public then(callback: TResolver<T>): CancelablePromise<T, C, EN, EH> {
@@ -100,7 +99,7 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
 
     public abort(reason: C): CancelablePromise<T, C, EN, EH> {
         if (this._cancellation === undefined) {
-            this._doCancel(reason);
+            this._doCancel(false, reason);
         } else {
             this._doCancellation(reason);
         }
@@ -151,6 +150,7 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
                 handler(...args);
             } catch (err) {
                 this._doReject(
+                    false,
                     new Error(
                         `Promise is rejected, because handler of event "${event}" finished due error: ${
                             err instanceof Error ? err.message : err
@@ -168,27 +168,34 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
         return this._uuid;
     }
 
-    public stopCancelation(): void {
-        this._canceled = false;
+    public tryToStopCancellation(): boolean {
+        if (this._canceled) {
+            return false;
+        }
         this._canceling = false;
+        return true;
     }
 
-    public bind(source: ICancelablePromise<T, C, EN, EH>): CancelablePromise<T, C, EN, EH> {
+    public bind(
+        source: ICancelablePromise<T, C, EN, EH>,
+        boundCall?: boolean,
+    ): CancelablePromise<T, C, EN, EH> {
         this._bound.push(source);
+        !(boundCall === undefined ? false : boundCall) && source.bind(this, true);
         return this;
     }
 
     public grab(): {
-        resolvers: Array<TResolver<T>>;
-        rejectors: TRejector[];
-        cancelers: Array<TCanceler<C>>;
-        finishes: TFinally[];
+        resolve: (boundCall: boolean, value: T) => void;
+        reject: (boundCall: boolean, error: Error) => void;
+        cancel: (boundCall: boolean, reason?: C) => void;
+        finally: (boundCall: boolean) => void;
     } {
         return {
-            resolvers: this._resolvers,
-            rejectors: this._rejectors,
-            cancelers: this._cancelers,
-            finishes: this._finishes,
+            resolve: this._doResolve.bind(this),
+            reject: this._doReject.bind(this),
+            cancel: this._doCancel.bind(this),
+            finally: this._doFinally.bind(this),
         };
     }
 
@@ -203,60 +210,48 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
         this._cancellation = callback;
     }
 
-    private _doResolve(value: T) {
+    private _doResolve(boundCall: boolean, value: T) {
         this._handlers.clear();
         if (this._canceled || this._canceling) {
             return;
         }
         this._resolved = true;
-        [...this._resolvers, ...this._bound.map((b) => b.grab().resolvers).flat()].forEach(
-            (resolver: TResolver<T>) => {
-                resolver(value);
-            },
-        );
-        this._doFinally();
+        this._resolvers.forEach((resolver: TResolver<T>) => resolver(value));
+        !boundCall && this._bound.forEach((bound) => bound.grab().resolve(true, value));
+        this._doFinally(false);
     }
 
-    private _doReject(error: Error) {
+    private _doReject(boundCall: boolean, error: Error) {
         this._handlers.clear();
         if (this._canceled || this._canceling) {
             return;
         }
         this._rejected = true;
-        [...this._rejectors, ...this._bound.map((b) => b.grab().rejectors).flat()].forEach(
-            (rejector: TRejector) => {
-                rejector(error);
-            },
-        );
-        this._doFinally();
+        this._rejectors.forEach((rejector: TRejector) => rejector(error));
+        !boundCall && this._bound.forEach((bound) => bound.grab().reject(true, error));
+        this._doFinally(false);
     }
 
-    private _doFinally() {
+    private _doFinally(boundCall: boolean) {
         this._handlers.clear();
         if (this._finished) {
             return;
         }
         this._finished = true;
-        [...this._finishes, ...this._bound.map((b) => b.grab().finishes).flat()].forEach(
-            (handler: TFinally) => {
-                handler();
-            },
-        );
+        this._finishes.forEach((final: TFinally) => final());
+        !boundCall && this._bound.forEach((bound) => bound.grab().finally(true));
     }
 
-    private _doCancel(reason?: C) {
+    private _doCancel(boundCall: boolean, reason?: C) {
         this._handlers.clear();
         if (this._resolved || this._rejected || this._canceled) {
             // Doesn't make sence to cancel, because it was resolved or rejected or canceled already
             return;
         }
         this._canceled = true;
-        [...this._cancelers, ...this._bound.map((b) => b.grab().cancelers).flat()].forEach(
-            (cancler: TCanceler<C>) => {
-                cancler(reason);
-            },
-        );
-        this._doFinally();
+        this._cancelers.forEach((cancler: TCanceler<C>) => cancler(reason));
+        !boundCall && this._bound.forEach((bound) => bound.grab().cancel(true, reason));
+        this._doFinally(false);
     }
 
     private _doCancellation(reason?: C) {
