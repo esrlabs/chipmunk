@@ -34,25 +34,17 @@
                 }
             }
         },
-        "shells": {
-            "regular": {
-                "execute_only": [],
-                "list": {
-                    "1": "Test 1. Get profiles",
-                    "2": "Test 2. Get envvars"
-                },
-                "files": {
-                }
-            }
-        },
         "jobs": {
             "regular": {
                 "execute_only": [],
                 "list": {
-                    "2": "Test 2. Folder Example"
+                    "1": "Test 1. Cancelation testing",
+                    "2": "Test 2. Wrong sequence test",
+                    "3": "Test 3. Folder content listing",
+                    "4": "Test 4. Get profiles",
+                    "5": "Test 5. Get envvars"
                 },
                 "files": {
-                    "path": "/Users/oliver.mueller/tmp/logviewer_usecases/merging"
                 }
             }
         },

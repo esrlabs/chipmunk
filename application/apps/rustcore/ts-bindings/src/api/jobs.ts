@@ -1,0 +1,188 @@
+import { CancelablePromise } from 'platform/env/promise';
+import { Base } from '../native/native.jobs';
+import { error } from 'platform/env/logger';
+import { IFilter } from '../interfaces/index';
+import { ShellProfile } from 'platform/types/shells';
+
+import { StatisticInfo } from 'platform/types/parsers/dlt';
+
+export class Jobs extends Base {
+    public static async create(): Promise<Jobs> {
+        const instance = new Jobs();
+        await instance.init();
+        return instance;
+    }
+
+    // This method is used for testing
+    public cancelTest(num_a: number, num_b: number, seq?: number): CancelablePromise<number> {
+        const sequence = seq === undefined ? this.sequence() : seq;
+        const job: CancelablePromise<number> = this.execute(
+            // We should define validation callback. As argument it takes result of job,
+            // which should be checked for type. In case it type is correct, callback
+            // should return true
+            (res: number): number | Error => {
+                return typeof res === 'number'
+                    ? res
+                    : new Error(`jobCancelTest should return number type`);
+            },
+            // As second argument of executor we should provide native function of job.
+            this.native.jobCancelTest(sequence, num_a, num_b),
+            // Sequence of job
+            sequence,
+            // Alias of job for logs
+            'cancelTest',
+        );
+        return job;
+    }
+
+    public listContent(depth: number, path: string): CancelablePromise<string> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<string> = this.execute(
+            (res: string): any | Error => {
+                try {
+                    return JSON.parse(res);
+                } catch (e) {
+                    return new Error(error(e));
+                }
+            },
+            this.native.listFolderContent(sequence, depth, path),
+            sequence,
+            'listContent',
+        );
+        return job;
+    }
+
+    public spawnProcess(path: string, args: string[]): CancelablePromise<void> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<void> = this.execute(
+            undefined,
+            this.native.spawnProcess(sequence, path, args),
+            sequence,
+            'spawnProcess',
+        );
+        return job;
+    }
+
+    public getFileChecksum(path: string): CancelablePromise<string> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<string> = this.execute(
+            (res: string): any | Error => {
+                return typeof res === 'string'
+                    ? res
+                    : new Error(`getFileChecksum should return string type`);
+            },
+            this.native.getFileChecksum(sequence, path),
+            sequence,
+            'getFileChecksum',
+        );
+        return job;
+    }
+
+    public getDltStats(paths: string[]): CancelablePromise<StatisticInfo> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<StatisticInfo> = this.execute(
+            (res: string): StatisticInfo | Error => {
+                try {
+                    return JSON.parse(res) as StatisticInfo;
+                } catch (e) {
+                    return new Error(error(e));
+                }
+            },
+            this.native.getDltStats(sequence, paths),
+            sequence,
+            'getDltStats',
+        );
+        return job;
+    }
+
+    public getShellProfiles(): CancelablePromise<ShellProfile[]> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<ShellProfile[]> = this.execute(
+            (res: string): ShellProfile[] | Error => {
+                try {
+                    const unparsed: unknown[] = JSON.parse(res);
+                    const profiles: ShellProfile[] = [];
+                    unparsed.forEach((unparsed: unknown) => {
+                        const profile = ShellProfile.fromObj(unparsed);
+                        if (!(profile instanceof Error)) {
+                            profiles.push(profile);
+                        }
+                    });
+                    return profiles;
+                } catch (e) {
+                    return new Error(error(e));
+                }
+            },
+            this.native.getShellProfiles(sequence),
+            sequence,
+            'getShellProfiles',
+        );
+        return job;
+    }
+
+    public getContextEnvvars(): CancelablePromise<Map<string, string>> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<Map<string, string>> = this.execute(
+            (res: string): Map<string, string> | Error => {
+                try {
+                    const unparsed: { [key: string]: string } = JSON.parse(res);
+                    const envvars: Map<string, string> = new Map();
+                    if (
+                        unparsed === undefined ||
+                        unparsed === null ||
+                        typeof unparsed !== 'object'
+                    ) {
+                        return new Error(`Fail to parse envvars string: ${unparsed}`);
+                    }
+                    Object.keys(unparsed).forEach((key) => {
+                        envvars.set(key, unparsed[key]);
+                    });
+                    return envvars;
+                } catch (e) {
+                    return new Error(error(e));
+                }
+            },
+            this.native.getContextEnvvars(sequence),
+            sequence,
+            'getContextEnvvars',
+        );
+        return job;
+    }
+
+    public getSerialPortsList(): CancelablePromise<string[]> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<string[]> = this.execute(
+            (res: string): any | Error => {
+                return typeof res === 'string'
+                    ? res
+                    : new Error(`getSerialPortsList should return string type`);
+            },
+            this.native.getSerialPortsList(sequence),
+            sequence,
+            'getSerialPortsList',
+        );
+        return job;
+    }
+
+    public getRegexError(filter: IFilter): CancelablePromise<string | undefined> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<string | undefined> = this.execute(
+            (res: string): any | Error => {
+                if (typeof res === 'string' && res.trim() !== '') {
+                    return res;
+                } else {
+                    return undefined;
+                }
+            },
+            this.native.getRegexError(sequence, {
+                value: filter.filter,
+                is_regex: filter.flags.reg,
+                ignore_case: !filter.flags.cases,
+                is_word: filter.flags.word,
+            }),
+            sequence,
+            'getRegexError',
+        );
+        return job;
+    }
+}

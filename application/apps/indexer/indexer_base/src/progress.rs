@@ -43,6 +43,7 @@ pub enum Progress {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct Ticks {
     pub count: u64,
+    pub state: Option<String>,
     pub total: Option<u64>,
 }
 
@@ -57,14 +58,19 @@ impl Ticks {
     pub fn new() -> Self {
         Ticks {
             count: 0,
+            state: None,
             total: None,
         }
     }
 }
 
 impl Progress {
-    pub fn ticks(count: u64, total: Option<u64>) -> Self {
-        Self::Ticks(Ticks { count, total })
+    pub fn ticks(count: u64, total: Option<u64>, state: Option<String>) -> Self {
+        Self::Ticks(Ticks {
+            count,
+            total,
+            state,
+        })
     }
 }
 

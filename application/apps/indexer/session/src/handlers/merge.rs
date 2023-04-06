@@ -44,6 +44,7 @@ pub async fn handle(
                         uuid: operation_api.id(),
                         progress: Progress::Ticks(Ticks {
                             count,
+                            state: None,
                             total: Some(total),
                         }),
                     }

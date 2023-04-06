@@ -69,15 +69,6 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
-                    Requests.File.Checksum.Request,
-                    RequestHandlers.File.Checksum.handler,
-                ),
-        );
-        this.register(
-            electron
-                .ipc()
-                .respondent(
-                    this.getName(),
                     Requests.Connect.Dlt.Request,
                     RequestHandlers.Connect.Dlt.handler,
                 ),
@@ -168,15 +159,6 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
-                    Requests.Dlt.Stat.Request,
-                    RequestHandlers.Dlt.Stat.handler,
-                ),
-        );
-        this.register(
-            electron
-                .ipc()
-                .respondent(
-                    this.getName(),
                     Requests.Os.List.Request,
                     RequestHandlers.Os.List.handler,
                 ),
@@ -197,33 +179,6 @@ export class Service extends Implementation {
                     this.getName(),
                     Requests.Os.HomeDir.Request,
                     RequestHandlers.Os.HomeDir.handler,
-                ),
-        );
-        this.register(
-            electron
-                .ipc()
-                .respondent(
-                    this.getName(),
-                    Requests.Os.Shells.Request,
-                    RequestHandlers.Os.Shells.handler,
-                ),
-        );
-        this.register(
-            electron
-                .ipc()
-                .respondent(
-                    this.getName(),
-                    Requests.Os.EnvVars.Request,
-                    RequestHandlers.Os.EnvVars.handler,
-                ),
-        );
-        this.register(
-            electron
-                .ipc()
-                .respondent(
-                    this.getName(),
-                    Requests.Serial.Ports.Request,
-                    RequestHandlers.Serial.Ports.handler,
                 ),
         );
         this.register(

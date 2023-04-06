@@ -25,6 +25,9 @@ export {
     ISearchValuesUpdated,
 } from './api/session';
 
+export { Jobs } from './api/jobs';
+export { Tracker } from './api/tracker';
+
 export {
     IGrabbedElement,
     IExtractDTFormatOptions,
@@ -37,30 +40,6 @@ export {
     IGrabbedContent,
 } from './interfaces/index';
 
-export * as dlt from './native/native.dlt';
-export * as files from './native/native.files';
-export * as tools from './native/native.tools';
-export * as serial from './native/native.serial';
-export * as regex from './native/native.regex';
-export * as shells from './native/native.shells';
-
 export { Units, Events, Interfaces };
 
-export { Jobs } from './native/native.jobs';
-
 setUuidGenerator(v4);
-import { ProgressTrackerNoType } from "./native/native";
-export function createTracker() : any|Error {
-    console.log(ProgressTrackerNoType);
-    const tracker = new ProgressTrackerNoType();
-    try {
-        tracker.init((event: any) => {
-            console.log("Progress Tracker:: event " + event);
-        });
-        return tracker;
-    } catch(error) {
-        console.log(error);
-        return new Error(error as string);
-    }
-
-}

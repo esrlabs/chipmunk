@@ -37,6 +37,10 @@ impl Signal {
         self.confirmation.is_cancelled()
     }
 
+    pub fn is_cancelling(&self) -> bool {
+        self.signal.is_cancelled()
+    }
+
     pub fn confirm(&self) {
         if self.confirmation.is_cancelled() {
             return;

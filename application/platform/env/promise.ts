@@ -192,6 +192,13 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
         };
     }
 
+    public asPromise(): Promise<T> {
+        return new Promise((resolve, reject) => {
+            this.then(resolve);
+            this.catch(reject);
+        });
+    }
+
     private _refCancellationCallback(callback: TCanceler<C>) {
         this._cancellation = callback;
     }

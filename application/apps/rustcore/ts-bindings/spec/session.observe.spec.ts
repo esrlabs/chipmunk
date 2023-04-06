@@ -9,7 +9,6 @@ import { IGrabbedElement } from '../src/interfaces/index';
 import { createSampleFile, finish, performanceReport, setMeasurement } from './common';
 import { getLogger } from '../src/util/logging';
 import { readConfigurationFile } from './config';
-import { createTracker } from '../src/index';
 
 const config = readConfigurationFile().get().tests.observe;
 
@@ -33,7 +32,6 @@ describe('Observe', function () {
             return;
         }
         console.log(`\nStarting: ${testName}`);
-        const tracker = createTracker();
         const logger = getLogger(testName);
         Session.create()
             .then((session: Session) => {
@@ -102,8 +100,6 @@ describe('Observe', function () {
                     ),
                 );
             });
-
-            await tracker.shutdown();
     });
 
     it(config.regular.list[2], function (done) {

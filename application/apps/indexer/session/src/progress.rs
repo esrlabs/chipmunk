@@ -3,12 +3,12 @@ use crate::{
     TRACKER_CHANNEL,
 };
 use indexer_base::progress::Ticks;
-use log::info;
+use log::{error, info};
 use std::collections::HashMap;
 use tokio::{
     select,
     sync::{
-        mpsc::{self, unbounded_channel, UnboundedReceiver, UnboundedSender},
+        mpsc::{self, error::SendError, unbounded_channel, UnboundedReceiver, UnboundedSender},
         oneshot,
     },
 };
@@ -19,6 +19,50 @@ use uuid::Uuid;
 pub enum ProgressCommand {
     Content(oneshot::Sender<Result<String, ComputationError>>),
     Abort(oneshot::Sender<Result<(), ComputationError>>),
+}
+
+#[derive(Clone, Debug)]
+pub struct ProgressProviderAPI {
+    tx: UnboundedSender<LifecycleTransition>,
+}
+
+impl ProgressProviderAPI {
+    pub fn new() -> Result<Self, ComputationError> {
+        let tx = {
+            let tx_rx = TRACKER_CHANNEL.lock().map_err(|e| {
+                ComputationError::Communication(format!("Cannot init channels from mutex: {e}"))
+            })?;
+            tx_rx.0.clone()
+            // scope will release Mutex lock
+        };
+        Ok(Self { tx })
+    }
+
+    pub fn started(&self, alias: &str, uuid: &Uuid) {
+        if self
+            .tx
+            .send(LifecycleTransition::started(uuid, alias))
+            .is_err()
+        {
+            error!("Fail to report LifecycleTransition::Started. Channel is closed");
+        }
+    }
+
+    pub fn stopped(&self, uuid: &Uuid) {
+        if self.tx.send(LifecycleTransition::stopped(uuid)).is_err() {
+            error!("Fail to report LifecycleTransition::Stopped. Channel is closed");
+        }
+    }
+
+    pub fn progress(&self, uuid: &Uuid, ticks: Ticks) {
+        if self
+            .tx
+            .send(LifecycleTransition::ticks(uuid, ticks))
+            .is_err()
+        {
+            error!("Fail to report LifecycleTransition::Ticks. Channel is closed");
+        }
+    }
 }
 
 /// The ProgressTrackerAPI enables safe access to the state of the progress of
@@ -62,6 +106,12 @@ impl ProgressTrackerAPI {
     }
 }
 
+fn log_if_err(res: Result<(), SendError<LifecycleTransition>>) {
+    if res.is_err() {
+        error!("Fail to send event into lifecycle_events_channel. Channel is closed");
+    }
+}
+
 /// Keep track of all ongoing operations and jobs
 /// All jobs and operations are identified with UUIDs. Here we receive updates about the
 /// progress of those long-runing operations.
@@ -100,20 +150,20 @@ pub async fn run_tracking(
                 }
                 lifecycle_event = lifecycle_events.recv() => {
                     match lifecycle_event {
-                        Some(LifecycleTransition::Started(uuid)) => {
-                            info!("job {uuid} started");
+                        Some(LifecycleTransition::Started { uuid, alias }) => {
+                            info!("job {alias} ({uuid}) started");
                             ongoing_operations.insert(uuid, Ticks::new());
-                            let _ = lifecycle_events_channel.0.send(LifecycleTransition::Started(uuid)).await;
+                            log_if_err(lifecycle_events_channel.0.send(LifecycleTransition::started(&uuid, &alias)).await);
                         }
                         Some(LifecycleTransition::Stopped(uuid)) => {
                             info!("job {uuid} stopped");
                             ongoing_operations.remove(&uuid);
-                            let _ = lifecycle_events_channel.0.send(LifecycleTransition::Stopped(uuid)).await;
+                            log_if_err(lifecycle_events_channel.0.send(LifecycleTransition::Stopped(uuid)).await);
                         }
-                        Some(LifecycleTransition::Ticks((uuid, ticks))) => {
+                        Some(LifecycleTransition::Ticks {uuid, ticks}) => {
                             info!("job {uuid} reported progress: {ticks:?}");
-                            ongoing_operations.insert(uuid, Ticks::new());
-                            let _ = lifecycle_events_channel.0.send(LifecycleTransition::Stopped(uuid)).await;
+                            ongoing_operations.insert(uuid, ticks.clone());
+                            log_if_err(lifecycle_events_channel.0.send(LifecycleTransition::ticks(&uuid, ticks)).await);
                         }
                         None => break,
 

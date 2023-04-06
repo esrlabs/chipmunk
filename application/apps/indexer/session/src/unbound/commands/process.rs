@@ -1,4 +1,5 @@
-use node_bindgen::derive::node_bindgen;
+use super::CommandOutcome;
+use crate::{events::ComputationError, unbound::signal::Signal};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 use std::{
@@ -25,7 +26,14 @@ pub fn spawn(exe: &Path, args: Vec<String>) -> Result<Child, String> {
         .map_err(|e| format!("{}", e))
 }
 
-#[node_bindgen]
-async fn execute(exe: String, args: Vec<String>) -> Result<(), String> {
-    spawn(Path::new(&exe), args).map(|_c| Ok(()))?
+pub fn execute(
+    exe: String,
+    args: Vec<String>,
+    _signal: Signal,
+) -> Result<CommandOutcome<()>, ComputationError> {
+    Ok(CommandOutcome::Finished(
+        spawn(Path::new(&exe), args)
+            .map_err(ComputationError::IoOperation)
+            .map(|_c| ())?,
+    ))
 }

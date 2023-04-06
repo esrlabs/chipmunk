@@ -1,6 +1,6 @@
 import { CancelablePromise } from 'platform/env/promise';
 import { Instance as Logger } from 'platform/env/logger';
-import { files } from 'rustcore';
+import { unbound } from '@service/unbound';
 
 import * as Requests from 'platform/ipc/request';
 
@@ -13,8 +13,8 @@ export const handler = Requests.InjectLogger<
         request: Requests.File.Checksum.Request,
     ): CancelablePromise<Requests.File.Checksum.Response> => {
         return new CancelablePromise((resolve) => {
-            files
-                .checksum(request.filename)
+            unbound.jobs
+                .getFileChecksum(request.filename)
                 .then((hash) => {
                     resolve(
                         new Requests.File.Checksum.Response({
