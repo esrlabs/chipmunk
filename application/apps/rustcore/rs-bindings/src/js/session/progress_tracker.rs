@@ -1,10 +1,8 @@
-use crate::js::session::events::CallbackEventWrapper;
-
-use super::events::ComputationErrorWrapper;
+use super::events::{ComputationErrorWrapper, LifecycleTransitionWrapper};
 use log::trace;
 use node_bindgen::derive::node_bindgen;
 use session::{
-    events::{CallbackEvent, ComputationError},
+    events::ComputationError,
     progress::{run_tracking, ProgressCommand, ProgressTrackerAPI},
 };
 use std::thread;
@@ -27,7 +25,7 @@ impl RustProgressTracker {
     }
 
     #[node_bindgen(mt)]
-    fn init<F: Fn(CallbackEventWrapper) + Send + 'static>(
+    async fn init<F: Fn(LifecycleTransitionWrapper) + Send + 'static>(
         &mut self,
         callback: F,
     ) -> Result<(), ComputationErrorWrapper> {
@@ -43,8 +41,7 @@ impl RustProgressTracker {
                         Ok(mut rx) => {
                             let _ = result_tx.send(Ok(()));
                             while let Some(progress_report) = rx.recv().await {
-                                let callback_event = CallbackEvent::Lifecycle(progress_report);
-                                callback(callback_event.into())
+                                callback(LifecycleTransitionWrapper(progress_report))
                             }
                         }
                         Err(e) => {
@@ -77,7 +74,7 @@ impl RustProgressTracker {
     }
 
     #[node_bindgen]
-    async fn shutdown(&self) -> Result<(), ComputationErrorWrapper> {
+    async fn destroy(&self) -> Result<(), ComputationErrorWrapper> {
         self.tracker_api
             .abort()
             .await

@@ -450,7 +450,7 @@ impl SessionProcessor {
                 Progress::Notification(n) => {
                     let _ = self.update_channel.send(Err(n));
                 }
-                Progress::Ticks(Ticks { count, total }) => {
+                Progress::Ticks(Ticks { count, total, .. }) => {
                     let _ = self.update_channel.send(Ok(IndexingProgress::Progress {
                         ticks: (count, total.unwrap_or(0)),
                     }));

@@ -40,7 +40,31 @@ export function strToLogLevel(level: string): Level {
 }
 
 export function error(err: Error | unknown): string {
-    return `${err instanceof Error ? err.message : err}`;
+    if (typeof err === 'string') {
+        return err;
+    } else if (err instanceof Error) {
+        return err.message;
+    } else if (err === undefined || err === null) {
+        return `undefined/null`;
+    } else if (typeof err === 'object') {
+        if (
+            Object.keys(err).length === 1 &&
+            typeof (err as any)[Object.keys(err)[0]] === 'string'
+        ) {
+            return `${Object.keys(err)[0]}: ${(err as any)[Object.keys(err)[0]]}`;
+        } else {
+            try {
+                const msg = JSON.stringify(err);
+                return msg.length > 250 ? `${msg.substring(0, 250)}(...)` : msg;
+            } catch (_) {
+                return `${err}`;
+            }
+        }
+    } else if (typeof (err as any).toString === 'function') {
+        return (err as any).toString() as string;
+    } else {
+        return `${err}`;
+    }
 }
 
 export function getErrorCode(err: Error | unknown): number | string | undefined {

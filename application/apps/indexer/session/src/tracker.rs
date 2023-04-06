@@ -1,6 +1,7 @@
 use crate::{
-    events::{LifecycleTransition, NativeError, NativeErrorKind},
+    events::{NativeError, NativeErrorKind},
     operations::OperationStat,
+    progress::ProgressProviderAPI,
     state::SessionStateAPI,
 };
 use indexer_base::progress::Severity;
@@ -147,13 +148,13 @@ impl OperationTrackerAPI {
 pub async fn run(
     state: SessionStateAPI,
     mut rx_api: UnboundedReceiver<TrackerCommand>,
-    tracker_tx: UnboundedSender<LifecycleTransition>,
 ) -> Result<(), NativeError> {
     let mut tracker = OperationTracker {
         operations: HashMap::new(),
         stat: vec![],
         debug: false,
     };
+    let progress = ProgressProviderAPI::new()?;
     debug!("task is started");
     while let Some(msg) = rx_api.recv().await {
         match msg {
@@ -168,7 +169,7 @@ pub async fn run(
                 if tracker.debug {
                     tracker
                         .stat
-                        .push(OperationStat::new(uuid.to_string(), name));
+                        .push(OperationStat::new(uuid.to_string(), name.clone()));
                 }
                 if tx_response
                     .send(match tracker.operations.entry(uuid) {
@@ -183,6 +184,8 @@ pub async fn run(
                     return Err(NativeError::channel(
                         "fail to response to Api::AddOperation",
                     ));
+                } else {
+                    progress.started(&name, &uuid);
                 }
             }
             TrackerCommand::RemoveOperation((uuid, tx_response)) => {
@@ -200,7 +203,7 @@ pub async fn run(
                         error!("fail to find operation in stat: {}", str_uuid);
                     }
                 }
-                let _ = tracker_tx.send(LifecycleTransition::Stopped(uuid));
+                progress.stopped(&uuid);
                 if tx_response
                     .send(tracker.operations.remove(&uuid).is_some())
                     .is_err()
@@ -226,7 +229,7 @@ pub async fn run(
                                 operation_cancalation_token.cancel();
                                 debug!("Waiting for operation {} would confirm done-state", uuid);
                                 done_token.cancelled().await;
-                                let _ = tracker_tx.send(LifecycleTransition::Stopped(uuid));
+                                progress.stopped(&uuid);
                             }
                             if let Err(err) = state.canceled_operation(uuid).await {
                                 error!(
@@ -252,7 +255,7 @@ pub async fn run(
                         debug!("waiting for operation {} would confirm done-state", uuid);
                         // TODO: add timeout to preven situation with waiting forever. 2-3 sec.
                         done_token.cancelled().await;
-                        let _ = tracker_tx.send(LifecycleTransition::Stopped(*uuid));
+                        progress.stopped(uuid);
                     }
                 }
                 tracker.operations.clear();

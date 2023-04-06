@@ -4,8 +4,9 @@
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 
-import { Session } from '../src/api/session';
+import { Jobs, Tracker, Session } from '../src/index';
 import { setLogLevels, lockChangingLogLevel, Logger } from '../src/util/logging';
+import { error } from 'platform/env/logger';
 import * as tmp from 'tmp';
 import * as fs from 'fs';
 
@@ -16,19 +17,39 @@ const MS_PER_SEC = 1000;
 // Get rid of default Jasmine timeout
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 900000;
 
-export function finish(session: Session | undefined, done: () => void, err?: Error): void {
+export function finish(
+    sessions: Array<Session | Jobs | Tracker | undefined> | Session | Jobs | Tracker | undefined,
+    done: () => void,
+    err?: Error,
+): void {
     err !== undefined && fail(err);
-    if (session !== undefined) {
-        session
-            .destroy()
-            .catch((error: Error) => {
-                fail(error);
-            })
-            .finally(() => {
-                checkSessionDebugger(session, done);
-            });
-    } else {
+    sessions = sessions instanceof Array ? sessions : [sessions];
+    const filtered = sessions.filter((s) => s !== undefined);
+    if (filtered.length === 0) {
         done();
+    } else {
+        Promise.allSettled(
+            filtered.map((session) => {
+                session === undefined ? Promise.resolve() : session.destroy();
+            }),
+        ).then((results) => {
+            let reasons: any[] = [];
+            results.forEach((res) => {
+                if (res.status === 'rejected') {
+                    reasons.push(res.reason);
+                }
+            });
+            if (reasons.length === 0) {
+                const session = filtered.find((s) => s instanceof Session);
+                if (session !== undefined) {
+                    checkSessionDebugger(session as Session, done);
+                } else {
+                    done();
+                }
+            } else {
+                fail(new Error(reasons.map((r) => error(r)).join('; ')));
+            }
+        });
     }
 }
 

@@ -1,5 +1,5 @@
 import { CancelablePromise } from 'platform/env/promise';
-import { serial } from 'rustcore';
+import { unbound } from '@service/unbound';
 import { Instance as Logger } from 'platform/env/logger';
 import { jobs } from '@service/jobs';
 
@@ -21,8 +21,8 @@ export const handler = Requests.InjectLogger<
                     desc: 'fetching serial ports data',
                 })
                 .start();
-            serial
-                .ports()
+            unbound.jobs
+                .getSerialPortsList()
                 .then((ports: string[]) => {
                     resolve(
                         new Requests.Serial.Ports.Response({

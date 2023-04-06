@@ -39,6 +39,16 @@ impl NativeError {
     }
 }
 
+impl From<ComputationError> for NativeError {
+    fn from(err: ComputationError) -> Self {
+        NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Io,
+            message: Some(err.to_string()),
+        }
+    }
+}
+
 impl From<std::io::Error> for NativeError {
     fn from(err: std::io::Error) -> Self {
         NativeError {
@@ -181,13 +191,6 @@ pub enum CallbackEvent {
      */
     Progress { uuid: Uuid, progress: Progress },
     /**
-     * Triggered when an unbound job is started or finished
-     * or when a session is started or stopped
-     * >> Scope: async operation
-     * >> Kind: repeated
-     */
-    Lifecycle(LifecycleTransition),
-    /**
      * Triggered on error in the scope of session
      * >> Scope: session
      * >> Kind: repeated
@@ -258,7 +261,6 @@ impl std::fmt::Display for CallbackEvent {
                 uuid: _,
                 progress: _,
             } => write!(f, "Progress"),
-            Self::Lifecycle(_e) => write!(f, "Lifecycle"),
             Self::SessionError(err) => write!(f, "SessionError: {err:?}"),
             Self::OperationError { uuid, error } => {
                 write!(f, "OperationError: {uuid}: {error:?}")
@@ -273,18 +275,33 @@ impl std::fmt::Display for CallbackEvent {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum LifecycleTransition {
-    Started(Uuid),
-    Ticks((Uuid, Ticks)),
+    Started { uuid: Uuid, alias: String },
+    Ticks { uuid: Uuid, ticks: Ticks },
     Stopped(Uuid),
 }
 
 impl LifecycleTransition {
     pub fn uuid(&self) -> Uuid {
         match self {
-            Self::Started(uuid) => *uuid,
-            Self::Ticks((uuid, _)) => *uuid,
+            Self::Started { uuid, alias: _ } => *uuid,
+            Self::Ticks { uuid, ticks: _ } => *uuid,
             Self::Stopped(uuid) => *uuid,
         }
+    }
+
+    pub fn started(uuid: &Uuid, alias: &str) -> Self {
+        LifecycleTransition::Started {
+            uuid: *uuid,
+            alias: alias.to_owned(),
+        }
+    }
+
+    pub fn stopped(uuid: &Uuid) -> Self {
+        LifecycleTransition::Stopped(*uuid)
+    }
+
+    pub fn ticks(uuid: &Uuid, ticks: Ticks) -> Self {
+        LifecycleTransition::Ticks { uuid: *uuid, ticks }
     }
 }
 
@@ -300,6 +317,8 @@ pub enum ComputationError {
     IoOperation(String),
     #[error("Invalid data error")]
     InvalidData,
+    #[error("Invalid arguments")]
+    InvalidArgs(String),
     #[error("Error during processing: ({0})")]
     Process(String),
     #[error("Wrong usage of API: ({0})")]

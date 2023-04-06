@@ -1,6 +1,6 @@
 import { CancelablePromise } from 'platform/env/promise';
 import { Instance as Logger } from 'platform/env/logger';
-import { shells } from 'rustcore';
+import { unbound } from '@service/unbound';
 
 import * as Requests from 'platform/ipc/request';
 
@@ -13,7 +13,7 @@ export const handler = Requests.InjectLogger<
         _request: Requests.Os.EnvVars.Request,
     ): CancelablePromise<Requests.Os.EnvVars.Response> => {
         return new CancelablePromise((resolve, reject) => {
-            shells
+            unbound.jobs
                 .getContextEnvvars()
                 .then((envvars) => {
                     resolve(new Requests.Os.EnvVars.Response({ envvars }));

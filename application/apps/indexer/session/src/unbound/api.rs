@@ -1,18 +1,17 @@
 use crate::events::ComputationError;
-use futures::Future;
+use processor::search::filter::SearchFilter;
 use serde::Serialize;
 use tokio::sync::{mpsc::UnboundedSender, oneshot};
-use uuid::Uuid;
 
 use super::commands::{Command, CommandOutcome};
 
 #[derive(Debug)]
 pub enum API {
     Shutdown(oneshot::Sender<()>),
-    CancelJob(Uuid),
-    Run(Command, Uuid),
+    CancelJob(u64),
+    Run(Command, u64),
     /// remove finished jobs from registry
-    Remove(Uuid),
+    Remove(u64),
 }
 
 #[derive(Clone, Debug)]
@@ -37,19 +36,19 @@ impl UnboundSessionAPI {
         })
     }
 
-    pub async fn cancel_job(&self, operation_uuid: &Uuid) -> Result<(), ComputationError> {
-        self.tx.send(API::CancelJob(*operation_uuid)).map_err(|_| {
+    pub async fn cancel_job(&self, operation_id: &u64) -> Result<(), ComputationError> {
+        self.tx.send(API::CancelJob(*operation_id)).map_err(|_| {
             ComputationError::Communication(String::from("Fail to send API::CancelJob"))
         })
     }
 
     async fn process_command<T: Serialize>(
         &self,
-        uuid: Uuid,
+        id: u64,
         rx_results: oneshot::Receiver<Result<CommandOutcome<T>, ComputationError>>,
         command: Command,
     ) -> Result<CommandOutcome<T>, ComputationError> {
-        self.tx.send(API::Run(command, uuid)).map_err(|_| {
+        self.tx.send(API::Run(command, id)).map_err(|_| {
             ComputationError::Communication(String::from("Fail to send call Job::SomeJob"))
         })?;
         rx_results
@@ -57,51 +56,112 @@ impl UnboundSessionAPI {
             .map_err(|e| ComputationError::Communication(format!("channel error: {e}")))?
     }
 
-    pub(crate) fn remove_command(&self, uuid: Uuid) -> Result<(), ComputationError> {
-        self.tx.send(API::Remove(uuid)).map_err(|_| {
+    pub(crate) fn remove_command(&self, id: u64) -> Result<(), ComputationError> {
+        self.tx.send(API::Remove(id)).map_err(|_| {
             ComputationError::Communication(String::from("Fail to send call Job::SomeJob"))
         })?;
         Ok(())
     }
 
-    pub fn cancel_test(
+    pub async fn cancel_test(
         &self,
+        id: u64,
         custom_arg_a: i64,
         custom_arg_b: i64,
-    ) -> (
-        impl Future<Output = Result<CommandOutcome<i64>, ComputationError>> + '_,
-        Uuid,
-    ) {
-        let uuid = Uuid::new_v4();
-        (
-            async move {
-                let (tx_results, rx_results) = oneshot::channel();
-                self.process_command(
-                    uuid,
-                    rx_results,
-                    Command::CancelTest(custom_arg_a, custom_arg_b, tx_results),
-                )
-                .await
-            },
-            uuid,
+    ) -> Result<CommandOutcome<i64>, ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(
+            id,
+            rx_results,
+            Command::CancelTest(custom_arg_a, custom_arg_b, tx_results),
         )
+        .await
     }
 
-    pub fn list_folder_content(
+    pub async fn list_folder_content(
         &self,
+        id: u64,
+        depth: usize,
         path: String,
-    ) -> (
-        impl Future<Output = Result<CommandOutcome<String>, ComputationError>> + '_,
-        Uuid,
-    ) {
-        let uuid = Uuid::new_v4();
-        (
-            async move {
-                let (tx_results, rx_results) = oneshot::channel();
-                self.process_command(uuid, rx_results, Command::FolderContent(path, tx_results))
-                    .await
-            },
-            uuid,
+    ) -> Result<CommandOutcome<String>, ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(
+            id,
+            rx_results,
+            Command::FolderContent(path, depth, tx_results),
         )
+        .await
+    }
+
+    pub async fn spawn_process(
+        &self,
+        id: u64,
+        path: String,
+        args: Vec<String>,
+    ) -> Result<CommandOutcome<()>, ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(
+            id,
+            rx_results,
+            Command::SpawnProcess(path, args, tx_results),
+        )
+        .await
+    }
+
+    pub async fn get_file_checksum(
+        &self,
+        id: u64,
+        path: String,
+    ) -> Result<CommandOutcome<String>, ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(id, rx_results, Command::Checksum(path, tx_results))
+            .await
+    }
+
+    pub async fn get_dlt_stats(
+        &self,
+        id: u64,
+        files: Vec<String>,
+    ) -> Result<CommandOutcome<String>, ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(id, rx_results, Command::GetDltStats(files, tx_results))
+            .await
+    }
+
+    pub async fn get_shell_profiles(
+        &self,
+        id: u64,
+    ) -> Result<CommandOutcome<String>, ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(id, rx_results, Command::GetShellProfiles(tx_results))
+            .await
+    }
+
+    pub async fn get_context_envvars(
+        &self,
+        id: u64,
+    ) -> Result<CommandOutcome<String>, ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(id, rx_results, Command::GetContextEnvvars(tx_results))
+            .await
+    }
+
+    pub async fn get_serial_ports_list(
+        &self,
+        id: u64,
+    ) -> Result<CommandOutcome<Vec<String>>, ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(id, rx_results, Command::SerialPortsList(tx_results))
+            .await
+    }
+
+    pub async fn get_regex_error(
+        &self,
+        id: u64,
+        filter: SearchFilter,
+    ) -> Result<CommandOutcome<Option<String>>, ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(id, rx_results, Command::GetRegexError(filter, tx_results))
+            .await
     }
 }

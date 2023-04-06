@@ -7,18 +7,7 @@ import * as Logs from '../util/logging';
 export interface IRustModuleExports {
     RustSession: any;
     UnboundJobs: any;
-    Dlt: any;
-    Shells: any;
     RustProgressTracker: any;
-    Serial: any;
-    Files: any;
-    getFilterError: (filter: {
-        value: string;
-        is_regex: boolean;
-        ignore_case: boolean;
-        is_word: boolean;
-    }) => string | undefined;
-    execute: (filename: string, args: string[]) => Promise<void>;
 }
 
 export function getNativeModule(): IRustModuleExports {
@@ -27,8 +16,9 @@ export function getNativeModule(): IRustModuleExports {
     return require(modulePath);
 }
 
-const { RustSession: RustSessionNoType, Dlt: RustDltTools, RustProgressTracker: ProgressTrackerNoType } = getNativeModule();
+const { RustSession: RustSessionNoType, RustProgressTracker: ProgressTrackerNoType } =
+    getNativeModule();
 
-export { RustSessionNoType, RustDltTools, ProgressTrackerNoType };
+export { RustSessionNoType, ProgressTrackerNoType };
 
 setUuidGenerator(v4);
