@@ -72,25 +72,30 @@ export function VoidExecutor<TOptions>(
                     opUuid,
                 );
                 if (state instanceof NativeError) {
-                    lifecircle.abortOperationId = undefined;
-                    self.stopCancelation();
                     logger.error(`Fail to cancel operation ${opUuid}; error: ${state.message}`);
-                    reject(new Error(`Fail to cancel operation. Error: ${state.message}`));
+                    if (!self.tryToStopCancellation()) {
+                        logger.error(
+                            `Cancellation procudure of operation ${opUuid}; could not be stopped: promise had been cancelled already`,
+                        );
+                    } else {
+                        lifecircle.abortOperationId = undefined;
+                        reject(new Error(`Fail to cancel operation. Error: ${state.message}`));
+                    }
                 } else {
                     logger.debug(`Cancel signal for operation ${opUuid} has been sent`);
                 }
             },
         };
-        logger.debug('Sync void operation is started');
+        logger.verbose('Sync void operation is started');
         // Add cancel callback
         refCancelCB(() => {
             // Cancelation is started, but not canceled
-            logger.debug(`Get command "break" operation. Starting breaking.`);
+            logger.verbose(`Get command "break" operation. Starting breaking.`);
             lifecircle.cancel();
         });
         // Handle finale of promise
         self.finally(() => {
-            logger.debug('Sync void operation promise is closed as well');
+            logger.verbose('Sync void operation promise is closed as well');
             lifecircle.unsunscribe();
         });
         // Call operation

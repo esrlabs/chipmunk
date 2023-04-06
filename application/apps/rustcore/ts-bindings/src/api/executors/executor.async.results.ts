@@ -44,7 +44,7 @@ export function AsyncResultsExecutor<TResult, TOptions>(
                 reject(new Error(logger.warn(`Session was destroyed. Operation: ${self.uuid()}`)));
             }),
             error: provider.getEvents().OperationError.subscribe((event: IErrorEvent) => {
-                logger.debug('Async result operation state: error');
+                logger.verbose('Async result operation state: error');
                 if (event.uuid !== self.uuid()) {
                     return; // Ignore. This is another operation
                 }
@@ -56,7 +56,7 @@ export function AsyncResultsExecutor<TResult, TOptions>(
                 reject(new Error(event.error.message));
             }),
             done: provider.getEvents().OperationDone.subscribe((event: IOperationDoneEvent) => {
-                logger.debug('Async result operation state: done');
+                logger.verbose('Async result operation state: done');
                 if (event.uuid !== self.uuid() && event.uuid !== lifecircle.abortOperationId) {
                     return; // Ignore. This is another operation
                 }
@@ -72,7 +72,7 @@ export function AsyncResultsExecutor<TResult, TOptions>(
                 lifecircle.done.destroy();
             },
             cancel(): void {
-                logger.debug('Async result operation state: cancel');
+                logger.verbose('Async result operation state: cancel');
                 if (lifecircle.abortOperationId !== undefined) {
                     logger.warn(`Operation has been already canceled`);
                     return;
@@ -88,27 +88,32 @@ export function AsyncResultsExecutor<TResult, TOptions>(
                     self.uuid(),
                 );
                 if (state instanceof NativeError) {
-                    lifecircle.abortOperationId = undefined;
-                    self.stopCancelation();
                     logger.error(
                         `Fail to cancel operation ${self.uuid()}; error: ${state.message}`,
                     );
-                    reject(new Error(`Fail to cancel operation. Error: ${state.message}`));
+                    if (!self.tryToStopCancellation()) {
+                        logger.error(
+                            `Cancellation procudure of operation ${self.uuid()}; could not be stopped: promise had been cancelled already`,
+                        );
+                    } else {
+                        lifecircle.abortOperationId = undefined;
+                        reject(new Error(`Fail to cancel operation. Error: ${state.message}`));
+                    }
                 } else {
                     logger.debug(`Cancel signal for operation ${self.uuid()} has been sent`);
                 }
             },
         };
-        logger.debug('Async result operation is started');
+        logger.verbose('Async result operation is started');
         // Add cancel callback
         refCancelCB(() => {
             // Cancelation is started, but not canceled
-            logger.debug(`Get command "break" operation. Starting breaking.`);
+            logger.verbose(`Get command "break" operation. Starting breaking.`);
             lifecircle.cancel();
         });
         // Handle finale of promise
         self.finally(() => {
-            logger.debug('Async result operation promise is closed as well');
+            logger.verbose('Async result operation promise is closed as well');
             lifecircle.unsunscribe();
         });
         // Call operation
