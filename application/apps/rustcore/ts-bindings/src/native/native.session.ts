@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import * as Logs from '../util/logging';
-
 import { RustSessionRequiered } from '../native/native.session.required';
 import { TEventEmitter } from '../provider/provider.general';
 import { Computation } from '../provider/provider';
@@ -19,6 +17,8 @@ import { getValidNum } from '../util/numbers';
 import { IRange } from 'platform/types/range';
 import { ObservedSourceLink } from 'platform/types/observe';
 import { IndexingMode } from 'platform/types/content';
+import { Logger } from 'platform/log';
+import { scope } from 'platform/env/scope';
 
 export type RustSessionConstructorImpl<T> = new (
     uuid: string,
@@ -304,7 +304,7 @@ export function rustSessionFactory(
 }
 
 export class RustSessionWrapper extends RustSession {
-    private readonly _logger: Logs.Logger = Logs.getLogger(`RustSessionWrapper`);
+    private readonly _logger: Logger = scope.getLogger(`RustSessionWrapper`);
     private readonly _uuid: string;
     private readonly _native: RustSessionNative;
     private _assigned: boolean = false;

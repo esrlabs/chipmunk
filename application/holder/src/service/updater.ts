@@ -14,7 +14,7 @@ import { GitHubClient, IReleaseData, IReleaseAsset } from '@module/github';
 import { Version } from './updater/version';
 import { ReleaseFile } from './updater/releasefile';
 import { version } from '@module/version';
-import { error } from 'platform/env/logger';
+import { error } from 'platform/log/utils';
 import { getExecutable } from '@env/os/platform';
 import { unique } from 'platform/env/sequence';
 import { ChipmunkGlobal } from '@register/global';

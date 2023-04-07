@@ -3,11 +3,10 @@
 // We need to provide path to TypeScript types definitions
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 /// <reference path="../node_modules/@types/node/index.d.ts" />
-
+import { getLogger, initLogger } from './logger';
+initLogger();
 import { Session, Observe } from '../src/api/session';
-import { IGrabbedElement } from '../src/interfaces/index';
 import { createSampleFile, finish, performanceReport, setMeasurement } from './common';
-import { getLogger } from '../src/util/logging';
 import { readConfigurationFile } from './config';
 
 const config = readConfigurationFile().get().tests.extract;

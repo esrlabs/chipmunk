@@ -1,6 +1,6 @@
 import { SetupService, Interface, Implementation, register } from 'platform/entity/service';
 import { envvars } from '@loader/envvars';
-import { Level } from 'platform/env/logger';
+import { Level } from 'platform/log';
 
 import { services } from '@register/services';
 

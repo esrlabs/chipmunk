@@ -1,5 +1,5 @@
 import { IComponentDesc } from '@elements/containers/dynamic/component';
-import { Instance as Logger } from '@platform/env/logger';
+import { Logger } from '@platform/log';
 import { Session } from '@service/session/session';
 import { ObserveSource } from '@service/session/dependencies/observe/source';
 import { unique } from '@platform/env/sequence';

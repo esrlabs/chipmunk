@@ -1,5 +1,5 @@
 import { CancelablePromise } from 'platform/env/promise';
-import { Instance as Logger } from 'platform/env/logger';
+import { Logger } from 'platform/log';
 import { electron } from '@service/electron';
 
 import * as Requests from 'platform/ipc/request';

@@ -1,5 +1,5 @@
-import * as Logs from '../util/logging';
-
+import { Logger } from 'platform/log';
+import { scope } from 'platform/env/scope';
 import { RustSession } from '../native/native.session';
 import { ICancelablePromise } from 'platform/env/promise';
 import { EventProvider } from '../api/session.provider';
@@ -19,7 +19,7 @@ import { ExtractTaskManager } from './executors/single.task.extract';
 export class SessionSearch {
     protected readonly provider: EventProvider;
     protected readonly session: RustSession;
-    protected readonly logger: Logs.Logger;
+    protected readonly logger: Logger;
     protected readonly managers: {
         search: SearchTaskManager;
         values: ValuesTaskManager;
@@ -27,7 +27,7 @@ export class SessionSearch {
     };
 
     constructor(provider: EventProvider, session: RustSession, uuid: string) {
-        this.logger = Logs.getLogger(`SessionSearch: ${uuid}`);
+        this.logger = scope.getLogger(`SessionSearch: ${uuid}`);
         this.provider = provider;
         this.session = session;
         this.managers = {
@@ -82,10 +82,7 @@ export class SessionSearch {
     public drop(): Promise<boolean> {
         return new Promise((resolve, reject) => {
             this.managers.search.drop().finally(() => {
-                this.session
-                    .dropSearch()
-                    .then(resolve)
-                    .catch(reject);
+                this.session.dropSearch().then(resolve).catch(reject);
             });
         });
     }

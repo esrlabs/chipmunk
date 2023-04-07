@@ -1,5 +1,5 @@
 import { unique } from './sequence';
-import { Instance as Logger } from './logger';
+import { Logger } from '../log';
 import { LockToken } from './lock.token';
 
 export type TaskExecutor = () => Promise<any>;

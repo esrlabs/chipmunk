@@ -5,7 +5,7 @@ import { IFilter, IFilterFlags } from '@platform/types/filter';
 import { Hash, Recognizable } from '@platform/types/storage/entry';
 import { Json } from '@platform/types/storage/json';
 import { unique } from '@platform/env/sequence';
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 import { Key } from '../store';
 import { Equal } from '@platform/types/env/types';
 import { Updatable } from '../store';

@@ -1,6 +1,6 @@
 import { EntryConvertable, Entry } from '@platform/types/storage/entry';
 import { Subject } from '@platform/env/subscription';
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 import { bridge } from '@service/bridge';
 import { getActionByUuid, Base } from './index';
 

@@ -2,7 +2,7 @@ import { scope } from 'platform/env/scope';
 import { Logger } from '@env/logs/index';
 import { paths } from '@service/paths';
 import { AsyncLockToken } from 'platform/env/lock.token';
-import { error, getErrorCode } from 'platform/env/logger';
+import { utils } from 'platform/log';
 import { system } from 'platform/modules/system';
 
 import * as obj from 'platform/env/obj';
@@ -106,7 +106,7 @@ export class SettingsHolder<T> {
             this._settings
                 .log()
                 .warn(
-                    `Fail to read settings file "${this._filename}". Error: ${error(
+                    `Fail to read settings file "${this._filename}". Error: ${utils.error(
                         err,
                     )}. Settings will be dropped.`,
                 );
@@ -117,8 +117,8 @@ export class SettingsHolder<T> {
             } catch (err) {
                 this._settings
                     .log()
-                    .warn(`Fail to write settings into ${this._filename}: ${error(err)}.`);
-                return Promise.reject(new Error(error(err)));
+                    .warn(`Fail to write settings into ${this._filename}: ${utils.error(err)}.`);
+                return Promise.reject(new Error(utils.error(err)));
             }
         }
         return Promise.resolve();
@@ -136,7 +136,7 @@ export class SettingsHolder<T> {
                 signal: cancelation.signal,
             })
             .catch((err: Error) => {
-                if (getErrorCode(err) !== SettingsHolder.ABORT_ERR) {
+                if (utils.getErrorCode(err) !== SettingsHolder.ABORT_ERR) {
                     this._settings
                         .log()
                         .error(

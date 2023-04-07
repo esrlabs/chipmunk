@@ -2,7 +2,7 @@ import { Subscriber } from 'platform/env/subscription';
 import { Session } from 'rustcore';
 import { JobsTracker } from 'platform/env/promise';
 import { scope } from 'platform/env/scope';
-import { Instance as Logger } from 'platform/env/logger';
+import { Logger } from 'platform/log';
 import { Observe } from 'rustcore';
 import { jobs } from '@service/jobs';
 import { ICancelablePromise } from 'platform/env/promise';

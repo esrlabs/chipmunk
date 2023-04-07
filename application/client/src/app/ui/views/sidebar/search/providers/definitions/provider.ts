@@ -7,7 +7,7 @@ import { IMenuItem } from '@ui/service/contextmenu';
 import { EntityData } from './entity.data';
 import { unique } from '@platform/env/sequence';
 import { DragAndDropService, DragableRequest, ListContent } from '../../draganddrop/service';
-import { Instance as Logger } from '@platform/env/logger';
+import { Logger } from '@platform/log';
 import { Session } from '@service/session/session';
 
 export interface ProviderConstructor {

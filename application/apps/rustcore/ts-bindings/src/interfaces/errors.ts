@@ -1,4 +1,5 @@
-import * as Logs from '../util/logging';
+import { Logger } from 'platform/log';
+import { scope } from 'platform/env/scope';
 
 export enum Type {
     NotImplemented = 'NotImplemented',
@@ -52,7 +53,7 @@ export enum Source {
 export class NativeError extends Error {
     private readonly _type: Type;
     private readonly _source: Source;
-    private readonly _logger: Logs.Logger = Logs.getLogger(`NativeError`);
+    private readonly _logger: Logger = scope.getLogger(`NativeError`);
 
     public static from(smth: any): Error {
         return smth instanceof Error

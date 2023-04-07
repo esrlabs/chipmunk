@@ -1,7 +1,7 @@
 import { bridge } from '@service/bridge';
 import { Definition } from './definition';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 
 @SetupLogger()
 export class StorageDefinitions {

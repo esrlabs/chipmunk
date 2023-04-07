@@ -4,7 +4,7 @@ import { Recent as RecentStreamTextAction } from './implementations/stream/text'
 
 import { IComponentDesc } from '@elements/containers/dynamic/component';
 import { Entry } from '@platform/types/storage/entry';
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 import { unique } from '@platform/env/sequence';
 import { TargetFileOptions, File } from '@platform/types/files';
 import { IDLTOptions } from '@platform/types/parsers/dlt';

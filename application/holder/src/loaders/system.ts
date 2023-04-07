@@ -8,12 +8,12 @@ import { system } from 'platform/modules/system';
 import { init as modulesInitialization } from '@module/index';
 import { version } from '@module/version';
 import { scope } from 'platform/env/scope';
-import { Instance as Logger } from 'platform/env/logger';
+import { Logger } from 'platform/log';
 import { app, Event } from 'electron';
 import { LockToken } from 'platform/env/lock.token';
 import { IApplication, ChipmunkGlobal } from '@register/global';
 import { unbind } from '@env/logs';
-import { settings } from '@env/logs/settings';
+import { setLogLevelFromEnvvars } from '@env/logs';
 import { envvars } from './envvars';
 import { spawn } from 'child_process';
 import { serializeSpaces } from 'platform/env/str';
@@ -36,7 +36,7 @@ class Application implements IApplication {
                 this.logger.error(`Fail to init envvars loader: ${err.message}`);
             })
             .finally(() => {
-                settings.refreshFromEnvVars();
+                setLogLevelFromEnvvars();
                 this.logger.debug(envvars.envsToString());
                 system
                     .init({

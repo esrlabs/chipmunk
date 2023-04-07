@@ -1,7 +1,7 @@
 import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './executor';
 import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../session.provider';
-import { error } from 'platform/env/logger';
+import { error } from 'platform/log/utils';
 import { SearchValuesResult, SearchValuesResultOrigin } from 'platform/types/filter';
 
 export { SearchValuesResult, SearchValuesResultOrigin };

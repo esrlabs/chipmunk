@@ -7,7 +7,7 @@ import { IGrabbedElement } from '@platform/types/content';
 import { DataSource, ObservedSourceLink } from '@platform/types/observe';
 import { ObserveOperation } from './observe/operation';
 import { ObserveSource } from './observe/source';
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 import { SourceDefinition } from '@platform/types/transport';
 import { IDLTOptions, parserSettingsToOptions } from '@platform/types/parsers/dlt';
 import { TargetFile } from '@platform/types/files';

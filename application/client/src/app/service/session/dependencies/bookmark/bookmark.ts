@@ -1,5 +1,5 @@
 import { Recognizable } from '@platform/types/storage/entry';
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 import { Json } from '@platform/types/storage/json';
 import { Equal } from '@platform/types/env/types';
 

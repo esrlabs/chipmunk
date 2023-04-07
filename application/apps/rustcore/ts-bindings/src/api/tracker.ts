@@ -1,5 +1,5 @@
-import * as Logs from '../util/logging';
-
+import { Logger } from 'platform/log';
+import { scope } from 'platform/env/scope';
 import { getNativeModule } from '../native/native';
 import { TrackerNative } from '../native/native.tracker';
 import { EventProvider } from './tracker.provider';
@@ -19,7 +19,7 @@ export class Tracker {
         return instance;
     }
 
-    protected readonly logger: Logs.Logger = Logs.getLogger(`Tracker`);
+    protected readonly logger: Logger = scope.getLogger(`Tracker`);
     protected readonly native: TrackerNative;
     protected readonly uuid = unique();
 

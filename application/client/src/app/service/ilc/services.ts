@@ -21,7 +21,7 @@ import { settings, Service as Settings } from '@service/settings';
 import { favorites, Service as Favorites } from '@service/favorites';
 import { sys, Service as Sys } from '@service/sys';
 
-import { Instance as Logger } from '@platform/env/logger';
+import { Logger } from '@platform/log';
 
 export class Services {
     public readonly system: {

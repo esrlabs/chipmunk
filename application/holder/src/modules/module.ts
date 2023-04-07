@@ -1,5 +1,5 @@
 import { scope } from 'platform/env/scope';
-import { Instance as Logger } from 'platform/env/logger';
+import { Logger } from 'platform/log';
 import { Subscriber } from 'platform/env/subscription';
 
 export abstract class Module extends Subscriber {

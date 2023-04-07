@@ -1,6 +1,6 @@
 import { Provider, ProviderConstructor } from './provider';
 import { Session } from '@service/session/session';
-import { Instance as Logger } from '@platform/env/logger';
+import { Logger } from '@platform/log';
 import { Subscriber } from '@platform/env/subscription';
 import { Base as BaseState } from '../states/state';
 import { ParserName, Origin } from '@platform/types/observe';

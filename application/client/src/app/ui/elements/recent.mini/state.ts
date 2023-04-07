@@ -6,7 +6,7 @@ import { Subject } from '@platform/env/subscription';
 import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Holder } from '@module/matcher/holder';
-import { Instance as Logger } from '@platform/env/logger';
+import { Logger } from '@platform/log';
 import { ParserName, Origin } from '@platform/types/observe';
 
 export type CloseHandler = () => void;

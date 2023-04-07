@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import * as Logs from '../util/logging';
-
+import { Logger } from 'platform/log';
+import { scope } from 'platform/env/scope';
 import { CancelablePromise } from 'platform/env/promise';
-import { error } from 'platform/env/logger';
+import { error } from 'platform/log/utils';
 import { getNativeModule } from '../native/native';
 
 export abstract class JobsNative {
@@ -74,7 +73,7 @@ enum State {
 }
 
 export class Base {
-    protected readonly logger: Logs.Logger = Logs.getLogger(`Jobs`);
+    protected readonly logger: Logger = scope.getLogger(`Jobs`);
     protected readonly native: JobsNative;
     protected readonly queue: Queue = new Queue();
 
@@ -160,7 +159,7 @@ export class Base {
         sequence: number,
         alias: string,
     ): CancelablePromise<Output> {
-        return new CancelablePromise((resolve, reject, cancel, refCancel, self) => {
+        return new CancelablePromise((resolve, reject, cancel, refCancel, _self) => {
             if (this._state !== State.inited) {
                 return reject(new Error(`Session isn't inited`));
             }

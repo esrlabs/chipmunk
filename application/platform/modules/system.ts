@@ -1,5 +1,6 @@
 import { SetupService, Interface, Implementation, register, getRegistred } from '../entity/service';
-import { error, Instance as Logger } from '../env/logger';
+import { utils, Logger } from '../log';
+
 import { scope } from '../env/scope';
 import { unique } from '../env/sequence';
 import { Subject } from '../env/subscription';
@@ -68,11 +69,11 @@ export class Service extends Implementation {
                 await initialize(service, uuids);
             } catch (err: unknown) {
                 logger.error(
-                    `Fail to init service "${service.getName()}" (${service.getUuid()}): ${error(
+                    `Fail to init service "${service.getName()}" (${service.getUuid()}): ${utils.error(
                         err,
                     )}`,
                 );
-                return Promise.reject(new Error(error(err)));
+                return Promise.reject(new Error(utils.error(err)));
             }
         }
         logger.debug(`all services are inited...`);
@@ -87,11 +88,11 @@ export class Service extends Implementation {
                         await service.ready();
                     } catch (err: unknown) {
                         logger.error(
-                            `Fail to set "ready" state to service "${service.getName()}" (${service.getUuid()}): ${error(
+                            `Fail to set "ready" state to service "${service.getName()}" (${service.getUuid()}): ${utils.error(
                                 err,
                             )}`,
                         );
-                        return reject(new Error(error(err)));
+                        return reject(new Error(utils.error(err)));
                     }
                 }
                 if (hooks !== undefined && hooks.after !== undefined) {
@@ -109,7 +110,7 @@ export class Service extends Implementation {
                 await service.destroy();
                 this._logger.debug(`service "${service.getName()}" destroyed`);
             } catch (err) {
-                return Promise.reject(new Error(error(err)));
+                return Promise.reject(new Error(utils.error(err)));
             }
         }
         await Promise.all(

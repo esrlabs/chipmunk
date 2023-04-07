@@ -1,7 +1,7 @@
 import { decoratorFactory, DecoratorConstructor } from '../env/decorators';
 import { getWithDefaults } from '../env/obj';
 import { scope } from '../env/scope';
-import { Instance as Logger } from '../env/logger';
+import { Logger } from '../log';
 import { unique } from '../env/sequence';
 import { Subscriber } from '../env/subscription';
 

@@ -3,7 +3,7 @@ import { decoratorFactory, DecoratorConstructor } from '../../env/decorators';
 import { scope } from '../../env/scope';
 import { ISignatureRequirement, EntityConstructor, SignatureRequirement } from '../transport/index';
 export { EntityConstructor, SignatureRequirement };
-import { Instance as Logger } from '../../env/logger';
+import { Logger } from '../../log';
 
 export { Logger };
 

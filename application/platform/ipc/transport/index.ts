@@ -1,5 +1,5 @@
 import { ICancelablePromise } from '../../env/promise';
-import { error } from '../../env/logger';
+import { utils } from '../../log';
 import { Subject, Subscription } from '../../env/subscription';
 
 import * as Errors from './errors';
@@ -59,7 +59,6 @@ export abstract class Transport {
     ): Subject<typeof refEventConstructor>;
 
     public abstract destroy(): void;
-
 }
 
 export interface Packed {
@@ -137,7 +136,7 @@ export class Package<Payload> {
                     ) as Payload & ISignatureRequirement,
                 );
             } catch (err) {
-                return this.err(error(err));
+                return this.err(utils.error(err));
             }
         }
         return pack;
@@ -209,7 +208,7 @@ export class Package<Payload> {
                     ) as Payload & ISignatureRequirement,
                 );
             } catch (err) {
-                return this.err(error(err));
+                return this.err(utils.error(err));
             }
         }
         return this._payload !== undefined ? this._payload : this.err(`No payload`);

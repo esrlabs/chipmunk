@@ -4,7 +4,7 @@ import { ConcatDesc } from './definition.concat';
 import { DataSource, ParserName } from '@platform/types/observe';
 import { unique } from '@platform/env/sequence';
 import { EntryConvertable, Entry } from '@platform/types/storage/entry';
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 import { Subject } from '@platform/env/subscription';
 import { Equal } from '@platform/types/env/types';
 import { Collections } from './collections';

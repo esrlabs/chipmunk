@@ -1,5 +1,5 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 import { Subject, Subscriber } from '@platform/env/subscription';
 import { IRange, fromIndexes } from '@platform/types/range';
 

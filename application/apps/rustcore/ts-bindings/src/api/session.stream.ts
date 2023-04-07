@@ -1,5 +1,5 @@
-import * as Logs from '../util/logging';
-
+import { Logger } from 'platform/log';
+import { scope } from 'platform/env/scope';
 import { RustSession } from '../native/native.session';
 import { ICancelablePromise } from 'platform/env/promise';
 import { SdeResult } from 'platform/types/sde/common';
@@ -22,10 +22,10 @@ export class SessionStream {
     private readonly _provider: EventProvider;
     private readonly _session: RustSession;
     private readonly _uuid: string;
-    private readonly _logger: Logs.Logger;
+    private readonly _logger: Logger;
 
     constructor(provider: EventProvider, session: RustSession, uuid: string) {
-        this._logger = Logs.getLogger(`SessionStream: ${uuid}`);
+        this._logger = scope.getLogger(`SessionStream: ${uuid}`);
         this._provider = provider;
         this._session = session;
         this._uuid = uuid;

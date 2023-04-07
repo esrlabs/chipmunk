@@ -6,7 +6,7 @@ import { Collection } from './collection';
 import { Session } from '@service/session/session';
 import { EntryConvertable, Entry } from '@platform/types/storage/entry';
 import { JsonSet } from '@platform/types/storage/json';
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Equal, Empty } from '@platform/types/env/types';
 import { Subject, Subscriber } from '@platform/env/subscription';

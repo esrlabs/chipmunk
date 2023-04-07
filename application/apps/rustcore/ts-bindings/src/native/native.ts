@@ -1,8 +1,8 @@
 import { v4 } from 'uuid';
 import { setUuidGenerator } from 'platform/env/sequence';
+import { scope } from 'platform/env/scope';
 
 import * as path from 'path';
-import * as Logs from '../util/logging';
 
 export interface IRustModuleExports {
     RustSession: any;
@@ -12,7 +12,7 @@ export interface IRustModuleExports {
 
 export function getNativeModule(): IRustModuleExports {
     const modulePath = path.resolve(module.path, './index.node');
-    Logs.getLogger('Native module getter').verbose(`Target: ${modulePath}`);
+    scope.getLogger('Native module getter').verbose(`Target: ${modulePath}`);
     return require(modulePath);
 }
 

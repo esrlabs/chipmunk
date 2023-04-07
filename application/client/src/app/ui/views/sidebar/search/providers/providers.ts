@@ -14,7 +14,7 @@ import { IMenuItem } from '@ui/service/contextmenu';
 import { Entity } from './definitions/entity';
 import { unique } from '@platform/env/sequence';
 import { DragAndDropService } from '../draganddrop/service';
-import { Instance as Logger } from '@platform/env/logger';
+import { Logger } from '@platform/log';
 
 type TSelectedEntities = string[];
 

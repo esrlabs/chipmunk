@@ -1,5 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { Level } from '../../../env/logger';
+import { Level } from '../../../log';
 
 import * as validator from '../../../env/obj';
 

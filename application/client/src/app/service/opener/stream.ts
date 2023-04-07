@@ -1,6 +1,6 @@
 import { Render } from '@schema/render/index';
 import { Services } from '@service/ilc';
-import { Instance as Logger } from '@platform/env/logger';
+import { Logger } from '@platform/log';
 import { Locker, Level, lockers } from '@ui/service/lockers';
 import { components } from '@env/decorators/initial';
 import { Session } from '../session/session';

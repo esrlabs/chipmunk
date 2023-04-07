@@ -1,7 +1,7 @@
 import { CancelablePromise } from 'platform/env/promise';
 import { Observe } from 'rustcore';
 import { sessions } from '@service/sessions';
-import { Instance as Logger } from 'platform/env/logger';
+import { Logger } from 'platform/log';
 import { jobs, aliases } from '@service/jobs';
 import { FileType } from 'platform/types/files';
 import { defaultParserSettings, optionsToParserSettings } from 'platform/types/parsers/dlt';

@@ -1,4 +1,4 @@
-import { Instance as Logger } from '@platform/env/logger';
+import { Logger } from '@platform/log';
 import { scope } from '@platform/env/scope';
 import { Definition } from './definition';
 
