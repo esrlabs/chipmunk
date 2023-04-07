@@ -670,7 +670,7 @@ describe('Search', function () {
     });
 
     it(config.regular.list[6], function (done) {
-        if (ingore(1, done)) {
+        if (ingore(6, done)) {
             return;
         }
         const logger = getLogger(config.regular.list[6]);
@@ -801,7 +801,7 @@ describe('Search', function () {
     });
 
     it(config.regular.list[7], function (done) {
-        if (ingore(1, done)) {
+        if (ingore(7, done)) {
             return;
         }
         const logger = getLogger(config.regular.list[7]);

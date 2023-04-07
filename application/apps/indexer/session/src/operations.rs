@@ -391,7 +391,7 @@ impl OperationAPI {
                             api.finish::<OperationResult<()>>(
                                 Err(NativeError {
                                     severity: Severity::WARNING,
-                                    kind: NativeErrorKind::NotYetImplemented,
+                                    kind: NativeErrorKind::Io,
                                     message: Some(format!(
                                         "Fail to cancel operation {target}; operation isn't found"
                                     )),
@@ -405,7 +405,7 @@ impl OperationAPI {
                         api.finish::<OperationResult<()>>(
                             Err(NativeError {
                                 severity: Severity::WARNING,
-                                kind: NativeErrorKind::NotYetImplemented,
+                                kind: NativeErrorKind::Io,
                                 message: Some(format!(
                                     "Fail to cancel operation {target}; error: {err:?}"
                                 )),
