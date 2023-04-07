@@ -3,7 +3,7 @@ import * as path from 'path';
 
 import { Module } from './module';
 import { paths } from '@service/paths';
-import { error } from 'platform/env/logger';
+import { error } from 'platform/log/utils';
 
 export interface IPackageFile {
     version: string;

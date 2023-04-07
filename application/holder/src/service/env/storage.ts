@@ -1,5 +1,5 @@
 import { storage } from '@service/storage';
-import { error } from 'platform/env/logger';
+import { error } from 'platform/log/utils';
 
 import * as obj from 'platform/env/obj';
 import * as os from 'os';

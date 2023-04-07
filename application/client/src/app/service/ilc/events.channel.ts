@@ -1,6 +1,6 @@
 import { Subject, Subscription } from '@platform/env/subscription';
 import { Events } from './events';
-import { Instance as Logger } from '@platform/env/logger';
+import { Logger } from '@platform/log';
 import { Row } from '@schema/content/row';
 import { Base } from '../session/base';
 import { Session } from '../session/session';

@@ -6,7 +6,7 @@ import * as util from 'util';
 
 import { net } from '@module/net';
 import { scope } from 'platform/env/scope';
-import { Instance as Logger, error } from 'platform/env/logger';
+import { Logger, utils } from 'platform/log';
 import { unique } from 'platform/env/sequence';
 import { paths } from '@service/paths';
 
@@ -117,7 +117,7 @@ export class GitHubClient {
                         reject(
                             new Error(
                                 this._logger.error(
-                                    `Fail parse releases list due error: ${error(err)}`,
+                                    `Fail parse releases list due error: ${utils.error(err)}`,
                                 ),
                             ),
                         );
@@ -169,7 +169,7 @@ export class GitHubClient {
                         reject(
                             new Error(
                                 this._logger.error(
-                                    `Fail parse releases list due error: ${error(err)}`,
+                                    `Fail parse releases list due error: ${utils.error(err)}`,
                                 ),
                             ),
                         );

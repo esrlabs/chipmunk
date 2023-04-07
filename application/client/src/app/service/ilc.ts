@@ -10,7 +10,7 @@ import { Events, Declarations } from '@service/ilc/events';
 import { Channel } from '@service/ilc/events.channel';
 import { Emitter } from '@service/ilc/events.emitter';
 import { Services } from '@service/ilc/services';
-import { Instance as Logger } from '@platform/env/logger';
+import { Logger } from '@platform/log';
 import { session, Session, UnboundTab } from '@service/session';
 import { state } from '@service/state';
 import { jobs } from '@service/jobs';

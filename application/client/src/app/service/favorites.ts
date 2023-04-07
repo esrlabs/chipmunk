@@ -6,7 +6,7 @@ import {
     DependOn,
 } from '@platform/entity/service';
 import { services } from '@register/services';
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 import { bridge } from '@service/bridge';
 import { Subjects, Subject } from '@platform/env/subscription';
 

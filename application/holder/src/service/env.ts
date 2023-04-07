@@ -11,7 +11,7 @@ import { storage } from '@service/storage';
 import { envvars } from '@loader/envvars';
 import { CancelablePromise } from 'platform/env/promise';
 import { Storage } from './env/storage';
-import { error } from 'platform/env/logger';
+import { error } from 'platform/log/utils';
 
 import * as fs from 'fs';
 import * as os from 'os';

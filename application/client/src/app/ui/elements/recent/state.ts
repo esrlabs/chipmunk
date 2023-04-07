@@ -6,7 +6,7 @@ import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Holder } from '@module/matcher';
 import { ParserName, Origin } from '@platform/types/observe';
-import { Instance as Logger } from '@platform/env/logger';
+import { Logger } from '@platform/log';
 
 export class State extends Holder {
     public actions: WrappedAction[] = [];

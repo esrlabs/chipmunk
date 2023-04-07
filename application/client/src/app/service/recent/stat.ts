@@ -1,4 +1,4 @@
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 import { scope } from '@platform/env/scope';
 
 import * as obj from '@platform/env/obj';

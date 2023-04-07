@@ -3,7 +3,7 @@ import { ChartRequest } from '../charts/request';
 import { DisableConvertable } from './converting';
 import { Hash, Recognizable } from '@platform/types/storage/entry';
 import { Key } from '../store';
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 import { Json } from '@platform/types/storage/json';
 import { Equal } from '@platform/types/env/types';
 import { Updatable } from '../store';

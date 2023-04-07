@@ -1,4 +1,4 @@
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 
 import * as wasm from '@loader/wasm';
 

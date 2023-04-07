@@ -1,6 +1,6 @@
 import { singleDecoratorFactory, DecoratorConstructor } from '@platform/env/decorators';
 import { scope } from '@platform/env/scope';
-import { Instance as Logger } from '@platform/env/logger';
+import { Logger } from '@platform/log';
 import { getSelector } from '@env/reflect';
 import {
     ilc,

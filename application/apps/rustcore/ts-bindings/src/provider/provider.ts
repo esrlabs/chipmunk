@@ -4,10 +4,9 @@
 /// 3. Add performance test (grabbing)
 
 import { Subject } from 'platform/env/subscription';
-import { error } from 'platform/env/logger';
-
-import * as Logs from '../util/logging';
-
+import { error } from 'platform/log/utils';
+import { Logger } from 'platform/log';
+import { scope } from 'platform/env/scope';
 import { TEventData, TEventEmitter, IEventData } from '../provider/provider.general';
 
 export interface IOrderStat {
@@ -53,12 +52,12 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         store: false,
         count: false,
     };
-    public readonly logger: Logs.Logger;
+    public readonly logger: Logger;
 
     constructor(uuid: string) {
         this._uuid = uuid;
         this._emitter = this._emitter.bind(this);
-        this.logger = Logs.getLogger(`${this.getName()}: ${uuid}`);
+        this.logger = scope.getLogger(`${this.getName()}: ${uuid}`);
     }
 
     public destroy(): Promise<void> {

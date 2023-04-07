@@ -8,7 +8,7 @@ import {
 import { services } from '@register/services';
 import { bridge } from '@service/bridge';
 import { Action } from './recent/action';
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 import { TargetFileOptions, File } from '@platform/types/files';
 import { SourceDefinition } from '@platform/types/transport';
 import { IDLTOptions } from '@platform/types/parsers/dlt';

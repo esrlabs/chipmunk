@@ -5,8 +5,10 @@
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 
 import { Jobs, Tracker, Session } from '../src/index';
-import { setLogLevels, lockChangingLogLevel, Logger } from '../src/util/logging';
-import { error } from 'platform/env/logger';
+import { Logger } from './logger';
+import { error, numToLogLevel } from 'platform/log/utils';
+import { state } from 'platform/log';
+
 import * as tmp from 'tmp';
 import * as fs from 'fs';
 
@@ -22,7 +24,9 @@ export function finish(
     done: () => void,
     err?: Error,
 ): void {
-    err !== undefined && fail(err);
+    if (err !== undefined) {
+        fail(err);
+    }
     sessions = sessions instanceof Array ? sessions : [sessions];
     const filtered = sessions.filter((s) => s !== undefined);
     if (filtered.length === 0) {
@@ -66,13 +70,17 @@ export function checkSessionDebugger(session: Session, done: () => void) {
 }
 
 (function () {
-    let loglevel = (process.env as any)['JASMIN_LOG_LEVEL'];
-    loglevel = loglevel === undefined ? 1 : parseInt(loglevel, 10);
-    if (isNaN(loglevel) || !isFinite(loglevel) || loglevel < 0 || loglevel > 6) {
+    const loglevel: string | undefined = (process.env as any)['JASMIN_LOG_LEVEL'];
+    const numericLoglevel: number = loglevel === undefined ? 1 : parseInt(loglevel, 10);
+    if (
+        isNaN(numericLoglevel) ||
+        !isFinite(numericLoglevel) ||
+        numericLoglevel < 0 ||
+        numericLoglevel > 6
+    ) {
         return;
     }
-    setLogLevels(loglevel);
-    lockChangingLogLevel('Jasmin Tests');
+    state.setLevel(numToLogLevel(numericLoglevel));
 })();
 
 export function createSampleFile(

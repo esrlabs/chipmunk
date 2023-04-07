@@ -3,13 +3,13 @@
 // We need to provide path to TypeScript types definitions
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 /// <reference path="../node_modules/@types/node/index.d.ts" />
-
-import * as os from 'os';
-
+import { getLogger, initLogger } from './logger';
+initLogger();
 import { Jobs, Tracker } from '../src/index';
-import { getLogger } from '../src/util/logging';
 import { readConfigurationFile } from './config';
 import { finish } from './common';
+
+import * as os from 'os';
 
 const config = readConfigurationFile().get().tests.jobs;
 

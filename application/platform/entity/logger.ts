@@ -1,6 +1,6 @@
 import { decoratorFactory, DecoratorConstructor } from '../env/decorators';
 import { scope } from '../env/scope';
-import { Instance as Logger } from '../env/logger';
+import { Logger } from '../log';
 
 export interface LoggerInterface {
     getLoggerName(): string;

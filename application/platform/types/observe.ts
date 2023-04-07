@@ -7,7 +7,7 @@ import { SomeIPParserSettings } from './parsers/someip';
 import { UDPTransportSettings } from './transport/udp';
 import { TCPTransportSettings } from './transport/tcp';
 import { ProcessTransportSettings } from './transport/process';
-import { error } from '../env/logger';
+import { utils } from '../log';
 import { SerialTransportSettings } from './transport/serial';
 import { filename, basefolder } from '../env/str';
 import { SourceDefinition, Source as SourceRef } from './transport/index';
@@ -113,7 +113,7 @@ export class DataSource {
             }
             throw new Error(`No "File", "Concat" or "Stream" fields aren't found`);
         } catch (err) {
-            return new Error(error(err));
+            return new Error(utils.error(err));
         }
     }
 

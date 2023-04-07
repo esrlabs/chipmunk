@@ -2,7 +2,7 @@ import { Observable } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
 import { FormControl } from '@angular/forms';
 import { Entry, EntryConvertable } from '@platform/types/storage/entry';
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 import { Storage } from '@env/fsstorage';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Recent } from './item';

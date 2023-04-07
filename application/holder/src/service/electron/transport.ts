@@ -11,7 +11,7 @@ import {
 import { Subject, Subscription } from 'platform/env/subscription';
 import { ipcMain, IpcMainEvent, BrowserWindow } from 'electron';
 import { Logger } from '@env/logs/index';
-import { error } from 'platform/env/logger';
+import { error } from 'platform/log/utils';
 
 import * as events from 'platform/ipc/setup/channels';
 

@@ -1,7 +1,6 @@
-import * as Logs from '../util/logging';
-
+import { Logger } from 'platform/log';
+import { scope } from 'platform/env/scope';
 import { v4 as uuid } from 'uuid';
-
 import { Subscription } from 'platform/env/subscription';
 import { RustSession, RustSessionConstructor } from '../native/native.session';
 import { EventProvider, ISessionEvents, IError } from '../api/session.provider';
@@ -36,7 +35,7 @@ export class Session {
     private _stream: SessionStream | undefined;
     private _search: SessionSearch | undefined;
     private readonly _uuid: string = uuid();
-    private readonly _logger: Logs.Logger;
+    private readonly _logger: Logger;
     private readonly _subs: Map<string, Subscription> = new Map();
     private _state: ESessionState = ESessionState.available;
     private _debug: {
@@ -58,7 +57,7 @@ export class Session {
     }
 
     constructor(cb: (err: Error | Session) => void) {
-        this._logger = Logs.getLogger(`Session: ${this._uuid}`);
+        this._logger = scope.getLogger(`Session: ${this._uuid}`);
         this._provider = new EventProvider(this._uuid);
         this._session = new RustSessionConstructor(
             this._uuid,

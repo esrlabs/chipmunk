@@ -8,7 +8,7 @@ import { HttpProxyAgent } from 'http-proxy-agent';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { Module } from './module';
 import { version } from '@module/version';
-import { error } from 'platform/env/logger';
+import { error } from 'platform/log/utils';
 import { settings } from '@service/settings';
 import { envvars } from '@loader/envvars';
 import { unique } from 'platform/env/sequence';

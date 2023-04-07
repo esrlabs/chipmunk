@@ -7,7 +7,7 @@ import {
     EApplyTo,
 } from './modifier';
 import { Owner } from '@schema/content/row';
-import { Instance as Logger } from '@platform/env/logger';
+import { Logger } from '@platform/log';
 import { scope } from '@platform/env/scope';
 
 export class ModifierProcessor {

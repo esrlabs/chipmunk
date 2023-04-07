@@ -3,7 +3,8 @@
 // We need to provide path to TypeScript types definitions
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 /// <reference path="../node_modules/@types/node/index.d.ts" />
-
+import { initLogger } from './logger';
+initLogger();
 import { Session, Observe } from '../src/api/session';
 import { finish } from './common';
 import { readConfigurationFile } from './config';

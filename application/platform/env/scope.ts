@@ -1,12 +1,9 @@
 import { Transport } from '../ipc/transport';
-import {
-    InstanceConstructor as LoggerInstanceConstructor,
-    Instance as LoggerInstance,
-} from './logger';
+import { LoggerConstructor, Logger } from '../log';
 
 export class Scope {
     private _transport: Transport | undefined;
-    private _logger: LoggerInstanceConstructor<any> | undefined;
+    private _logger: LoggerConstructor<any> | undefined;
 
     public setTransport(transport: Transport) {
         if (this._transport !== undefined) {
@@ -25,12 +22,12 @@ export class Scope {
         return this._transport;
     }
 
-    public setLogger(logger: LoggerInstanceConstructor<any>) {
+    public setLogger(logger: LoggerConstructor<any>) {
         this._logger = logger;
         new this._logger('@platform').debug(`logger is up`);
     }
 
-    public getLogger(alias: string): LoggerInstance {
+    public getLogger(alias: string): Logger {
         if (this._logger === undefined) {
             throw new Error(`Logger isn't setup`);
         }

@@ -3,7 +3,7 @@ import { ISearchUpdated } from 'platform/types/filter';
 import { Session, IEventIndexedMapUpdated, ISearchValuesUpdated } from 'rustcore';
 import { sessions } from '@service/sessions';
 import { Subscriber } from 'platform/env/subscription';
-import { Instance as Logger } from 'platform/env/logger';
+import { Logger } from 'platform/log';
 import { jobs, aliases } from '@service/jobs';
 
 import * as Events from 'platform/ipc/event';

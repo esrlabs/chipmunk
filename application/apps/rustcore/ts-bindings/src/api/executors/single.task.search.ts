@@ -1,5 +1,4 @@
-import * as Logs from '../../util/logging';
-
+import { scope } from 'platform/env/scope';
 import { RustSession } from '../../native/native.session';
 import { ICancelablePromise } from 'platform/env/promise';
 import { EventProvider } from '../../api/session.provider';
@@ -12,7 +11,7 @@ export class SearchTaskManager extends TaskManager<IFilter[], number> {
     protected readonly session: RustSession;
 
     constructor(provider: EventProvider, session: RustSession, uuid: string) {
-        super(Logs.getLogger(`SearchTaskManager: ${uuid}`));
+        super(scope.getLogger(`SearchTaskManager: ${uuid}`));
         this.provider = provider;
         this.session = session;
     }

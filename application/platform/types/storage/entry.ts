@@ -1,5 +1,5 @@
 import { Subject } from '../../env/subscription';
-import { error } from '../../env/logger';
+import { utils } from '../../log';
 
 import * as obj from '../../env/obj';
 
@@ -25,7 +25,7 @@ export abstract class EntryConvertable {
             entry.content = obj.getAsNotEmptyString(parsed, 'content');
             return entry;
         } catch (e) {
-            return new Error(error(e));
+            return new Error(utils.error(e));
         }
     }
     public static asStr(entry: Entry): string {

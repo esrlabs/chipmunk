@@ -1,5 +1,5 @@
 import { ICancelablePromise, CancelablePromise } from 'platform/env/promise';
-import * as Logs from '../../util/logging';
+import { Logger } from 'platform/log';
 
 export abstract class TaskManager<T, R> {
     protected queue: {
@@ -8,9 +8,9 @@ export abstract class TaskManager<T, R> {
     }[] = [];
     protected running: ICancelablePromise<R> | undefined;
     protected dropping: boolean = false;
-    protected readonly logger: Logs.Logger;
+    protected readonly logger: Logger;
 
-    constructor(logger: Logs.Logger) {
+    constructor(logger: Logger) {
         this.logger = logger;
     }
 

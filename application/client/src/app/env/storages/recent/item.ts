@@ -1,7 +1,7 @@
 import { SafeHtml } from '@angular/platform-browser';
 import { getDomSanitizer } from '@ui/env/globals';
 import { Entry, EntryConvertable } from '@platform/types/storage/entry';
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 import { Matchee } from '@module/matcher';
 
 import * as obj from '@platform/env/obj';

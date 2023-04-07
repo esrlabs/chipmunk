@@ -1,7 +1,7 @@
 import { version } from './version';
 import { net } from './net';
 import { scope } from 'platform/env/scope';
-import { error } from 'platform/env/logger';
+import { error } from 'platform/log/utils';
 
 export async function init(): Promise<void> {
     const logger = scope.getLogger('modules');

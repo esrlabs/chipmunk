@@ -5,7 +5,7 @@ import { Definition } from './definition';
 import { EntryConvertable, Entry } from '@platform/types/storage/entry';
 import { Subject } from '@platform/env/subscription';
 import { unique } from '@platform/env/sequence';
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 import { bridge } from '@service/bridge';
 
 export class Provider implements EntryConvertable {

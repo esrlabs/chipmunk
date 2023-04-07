@@ -1,7 +1,7 @@
 import { Read } from '../io/read';
 import { Write } from '../io/write';
 import { Destroyable } from '../life/destroyable';
-import { error } from '../../env/logger';
+import { utils } from '../../log';
 
 import * as obj from '../../env/obj';
 
@@ -38,7 +38,7 @@ export class Storage {
                         this.storage = stored;
                         resolve();
                     } catch (e) {
-                        return reject(error(e));
+                        return reject(utils.error(e));
                     }
                 })
                 .catch(reject);

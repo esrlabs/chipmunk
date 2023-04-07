@@ -1,4 +1,4 @@
-import { error } from '../env/logger';
+import { utils } from '../log';
 import * as obj from '../env/obj';
 
 export class ShellProfile {
@@ -27,7 +27,7 @@ export class ShellProfile {
             }
             return new ShellProfile(name, path, symlink, envvars);
         } catch (err) {
-            return new Error(error(err));
+            return new Error(utils.error(err));
         }
     }
 
@@ -50,7 +50,7 @@ export class ShellProfile {
             }
             return new ShellProfile(name, path, symlink, envvars);
         } catch (err) {
-            return new Error(error(err));
+            return new Error(utils.error(err));
         }
     }
 

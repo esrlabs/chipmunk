@@ -184,7 +184,7 @@ export class Service extends Implementation {
         this.register(
             Events.IpcEvent.subscribe(Events.Logs.Write.Event, (event: Events.Logs.Write.Event) => {
                 this.clientLogger !== undefined &&
-                    this.clientLogger.write(event.message, event.level);
+                    this.clientLogger.store(event.message, event.level);
             }),
         );
         return Promise.resolve();

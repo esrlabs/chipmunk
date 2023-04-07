@@ -7,7 +7,7 @@ import {
     Packed,
     Errors,
 } from '@platform/ipc/transport/index';
-import { error } from '@platform/env/logger';
+import { error } from '@platform/log/utils';
 import { Subject, Subscription } from '@platform/env/subscription';
 import { IPC, isAvailable } from '@module/ipc';
 import { Logger } from '@log/index';

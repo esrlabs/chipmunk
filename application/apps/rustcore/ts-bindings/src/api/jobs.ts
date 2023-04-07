@@ -1,6 +1,6 @@
 import { CancelablePromise } from 'platform/env/promise';
 import { Base } from '../native/native.jobs';
-import { error } from 'platform/env/logger';
+import { error } from 'platform/log/utils';
 import { IFilter } from '../interfaces/index';
 import { ShellProfile } from 'platform/types/shells';
 
