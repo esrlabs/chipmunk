@@ -7,7 +7,7 @@ import * as path from 'path';
 
 const LOG_FILE = 'chipmunk.indexer.log';
 const HOME = '.chipmunk';
-const FORCED_REPORT_TIMEOUT = 3 * 60 * 1000;
+const FORCED_REPORT_TIMEOUT = 2 * 60 * 1000;
 
 export function getLogger(signature: string): Logger {
     return new Logger(signature);

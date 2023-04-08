@@ -906,7 +906,9 @@ describe('Search', function () {
                                 .canceled(() => {
                                     canceled += 1;
                                 })
-                                .catch(finish.bind(null, session, done));
+                                .catch((err: Error) => {
+                                    finish(session, done);
+                                });
                         });
                     })
                     .catch(finish.bind(null, session, done));
