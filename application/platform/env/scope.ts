@@ -1,6 +1,7 @@
 import { Transport } from '../ipc/transport';
 import { LoggerConstructor, Logger } from '../log';
 import { DefaultLogger } from '../log/defaults';
+import { globals } from './globals';
 
 export class Scope {
     private _transport: Transport | undefined;
@@ -39,4 +40,12 @@ export class Scope {
     }
 }
 
-export const scope = new Scope();
+export const scope = ((): Scope => {
+    const key = 'scope';
+    let scope = globals.get<Scope>(key);
+    if (scope === undefined) {
+        scope = new Scope();
+        globals.set<Scope>(key, scope);
+    }
+    return scope;
+})();

@@ -47,6 +47,7 @@
         "./log/utils": "./dist/log/utils.js",
         "./log/logger": "./dist/log/logger.js",
         "./env": "./dist/env/index.js",
+        "./env/globals": "./dist/env/globals.js",
         "./env/decorators": "./dist/env/decorators.js",
         "./env/filters": "./dist/env/filters.js",
         "./env/hash": "./dist/env/hash.js",
