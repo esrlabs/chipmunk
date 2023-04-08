@@ -1,6 +1,10 @@
 import { getProp, asAnyObj } from '../env/obj';
 import { LOGS_LEVEL_TABLE, Level, NumericLevel } from './levels';
 
+export function cutUuid(uuid: string): string {
+    return uuid.substring(0, 8);
+}
+
 export function isValidLevel(level: string): boolean {
     return getLogLevelFromStr(level) !== undefined;
 }
