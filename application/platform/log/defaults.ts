@@ -5,7 +5,7 @@ let collected: { msg: string; level: Level }[] = [];
 
 export class DefaultLogger extends Base {
     public static getCollectedMessages(): { msg: string; level: Level }[] {
-        let msgs = collected;
+        const msgs = collected;
         collected = [];
         return msgs;
     }
