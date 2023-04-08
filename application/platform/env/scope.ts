@@ -1,5 +1,6 @@
 import { Transport } from '../ipc/transport';
 import { LoggerConstructor, Logger } from '../log';
+import { DefaultLogger } from '../log/defaults';
 
 export class Scope {
     private _transport: Transport | undefined;
@@ -24,14 +25,17 @@ export class Scope {
 
     public setLogger(logger: LoggerConstructor<any>) {
         this._logger = logger;
-        new this._logger('@platform').debug(`logger is up`);
+        const regular: Logger = new this._logger('@platform').debug(`logger is up`);
+        const collected = DefaultLogger.getCollectedMessages();
+        collected.length !== 0 && regular.push(collected);
     }
 
     public getLogger(alias: string): Logger {
         if (this._logger === undefined) {
-            throw new Error(`Logger isn't setup`);
+            return new DefaultLogger(alias);
+        } else {
+            return new this._logger(alias);
         }
-        return new this._logger(alias);
     }
 }
 

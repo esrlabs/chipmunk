@@ -130,7 +130,20 @@ export abstract class Logger {
         };
     }
 
+    public push(msgs: { msg: string; level: Level }[]): void {
+        msgs.forEach((msg) => {
+            this.publish(msg.msg, msg.level);
+        });
+    }
+
     protected publish(msg: string, level: Level): Logger {
+        const defaultsLoggerInUse =
+            typeof (this as any).isDefault === 'function' ? (this as any).isDefault() : false;
+        if (defaultsLoggerInUse) {
+            // With default logger we do not post any logs. As soon as logger will be setup
+            // all collected messages will be passed into regular logger (see "scope" module)
+            return this;
+        }
         if (!state.isWritable(level)) {
             return this;
         }
