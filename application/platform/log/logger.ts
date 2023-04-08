@@ -6,6 +6,7 @@ export type LoggerConstructor<T extends Logger> = new (signature: string, ...arg
 const LEFT_SPACE_ON_LOGGER_SIG = 1;
 const RIGHT_SPACE_ON_LOGGER_SIG = 1;
 const LOG_LEVEL_MAX = 7;
+const MAX_LOG_MESSAGE_LEN = 1000;
 
 declare const console: {
     log(...args: any[]): void;
@@ -172,11 +173,20 @@ export abstract class Logger {
     }
 
     protected log(original: string, level: Level) {
+        const cut = (msg: string): string => {
+            if (msg.length < MAX_LOG_MESSAGE_LEN) {
+                return msg;
+            }
+            return `${msg.substring(0, MAX_LOG_MESSAGE_LEN)}(...cut...)${msg.substring(
+                msg.length - 20,
+                msg.length,
+            )}`;
+        };
         const levelStr = `${level}`;
         const fill = LOG_LEVEL_MAX - levelStr.length;
         const message = `[${this.time()}][${levelStr}${' '.repeat(
             fill > 0 && isFinite(fill) && !isNaN(fill) ? fill : 0,
-        )}][${this._signature}]: ${original}`;
+        )}][${this._signature}]: ${cut(original)}`;
         this.publish(message, level).store(message, level);
         return original;
     }
