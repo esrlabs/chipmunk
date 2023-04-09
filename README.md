@@ -132,3 +132,6 @@ As long as we still have some items on our "Not yet included features" list, we 
 support chipmunk 2.
 
 ![](https://esrlabs.github.io/chipmunk-docs/images/overview_frontpage.png)
+
+## Contributing
+See our [contribution](contribution.md) guide for details
