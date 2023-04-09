@@ -32,6 +32,7 @@ export interface ICancelablePromise<T = void, C = void, EN = string, EH = TEvent
     emit(event: EN, ...args: any[]): void;
     uuid(uuid?: string): string;
     tryToStopCancellation(): boolean;
+    asPromise(): Promise<T>;
     grab(): {
         resolve: (boundCall: boolean, value: T) => void;
         reject: (boundCall: boolean, error: Error) => void;
@@ -44,86 +45,170 @@ export interface ICancelablePromise<T = void, C = void, EN = string, EH = TEvent
     ): CancelablePromise<T, C, EN, EH>;
 }
 
-export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandler>
-    implements ICancelablePromise<T, C, EN, EH>
-{
-    protected readonly _resolvers: Array<TResolver<T>> = [];
-    protected readonly _rejectors: TRejector[] = [];
-    protected readonly _cancelers: Array<TCanceler<C>> = [];
-    protected readonly _finishes: TFinally[] = [];
-    protected readonly _handlers: Map<EN, EH[]> = new Map();
-    protected readonly _bound: ICancelablePromise<T, C, EN, EH>[] = [];
-    protected _cancellation: TCanceler<C> | undefined;
-    private _uuid: string = unique();
-    private _canceled: boolean = false;
-    private _canceling: boolean = false;
-    private _resolved: boolean = false;
-    private _rejected: boolean = false;
-    private _finished: boolean = false;
+class PromiseBinding<T = void, C = void, EN = string, EH = TEventHandler> {
+    protected readonly bound: CancelablePromise<T, C, EN, EH>[] = [];
 
-    constructor(executor: TExecutor<T, C, EN, EH>) {
-        const self = this;
-        // Create and execute native promise
-        new Promise<T>((resolve: TResolver<T>, reject: TRejector) => {
-            executor(
-                resolve,
-                reject,
-                this._doCancel.bind(this, false),
-                this._refCancellationCallback.bind(this),
-                self,
-            );
-        })
-            .then(this._doResolve.bind(this, false))
-            .catch(this._doReject.bind(this, false));
+    public bind(
+        source: ICancelablePromise<T, C, EN, EH>,
+        boundCall?: boolean,
+    ): CancelablePromise<T, C, EN, EH> {
+        this.bound.push(source as CancelablePromise<T, C, EN, EH>);
+        !(boundCall === undefined ? false : boundCall) && source.bind(this.promise(), true);
+        return this.promise();
     }
 
+    protected promise(): CancelablePromise<T, C, EN, EH> {
+        return this as unknown as CancelablePromise<T, C, EN, EH>;
+    }
+}
+
+class PromiseResolutions<
+    T = void,
+    C = void,
+    EN = string,
+    EH = TEventHandler,
+> extends PromiseBinding<T, C, EN, EH> {
+    protected readonly resolvers: Array<TResolver<T>> = [];
+    protected readonly rejectors: TRejector[] = [];
+    protected readonly cancelers: Array<TCanceler<C>> = [];
+    protected readonly finishes: TFinally[] = [];
+    protected resolved: boolean = false;
+    protected rejected: boolean = false;
+    protected finished: boolean = false;
+
     public then(callback: TResolver<T>): CancelablePromise<T, C, EN, EH> {
-        this._resolvers.push(callback);
-        return this;
+        this.resolvers.push(callback);
+        return this.promise();
     }
 
     public catch(callback: TRejector): CancelablePromise<T, C, EN, EH> {
-        this._rejectors.push(callback);
-        return this;
+        this.rejectors.push(callback);
+        return this.promise();
     }
 
     public finally(callback: TFinally): CancelablePromise<T, C, EN, EH> {
-        this._finishes.push(callback);
-        return this;
+        this.finishes.push(callback);
+        return this.promise();
     }
 
     public canceled(callback: TCanceler<C>): CancelablePromise<T, C, EN, EH> {
-        this._cancelers.push(callback);
-        return this;
+        this.cancelers.push(callback);
+        return this.promise();
     }
+}
 
-    public abort(reason: C): CancelablePromise<T, C, EN, EH> {
-        if (this._cancellation === undefined) {
-            this._doCancel(false, reason);
-        } else {
-            this._doCancellation(reason);
-        }
-        return this;
-    }
+class PromiseEvents<T = void, C = void, EN = string, EH = TEventHandler> extends PromiseResolutions<
+    T,
+    C,
+    EN,
+    EH
+> {
+    protected readonly handlers: Map<EN, EH[]> = new Map();
 
     public on(event: EN, handler: EH): CancelablePromise<T, C, EN, EH> {
         if (typeof event !== 'string' || event.trim() === '') {
-            return this;
+            return this.promise();
         }
         if (typeof handler !== 'function') {
-            return this;
+            return this.promise();
         }
-        let handlers: any[] | undefined = this._handlers.get(event);
+        let handlers: any[] | undefined = this.handlers.get(event);
         if (handlers === undefined) {
             handlers = [];
         }
         handlers.push(handler);
-        this._handlers.set(event, handlers);
-        return this;
+        this.handlers.set(event, handlers);
+        return this.promise();
     }
 
+    public emit(event: EN, ...args: any[]): void {
+        const handlers: EH[] | undefined = this.handlers.get(event);
+        if (handlers === undefined) {
+            return;
+        }
+        handlers.forEach((handler: EH) => {
+            if (typeof handler !== 'function') {
+                return;
+            }
+            handler(...args);
+        });
+    }
+
+    protected unsubscribe(): void {
+        this.handlers.clear();
+    }
+}
+
+class PromiseCancellation<
+    T = void,
+    C = void,
+    EN = string,
+    EH = TEventHandler,
+> extends PromiseEvents<T, C, EN, EH> {
+    protected delegation: TCanceler<C> | undefined;
+    protected cancellation: {
+        cancelled: boolean;
+        cancelling: boolean;
+    } = {
+        cancelled: false,
+        cancelling: false,
+    };
+
+    public tryToStopCancellation(): boolean {
+        if (this.cancellation.cancelled) {
+            return false;
+        }
+        this.cancellation.cancelling = false;
+        return true;
+    }
+
+    public isCanceling(): boolean {
+        return this.cancellation.cancelling || this.cancellation.cancelled;
+    }
+
+    protected tryToDelegateCancellation(reason?: C): boolean {
+        const delegation: TCanceler<C> | undefined = this.findCancellationDelegation();
+        if (delegation === undefined) {
+            return false;
+        }
+        this.cancellation.cancelling = true;
+        delegation(reason);
+        return true;
+    }
+
+    protected setCancellationDelegation(delegation: TCanceler<C>) {
+        this.delegation = delegation;
+    }
+
+    protected getCancellationDelegation(): TCanceler<C> | undefined {
+        return this.delegation;
+    }
+
+    protected findCancellationDelegation(): TCanceler<C> | undefined {
+        const delegations: TCanceler<C>[] = this.bound
+            .map((bound) => bound.getCancellationDelegation())
+            .filter((delegation) => delegation !== undefined) as TCanceler<C>[];
+        this.delegation !== undefined && delegations.push(this.delegation);
+        if (delegations.length === 0) {
+            return undefined;
+        }
+        if (delegations.length !== 1) {
+            throw new Error(
+                `Multiple delegation callbacks are defined for bound promises. Only one can be defined.`,
+            );
+        }
+        return delegations[0];
+    }
+}
+
+class PromiseStates<
+    T = void,
+    C = void,
+    EN = string,
+    EH = TEventHandler,
+> extends PromiseCancellation<T, C, EN, EH> {
     public isProcessing(): boolean {
-        if (this._resolved || this._rejected || this._canceled || this._canceling) {
+        if (this.resolved || this.rejected || this.finished || this.cancellation.cancelled) {
             return false;
         }
         return true;
@@ -133,56 +218,94 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
         return !this.isProcessing();
     }
 
-    public isCanceling(): boolean {
-        return this._canceling || this._canceled;
+    protected set(): {
+        resolved(): void;
+        rejected(): void;
+        finished(): void;
+        cancelling(): void;
+        cancelled(): void;
+    } {
+        return {
+            resolved: (): void => {
+                this.resolved = true;
+            },
+            rejected: (): void => {
+                this.rejected = true;
+            },
+            finished: (): void => {
+                this.finished = true;
+            },
+            cancelling: (): void => {
+                this.cancellation.cancelling = true;
+            },
+            cancelled: (): void => {
+                this.cancellation.cancelled = true;
+            },
+        };
     }
+}
 
-    public emit(event: EN, ...args: any[]): void {
-        const handlers: EH[] | undefined = this._handlers.get(event);
-        if (handlers === undefined) {
+class PromiseWorkflow<T = void, C = void, EN = string, EH = TEventHandler> extends PromiseStates<
+    T,
+    C,
+    EN,
+    EH
+> {
+    protected doResolve(boundCall: boolean, value: T) {
+        this.unsubscribe();
+        if (this.isCanceling() || this.isCompleted()) {
             return;
         }
-        handlers.forEach((handler: EH) => {
-            if (typeof handler !== 'function') {
-                return;
-            }
-            try {
-                handler(...args);
-            } catch (err) {
-                this._doReject(
-                    false,
-                    new Error(
-                        `Promise is rejected, because handler of event "${event}" finished due error: ${
-                            err instanceof Error ? err.message : err
-                        }`,
-                    ),
-                );
-            }
-        });
+        this.set().resolved();
+        this.resolvers.forEach((resolver: TResolver<T>) => resolver(value));
+        !boundCall && this.bound.forEach((bound) => bound.grab().resolve(true, value));
+        this.doFinally(false);
     }
 
-    public uuid(uuid?: string): string {
-        if (typeof uuid === 'string') {
-            this._uuid = uuid;
+    protected doReject(boundCall: boolean, error: Error) {
+        this.unsubscribe();
+        if (this.isCanceling() || this.isCompleted()) {
+            return;
         }
-        return this._uuid;
+        this.set().rejected();
+        this.rejectors.forEach((rejector: TRejector) => rejector(error));
+        !boundCall && this.bound.forEach((bound) => bound.grab().reject(true, error));
+        this.doFinally(false);
     }
 
-    public tryToStopCancellation(): boolean {
-        if (this._canceled) {
-            return false;
+    protected doFinally(boundCall: boolean) {
+        this.unsubscribe();
+        if (this.finished) {
+            return;
         }
-        this._canceling = false;
-        return true;
+        this.set().finished();
+        this.finishes.forEach((final: TFinally) => final());
+        !boundCall && this.bound.forEach((bound) => bound.grab().finally(true));
     }
 
-    public bind(
-        source: ICancelablePromise<T, C, EN, EH>,
-        boundCall?: boolean,
-    ): CancelablePromise<T, C, EN, EH> {
-        this._bound.push(source);
-        !(boundCall === undefined ? false : boundCall) && source.bind(this, true);
-        return this;
+    protected doCancel(boundCall: boolean, reason?: C) {
+        this.unsubscribe();
+        if (this.resolved || this.rejected || this.cancellation.cancelled) {
+            // Doesn't make sence to cancel, because it was resolved or rejected or canceled already
+            return;
+        }
+        this.set().cancelled();
+        this.cancelers.forEach((cancler: TCanceler<C>) => cancler(reason));
+        !boundCall && this.bound.forEach((bound) => bound.grab().cancel(true, reason));
+        this.doFinally(false);
+    }
+
+    public abort(reason: C): CancelablePromise<T, C, EN, EH> {
+        if (this.isCompleted()) {
+            return this.promise();
+        }
+        if (this.isCanceling()) {
+            return this.promise();
+        }
+        if (!this.tryToDelegateCancellation(reason)) {
+            this.doCancel(false, reason);
+        }
+        return this.promise();
     }
 
     public grab(): {
@@ -192,78 +315,52 @@ export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandl
         finally: (boundCall: boolean) => void;
     } {
         return {
-            resolve: this._doResolve.bind(this),
-            reject: this._doReject.bind(this),
-            cancel: this._doCancel.bind(this),
-            finally: this._doFinally.bind(this),
+            resolve: this.doResolve.bind(this),
+            reject: this.doReject.bind(this),
+            cancel: this.doCancel.bind(this),
+            finally: this.doFinally.bind(this),
         };
+    }
+}
+
+export class CancelablePromise<T = void, C = void, EN = string, EH = TEventHandler>
+    extends PromiseWorkflow<T, C, EN, EH>
+    implements ICancelablePromise<T, C, EN, EH>
+{
+    private _uuid: string = unique();
+
+    constructor(executor: TExecutor<T, C, EN, EH>) {
+        super();
+        const self = this;
+        // Create and execute native promise
+        new Promise<T>((resolve: TResolver<T>, reject: TRejector) => {
+            executor(
+                resolve,
+                reject,
+                this.doCancel.bind(this, false),
+                this.setCancellationDelegation.bind(this),
+                self as unknown as CancelablePromise<T, C, EN, EH>,
+            );
+        })
+            .then(this.doResolve.bind(this, false))
+            .catch(this.doReject.bind(this, false));
+    }
+
+    public uuid(uuid?: string): string {
+        if (typeof uuid === 'string') {
+            this._uuid = uuid;
+        }
+        return this._uuid;
     }
 
     public asPromise(): Promise<T> {
         return new Promise((resolve, reject) => {
             this.then(resolve);
             this.catch(reject);
+            this.canceled(() => {
+                reject(new Error(`Promise is cancelled`));
+            });
         });
-    }
-
-    private _refCancellationCallback(callback: TCanceler<C>) {
-        this._cancellation = callback;
-    }
-
-    private _doResolve(boundCall: boolean, value: T) {
-        this._handlers.clear();
-        if (this._canceled || this._canceling) {
-            return;
-        }
-        this._resolved = true;
-        this._resolvers.forEach((resolver: TResolver<T>) => resolver(value));
-        !boundCall && this._bound.forEach((bound) => bound.grab().resolve(true, value));
-        this._doFinally(false);
-    }
-
-    private _doReject(boundCall: boolean, error: Error) {
-        this._handlers.clear();
-        if (this._canceled || this._canceling) {
-            return;
-        }
-        this._rejected = true;
-        this._rejectors.forEach((rejector: TRejector) => rejector(error));
-        !boundCall && this._bound.forEach((bound) => bound.grab().reject(true, error));
-        this._doFinally(false);
-    }
-
-    private _doFinally(boundCall: boolean) {
-        this._handlers.clear();
-        if (this._finished) {
-            return;
-        }
-        this._finished = true;
-        this._finishes.forEach((final: TFinally) => final());
-        !boundCall && this._bound.forEach((bound) => bound.grab().finally(true));
-    }
-
-    private _doCancel(boundCall: boolean, reason?: C) {
-        this._handlers.clear();
-        if (this._resolved || this._rejected || this._canceled) {
-            // Doesn't make sence to cancel, because it was resolved or rejected or canceled already
-            return;
-        }
-        this._canceled = true;
-        this._cancelers.forEach((cancler: TCanceler<C>) => cancler(reason));
-        !boundCall && this._bound.forEach((bound) => bound.grab().cancel(true, reason));
-        this._doFinally(false);
-    }
-
-    private _doCancellation(reason?: C) {
-        if (this._cancellation === undefined) {
-            return;
-        }
-        if (this._resolved || this._rejected || this._canceled || this._canceling) {
-            // Doesn't make sence to cancel, because it was resolved or rejected or canceled already
-            return;
-        }
-        this._canceling = true;
-        this._cancellation(reason);
     }
 }
 

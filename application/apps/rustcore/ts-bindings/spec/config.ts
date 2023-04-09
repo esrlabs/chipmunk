@@ -74,6 +74,9 @@ export interface IConfiguration {
         map: {
             regular: IRegularTests;
         };
+        promises: {
+            regular: IRegularTests;
+        };
     };
 }
 

@@ -208,6 +208,22 @@
                     }
                 }
             }
+        },
+        "promises": {
+            "regular": {
+                "execute_only": [],
+                "list": {
+                    "1": "Test 1. Regular",
+                    "2": "Test 2. Cancellation",
+                    "3": "Test 3. Cancellation delegation",
+                    "4": "Test 4. Resolving bound",
+                    "5": "Test 5. Rejecting bound",
+                    "6": "Test 6. Cancel bound",
+                    "7": "Test 7. Bound cancellation delegation"
+                },
+                "files": {
+                }
+            }
         }
     }
 }
