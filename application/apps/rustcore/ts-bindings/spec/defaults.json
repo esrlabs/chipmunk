@@ -219,7 +219,8 @@
                     "4": "Test 4. Resolving bound",
                     "5": "Test 5. Rejecting bound",
                     "6": "Test 6. Cancel bound",
-                    "7": "Test 7. Bound cancellation delegation"
+                    "7": "Test 7. Bound cancellation delegation",
+                    "8": "Test 8. Events"
                 },
                 "files": {
                 }
