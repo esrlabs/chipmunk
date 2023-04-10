@@ -156,7 +156,7 @@ describe('Promises', function () {
         }
         let resolved = 0;
         let rejected = 0;
-        const a = new CancelablePromise((resolve, reject) => {
+        const a = new CancelablePromise((_resolve, reject) => {
             setTimeout(() => {
                 reject(new Error('Dummy error'));
             }, 50);
@@ -193,7 +193,7 @@ describe('Promises', function () {
         let resolved = 0;
         let rejected = 0;
         let canceled = 0;
-        const a = new CancelablePromise((resolve, reject, cancel) => {
+        const a = new CancelablePromise((_resolve, _reject, cancel) => {
             setTimeout(cancel, 50);
         })
             .then(() => {
@@ -236,7 +236,7 @@ describe('Promises', function () {
         let rejected = 0;
         let canceled = 0;
         let delegated = false;
-        const a = new CancelablePromise((resolve, reject, cancel, setCancelDelegation) => {
+        const a = new CancelablePromise((_resolve, _reject, cancel, setCancelDelegation) => {
             setCancelDelegation(() => {
                 setTimeout(() => {
                     delegated = true;
@@ -274,6 +274,75 @@ describe('Promises', function () {
                 expect(rejected).toBe(0);
                 expect(delegated).toBe(true);
                 finish(undefined, done, undefined);
+            })
+            .catch((err: Error) => {
+                finish(undefined, done, err);
+            });
+    });
+
+    it(config.regular.list[8], function (done) {
+        if (ingore(8, done)) {
+            return;
+        }
+        let resolved = 0;
+        let rejected = 0;
+        let canceled = 0;
+        let emitted = 0;
+        let delegated = false;
+        const a = new CancelablePromise((_resolve, _reject, cancel, setCancelDelegation, self) => {
+            setCancelDelegation(() => {
+                setTimeout(() => {
+                    delegated = true;
+                    cancel();
+                }, 100);
+            });
+        })
+            .then(() => {
+                resolved += 1;
+            })
+            .canceled(() => {
+                canceled += 1;
+            })
+            .catch(() => {
+                rejected += 1;
+            })
+            .on('test', (event) => {
+                expect(event).toBe(42);
+                emitted += 1;
+            });
+        a.emit('test', 42);
+        const b = new CancelablePromise((_resolve, _reject) => {})
+            .then(() => {
+                resolved += 1;
+            })
+            .canceled(() => {
+                canceled += 1;
+            })
+            .catch(() => {
+                rejected += 1;
+            })
+            .on('test', (event) => {
+                expect(event).toBe(42);
+                emitted += 1;
+            });
+        a.bind(b);
+        setTimeout(() => {
+            b.abort();
+        }, 50);
+        Promise.allSettled([a.asPromise(), b.asPromise()])
+            .then(() => {
+                // This event should ignored, because promise already finished
+                a.emit('test', 42);
+                b.emit('test', 42);
+                // Check results with delay to make sure nothing useless happens
+                setTimeout(() => {
+                    expect(resolved).toBe(0);
+                    expect(canceled).toBe(2);
+                    expect(rejected).toBe(0);
+                    expect(emitted).toBe(1);
+                    expect(delegated).toBe(true);
+                    finish(undefined, done, undefined);
+                }, 100);
             })
             .catch((err: Error) => {
                 finish(undefined, done, err);
