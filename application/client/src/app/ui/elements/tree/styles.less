@@ -57,13 +57,10 @@ app-elements-tree {
         outline: none;
         & mat-tree {
             background: none;
-            & button {
-                margin-top: -8px;
-            }
         }
         & mat-tree-node {
             position: relative;
-            min-height: 24px;
+            min-height: 18px;
             border: solid thin rgba(0,0,0,0);
             &[data-selected="true"] {
                 &:after {
@@ -89,9 +86,11 @@ app-elements-tree {
                 background: @scheme-color-hover;
             }
             & button {
-                line-height: 24px;
-                width: 24px;
-                height: 24px;
+                line-height: 18px!important;
+                width: 18px!important;
+                height: 18px!important;
+                padding: 0!important;
+                overflow: hidden;
             }
             & mat-icon {
                 height: 18px;

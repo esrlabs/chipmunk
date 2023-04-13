@@ -11,9 +11,8 @@ const entryComponents = [ViewWorkspace, ViewContentMapComponent, ColumnsHeaders]
 const components = [ViewWorkspace, ...entryComponents];
 
 @NgModule({
-    entryComponents: [...entryComponents],
     imports: [CommonModule, ContainersModule, ScrollAreaModule, AppDirectiviesModule],
     declarations: [...components],
-    exports: [...components, ScrollAreaModule],
+    exports: [...components, ScrollAreaModule]
 })
 export class WorkspaceModule {}

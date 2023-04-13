@@ -9,7 +9,6 @@ import { MatDividerModule } from '@angular/material/divider';
 import { Jobs } from './component';
 
 @NgModule({
-    entryComponents: [Jobs],
     imports: [
         CommonModule,
         MatProgressSpinnerModule,
@@ -19,6 +18,6 @@ import { Jobs } from './component';
         MatDividerModule,
     ],
     declarations: [Jobs],
-    exports: [Jobs],
+    exports: [Jobs]
 })
 export class JobsModule {}

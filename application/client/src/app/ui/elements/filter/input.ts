@@ -1,8 +1,8 @@
-import { FormControl } from '@angular/forms';
+import { UntypedFormControl } from '@angular/forms';
 import { Filter } from './filter';
 
 export class FilterInput {
-    public control: FormControl = new FormControl();
+    public control: UntypedFormControl = new UntypedFormControl();
     protected filter: Filter;
 
     constructor(filter: Filter) {

@@ -1,11 +1,17 @@
-@import '../../../../node_modules/@angular/material/theming';
+@use '@angular/material' as mat;
 
-@include mat-core();
+@include mat.core();
 
-$custom-theme-primary: mat-palette($mat-grey);
-$custom-theme-accent: mat-palette($mat-grey, A200, A100, A400);
-$custom-theme-warn: mat-palette($mat-grey);
+$my-primary: mat.define-palette(mat.$gray-palette, 500);
+$my-accent: mat.define-palette(mat.$gray-palette, A200, A100, A400);
 
-$custom-theme: mat-dark-theme($custom-theme-primary, $custom-theme-accent, $custom-theme-warn);
+$my-theme: mat.define-dark-theme((
+ color: (
+   primary: $my-primary,
+   accent: $my-accent,
+ ),
+ typography: mat.define-typography-config(),
+ density: 0,
+));
 
-@include angular-material-theme($custom-theme);
+@include mat.all-component-themes($my-theme);

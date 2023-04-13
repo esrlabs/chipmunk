@@ -20,7 +20,6 @@ import { SourcesCommonModule } from '../common/module';
 import { TabSourceDltStream } from './component';
 
 @NgModule({
-    entryComponents: [TabSourceDltStream],
     imports: [
         CommonModule,
         FormsModule,
@@ -43,6 +42,6 @@ import { TabSourceDltStream } from './component';
     ],
     declarations: [TabSourceDltStream],
     exports: [TabSourceDltStream],
-    bootstrap: [TabSourceDltStream],
+    bootstrap: [TabSourceDltStream]
 })
 export class TabSourceDltStreamModule {}

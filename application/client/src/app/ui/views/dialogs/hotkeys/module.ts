@@ -4,10 +4,9 @@ import { CommonModule } from '@angular/common';
 import { Hotkeys } from './component';
 
 @NgModule({
-    entryComponents: [Hotkeys],
     imports: [CommonModule],
     declarations: [Hotkeys],
     exports: [Hotkeys],
-    bootstrap: [Hotkeys],
+    bootstrap: [Hotkeys]
 })
 export class HotkeysModule {}

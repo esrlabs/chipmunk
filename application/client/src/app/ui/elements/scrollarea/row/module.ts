@@ -15,7 +15,6 @@ import { ContainersModule } from '@elements/containers/module';
 const components = [RowComponent, Standard, Columns, Separator];
 
 @NgModule({
-    entryComponents: [...components],
     imports: [
         CommonModule,
         ScrollingModule,
@@ -26,6 +25,6 @@ const components = [RowComponent, Standard, Columns, Separator];
     ],
     declarations: [...components],
     exports: [...components],
-    bootstrap: [...components],
+    bootstrap: [...components]
 })
 export class RowModule {}

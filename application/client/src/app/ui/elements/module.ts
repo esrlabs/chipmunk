@@ -15,7 +15,6 @@ import { FolderInputModule } from '@elements/folderinput/module';
 import { FavoritesModule } from '@elements/favorites/module';
 
 @NgModule({
-    entryComponents: [ComTooltipComponent],
     imports: [
         CommonModule,
         ContainersModule,
@@ -56,6 +55,6 @@ import { FavoritesModule } from '@elements/favorites/module';
         AutocompleteModule,
         FolderInputModule,
         FavoritesModule,
-    ],
+    ]
 })
 export class ElementsModule {}

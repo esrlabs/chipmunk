@@ -5,7 +5,7 @@
     display: flex;
     position: relative;
     flex-flow: row;
-    padding: 3px 12px 5px 0;
+    padding: 3px 0px 5px 0;
     overflow: hidden;
     height: 20px;
     cursor: default;
@@ -14,6 +14,7 @@
         display: flex;
         flex: auto;
         align-items: center;
+        font-size: 13px;
     }
     span.color {
         flex: 0;
@@ -49,13 +50,11 @@
     span.flags {
         flex: 0;
         white-space: nowrap;
-        width: 60px;
+        width: auto;
         transition: all 150ms ease-in-out;
-        padding-right: 8px;
         & span {
             font-size: 14px;
             line-height: 14px;
-            padding: 0px 4px 2px 4px;
             vertical-align: bottom;
             cursor: default;
             &.active{

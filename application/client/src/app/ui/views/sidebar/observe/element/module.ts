@@ -12,9 +12,8 @@ const entryComponents = [Item, FileItem, ProcessItem, SerialItem, TCPItem, UDPIt
 const components = [...entryComponents];
 
 @NgModule({
-    entryComponents: [...entryComponents],
     imports: [CommonModule],
     declarations: [...components],
-    exports: [...components],
+    exports: [...components]
 })
 export class ElementModule {}

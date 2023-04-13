@@ -9,9 +9,8 @@ const entryComponents = [List];
 const components = [...entryComponents];
 
 @NgModule({
-    entryComponents: [...entryComponents],
     imports: [CommonModule, ElementModule, CommonObserveModule, QuickSetupModule],
     declarations: [...components],
-    exports: [...components],
+    exports: [...components]
 })
 export class ListModule {}

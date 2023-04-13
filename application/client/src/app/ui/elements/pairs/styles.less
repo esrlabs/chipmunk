@@ -10,6 +10,12 @@ app-elements-pairs {
         width: 100%;
         max-width: 100%;
     }
+    tr[mat-row] {
+        height: auto!important;
+        td[mat-cell] {
+            padding: 8px 16px;
+        }
+    }
     & div.filter {
         position: sticky;
         z-index: 1000;
@@ -20,10 +26,20 @@ app-elements-pairs {
         box-shadow: 3px 3px 3px rgb(0 0 0 / 40%);
         border-radius: 3px;
     }
+    & span.name {
+        white-space: nowrap;
+        max-width: 300px;
+        overflow: hidden;
+        display: inline-block;
+        text-overflow: ellipsis;
+        font-weight: 300;
+    }
+    & span.value {
+        white-space: normal;
+    }
     & span.name,
     & span.value{
         word-break: break-all;
-        white-space: normal;
         & > span {
             background-color: @scheme-color-3;
             color: @scheme-color-1;

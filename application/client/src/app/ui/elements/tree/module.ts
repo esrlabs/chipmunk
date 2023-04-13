@@ -15,7 +15,6 @@ import { InputListenerDirective } from '@ui/env/directives/input';
 const components = [ElementsTreeSelector, InputListenerDirective];
 
 @NgModule({
-    entryComponents: [...components],
     imports: [
         CommonModule,
         MatTreeModule,
@@ -27,6 +26,6 @@ const components = [ElementsTreeSelector, InputListenerDirective];
         MatProgressSpinnerModule,
     ],
     declarations: [...components],
-    exports: [...components],
+    exports: [...components]
 })
 export class TreeModule {}

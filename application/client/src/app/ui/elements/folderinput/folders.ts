@@ -1,6 +1,6 @@
 import { Observable } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
-import { FormControl } from '@angular/forms';
+import { UntypedFormControl } from '@angular/forms';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { bridge } from '@service/bridge';
 import { Folder } from './folder';
@@ -12,11 +12,11 @@ export class FoldersList extends Holder {
     public parent: string = '/';
     public observer!: Observable<Folder[]>;
 
-    protected readonly control: FormControl;
+    protected readonly control: UntypedFormControl;
     protected previous: string = '';
     protected delimiter: string = '';
 
-    constructor(control: FormControl) {
+    constructor(control: UntypedFormControl) {
         super();
         this.control = control;
         this.setLoggerName(`FolderListController`);

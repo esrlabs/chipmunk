@@ -5,9 +5,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Session } from './component';
 
 @NgModule({
-    entryComponents: [Session],
     imports: [CommonModule, MatProgressSpinnerModule],
     declarations: [Session],
-    exports: [Session],
+    exports: [Session]
 })
 export class SessionModule {}

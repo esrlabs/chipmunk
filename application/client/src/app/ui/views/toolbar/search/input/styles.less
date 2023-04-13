@@ -9,20 +9,18 @@ app-views-search-input {
     background: @scheme-color-5;
     overflow: hidden;
     justify-content: center;
+    align-items: center;
     div.input {
         display: block;
-        flex:auto;
-        &.has-error {
-            .mat-form-field-outline-end,
-            .mat-form-field-outline-start {
-                border-color: @scheme-color-error!important;
-            }
-        }
+        flex: auto;
+        height: 24px;
+        overflow: hidden;
+        align-items: center;
     }
     div.flags,
     div.extantions {
         display: flex;
-        padding: 5px 8px 0 8px;
+        padding: 0px 8px 0 8px;
         & span {
             display: inline-block;
             height: 24px;

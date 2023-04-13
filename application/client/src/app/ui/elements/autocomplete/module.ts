@@ -10,7 +10,6 @@ import { MatOptionModule } from '@angular/material/core';
 import { AutocompleteInput } from './component';
 
 @NgModule({
-    entryComponents: [AutocompleteInput],
     imports: [
         CommonModule,
         FormsModule,
@@ -22,6 +21,6 @@ import { AutocompleteInput } from './component';
         MatOptionModule,
     ],
     declarations: [AutocompleteInput],
-    exports: [AutocompleteInput],
+    exports: [AutocompleteInput]
 })
 export class AutocompleteModule {}

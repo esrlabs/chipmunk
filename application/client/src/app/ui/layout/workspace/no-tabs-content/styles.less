@@ -11,45 +11,31 @@ app-layout-area-no-tabs-content {
     & * {
         color: @scheme-color-0;
     }
-    mat-card {
-        margin: 12px 6px 12px 12px;
-        & mat-card-title {
-            color: @scheme-color-1;
-        }
-        & mat-card-subtitle {
-            color: @scheme-color-3;
-        }
-        &.no-left-margin {
-            margin-left: 6px;
-        }
-    }
     h1 {
         font-size: 14px;
     }
-    & button {
-        position: relative;
-        display: block;
-        margin: 0;
-        width: 100%;
-    }
-    & mat-card-content.menu-buttons {
+    & .menu-buttons {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
         text-align: center;
+        align-self: center;
     }
     & button.menu-button {
-        width: 78px;
-        display: inline-block;
-        margin: 6px 6px;
-        padding: 6px;
-        & span.mat-button-wrapper{
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            & mat-icon {
-                display: block;
-            }
-            & span {
-                display: block;
-            }
+        width: 82px;
+        height: 80px!important;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-left: 8px;
+        &:first-child{
+            margin-left: 0;
+        }
+        & mat-icon {
+            margin-top: 8px;
+            margin-bottom: 8px;
+            margin-right: 0!important;
+            margin-left: 0!important;
         }
     }
     & div.left {

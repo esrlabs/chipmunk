@@ -9,7 +9,6 @@ import { ScrollAreaModule } from '@elements/scrollarea/module';
 import { ContainersModule } from '@elements/containers/module';
 
 @NgModule({
-    entryComponents: [],
     imports: [
         CommonModule,
         ContainersModule,
@@ -21,6 +20,6 @@ import { ContainersModule } from '@elements/containers/module';
     ],
     declarations: [],
     exports: [ScrollAreaModule, WorkspaceModule, ToolbarModule, SidebarModule, DialogsModule],
-    bootstrap: [ScrollAreaModule, WorkspaceModule, ToolbarModule, SidebarModule, DialogsModule],
+    bootstrap: [ScrollAreaModule, WorkspaceModule, ToolbarModule, SidebarModule, DialogsModule]
 })
 export class ViewsModule {}

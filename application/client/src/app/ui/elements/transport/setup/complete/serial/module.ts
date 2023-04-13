@@ -15,7 +15,6 @@ import { BaseModule } from '../../bases/serial/module';
 import { Setup } from './component';
 
 @NgModule({
-    entryComponents: [Setup],
     imports: [
         CommonModule,
         FormsModule,
@@ -33,6 +32,6 @@ import { Setup } from './component';
         BaseModule,
     ],
     declarations: [Setup],
-    exports: [Setup],
+    exports: [Setup]
 })
 export class SetupModule {}

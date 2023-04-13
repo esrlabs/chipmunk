@@ -6,9 +6,8 @@ export { HiddenFilter } from './component';
 
 const components = [HiddenFilter];
 @NgModule({
-    entryComponents: [...components],
     imports: [CommonModule],
     declarations: [...components],
-    exports: [...components],
+    exports: [...components]
 })
 export class HiddenFilterModule {}

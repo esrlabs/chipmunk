@@ -20,7 +20,6 @@ const entryComponents = [TabSourcePcapFile];
 const components = [TabSourcePcapFile];
 
 @NgModule({
-    entryComponents: [...entryComponents],
     imports: [
         CommonModule,
         FormsModule,
@@ -40,6 +39,6 @@ const components = [TabSourcePcapFile];
     ],
     declarations: [...components],
     exports: [...components],
-    bootstrap: [...components],
+    bootstrap: [...components]
 })
 export class TabSourcePcapFileModule {}

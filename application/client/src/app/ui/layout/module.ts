@@ -54,7 +54,6 @@ const entryComponents = [
 ];
 
 @NgModule({
-    entryComponents: [...entryComponents],
     imports: [
         CommonModule,
         ContainersModule,
@@ -74,6 +73,6 @@ const entryComponents = [
     ],
     declarations: [...entryComponents],
     exports: [...entryComponents, AppDirectiviesModule],
-    bootstrap: [...entryComponents, LayoutHomeModule, ElementsModule],
+    bootstrap: [...entryComponents, LayoutHomeModule, ElementsModule]
 })
 export class LayoutModule {}

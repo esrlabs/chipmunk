@@ -8,9 +8,8 @@ const entryComponents = [Details];
 const components = [...entryComponents];
 
 @NgModule({
-    entryComponents: [...entryComponents],
     imports: [CommonModule, MatIconModule, MatButtonModule],
     declarations: [...components],
-    exports: [...components],
+    exports: [...components]
 })
 export class DetailsModule {}

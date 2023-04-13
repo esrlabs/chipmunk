@@ -26,7 +26,6 @@ const components = [
     RecentFileBase,
 ];
 @NgModule({
-    entryComponents: [...components],
     imports: [
         CommonModule,
         ContainersModule,
@@ -36,6 +35,6 @@ const components = [
         HiddenFilterModule,
     ],
     declarations: [...components],
-    exports: [...components],
+    exports: [...components]
 })
 export class RecentActionsModule {}

@@ -15,7 +15,6 @@ import { Available } from './port/components';
 import { Options } from './options/component';
 
 @NgModule({
-    entryComponents: [Available, Options],
     imports: [
         CommonModule,
         FormsModule,
@@ -32,6 +31,6 @@ import { Options } from './options/component';
         MatRadioModule,
     ],
     declarations: [Available, Options],
-    exports: [Available, Options],
+    exports: [Available, Options]
 })
 export class BaseModule {}

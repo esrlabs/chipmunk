@@ -5,9 +5,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { Transport } from './component';
 
 @NgModule({
-    entryComponents: [Transport],
     imports: [CommonModule, MatIconModule],
     declarations: [Transport],
-    exports: [Transport],
+    exports: [Transport]
 })
 export class TransportReviewModule {}

@@ -14,7 +14,6 @@ import { QuickSetup } from './component';
 import { BaseModule } from '../../bases/udp/module';
 
 @NgModule({
-    entryComponents: [QuickSetup],
     imports: [
         CommonModule,
         FormsModule,
@@ -30,6 +29,6 @@ import { BaseModule } from '../../bases/udp/module';
         BaseModule,
     ],
     declarations: [QuickSetup],
-    exports: [QuickSetup],
+    exports: [QuickSetup]
 })
 export class QuickSetupModule {}

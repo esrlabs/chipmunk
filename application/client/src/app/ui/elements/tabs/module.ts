@@ -13,9 +13,8 @@ const entryComponents = [TabsListComponent, TabContentComponent, TabsComponent];
 const components = [TabsComponent, ...entryComponents];
 
 @NgModule({
-    entryComponents: [...entryComponents],
     imports: [CommonModule, ContainersModule, MatIconModule],
     declarations: [...components],
-    exports: [...components],
+    exports: [...components]
 })
 export class TabsModule {}

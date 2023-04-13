@@ -15,7 +15,6 @@ import { ActionComponent } from './action/component';
 const entryComponents = [LayoutHome, ActionComponent];
 
 @NgModule({
-    entryComponents: [...entryComponents],
     imports: [
         CommonModule,
         ContainersModule,
@@ -29,6 +28,6 @@ const entryComponents = [LayoutHome, ActionComponent];
     ],
     declarations: [...entryComponents],
     exports: [...entryComponents],
-    bootstrap: [...entryComponents],
+    bootstrap: [...entryComponents]
 })
 export class LayoutHomeModule {}

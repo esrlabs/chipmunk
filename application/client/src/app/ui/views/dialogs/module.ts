@@ -6,10 +6,9 @@ import { LockerMessageModule } from './locker/module';
 import { AboutModule } from './about/module';
 
 @NgModule({
-    entryComponents: [],
     imports: [CommonModule, HotkeysModule, AboutModule, LockerMessageModule],
     declarations: [],
     exports: [HotkeysModule, AboutModule, LockerMessageModule],
-    bootstrap: [HotkeysModule, AboutModule, LockerMessageModule],
+    bootstrap: [HotkeysModule, AboutModule, LockerMessageModule]
 })
 export class DialogsModule {}

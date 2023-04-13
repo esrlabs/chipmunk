@@ -1,4 +1,4 @@
-<mat-form-field class="outline" [attr.data-error-state]="error.is()" appearance="outline">
+<mat-form-field class="material-mofication-outline" [attr.error]="error.is()" appearance="outline">
     <input
         #input
         tabindex="2"
@@ -26,11 +26,12 @@
         <mat-option
             class="small"
             *ngFor="let recent of recent.observer | async"
-            [value]="recent.value"                   
+            [value]="recent.value"
         >
-            <span class="option-caption" [innerHTML]="recent.html()"
-            ></span>
-            <mat-icon (click)="ngRemove(recent, $event)">close</mat-icon>
+            <div class="option-wrapper">
+                <span class="caption" [innerHTML]="recent.html()"></span>
+                <mat-icon (click)="ngRemove(recent, $event)">close</mat-icon>
+            </div>
         </mat-option>
     </mat-autocomplete>
 </mat-form-field>

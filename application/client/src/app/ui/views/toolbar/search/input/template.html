@@ -1,5 +1,5 @@
-<div [attr.class]="'input ' + (input.error.hasError() ? 'has-error' : '')">
-    <mat-form-field class="outline" appearance="outline">
+<div class="input">
+    <mat-form-field class="material-mofication-outline" appearance="outline" [attr.error]="input.error.hasError()">
         <span class="active" *ngIf="active !== undefined">
             <span class="t-console t-small filter">{{active.filter.filter}}</span>
             <button

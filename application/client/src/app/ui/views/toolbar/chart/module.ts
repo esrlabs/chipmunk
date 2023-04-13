@@ -12,7 +12,6 @@ import { MatIconModule } from '@angular/material/icon';
 const components = [ViewChart, ViewChartCanvas, ViewChartZoomerCanvas, ViewChartZoomerCursorCanvas];
 
 @NgModule({
-    entryComponents: [...components],
     imports: [
         CommonModule,
         ContainersModule,
@@ -22,6 +21,6 @@ const components = [ViewChart, ViewChartCanvas, ViewChartZoomerCanvas, ViewChart
     ],
     declarations: [...components],
     exports: [...components],
-    bootstrap: [...components],
+    bootstrap: [...components]
 })
 export class ChartModule {}

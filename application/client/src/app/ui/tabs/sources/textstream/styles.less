@@ -12,26 +12,6 @@
     & app-transport {
         margin-top: 12px;
     }
-    & mat-form-field.full-width {
-        display: block;
-    }
-    & mat-form-field.inline {
-        margin-right: 12px;
-    }
-    & mat-card {
-        margin: 12px 6px 12px 12px;
-        & mat-card-title {
-            color: @scheme-color-1;
-            font-size: 16px;
-        }
-        & mat-card-subtitle {
-            color: @scheme-color-3;
-            font-size: 12px;
-        }
-        &.no-left-margin {
-            margin-left: 6px;
-        }
-    }
     & h1 {
         font-size: 14px;
     }
@@ -84,11 +64,14 @@
         overflow-x: hidden;
         display: flex;
         flex-direction: column;
-        & .mat-form-field{
-            width: 100%;
+        & div.spacer {
+            flex: auto;
         }
-        & div.spacer{
-            flex: auto 100;
+        & app-tabs-source-actions {
+            position: sticky;
+            bottom: 0;
+            z-index: 1;
+            box-shadow: 0px 0px 16px @scheme-color-5;
         }
     }
 

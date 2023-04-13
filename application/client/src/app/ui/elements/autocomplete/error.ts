@@ -1,11 +1,11 @@
 import { ErrorStateMatcher } from '@angular/material/core';
 import { Subject } from '@platform/env/subscription';
-import { FormControl } from '@angular/forms';
+import { UntypedFormControl } from '@angular/forms';
 
 export abstract class ErrorState extends ErrorStateMatcher {
     protected value: string = '';
     protected timer: number = -1;
-    public override isErrorState(control: FormControl | null): boolean {
+    public override isErrorState(control: UntypedFormControl | null): boolean {
         if (control !== null) {
             const updated = this.value !== control.value;
             this.value = control.value;

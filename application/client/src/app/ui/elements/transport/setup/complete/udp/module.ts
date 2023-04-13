@@ -14,7 +14,6 @@ import { Setup } from './component';
 import { BaseModule } from '../../bases/udp/module';
 
 @NgModule({
-    entryComponents: [Setup],
     imports: [
         CommonModule,
         FormsModule,
@@ -30,6 +29,6 @@ import { BaseModule } from '../../bases/udp/module';
         BaseModule,
     ],
     declarations: [Setup],
-    exports: [Setup],
+    exports: [Setup]
 })
 export class SetupModule {}

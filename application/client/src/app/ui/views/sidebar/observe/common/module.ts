@@ -6,9 +6,8 @@ const entryComponents = [Title];
 const components = [...entryComponents];
 
 @NgModule({
-    entryComponents: [...entryComponents],
     imports: [CommonModule],
     declarations: [...components],
-    exports: [...components],
+    exports: [...components]
 })
 export class CommonObserveModule {}

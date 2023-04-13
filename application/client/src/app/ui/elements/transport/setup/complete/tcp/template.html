@@ -1,5 +1,6 @@
-<mat-form-field class="inline">
-    <input matInput placeholder="IP Address" [(ngModel)]="state.bindingAddress" [errorStateMatcher]="state.errors.bindingAddress">
+<mat-form-field class="material-mofication-normal row">
+    <mat-label>IP Address</mat-label>
+    <input matInput  [(ngModel)]="state.bindingAddress" [errorStateMatcher]="state.errors.bindingAddress">
     <mat-error *ngIf="state.errors.bindingAddress.getErrorCode() === 'INVALID'">
         Please enter a valid IPv4/IPv6 address
     </mat-error>
@@ -7,8 +8,9 @@
         <strong>required</strong>
     </mat-error>
 </mat-form-field>
-<mat-form-field class="inline">
-    <input matInput placeholder="Port" [(ngModel)]="state.bindingPort" [errorStateMatcher]="state.errors.bindingPort">
+<mat-form-field class="material-mofication-normal row">
+    <mat-label>Port</mat-label>
+    <input matInput [(ngModel)]="state.bindingPort" [errorStateMatcher]="state.errors.bindingPort">
     <mat-error *ngIf="state.errors.bindingPort.getErrorCode() === 'INVALID'">
         Please enter a valid port value
     </mat-error>

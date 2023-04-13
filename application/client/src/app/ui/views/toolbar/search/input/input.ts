@@ -1,4 +1,4 @@
-import { FormControl } from '@angular/forms';
+import { UntypedFormControl } from '@angular/forms';
 import { Subject } from '@platform/env/subscription';
 import { IFilter, IFilterFlags } from '@platform/types/filter';
 import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
@@ -7,7 +7,7 @@ import { ErrorHandler } from './error';
 import * as obj from '@platform/env/obj';
 
 export class SearchInput {
-    public readonly control: FormControl = new FormControl();
+    public readonly control: UntypedFormControl = new UntypedFormControl();
     public readonly error: ErrorHandler = new ErrorHandler();
     public ref!: HTMLInputElement;
     public value: string = '';
