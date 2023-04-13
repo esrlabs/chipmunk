@@ -16,7 +16,6 @@ import { MatListModule } from '@angular/material/list';
 import { TabSourcePcapFile } from './component';
 import { SourcesCommonModule } from '../common/module';
 
-const entryComponents = [TabSourcePcapFile];
 const components = [TabSourcePcapFile];
 
 @NgModule({
@@ -39,6 +38,6 @@ const components = [TabSourcePcapFile];
     ],
     declarations: [...components],
     exports: [...components],
-    bootstrap: [...components]
+    bootstrap: [...components],
 })
 export class TabSourcePcapFileModule {}
