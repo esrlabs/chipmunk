@@ -7,9 +7,8 @@ import { Field } from './component';
 
 const components = [Field];
 @NgModule({
-    entryComponents: [...components],
     imports: [CommonModule, MatInputModule, FormsModule, ReactiveFormsModule],
     declarations: [...components],
-    exports: [...components],
+    exports: [...components]
 })
 export class EditableModule {}

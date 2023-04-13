@@ -1,6 +1,6 @@
 import { ErrorStateMatcher } from '@angular/material/core';
 import { Subject } from '@platform/env/subscription';
-import { FormControl } from '@angular/forms';
+import { UntypedFormControl } from '@angular/forms';
 import { bridge } from '@service/bridge';
 import { scope } from '@platform/env/scope';
 
@@ -9,7 +9,7 @@ export class ErrorState extends ErrorStateMatcher {
     protected exist: boolean = false;
     protected value: string = '';
 
-    public override isErrorState(control: FormControl | null): boolean {
+    public override isErrorState(control: UntypedFormControl | null): boolean {
         if (control !== null && typeof control.value === 'string') {
             const updated = this.value !== control.value;
             this.value = control.value;

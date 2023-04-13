@@ -1,11 +1,3 @@
-<!-- <div class="global" *ngIf="actual.globals !== undefined">
-    <mat-spinner [diameter]="12"></mat-spinner>
-    <span class="desc">{{actual.globals?.desc}}</span>
-</div>
-<div class="session" *ngIf="actual.session !== undefined">
-    <mat-spinner [diameter]="12"></mat-spinner>
-    <span class="desc">{{actual.session?.desc}}</span>
-</div> -->
 <div class="globals pinned" *ngIf="actual.globals.length > 0">
     <span class="pinned-job" *ngFor="let job of actual.globals">
         <span class="indicator" *ngIf="job.icon === undefined"></span>

@@ -20,7 +20,6 @@ const entryComponents = [ViewSearch, ViewSearchInput, ViewSearchResults];
 const components = [ViewSearch, ...entryComponents];
 
 @NgModule({
-    entryComponents: [...entryComponents],
     imports: [
         CommonModule,
         ContainersModule,
@@ -37,6 +36,6 @@ const components = [ViewSearch, ...entryComponents];
         ReactiveFormsModule,
     ],
     declarations: [...components],
-    exports: [...components, ScrollAreaModule],
+    exports: [...components, ScrollAreaModule]
 })
 export class SearchModule {}

@@ -1,4 +1,4 @@
-import { FormControl } from '@angular/forms';
+import { UntypedFormControl } from '@angular/forms';
 import { Subject } from '@platform/env/subscription';
 import {
     MatAutocompleteTrigger,
@@ -6,7 +6,7 @@ import {
 } from '@angular/material/autocomplete';
 
 export class Controll {
-    public control: FormControl = new FormControl();
+    public control: UntypedFormControl = new UntypedFormControl();
     public ref!: HTMLInputElement;
     public value: string = '';
     public readonly: boolean = false;

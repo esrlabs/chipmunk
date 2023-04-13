@@ -9,12 +9,9 @@
         position: absolute;
         top: 0;
         right: 16px;
-        height: 32px;
+        height: 42px;
         background: lighten(@scheme-color-5, 15%);
         padding: 3px 12px 6px 12px;
-        & mat-form-field {
-            font-size: 12px;
-        }
     }
     & div.controlls {
         position: absolute;
@@ -26,6 +23,21 @@
             margin-right: 12px;
             color: @scheme-color-0;
         }
+    }
+    & div.collection {
+        position: relative;
+        & div.selection {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            top: 0;
+            padding: 4px;
+            right: 0;
+            border-radius: 8px;
+            background: lighten(@scheme-color-5, 15%);
+            box-shadow: 3px 3px 3px @scheme-color-6;
+    
+        }    
     }
     & div.list {
         width: 100%;
@@ -45,18 +57,6 @@
             flex-wrap: wrap;
             & div.collections{
                 position: relative;
-            }
-            & mat-checkbox {
-                position: absolute;
-                top:0;
-                left: 0;
-                width: 24px;
-                height: 28px;
-                background: @scheme-color-4;
-                border-radius: 17px;
-                padding-left: 7px;
-                padding-top: 2px;
-                overflow: hidden;
             }
         }
     }

@@ -1,5 +1,5 @@
 import { ErrorStateMatcher } from '@angular/material/core';
-import { FormControl } from '@angular/forms';
+import { UntypedFormControl } from '@angular/forms';
 import { ISettingsEntry } from '@platform/types/settings/entry';
 import { Validator } from '../validator';
 
@@ -24,7 +24,7 @@ export class ErrorState implements ErrorStateMatcher {
     }
 
     public isErrorState(
-        control: FormControl | null,
+        control: UntypedFormControl | null,
         //form: FormGroupDirective | NgForm | null,
     ): boolean {
         if (control === null) {

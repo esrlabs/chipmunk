@@ -20,9 +20,8 @@ const getSequence: () => number = (function () {
 
 @Component({
     selector: 'lib-containers-dynamic',
-    entryComponents: [],
     template: '',
-    styles: [':host { display: none; }'],
+    styles: [':host { display: none; }']
 })
 export class DynamicComponent {
     private _component: any = null;

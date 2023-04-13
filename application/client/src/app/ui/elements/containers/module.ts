@@ -10,10 +10,9 @@ const components = [
 ];
 
 @NgModule({
-    entryComponents : [ ...components ],
-    imports         : [ CommonModule ],
-    declarations    : [ ...components ],
-    exports         : [ ...components ]
+    imports: [CommonModule],
+    declarations: [...components],
+    exports: [...components]
 })
 
 export class ContainersModule { }

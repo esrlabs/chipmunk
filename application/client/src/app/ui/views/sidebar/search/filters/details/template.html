@@ -1,4 +1,4 @@
-<mat-form-field>
+<mat-form-field class="material-mofication-normal stretch">
     <mat-label>Set color for</mat-label>
     <mat-select [(ngModel)]="colorType" (selectionChange)="_ng_onColorTypeChange($event)">
         <mat-option *ngFor="let option of colorOptions" [value]="option.value">

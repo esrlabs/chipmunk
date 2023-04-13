@@ -13,7 +13,6 @@ import { SetupModule as ProcessSetupModule } from './complete/process/module';
 import { Transport } from './component';
 
 @NgModule({
-    entryComponents: [Transport],
     imports: [
         CommonModule,
         FormsModule,
@@ -28,6 +27,6 @@ import { Transport } from './component';
         ProcessSetupModule,
     ],
     declarations: [Transport],
-    exports: [Transport, UdpSetupModule, TcpSetupModule, SerialSetupModule, ProcessSetupModule],
+    exports: [Transport, UdpSetupModule, TcpSetupModule, SerialSetupModule, ProcessSetupModule]
 })
 export class TransportModule {}

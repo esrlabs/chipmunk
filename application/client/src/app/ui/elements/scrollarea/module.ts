@@ -11,10 +11,9 @@ const entryComponents = [ScrollAreaComponent, ScrollAreaVerticalComponent];
 const components = [...entryComponents];
 
 @NgModule({
-    entryComponents: [...entryComponents],
     imports: [CommonModule, RowModule],
     declarations: [...components],
     exports: [...components],
-    bootstrap: [...components, RowModule],
+    bootstrap: [...components, RowModule]
 })
 export class ScrollAreaModule {}

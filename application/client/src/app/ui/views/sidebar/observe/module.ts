@@ -18,7 +18,6 @@ const entryComponents = [Observed];
 const components = [...entryComponents];
 
 @NgModule({
-    entryComponents: [...entryComponents],
     imports: [
         CommonModule,
         ContainersModule,
@@ -35,6 +34,6 @@ const components = [...entryComponents];
         MatDividerModule,
     ],
     declarations: [...components],
-    exports: [...components],
+    exports: [...components]
 })
 export class ObservedModule {}

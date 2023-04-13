@@ -1,10 +1,6 @@
 <app-filter-hidden #filter></app-filter-hidden>
-<mat-selection-list [multiple]="false">
-  <mat-list-option *ngFor="let timezone of timezones()" (click)="ngOnSelect(timezone)">
-    <div class="timezone">
-      <span class="name" [innerHTML]="safeHtml(timezone.html.name)"></span>
-      <span class="spacer"></span>
-      <span class="utc t-medium color-scheme-3" [innerHTML]="safeHtml(timezone.html.utc)"></span>  
-    </div>
-  </mat-list-option>
-</mat-selection-list>
+<p class="timezone" *ngFor="let timezone of timezones()" (click)="ngOnSelect(timezone)">
+  <span class="name" [innerHTML]="safeHtml(timezone.html.name)"></span>
+  <span class="spacer"></span>
+  <span class="utc t-medium color-scheme-3" [innerHTML]="safeHtml(timezone.html.utc)"></span>  
+</p>

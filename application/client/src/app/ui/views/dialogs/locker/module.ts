@@ -7,7 +7,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 
 @NgModule({
-    entryComponents: [LockerMessage],
     imports: [
         CommonModule,
         MatProgressSpinnerModule,
@@ -17,6 +16,6 @@ import { MatButtonModule } from '@angular/material/button';
     ],
     declarations: [LockerMessage],
     exports: [LockerMessage],
-    bootstrap: [LockerMessage],
+    bootstrap: [LockerMessage]
 })
 export class LockerMessageModule {}

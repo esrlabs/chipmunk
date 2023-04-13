@@ -1,6 +1,6 @@
 import { Observable } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
-import { FormControl } from '@angular/forms';
+import { UntypedFormControl } from '@angular/forms';
 import { Entry, EntryConvertable } from '@platform/types/storage/entry';
 import { error } from '@platform/log/utils';
 import { Storage } from '@env/fsstorage';
@@ -15,11 +15,11 @@ export class List extends Storage implements EntryConvertable {
     public filter: string = '';
     public observer: Observable<Recent[]>;
 
-    protected readonly control: FormControl;
+    protected readonly control: UntypedFormControl;
     protected readonly matcher: wasm.Matcher = wasm.getMatcher().Matcher.new();
     protected readonly filealias: string;
 
-    constructor(control: FormControl, name: string, filealias: string) {
+    constructor(control: UntypedFormControl, name: string, filealias: string) {
         super();
         this.filealias = filealias;
         this.control = control;

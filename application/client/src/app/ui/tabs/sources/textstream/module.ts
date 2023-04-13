@@ -22,7 +22,6 @@ import { TabSourceTextStream } from './component';
 import { SourcesCommonModule } from '../common/module';
 
 @NgModule({
-    entryComponents: [TabSourceTextStream],
     imports: [
         CommonModule,
         FormsModule,
@@ -46,6 +45,6 @@ import { SourcesCommonModule } from '../common/module';
     ],
     declarations: [TabSourceTextStream],
     exports: [TabSourceTextStream],
-    bootstrap: [TabSourceTextStream],
+    bootstrap: [TabSourceTextStream]
 })
 export class TabSourceTextStreamModule {}

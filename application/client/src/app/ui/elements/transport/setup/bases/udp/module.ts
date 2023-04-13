@@ -9,7 +9,6 @@ import { MatInputModule } from '@angular/material/input';
 import { Multicast } from './multicast/component';
 
 @NgModule({
-    entryComponents: [Multicast],
     imports: [
         CommonModule,
         FormsModule,
@@ -20,6 +19,6 @@ import { Multicast } from './multicast/component';
         MatInputModule,
     ],
     declarations: [Multicast],
-    exports: [Multicast],
+    exports: [Multicast]
 })
 export class BaseModule {}

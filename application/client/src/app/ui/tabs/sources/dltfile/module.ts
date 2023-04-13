@@ -18,11 +18,9 @@ import { TabSourceDltFile } from './component';
 import { TabSourceDltFileStructure } from './structure/component';
 import { SourcesCommonModule } from '../common/module';
 
-const entryComponents = [TabSourceDltFile, TabSourceDltFileStructure];
 const components = [TabSourceDltFile, TabSourceDltFileStructure];
 
 @NgModule({
-    entryComponents: [...entryComponents],
     imports: [
         CommonModule,
         FormsModule,

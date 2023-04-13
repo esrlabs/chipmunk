@@ -46,7 +46,6 @@ const entryComponents = [
 const components = [...entryComponents];
 
 @NgModule({
-    entryComponents: [...entryComponents],
     imports: [
         CommonModule,
         ContainersModule,
@@ -67,6 +66,6 @@ const components = [...entryComponents];
         DragDropModule,
     ],
     declarations: [...components, FilterItemDirective, FiltersListDirective],
-    exports: [...components, FilterItemDirective, FiltersListDirective],
+    exports: [...components, FilterItemDirective, FiltersListDirective]
 })
 export class FiltersModule {}

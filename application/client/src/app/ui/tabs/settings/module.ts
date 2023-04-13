@@ -16,7 +16,6 @@ import { SettingsEntryBool } from './renders/bool/component';
 const components = [Settings, SettingsNode, SettingsEntry, SettingsEntryString, SettingsEntryBool];
 
 @NgModule({
-    entryComponents: [...components],
     imports: [
         CommonModule,
         FormsModule,
@@ -29,6 +28,6 @@ const components = [Settings, SettingsNode, SettingsEntry, SettingsEntryString, 
     ],
     declarations: [...components],
     exports: [...components],
-    bootstrap: [...components],
+    bootstrap: [...components]
 })
 export class SettingsModule {}

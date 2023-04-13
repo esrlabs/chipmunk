@@ -10,7 +10,6 @@ import { MatOptionModule } from '@angular/material/core';
 import { FolderInput } from './component';
 
 @NgModule({
-    entryComponents: [FolderInput],
     imports: [
         CommonModule,
         FormsModule,
@@ -22,6 +21,6 @@ import { FolderInput } from './component';
         MatOptionModule,
     ],
     declarations: [FolderInput],
-    exports: [FolderInput],
+    exports: [FolderInput]
 })
 export class FolderInputModule {}

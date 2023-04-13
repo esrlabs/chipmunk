@@ -8,9 +8,8 @@ import { InputFilter } from './component';
 
 const components = [InputFilter];
 @NgModule({
-    entryComponents: [...components],
     imports: [CommonModule, MatFormFieldModule, MatInputModule, FormsModule, ReactiveFormsModule],
     declarations: [...components],
-    exports: [...components],
+    exports: [...components]
 })
 export class FilterInputModule {}

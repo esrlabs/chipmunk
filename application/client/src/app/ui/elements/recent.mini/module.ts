@@ -10,7 +10,6 @@ import { RecentActionsMini } from './component';
 
 const components = [RecentActionsMini];
 @NgModule({
-    entryComponents: [...components],
     imports: [
         CommonModule,
         ContainersModule,
@@ -21,6 +20,6 @@ const components = [RecentActionsMini];
     ],
     declarations: [...components],
     exports: [...components],
-    bootstrap: [...components],
+    bootstrap: [...components]
 })
 export class RecentActionsMiniModule {}

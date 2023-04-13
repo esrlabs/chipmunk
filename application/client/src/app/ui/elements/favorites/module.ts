@@ -10,7 +10,6 @@ import { Favorites } from './component';
 
 const components = [Favorites];
 @NgModule({
-    entryComponents: [...components],
     imports: [
         CommonModule,
         ContainersModule,
@@ -21,6 +20,6 @@ const components = [Favorites];
     ],
     declarations: [...components],
     exports: [...components],
-    bootstrap: [...components],
+    bootstrap: [...components]
 })
 export class FavoritesModule {}

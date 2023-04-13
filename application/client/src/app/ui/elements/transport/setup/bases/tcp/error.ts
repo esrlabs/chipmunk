@@ -1,5 +1,5 @@
 import { ErrorStateMatcher } from '@angular/material/core';
-import { FormControl } from '@angular/forms';
+import { UntypedFormControl } from '@angular/forms';
 import { isValidIPv4, isValidIPv6 } from '@platform/env/ipaddr';
 
 const U32 = [0, 4294967295];
@@ -41,7 +41,7 @@ export class ErrorState implements ErrorStateMatcher {
     }
 
     public isErrorState(
-        control: FormControl | null,
+        control: UntypedFormControl | null,
         //form: FormGroupDirective | NgForm | null,
     ): boolean {
         if (control === null) {

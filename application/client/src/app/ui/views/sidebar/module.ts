@@ -4,9 +4,8 @@ import { FiltersModule } from './search/module';
 import { ObservedModule } from './observe/module';
 
 @NgModule({
-    entryComponents: [],
     imports: [CommonModule, FiltersModule, ObservedModule],
     declarations: [],
-    exports: [FiltersModule],
+    exports: [FiltersModule]
 })
 export class SidebarModule {}

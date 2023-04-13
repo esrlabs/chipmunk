@@ -1,6 +1,6 @@
 <div class="container">
   <label>Baud Rate:</label>
-  <mat-form-field class="baudrate">
+  <mat-form-field class="material-mofication-normal">
     <mat-select (selectionChange)="_ng_onChange($event)">
         <mat-option #baudRateOption *ngFor="let baudRate of _ng_baudRate" [value]="baudRate">
             {{baudRate}}

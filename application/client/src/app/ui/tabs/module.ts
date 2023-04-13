@@ -11,7 +11,6 @@ import { DialogsModule } from '@ui/views/dialogs/module';
 import { SettingsModule } from '@ui/tabs/settings/module';
 
 @NgModule({
-    entryComponents: [],
     imports: [CommonModule, TimezoneSelectorModule],
     declarations: [],
     exports: [
@@ -34,6 +33,6 @@ import { SettingsModule } from '@ui/tabs/settings/module';
         TabSourceMultipleFilesModule,
         DialogsModule,
         SettingsModule,
-    ],
+    ]
 })
 export class TabsModule {}

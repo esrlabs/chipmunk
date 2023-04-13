@@ -39,11 +39,13 @@ export class ElementsTimezoneSelector extends ChangesDetector implements AfterVi
         this.env().subscriber.register(
             this.filter.filter.subjects.get().change.subscribe((value: string) => {
                 this.state.update(value);
+                this.detectChanges();
             }),
         );
         this.env().subscriber.register(
             this.filter.filter.subjects.get().drop.subscribe(() => {
                 this.state.update('');
+                this.detectChanges();
             }),
         );
     }

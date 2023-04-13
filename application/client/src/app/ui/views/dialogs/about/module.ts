@@ -4,10 +4,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { About } from './component';
 
 @NgModule({
-    entryComponents: [About],
     imports: [CommonModule, MatButtonModule],
     declarations: [About],
     exports: [About],
-    bootstrap: [About],
+    bootstrap: [About]
 })
 export class AboutModule {}

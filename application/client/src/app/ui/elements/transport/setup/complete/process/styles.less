@@ -10,21 +10,15 @@ app-transport-process {
         display: flex;
         width: 100%;
         align-items: center;
+        margin-bottom: 12px;
         & button {
             margin-left: 6px;
         }
     }
-    & mat-form-field.full-width {
-        display: block;
-    }
-    & mat-form-field.outline {
-        margin: 0!important;
-    }
-    
 }
 .app-transport-process-menu {
-    & .mat-menu-item {
-        & > div.shell-profile {
+    & button[mat-menu-item] {
+        & div.shell-profile {
             position: relative;
             margin-top: -7px;
             & > span {
@@ -48,19 +42,20 @@ app-transport-process {
                 max-width: 200px;
             }    
         }
-    }
-    & .mat-menu-item[data-selected="true"] {
-        & > div.shell-profile {
-            &::before {
-                display: block;
-                position: absolute;
-                width: 2px;
-                height: 24px;
-                background: @scheme-color-accent;
-                left: -9px;
-                top: 11px;
-                content: '';
-            }    
+        &[data-selected="true"] {
+            &  div.shell-profile {
+                &::before {
+                    display: block;
+                    position: absolute;
+                    width: 2px;
+                    height: 24px;
+                    background: @scheme-color-accent;
+                    left: -9px;
+                    top: 7px;
+                    content: '';
+                }    
+            }
         }
     }
+    
 }

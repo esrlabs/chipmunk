@@ -9,31 +9,8 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    & mat-card {
-        margin: 12px 6px 12px 12px;
-        & mat-card-title {
-            color: @scheme-color-1;
-            font-size: 16px;
-        }
-        & mat-card-subtitle {
-            color: @scheme-color-3;
-            font-size: 12px;
-        }
-
-        &.no-left-margin {
-            margin-left: 6px;
-        }
-    }
-    & mat-card.controlls {
-        & mat-card-content {
-            text-align: right;
-        }
-    }
     & div.controlls {
         text-align: right;
-    }
-    & mat-card.sticky {
-        padding-top: 0;
     }
     & h1 {
         font-size: 14px;
@@ -87,9 +64,6 @@
         overflow-x: hidden;
         display: flex;
         flex-direction: column;
-        & .mat-form-field{
-            width: 100%;
-        }
         & mat-divider.fibex-divider {
             margin-top: 12px;
         }
@@ -99,8 +73,14 @@
             margin-top: 19px;
             text-align: right;
         }
-        & div.spacer{
+        & div.spacer {
             flex: auto;
+        }
+        & app-tabs-source-actions {
+            position: sticky;
+            bottom: 0;
+            z-index: 1;
+            box-shadow: 0px 0px 16px @scheme-color-5;
         }
     }
     & .table-fill {

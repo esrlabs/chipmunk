@@ -31,7 +31,7 @@
               "src/assets"
             ],
             "styles": [
-              "./node_modules/@angular/material/prebuilt-themes/pink-bluegrey.css",
+              "@angular/material/prebuilt-themes/indigo-pink.css",
               "src/app/ui/styles/scheme.less",
               "src/app/ui/styles/scheme.scss"
             ],
@@ -101,7 +101,7 @@
               "src/assets"
             ],
             "styles": [
-              "./node_modules/@angular/material/prebuilt-themes/pink-bluegrey.css",
+              "@angular/material/prebuilt-themes/indigo-pink.css",
               "src/app/ui/styles/scheme.less",
               "src/app/ui/styles/scheme.scss"
             ],
@@ -120,8 +120,9 @@
       }
     }
   },
-  "defaultProject": "chipmunk",
   "cli": {
-    "defaultCollection": "@angular-eslint/schematics"
+    "schematicCollections": [
+      "@angular-eslint/schematics"
+    ]
   }
 }

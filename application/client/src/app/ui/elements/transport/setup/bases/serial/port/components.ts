@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { FormControl } from '@angular/forms';
+import { UntypedFormControl } from '@angular/forms';
 import { Horizontal, Vertical } from '@ui/service/popup/popup';
 import { Options } from '../options/component';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -20,7 +20,7 @@ export class Available {
 
     public _ng_available: boolean = true;
     public _ng_recent: string[] = [];
-    public _ng_inputCtrl = new FormControl();
+    public _ng_inputCtrl = new UntypedFormControl();
     public _ng_service = SerialService;
 
     public _ng_onPortClick() {

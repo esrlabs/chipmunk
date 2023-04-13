@@ -18,7 +18,6 @@ const entryComponents = [Preset, History, FilterPreview];
 const components = [...entryComponents];
 
 @NgModule({
-    entryComponents: [...entryComponents],
     imports: [
         CommonModule,
         MatIconModule,
@@ -31,6 +30,6 @@ const components = [...entryComponents];
         EditableModule,
     ],
     declarations: [...components],
-    exports: [...components],
+    exports: [...components]
 })
 export class HistoryModule {}
