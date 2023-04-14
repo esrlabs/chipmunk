@@ -7,6 +7,7 @@ use log4rs::{
 };
 use node_bindgen::init::node_bindgen_init_once;
 use std::{
+    fs,
     path::{Path, PathBuf},
     time::SystemTime,
 };
@@ -70,9 +71,14 @@ pub fn init_logging() -> Result<()> {
 }
 
 pub fn chipmunk_home_dir() -> PathBuf {
-    dirs::home_dir()
+    let home_dir = dirs::home_dir()
         .expect("we need to have access to home-dir")
-        .join(".chipmunk")
+        .join(".chipmunk");
+    if !home_dir.exists() {
+        fs::create_dir(&home_dir)
+            .unwrap_or_else(|_| panic!("home folder {:?} should be created", home_dir));
+    }
+    home_dir
 }
 
 pub fn chipmunk_log_config() -> PathBuf {
@@ -80,18 +86,17 @@ pub fn chipmunk_log_config() -> PathBuf {
 }
 
 pub fn initialize_from_fresh_yml() -> Result<()> {
-    println!("initialize_from_fresh_yml()");
-    let home_dir = dirs::home_dir().expect("Could not access home-directory");
+    println!("Initialization of logs is started on rs-bindings layer");
     let log_config_path = chipmunk_log_config();
     let indexer_log_path = chipmunk_home_dir().join("chipmunk.indexer.log");
     let launcher_log_path = chipmunk_home_dir().join("chipmunk.launcher.log");
     let log_config_content = std::include_str!("../log4rs.yaml")
         .replace("$INDEXER_LOG_PATH", &indexer_log_path.to_string_lossy())
-        .replace("$LAUNCHER_LOG_PATH", &launcher_log_path.to_string_lossy())
-        .replace("$HOME_DIR", &home_dir.to_string_lossy());
+        .replace("$LAUNCHER_LOG_PATH", &launcher_log_path.to_string_lossy());
     remove_entity(&log_config_path)?;
     std::fs::write(&log_config_path, log_config_content)?;
     log4rs::init_file(&log_config_path, Default::default())?;
+    println!("Initialization of logs is finished:\n{indexer_log_path:?}\n{launcher_log_path:?}");
     Ok(())
 }
 
@@ -108,6 +113,7 @@ pub fn remove_entity(entity: &Path) -> Result<()> {
 }
 
 pub fn setup_fallback_logging() -> Result<()> {
+    println!("[setup_fallback_logging]: Initialization of logs is started on rs-bindings layer");
     let log_path = chipmunk_home_dir().join("chipmunk.launcher.log");
     let appender_name = "startup-appender";
     let logfile = FileAppender::builder()
@@ -119,11 +125,12 @@ pub fn setup_fallback_logging() -> Result<()> {
         .build(
             Root::builder()
                 .appender(appender_name)
-                .build(LevelFilter::Trace),
+                .build(LevelFilter::Warn),
         )
         .expect("log4rs config could not be created");
 
     log4rs::init_config(config).expect("logging could not be initialized");
+    println!("[setup_fallback_logging]:Initialization of logs is finished");
     Ok(())
 }
 

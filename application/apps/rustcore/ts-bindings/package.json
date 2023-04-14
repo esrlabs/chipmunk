@@ -20,7 +20,7 @@
     "@typescript-eslint/eslint-plugin": "^5.58.0",
     "@typescript-eslint/parser": "^5.58.0",
     "custom.stdout": "^1.0.2",
-    "electron": "^24.1.1",
+    "electron": "^22.3.6",
     "electron-build-env": "0.2.0",
     "electron-rebuild": "^3.2.5",
     "eslint": "^8.38.0",

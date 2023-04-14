@@ -1,7 +1,6 @@
 import { v4 } from 'uuid';
 import { setUuidGenerator } from 'platform/env/sequence';
 import { scope } from 'platform/env/scope';
-import { globals } from 'platform/env/globals';
 
 import * as path from 'path';
 import * as fs from 'fs';
