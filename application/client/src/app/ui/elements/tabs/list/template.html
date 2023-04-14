@@ -5,7 +5,7 @@
             (contextmenu)="_ng_onContextMenu($event, tab)"
             (click) = "_ng_onClick(tab.uuid)">
             <mat-icon class="title" *ngIf="tab.icon !== undefined">{{tab.icon}}</mat-icon>
-            <p *ngIf="tab.name !== ''" class="title t-normal" [attr.title]="tab.name">{{tab.name}}</p>
+            <p *ngIf="tab.name !== ''" [attr.class]="'title t-normal ' + (tab.uppercaseTitle ? 'uppercase' : '')" [attr.title]="tab.name">{{tab.name}}</p>
             <div class="title-injection" *ngIf="tab.tabCaptionInjection !== undefined">
                 <lib-containers-dynamic [component]="tab.tabCaptionInjection"></lib-containers-dynamic>
             </div>
