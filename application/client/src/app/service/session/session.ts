@@ -47,6 +47,7 @@ export class Session extends Base {
             name: 'Search',
             active: true,
             closable: false,
+            uppercaseTitle: true,
             content: {
                 factory: components.get('app-views-search'),
                 inputs: {
@@ -59,6 +60,7 @@ export class Session extends Base {
             name: 'Details',
             active: false,
             closable: false,
+            uppercaseTitle: true,
             content: {
                 factory: components.get('app-views-details'),
                 inputs: {
@@ -71,6 +73,7 @@ export class Session extends Base {
             name: 'Presets / History',
             active: false,
             closable: false,
+            uppercaseTitle: true,
             content: {
                 factory: components.get('app-views-history'),
                 inputs: {
@@ -83,6 +86,7 @@ export class Session extends Base {
             name: 'Chart',
             active: false,
             closable: false,
+            uppercaseTitle: true,
             content: {
                 factory: components.get('app-views-chart'),
                 inputs: {
@@ -95,6 +99,7 @@ export class Session extends Base {
             name: 'Observing',
             active: false,
             closable: false,
+            uppercaseTitle: true,
             content: {
                 factory: components.get('app-views-observe-list'),
                 inputs: {
@@ -107,6 +112,7 @@ export class Session extends Base {
             name: 'Filters',
             active: true,
             closable: false,
+            uppercaseTitle: true,
             content: {
                 factory: components.get('app-views-filters'),
                 inputs: {

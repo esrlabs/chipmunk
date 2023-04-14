@@ -15,6 +15,7 @@ export interface ITabSubjects {
 export interface ITab {
     uuid?: string;
     icon?: string;
+    uppercaseTitle?: boolean;
     name: string;
     active: boolean;
     closable?: boolean;
@@ -25,6 +26,7 @@ export interface ITab {
 export interface ITabInternal {
     uuid: string;
     name: string;
+    uppercaseTitle: boolean;
     icon?: string;
     active: boolean;
     closable: boolean;
@@ -318,6 +320,7 @@ export class TabsService {
                 : unique();
         _tab.closable = typeof _tab.closable === 'boolean' ? _tab.closable : true;
         _tab.unshift = false;
+        _tab.uppercaseTitle = tab.uppercaseTitle === undefined ? false : tab.uppercaseTitle;
         _tab.subjects = {
             onTitleContextMenu: new Subject<MouseEvent>(),
             onBeforeTabRemove: new Subject<void>(),
