@@ -72,7 +72,7 @@ Make sure you have right version of electron as dependency
 ```
 "dependencies": {
     ...
-    "electron": "10.1.5"
+    "electron": "22.3.6"
     ...
 },
 ```

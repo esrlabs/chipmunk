@@ -51,5 +51,5 @@ module Paths
   RELEASE_BIN = "#{RELEASE}/#{Paths.get_release_bin_folder}"
   RELEASE_RESOURCES = "#{RELEASE}/#{Paths.get_release_resources_folder}"
   RELEASE_BUILD = "#{RELEASE}/#{Paths.get_release_build_folder}"
-  JASMINE = './node_modules/.bin/jasmine'
+  JASMINE = './node_modules/.bin/electron ./node_modules/jasmine/bin/jasmine.js'
 end

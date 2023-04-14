@@ -45,6 +45,14 @@ module Environment
     Reporter.add(Jobs::Install, Owner::Env, 'yarn is installed', '')
   end
 
+  def self.list
+    Shell.sh 'nj-cli -V'
+    Shell.sh 'yarn -v'
+    Shell.sh 'wasm-pack -V'
+    Shell.sh 'node -v'
+    Shell.sh 'rustc -V'
+  end
+
   def self.check
     return if @@checked
 
@@ -53,6 +61,7 @@ module Environment
     Environment.nj_cli
     Environment.wasm_pack
     Environment.yarn
+    Environment.list
     @@checked = true
   end
 end
