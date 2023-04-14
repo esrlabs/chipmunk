@@ -1,6 +1,6 @@
 {
     "name": "chipmunk",
-    "version": "3.6.2",
+    "version": "3.6.3",
     "chipmunk": {
         "versions": {}
     },
@@ -80,36 +80,36 @@
         }
     },
     "dependencies": {
-        "commander": "^9.4.1",
+        "commander": "^10.0.0",
         "http-proxy-agent": "^5.0.0",
         "https-proxy-agent": "^5.0.1",
         "module-alias": "^2.2.2",
-        "moment-timezone": "^0.5.38",
+        "moment-timezone": "^0.5.43",
         "platform": "file:../platform",
         "rustcore": "file:../apps/rustcore/ts-bindings",
-        "semver": "^7.3.8",
+        "semver": "^7.4.0",
         "sudo-prompt": "^9.2.1",
-        "tslib": "^2.4.1",
+        "tslib": "^2.5.0",
         "uuid": "^9.0.0"
     },
     "devDependencies": {
         "@electron/notarize": "^1.2.3",
         "@types/module-alias": "^2.0.1",
-        "@types/node": "^18.11.9",
+        "@types/node": "^18.15.11",
         "@types/request": "^2.48.8",
         "@types/semver": "^7.3.13",
-        "@types/uuid": "^9.0.0",
-        "@typescript-eslint/eslint-plugin": "^5.42.1",
-        "@typescript-eslint/parser": "^5.42.1",
+        "@types/uuid": "^9.0.1",
+        "@typescript-eslint/eslint-plugin": "^5.58.0",
+        "@typescript-eslint/parser": "^5.58.0",
         "dotenv": "^16.0.3",
         "dotnet": "^1.1.4",
-        "electron": "^22.0.0",
+        "electron": "^24.1.1",
         "electron-builder": "^23.6.0",
-        "eslint": "^8.27.0",
-        "eslint-plugin-import": "^2.26.0",
+        "eslint": "^8.38.0",
+        "eslint-plugin-import": "^2.27.5",
         "eslint-plugin-node": "^11.1.0",
         "eslint-plugin-promise": "^6.1.1",
-        "typescript": "^4.8.4"
+        "typescript": "^5.0.4"
     },
     "scripts": {
         "electron": "npm run build && ./node_modules/.bin/electron --inspect ./dist/app.js",

@@ -195,124 +195,135 @@ namespace :release do
   end
 end
 
-test_runner = './node_modules/.bin/electron ./node_modules/jasmine-ts/lib/index.js'
-
 namespace :test do
   namespace :binding do
     desc 'run jobs tests'
     task :jobs do
       Bindings.new(false).build
+      Bindings.new(false).build_spec
       Reporter.print
       Shell.chdir(Paths::TS_BINDINGS) do
-        sh "#{test_runner} spec/session.jobs.spec.ts"
+        sh "#{Paths::JASMINE} spec/build/spec/session.jobs.spec.js"
       end
     end
 
     desc 'run search tests'
     task :search do
       Bindings.new(false).build
+      Bindings.new(false).build_spec
       Reporter.print
       Shell.chdir(Paths::TS_BINDINGS) do
-        sh "#{test_runner} spec/session.search.spec.ts"
+        sh "#{Paths::JASMINE} spec/build/spec/session.search.spec.js"
       end
     end
 
     desc 'run values tests'
     task :values do
       Bindings.new(false).build
+      Bindings.new(false).build_spec
       Reporter.print
       Shell.chdir(Paths::TS_BINDINGS) do
-        sh "#{test_runner} spec/session.values.spec.ts"
+        sh "#{Paths::JASMINE} spec/build/spec/session.values.spec.js"
       end
     end
 
     desc 'run extract tests'
     task :extract do
       Bindings.new(false).build
+      Bindings.new(false).build_spec
       Reporter.print
       Shell.chdir(Paths::TS_BINDINGS) do
-        sh "#{test_runner} spec/session.extract.spec.ts"
+        sh "#{Paths::JASMINE} spec/build/spec/session.extract.spec.js"
       end
     end
 
     desc 'run ranges tests'
     task :ranges do
       Bindings.new(false).build
+      Bindings.new(false).build_spec
       Reporter.print
       Shell.chdir(Paths::TS_BINDINGS) do
-        sh "#{test_runner} spec/session.ranges.spec.ts"
+        sh "#{Paths::JASMINE} spec/build/spec/session.ranges.spec.js"
       end
     end
 
     desc 'run exporting tests'
     task :exporting do
       Bindings.new(false).build
+      Bindings.new(false).build_spec
       Reporter.print
       Shell.chdir(Paths::TS_BINDINGS) do
-        sh "#{test_runner} spec/session.exporting.spec.ts"
+        sh "#{Paths::JASMINE} spec/build/spec/session.exporting.spec.js"
       end
     end
 
     desc 'run map tests'
     task :map do
       Bindings.new(false).build
+      Bindings.new(false).build_spec
       Reporter.print
       Shell.chdir(Paths::TS_BINDINGS) do
-        sh "#{test_runner} spec/session.map.spec.ts"
+        sh "#{Paths::JASMINE} spec/build/spec/session.map.spec.js"
       end
     end
 
     desc 'run observe tests'
     task :observe do
       Bindings.new(false).build
+      Bindings.new(false).build_spec
       Reporter.print
       Shell.chdir(Paths::TS_BINDINGS) do
-        sh "#{test_runner} spec/session.observe.spec.ts"
+        sh "#{Paths::JASMINE} spec/build/spec/session.observe.spec.js"
       end
     end
 
     desc 'run indexes tests'
     task :indexes do
       Bindings.new(false).build
+      Bindings.new(false).build_spec
       Reporter.print
       Shell.chdir(Paths::TS_BINDINGS) do
-        sh "#{test_runner} spec/session.indexes.spec.ts"
+        sh "#{Paths::JASMINE} spec/build/spec/session.indexes.spec.js"
       end
     end
 
     desc 'run concat tests'
     task :concat do
       Bindings.new(false).build
+      Bindings.new(false).build_spec
       Reporter.print
       Shell.chdir(Paths::TS_BINDINGS) do
-        sh "#{test_runner} spec/session.concat.spec.ts"
+        sh "#{Paths::JASMINE} spec/build/spec/session.concat.spec.js"
       end
     end
 
     desc 'run cancel tests'
     task :cancel do
       Bindings.new(false).build
+      Bindings.new(false).build_spec
       Reporter.print
       Shell.chdir(Paths::TS_BINDINGS) do
-        sh "#{test_runner} spec/session.cancel.spec.ts"
+        sh "#{Paths::JASMINE} spec/build/spec/session.cancel.spec.js"
       end
     end
 
     desc 'run errors tests'
     task :errors do
       Bindings.new(false).build
+      Bindings.new(false).build_spec
       Reporter.print
       Shell.chdir(Paths::TS_BINDINGS) do
-        sh "#{test_runner} spec/session.errors.spec.ts"
+        sh "#{Paths::JASMINE} spec/build/spec/session.errors.spec.js"
       end
     end
 
     desc 'run promises tests'
     task :promises do
       Bindings.new(false).build
+      Bindings.new(false).build_spec
       Reporter.print
       Shell.chdir(Paths::TS_BINDINGS) do
-        sh "#{test_runner} spec/session.promises.spec.ts"
+        sh "#{Paths::JASMINE} spec/build/spec/session.promises.spec.js"
       end
     end
   end

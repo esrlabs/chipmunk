@@ -3,12 +3,13 @@ class Bindings
     @dist = "#{Paths::TS_BINDINGS}/dist"
     @dist_rs = "#{Paths::RS_BINDINGS}/dist"
     @target = "#{Paths::RS_BINDINGS}/target"
+    @spec = "#{Paths::TS_BINDINGS}/spec/build"
     @node_modules = "#{Paths::TS_BINDINGS}/node_modules"
     @build_env = '../ts-bindings/node_modules/.bin/electron-build-env'
     @nj_cli = 'nj-cli'
     @reinstall = reinstall
     @installed = File.exist?(@node_modules)
-    @targets = [@dist, @node_modules, @target, @dist_rs]
+    @targets = [@dist, @node_modules, @target, @dist_rs, @spec]
   end
 
   def clean
@@ -52,6 +53,12 @@ class Bindings
     Shell.rm(mod_file)
     Shell.sh "cp #{Paths::RS_BINDINGS}/dist/index.node #{Paths::TS_BINDINGS}/src/native/index.node"
     Reporter.add(Jobs::Other, Owner::Bindings, 'delivery', '')
+  end
+
+  def build_spec
+    Shell.chdir("#{Paths::TS_BINDINGS}/spec") do
+      Shell.sh '../node_modules/.bin/tsc -p tsconfig.json' unless File.exist?('./build')
+    end
   end
 
   def self.check(consumer, reinstall, replace)
