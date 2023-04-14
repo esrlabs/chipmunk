@@ -79,7 +79,6 @@ jasmine.getEnv().addReporter({
         }
         failed += 1;
     },
-
     suiteDone: function (_result: any) {
         if (failed === 0) {
             return;

@@ -82,9 +82,19 @@ export interface IConfiguration {
 
 export function readConfigurationFile(): Config {
     const config = (() => {
-        const defaults = path.resolve(path.dirname(module.filename), 'defaults.json');
+        const defaults = (() => {
+            for (const target of [
+                path.resolve(path.dirname(module.filename), 'defaults.json'),
+                path.resolve(path.dirname(module.filename), '../../defaults.json'),
+            ]) {
+                if (fs.existsSync(target)) {
+                    return target;
+                }
+            }
+            return undefined;
+        })();
         let filename = (process.env as any)['JASMIN_TEST_CONFIGURATION'];
-        if ((typeof filename !== 'string' || filename.trim() === '') && !fs.existsSync(defaults)) {
+        if ((typeof filename !== 'string' || filename.trim() === '') && defaults === undefined) {
             return new Error(
                 `To run test you should define a path to configuration file with JASMIN_TEST_CONFIGURATION=path_to_config_json_file`,
             );
