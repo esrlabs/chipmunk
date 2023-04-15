@@ -17,6 +17,8 @@ export class LockerMessage extends ChangesDetector implements AfterViewInit {
     @Input() public popup!: Popup;
     @Input() public close!: () => void;
 
+    protected keyboardUnlocker!: () => void;
+
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
@@ -25,7 +27,7 @@ export class LockerMessage extends ChangesDetector implements AfterViewInit {
         return Level;
     }
 
-    ngAfterViewInit(): void {
+    public ngAfterViewInit(): void {
         this.env().subscriber.register(
             this.locker.updated.subscribe(() => {
                 this.detectChanges();

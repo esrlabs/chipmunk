@@ -17,7 +17,6 @@ import { TargetFile } from '@platform/types/files';
 import { TabControls } from './session/tab';
 import { unique } from '@platform/env/sequence';
 import { history } from '@service/history';
-import { lockers, Locker, Level } from '@ui/service/lockers';
 import { Render } from '@schema/render';
 
 export { Session, TabControls, UnboundTab, Base };
@@ -138,31 +137,16 @@ export class Service extends Implementation {
                     return Promise.reject(new Error(`Sessions aren't available yet`));
                 }
                 return new Promise((resolve, reject) => {
-                    const progress = lockers.lock(
-                        new Locker(true, 'opening file...')
-                            .set()
-                            .type(Level.progress)
-                            .group(file.filename)
-                            .end(),
-                        {
-                            closable: false,
-                        },
-                    );
                     this.create(render)
                         .then((session: Session) => {
                             session.stream
                                 .file(file)
-                                .onProcessing(() => {
-                                    progress.popup.close();
-                                })
-                                .open()
                                 .then(() => {
                                     binding(session.uuid(), session, file.name);
                                     resolve(session);
                                 })
                                 .catch((err: Error) => {
                                     this.log().error(`Fail to open file; error: ${err.message}`);
-                                    progress.popup.close();
                                     reject(err);
                                 });
                         })

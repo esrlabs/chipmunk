@@ -55,6 +55,18 @@ export class Service extends Implementation {
             .map((s) => s.locker);
     }
 
+    public progress(caption: string): () => void {
+        const { locker: _, popup } = lockers.lock(
+            new Locker(true, caption).set().type(Level.progress).end(),
+            {
+                closable: false,
+            },
+        );
+        return () => {
+            popup.close();
+        };
+    }
+
     protected action(): {
         add(locker: Locker, popup: Popup): void;
         unbound(group: string): void;

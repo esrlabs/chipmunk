@@ -4,13 +4,18 @@ use buf_redux::Buffer;
 use indexer_base::config::MulticastInfo;
 use log::trace;
 use std::net::{IpAddr, Ipv4Addr};
+use thiserror::Error;
 use tokio::net::{ToSocketAddrs, UdpSocket};
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum UdpSourceError {
+    #[error("Io: {0}")]
     Io(std::io::Error),
+    #[error("Invalid address: {0}")]
     ParseAddr(std::net::AddrParseError),
+    #[error("Invalid number: {0}")]
     ParseNum(std::num::ParseIntError),
+    #[error("Config: {0}")]
     Config(indexer_base::config::Error),
 }
 
