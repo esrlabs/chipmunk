@@ -148,7 +148,6 @@ class LifeCycle extends Subscriber {
     }
 }
 
-// TODO: should be implemented timeout to prevent memory leaking
 export function AsyncVoidConfirmedExecutor<TOptions>(
     session: RustSession,
     provider: EventProvider,

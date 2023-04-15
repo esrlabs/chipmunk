@@ -55,14 +55,12 @@ export abstract class FileOpener<Options, NamedOptions> extends Base<
                         new Error(`Combination of renders in the scope of session isn't supported`),
                     );
                 }
-                return this.session.stream
-                    .file({
-                        filename: target.filename,
-                        name: target.name,
-                        type: target.type,
-                        options: options === undefined ? {} : (this.getNamedOptions(options) as {}),
-                    })
-                    .open();
+                return this.session.stream.file({
+                    filename: target.filename,
+                    name: target.name,
+                    type: target.type,
+                    options: options === undefined ? {} : (this.getNamedOptions(options) as {}),
+                });
             } else {
                 return this.services.system.session
                     .add()

@@ -103,16 +103,9 @@ export class Holder {
                                     source: source.toJSON(),
                                 }),
                             );
-                            resolve(observer.uuid());
                         })
                         .on('processing', () => {
-                            Events.IpcEvent.emit(
-                                new Events.Observe.Processing.Event({
-                                    session: this.session.getUUID(),
-                                    operation: observer.uuid(),
-                                    source: source.toJSON(),
-                                }),
-                            );
+                            resolve(observer.uuid());
                         })
                         .catch((err: Error) => {
                             this._logger.error(`Fail to call observe. Error: ${err.message}`);

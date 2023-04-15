@@ -28,7 +28,7 @@ lazy_static! {
 
 #[derive(Error, Debug)]
 pub enum ProcessError {
-    #[error("Process setup problem: {0}")]
+    #[error("{0}")]
     Setup(String),
     #[error("Unrecoverable process error: {0}")]
     Unrecoverable(String),
