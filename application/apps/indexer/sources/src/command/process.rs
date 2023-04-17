@@ -45,7 +45,7 @@ pub struct ProcessSource {
 impl Drop for ProcessSource {
     fn drop(&mut self) {
         if let Err(err) = futures::executor::block_on(self.process.kill()) {
-            error!("Fail to kill child process: {}", err);
+            error!("Fail to kill child process: {err}");
         }
     }
 }

@@ -72,9 +72,9 @@ export function finish(
         done();
     } else {
         Promise.allSettled(
-            filtered.map((session) => {
-                session === undefined ? Promise.resolve() : session.destroy();
-            }),
+            filtered.map((session) =>
+                session === undefined ? Promise.resolve() : session.destroy(),
+            ),
         ).then((results) => {
             let reasons: any[] = [];
             results.forEach((res) => {
