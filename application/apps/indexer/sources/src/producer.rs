@@ -1,20 +1,14 @@
-use crate::{ByteSource, ReloadInfo, SourceFilter};
+use crate::{sde::SdeMsg, ByteSource, ReloadInfo, SourceFilter};
 use async_stream::stream;
 use log::warn;
 use parsers::{Error as ParserError, LogMessage, MessageStreamItem, Parser};
 use std::marker::PhantomData;
 use tokio::{
     select,
-    sync::{
-        mpsc::{UnboundedReceiver, UnboundedSender},
-        oneshot,
-    },
+    sync::mpsc::{UnboundedReceiver, UnboundedSender},
 };
 use tokio_stream::Stream;
 
-// SourceDataExchange - Sde
-// Channel allows to send message into ByteSource implementaion in run-time
-pub type SdeMsg = (String, oneshot::Sender<Result<String, String>>);
 pub type SdeSender = UnboundedSender<SdeMsg>;
 pub type SdeReceiver = UnboundedReceiver<SdeMsg>;
 
@@ -89,7 +83,12 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                         Next::Sde(msg) => {
                             if let Some((msg, tx_response)) = msg {
                                 if tx_response
-                                    .send(self.byte_source.income(msg).await)
+                                    .send(
+                                        self.byte_source
+                                            .income(msg)
+                                            .await
+                                            .map_err(|e| e.to_string()),
+                                    )
                                     .is_err()
                                 {
                                     warn!("Fail to send back message from source");

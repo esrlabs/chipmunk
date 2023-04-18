@@ -1,4 +1,5 @@
 <mat-form-field class="material-mofication-outline" [attr.error]="error.is()" appearance="outline">
+    <span class="inline-label t-normal" *ngIf="options.inlineLabel !== undefined">{{options.inlineLabel}}</span>
     <input
         #input
         tabindex="2"

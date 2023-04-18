@@ -333,6 +333,8 @@ pub enum ComputationError {
     NativeError(NativeError),
     #[error("Grabbing content not possible: {0:?}")]
     Grabbing(#[from] GrabError),
+    #[error("Sending data to source error: {0:?}")]
+    Sde(String),
 }
 
 pub type SyncChannel<T> = (cc::Sender<T>, cc::Receiver<T>);

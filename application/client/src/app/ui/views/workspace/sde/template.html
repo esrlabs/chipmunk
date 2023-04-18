@@ -1,0 +1,23 @@
+<app-autocomplete-input #sde [options]="options"
+    (enter)="enter()"
+    (panel)="panel()"></app-autocomplete-input>
+<button tabindex="-1" class="flat-codicon-button" [matMenuTriggerFor]="menu">
+    <ng-container *ngIf="state.selected !== undefined">
+        <span class="codicon codicon-terminal"></span>
+        <span class="label">{{state.desc(state.selected).major}}</span>
+    </ng-container>
+    <ng-container *ngIf="state.selected === undefined">
+        <span class="label">Loading...</span>
+        <mat-spinner [diameter]="16"></mat-spinner>
+    </ng-container>
+</button>
+<mat-progress-bar *ngIf="state.progress" mode="indeterminate"></mat-progress-bar>
+<mat-menu #menu="matMenu" class="app-views-sde-list">
+    <p class="material-menu-label">Send command/data to:</p>
+    <button *ngFor="let source of state.sources" [attr.data-selected]="state.isSelected(source)" (click)="state.select(source)" mat-menu-item >
+        <div class="source">
+            <span class="major">{{state.desc(source).major}}</span>
+            <span class="minor">{{state.desc(source).minor}}</span>
+        </div>
+    </button>
+</mat-menu>

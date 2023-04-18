@@ -34,7 +34,7 @@ export class Setup extends SetupBase implements AfterContentInit, AfterViewInit,
             defaults: '',
             placeholder: 'Enter terminal command',
             label: 'Terminal command',
-            recent: new Subject<void>(),
+            recent: new Subject<string | undefined>(),
             error: new CmdErrorState(),
         },
         cwd: {

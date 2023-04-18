@@ -18,6 +18,7 @@ use session::{
     operations,
     session::Session,
 };
+use sources::sde;
 use std::{convert::TryFrom, ops::RangeInclusive, path::PathBuf, thread};
 use tokio::{runtime::Runtime, sync::oneshot};
 use uuid::Uuid;
@@ -652,11 +653,16 @@ impl RustSession {
         target: String,
         msg: String,
     ) -> Result<String, ComputationErrorWrapper> {
+        let request = serde_json::from_str::<sde::SdeRequest>(&msg)
+            .map_err(|e| ComputationErrorWrapper(ComputationError::IoOperation(e.to_string())))?;
         if let Some(ref session) = self.session {
-            session
-                .send_into_sde(operations::uuid_from_str(&target)?, msg)
+            let response = session
+                .send_into_sde(operations::uuid_from_str(&target)?, request)
                 .await
-                .map_err(ComputationErrorWrapper)
+                .map_err(ComputationErrorWrapper)?;
+            Ok(serde_json::to_string(&response).map_err(|e| {
+                ComputationErrorWrapper(ComputationError::IoOperation(e.to_string()))
+            })?)
         } else {
             Err(ComputationErrorWrapper(
                 ComputationError::SessionUnavailable,

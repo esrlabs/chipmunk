@@ -2,7 +2,7 @@ import { Logger } from 'platform/log';
 import { scope } from 'platform/env/scope';
 import { RustSession } from '../native/native.session';
 import { ICancelablePromise } from 'platform/env/promise';
-import { SdeResult } from 'platform/types/sde/common';
+import { SdeRequest, SdeResponse } from 'platform/types/sde';
 import { EventProvider } from '../api/session.provider';
 import { Executors } from './executors/session.stream.executors';
 import { EFileOptionsRequirements } from './executors/session.stream.observe.executor';
@@ -100,22 +100,10 @@ export class SessionStream {
         return Executors.observe(this._session, this._provider, this._logger, source);
     }
 
-    public sde(operation: string, msg: string): Promise<string> {
-        return this._session.sendIntoSde(operation, msg).then((result) => {
+    public sde(operation: string, request: SdeRequest): Promise<SdeResponse> {
+        return this._session.sendIntoSde(operation, JSON.stringify(request)).then((result) => {
             try {
-                const parsed: SdeResult = JSON.parse(result);
-                if (typeof parsed.Ok !== 'string' && typeof parsed.Err !== 'string') {
-                    return Promise.reject(new Error(`Invalid format of response`));
-                }
-                if (typeof parsed.Err === 'string') {
-                    return Promise.reject(new Error(parsed.Err));
-                }
-                if (typeof parsed.Ok === 'string') {
-                    return Promise.resolve(
-                        typeof parsed.Ok === 'string' ? parsed.Ok : JSON.stringify(parsed.Ok),
-                    );
-                }
-                return Promise.reject(new Error(`Invalid format of response`));
+                return JSON.parse(result) as SdeResponse;
             } catch (e) {
                 return Promise.reject(new Error(`Fail to parse response`));
             }

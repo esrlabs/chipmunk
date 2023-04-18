@@ -3,6 +3,14 @@
 
 app-autocomplete-input {
     position: relative;
-    display: block;
+    display: flex;
+    flex-direction: row;
+    align-items:flex-start;
     width: 100%;
+    & span.inline-label {
+        color: @scheme-color-3;
+        white-space: nowrap;
+        margin: 0 6px 0 0;
+        font-size: 12px;
+    }
 }

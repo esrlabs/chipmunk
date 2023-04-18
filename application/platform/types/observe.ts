@@ -314,6 +314,14 @@ export class DataSource {
         };
     }
 
+    public isSDEAvaliable(): boolean {
+        const nature = this.is();
+        if (nature.file || nature.concat || nature.tcp || nature.udp) {
+            return false;
+        }
+        return true;
+    }
+
     public asFile(): string | undefined {
         if (this.origin.File === undefined) {
             return undefined;

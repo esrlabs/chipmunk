@@ -12,6 +12,7 @@ pub mod factory;
 pub mod pcap;
 pub mod producer;
 pub mod raw;
+pub mod sde;
 pub mod serial;
 pub mod socket;
 
@@ -67,6 +68,10 @@ pub enum Error {
     Setup(String),
     #[error("Unrecoverable source error: {0}")]
     Unrecoverable(String),
+    #[error("IO error: {0}")]
+    Io(std::io::Error),
+    #[error("Not supported feature")]
+    NotSupported,
 }
 
 pub(crate) const DEFAULT_READER_CAPACITY: usize = 10 * 1024 * 1024;
@@ -117,7 +122,7 @@ pub trait ByteSource: Send + Sync {
         Ok(())
     }
 
-    async fn income(&mut self, _msg: String) -> Result<String, String> {
-        Ok(String::new())
+    async fn income(&mut self, _msg: sde::SdeRequest) -> Result<sde::SdeResponse, Error> {
+        Err(Error::NotSupported)
     }
 }

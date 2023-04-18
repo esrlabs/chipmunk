@@ -1,6 +1,7 @@
 import { CancelablePromise } from 'platform/env/promise';
 import { sessions } from '@service/sessions';
 import { Logger } from 'platform/log';
+import { SdeResponse } from 'platform/types/sde';
 
 import * as Requests from 'platform/ipc/request';
 
@@ -19,8 +20,8 @@ export const handler = Requests.InjectLogger<
             }
             stored.session
                 .getStream()
-                .sde(request.operation, request.json)
-                .then((result: string) => {
+                .sde(request.operation, request.request)
+                .then((result: SdeResponse) => {
                     resolve(
                         new Requests.Observe.SDE.Response({
                             session: stored.session.getUUID(),

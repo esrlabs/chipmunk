@@ -26,7 +26,8 @@ interface Options {
     name: string;
     placeholder: string;
     label: string;
-    recent: Subject<void>;
+    inlineLabel?: string;
+    recent: Subject<string | undefined>;
     error?: ErrorState;
 }
 
@@ -76,8 +77,9 @@ export class AutocompleteInput extends ChangesDetector implements AfterContentIn
             this.markChangesForCheck();
         });
         this.env().subscriber.register(
-            this.options.recent.subscribe(() => {
-                this.recent.update(this.control.value);
+            this.options.recent.subscribe((value: string | undefined) => {
+                value = value === undefined ? this.control.value : value;
+                value.trim() !== '' && this.recent.update(value);
             }),
         );
         this.env().subscriber.register(

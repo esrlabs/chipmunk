@@ -12,6 +12,7 @@ import { SourceDefinition } from '@platform/types/transport';
 import { IDLTOptions, parserSettingsToOptions } from '@platform/types/parsers/dlt';
 import { TargetFile } from '@platform/types/files';
 import { lockers } from '@ui/service/lockers';
+import { SdeRequest, SdeResponse } from '@platform/types/sde';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -230,7 +231,7 @@ export class Stream extends Subscriber {
             request(): Promise<ObservedSourceLink[]>;
             count(): number;
         };
-        sde<T, R>(uuid: string, msg: T): Promise<R>;
+        sde(uuid: string, msg: SdeRequest): Promise<SdeResponse>;
     } {
         return {
             abort: (uuid: string): Promise<void> => {
@@ -346,14 +347,14 @@ export class Stream extends Subscriber {
                     return this.observed.map.size;
                 },
             },
-            sde: <T, R>(uuid: string, msg: T): Promise<R> => {
+            sde: (uuid: string, request: SdeRequest): Promise<SdeResponse> => {
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(
                         Requests.Observe.SDE.Response,
                         new Requests.Observe.SDE.Request({
                             session: this._uuid,
                             operation: uuid,
-                            json: JSON.stringify(msg),
+                            request,
                         }),
                     )
                         .then((response: Requests.Observe.SDE.Response) => {
@@ -364,7 +365,7 @@ export class Stream extends Subscriber {
                                 return reject(new Error(`SDE doesn't return any kind of result`));
                             }
                             try {
-                                resolve(JSON.parse(response.result) as unknown as R);
+                                resolve(response.result);
                             } catch (e) {
                                 return reject(new Error(error(e)));
                             }

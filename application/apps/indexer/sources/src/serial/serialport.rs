@@ -1,6 +1,5 @@
 use crate::{
-    factory::SerialTransportConfig, serial::sde, ByteSource, Error as SourceError, ReloadInfo,
-    SourceFilter,
+    factory::SerialTransportConfig, sde, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
 };
 use async_trait::async_trait;
 use buf_redux::Buffer;
@@ -171,31 +170,25 @@ impl ByteSource for SerialSource {
         self.len() == 0
     }
 
-    async fn income(&mut self, msg: String) -> Result<String, String> {
-        let request = serde_json::from_str::<sde::SdeRequest>(&msg)
-            .map_err(|e| format!("Fail to deserialize message: {e}"))?;
-        let response = match request {
+    async fn income(&mut self, request: sde::SdeRequest) -> Result<sde::SdeResponse, SourceError> {
+        Ok(match request {
             sde::SdeRequest::WriteText(str) => {
                 let len = str.len();
-                match self.write_stream.send(str.as_bytes().to_vec()).await {
-                    Ok(()) => sde::SdeResponse::WriteText(sde::WriteResponse { bytes: len }),
-                    Err(err) => {
-                        sde::SdeResponse::Error(format!("Fail to write string to port: {err}"))
-                    }
-                }
+                self.write_stream
+                    .send(str.as_bytes().to_vec())
+                    .await
+                    .map_err(SourceError::Io)?;
+                sde::SdeResponse { bytes: len }
             }
             sde::SdeRequest::WriteBytes(bytes) => {
                 let len = bytes.len();
-                match self.write_stream.send(bytes).await {
-                    Ok(()) => sde::SdeResponse::WriteText(sde::WriteResponse { bytes: len }),
-                    Err(err) => {
-                        sde::SdeResponse::Error(format!("Fail to write bytes to port: {err}"))
-                    }
-                }
+                self.write_stream
+                    .send(bytes)
+                    .await
+                    .map_err(SourceError::Io)?;
+                sde::SdeResponse { bytes: len }
             }
-        };
-        serde_json::to_string(&response)
-            .map_err(|e| format!("Fail to convert response to JSON: {e}"))
+        })
     }
 }
 

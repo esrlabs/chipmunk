@@ -11,7 +11,7 @@ use indexer_base::progress::Severity;
 use log::{debug, error};
 use processor::{grabber::LineRange, search::filter::SearchFilter};
 use serde::Serialize;
-use sources::factory::ObserveOptions;
+use sources::{factory::ObserveOptions, sde};
 use std::{ops::RangeInclusive, path::PathBuf};
 use tokio::{
     join,
@@ -204,10 +204,10 @@ impl Session {
     pub async fn send_into_sde(
         &self,
         target: Uuid,
-        msg: String,
-    ) -> Result<String, ComputationError> {
+        msg: sde::SdeRequest,
+    ) -> Result<sde::SdeResponse, ComputationError> {
         let (tx_response, rx_response) = oneshot::channel();
-        let response = if let Some(tx_sde) = self
+        if let Some(tx_sde) = self
             .tracker
             .get_sde_sender(target)
             .await
@@ -218,15 +218,19 @@ impl Session {
                     "Fail to send message into SDE channel",
                 ))
             })?;
-            rx_response.await.map_err(|_| {
-                ComputationError::Communication(String::from(
-                    "Fail to get response from SDE channel",
-                ))
-            })?
+            rx_response
+                .await
+                .map_err(|_| {
+                    ComputationError::Communication(String::from(
+                        "Fail to get response from SDE channel",
+                    ))
+                })?
+                .map_err(ComputationError::Sde)
         } else {
-            Err(String::from("No SDE channel"))
-        };
-        serde_json::to_string(&response).map_err(|e| ComputationError::Communication(e.to_string()))
+            Err(ComputationError::IoOperation(String::from(
+                "No SDE channel",
+            )))
+        }
     }
 
     pub async fn stop(&self, operation_id: Uuid) -> Result<(), ComputationError> {
