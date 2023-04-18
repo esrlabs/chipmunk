@@ -10,6 +10,9 @@ import { IMenuItem } from '@ui/service/contextmenu';
 import { DragableRequest, ListContent } from '../draganddrop/service';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { EntityData } from '../providers/definitions/entity.data';
+import { StoredEntity } from '@service/session/dependencies/search/store';
+import { ChartRequest } from '@service/session/dependencies/search/charts/request';
+import { getContrastColor } from '@ui/styles/colors';
 
 export class ProviderFilters extends Provider<FilterRequest> {
     private _entities: Map<string, Entity<FilterRequest>> = new Map();
@@ -172,15 +175,34 @@ export class ProviderFilters extends Provider<FilterRequest> {
         if (selected.length !== 1) {
             return [];
         }
-        const entity = selected[0].extract();
+        const entity = selected[0];
+        const request = selected[0].extract();
         const items: IMenuItem[] = [];
-        if (entity instanceof FilterRequest) {
+        if (request instanceof FilterRequest) {
             items.push({
                 caption: `Show Matches`,
                 handler: () => {
-                    this.search(selected[0]);
+                    this.search(entity);
                 },
             });
+            ChartRequest.isValid(request.definition.filter.filter) &&
+                items.push({
+                    caption: `Convert to Chart`,
+                    handler: () => {
+                        this.session.search.store().filters().delete([request.uuid()]);
+                        this.session.search
+                            .store()
+                            .charts()
+                            .update([
+                                new ChartRequest({
+                                    filter: request.definition.filter.filter,
+                                    active: request.definition.active,
+                                    color: request.definition.colors.background,
+                                    uuid: request.definition.uuid,
+                                }) as StoredEntity<ChartRequest>,
+                            ]);
+                    },
+                });
         }
         return items;
     }
@@ -297,38 +319,37 @@ export class ProviderFilters extends Provider<FilterRequest> {
                 }
                 const disabled: DisabledRequest = outside.extract();
                 this.session.search.store().disabled().delete([disabled.uuid()]);
-                this.session.search.store().filters().tryRestore(disabled.entity());
-                // if (data.entries !== undefined) {
-                //     const outside: Entity<ChartRequest> | undefined =
-                //         data.entries[event.previousIndex] !== undefined
-                //             ? (data.entries[index] as Entity<ChartRequest>)
-                //             : undefined;
-                //     if (
-                //         outside !== undefined &&
-                //         typeof outside.getEntity === 'function' &&
-                //         outside.extract() instanceof ChartRequest
-                //     ) {
-                //         session
-                //             .getSessionSearch()
-                //             .getChartsAPI()
-                //             .getStorage()
-                //             .remove(outside.extract());
-                //         session
-                //             .getSessionSearch()
-                //             .getFiltersAPI()
-                //             .getStorage()
-                //             .add(
-                //                 {
-                //                     request: outside.extract().asDesc().request,
-                //                     flags: {
-                //                         casesensitive: true,
-                //                         wholeword: true,
-                //                         regexp: true,
-                //                     },
-                //                 },
-                //                 event.currentIndex,
-                //             );
-                //     }
+                this.session.search
+                    .store()
+                    .filters()
+                    .update([disabled.entity() as StoredEntity<FilterRequest>]);
+            } else {
+                if (data.entries !== undefined && data.entries.length > 0) {
+                    const entry: Entity<ChartRequest> = data.entries[0] as Entity<ChartRequest>;
+                    const chartRequest: ChartRequest = entry.extract();
+                    this.session.search.store().filters().delete([chartRequest.uuid()]);
+                    this.session.search
+                        .store()
+                        .filters()
+                        .update([
+                            new FilterRequest({
+                                filter: {
+                                    filter: chartRequest.definition.filter,
+                                    flags: {
+                                        word: false,
+                                        cases: false,
+                                        reg: true,
+                                    },
+                                },
+                                active: chartRequest.definition.active,
+                                colors: {
+                                    color: getContrastColor(chartRequest.definition.color),
+                                    background: chartRequest.definition.color,
+                                },
+                                uuid: chartRequest.definition.uuid,
+                            }) as StoredEntity<FilterRequest>,
+                        ]);
+                }
             }
         }
     }

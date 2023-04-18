@@ -21,7 +21,4 @@ export abstract class BasicState {
         this._service = Service.from(this._session);
         this._activeSearch = this._session.search.state().hasActiveSearch();
     }
-
-    protected abstract init(): void;
-    protected abstract destroy(): void;
 }

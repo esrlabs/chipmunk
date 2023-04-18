@@ -11,7 +11,7 @@ import { FilterRequest } from '@service/session/dependencies/search/filters/requ
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatInput } from '@angular/material/input';
 import { MatCheckbox } from '@angular/material/checkbox';
-import { FilterItemDirective } from '../../directives/item.directive';
+import { ItemDirective } from '../../directives/item.directive';
 import { ProviderFilters } from '../provider';
 import { Entity } from '../../providers/definitions/entity';
 import { MatDragDropResetFeatureDirective } from '@ui/env/directives/material.dragdrop';
@@ -47,12 +47,12 @@ export class Filter extends ChangesDetector implements AfterContentInit {
     @Input() provider!: ProviderFilters;
 
     public state!: State;
-    public directive: FilterItemDirective;
+    public directive: ItemDirective;
     public EFlag = EFlag;
 
     constructor(
         cdRef: ChangeDetectorRef,
-        directive: FilterItemDirective,
+        directive: ItemDirective,
         accessor: MatDragDropResetFeatureDirective,
     ) {
         super(cdRef);

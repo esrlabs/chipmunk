@@ -4,8 +4,12 @@ import { ChartRequest } from './request';
 export interface UpdateEventInner {
     filter: boolean;
     state: boolean;
-    colors: boolean;
+    color: boolean;
     stat: boolean;
+    stepped: boolean;
+    tension: boolean;
+    borderWidth: boolean;
+    pointRadius: boolean;
 }
 
 export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartRequest> {
@@ -13,8 +17,12 @@ export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartReques
     protected event: UpdateEventInner = {
         filter: false,
         state: false,
-        colors: false,
+        color: false,
         stat: false,
+        stepped: false,
+        tension: false,
+        borderWidth: false,
+        pointRadius: false,
     };
 
     constructor(request: ChartRequest) {
@@ -25,8 +33,12 @@ export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartReques
     public on(): {
         filter(): UpdateEvent;
         state(): UpdateEvent;
-        colors(): UpdateEvent;
+        color(): UpdateEvent;
         stat(): UpdateEvent;
+        stepped(): UpdateEvent;
+        tension(): UpdateEvent;
+        borderWidth(): UpdateEvent;
+        pointRadius(): UpdateEvent;
     } {
         return {
             filter: (): UpdateEvent => {
@@ -37,19 +49,44 @@ export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartReques
                 this.event.state = true;
                 return this;
             },
-            colors: (): UpdateEvent => {
-                this.event.colors = true;
+            color: (): UpdateEvent => {
+                this.event.color = true;
                 return this;
             },
             stat: (): UpdateEvent => {
                 this.event.stat = true;
                 return this;
             },
+            stepped: (): UpdateEvent => {
+                this.event.stepped = true;
+                return this;
+            },
+            tension: (): UpdateEvent => {
+                this.event.tension = true;
+                return this;
+            },
+            borderWidth: (): UpdateEvent => {
+                this.event.borderWidth = true;
+                return this;
+            },
+            pointRadius: (): UpdateEvent => {
+                this.event.pointRadius = true;
+                return this;
+            },
         };
     }
 
     public changed(): boolean {
-        return this.event.colors || this.event.filter || this.event.stat || this.event.state;
+        return (
+            this.event.color ||
+            this.event.filter ||
+            this.event.stat ||
+            this.event.state ||
+            this.event.stepped ||
+            this.event.tension ||
+            this.event.borderWidth ||
+            this.event.pointRadius
+        );
     }
 
     public consequence(): {
@@ -58,9 +95,15 @@ export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartReques
         inner: boolean;
     } {
         return {
-            highlights: this.event.colors,
-            value: this.event.state || this.event.filter,
-            inner: this.event.colors || this.event.filter || this.event.stat || this.event.state,
+            highlights: this.event.color,
+            value:
+                this.event.state ||
+                this.event.filter ||
+                this.event.stepped ||
+                this.event.tension ||
+                this.event.borderWidth ||
+                this.event.pointRadius,
+            inner: this.event.color || this.event.filter || this.event.stat || this.event.state,
         };
     }
     public inner(): UpdateEventInner {

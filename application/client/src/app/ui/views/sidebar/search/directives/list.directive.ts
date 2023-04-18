@@ -2,9 +2,9 @@ import { Directive, Input, HostListener } from '@angular/core';
 import { DragAndDropService, ListContent } from '../draganddrop/service';
 
 @Directive({
-    selector: '[appFiltersList]',
+    selector: '[appListDirective]',
 })
-export class FiltersListDirective {
+export class ListDirective {
     @Input() listID!: ListContent;
     @Input() draganddrop!: DragAndDropService;
 

@@ -1,8 +1,9 @@
 <div id="filters-entities"
     cdkDropList
-    [cdkDropListConnectedTo]="['disabled-entities', 'bin-entity']"
+    [cdkDropListConnectedTo]="['charts-entities', 'disabled-entities', 'bin-entity']"
     [cdkDropListData]="_ng_getDragAndDropData()"
     [cdkDropListEnterPredicate]="_ng_viablePredicate()"
+    [cdkDropListLockAxis]="'y'"
     (cdkDropListDropped)="_ng_onItemDragged($event)"
     class="filters">
     <app-sidebar-filters-filter
@@ -13,4 +14,5 @@
         [provider]="provider"
         [entity]="entity"
         *ngFor="let entity of entries;"></app-sidebar-filters-filter>
+        <div class="placeholder" *cdkDragPlaceholder></div>
 </div>

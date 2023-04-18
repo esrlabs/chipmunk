@@ -1,0 +1,305 @@
+import { Session } from '@service/session';
+import { IlcInterface } from '@service/ilc';
+import { ChangesDetector } from '@ui/env/extentions/changes';
+import {
+    BubbleDataPoint,
+    Chart,
+    ChartDataset,
+    ChartTypeRegistry,
+    ScatterDataPoint,
+} from 'chart.js';
+import { EChartName, ILabel, IPosition } from '../types';
+import { FilterRequest } from '@service/session/dependencies/search/filters/request';
+import { ISearchMap } from '@platform/interfaces/interface.rust.api.general';
+import { IRange } from '@platform/types/range';
+import { Service } from '../service';
+
+export class Filter {
+    private readonly _session: Session;
+    private readonly _parent: IlcInterface & ChangesDetector;
+    private readonly _service: Service;
+    private readonly _chart: Chart;
+    private readonly _labelState: ILabel;
+    private _canvasWidth: number = 0;
+    private _zoomedRange!: IRange;
+    private _defaultPosition: IPosition = {
+        full: this._canvasWidth,
+        left: 0,
+        width: this._canvasWidth,
+    };
+
+    constructor(
+        session: Session,
+        parent: IlcInterface & ChangesDetector,
+        service: Service,
+        canvasWidth: number,
+        labelState: ILabel,
+    ) {
+        this._session = session;
+        this._parent = parent;
+        this.canvasWidth = canvasWidth;
+        this._service = service;
+        this._labelState = labelState;
+        this._restoreZoomedRange();
+        this._chart = this._createChart();
+        this._initSubscriptions();
+        this._initDatasets();
+        this._initData();
+    }
+
+    public set canvasWidth(canvasWidth: number) {
+        this._canvasWidth = canvasWidth;
+        this._defaultPosition = {
+            full: this._canvasWidth,
+            left: 0,
+            width: this._canvasWidth,
+        };
+    }
+
+    public destroy() {
+        this._chart.destroy();
+    }
+
+    public zoom(zoomedRange: IRange) {
+        this._zoomedRange = zoomedRange;
+        this._initData();
+    }
+
+    private _initSubscriptions() {
+        this._parent
+            .env()
+            .subscriber.register(
+                this._session.search
+                    .store()
+                    .filters()
+                    .subjects.get()
+                    .highlights.subscribe(this._onColorChange.bind(this)),
+            );
+        this._parent
+            .env()
+            .subscriber.register(
+                this._session.search
+                    .store()
+                    .filters()
+                    .subjects.get()
+                    .value.subscribe(this._onChange.bind(this)),
+            );
+    }
+
+    private _onChange(entities: FilterRequest[]) {
+        this._removeRedundantDatasets(entities);
+        entities.forEach(async (entity: FilterRequest) => {
+            if (entity.definition.active) {
+                const index: number = this._chart.data.datasets.findIndex((dataset) => {
+                    return dataset.label === entity.definition.filter.filter;
+                });
+                if (index === -1) {
+                    this._chart.data.datasets.push({
+                        label: entity.definition.filter.filter,
+                        data: [],
+                        backgroundColor: entity.definition.colors.background,
+                        borderColor: entity.definition.colors.background,
+                    });
+                    await this._initData();
+                }
+            }
+        });
+        this._chart.update();
+        this._updateHasNoData();
+    }
+
+    private _removeRedundantDatasets(entities: FilterRequest[]) {
+        this._chart.data.datasets = this._chart.data.datasets.filter(
+            (
+                dataset: ChartDataset<
+                    keyof ChartTypeRegistry,
+                    (number | ScatterDataPoint | BubbleDataPoint | null)[]
+                >,
+            ) => {
+                return (
+                    entities.findIndex((entity: FilterRequest) => {
+                        return (
+                            entity.definition.filter.filter === dataset.label &&
+                            entity.definition.active
+                        );
+                    }) !== -1
+                );
+            },
+        );
+    }
+
+    private _initDatasets() {
+        this._chart.data.datasets = [];
+        this._session.search
+            .store()
+            .filters()
+            .getActive()
+            .forEach((activeFilterRequest: FilterRequest, index: number) => {
+                this._chart.data.datasets[index] = {
+                    label: activeFilterRequest.definition.filter.filter,
+                    data: [],
+                    backgroundColor: activeFilterRequest.definition.colors.background,
+                    borderColor: activeFilterRequest.definition.colors.background,
+                };
+            });
+    }
+
+    private _initData(): Promise<void> {
+        const streamLength: number = this._session.stream.len();
+        this._labelState.loading = true;
+        return this._session.search
+            .getScaledMap(
+                streamLength <= this._canvasWidth ? streamLength : this._canvasWidth,
+                this._zoomedRange,
+            )
+            .then((searchResults: ISearchMap) => {
+                if (this._session.search.store().filters().getActive().length === 0) {
+                    return;
+                }
+                this._chart.data.labels = [];
+                searchResults.forEach((idValues: number[][], line: number) => {
+                    (this._chart as any).data.labels.push(line);
+                    if (line === 0) {
+                        this._resetDatasets();
+                    }
+                    this._fillDatasets(idValues, line);
+                    this._stuffDatasetGaps(line);
+                });
+            })
+            .catch((error: Error) => {
+                this._parent
+                    .log()
+                    .error(
+                        `Failed to update ${EChartName.canvasFilters} due to error: ${error.message}`,
+                    );
+            })
+            .finally(() => {
+                this._labelState.loading = false;
+                this._chart.update();
+                this._updateHasNoData();
+            });
+    }
+
+    private _createChart(): Chart {
+        return new Chart(`${EChartName.canvasFilters}-${this._session.uuid()}`, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [],
+            },
+            options: {
+                plugins: {
+                    title: {
+                        display: false,
+                    },
+                    legend: {
+                        display: false,
+                    },
+                    tooltip: {
+                        enabled: true,
+                    },
+                },
+                animation: false,
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        display: false,
+                        stacked: true,
+                        beginAtZero: true,
+                    },
+                    x: {
+                        stacked: true,
+                        display: false,
+                    },
+                },
+            },
+        });
+    }
+
+    private _resetDatasets() {
+        this._chart.data.datasets.forEach(
+            (
+                dataset: ChartDataset<
+                    keyof ChartTypeRegistry,
+                    (number | ScatterDataPoint | BubbleDataPoint | null)[]
+                >,
+            ) => {
+                dataset.data = [];
+            },
+        );
+    }
+
+    private _fillDatasets(idValues: number[][], line: number) {
+        idValues.forEach(([id, value]) => {
+            if (line === 0) {
+                this._chart.data.datasets[id].data = [];
+            }
+            this._chart.data.datasets[id].data.push(value);
+        });
+    }
+
+    private _stuffDatasetGaps(line: number) {
+        this._chart.data.datasets.forEach(
+            (
+                dataset: ChartDataset<
+                    keyof ChartTypeRegistry,
+                    (number | ScatterDataPoint | BubbleDataPoint | null)[]
+                >,
+            ) => {
+                dataset.data[line] === undefined && dataset.data.push(0);
+            },
+        );
+    }
+
+    private _onColorChange(entities: FilterRequest[]) {
+        entities.forEach((entity: FilterRequest) => {
+            const entityColor: string = entity.definition.colors.background;
+            this._chart.data.datasets.forEach(
+                (
+                    dataset: ChartDataset<
+                        keyof ChartTypeRegistry,
+                        (number | ScatterDataPoint | BubbleDataPoint | null)[]
+                    >,
+                ) => {
+                    if (dataset.label === entity.definition.filter.filter) {
+                        dataset.backgroundColor = entityColor;
+                        dataset.borderColor = entityColor;
+                    }
+                },
+            );
+        });
+        this._chart.update();
+    }
+
+    private _restoreZoomedRange() {
+        let position: IPosition | undefined = this._service.getPosition(this._session.uuid());
+        const streamLength: number = this._session.stream.len();
+        position ??= this._defaultPosition;
+        this._zoomedRange = {
+            from: Math.round((position.left / position.full) * streamLength),
+            to: Math.round(((position.left + position.width) / position.full) * streamLength),
+        };
+        if (this._zoomedRange.to >= streamLength) {
+            this._zoomedRange.to = streamLength - 1;
+        }
+        this.zoom(this._zoomedRange);
+    }
+
+    private _updateHasNoData() {
+        this._labelState.hasNoData = true;
+        this._chart.data.datasets.forEach(
+            (
+                dataset: ChartDataset<
+                    keyof ChartTypeRegistry,
+                    (number | ScatterDataPoint | BubbleDataPoint | null)[]
+                >,
+            ) => {
+                if (dataset.data.length > 0) {
+                    this._labelState.hasNoData = false;
+                }
+            },
+        );
+        this._parent.detectChanges();
+    }
+}

@@ -1,6 +1,7 @@
 import { Definition } from './definition';
 import { FiltersCollection } from './collection.filters';
 import { DisabledCollection } from './collection.disabled';
+import { ChartsCollection } from './collection.charts';
 import { BookmarksCollection } from './collection.bookmarks';
 import { Collection } from './collection';
 import { Session } from '@service/session/session';
@@ -31,6 +32,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
     static from(smth: Session | Entry, storage: StorageCollections): Collections {
         if (smth instanceof Session) {
             const filters = smth.search.store().filters().get();
+            const charts = smth.search.store().charts().get();
             const disabled = smth.search.store().disabled().get();
             const bookmarks = smth.bookmarks.get();
             return new Collections(
@@ -46,6 +48,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
                     origin: undefined,
                     entries: filters
                         .map((f) => f.asJsonField())
+                        .concat(charts.map((d) => d.asJsonField()))
                         .concat(disabled.map((d) => d.asJsonField()))
                         .concat(bookmarks.map((b) => b.asJsonField())),
                 },
@@ -88,10 +91,12 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
 
     public readonly collections: {
         filters: FiltersCollection;
+        charts: ChartsCollection;
         disabled: DisabledCollection;
         bookmarks: BookmarksCollection;
     } = {
         filters: new FiltersCollection(),
+        charts: new ChartsCollection(),
         disabled: new DisabledCollection(),
         bookmarks: new BookmarksCollection(),
     };
@@ -190,6 +195,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
     public isSame(collections: Collections): boolean {
         return (
             this.collections.filters.isSame(collections.collections.filters) &&
+            this.collections.charts.isSame(collections.collections.charts) &&
             this.collections.disabled.isSame(collections.collections.disabled)
         );
     }

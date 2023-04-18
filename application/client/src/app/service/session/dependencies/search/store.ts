@@ -75,6 +75,12 @@ export abstract class Store<T> extends Subscriber {
         return Array.from(this._entities.values());
     }
 
+    public getActive(): StoredEntity<T>[] {
+        return Array.from(this._entities.values()).filter((entity: T) => {
+            return (entity as any).definition.active;
+        });
+    }
+
     public reorder(params: { prev: number; curt: number }) {
         let entities: StoredEntity<T>[] = this.get();
         const prev = entities[params.prev];

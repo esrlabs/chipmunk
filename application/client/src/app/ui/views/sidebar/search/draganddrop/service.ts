@@ -2,8 +2,9 @@ import { Subject, unsubscribeAllInHolder } from '@platform/env/subscription';
 import { Entity } from '../providers/definitions/entity';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { DisabledRequest } from '@service/session/dependencies/search/disabled/request';
+import { ChartRequest } from '@service/session/dependencies/search/charts/request';
 
-export type DragableRequest = FilterRequest | DisabledRequest;
+export type DragableRequest = FilterRequest | DisabledRequest | ChartRequest;
 
 export enum ListContent {
     filtersList = 'filtersList',

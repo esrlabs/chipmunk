@@ -355,6 +355,7 @@ export class Providers {
                 }
             });
         } else {
+            this.session.search.store().charts().chartSelected.emit('');
             this.subjects.select.emit(undefined);
         }
         this._providers.forEach((provider: Provider<any>) => {

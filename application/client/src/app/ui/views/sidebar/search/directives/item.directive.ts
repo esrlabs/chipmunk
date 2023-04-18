@@ -15,11 +15,12 @@ import { Subscriber } from '@platform/env/subscription';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { DisabledRequest } from '@service/session/dependencies/search/disabled/request';
+import { ChartRequest } from '@service/session/dependencies/search/charts/request';
 
 @Directive({
     selector: '[appSearchItem]',
 })
-export class FilterItemDirective extends ChangesDetector implements OnInit, OnDestroy {
+export class ItemDirective extends ChangesDetector implements OnInit, OnDestroy {
     @Input() provider!: Provider<any>;
     @Input() entity!: Entity<any>;
 
@@ -89,6 +90,8 @@ export class FilterItemDirective extends ChangesDetector implements OnInit, OnDe
                     this.provider.session.search.store().filters().delete([dragging.uuid()]);
                 } else if (dragging instanceof DisabledRequest) {
                     this.provider.session.search.store().disabled().delete([dragging.uuid()]);
+                } else if (dragging instanceof ChartRequest) {
+                    this.provider.session.search.store().charts().delete([dragging.uuid()]);
                 }
             }),
         );

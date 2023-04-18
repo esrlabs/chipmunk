@@ -4,13 +4,24 @@ import { FilterRequest } from '@service/session/dependencies/search/filters/requ
 import { DisabledRequest } from '@service/session/dependencies/search/disabled/request';
 import { ChartRequest } from '@service/session/dependencies/search/charts/request';
 
+interface IPossibleToSaveAs {
+    filter: boolean;
+    chart: boolean;
+}
+
 export class ActiveSearch {
     public filter: IFilter;
     protected readonly search: Search;
 
+    private _isPossibleToSaveAs: IPossibleToSaveAs;
+
     constructor(search: Search, filter: IFilter) {
         this.filter = filter;
         this.search = search;
+        this._isPossibleToSaveAs = {
+            filter: true,
+            chart: ChartRequest.isValid(this.filter.filter),
+        };
     }
 
     public apply(): Promise<number> {
@@ -25,11 +36,7 @@ export class ActiveSearch {
         );
     }
 
-    public isPossibleToSaveAsChart(): boolean {
-        const request = new ChartRequest({ filter: this.filter.filter });
-        return (
-            !this.search.store().charts().has(request) &&
-            !this.search.store().disabled().has(new DisabledRequest(request))
-        );
+    public get isPossibleToSaveAs(): IPossibleToSaveAs {
+        return this._isPossibleToSaveAs;
     }
 }

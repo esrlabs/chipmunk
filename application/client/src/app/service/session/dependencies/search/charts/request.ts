@@ -1,5 +1,5 @@
 import { Subject } from '@platform/env/subscription';
-import { getContrastColor, scheme_color_match, getNextColor } from '@styles/colors';
+import { scheme_color_match, getNextColor } from '@styles/colors';
 import { DisableConvertable } from '../disabled/converting';
 import { Hash, Recognizable } from '@platform/types/storage/entry';
 import { Json } from '@platform/types/storage/json';
@@ -9,38 +9,40 @@ import { Key } from '../store';
 import { Equal } from '@platform/types/env/types';
 import { Updatable } from '../store';
 import { UpdateEvent } from './store.update';
+import { getFilterError } from '@module/util';
 
 import * as regexFilters from '@platform/env/filters';
-import * as regex from '@platform/env/regex';
 import * as obj from '@platform/env/obj';
 
 export interface Definition {
     filter: string;
-    colors: Colors;
+    color: string;
+    stepped: boolean;
+    tension: number;
+    borderWidth: number;
+    pointRadius: number;
     active: boolean;
     uuid: string;
 }
 
-export interface Colors {
-    color: string;
-    background: string;
-}
-
 export interface OptionalDefinition {
     filter: string;
-    colors?: Colors;
+    color?: string;
+    stepped?: boolean;
+    tension?: number;
+    borderWidth?: number;
+    pointRadius?: number;
     active?: boolean;
     uuid?: string;
-}
-
-export interface OptionalColors {
-    color?: string;
-    background?: string;
 }
 
 export interface UpdateRequest {
     filter?: string;
     color?: string;
+    stepped?: boolean;
+    tension?: number;
+    borderWidth?: number;
+    pointRadius?: number;
     background?: string;
     active?: boolean;
 }
@@ -49,17 +51,18 @@ export class ChartRequest
     extends Json<ChartRequest>
     implements Recognizable, DisableConvertable, Hash, Equal<ChartRequest>, Updatable<UpdateEvent>
 {
-    public static KEY: Key = Key.filters;
+    public static KEY: Key = Key.charts;
 
     public static fromJson(json: string): ChartRequest | Error {
         try {
             const def: Definition = JSON.parse(json);
             def.uuid = obj.getAsString(def, 'uuid');
-            def.filter = obj.getAsObj(def, 'filter');
-            def.filter = obj.getAsNotEmptyString(def.filter, 'filter');
-            def.colors = obj.getAsObj(def, 'colors');
-            def.colors.color = obj.getAsNotEmptyString(def.colors, 'color');
-            def.colors.background = obj.getAsNotEmptyString(def.colors, 'background');
+            def.filter = obj.getAsNotEmptyString(def, 'filter');
+            def.color = obj.getAsNotEmptyString(def, 'color');
+            def.stepped = obj.getAsBool(def, 'stepped');
+            def.tension = obj.getAsValidNumber(def, 'tension');
+            def.borderWidth = obj.getAsValidNumber(def, 'borderWidth');
+            def.pointRadius = obj.getAsValidNumber(def, 'pointRadius');
             def.active = obj.getAsBool(def, 'active');
             return new ChartRequest(def);
         } catch (e) {
@@ -77,7 +80,7 @@ export class ChartRequest
         if (request === undefined) {
             return false;
         }
-        if (!regex.isValid(request)) {
+        if (request.search(/\([^(]*\)/gi) === -1) {
             return false;
         }
         return true;
@@ -87,11 +90,19 @@ export class ChartRequest
         const color = getNextColor();
         return new ChartRequest({
             filter: value,
-            colors: {
-                background: color,
-                color: getContrastColor(color, true),
-            },
+            color: color,
         });
+    }
+
+    static getValidationError(filter: string): string | undefined {
+        let error: string | undefined = getFilterError(filter, false, false, true);
+        if (error !== undefined) {
+            const match: RegExpMatchArray | null = error.match(/error:.+/i);
+            if (match !== null && match[0] !== undefined) {
+                error = match[0].trim();
+            }
+        }
+        return error;
     }
 
     constructor(def: OptionalDefinition) {
@@ -100,20 +111,11 @@ export class ChartRequest
             filter: def.filter,
             uuid: def.uuid === undefined ? unique() : def.uuid,
             active: def.active === undefined ? true : def.active,
-            colors: {
-                color:
-                    def.colors === undefined
-                        ? getContrastColor(scheme_color_match, true)
-                        : def.colors.color === undefined
-                        ? getContrastColor(scheme_color_match, true)
-                        : def.colors.color,
-                background:
-                    def.colors === undefined
-                        ? scheme_color_match
-                        : def.colors.background === undefined
-                        ? scheme_color_match
-                        : def.colors.background,
-            },
+            color: def.color === undefined ? scheme_color_match : def.color,
+            stepped: def.stepped === undefined ? false : def.stepped,
+            borderWidth: def.borderWidth === undefined ? 1 : def.borderWidth,
+            tension: def.tension === undefined ? 0.1 : def.tension,
+            pointRadius: def.pointRadius === undefined ? 0 : def.pointRadius,
         };
         this.update();
     }
@@ -165,7 +167,10 @@ export class ChartRequest
     public set(silence: boolean = false): {
         from(desc: UpdateRequest): boolean;
         color(color: string): boolean;
-        background(background: string): boolean;
+        stepped(stepped: boolean): boolean;
+        tension(tension: number): boolean;
+        borderWidth(borderWidth: number): boolean;
+        pointRadius(pointRadius: number): boolean;
         state(active: boolean): boolean;
         filter(filter: string): boolean;
     } {
@@ -179,13 +184,28 @@ export class ChartRequest
                     event.on().state();
                 }
                 if (typeof desc.color === 'string' && this.set(true).color(desc.color)) {
-                    event.on().colors();
+                    event.on().color();
+                }
+                if (typeof desc.stepped === 'string' && this.set(true).stepped(desc.stepped)) {
+                    event.on().stepped();
                 }
                 if (
-                    typeof desc.background === 'string' &&
-                    this.set(true).background(desc.background)
+                    typeof desc.tension === 'string' &&
+                    this.set(true).tension(desc.tension)
                 ) {
-                    event.on().colors();
+                    event.on().tension();
+                }
+                if (
+                    typeof desc.borderWidth === 'string' &&
+                    this.set(true).borderWidth(desc.borderWidth)
+                ) {
+                    event.on().borderWidth();
+                }
+                if (
+                    typeof desc.pointRadius === 'string' &&
+                    this.set(true).pointRadius(desc.pointRadius)
+                ) {
+                    event.on().pointRadius();
                 }
                 if (event.changed() && this.update()) {
                     this.updated.emit(event);
@@ -193,16 +213,37 @@ export class ChartRequest
                 return event.changed();
             },
             color: (color: string): boolean => {
-                this.definition.colors.color = color;
+                this.definition.color = color;
                 if (!silence && this.update()) {
-                    this.updated.emit(new UpdateEvent(this).on().colors());
+                    this.updated.emit(new UpdateEvent(this).on().color());
                 }
                 return true;
             },
-            background: (background: string): boolean => {
-                this.definition.colors.background = background;
+            stepped: (stepped: boolean): boolean => {
+                this.definition.stepped = stepped;
                 if (!silence && this.update()) {
-                    this.updated.emit(new UpdateEvent(this).on().colors());
+                    this.updated.emit(new UpdateEvent(this).on().stepped());
+                }
+                return true;
+            },
+            tension: (tension: number): boolean => {
+                this.definition.tension = tension;
+                if (!silence && this.update()) {
+                    this.updated.emit(new UpdateEvent(this).on().tension());
+                }
+                return true;
+            },
+            borderWidth: (borderWidth: number): boolean => {
+                this.definition.borderWidth = borderWidth;
+                if (!silence && this.update()) {
+                    this.updated.emit(new UpdateEvent(this).on().borderWidth());
+                }
+                return true;
+            },
+            pointRadius: (pointRadius: number): boolean => {
+                this.definition.pointRadius = pointRadius;
+                if (!silence && this.update()) {
+                    this.updated.emit(new UpdateEvent(this).on().pointRadius());
                 }
                 return true;
             },
@@ -236,7 +277,7 @@ export class ChartRequest
                 return Key.charts;
             },
             icon: (): string => {
-                return 'chart';
+                return 'show_chart';
             },
         };
     }
@@ -256,7 +297,11 @@ export class ChartRequest
             cases: false,
             word: false,
         });
-        this._hash = this.definition.filter;
+        this._hash = `${this.definition.filter}${this.definition.color}${this.definition.stepped}${
+            this.definition.borderWidth
+        }${this.definition.tension}${this.definition.pointRadius}${
+            this.definition.active ? '1' : '0'
+        }`;
         return prev !== this._hash;
     }
 }

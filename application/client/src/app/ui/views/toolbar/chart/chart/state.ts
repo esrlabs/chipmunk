@@ -1,48 +1,78 @@
-import { IPosition, IPositionChange } from '../service';
-import { Owner } from '@schema/content/row';
+import { BasicState } from '../abstract/basic';
+import { EChartName, ILabelState, IPosition, IPositionChange, UPDATE_TIMEOUT_MS } from '../types';
 import { IRange } from '@platform/types/range';
-import { AdvancedState, EChartName } from '../abstract/advanced';
+import { Owner } from '@schema/content/row';
+import { Filter } from './filter';
+import { Chart } from './chart';
+import { InternalAPI } from '@service/ilc';
 
-export class State extends AdvancedState {
-    public crosshairLeft: number = 0;
-    public tooltip: string = '';
-    public tooltipTop: number = 0;
-    public showLeftTooltip: boolean = true;
+export class State extends BasicState {
+    public readonly EChartName = EChartName;
 
-    private readonly _tooltipHeight: number = 10;
-    private _tooltipTimeout: number = -1;
-    private _mouseEnter: boolean = false;
-    private _range!: IRange;
-    private _loading: boolean = true;
-    private _height: number = 0;
+    private readonly _dataState: ILabelState = {
+        filter: {
+            hasNoData: true,
+            loading: false,
+        },
+        chart: {
+            hasNoData: true,
+            loading: false,
+        },
+    };
+    private readonly _timeout: {
+        zoom: number;
+        canvasWidth: number;
+    } = {
+        zoom: -1,
+        canvasWidth: -1,
+    };
+    private _chart!: Chart;
+    private _filter!: Filter;
+    private _ilc!: InternalAPI;
+    private _canvasWidth: number = 0;
+    private _defaultPosition: IPosition = {
+        full: this._canvasWidth,
+        left: 0,
+        width: this._canvasWidth,
+    };
+    private _zoomedRange!: IRange;
 
-    public init() {
-        this._subscribe();
-        this._parent
-            .env()
-            .subscriber.register(
-                this._parent.ilc().channel.ui.sidebar.resize(this._resizeSidebar.bind(this)),
-            );
-        this._parent
-            .env()
-            .subscriber.register(
-                this._parent.ilc().channel.ui.toolbar.resize(this._resizeToolbar.bind(this)),
-            );
-        this._parent.env().subscriber.register(this._service.onChange(this._onChange.bind(this)));
-        this._resizeSidebar();
-        this._resizeToolbar();
-        this._service.noData = this._session.search.len() <= 0;
-        this._onChange(this._service.getPosition(this._session.uuid()));
+    constructor() {
+        super();
+    }
+
+    public init(ilc: InternalAPI) {
+        this._ilc = ilc;
+        this._canvasWidth = this._element.getBoundingClientRect().width;
+        this._chart = new Chart(
+            this._session,
+            this._parent,
+            this._service,
+            this._canvasWidth,
+            this._dataState.chart,
+        );
+        this._filter = new Filter(
+            this._session,
+            this._parent,
+            this._service,
+            this._canvasWidth,
+            this._dataState.filter,
+        );
+        this._initializeSubscriptions();
+        this._onSidebarResize();
     }
 
     public destroy() {
-        if (this._filters !== undefined) {
-            this._filters.destroy();
-        }
+        this._chart && this._chart.destroy();
+        this._filter && this._filter.destroy();
     }
 
-    public isLoading(): boolean {
-        return this._loading;
+    public get isLoading(): boolean {
+        return this._dataState.filter.loading || this._dataState.chart.loading;
+    }
+
+    public get hasNoData(): boolean {
+        return this._dataState.filter.hasNoData && this._dataState.chart.hasNoData;
     }
 
     public onWheel(event: WheelEvent) {
@@ -54,81 +84,30 @@ export class State extends AdvancedState {
         position >= 0 && this._session.cursor.select(position, Owner.Chart, undefined, undefined);
     }
 
-    public onMouseMove(event: MouseEvent) {
-        if (this._tooltipTimeout !== -1) {
-            window.clearTimeout(this._tooltipTimeout);
-        }
-        this._tooltipTimeout = window.setTimeout(() => {
-            const offsetX = event.offsetX;
-            if (offsetX > 0) {
-                this.crosshairLeft = offsetX;
-                this.showLeftTooltip = offsetX <= this._width / 2;
-            }
-            if (event.offsetY > 0) {
-                const difference: number = this._height - this._tooltipHeight * 2;
-                if (event.offsetY >= difference) {
-                    this.tooltipTop = difference;
-                } else {
-                    this.tooltipTop = event.offsetY;
-                }
-                const position: number = this._calculatePosition(event);
-                this.tooltip = position >= 0 ? `${position}` : '';
-            }
-            this._tooltipTimeout = -1;
+    public onContextMenu(event: MouseEvent) {
+        this._ilc.emitter.ui.contextmenu.open({
+            items: [
+                {
+                    caption: `Scale type: ${this._chart.reverseScaleType}`,
+                    handler: () => {
+                        this._service.subjects.scaleType.emit(this._chart.reverseScaleType);
+                        this._chart.switchScaleType();
+                    },
+                },
+            ],
+            x: event.x,
+            y: event.y,
         });
-    }
-
-    public onMouseEnter(mouseEnter: boolean) {
-        if (!mouseEnter) {
-            this.tooltip = '';
-        }
-        this._mouseEnter = mouseEnter;
-    }
-
-    public showTooltip(): boolean {
-        return this._mouseEnter && this.tooltip.trim() !== '';
-    }
-
-    protected _fetch(width: number, range: IRange): Promise<void> {
-        if (this.noData) {
-            return new Promise((resolve) => {
-                this._map = [];
-                resolve();
-            });
-        }
-        this._loading = true;
-        return this._session.search
-            .getScaledMap(width, range)
-            .then((map) => {
-                this._map = map;
-                this._draw(EChartName.chartFilters);
-            })
-            .catch((err: Error) => {
-                this._parent.log().error(err.message);
-            })
-            .finally(() => {
-                this._loading = false;
-            });
-    }
-
-    private _resizeToolbar() {
-        this._height = this._element.getBoundingClientRect().height;
     }
 
     private _calculatePosition(event: MouseEvent): number {
         if (event.target === undefined) {
             return -1;
         }
-        let pos: IPosition = this._service.getPosition(this._session.uuid()).position;
-        if (!this._isPositionViable(pos)) {
-            pos = {
-                left: 0,
-                width: 0,
-                full: this._width,
-            };
-        }
+        let pos: IPosition | undefined = this._service.getPosition(this._session.uuid());
+        pos ??= this._defaultPosition;
         const streamLen: number = this._session.stream.len();
-        const width: number = pos.full === 0 ? this._width : pos.full;
+        const width: number = pos.full === 0 ? this._canvasWidth : pos.full;
         if (streamLen > width) {
             const rangeRate: number = streamLen / width;
             const rangeBegin: number = Math.floor(pos.left * rangeRate);
@@ -138,60 +117,62 @@ export class State extends AdvancedState {
             const offsetX: number = event.offsetX;
             return Math.floor(offsetX / rate) + rangeBegin;
         } else {
-            if (this._range === undefined) {
+            if (this._zoomedRange === undefined) {
                 return -1;
             }
-            const rows = this._range.to - this._range.from;
+            const rows = this._zoomedRange.to - this._zoomedRange.from;
             const rate: number = width / rows;
             const offsetX: number = event.offsetX;
-            return Math.floor(offsetX / rate) + this._range.from;
+            return Math.floor(offsetX / rate) + this._zoomedRange.from;
         }
     }
 
-    private _onChange(event: IPositionChange) {
-        if (event.session !== this._session.uuid()) {
+    private _initializeSubscriptions() {
+        this._parent
+            .env()
+            .subscriber.register(
+                this._parent.ilc().channel.ui.sidebar.resize(this._onSidebarResize.bind(this)),
+            );
+        this._parent
+            .env()
+            .subscriber.register(
+                this._service.subjects.change.subscribe(this._onZoomChange.bind(this)),
+            );
+    }
+
+    private _onZoomChange(positionChange: IPositionChange) {
+        if (positionChange.session !== this._session.uuid()) {
             return;
         }
-        const streamLen: number = this._session.stream.len();
-        const position: IPosition = this._isPositionViable(event.position)
-            ? event.position
-            : {
-                  full: this._width,
-                  left: 0,
-                  width: this._width,
-              };
-        const range: IRange = {
-            from: Math.round((position.left / position.full) * streamLen),
-            to: Math.round(((position.left + position.width) / position.full) * streamLen),
+        const streamLength: number = this._session.stream.len();
+        let position: IPosition | undefined = positionChange.position;
+        position ??= this._defaultPosition;
+        this._zoomedRange = {
+            from: Math.round((position.left / position.full) * streamLength),
+            to: Math.round(((position.left + position.width) / position.full) * streamLength),
         };
-        range.to = range.to >= streamLen ? streamLen - 1 : range.to;
-        this._range = range;
-        this._fetch(this._width, range)
-            .then(() => {
-                this._map.length > 0 && this._draw(EChartName.chartFilters);
-            })
-            .catch((err: Error) => {
-                this._parent.log().error(err.message);
-            });
+        this._zoomedRange.to =
+            this._zoomedRange.to >= streamLength ? streamLength - 1 : this._zoomedRange.to;
+        this._timeout.zoom !== -1 && clearTimeout(this._timeout.zoom);
+        this._timeout.zoom = window.setTimeout(() => {
+            this._filter.zoom(this._zoomedRange);
+            this._chart.zoom(this._zoomedRange);
+            this._timeout.zoom = -1;
+        }, UPDATE_TIMEOUT_MS);
     }
 
-    private _isPositionViable(position: IPosition): boolean {
-        if (
-            position.left === undefined ||
-            position.width === undefined ||
-            position.full === undefined ||
-            position.left < 0 ||
-            position.width <= 0 ||
-            position.full <= 0 ||
-            isNaN(position.left) ||
-            isNaN(position.width) ||
-            isNaN(position.full) ||
-            !isFinite(position.left) ||
-            !isFinite(position.width) ||
-            !isFinite(position.full)
-        ) {
-            return false;
-        }
-        return true;
+    private _onSidebarResize() {
+        this._timeout.canvasWidth !== -1 && clearTimeout(this._timeout.canvasWidth);
+        this._timeout.canvasWidth = window.setTimeout(() => {
+            this._canvasWidth = this._element.getBoundingClientRect().width;
+            this._filter.canvasWidth = this._canvasWidth;
+            this._defaultPosition = {
+                full: this._canvasWidth,
+                left: 0,
+                width: this._canvasWidth,
+            };
+            this._filter.zoom(this._zoomedRange);
+            this._timeout.canvasWidth = -1;
+        }, 150);
     }
 }

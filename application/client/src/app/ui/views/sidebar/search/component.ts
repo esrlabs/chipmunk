@@ -20,6 +20,7 @@ import { IMenuItem, contextmenu } from '@ui/service/contextmenu';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { ProviderFilters } from './filters/provider';
 import { ProviderDisabled } from './disabled/provider';
+import { ProviderCharts } from './charts/provider';
 import { stop } from '@ui/env/dom';
 
 import * as dom from '@ui/env/dom';
@@ -85,6 +86,7 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
         this._providers = new Providers(this.session, this.draganddrop, this.log());
         this._providers.add(ProviderData.filters, ProviderFilters);
         this._providers.add(ProviderData.disabled, ProviderDisabled);
+        this._providers.add(ProviderData.charts, ProviderCharts);
         this.providers = this._providers.list();
         this.env().subscriber.register(
             this._providers.subjects.select.subscribe((event: ISelectEvent | undefined) => {

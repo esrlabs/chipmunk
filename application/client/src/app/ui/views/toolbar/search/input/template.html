@@ -3,17 +3,18 @@
         <span class="active" *ngIf="active !== undefined">
             <span class="t-console t-small filter">{{active.filter.filter}}</span>
             <button
-                [class]="active.isPossibleToSaveAsFilter() ? 'enabled' : ''"
-                [disabled]="!active.isPossibleToSaveAsFilter()"
-                (click)="onSaveAsFilter()"
+                [class]="active.isPossibleToSaveAs.filter ? 'enabled' : ''"
+                [disabled]="!active.isPossibleToSaveAs.filter"
+                (click)="onSave(SaveType.filter)"
             >
-                <mat-icon [class]="!active.isPossibleToSaveAsFilter() ? 'disabled' : ''">save</mat-icon>
+                <mat-icon [class]="!active.isPossibleToSaveAs.filter ? 'disabled' : ''">save</mat-icon>
             </button>
             <button
-                [class]="active.isPossibleToSaveAsChart() ? 'enabled' : ''"
-                [disabled]="!active.isPossibleToSaveAsChart()"
+                [class]="active.isPossibleToSaveAs.chart ? 'enabled' : ''"
+                [disabled]="!active.isPossibleToSaveAs.chart"
+                (click)="onSave(SaveType.chart)"
             >
-                <mat-icon [class]="!active.isPossibleToSaveAsChart() ? 'disabled' : ''">timeline</mat-icon>
+                <mat-icon [class]="!active.isPossibleToSaveAs.chart ? 'disabled' : ''">timeline</mat-icon>
             </button>
             <button class="enabled" (click)="drop()">
                 <mat-icon>close</mat-icon>

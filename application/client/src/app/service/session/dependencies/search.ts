@@ -87,6 +87,15 @@ export class Search extends Subscriber {
                     });
             }),
         );
+        this.register(
+            this._store.charts.subjects.get().value.subscribe(() => {
+                this.state()
+                    .charts()
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to trigger search by charts: ${err.message}`);
+                    });
+            }),
+        );
         this._state = new State(this);
         this._highlights = new Highlights(this);
     }

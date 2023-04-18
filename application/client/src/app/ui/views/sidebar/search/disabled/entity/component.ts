@@ -1,6 +1,6 @@
 import { Component, Input, ChangeDetectorRef, AfterContentInit, ViewChild } from '@angular/core';
 import { MatInput } from '@angular/material/input';
-import { FilterItemDirective } from '../../directives/item.directive';
+import { ItemDirective } from '../../directives/item.directive';
 import { MatDragDropResetFeatureDirective } from '@ui/env/directives/material.dragdrop';
 import { DisabledRequest } from '@service/session/dependencies/search/disabled/request';
 import { ProviderDisabled } from '../provider';
@@ -24,11 +24,11 @@ export class Disabled extends ChangesDetector implements AfterContentInit {
 
     public _ng_display_name: string | undefined;
     public _ng_icon: string | undefined;
-    public _ng_directive: FilterItemDirective;
+    public _ng_directive: ItemDirective;
 
     constructor(
         cdRef: ChangeDetectorRef,
-        private _directive: FilterItemDirective,
+        private _directive: ItemDirective,
         private _accessor: MatDragDropResetFeatureDirective,
     ) {
         super(cdRef);

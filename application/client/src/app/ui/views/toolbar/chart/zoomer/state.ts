@@ -1,97 +1,83 @@
-import { AdvancedState, EChartName } from '../abstract/advanced';
-import { IRange } from '@platform/types/range';
+import { BasicState } from '../abstract/basic';
+import { EChartName, ILabelState, IRectangle } from '../types';
+import { Zoom } from './zoom';
+import { Chart } from './chart';
+import { Filter } from './filter';
 
-export class State extends AdvancedState {
-    public isCursorVisible: boolean = true;
-    public _ng_rectWidth: number = -1;
-    public _ng_rectLeft: number = 0;
-    public readonly _ng_borderWidth: number = 1;
+export class State extends BasicState {
+    public readonly EChartName = EChartName;
+
+    private readonly _dataState: ILabelState = {
+        filter: {
+            hasNoData: true,
+            loading: false,
+        },
+        chart: {
+            hasNoData: true,
+            loading: false,
+        },
+    };
+    private _filter!: Filter;
+    private _chart!: Chart;
+    private _canvasWidth: number = 0;
+    private _zoom!: Zoom;
+
+    constructor() {
+        super();
+    }
 
     public init() {
-        this._positionChangeSetup();
-        this._resizeSidebar();
-        this._subscribe();
-        this._parent.env().subscriber.register(
-            this._parent.ilc().channel.ui.sidebar.resize(() => {
-                this._resizeSidebar();
-                this._update();
-            }),
+        this._canvasWidth = this._element.getBoundingClientRect().width;
+        this._filter = new Filter(
+            this._session,
+            this._parent,
+            this._canvasWidth,
+            this._dataState.filter,
         );
-        this._service.noData = this._session.search.len() <= 0;
-        this._fetch(this._width).catch((err: Error) => {
-            this._parent.log().error(err.message);
-        });
+        this._chart = new Chart(this._session, this._parent, this._dataState.chart, this._service);
+        this._zoom = new Zoom(this._session, this._parent, this._service, this._canvasWidth);
+        this._initSubscriptions();
+        this._updateCanvasWidth();
     }
 
     public destroy() {
-        if (this._filters !== undefined) {
-            this._filters.destroy();
-        }
+        this._chart && this._chart.destroy();
+        this._filter && this._filter.destroy();
     }
 
-    protected _fetch(width: number): Promise<void> {
-        if (this.noData) {
-            return new Promise((resolve) => {
-                this._map = [];
-                resolve();
-            });
-        }
-        return this._session.search
-            .getScaledMap(width)
-            .then((map) => {
-                this._map = map;
-                this._draw(EChartName.zoomerFilters);
-                this._updateCursor();
-            })
-            .catch((err: Error) => {
-                this._parent.log().error(err.message);
-            });
+    public get rectangle(): IRectangle {
+        return this._zoom
+            ? this._zoom.rectangle
+            : {
+                  borderWidth: 1,
+                  width: 0,
+                  left: 0,
+                  isCursorVisible: true,
+              };
     }
 
-    private _updateCursor() {
-        const prev: boolean = this.isCursorVisible;
-        const streamSize: number = this._session.stream.len();
-        if (streamSize > 0 && this._width < streamSize) {
-            this.isCursorVisible = true;
-        } else {
-            this.isCursorVisible = false;
-        }
-        if (this.isCursorVisible !== prev) {
-            if (this.isCursorVisible === false) {
-                this._service.setPosition({
-                    session: this._session.uuid(),
-                    position: { full: 0, left: 0, width: 0 },
-                });
-            }
-            this._parent.detectChanges();
-        }
+    public get isCursorVisible(): boolean {
+        return (
+            !this.hasNoData &&
+            (this._session ? this._canvasWidth < this._session.stream.len() : false)
+        );
     }
 
-    private _onPositionChange(range: IRange) {
-        const linesDiff: number = range.to - range.from;
-        const linesTotal: number = this._session.stream.len();
-        const linesDiffPercent: number = linesDiff / linesTotal;
-        const totalWidth: number = this._element.getBoundingClientRect().width;
-        const fromPercent: number = range.from / linesTotal;
-        const border: number = 2 * this._ng_borderWidth;
-
-        this._ng_rectWidth = Math.round(linesDiffPercent * totalWidth);
-        this._ng_rectLeft = Math.round(fromPercent * totalWidth);
-        if (this._ng_rectLeft + this._ng_rectWidth + border > totalWidth) {
-            this._ng_rectLeft = totalWidth - this._ng_rectWidth - border;
-        }
-        this._parent.detectChanges();
+    public get hasNoData(): boolean {
+        return this._dataState.filter.hasNoData && this._dataState.chart.hasNoData;
     }
 
-    private _positionChangeSetup() {
-        const initialFrame = this._session.cursor.frame().get();
-        initialFrame !== undefined && this._onPositionChange(initialFrame);
+    private _initSubscriptions() {
         this._parent
             .env()
             .subscriber.register(
-                this._session.cursor.subjects
-                    .get()
-                    .frame.subscribe(this._onPositionChange.bind(this)),
+                this._parent.ilc().channel.ui.sidebar.resize(this._updateCanvasWidth.bind(this)),
             );
+    }
+
+    private _updateCanvasWidth() {
+        this._canvasWidth = this._element.getBoundingClientRect().width;
+        this._zoom.canvasWidth = this._canvasWidth;
+        this._filter.canvasWidth = this._canvasWidth;
     }
 }

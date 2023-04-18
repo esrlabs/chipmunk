@@ -1,0 +1,37 @@
+<mat-form-field>
+    <mat-label>Chart type</mat-label>
+    <mat-select [(ngModel)]="state.options.stepped" (selectionChange)="state.onTypeChange()">
+        <mat-option *ngFor="let lineTypeOption of state.lineTypeOptions" [value]="lineTypeOption.stepped">
+            {{lineTypeOption.option}}
+        </mat-option>
+    </mat-select>
+</mat-form-field>
+<span class="slitter"></span>
+<span class="slider-label">Line tension</span>
+ <mat-slider class="slider-option"
+            (dragEnd)="state.onSliderChange($event, state.ESlider.tension)"
+            [max]="state.defaultSettings.tension.max"
+            [min]="state.defaultSettings.tension.min"
+            [step]="state.defaultSettings.tension.step">
+            [discrete]="state.defaultSettings.tension.discrete"
+</mat-slider>
+<span class="slitter"></span>
+<span class="slider-label">Border width</span>
+<mat-slider class="slider-option"
+            (dragEnd)="state.onSliderChange($event, state.ESlider.borderWidth)"
+            [max]="state.defaultSettings.borderWidth.max"
+            [min]="state.defaultSettings.borderWidth.min"
+            [step]="state.defaultSettings.borderWidth.step"
+            [discrete]="state.defaultSettings.tension.discrete">
+</mat-slider>
+<span class="slitter"></span>
+<span class="slider-label">Point radius</span>
+<mat-slider class="slider-option"
+            (dragEnd)="state.onSliderChange($event, state.ESlider.pointRadius)"
+            [max]="state.defaultSettings.pointRadius.max"
+            [min]="state.defaultSettings.pointRadius.min"
+            [step]="state.defaultSettings.pointRadius.step"
+            [discrete]="state.defaultSettings.tension.discrete">
+</mat-slider>
+<span class="slitter"></span>
+<app-com-color-selector [colors]="state.colors" [color]="state.options.color === undefined ? '' : state.options.color" (change)="state.onColorChange($event)"></app-com-color-selector>

@@ -1,4 +1,4 @@
-import { IPosition } from '../../service';
+import { IPosition } from '../../types';
 import { stop } from '@ui/env/dom';
 import { BasicState } from '../../abstract/basic';
 

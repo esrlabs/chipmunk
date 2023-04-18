@@ -6,6 +6,8 @@ import { DisabledList } from './list/component';
 import { IMenuItem } from '@ui/service/contextmenu';
 import { DisableConvertable } from '@service/session/dependencies/search/disabled/converting';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
+import { ChartRequest } from '@service/session/dependencies/search/charts/request';
+import { Key, StoredEntity } from '@service/session/dependencies/search/store';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { DragableRequest, ListContent } from '../draganddrop/service';
 import { EntityData } from '../providers/definitions/entity.data';
@@ -159,10 +161,16 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
                 caption: `Disable`,
                 handler: () => {
                     this.session.search.store().disabled().addFromEntity(entities);
-                    this.session.search
-                        .store()
-                        .filters()
-                        .delete(entities.map((en) => en.uuid()));
+                    entities.forEach((entity: DisableConvertable) => {
+                        switch (entity.disabled().typeRef()) {
+                            case Key.charts:
+                                this.session.search.store().charts().delete([entity.uuid()]);
+                                break;
+                            case Key.filters:
+                                this.session.search.store().filters().delete([entity.uuid()]);
+                                break;
+                        }
+                    });
                 },
             });
         }
@@ -171,19 +179,21 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
                 caption: `Enable`,
                 handler: () => {
                     disableds.forEach((disabled: DisabledRequest) => {
-                        let restored = false;
-                        !restored &&
-                            (restored = this.session.search
-                                .store()
-                                .filters()
-                                .tryRestore(disabled.entity()));
-                        // !restored &&
-                        //     (restored = this.session.search
-                        //         .store()
-                        //         .charts()
-                        //         .tryRestore(disabled.entity()));
-                        restored &&
-                            this.session.search.store().disabled().delete([disabled.uuid()]);
+                        switch (disabled.entity().disabled().typeRef()) {
+                            case Key.filters:
+                                this.session.search
+                                    .store()
+                                    .filters()
+                                    .update([disabled.entity() as StoredEntity<FilterRequest>]);
+                                break;
+                            case Key.charts:
+                                this.session.search
+                                    .store()
+                                    .charts()
+                                    .update([disabled.entity() as StoredEntity<ChartRequest>]);
+                                break;
+                        }
+                        this.session.search.store().disabled().delete([disabled.uuid()]);
                     });
                 },
             });

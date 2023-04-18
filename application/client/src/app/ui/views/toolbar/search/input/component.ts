@@ -22,6 +22,11 @@ import { ISearchFinishEvent } from '@service/session/dependencies/search/state';
 import { Notification } from '@ui/service/notifications';
 import { IFilter } from '@platform/types/filter';
 
+enum ESaveType {
+    chart = 'chart',
+    filter = 'filter',
+}
+
 @Component({
     selector: 'app-views-search-input',
     templateUrl: './template.html',
@@ -40,6 +45,7 @@ export class ViewSearchInput
 
     public readonly input = new SearchInput();
     public readonly recent: List;
+    public readonly SaveType = ESaveType;
     public occupied: boolean = false;
     public active: ActiveSearch | undefined;
     public progress!: Progress;
@@ -133,8 +139,8 @@ export class ViewSearchInput
                     .finally(() => {
                         this.markChangesForCheck();
                     });
-            } else if (this.active.isPossibleToSaveAsFilter()) {
-                this.onSaveAsFilter();
+            } else if (this.active.isPossibleToSaveAs.filter) {
+                this.onSave(ESaveType.filter);
             }
         });
         this.input.actions.drop.subscribe(() => {
@@ -168,11 +174,18 @@ export class ViewSearchInput
             });
     }
 
-    public onSaveAsFilter(): void {
+    public onSave(type: ESaveType): void {
         if (this.active === undefined) {
             return;
         }
-        this.session.search.store().filters().addFromFilter(this.active.filter);
+        switch (type) {
+            case ESaveType.filter:
+                this.session.search.store().filters().addFromFilter(this.active.filter);
+                break;
+            case ESaveType.chart:
+                this.session.search.store().charts().addFromFilter(this.active.filter);
+                break;
+        }
         this.drop();
     }
 
