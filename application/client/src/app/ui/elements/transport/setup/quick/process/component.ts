@@ -40,7 +40,7 @@ export class QuickSetup extends SetupBase implements AfterContentInit, OnDestroy
             defaults: '',
             placeholder: 'Enter terminal command',
             label: 'Terminal command',
-            recent: new Subject<void>(),
+            recent: new Subject<string | undefined>(),
             error: new CmdErrorState(),
         },
         cwd: {

@@ -5,7 +5,7 @@ import {
     AfterViewInit,
     Input,
     ViewChild,
-    OnDestroy
+    OnDestroy,
 } from '@angular/core';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Action } from '@ui/tabs/sources/common/actions/action';
@@ -24,7 +24,10 @@ import { ShellProfile } from '@platform/types/shells';
     template: '',
 })
 @Ilc()
-export class SetupBase extends ChangesDetector implements AfterContentInit, AfterViewInit, OnDestroy {
+export class SetupBase
+    extends ChangesDetector
+    implements AfterContentInit, AfterViewInit, OnDestroy
+{
     @Input() public action!: Action;
     @Input() public state!: State;
 
@@ -52,7 +55,7 @@ export class SetupBase extends ChangesDetector implements AfterContentInit, Afte
         this._inputs.cmd.defaults = this.state.command;
         this._inputs.cwd.defaults = this.state.cwd;
         this.action.subjects.get().applied.subscribe(() => {
-            this._inputs.cmd.recent.emit();
+            this._inputs.cmd.recent.emit(undefined);
             this.state.cwd.trim() !== '' &&
                 this.ilc()
                     .services.system.bridge.cwd()

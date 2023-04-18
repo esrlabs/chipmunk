@@ -1,0 +1,68 @@
+@import '../../../styles/variables.less';
+
+app-views-sde {
+    position: relative;
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 6px;
+    & button {
+        margin-left: 6px;
+        & > span.label {
+            max-width: 128px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;    
+        }
+    }
+    mat-progress-bar {
+        position: absolute;
+        bottom: 2px;
+        height: 1px;
+        width: calc(100% - 12px);
+    }
+}
+
+.app-views-sde-list {
+    & button[mat-menu-item] {
+        & div.source {
+            position: relative;
+            margin-top: -7px;
+
+            & > span {
+                display: inline-block;
+                height: 16px;
+                line-height: 16px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                max-width: 250px;
+            }
+            & > span.minor {
+                position: relative;
+                display: block;
+                color: @scheme-color-3;
+                font-size: 10px;
+                margin-top: -8px;
+                white-space: nowrap;
+                direction: rtl;
+                max-width: 200px;
+            }    
+        }
+        &[data-selected="true"] {
+            &  div.source {
+                &::before {
+                    display: block;
+                    position: absolute;
+                    width: 2px;
+                    height: 24px;
+                    background: @scheme-color-accent;
+                    left: -9px;
+                    top: 7px;
+                    content: '';
+                }    
+            }
+        }
+    }
+    
+}

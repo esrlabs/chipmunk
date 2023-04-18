@@ -1,4 +1,4 @@
-use crate::{command::sde, ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
+use crate::{sde, ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use async_trait::async_trait;
 use buf_redux::Buffer;
 use futures;
@@ -211,28 +211,21 @@ impl ByteSource for ProcessSource {
         self.len() == 0
     }
 
-    async fn income(&mut self, msg: String) -> Result<String, String> {
-        let request = serde_json::from_str::<sde::SdeRequest>(&msg)
-            .map_err(|e| format!("Fail to deserialize message: {e}"))?;
-        let response = match request {
+    async fn income(&mut self, request: sde::SdeRequest) -> Result<sde::SdeResponse, SourceError> {
+        Ok(match request {
             sde::SdeRequest::WriteText(str) => {
                 let bytes = str.as_bytes();
-                self.stdin
-                    .write_all(bytes)
-                    .await
-                    .map_err(|e| format!("Fail to write string into stdin: {e}"))?;
-                sde::SdeResponse::WriteText(sde::WriteResponse { bytes: bytes.len() })
+                self.stdin.write_all(bytes).await.map_err(SourceError::Io)?;
+                sde::SdeResponse { bytes: bytes.len() }
             }
             sde::SdeRequest::WriteBytes(bytes) => {
                 self.stdin
                     .write_all(&bytes)
                     .await
-                    .map_err(|e| format!("Fail to write bytes into stdin: {e}"))?;
-                sde::SdeResponse::WriteBytes(sde::WriteResponse { bytes: bytes.len() })
+                    .map_err(SourceError::Io)?;
+                sde::SdeResponse { bytes: bytes.len() }
             }
-        };
-        serde_json::to_string(&response)
-            .map_err(|e| format!("Fail to convert response to JSON: {e}"))
+        })
     }
 }
 
