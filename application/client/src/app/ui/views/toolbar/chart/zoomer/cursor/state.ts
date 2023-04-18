@@ -1,6 +1,6 @@
-import { IPosition } from '../../types';
+import { IPosition } from '../../common/types';
 import { stop } from '@ui/env/dom';
-import { BasicState } from '../../abstract/basic';
+import { AbstractState } from '../../common/abstract.state';
 
 enum EChangeKind {
     move = 'move',
@@ -11,7 +11,7 @@ enum EChangeKind {
 
 const MIN_SIZE_WIDTH = 20;
 
-export class State extends BasicState {
+export class State extends AbstractState {
     public _ng_width: number = -1;
     public _ng_left: number = 0;
     public stop: (event: KeyboardEvent | MouseEvent) => boolean = stop;

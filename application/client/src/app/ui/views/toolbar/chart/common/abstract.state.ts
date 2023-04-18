@@ -3,7 +3,7 @@ import { Session } from '@service/session';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Service } from '../service';
 
-export abstract class BasicState {
+export abstract class AbstractState {
     protected _parent!: IlcInterface & ChangesDetector;
     protected _session!: Session;
     protected _service!: Service;

@@ -8,7 +8,7 @@ import {
     ChartTypeRegistry,
     ScatterDataPoint,
 } from 'chart.js';
-import { EChartName, ILabel, IPosition } from '../types';
+import { EChartName, ILabel, IPosition } from '../common/types';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { ISearchMap } from '@platform/interfaces/interface.rust.api.general';
 import { IRange } from '@platform/types/range';

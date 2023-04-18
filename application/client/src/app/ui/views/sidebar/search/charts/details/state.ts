@@ -17,7 +17,6 @@ interface ISliderOptions {
     readonly min: number;
     readonly max: number;
     readonly step: number;
-    readonly discrete: boolean;
 }
 
 interface IDefaultSettings {
@@ -51,19 +50,16 @@ export class State {
             min: 1,
             max: 5,
             step: 1,
-            discrete: true,
         },
         tension: {
             min: 0.1,
             max: 1.0,
             step: 0.1,
-            discrete: true,
         },
         pointRadius: {
             min: 0,
             max: 5,
             step: 1,
-            discrete: true,
         },
     };
 
@@ -90,14 +86,6 @@ export class State {
         this._entity && this._entity.extract().set().stepped(this.options.stepped);
     }
 
-    public onSliderChange(event: any, slider: ESlider) {
-        if (this._entity === undefined) {
-            return;
-        }
-        this.options[slider] = event.value;
-        this._entity.extract().set()[slider](event.value);
-    }
-
     public onColorChange(color: string) {
         if (this._entity === undefined) {
             return;
@@ -105,6 +93,10 @@ export class State {
         this.options.color = color;
         this._entity.extract().set().color(this.options.color);
         this._cdRef.detectChanges();
+    }
+
+    public dragEnd(slider: ESlider) {
+        this._entity && this._entity.extract().set()[slider](this.options[slider]);
     }
 
     private _setColors() {

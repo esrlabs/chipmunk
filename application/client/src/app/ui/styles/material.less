@@ -398,6 +398,20 @@ mat-snack-bar-container {
     }
 }
 
+& mat-slider {
+    width: 96%!important;
+    margin-left: 0px!important;
+    margin-right: 0px!important;
+    & div.mat-ripple {
+        display: none;
+    }
+    & div.mdc-slider__thumb-knob {
+        border-width: 8px!important;
+        width: 0px!important;
+        height: 0px!important;
+    }
+}
+
 * {
     letter-spacing: normal;
 }

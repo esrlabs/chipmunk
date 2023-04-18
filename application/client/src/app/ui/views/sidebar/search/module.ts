@@ -37,7 +37,7 @@ import { ChartDetails } from './charts/details/component';
 
 import { Bin } from './bin/component';
 
-const entryComponents = [
+const components = [
     Filters,
     FilterDetails,
     Filter,
@@ -51,7 +51,6 @@ const entryComponents = [
     ChartsList,
     ChartDetails,
 ];
-const components = [...entryComponents];
 
 @NgModule({
     imports: [

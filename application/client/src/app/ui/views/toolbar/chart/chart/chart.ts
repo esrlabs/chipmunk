@@ -1,4 +1,4 @@
-import { EChartName, ILabel, IPosition, EScaleType } from '../types';
+import { EChartName, ILabel, IPosition, EScaleType } from '../common/types';
 import {
     BubbleDataPoint,
     ChartDataset,
@@ -74,9 +74,10 @@ export class Chart {
 
     public zoom(zoomedRange: IRange) {
         this._zoomedRange = zoomedRange;
-        (this._chart.config.options as any).scales['x'].min = this._zoomedRange.from;
-        (this._chart.config.options as any).scales['x'].max = this._zoomedRange.to;
-        this._complementLabels();
+        [
+            (this._chart.config.options as any).scales['x'].min,
+            (this._chart.config.options as any).scales['x'].max,
+        ] = this._updateLabels();
         this._chart.update();
     }
 
@@ -265,30 +266,36 @@ export class Chart {
         });
     }
 
-    private _complementLabels() {
+    private _updateLabels(): [number, number] {
         const labels = this._chart.config.data.labels as number[];
-        let isMinSet: boolean = labels.indexOf(this._zoomedRange.from) !== -1;
-        let isMaxSet: boolean = labels.indexOf(this._zoomedRange.to) !== -1;
-        if (isMinSet && isMaxSet) {
-            return;
-        }
-        labels.forEach((label: number, index: number) => {
-            if (!isMinSet && this._zoomedRange.from < label) {
-                labels.splice(index, 0, this._zoomedRange.from);
-                isMinSet = true;
-            }
-            if (!isMaxSet && this._zoomedRange.to < label) {
-                labels.splice(index, 0, this._zoomedRange.to);
-                isMaxSet = true;
-            }
-            if (!isMaxSet && index === labels.length - 1) {
-                labels.push(this._zoomedRange.to);
-                isMaxSet = true;
-            }
-            if (isMinSet && isMaxSet) {
+        const isFromSet: boolean = labels.indexOf(this._zoomedRange.from) !== -1;
+        const isToSet: boolean = labels.indexOf(this._zoomedRange.to) !== -1;
+        let from: undefined | number;
+        let to: undefined | number;
+        (this._chart.config.data.labels as number[]).forEach((label: number, index: number) => {
+            from = isFromSet
+                ? this._zoomedRange.from
+                : label < this._zoomedRange.from
+                ? index
+                : from === undefined
+                ? index
+                : from;
+            to = isToSet
+                ? this._zoomedRange.to
+                : label < this._zoomedRange.to
+                ? index
+                : to === undefined
+                ? index
+                : to;
+            if (from !== undefined && to !== undefined) {
                 return;
             }
         });
+        labels.slice(
+            isFromSet ? this._zoomedRange.from : (from as number),
+            isToSet ? this._zoomedRange.to : (to as number),
+        );
+        return [from as number, to as number];
     }
 
     private _createChart(): CanvasChart {

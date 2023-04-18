@@ -3,7 +3,7 @@ import { IlcInterface } from '@service/ilc';
 import { Session } from '@service/session';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Service } from '../service';
-import { IRectangle } from '../types';
+import { IRectangle } from '../common/types';
 
 export class Zoom {
     private readonly _rectangle: IRectangle = {

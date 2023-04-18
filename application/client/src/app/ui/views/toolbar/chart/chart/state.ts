@@ -1,12 +1,18 @@
-import { BasicState } from '../abstract/basic';
-import { EChartName, ILabelState, IPosition, IPositionChange, UPDATE_TIMEOUT_MS } from '../types';
+import { AbstractState } from '../common/abstract.state';
+import {
+    EChartName,
+    ILabelState,
+    IPosition,
+    IPositionChange,
+    UPDATE_TIMEOUT_MS,
+} from '../common/types';
 import { IRange } from '@platform/types/range';
 import { Owner } from '@schema/content/row';
 import { Filter } from './filter';
 import { Chart } from './chart';
 import { InternalAPI } from '@service/ilc';
 
-export class State extends BasicState {
+export class State extends AbstractState {
     public readonly EChartName = EChartName;
 
     private readonly _dataState: ILabelState = {

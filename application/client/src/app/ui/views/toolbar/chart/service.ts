@@ -1,7 +1,7 @@
 import { Subscriber, Subject } from '@platform/env/subscription';
 import { Destroy } from '@env/declarations';
 import { Session } from '@service/session';
-import { EScaleType, IPosition, IPositionChange } from './types';
+import { EScaleType, IPosition, IPositionChange } from './common/types';
 
 const CHART_SERVICE = 'workspace_chart_service';
 

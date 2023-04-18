@@ -1,10 +1,10 @@
-import { BasicState } from '../abstract/basic';
-import { EChartName, ILabelState, IRectangle } from '../types';
+import { AbstractState } from '../common/abstract.state';
+import { EChartName, ILabelState, IRectangle } from '../common/types';
 import { Zoom } from './zoom';
 import { Chart } from './chart';
 import { Filter } from './filter';
 
-export class State extends BasicState {
+export class State extends AbstractState {
     public readonly EChartName = EChartName;
 
     private readonly _dataState: ILabelState = {

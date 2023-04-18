@@ -10,7 +10,7 @@ import {
     Chart as CanvasChart,
 } from 'chart.js';
 import { Service } from '../service';
-import { EChartName, EScaleType, ILabel } from '../types';
+import { EChartName, EScaleType, ILabel } from '../common/types';
 
 export class Chart {
     private readonly _session: Session;
@@ -82,7 +82,7 @@ export class Chart {
                         spanGaps: true,
                         borderWidth: entity.definition.borderWidth,
                         tension: entity.definition.tension,
-                        pointRadius: entity.definition.pointRadius,
+                        pointRadius: 0,
                     });
                     this._hideYAxes();
                     this._initData();
@@ -138,7 +138,7 @@ export class Chart {
                     spanGaps: true,
                     borderWidth: activeChartRequest.definition.borderWidth,
                     tension: activeChartRequest.definition.tension,
-                    pointRadius: activeChartRequest.definition.pointRadius,
+                    pointRadius: 0,
                 };
             });
         this._hideYAxes();

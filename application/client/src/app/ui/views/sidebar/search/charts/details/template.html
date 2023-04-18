@@ -1,4 +1,4 @@
-<mat-form-field>
+<mat-form-field class="material-mofication-normal">
     <mat-label>Chart type</mat-label>
     <mat-select [(ngModel)]="state.options.stepped" (selectionChange)="state.onTypeChange()">
         <mat-option *ngFor="let lineTypeOption of state.lineTypeOptions" [value]="lineTypeOption.stepped">
@@ -8,30 +8,33 @@
 </mat-form-field>
 <span class="slitter"></span>
 <span class="slider-label">Line tension</span>
- <mat-slider class="slider-option"
-            (dragEnd)="state.onSliderChange($event, state.ESlider.tension)"
+<mat-slider class="slider-option"
+            [discrete]="true"
+            [disableRipple]="true"
             [max]="state.defaultSettings.tension.max"
             [min]="state.defaultSettings.tension.min"
             [step]="state.defaultSettings.tension.step">
-            [discrete]="state.defaultSettings.tension.discrete"
+    <input matSliderThumb [(ngModel)]="state.options.tension" (dragEnd)="state.dragEnd(state.ESlider.tension)">
 </mat-slider>
 <span class="slitter"></span>
 <span class="slider-label">Border width</span>
 <mat-slider class="slider-option"
-            (dragEnd)="state.onSliderChange($event, state.ESlider.borderWidth)"
+            [discrete]="true"
+            [disableRipple]="true"
             [max]="state.defaultSettings.borderWidth.max"
             [min]="state.defaultSettings.borderWidth.min"
-            [step]="state.defaultSettings.borderWidth.step"
-            [discrete]="state.defaultSettings.tension.discrete">
+            [step]="state.defaultSettings.borderWidth.step">
+    <input matSliderThumb [(ngModel)]="state.options.borderWidth" (dragEnd)="state.dragEnd(state.ESlider.borderWidth)">
 </mat-slider>
 <span class="slitter"></span>
 <span class="slider-label">Point radius</span>
 <mat-slider class="slider-option"
-            (dragEnd)="state.onSliderChange($event, state.ESlider.pointRadius)"
+            [discrete]="true"
+            [disableRipple]="true"
             [max]="state.defaultSettings.pointRadius.max"
             [min]="state.defaultSettings.pointRadius.min"
-            [step]="state.defaultSettings.pointRadius.step"
-            [discrete]="state.defaultSettings.tension.discrete">
+            [step]="state.defaultSettings.pointRadius.step">
+    <input matSliderThumb [(ngModel)]="state.options.pointRadius" (dragEnd)="state.dragEnd(state.ESlider.pointRadius)">
 </mat-slider>
 <span class="slitter"></span>
 <app-com-color-selector [colors]="state.colors" [color]="state.options.color === undefined ? '' : state.options.color" (change)="state.onColorChange($event)"></app-com-color-selector>
