@@ -9,8 +9,11 @@ import { Session, Observe } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
 import { createSampleFile, finish, runner } from './common';
 import { readConfigurationFile } from './config';
+import { utils } from 'platform/log';
 
 import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 
 const config = readConfigurationFile().get().tests.stream;
 // ================================== IMPORTANT ==================================
@@ -453,6 +456,103 @@ if (process.platform === 'win32') {
                             finish(session, done);
                         })
                         .abort();
+                });
+            });
+        });
+
+        it(config.regular.list[7], function () {
+            return runner(config.regular, 7, async (logger, done, collector) => {
+                const session = await Session.create();
+                // Set provider into debug mode
+                session.debug(true);
+                const stream = session.getStream();
+                if (stream instanceof Error) {
+                    finish(session, done, stream);
+                    return;
+                }
+                const events = session.getEvents();
+                if (events instanceof Error) {
+                    finish(session, done, events);
+                    return;
+                }
+                const filename = path.join(os.tmpdir(), 'chipmunk_test_file.log');
+                if (fs.existsSync(filename)) {
+                    // We should drop content of file (if exists) to avoid "file truncated" error
+                    // from tail side
+                    fs.writeFileSync(filename, '');
+                }
+                let ready = 0;
+                const sed = stream
+                    .observe(
+                        Observe.DataSource.stream()
+                            .process({
+                                command: `sed -u "w ${filename}"`,
+                                cwd: process.cwd(),
+                                envs: process.env as { [key: string]: string },
+                            })
+                            .text(),
+                    )
+                    .on('processing', (e) => {
+                        procceed();
+                    })
+                    .catch(finish.bind(null, session, done));
+                const _tail = stream
+                    .observe(
+                        Observe.DataSource.stream()
+                            .process({
+                                command: `tail -f ${filename}`,
+                                cwd: process.cwd(),
+                                envs: process.env as { [key: string]: string },
+                            })
+                            .text(),
+                    )
+                    .on('processing', () => {
+                        procceed();
+                    })
+                    .catch(finish.bind(null, session, done));
+                const TEST_LINES = ['test A', 'test B'];
+                const procceed = async () => {
+                    ready += 1;
+                    if (ready < 2) {
+                        return;
+                    }
+                    try {
+                        // Send first message
+                        await stream.sde(sed.uuid(), { WriteText: `${TEST_LINES[0]}\n` });
+                        // Send second message
+                        await stream.sde(sed.uuid(), { WriteText: `${TEST_LINES[1]}\n` });
+                    } catch (e) {
+                        finish(session, done, new Error(utils.error(e)));
+                    }
+                };
+                events.StreamUpdated.subscribe((rows: number) => {
+                    if (rows < 4) {
+                        return;
+                    }
+                    stream
+                        .grab(0, 4)
+                        .then((result: IGrabbedElement[]) => {
+                            console.log(result);
+                            logger.debug('result of grab was: ' + JSON.stringify(result));
+                            expect(result.map((i) => i.content)).toEqual([
+                                TEST_LINES[0],
+                                TEST_LINES[0],
+                                TEST_LINES[1],
+                                TEST_LINES[1],
+                            ]);
+                            finish(session, done);
+                        })
+                        .catch((err: Error) => {
+                            finish(
+                                session,
+                                done,
+                                new Error(
+                                    `Fail to grab data due error: ${
+                                        err instanceof Error ? err.message : err
+                                    }`,
+                                ),
+                            );
+                        });
                 });
             });
         });
