@@ -66,7 +66,6 @@ mat-form-field.mat-mdc-form-field-type-mat-input.material-mofication-outline {
     display: flex;
     flex: auto;
     height: 24px;
-    // overflow: hidden;
     & div.mat-mdc-text-field-wrapper {
         height: 24px;
         & div.mat-mdc-form-field-flex {
@@ -123,6 +122,56 @@ mat-form-field.mat-mdc-form-field-type-mat-input.material-mofication-outline {
                 }    
             }
         }
+    }
+}
+
+*.input-outside-border {
+    & mat-form-field.mat-mdc-form-field-type-mat-input.material-mofication-outline {
+        & div.mat-mdc-text-field-wrapper {
+            & div.mat-mdc-form-field-flex {
+                & div.mdc-notched-outline {
+                    & * {
+                        border: none!important;
+                    }  
+                }
+            }
+
+            &:hover {
+                & div.mat-mdc-form-field-flex {
+                    & div.mdc-notched-outline {
+                        & * {
+                            border: none!important;
+                        }
+                    }    
+                }
+            }
+        }
+        &.mat-focused {
+            & div.mat-mdc-text-field-wrapper {
+                & div.mat-mdc-form-field-flex {
+                    & div.mdc-notched-outline {
+                        & * {
+                            border: none!important;
+                        }
+                    }    
+                }
+            }
+        }
+    }
+}
+
+*.input-outside-border:has(mat-form-field) {
+    border: thin solid @scheme-color-3;
+    transition: border-color 50ms;
+    &:hover {
+        border-color: @scheme-color-active;
+    }
+}
+
+*.input-outside-border:has(.mat-focused) {
+    border-color: @scheme-color-accent;
+    &:hover {
+        border-color: @scheme-color-accent;
     }
 }
 

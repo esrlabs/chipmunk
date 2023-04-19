@@ -2,24 +2,34 @@
 
 app-views-sde {
     position: relative;
-    position: relative;
     display: flex;
     align-items: center;
     padding: 6px;
-    & button {
-        margin-left: 6px;
-        & > span.label {
-            max-width: 128px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;    
+    & div.container {
+        position: relative;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        padding: 0;
+        & button {
+            margin-left: 6px;
+            & > span.label {
+                max-width: 128px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;    
+            }
+        }
+        & span.prompt{
+            color: @scheme-color-1;
+            padding-left: 3px;
         }
     }
-    mat-progress-bar {
-        position: absolute;
-        bottom: 2px;
-        height: 1px;
-        width: calc(100% - 12px);
+    & mat-progress-bar {
+        position: absolute!important;
+        bottom: 2px!important;
+        height: 1px!important;
+        width: calc(100% - 12px)!important;
     }
 }
 
@@ -28,7 +38,6 @@ app-views-sde {
         & div.source {
             position: relative;
             margin-top: -7px;
-
             & > span {
                 display: inline-block;
                 height: 16px;

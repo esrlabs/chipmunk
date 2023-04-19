@@ -43,7 +43,6 @@ export class ViewSdeComponent extends ChangesDetector implements AfterContentIni
         defaults: '',
         placeholder: 'Enter command/data to send',
         label: 'Data to send',
-        inlineLabel: 'Data to send:',
         recent: new Subject<string | undefined>(),
     };
 
