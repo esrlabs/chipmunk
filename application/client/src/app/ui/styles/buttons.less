@@ -32,10 +32,42 @@ button.flat-codicon-button {
     padding-top: 4px;
     box-sizing: border-box;
     margin: 0px 0px 0px 0px;
+    border-radius: 3px;
     &.no-right-marging {
         margin-right: 0px;
     }
     &:hover{
         color: @scheme-color-3;
+    }
+    &.disabled {
+        color: @scheme-color-3;
+        &:hover{
+            color: @scheme-color-3;
+        }    
+    }
+    &.with-background {
+        &:hover{
+            background-color: @scheme-color-4;
+            color: @scheme-color-0;
+        }
+        &.disabled {
+            color: @scheme-color-3;
+            &:hover{
+                color: @scheme-color-3;
+                background: none;
+            }
+            &.active {
+                background: none;
+                &:hover{
+                    background: none;
+                }
+            }   
+        }
+        &.active {
+            background-color: @scheme-color-active;
+            &:hover{
+                background-color: @scheme-color-active;
+            }
+        }    
     }
 }

@@ -496,6 +496,11 @@ if (process.platform === 'win32') {
                         procceed();
                     })
                     .catch(finish.bind(null, session, done));
+                // Let sed create a file
+                await new Promise((resolve) => {
+                    setTimeout(() => resolve, 500);
+                });
+                // Tail file
                 const _tail = stream
                     .observe(
                         Observe.DataSource.stream()

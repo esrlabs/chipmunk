@@ -14,16 +14,22 @@ export class State implements Destroyable<void> {
     public selected: ObserveOperation | undefined;
 
     public progress: boolean = false;
+    public hidden: boolean = false;
 
     public bind(ref: IlcInterface & ChangesDetector, session: Session): State {
         this.ref = ref;
         this.session = session;
         ref.env().subscriber.register(
-            session.stream.subjects.get().sources.subscribe(() => {
+            session.stream.sde.subjects.get().updated.subscribe(() => {
                 this.update();
             }),
-            session.stream.subjects.get().finished.subscribe(() => {
-                this.update();
+            session.stream.sde.subjects.get().visibility.subscribe(() => {
+                if (this.session === undefined) {
+                    return;
+                }
+                const sde = this.session.stream.sde;
+                this.hidden = sde.visibility().hidden();
+                this.safe().updateRefComp();
             }),
         );
         this.update();
@@ -90,12 +96,9 @@ export class State implements Destroyable<void> {
         if (this.session === undefined) {
             return;
         }
-        this.sources = this.session.stream
-            .observe()
-            .sources()
-            .filter((s) => s.observer !== undefined)
-            .map((s) => s.observer as ObserveOperation)
-            .filter((o) => o.asSource().isSDEAvaliable());
+        const sde = this.session.stream.sde;
+        this.hidden = sde.visibility().hidden();
+        this.sources = sde.get();
         if (this.selected !== undefined) {
             this.sources.find((o) => o.asSource().uuid === this.selected?.asSource().uuid) ===
                 undefined && (this.selected = undefined);

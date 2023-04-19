@@ -6,14 +6,14 @@ export class ObserveOperation {
     protected readonly source: DataSource;
     protected readonly cancel: (uuid: string) => Promise<void>;
     protected readonly restarting: (uuid: string, source: DataSource) => Promise<void>;
-    protected readonly sde: (uuid: string, msg: SdeRequest) => Promise<SdeResponse>;
+    protected readonly sde: (msg: SdeRequest) => Promise<SdeResponse>;
 
     private _sdeTasksCount: number = 0;
 
     constructor(
         uuid: string,
         source: DataSource,
-        sde: (uuid: string, msg: SdeRequest) => Promise<SdeResponse>,
+        sde: (msg: SdeRequest) => Promise<SdeResponse>,
         restart: (uuid: string, source: DataSource) => Promise<void>,
         cancel: (uuid: string) => Promise<void>,
     ) {
@@ -42,7 +42,7 @@ export class ObserveOperation {
     } {
         const send = (request: SdeRequest): Promise<SdeResponse> => {
             this._sdeTasksCount += 1;
-            return this.sde(this.uuid, request).finally(() => {
+            return this.sde(request).finally(() => {
                 this._sdeTasksCount -= 1;
             });
         };
