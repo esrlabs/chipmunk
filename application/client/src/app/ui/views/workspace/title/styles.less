@@ -1,0 +1,24 @@
+@import '../../../styles/variables.less';
+
+:host {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 6px;
+    height: 16px;
+    overflow: hidden;
+    z-index: 2;
+    box-shadow: 0 3px 3px @scheme-color-7;
+    margin-bottom: 3px;
+    span.title {
+        display: inline-block;
+        position: relative;
+        flex:auto;
+        color: @scheme-color-2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+

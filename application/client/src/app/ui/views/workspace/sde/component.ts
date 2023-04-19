@@ -34,7 +34,13 @@ export class ViewSdeComponent extends ChangesDetector implements AfterContentIni
     @Input() public session!: Session;
 
     @HostBinding('style.display') get cssDisplayProp() {
-        return this.state === undefined ? 'none' : this.state.sources.length > 0 ? 'flex' : 'none';
+        return this.state === undefined
+            ? 'none'
+            : this.state.sources.length > 0
+            ? this.state.hidden
+                ? 'none'
+                : 'flex'
+            : 'none';
     }
     public state!: State;
     public options: AutocompleteOptions = {

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ViewWorkspace } from './component';
 import { ViewContentMapComponent } from './map/component';
 import { ViewSdeComponent } from './sde/component';
+import { ViewWorkspaceTitleComponent } from './title/component';
 import { ColumnsHeaders } from './headers/component';
 import { ScrollAreaModule } from '@elements/scrollarea/module';
 import { ContainersModule } from '@elements/containers/module';
@@ -13,7 +14,13 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 
-const entryComponents = [ViewWorkspace, ViewContentMapComponent, ColumnsHeaders, ViewSdeComponent];
+const entryComponents = [
+    ViewWorkspace,
+    ViewContentMapComponent,
+    ColumnsHeaders,
+    ViewSdeComponent,
+    ViewWorkspaceTitleComponent,
+];
 const components = [ViewWorkspace, ...entryComponents];
 
 @NgModule({

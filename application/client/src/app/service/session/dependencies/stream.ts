@@ -13,6 +13,7 @@ import { IDLTOptions, parserSettingsToOptions } from '@platform/types/parsers/dl
 import { TargetFile } from '@platform/types/files';
 import { lockers } from '@ui/service/lockers';
 import { SdeRequest, SdeResponse } from '@platform/types/sde';
+import { Sde } from './observe/sde';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -52,9 +53,11 @@ export class Stream extends Subscriber {
         map: new Map(),
     };
     public readonly rank: Rank = new Rank();
+    public sde!: Sde;
 
     public init(uuid: string) {
         this.setLoggerName(`Stream: ${cutUuid(uuid)}`);
+        this.sde = new Sde(uuid);
         this._uuid = uuid;
         this.register(
             Events.IpcEvent.subscribe(Events.Stream.Updated.Event, (event) => {
@@ -83,7 +86,7 @@ export class Stream extends Subscriber {
                     new ObserveOperation(
                         event.operation,
                         source,
-                        this.observe().sde,
+                        this.sde.send.bind(this.sde, event.operation),
                         this.observe().restart,
                         this.observe().abort,
                     ),
@@ -101,6 +104,7 @@ export class Stream extends Subscriber {
                     .catch((err: Error) => {
                         this.log().error(`Fail get sources description: ${err.message}`);
                     });
+                this.sde.overwrite(this.observed.running);
                 this.subjects.get().started.emit(source);
             }),
         );
@@ -115,6 +119,7 @@ export class Stream extends Subscriber {
                 }
                 this.observed.done.set(event.operation, stored.asSource());
                 this.observed.running.delete(event.operation);
+                this.sde.overwrite(this.observed.running);
                 this.subjects.get().finished.emit(stored.asSource());
             }),
         );
@@ -123,6 +128,7 @@ export class Stream extends Subscriber {
     public destroy() {
         this.unsubscribe();
         this.subjects.destroy();
+        this.sde.destroy();
     }
 
     public file(file: TargetFile): Promise<void> {
