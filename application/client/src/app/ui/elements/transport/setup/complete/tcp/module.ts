@@ -12,6 +12,7 @@ import { MatInputModule } from '@angular/material/input';
 import { Setup } from './component';
 
 @NgModule({
+    entryComponents: [Setup],
     imports: [
         CommonModule,
         FormsModule,
@@ -26,6 +27,6 @@ import { Setup } from './component';
         MatInputModule,
     ],
     declarations: [Setup],
-    exports: [Setup]
+    exports: [Setup],
 })
 export class SetupModule {}

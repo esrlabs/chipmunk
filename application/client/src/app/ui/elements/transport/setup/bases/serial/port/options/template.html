@@ -1,0 +1,36 @@
+<mat-divider></mat-divider>
+<div class="container">
+	<mat-form-field *ngIf="!isCustom" class="material-mofication-normal baudrate">
+		<mat-label>Baud Rate:</mat-label>
+	    <mat-select  #baudRateSelect [(ngModel)]="baudRate">
+    	    <mat-option [value]="CUSTOM_BAUD_RATE.value">{{CUSTOM_BAUD_RATE.name}}</mat-option>
+        	<mat-option *ngFor="let baudRate of baudRates" [value]="baudRate">{{baudRate}}</mat-option>
+    </mat-select>
+	</mat-form-field>
+	<app-autocomplete-input *ngIf="isCustom" [options]="inputs" (enter)="onEnter($event)" (focusout)="onFocusOut()">
+	</app-autocomplete-input>
+</div>
+<div class="container">
+	<label>Data Bits:</label>
+	<mat-radio-group [(ngModel)]="state.dataBits">
+    	<mat-radio-button *ngFor="let dataBits of DATA_BITS" [value]="dataBits">{{dataBits}}</mat-radio-button>
+  	</mat-radio-group>
+</div>
+<div class="container">
+  	<label>Flow Control:</label>
+  	<mat-radio-group [(ngModel)]="state.flowControl">
+    	<mat-radio-button *ngFor="let flowControl of FLOW_CONTROL" [value]="flowControl.value">{{flowControl.name}}</mat-radio-button>
+  	</mat-radio-group>
+</div>
+<div class="container">
+  	<label>Parity:</label>
+  	<mat-radio-group [(ngModel)]="state.parity">
+    	<mat-radio-button *ngFor="let parity of PARITY" [value]="parity.value">{{parity.name}}</mat-radio-button>
+  	</mat-radio-group>
+</div>
+<div class="container">
+  	<label>Stop Bits:</label>
+  	<mat-radio-group [(ngModel)]="state.stopBits">
+    	<mat-radio-button *ngFor="let stopBits of STOP_BITS" [value]="stopBits">{{stopBits}}</mat-radio-button>
+  	</mat-radio-group>
+</div>

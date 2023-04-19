@@ -1,0 +1,13 @@
+<div *ngIf="!isCustom">
+    <mat-form-field class="material-mofication-normal">
+        <mat-label>Select a serial port</mat-label>
+        <mat-select [(ngModel)]="port">
+            <mat-option [value]="NO_PORT">{{NO_PORT}}</mat-option>
+            <mat-option [value]="CUSTOM_PORT">{{CUSTOM_PORT}}</mat-option>
+            <mat-option [disabled]="!isAvailable(port)" [value]="port" *ngFor="let port of ports">{{port}}</mat-option>
+        </mat-select>
+    </mat-form-field>
+    <mat-icon class="refresh" (click)="updatePortsList()">refresh</mat-icon>
+</div>
+<app-autocomplete-input *ngIf="isCustom" [options]="inputs" (enter)="onEnter($event)" (focusout)="onFocusOut()">
+</app-autocomplete-input>

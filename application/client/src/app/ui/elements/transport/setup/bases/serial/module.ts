@@ -11,10 +11,16 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { Available } from './port/components';
-import { Options } from './options/component';
+import { Port } from './port/components';
+import { List } from './port/list/component';
+import { Options } from './port/options/component';
+import { MatListModule } from '@angular/material/list';
+import { AutocompleteModule } from '@elements/autocomplete/module';
+
+const Components = [Port, List, Options];
 
 @NgModule({
+    entryComponents: Components,
     imports: [
         CommonModule,
         FormsModule,
@@ -29,8 +35,10 @@ import { Options } from './options/component';
         MatInputModule,
         MatAutocompleteModule,
         MatRadioModule,
+        MatListModule,
+        AutocompleteModule,
     ],
-    declarations: [Available, Options],
-    exports: [Available, Options]
+    declarations: Components,
+    exports: [Port],
 })
 export class BaseModule {}

@@ -1,6 +1,5 @@
-<mat-form-field class="material-mofication-normal row">
-    <mat-label>IP Address</mat-label>
-    <input matInput
+<mat-form-field class="inline">
+    <input matInput placeholder="IP Address"
         [(ngModel)]="state.bindingAddress"
         [errorStateMatcher]="state.errors.bindingAddress">
     <mat-error *ngIf="state.errors.bindingAddress.getErrorCode() === 'INVALID'">
@@ -10,9 +9,8 @@
         <strong>required</strong>
     </mat-error>
 </mat-form-field>
-<mat-form-field class="material-mofication-normal row">
-    <mat-label>Port</mat-label>
-    <input matInput
+<mat-form-field class="inline">
+    <input matInput placeholder="Port"
         [(ngModel)]="state.bindingPort"
         [errorStateMatcher]="state.errors.bindingPort">
     <mat-error *ngIf="state.errors.bindingPort.getErrorCode() === 'INVALID'">

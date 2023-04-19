@@ -16,14 +16,13 @@ export class Setup extends SetupBase implements AfterViewInit, OnDestroy {
         super(cdRef);
     }
 
-    public override ngAfterViewInit() {
+    public ngAfterViewInit() {
         this.update !== undefined &&
             this.env().subscriber.register(
                 this.update.subscribe(() => {
                     this.detectChanges();
                 }),
             );
-        super.ngAfterViewInit();
     }
 }
 export interface TransportSerial extends IlcInterface {}

@@ -1,0 +1,21 @@
+@import '../../../../../../../styles/variables.less'; 
+
+:host {
+    color: @scheme-color-1;
+    & mat-form-field.baudrate {
+        display: block;
+    }
+    & div.container {
+        display: flex;
+        flex-direction: column;
+        margin-top: 10px;
+    }
+    & .mat-radio-group {
+        display: flex;
+        margin-top: 5px;
+    }
+    & mat-radio-button {
+        margin: 5px;
+        flex-basis: 20%;
+    }
+}

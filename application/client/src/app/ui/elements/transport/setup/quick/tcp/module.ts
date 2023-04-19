@@ -13,6 +13,7 @@ import { MatInputModule } from '@angular/material/input';
 import { QuickSetup } from './component';
 
 @NgModule({
+    entryComponents: [QuickSetup],
     imports: [
         CommonModule,
         FormsModule,
@@ -27,6 +28,6 @@ import { QuickSetup } from './component';
         MatInputModule,
     ],
     declarations: [QuickSetup],
-    exports: [QuickSetup]
+    exports: [QuickSetup],
 })
 export class QuickSetupModule {}

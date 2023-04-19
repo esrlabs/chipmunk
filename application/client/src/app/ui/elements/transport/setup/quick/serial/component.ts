@@ -25,10 +25,9 @@ export class QuickSetup extends SetupBase implements AfterViewInit, OnDestroy {
         super.ngOnDestroy();
     }
 
-    public override ngAfterViewInit() {
+    public ngAfterViewInit() {
         const stored = this.session.storage.get<State>(QUICK_TRANSPORT_STATE);
         this.state = stored === undefined ? new State() : stored;
-        super.ngAfterViewInit();
     }
 
     public connect() {

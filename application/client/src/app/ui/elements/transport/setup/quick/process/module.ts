@@ -9,6 +9,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @NgModule({
+    entryComponents: [QuickSetup],
     imports: [
         CommonModule,
         AutocompleteModule,
@@ -19,6 +20,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         MatProgressSpinnerModule,
     ],
     declarations: [QuickSetup],
-    exports: [QuickSetup]
+    exports: [QuickSetup],
 })
 export class QuickSetupModule {}

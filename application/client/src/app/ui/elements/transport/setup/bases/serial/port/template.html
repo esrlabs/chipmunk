@@ -1,10 +1,2 @@
-<button mat-stroked-button [disableRipple]="true" [disabled]="!_ng_available" (click)="_ng_onPortClick()" [class]="_ng_service.selected === port ? 'selected' : ''">
-  <div class="info">
-    <div class="right">
-      <mat-icon [class]="_ng_available ? '' : 'hidden'">power</mat-icon>
-      <mat-icon [class]="_ng_available ? 'hidden' : ''">not_interested</mat-icon>
-      <p class="path">{{port}}</p>
-    </div>
-    <mat-icon [class]="_ng_available ? '' : 'hidden'" (click)="_ng_onOptions($event)">settings</mat-icon>
-  </div>
-</button>
+<app-transport-serial-list [action]="action" [state]="state"></app-transport-serial-list>
+<app-transport-serial-options *ngIf="state.path !== NO_PORT && state.path !== CUSTOM_PORT" [state]="state"></app-transport-serial-options>
