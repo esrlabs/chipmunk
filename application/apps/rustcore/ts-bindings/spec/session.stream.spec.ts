@@ -482,39 +482,6 @@ if (process.platform === 'win32') {
                     fs.writeFileSync(filename, '');
                 }
                 let ready = 0;
-                const sed = stream
-                    .observe(
-                        Observe.DataSource.stream()
-                            .process({
-                                command: `sed -u "w ${filename}"`,
-                                cwd: process.cwd(),
-                                envs: process.env as { [key: string]: string },
-                            })
-                            .text(),
-                    )
-                    .on('processing', (e) => {
-                        procceed();
-                    })
-                    .catch(finish.bind(null, session, done));
-                // Let sed create a file
-                await new Promise((resolve) => {
-                    setTimeout(() => resolve, 500);
-                });
-                // Tail file
-                const _tail = stream
-                    .observe(
-                        Observe.DataSource.stream()
-                            .process({
-                                command: `tail -f ${filename}`,
-                                cwd: process.cwd(),
-                                envs: process.env as { [key: string]: string },
-                            })
-                            .text(),
-                    )
-                    .on('processing', () => {
-                        procceed();
-                    })
-                    .catch(finish.bind(null, session, done));
                 const TEST_LINES = ['test A', 'test B'];
                 const procceed = async () => {
                     ready += 1;
@@ -530,6 +497,36 @@ if (process.platform === 'win32') {
                         finish(session, done, new Error(utils.error(e)));
                     }
                 };
+
+                const sed = stream
+                    .observe(
+                        Observe.DataSource.stream()
+                            .process({
+                                command: `sed -u "w ${filename}"`,
+                                cwd: process.cwd(),
+                                envs: process.env as { [key: string]: string },
+                            })
+                            .text(),
+                    )
+                    .on('processing', (e) => {
+                        procceed();
+                    })
+                    .catch(finish.bind(null, session, done));
+                // Tail file
+                const _tail = stream
+                    .observe(
+                        Observe.DataSource.stream()
+                            .process({
+                                command: `tail -f ${filename}`,
+                                cwd: process.cwd(),
+                                envs: process.env as { [key: string]: string },
+                            })
+                            .text(),
+                    )
+                    .on('processing', () => {
+                        procceed();
+                    })
+                    .catch(finish.bind(null, session, done));
                 events.StreamUpdated.subscribe((rows: number) => {
                     if (rows < 4) {
                         return;
