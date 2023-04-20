@@ -1,16 +1,15 @@
-import { ObserveSource } from '@service/session/dependencies/observe/source';
+import { ObserveSource } from '@service/session/dependencies/observing/source';
 import { File } from '@platform/types/files';
 import { Mutable } from '@platform/types/unity/mutable';
-import { Provider } from '../providers/provider';
-import { Base as BaseState } from '../states/state';
+import { Provider } from '@service/session/dependencies/observing/provider';
 
 export class Element {
     public readonly source: ObserveSource;
-    public readonly provider: Provider<BaseState>;
+    public readonly provider: Provider;
     public readonly id: number | undefined;
     public readonly file: File | undefined;
 
-    constructor(source: ObserveSource, provider: Provider<BaseState>) {
+    constructor(source: ObserveSource, provider: Provider) {
         this.source = source;
         this.provider = provider;
         const session = this.provider.session;

@@ -3,7 +3,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Session } from '@service/session/session';
 import { ProcessTransportSettings } from '@platform/types/transport/process';
-import { ObserveOperation } from '@service/session/dependencies/observe/operation';
+import { ObserveOperation } from '@service/session/dependencies/observing/operation';
 import { SdeRequest, SdeResponse } from '@platform/types/sde/commands';
 import {
     Options as AutocompleteOptions,

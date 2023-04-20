@@ -11,8 +11,8 @@ import { components } from '@env/decorators/initial';
 import { Base } from './base';
 import { Bookmarks } from './dependencies/bookmarks';
 import { Exporter } from './dependencies/exporter';
-import { Subscriber } from '@platform/env/subscription';
 import { IRange, fromIndexes } from '@platform/types/range';
+import { Providers } from './dependencies/observing/providers';
 
 import * as ids from '@schema/ids';
 import * as Requests from '@platform/ipc/request';
@@ -29,10 +29,10 @@ export class Session extends Base {
     public readonly cursor: Cursor = new Cursor();
     public readonly exporter: Exporter = new Exporter();
     public readonly render: Render<unknown>;
+    public readonly observed: Providers = new Providers();
 
     private _uuid!: string;
     private _tab!: ITabAPI;
-    private readonly _subscriber: Subscriber = new Subscriber();
     private readonly _toolbar: TabsService = new TabsService();
     private readonly _sidebar: TabsService = new TabsService({
         options: new TabsOptions({ direction: ETabsListDirection.left }),
@@ -137,6 +137,7 @@ export class Session extends Base {
                     this.bookmarks.init(this._uuid, this.cursor);
                     this.search.init(this._uuid);
                     this.exporter.init(this._uuid, this.stream, this.search);
+                    this.observed.init(this, this.log());
                     this.inited = true;
                     resolve(this._uuid);
                 })
@@ -152,7 +153,8 @@ export class Session extends Base {
         this.bookmarks.destroy();
         this.cursor.destroy();
         this.exporter.destroy();
-        this._subscriber.unsubscribe();
+        this.observed.destroy();
+        this.unsubscribe();
         if (!this.inited) {
             return Promise.resolve();
         }

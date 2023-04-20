@@ -1,10 +1,10 @@
 <div class="caption">
     <span class="title">Observing Sources</span>
-    <span class="subtitle">({{providers.count()}})</span>
+    <span class="subtitle">({{session.observed.count()}})</span>
     <span class="filler"></span>
     <span class="small-icon-button codicon codicon-add" [matMenuTriggerFor]="menu"></span>
 </div>
-<ng-container *ngFor="let provider of providers.list | keyvalue">
+<ng-container *ngFor="let provider of session.observed.list | keyvalue">
     <mat-expansion-panel
         *ngIf="!provider.value.isEmpty() || provider.value.panels.nocontent.comp !== undefined"
         [disabled]="true"

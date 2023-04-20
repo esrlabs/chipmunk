@@ -1,11 +1,12 @@
 import { Provider as Base } from '../provider';
-import { ObserveSource } from '@service/session/dependencies/observe/source';
+import { ObserveSource } from '@service/session/dependencies/observing/source';
 import { IComponentDesc } from '@elements/containers/dynamic/component';
-import { List } from '../../lists/serial/component';
+import { List } from '@ui/views/sidebar/observe/lists/process/component';
 import { IMenuItem } from '@ui/service/contextmenu';
-import { State, KEY } from '../../states/serial';
+import { opener } from '@service/opener';
+import { Source } from '@platform/types/transport';
 
-export class Provider extends Base<State> {
+export class Provider extends Base {
     private _sources: ObserveSource[] = [];
 
     public contextMenu(source: ObserveSource): IMenuItem[] {
@@ -13,18 +14,16 @@ export class Provider extends Base<State> {
         const observer = source.observer;
         if (observer !== undefined) {
             items.push({
-                caption: 'Disconnect',
+                caption: 'Stop',
                 handler: () => {
                     observer.abort().catch((err: Error) => {
-                        this.logger.error(
-                            `Fail to abort observing (serial listening): ${err.message}`,
-                        );
+                        this.logger.error(`Fail to abort observing (spawning): ${err.message}`);
                     });
                 },
             });
         } else {
             items.push({
-                caption: 'Connect',
+                caption: 'Repeat Command',
                 handler: () => {
                     this.repeat(source.source).catch((err: Error) => {
                         this.logger.error(`Fail to repeat: ${err.message}`);
@@ -36,8 +35,17 @@ export class Provider extends Base<State> {
     }
 
     public update(sources: ObserveSource[]): Provider {
-        this._sources = sources.filter((source) => source.source.is().serial);
+        this._sources = sources.filter((source) => source.source.is().process);
         return this;
+    }
+
+    public openNewSessionOptions() {
+        opener
+            .stream(undefined, true, Source.Process)
+            .text()
+            .catch((err: Error) => {
+                this.logger.error(`Fail to open options: ${err.message}`);
+            });
     }
 
     public sources(): ObserveSource[] {
@@ -69,7 +77,7 @@ export class Provider extends Base<State> {
             } => {
                 return {
                     name: (): string => {
-                        return `Serial Connections`;
+                        return `Commands`;
                     },
                     desc: (): string => {
                         return this._sources.length > 0 ? this._sources.length.toString() : '';
@@ -117,20 +125,6 @@ export class Provider extends Base<State> {
                         return undefined;
                     },
                 };
-            },
-        };
-    }
-
-    public storage(): {
-        get(): State;
-        key(): string;
-    } {
-        return {
-            get: (): State => {
-                return new State();
-            },
-            key: (): string => {
-                return KEY;
             },
         };
     }

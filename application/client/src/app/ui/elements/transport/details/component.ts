@@ -9,7 +9,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { DataSource } from '@platform/types/observe';
 import { Session } from '@service/session/session';
-import { ObserveOperation } from '@service/session/dependencies/observe/operation';
+import { ObserveOperation } from '@service/session/dependencies/observing/operation';
 
 @Component({
     selector: 'app-transport-details',

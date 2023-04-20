@@ -1,18 +1,8 @@
-import {
-    Component,
-    Input,
-    AfterContentInit,
-    ChangeDetectorRef,
-    ElementRef,
-    ViewEncapsulation,
-    OnDestroy,
-} from '@angular/core';
+import { Component, Input, ChangeDetectorRef, ElementRef, ViewEncapsulation } from '@angular/core';
 import { Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Providers } from './providers/providers';
-import { Mutable } from '@platform/types/unity/mutable';
 import { SourceRef } from '@service/opener';
 import { File } from '@platform/types/files';
 
@@ -24,7 +14,7 @@ import { File } from '@platform/types/files';
 })
 @Initial()
 @Ilc()
-export class Observed extends ChangesDetector implements AfterContentInit, OnDestroy {
+export class Observed extends ChangesDetector {
     @Input() session!: Session;
 
     public actions: Array<{ icon: string; title: string; handler: () => void } | null> = [
@@ -67,18 +57,8 @@ export class Observed extends ChangesDetector implements AfterContentInit, OnDes
         },
     ];
 
-    public readonly providers!: Providers;
-
     constructor(cdRef: ChangeDetectorRef, private _self: ElementRef) {
         super(cdRef);
-    }
-
-    public ngOnDestroy(): void {
-        this.providers.destroy();
-    }
-
-    public ngAfterContentInit(): void {
-        (this as Mutable<Observed>).providers = new Providers(this.session, this.log());
     }
 
     public attach(): {
@@ -87,10 +67,10 @@ export class Observed extends ChangesDetector implements AfterContentInit, OnDes
     } {
         return {
             disabled: (): boolean => {
-                return this.providers.getNewSourceError() instanceof Error;
+                return this.session.observed.getNewSourceError() instanceof Error;
             },
             error: (): string | undefined => {
-                const error = this.providers.getNewSourceError();
+                const error = this.session.observed.getNewSourceError();
                 return error instanceof Error ? error.message : undefined;
             },
         };
@@ -100,7 +80,7 @@ export class Observed extends ChangesDetector implements AfterContentInit, OnDes
         files(): void;
         stream(sourceRef: SourceRef): void;
     } {
-        const parser = this.providers.get().parser();
+        const parser = this.session.observed.get().parser();
         if (parser instanceof Error) {
             this.log().error(`Fail to attach new source: ${parser.message}`);
         }

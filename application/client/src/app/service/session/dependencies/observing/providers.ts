@@ -2,21 +2,19 @@ import { Provider, ProviderConstructor } from './provider';
 import { Session } from '@service/session/session';
 import { Logger } from '@platform/log';
 import { Subscriber } from '@platform/env/subscription';
-import { Base as BaseState } from '../states/state';
 import { ParserName, Origin } from '@platform/types/observe';
-
+import { Mutable } from '@platform/types/unity/mutable';
 import { PROVIDERS } from './implementations';
 
 export class Providers extends Subscriber {
-    public readonly session: Session;
-    public readonly logger: Logger;
+    public readonly session!: Session;
+    public readonly logger!: Logger;
 
-    public readonly list: Map<string, Provider<BaseState>> = new Map();
+    public readonly list: Map<string, Provider> = new Map();
 
-    constructor(session: Session, logger: Logger) {
-        super();
-        this.session = session;
-        this.logger = logger;
+    public init(session: Session, logger: Logger) {
+        (this as Mutable<Providers>).session = session;
+        (this as Mutable<Providers>).logger = logger;
         PROVIDERS.forEach((providerConstructor: ProviderConstructor) => {
             const provider = new providerConstructor(session, logger);
             this.list.set(provider.uuid, provider.setPanels());
@@ -34,7 +32,7 @@ export class Providers extends Subscriber {
 
     public destroy() {
         this.unsubscribe();
-        this.list.forEach((provider: Provider<BaseState>) => {
+        this.list.forEach((provider: Provider) => {
             provider.destroy();
         });
     }
@@ -77,7 +75,7 @@ export class Providers extends Subscriber {
 
     public getNewSourceError(): Error | undefined {
         let error: Error | undefined;
-        this.list.forEach((provider: Provider<BaseState>) => {
+        this.list.forEach((provider: Provider) => {
             if (error !== undefined) {
                 return;
             }

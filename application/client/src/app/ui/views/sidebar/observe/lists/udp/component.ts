@@ -1,14 +1,6 @@
-import {
-    Component,
-    Input,
-    ChangeDetectorRef,
-    ElementRef,
-    AfterContentInit,
-    ViewChild,
-} from '@angular/core';
+import { Component, ChangeDetectorRef, AfterContentInit, ViewChild } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
-import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Provider } from '../../providers/implementations/udp';
+import { Provider } from '@service/session/dependencies/observing/implementations/udp';
 import { Element } from '../../element/element';
 import { QuickSetup } from '../../../../../elements/transport/setup/quick/udp/component';
 import { Action } from '@ui/tabs/sources/common/actions/action';
@@ -17,6 +9,7 @@ import { DataSource } from '@platform/types/observe';
 import { components } from '@env/decorators/initial';
 import { Vertical, Horizontal } from '@ui/service/popup';
 import { State } from '../../states/udp';
+import { ListBase } from '../component';
 
 @Component({
     selector: 'app-views-observed-list-udp',
@@ -24,8 +17,7 @@ import { State } from '../../states/udp';
     styleUrls: ['./styles.less'],
 })
 @Ilc()
-export class List extends ChangesDetector implements AfterContentInit {
-    @Input() provider!: Provider;
+export class List extends ListBase<State, Provider> implements AfterContentInit {
     @ViewChild('quicksetupref') public quickSetupRef!: QuickSetup;
 
     public tailing: Element[] = [];
@@ -68,14 +60,13 @@ export class List extends ChangesDetector implements AfterContentInit {
             },
         },
     ];
-    public state!: State;
 
-    constructor(cdRef: ChangeDetectorRef, private _self: ElementRef) {
-        super(cdRef);
+    constructor(cdRef: ChangeDetectorRef) {
+        super(new State(), cdRef);
     }
 
-    public ngAfterContentInit(): void {
-        this.state = this.provider.state;
+    public override ngAfterContentInit(): void {
+        super.ngAfterContentInit();
         this.update();
         this.env().subscriber.register(
             this.provider.subjects.get().updated.subscribe(() => {

@@ -1,13 +1,12 @@
 import { Provider as Base } from '../provider';
-import { ObserveSource } from '@service/session/dependencies/observe/source';
+import { ObserveSource } from '@service/session/dependencies/observing/source';
 import { IComponentDesc } from '@elements/containers/dynamic/component';
-import { List } from '../../lists/udp/component';
+import { List } from '@ui/views/sidebar/observe/lists/tcp/component';
 import { IMenuItem } from '@ui/service/contextmenu';
 import { opener } from '@service/opener';
 import { Source } from '@platform/types/transport';
-import { State, KEY } from '../../states/udp';
 
-export class Provider extends Base<State> {
+export class Provider extends Base {
     private _sources: ObserveSource[] = [];
 
     public contextMenu(source: ObserveSource): IMenuItem[] {
@@ -19,7 +18,7 @@ export class Provider extends Base<State> {
                 handler: () => {
                     observer.abort().catch((err: Error) => {
                         this.logger.error(
-                            `Fail to abort observing (udp listening): ${err.message}`,
+                            `Fail to abort observing (tcp listening): ${err.message}`,
                         );
                     });
                 },
@@ -47,7 +46,7 @@ export class Provider extends Base<State> {
     }
 
     public update(sources: ObserveSource[]): Provider {
-        this._sources = sources.filter((source) => source.source.is().udp);
+        this._sources = sources.filter((source) => source.source.is().tcp);
         return this;
     }
 
@@ -80,7 +79,7 @@ export class Provider extends Base<State> {
             } => {
                 return {
                     name: (): string => {
-                        return `UPD Connections`;
+                        return `TCP Connections`;
                     },
                     desc: (): string => {
                         return this._sources.length > 0 ? this._sources.length.toString() : '';
@@ -128,20 +127,6 @@ export class Provider extends Base<State> {
                         return undefined;
                     },
                 };
-            },
-        };
-    }
-
-    public storage(): {
-        get(): State;
-        key(): string;
-    } {
-        return {
-            get: (): State => {
-                return new State();
-            },
-            key: (): string => {
-                return KEY;
             },
         };
     }
