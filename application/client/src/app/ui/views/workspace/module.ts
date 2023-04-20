@@ -9,6 +9,7 @@ import { ScrollAreaModule } from '@elements/scrollarea/module';
 import { ContainersModule } from '@elements/containers/module';
 import { AppDirectiviesModule } from '@directives/module';
 import { AutocompleteModule } from '@elements/autocomplete/module';
+import { AttachSourceMenuModule } from '@elements/menu.attachsource/module';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -34,6 +35,7 @@ const components = [ViewWorkspace, ...entryComponents];
         MatDividerModule,
         MatProgressBarModule,
         MatProgressSpinnerModule,
+        AttachSourceMenuModule,
     ],
     declarations: [...components],
     exports: [...components, ScrollAreaModule],

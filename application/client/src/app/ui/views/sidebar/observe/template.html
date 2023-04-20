@@ -2,7 +2,7 @@
     <span class="title">Observing Sources</span>
     <span class="subtitle">({{session.observed.count()}})</span>
     <span class="filler"></span>
-    <span class="small-icon-button codicon codicon-add" [matMenuTriggerFor]="menu"></span>
+    <app-attach-new-source-menu [session]="session"></app-attach-new-source-menu>
 </div>
 <ng-container *ngFor="let provider of session.observed.list | keyvalue">
     <mat-expansion-panel
@@ -26,16 +26,4 @@
         ></lib-containers-dynamic>
     </mat-expansion-panel>
 </ng-container>
-<mat-menu #menu="matMenu" class="attach-new-source-menu">
-    <p *ngIf="attach().disabled()" class="t-normal attach-menu-warning">{{attach().error()}}</p>
-    <ng-container *ngIf="!attach().disabled()">
-        <ng-container *ngFor="let action of actions">
-            <button *ngIf="action !== null" mat-menu-item (click)="action.handler()">
-                <mat-icon>{{action.icon}}</mat-icon>
-                <span>{{action.title}}</span>
-            </button>
-            <mat-divider *ngIf="action === null"></mat-divider>
-        </ng-container>   
-    </ng-container>
-</mat-menu>
 
