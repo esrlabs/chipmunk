@@ -8,12 +8,14 @@ export class Element {
     public readonly provider: Provider;
     public readonly id: number | undefined;
     public readonly file: File | undefined;
+    public selected: boolean = false;
 
     constructor(source: ObserveSource, provider: Provider) {
         this.source = source;
         this.provider = provider;
         const session = this.provider.session;
         this.id = session.stream.observe().descriptions.id(this.source.source.alias());
+        this.selected = session.stream.sde.selecting().is(this.source.source.uuid);
     }
 
     public set(): { file(file: File): Element } {

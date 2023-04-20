@@ -26,6 +26,9 @@ export class Providers extends Subscriber {
             session.stream.subjects.get().finished.subscribe(() => {
                 this.update();
             }),
+            session.stream.sde.subjects.get().selected.subscribe(() => {
+                this.update();
+            }),
         );
         this.update();
     }

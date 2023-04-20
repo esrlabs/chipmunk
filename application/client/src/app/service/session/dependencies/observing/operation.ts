@@ -2,10 +2,10 @@ import { DataSource } from '@platform/types/observe';
 import { SdeRequest, SdeResponse } from '@platform/types/sde';
 
 export class ObserveOperation {
-    protected readonly uuid: string;
+    public readonly uuid: string;
     protected readonly source: DataSource;
-    protected readonly cancel: (uuid: string) => Promise<void>;
-    protected readonly restarting: (uuid: string, source: DataSource) => Promise<void>;
+    protected readonly cancel: () => Promise<void>;
+    protected readonly restarting: (source: DataSource) => Promise<void>;
     protected readonly sde: (msg: SdeRequest) => Promise<SdeResponse>;
 
     private _sdeTasksCount: number = 0;
@@ -14,8 +14,8 @@ export class ObserveOperation {
         uuid: string,
         source: DataSource,
         sde: (msg: SdeRequest) => Promise<SdeResponse>,
-        restart: (uuid: string, source: DataSource) => Promise<void>,
-        cancel: (uuid: string) => Promise<void>,
+        restart: (source: DataSource) => Promise<void>,
+        cancel: () => Promise<void>,
     ) {
         this.uuid = uuid;
         this.source = source;
@@ -25,11 +25,11 @@ export class ObserveOperation {
     }
 
     public abort(): Promise<void> {
-        return this.cancel(this.uuid);
+        return this.cancel();
     }
 
     public restart(): Promise<void> {
-        return this.restarting(this.uuid, this.source);
+        return this.restarting(this.source);
     }
 
     public asSource(): DataSource {

@@ -38,6 +38,15 @@ app-views-sde {
         & div.source {
             position: relative;
             margin-top: -7px;
+            & > span.marker {
+                display: block;
+                position: absolute;
+                width: 2px;
+                height: 24px;
+                left: -9px;
+                top: 7px;
+                content: '';
+            }    
             & > span {
                 display: inline-block;
                 height: 16px;
@@ -58,20 +67,21 @@ app-views-sde {
                 max-width: 200px;
             }    
         }
-        &[data-selected="true"] {
-            &  div.source {
-                &::before {
-                    display: block;
-                    position: absolute;
-                    width: 2px;
-                    height: 24px;
-                    background: @scheme-color-accent;
-                    left: -9px;
-                    top: 7px;
-                    content: '';
-                }    
-            }
-        }
+        // &[data-selected="true"] {
+        //     &  div.source {
+        //         &::before {
+        //             display: block;
+        //             position: absolute;
+        //             width: 4px;
+        //             height: 4px;
+        //             border-radius: 2px;
+        //             background: @scheme-color-accent;
+        //             left: -9px;
+        //             top: 7px;
+        //             content: '';
+        //         }    
+        //     }
+        // }
     }
     
 }

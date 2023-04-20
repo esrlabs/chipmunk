@@ -1,4 +1,4 @@
-<app-views-observed-list-item-signature [source]="element.source.source" [id]="element.id"></app-views-observed-list-item-signature>
+<app-views-observed-list-item-signature [element]="element" [id]="element.id"></app-views-observed-list-item-signature>
 <app-views-observed-file *ngIf="element.is().file()" [element]="element"></app-views-observed-file>
 <app-views-observed-process *ngIf="element.is().process()" [element]="element"></app-views-observed-process>
 <app-views-observed-serial *ngIf="element.is().serial()" [element]="element"></app-views-observed-serial>

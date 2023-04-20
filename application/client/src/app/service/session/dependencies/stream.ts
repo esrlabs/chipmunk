@@ -7,12 +7,10 @@ import { IGrabbedElement } from '@platform/types/content';
 import { DataSource, ObservedSourceLink } from '@platform/types/observe';
 import { ObserveOperation } from './observing/operation';
 import { ObserveSource } from './observing/source';
-import { error } from '@platform/log/utils';
 import { SourceDefinition } from '@platform/types/transport';
 import { IDLTOptions, parserSettingsToOptions } from '@platform/types/parsers/dlt';
 import { TargetFile } from '@platform/types/files';
 import { lockers } from '@ui/service/lockers';
-import { SdeRequest, SdeResponse } from '@platform/types/sde';
 import { Sde } from './observing/sde';
 
 import * as Requests from '@platform/ipc/request';
@@ -87,8 +85,8 @@ export class Stream extends Subscriber {
                         event.operation,
                         source,
                         this.sde.send.bind(this.sde, event.operation),
-                        this.observe().restart,
-                        this.observe().abort,
+                        this.observe().restart.bind(this, event.operation),
+                        this.observe().abort.bind(this, event.operation),
                     ),
                 );
                 this.observe()
@@ -237,7 +235,6 @@ export class Stream extends Subscriber {
             request(): Promise<ObservedSourceLink[]>;
             count(): number;
         };
-        sde(uuid: string, msg: SdeRequest): Promise<SdeResponse>;
     } {
         return {
             abort: (uuid: string): Promise<void> => {
@@ -352,34 +349,6 @@ export class Stream extends Subscriber {
                 count: (): number => {
                     return this.observed.map.size;
                 },
-            },
-            sde: (uuid: string, request: SdeRequest): Promise<SdeResponse> => {
-                return new Promise((resolve, reject) => {
-                    Requests.IpcRequest.send(
-                        Requests.Observe.SDE.Response,
-                        new Requests.Observe.SDE.Request({
-                            session: this._uuid,
-                            operation: uuid,
-                            request,
-                        }),
-                    )
-                        .then((response: Requests.Observe.SDE.Response) => {
-                            if (response.error !== undefined) {
-                                return reject(new Error(response.error));
-                            }
-                            if (response.result === undefined) {
-                                return reject(new Error(`SDE doesn't return any kind of result`));
-                            }
-                            try {
-                                resolve(response.result);
-                            } catch (e) {
-                                return reject(new Error(error(e)));
-                            }
-                        })
-                        .catch((error: Error) => {
-                            this.log().error(`Fail to send SDE into operation: ${error.message}`);
-                        });
-                });
             },
         };
     }
