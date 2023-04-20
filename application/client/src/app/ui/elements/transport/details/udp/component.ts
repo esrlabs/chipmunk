@@ -3,7 +3,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Session } from '@service/session/session';
 import { UDPTransportSettings } from '@platform/types/transport/udp';
-import { ObserveOperation } from '@service/session/dependencies/observe/operation';
+import { ObserveOperation } from '@service/session/dependencies/observing/operation';
 import { DataSource } from '@platform/types/observe';
 
 @Component({

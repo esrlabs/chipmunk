@@ -4,7 +4,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Session } from '@service/session/session';
 import { File } from '@platform/types/files';
 import { bytesToStr, timestampToUTC } from '@env/str';
-import { ObserveOperation } from '@service/session/dependencies/observe/operation';
+import { ObserveOperation } from '@service/session/dependencies/observing/operation';
 import { DataSource } from '@platform/types/observe';
 
 @Component({

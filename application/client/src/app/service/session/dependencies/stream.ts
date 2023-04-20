@@ -5,15 +5,15 @@ import { cutUuid } from '@log/index';
 import { Rank } from './rank';
 import { IGrabbedElement } from '@platform/types/content';
 import { DataSource, ObservedSourceLink } from '@platform/types/observe';
-import { ObserveOperation } from './observe/operation';
-import { ObserveSource } from './observe/source';
+import { ObserveOperation } from './observing/operation';
+import { ObserveSource } from './observing/source';
 import { error } from '@platform/log/utils';
 import { SourceDefinition } from '@platform/types/transport';
 import { IDLTOptions, parserSettingsToOptions } from '@platform/types/parsers/dlt';
 import { TargetFile } from '@platform/types/files';
 import { lockers } from '@ui/service/lockers';
 import { SdeRequest, SdeResponse } from '@platform/types/sde';
-import { Sde } from './observe/sde';
+import { Sde } from './observing/sde';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';

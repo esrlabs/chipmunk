@@ -1,11 +1,12 @@
 import { Provider as Base } from '../provider';
-import { ObserveSource } from '@service/session/dependencies/observe/source';
+import { ObserveSource } from '@service/session/dependencies/observing/source';
 import { IComponentDesc } from '@elements/containers/dynamic/component';
-import { List } from '../../lists/file/component';
+import { List } from '@ui/views/sidebar/observe/lists/udp/component';
 import { IMenuItem } from '@ui/service/contextmenu';
-import { State, KEY } from '../../states/files';
+import { opener } from '@service/opener';
+import { Source } from '@platform/types/transport';
 
-export class Provider extends Base<State> {
+export class Provider extends Base {
     private _sources: ObserveSource[] = [];
 
     public contextMenu(source: ObserveSource): IMenuItem[] {
@@ -13,10 +14,21 @@ export class Provider extends Base<State> {
         const observer = source.observer;
         if (observer !== undefined) {
             items.push({
-                caption: 'Stop tailing',
+                caption: 'Disconnect',
                 handler: () => {
                     observer.abort().catch((err: Error) => {
-                        this.logger.error(`Fail to abort observing (file tailing): ${err.message}`);
+                        this.logger.error(
+                            `Fail to abort observing (udp listening): ${err.message}`,
+                        );
+                    });
+                },
+            });
+        } else {
+            items.push({
+                caption: 'Connect',
+                handler: () => {
+                    this.repeat(source.source).catch((err: Error) => {
+                        this.logger.error(`Fail to repeat: ${err.message}`);
                     });
                 },
             });
@@ -24,8 +36,17 @@ export class Provider extends Base<State> {
         return items;
     }
 
+    public openNewSessionOptions() {
+        opener
+            .stream(undefined, true, Source.Udp)
+            .dlt()
+            .catch((err: Error) => {
+                this.logger.error(`Fail to open options: ${err.message}`);
+            });
+    }
+
     public update(sources: ObserveSource[]): Provider {
-        this._sources = sources.filter((source) => source.source.asFile() !== undefined);
+        this._sources = sources.filter((source) => source.source.is().udp);
         return this;
     }
 
@@ -58,7 +79,7 @@ export class Provider extends Base<State> {
             } => {
                 return {
                     name: (): string => {
-                        return `Files`;
+                        return `UPD Connections`;
                     },
                     desc: (): string => {
                         return this._sources.length > 0 ? this._sources.length.toString() : '';
@@ -108,35 +129,5 @@ export class Provider extends Base<State> {
                 };
             },
         };
-    }
-
-    public storage(): {
-        get(): State;
-        key(): string;
-    } {
-        return {
-            get: (): State => {
-                return new State();
-            },
-            key: (): string => {
-                return KEY;
-            },
-        };
-    }
-
-    public override getNewSourceError(): Error | undefined {
-        const active = this._sources.find((s) => s.observer !== undefined);
-        if (active !== undefined) {
-            return new Error(`Cannot attach new source while file is tailing`);
-        }
-        const single = this._sources.find(
-            (s) => s.source.is().file && s.source.parent === undefined,
-        );
-        if (single !== undefined) {
-            return new Error(
-                `Single file has been opened. In this case you cannot attach new source(s).`,
-            );
-        }
-        return undefined;
     }
 }

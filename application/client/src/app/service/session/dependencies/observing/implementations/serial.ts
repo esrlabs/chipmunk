@@ -1,13 +1,10 @@
 import { Provider as Base } from '../provider';
-import { ObserveSource } from '@service/session/dependencies/observe/source';
+import { ObserveSource } from '@service/session/dependencies/observing/source';
 import { IComponentDesc } from '@elements/containers/dynamic/component';
-import { List } from '../../lists/tcp/component';
+import { List } from '@ui/views/sidebar/observe/lists/serial/component';
 import { IMenuItem } from '@ui/service/contextmenu';
-import { opener } from '@service/opener';
-import { Source } from '@platform/types/transport';
-import { State, KEY } from '../../states/tcp';
 
-export class Provider extends Base<State> {
+export class Provider extends Base {
     private _sources: ObserveSource[] = [];
 
     public contextMenu(source: ObserveSource): IMenuItem[] {
@@ -19,7 +16,7 @@ export class Provider extends Base<State> {
                 handler: () => {
                     observer.abort().catch((err: Error) => {
                         this.logger.error(
-                            `Fail to abort observing (tcp listening): ${err.message}`,
+                            `Fail to abort observing (serial listening): ${err.message}`,
                         );
                     });
                 },
@@ -37,17 +34,8 @@ export class Provider extends Base<State> {
         return items;
     }
 
-    public openNewSessionOptions() {
-        opener
-            .stream(undefined, true, Source.Udp)
-            .dlt()
-            .catch((err: Error) => {
-                this.logger.error(`Fail to open options: ${err.message}`);
-            });
-    }
-
     public update(sources: ObserveSource[]): Provider {
-        this._sources = sources.filter((source) => source.source.is().tcp);
+        this._sources = sources.filter((source) => source.source.is().serial);
         return this;
     }
 
@@ -80,7 +68,7 @@ export class Provider extends Base<State> {
             } => {
                 return {
                     name: (): string => {
-                        return `TCP Connections`;
+                        return `Serial Connections`;
                     },
                     desc: (): string => {
                         return this._sources.length > 0 ? this._sources.length.toString() : '';
@@ -128,20 +116,6 @@ export class Provider extends Base<State> {
                         return undefined;
                     },
                 };
-            },
-        };
-    }
-
-    public storage(): {
-        get(): State;
-        key(): string;
-    } {
-        return {
-            get: (): State => {
-                return new State();
-            },
-            key: (): string => {
-                return KEY;
             },
         };
     }

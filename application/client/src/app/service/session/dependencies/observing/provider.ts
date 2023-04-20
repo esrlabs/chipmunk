@@ -1,19 +1,18 @@
 import { IComponentDesc } from '@elements/containers/dynamic/component';
 import { Logger } from '@platform/log';
 import { Session } from '@service/session/session';
-import { ObserveSource } from '@service/session/dependencies/observe/source';
+import { ObserveSource } from '@service/session/dependencies/observing/source';
 import { unique } from '@platform/env/sequence';
 import { Subject, Subjects } from '@platform/env/subscription';
 import { IMenuItem } from '@ui/service/contextmenu';
 import { opener } from '@service/opener';
 import { DataSource, SourcesFactory, ParserName, Origin } from '@platform/types/observe';
-import { Base as State } from '../states/state';
 
 export interface ProviderConstructor {
-    new (session: Session, logger: Logger): Provider<State>;
+    new (session: Session, logger: Logger): Provider;
 }
 
-export abstract class Provider<S extends State> {
+export abstract class Provider {
     public readonly session: Session;
     public readonly logger: Logger;
     public readonly subjects: Subjects<{
@@ -39,18 +38,14 @@ export abstract class Provider<S extends State> {
         };
     };
     public readonly uuid: string = unique();
-    public state: S;
 
     constructor(session: Session, logger: Logger) {
         this.session = session;
         this.logger = logger;
-        const state = this.session.storage.get<S>(this.storage().key());
-        this.state = state === undefined ? this.storage().get() : state;
     }
 
     public destroy() {
         this.subjects.destroy();
-        this.session.storage.set(this.storage().key(), this.state);
     }
 
     public get(): {
@@ -130,7 +125,7 @@ export abstract class Provider<S extends State> {
         return opener.from(source instanceof ObserveSource ? source.source : source);
     }
 
-    public setPanels(): Provider<S> {
+    public setPanels(): Provider {
         this.panels = {
             list: {
                 name: this.getPanels().list().name(),
@@ -157,7 +152,7 @@ export abstract class Provider<S extends State> {
 
     public abstract contextMenu(source: ObserveSource): IMenuItem[];
 
-    public abstract update(sources: ObserveSource[]): Provider<S>;
+    public abstract update(sources: ObserveSource[]): Provider;
 
     public abstract sources(): ObserveSource[];
 
@@ -177,11 +172,6 @@ export abstract class Provider<S extends State> {
             desc(): string | undefined;
             comp(): IComponentDesc | undefined;
         };
-    };
-
-    public abstract storage(): {
-        get(): S;
-        key(): string;
     };
 
     public getNewSourceError(): Error | undefined {

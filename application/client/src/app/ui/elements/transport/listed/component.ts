@@ -4,7 +4,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { DataSource, SourceDescription } from '@platform/types/observe';
 import { Session } from '@service/session/session';
 import { IMenuItem, contextmenu } from '@ui/service/contextmenu';
-import { ObserveOperation } from '@service/session/dependencies/observe/operation';
+import { ObserveOperation } from '@service/session/dependencies/observing/operation';
 import { stop } from '@ui/env/dom';
 
 @Component({
