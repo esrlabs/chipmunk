@@ -15,6 +15,7 @@ export class Item extends ChangesDetector implements AfterContentInit {
     @Input() element!: Element;
 
     public readonly process: ProcessTransportSettings | undefined;
+    public readonly selected!: boolean;
 
     constructor(cdRef: ChangeDetectorRef, private _self: ElementRef) {
         super(cdRef);

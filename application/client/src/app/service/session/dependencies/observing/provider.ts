@@ -121,6 +121,7 @@ export abstract class Provider {
                 this.logger.error(`Fail to restart process: ${err.message}`);
             });
     }
+
     public openAsNew(source: ObserveSource | DataSource): Promise<string> {
         return opener.from(source instanceof ObserveSource ? source.source : source);
     }

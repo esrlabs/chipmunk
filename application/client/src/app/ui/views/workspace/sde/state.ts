@@ -5,22 +5,25 @@ import { ObserveOperation } from '@service/session/dependencies/stream';
 import { SourceDescription } from '@platform/types/observe';
 import { Destroyable } from '@platform/types/life/destroyable';
 import { Notification } from '@ui/service/notifications';
+import { getSourceColor } from '@ui/styles/colors';
 
 export class State implements Destroyable<void> {
     protected ref: undefined | (IlcInterface & ChangesDetector);
-    protected session: Session | undefined;
+    protected session!: Session;
 
-    public sources: ObserveOperation[] = [];
-    public selected: ObserveOperation | undefined;
-
+    public operations: ObserveOperation[] = [];
     public progress: boolean = false;
     public hidden: boolean = false;
+    public selected: ObserveOperation | undefined;
 
     public bind(ref: IlcInterface & ChangesDetector, session: Session): State {
         this.ref = ref;
         this.session = session;
         ref.env().subscriber.register(
             session.stream.sde.subjects.get().updated.subscribe(() => {
+                this.update();
+            }),
+            session.stream.sde.subjects.get().selected.subscribe(() => {
                 this.update();
             }),
             session.stream.sde.subjects.get().visibility.subscribe(() => {
@@ -42,9 +45,13 @@ export class State implements Destroyable<void> {
     }
 
     public isSelected(source: ObserveOperation): boolean {
-        return this.selected === undefined
-            ? false
-            : source.asSource().uuid === this.selected.asSource().uuid;
+        const selection = this.session.stream.sde.selecting().get();
+        return selection === undefined ? false : selection.uuid === source.uuid;
+    }
+
+    public getSourceColor(source: ObserveOperation): string {
+        const id = this.session.stream.observe().descriptions.id(source.asSource().alias());
+        return id === undefined ? '' : getSourceColor(id);
     }
 
     public desc(source: ObserveOperation): SourceDescription {
@@ -66,12 +73,13 @@ export class State implements Destroyable<void> {
     }
 
     public send(data: string): Promise<void> {
-        if (this.selected === undefined) {
+        const selected = this.session.stream.sde.selecting().get();
+        if (selected === undefined) {
             return Promise.resolve();
         }
         this.progress = true;
         this.safe().updateRefComp();
-        return this.selected
+        return selected
             .send()
             .text(data)
             .then(() => undefined)
@@ -85,7 +93,8 @@ export class State implements Destroyable<void> {
     }
 
     public select(source: ObserveOperation | undefined): void {
-        this.selected = source;
+        this.session.stream.sde.selecting().select(source === undefined ? undefined : source.uuid);
+        this.selected = this.session.stream.sde.selecting().get();
         if (this.selected !== undefined) {
             this.progress = this.selected.getSdeTasksCount() > 0;
         }
@@ -97,19 +106,9 @@ export class State implements Destroyable<void> {
             return;
         }
         const sde = this.session.stream.sde;
+        this.selected = sde.selecting().get();
         this.hidden = sde.visibility().hidden();
-        this.sources = sde.get();
-        if (this.selected !== undefined) {
-            this.sources.find((o) => o.asSource().uuid === this.selected?.asSource().uuid) ===
-                undefined && (this.selected = undefined);
-        }
-        this.select(
-            this.selected !== undefined
-                ? this.selected
-                : this.sources.length > 0
-                ? this.sources[0]
-                : undefined,
-        );
+        this.operations = sde.get();
         if (this.selected !== undefined) {
             this.progress = this.selected.getSdeTasksCount() > 0;
         }

@@ -36,7 +36,7 @@ export class ViewSdeComponent extends ChangesDetector implements AfterContentIni
     @HostBinding('style.display') get cssDisplayProp() {
         return this.state === undefined
             ? 'none'
-            : this.state.sources.length > 0
+            : this.state.operations.length > 0
             ? this.state.hidden
                 ? 'none'
                 : 'flex'

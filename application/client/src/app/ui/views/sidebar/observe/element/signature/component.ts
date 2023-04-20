@@ -3,6 +3,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { DataSource } from '@platform/types/observe';
 import { getSourceColor } from '@ui/styles/colors';
+import { Element } from '../element';
 
 @Component({
     selector: 'app-views-observed-list-item-signature',
@@ -11,18 +12,19 @@ import { getSourceColor } from '@ui/styles/colors';
 })
 @Ilc()
 export class Signature extends ChangesDetector implements AfterContentInit {
-    @Input() source!: DataSource;
+    @Input() element!: Element;
     @Input() id!: number | undefined;
+
+    public source!: DataSource;
+    public selected!: boolean;
 
     constructor(cdRef: ChangeDetectorRef, private _self: ElementRef) {
         super(cdRef);
     }
 
     public ngAfterContentInit(): void {
-        // const filename = this.source.source.asFile();
-        // if (filename !== undefined) {
-        //     (this as Mutable<List>).filename = filename;
-        // }
+        this.source = this.element.source.source;
+        this.selected = this.element.selected;
     }
 
     public getSourceMarkerStyles(): { [key: string]: string } {

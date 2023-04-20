@@ -11,12 +11,15 @@ export class Sde {
     public readonly subjects: Subjects<{
         updated: Subject<void>;
         visibility: Subject<void>;
+        selected: Subject<string | undefined>;
     }> = new Subjects({
         updated: new Subject<void>(),
         visibility: new Subject<void>(),
+        selected: new Subject<string | undefined>(),
     });
     protected readonly uuid: string;
     protected operations: ObserveOperation[] = [];
+    protected selected: ObserveOperation | undefined;
     protected hidden: boolean = false;
 
     constructor(uuid: string) {
@@ -59,6 +62,14 @@ export class Sde {
     public overwrite(running: Map<string, ObserveOperation>): void {
         this.operations = Array.from(running.values()).filter((s) => s.asSource().isSDEAvaliable());
         this.subjects.get().updated.emit();
+        if (this.selected !== undefined) {
+            const target = this.selected.uuid;
+            if (this.operations.find((o) => o.uuid === target) === undefined) {
+                this.selecting().first();
+            }
+        } else {
+            this.selecting().first();
+        }
     }
 
     public isAvailable(): boolean {
@@ -85,6 +96,52 @@ export class Sde {
             },
             hidden: (): boolean => {
                 return this.hidden;
+            },
+        };
+    }
+
+    public selecting(): {
+        is(uuid: string): boolean;
+        first(): void;
+        select(uuid: string | undefined): boolean;
+        get(): ObserveOperation | undefined;
+    } {
+        return {
+            is: (uuid: string): boolean => {
+                return this.selected === undefined
+                    ? false
+                    : this.selected.uuid === uuid || this.selected.asSource().uuid === uuid;
+            },
+            first: (): void => {
+                if (this.operations.length === 0) {
+                    return;
+                }
+                if (this.selected !== undefined && this.selected.uuid === this.operations[0].uuid) {
+                    return;
+                }
+                this.selected = this.operations[0];
+                this.subjects.get().selected.emit(this.selected.uuid);
+            },
+            select: (uuid: string | undefined): boolean => {
+                if (uuid === undefined) {
+                    const changed = this.selected !== undefined;
+                    this.selected = undefined;
+                    changed && this.subjects.get().selected.emit(uuid);
+                    return changed;
+                }
+                if (this.selected !== undefined && this.selected.uuid === uuid) {
+                    return false;
+                }
+                this.selected = this.operations.find((o) => o.uuid === uuid);
+                if (this.selected === undefined) {
+                    return false;
+                } else {
+                    this.subjects.get().selected.emit(uuid);
+                    return true;
+                }
+            },
+            get: (): ObserveOperation | undefined => {
+                return this.selected;
             },
         };
     }
