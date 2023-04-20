@@ -267,35 +267,16 @@ export class Chart {
     }
 
     private _updateLabels(): [number, number] {
-        const labels = this._chart.config.data.labels as number[];
-        const isFromSet: boolean = labels.indexOf(this._zoomedRange.from) !== -1;
-        const isToSet: boolean = labels.indexOf(this._zoomedRange.to) !== -1;
-        let from: undefined | number;
-        let to: undefined | number;
-        (this._chart.config.data.labels as number[]).forEach((label: number, index: number) => {
-            from = isFromSet
-                ? this._zoomedRange.from
-                : label < this._zoomedRange.from
-                ? index
-                : from === undefined
-                ? index
-                : from;
-            to = isToSet
-                ? this._zoomedRange.to
-                : label < this._zoomedRange.to
-                ? index
-                : to === undefined
-                ? index
-                : to;
-            if (from !== undefined && to !== undefined) {
-                return;
-            }
-        });
-        labels.slice(
-            isFromSet ? this._zoomedRange.from : (from as number),
-            isToSet ? this._zoomedRange.to : (to as number),
+        const labels: number[] = this._chart.config.data.labels as number[];
+        const streamLength: number = this._session.stream.len();
+        const indexZoomFrom: number = Math.round(
+            labels.length * (this._zoomedRange.from / streamLength),
         );
-        return [from as number, to as number];
+        let indexZoomTo: number = Math.round(labels.length * (this._zoomedRange.to / streamLength));
+        if (indexZoomTo >= labels.length) {
+            indexZoomTo = labels.length - 1;
+        }
+        return [indexZoomFrom, indexZoomTo];
     }
 
     private _createChart(): CanvasChart {
