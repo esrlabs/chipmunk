@@ -1,0 +1,14 @@
+<span class="small-icon-button codicon codicon-add" [matMenuTriggerFor]="menu"></span>
+<mat-menu #menu="matMenu" class="attach-new-source-menu">
+    <p *ngIf="attach().disabled()" class="t-normal attach-menu-warning">{{attach().error()}}</p>
+    <ng-container *ngIf="!attach().disabled()">
+        <ng-container *ngFor="let action of actions">
+            <button *ngIf="action !== null" mat-menu-item (click)="action.handler()">
+                <mat-icon>{{action.icon}}</mat-icon>
+                <span>{{action.title}}</span>
+            </button>
+            <mat-divider *ngIf="action === null"></mat-divider>
+        </ng-container>   
+    </ng-container>
+</mat-menu>
+

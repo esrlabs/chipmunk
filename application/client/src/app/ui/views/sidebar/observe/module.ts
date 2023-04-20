@@ -8,6 +8,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
+import { AttachSourceMenuModule } from '@elements/menu.attachsource/module';
 import { ListModule as FileListModule } from './lists/file/module';
 import { ListModule as ProcessListModule } from './lists/process/module';
 import { ListModule as SerialListModule } from './lists/serial/module';
@@ -32,6 +33,7 @@ const components = [...entryComponents];
         MatMenuModule,
         MatIconModule,
         MatDividerModule,
+        AttachSourceMenuModule,
     ],
     declarations: [...components],
     exports: [...components]
