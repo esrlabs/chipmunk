@@ -41,6 +41,7 @@ export class Setup extends SetupBase implements AfterContentInit, AfterViewInit,
             placeholder: 'Enter working folder',
             label: 'Working folder',
             defaults: '',
+            passive: true,
         },
     };
 

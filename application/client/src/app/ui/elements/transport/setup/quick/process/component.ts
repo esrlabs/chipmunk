@@ -47,6 +47,7 @@ export class QuickSetup extends SetupBase implements AfterContentInit, OnDestroy
             placeholder: 'Enter working folder',
             label: undefined,
             defaults: '',
+            passive: true,
         },
     };
 
