@@ -476,11 +476,8 @@ if (process.platform === 'win32') {
                     return;
                 }
                 const filename = path.join(os.tmpdir(), 'chipmunk_test_file.log');
-                if (fs.existsSync(filename)) {
-                    // We should drop content of file (if exists) to avoid "file truncated" error
-                    // from tail side
-                    fs.writeFileSync(filename, '');
-                }
+                // Create or overwrite file
+                fs.writeFileSync(filename, '');
                 let ready = 0;
                 const TEST_LINES = ['test A', 'test B'];
                 const procceed = async () => {
