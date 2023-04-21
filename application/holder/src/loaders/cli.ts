@@ -3,14 +3,16 @@ import { CLIAction } from '@service/cli/action';
 import { spawn } from 'child_process';
 import { Socket } from 'net';
 import { WriteStream } from 'fs';
+import { logger } from './logger';
 
 import * as handlers from '@service/cli/index';
 
 const DEV_EXECUTOR_PATH = 'node_modules/electron/dist/electron';
 const DEV_EXECUTOR_PATH_DARVIN = 'node_modules/electron/dist/Electron.app/Contents/MacOS/Electron';
 const RESTARTING_FLAG = '--app_restarted';
+const DEBUG_FLAG = '--debug_mode';
 
-export function getDevExecutorPath(): string {
+function getDevExecutorPath(): string {
     if (process.platform === 'darwin') {
         return DEV_EXECUTOR_PATH_DARVIN;
     } else {
@@ -53,6 +55,13 @@ function parser(handler: CLIAction): (value: string, prev: string) => string {
 }
 
 function setup() {
+    logger.write(`setup CLI: started`);
+    cli.addOption(
+        new Option(
+            '--debug_mode',
+            'Will run chipmunk in debug mode. Others CLI commands will be ignored.',
+        ),
+    );
     cli.addOption(
         new Option(
             '-p, --parser <parser>',
@@ -118,6 +127,7 @@ function setup() {
         ).argParser(parser(CLI_HANDLERS['stdout'])),
     );
     cli.parse();
+    logger.write(`setup CLI: done and parsered`);
 }
 
 function lock() {
@@ -125,9 +135,11 @@ function lock() {
         typeof stream.end === 'function' && stream.end();
         stream.destroy();
     });
+    logger.write(`STD's are locked`);
 }
 
 function exit() {
+    logger.write(`exiting`);
     process.exit(0);
 }
 
@@ -158,11 +170,20 @@ function isTTY(): boolean {
     return false;
 }
 
-function isRestartedAlready() {
+function isRestartedAlready(): boolean {
+    logger.write(`RESTARTING_FLAG=${process.argv.includes(RESTARTING_FLAG)}`);
     return process.argv.includes(RESTARTING_FLAG);
 }
 
+function isDebugMode(): boolean {
+    logger.write(`DEBUG_FLAG=${process.argv.includes(DEBUG_FLAG)}`);
+    return process.argv.includes(DEBUG_FLAG);
+}
+
 function check() {
+    if (isDebugMode()) {
+        return;
+    }
     // TODO:
     // - send as argument PID of current process
     // - check and kill previous process by given PID
@@ -171,15 +192,19 @@ function check() {
         return;
     }
     if (!isTTY()) {
+        logger.write(`context is TTY`);
         return;
     }
+    logger.write(`TTY isn't detected`);
     const args = process.argv.slice();
     const executor = args.shift();
+    logger.write(`executor=${executor}`);
     if (executor === undefined) {
         // Unexpected amount of arguments
         return;
     }
     if (isDevelopingExecuting(executor)) {
+        logger.write(`developing executing`);
         // Developing mode
         return;
     }
@@ -197,6 +222,7 @@ function check() {
         detached: true,
         stdio: 'ignore',
     });
+    logger.write(`${executor} has been spawned`);
     lock();
     exit();
 }
