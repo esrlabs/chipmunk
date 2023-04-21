@@ -11,6 +11,10 @@ import { Element } from './element';
 export class Item {
     @Input() element!: Element;
 
+    @HostListener('click') onClick() {
+        this.element.select();
+    }
+
     @HostListener('contextmenu', ['$event']) async onContextMenu(event: MouseEvent) {
         const items = this.element.provider.contextMenu(this.element.source);
         if (items.length > 0) {

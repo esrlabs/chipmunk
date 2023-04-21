@@ -18,6 +18,11 @@ export class Element {
         this.selected = session.stream.sde.selecting().is(this.source.source.uuid);
     }
 
+    public select(): void {
+        const sde = this.provider.session.stream.sde;
+        this.selected = sde.selecting().select(this.source.source.uuid);
+    }
+
     public set(): { file(file: File): Element } {
         return {
             file: (file: File): Element => {

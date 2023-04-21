@@ -4,6 +4,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { File } from '@platform/types/files';
 import { Element } from '../element';
 import { Mutable } from '@platform/types/unity/mutable';
+import { stop } from '@ui/env/dom';
 
 @Component({
     selector: 'app-views-observed-file',
@@ -32,13 +33,15 @@ export class Item extends ChangesDetector implements AfterContentInit {
         return this.element.source.observer !== undefined;
     }
 
-    public openAsNew(): void {
+    public openAsNew(event: MouseEvent): void {
+        stop(event);
         this.element.provider.openAsNew(this.element.source).catch((err: Error) => {
             this.log().error(`Fail to restart file: ${err.message}`);
         });
     }
 
-    public stop(): void {
+    public stop(event: MouseEvent): void {
+        stop(event);
         const observer = this.element.source.observer;
         if (observer === undefined) {
             return;

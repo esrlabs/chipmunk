@@ -8,7 +8,7 @@
         <span class="path t-normal">{{file.path}}</span>
     </div>
     <div class="controlls" >
-        <span class="small-icon-button codicon codicon-empty-window" *ngIf="element.source.observer === undefined" (click)="openAsNew()"></span>
-        <span class="small-icon-button codicon codicon-stop-circle" *ngIf="element.source.observer !== undefined" (click)="stop()"></span>
+        <span class="small-icon-button codicon codicon-empty-window" *ngIf="element.source.observer === undefined" (click)="openAsNew($event)"></span>
+        <span class="small-icon-button codicon codicon-stop-circle" *ngIf="element.source.observer !== undefined" (click)="stop($event)"></span>
     </div>
 </ng-container>

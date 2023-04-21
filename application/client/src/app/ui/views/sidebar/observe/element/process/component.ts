@@ -4,6 +4,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { ProcessTransportSettings } from '@platform/types/observe';
 import { Element } from '../element';
 import { Mutable } from '@platform/types/unity/mutable';
+import { stop } from '@ui/env/dom';
 
 @Component({
     selector: 'app-views-observed-process',
@@ -38,13 +39,15 @@ export class Item extends ChangesDetector implements AfterContentInit {
         return this.element.source.observer !== undefined;
     }
 
-    public restart(): void {
+    public restart(event: MouseEvent): void {
+        stop(event);
         this.element.provider.repeat(this.element.source.source).catch((err: Error) => {
             this.log().error(`Fail to restart process: ${err.message}`);
         });
     }
 
-    public stop(): void {
+    public stop(event: MouseEvent): void {
+        stop(event);
         const observer = this.element.source.observer;
         if (observer === undefined) {
             return;

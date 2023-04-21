@@ -10,7 +10,7 @@
         <span class="path t-normal">{{process.cwd}}</span>
     </div>
     <div class="controlls" >
-        <span class="small-icon-button codicon codicon-play-circle" *ngIf="element.source.observer === undefined" (click)="restart()"></span>
-        <span class="small-icon-button codicon codicon-stop-circle" *ngIf="element.source.observer !== undefined" (click)="stop()"></span>
+        <span class="small-icon-button codicon codicon-play-circle" *ngIf="element.source.observer === undefined" (click)="restart($event)"></span>
+        <span class="small-icon-button codicon codicon-stop-circle" *ngIf="element.source.observer !== undefined" (click)="stop($event)"></span>
     </div>
 </ng-container>
