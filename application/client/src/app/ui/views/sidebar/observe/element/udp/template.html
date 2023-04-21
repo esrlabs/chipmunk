@@ -8,7 +8,7 @@
         <span *ngIf="connection.multicast[0] !== undefined" class="path t-normal">{{connection.multicast[0].multiaddr}}</span>
     </div>
     <div class="controlls" >
-        <span class="small-icon-button codicon codicon-play-circle" *ngIf="element.source.observer === undefined" (click)="restart()"></span>
-        <span class="small-icon-button codicon codicon-stop-circle" *ngIf="element.source.observer !== undefined" (click)="stop()"></span>
+        <span class="small-icon-button codicon codicon-play-circle" *ngIf="element.source.observer === undefined" (click)="restart($event)"></span>
+        <span class="small-icon-button codicon codicon-stop-circle" *ngIf="element.source.observer !== undefined" (click)="stop($event)"></span>
     </div>
 </ng-container>

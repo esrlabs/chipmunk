@@ -114,6 +114,8 @@ export class Sde {
             },
             first: (): void => {
                 if (this.operations.length === 0) {
+                    this.selected = undefined;
+                    this.subjects.get().selected.emit(undefined);
                     return;
                 }
                 if (this.selected !== undefined && this.selected.uuid === this.operations[0].uuid) {
@@ -132,7 +134,13 @@ export class Sde {
                 if (this.selected !== undefined && this.selected.uuid === uuid) {
                     return false;
                 }
-                this.selected = this.operations.find((o) => o.uuid === uuid);
+                const candidate = this.operations.find(
+                    (o) => o.uuid === uuid || o.asSource().uuid === uuid,
+                );
+                if (candidate === undefined) {
+                    return false;
+                }
+                this.selected = candidate;
                 if (this.selected === undefined) {
                     return false;
                 } else {

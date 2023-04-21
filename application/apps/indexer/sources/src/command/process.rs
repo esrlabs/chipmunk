@@ -212,20 +212,12 @@ impl ByteSource for ProcessSource {
     }
 
     async fn income(&mut self, request: sde::SdeRequest) -> Result<sde::SdeResponse, SourceError> {
-        Ok(match request {
-            sde::SdeRequest::WriteText(str) => {
-                let bytes = str.as_bytes();
-                self.stdin.write_all(bytes).await.map_err(SourceError::Io)?;
-                sde::SdeResponse { bytes: bytes.len() }
-            }
-            sde::SdeRequest::WriteBytes(bytes) => {
-                self.stdin
-                    .write_all(&bytes)
-                    .await
-                    .map_err(SourceError::Io)?;
-                sde::SdeResponse { bytes: bytes.len() }
-            }
-        })
+        let bytes = match request {
+            sde::SdeRequest::WriteText(ref str) => str.as_bytes(),
+            sde::SdeRequest::WriteBytes(ref bytes) => bytes,
+        };
+        self.stdin.write_all(bytes).await.map_err(SourceError::Io)?;
+        Ok(sde::SdeResponse { bytes: bytes.len() })
     }
 }
 
