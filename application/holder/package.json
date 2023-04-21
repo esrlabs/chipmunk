@@ -68,7 +68,7 @@
             "entitlementsInherit": "./resources/mac/entitlements.mac.plist"
         },
         "linux": {
-            "icon": "resources/icons/png/64.png",
+            "icon": "resources/icons/png/256.png",
             "executableName": "chipmunk",
             "desktop": "resources/linux/chipmunk.desktop",
             "target": []
