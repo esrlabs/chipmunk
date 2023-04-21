@@ -152,10 +152,10 @@ export class Jobs extends Base {
     public getSerialPortsList(): CancelablePromise<string[]> {
         const sequence = this.sequence();
         const job: CancelablePromise<string[]> = this.execute(
-            (res: string): any | Error => {
-                return typeof res === 'string'
+            (res: string[]): any | Error => {
+                return res instanceof Array
                     ? res
-                    : new Error(`getSerialPortsList should return string type`);
+                    : new Error(`getSerialPortsList should return string[] type`);
             },
             this.native.getSerialPortsList(sequence),
             sequence,
