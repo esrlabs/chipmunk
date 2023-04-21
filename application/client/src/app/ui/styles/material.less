@@ -123,6 +123,57 @@ mat-form-field.mat-mdc-form-field-type-mat-input.material-mofication-outline {
             }
         }
     }
+    &[passiveborder="true"] {
+        & div.mat-mdc-text-field-wrapper {
+            & div.mat-mdc-form-field-flex {
+                & div.mat-mdc-form-field-infix {
+                    & *:first-child {
+                        transition: margin 150ms;
+                        margin-left: -16px;
+                    }
+                }
+                & div.mdc-notched-outline {
+                    & * {
+                        border-color: @scheme-color-5-00;
+                    }
+                }
+            }
+            &:hover {
+                & div.mat-mdc-form-field-flex {
+                    & div.mdc-notched-outline {
+                        & * {
+                            border-color: @scheme-color-5-00!important;
+                        }
+                    }    
+                }
+            }
+        }
+        &.mat-focused {
+            & div.mat-mdc-text-field-wrapper {
+                & div.mat-mdc-form-field-flex {
+                    & div.mat-mdc-form-field-infix {
+                        & *:first-child {
+                            margin-left: 0;
+                        }
+                    }
+                    & div.mdc-notched-outline {
+                        & * {
+                            border-color: @scheme-color-accent!important;
+                        }
+                    }    
+                }
+            }
+            &:hover {
+                & div.mat-mdc-form-field-flex {
+                    & div.mdc-notched-outline {
+                        & * {
+                            border-color: @scheme-color-accent!important;
+                        }
+                    }    
+                }
+            }
+        }
+    }
 }
 
 *.input-outside-border {

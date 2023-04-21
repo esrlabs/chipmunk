@@ -22,6 +22,7 @@ interface Options {
     placeholder: string;
     label?: string;
     defaults: string;
+    passive: boolean;
 }
 
 export { ErrorState, Options };

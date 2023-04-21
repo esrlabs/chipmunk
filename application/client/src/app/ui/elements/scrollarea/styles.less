@@ -23,6 +23,22 @@
         bottom: 0;
         overflow-x: auto;
         overflow-y: hidden;
+        &::-webkit-scrollbar:horizontal {
+            background-color: @scheme-color-5-15;
+            transition: background 250ms;
+        }
+        &::-webkit-scrollbar-thumb:horizontal {
+            background-color: @scheme-color-3-15;
+            transition: background 250ms;
+        }
+        &:hover {
+            &::-webkit-scrollbar:horizontal {
+                background-color: @scheme-color-5;
+            }
+            &::-webkit-scrollbar-thumb:horizontal {
+                background-color: @scheme-color-3;
+            }
+        }
     }
     & ul.holder {
         position: absolute;
