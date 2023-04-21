@@ -96,18 +96,6 @@ class Application implements IApplication {
                     });
                 event.returnValue = false;
             });
-            process.on('uncaughtException', (error: Error) => {
-                this.logger.error(`[BAD] UncaughtException: ${error.message}`);
-            });
-            process.on('unhandledRejection', (reason: Error) => {
-                if (reason instanceof Error) {
-                    this.logger.error(`[BAD] UnhandledRejection: ${reason.message}`);
-                } else {
-                    this.logger.error(
-                        `[BAD] UnhandledRejection happened. No reason as error was provided.`,
-                    );
-                }
-            });
         });
     }
 
