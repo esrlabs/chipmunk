@@ -7,7 +7,7 @@ import { IMenuItem } from '@ui/service/contextmenu';
 import { DisableConvertable } from '@service/session/dependencies/search/disabled/converting';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { ChartRequest } from '@service/session/dependencies/search/charts/request';
-import { Key, StoredEntity } from '@service/session/dependencies/search/store';
+import { Key } from '@service/session/dependencies/search/store';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { DragableRequest, ListContent } from '../draganddrop/service';
 import { EntityData } from '../providers/definitions/entity.data';
@@ -140,7 +140,10 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         };
     }
 
-    public getContextMenuItems(target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[] {
+    public getContextMenuItems(
+        target: Entity<FilterRequest | ChartRequest>,
+        selected: Array<Entity<FilterRequest | ChartRequest>>,
+    ): IMenuItem[] {
         const entities: DisableConvertable[] = selected
             .filter((entity: Entity<any>) => {
                 return !(entity.extract() instanceof DisabledRequest);
@@ -161,16 +164,9 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
                 caption: `Disable`,
                 handler: () => {
                     this.session.search.store().disabled().addFromEntity(entities);
-                    entities.forEach((entity: DisableConvertable) => {
-                        switch (entity.disabled().typeRef()) {
-                            case Key.charts:
-                                this.session.search.store().charts().delete([entity.uuid()]);
-                                break;
-                            case Key.filters:
-                                this.session.search.store().filters().delete([entity.uuid()]);
-                                break;
-                        }
-                    });
+                    const stores = this.session.search.store();
+                    stores.filters().delete(entities.map((en) => en.uuid()));
+                    stores.charts().delete(entities.map((en) => en.uuid()));
                 },
             });
         }
@@ -181,16 +177,10 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
                     disableds.forEach((disabled: DisabledRequest) => {
                         switch (disabled.entity().disabled().typeRef()) {
                             case Key.filters:
-                                this.session.search
-                                    .store()
-                                    .filters()
-                                    .update([disabled.entity() as StoredEntity<FilterRequest>]);
+                                this.session.search.store().filters().tryRestore(disabled.entity());
                                 break;
                             case Key.charts:
-                                this.session.search
-                                    .store()
-                                    .charts()
-                                    .update([disabled.entity() as StoredEntity<ChartRequest>]);
+                                this.session.search.store().charts().tryRestore(disabled.entity());
                                 break;
                         }
                         this.session.search.store().disabled().delete([disabled.uuid()]);

@@ -1,5 +1,5 @@
 import { Entity } from '../providers/definitions/entity';
-import { ISelectEvent, Provider } from '../providers/definitions/provider';
+import { Provider } from '../providers/definitions/provider';
 import { ChartRequest } from '@service/session/dependencies/search/charts/store';
 import { DisabledRequest } from '@service/session/dependencies/search/disabled/request';
 import { IComponentDesc } from '@elements/containers/dynamic/component';
@@ -11,7 +11,6 @@ import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { EntityData } from '../providers/definitions/entity.data';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { StoredEntity } from '@service/session/dependencies/search/store';
-import { getContrastColor } from '@styles/colors';
 
 export class ProviderCharts extends Provider<ChartRequest> {
     private _entities: Map<string, Entity<ChartRequest>> = new Map();
@@ -27,14 +26,6 @@ export class ProviderCharts extends Provider<ChartRequest> {
                 .value.subscribe(() => {
                     super.change();
                 }),
-        );
-        this.subscriber.register(
-            this.subjects.selection.subscribe((event: ISelectEvent) => {
-                if (event.guids.length > 1) {
-                    return;
-                }
-                this.session.search.store().charts().select(event);
-            }),
         );
     }
 
@@ -184,20 +175,7 @@ export class ProviderCharts extends Provider<ChartRequest> {
                     this.session.search
                         .store()
                         .filters()
-                        .update([
-                            new FilterRequest({
-                                filter: {
-                                    filter: request.definition.filter,
-                                    flags: flags,
-                                },
-                                active: request.definition.active,
-                                colors: {
-                                    color: request.definition.color,
-                                    background: getContrastColor(request.definition.color),
-                                },
-                                uuid: request.definition.uuid,
-                            }) as StoredEntity<FilterRequest>,
-                        ]);
+                        .update([FilterRequest.fromChart(request) as StoredEntity<FilterRequest>]);
                 },
             });
         }
@@ -325,12 +303,9 @@ export class ProviderCharts extends Provider<ChartRequest> {
                             .store()
                             .charts()
                             .update([
-                                new ChartRequest({
-                                    filter: filterRequest.definition.filter.filter,
-                                    active: filterRequest.definition.active,
-                                    color: filterRequest.definition.colors.background,
-                                    uuid: filterRequest.definition.uuid,
-                                }) as StoredEntity<ChartRequest>,
+                                ChartRequest.fromFilter(
+                                    filterRequest,
+                                ) as StoredEntity<ChartRequest>,
                             ]);
                     }
                 }

@@ -13,6 +13,7 @@ import { FilterRequest } from '@service/session/dependencies/search/filters/requ
 import { ISearchMap } from '@platform/interfaces/interface.rust.api.general';
 import { IRange } from '@platform/types/range';
 import { Service } from '../service';
+import { StoredEntity } from '@service/session/dependencies/search/store';
 
 export class Filter {
     private readonly _session: Session;
@@ -84,6 +85,11 @@ export class Filter {
                     .subjects.get()
                     .value.subscribe(this._onChange.bind(this)),
             );
+        this._parent
+            .env()
+            .subscriber.register(
+                this._session.search.subjects.get().map.subscribe(this._mapUpdated.bind(this)),
+            );
     }
 
     private _onChange(entities: FilterRequest[]) {
@@ -130,18 +136,16 @@ export class Filter {
 
     private _initDatasets() {
         this._chart.data.datasets = [];
-        this._session.search
-            .store()
-            .filters()
-            .getActive()
-            .forEach((activeFilterRequest: FilterRequest, index: number) => {
+        this._getActiveFilterRequests().forEach(
+            (activeFilterRequest: FilterRequest, index: number) => {
                 this._chart.data.datasets[index] = {
                     label: activeFilterRequest.definition.filter.filter,
                     data: [],
                     backgroundColor: activeFilterRequest.definition.colors.background,
                     borderColor: activeFilterRequest.definition.colors.background,
                 };
-            });
+            },
+        );
     }
 
     private _initData(): Promise<void> {
@@ -153,12 +157,12 @@ export class Filter {
                 this._zoomedRange,
             )
             .then((searchResults: ISearchMap) => {
-                if (this._session.search.store().filters().getActive().length === 0) {
+                if (this._getActiveFilterRequests().length === 0) {
                     return;
                 }
                 this._chart.data.labels = [];
                 searchResults.forEach((idValues: number[][], line: number) => {
-                    (this._chart as any).data.labels.push(line);
+                    Array.isArray(this._chart.data.labels) && this._chart.data.labels.push(line);
                     if (line === 0) {
                         this._resetDatasets();
                     }
@@ -301,5 +305,20 @@ export class Filter {
             },
         );
         this._parent.detectChanges();
+    }
+
+    private _getActiveFilterRequests(): StoredEntity<FilterRequest>[] {
+        return Array.from(
+            this._session.search
+                .store()
+                .filters()
+                .get()
+                .filter((entity: FilterRequest) => entity.definition.active),
+        );
+    }
+
+    private _mapUpdated() {
+        this._initDatasets();
+        this._initData();
     }
 }

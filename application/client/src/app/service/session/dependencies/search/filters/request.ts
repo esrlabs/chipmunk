@@ -11,6 +11,7 @@ import { Equal } from '@platform/types/env/types';
 import { Updatable } from '../store';
 import { UpdateEvent } from './store.update';
 import { getFilterError } from '@module/util';
+import { ChartRequest } from '../charts/request';
 
 import * as regexFilters from '@platform/env/filters';
 import * as obj from '@platform/env/obj';
@@ -112,6 +113,25 @@ export class FilterRequest
                 background: color,
                 color: getContrastColor(color, true),
             },
+        });
+    }
+
+    static fromChart(request: ChartRequest): FilterRequest {
+        return new FilterRequest({
+            filter: {
+                filter: request.definition.filter,
+                flags: {
+                    word: false,
+                    cases: false,
+                    reg: true,
+                },
+            },
+            active: request.definition.active,
+            colors: {
+                color: getContrastColor(request.definition.color),
+                background: request.definition.color,
+            },
+            uuid: request.definition.uuid,
         });
     }
 

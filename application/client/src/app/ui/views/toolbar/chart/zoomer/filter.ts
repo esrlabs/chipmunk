@@ -11,6 +11,7 @@ import { ISearchMap } from '@platform/interfaces/interface.rust.api.general';
 import { Session } from '@service/session';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { IlcInterface } from '@service/ilc';
+import { StoredEntity } from '@service/session/dependencies/search/store';
 
 export class Filter {
     private readonly _session: Session;
@@ -63,6 +64,11 @@ export class Filter {
                     .subjects.get()
                     .value.subscribe(this._onChange.bind(this)),
             );
+        this._parent
+            .env()
+            .subscriber.register(
+                this._session.search.subjects.get().map.subscribe(this._mapUpdated.bind(this)),
+            );
     }
 
     private _onChange(entities: FilterRequest[]) {
@@ -109,18 +115,16 @@ export class Filter {
 
     private _initDatasets() {
         this._chart.data.datasets = [];
-        this._session.search
-            .store()
-            .filters()
-            .getActive()
-            .forEach((activeFilterRequest: FilterRequest, index: number) => {
+        this._getActiveFilterRequests().forEach(
+            (activeFilterRequest: FilterRequest, index: number) => {
                 this._chart.data.datasets[index] = {
                     label: activeFilterRequest.definition.filter.filter,
                     data: [],
                     backgroundColor: activeFilterRequest.definition.colors.background,
                     borderColor: activeFilterRequest.definition.colors.background,
                 };
-            });
+            },
+        );
     }
 
     private _initData(): Promise<void> {
@@ -130,7 +134,7 @@ export class Filter {
             .then((searchResults: ISearchMap) => {
                 this._chart.data.labels = [];
                 searchResults.forEach((idValues: number[][], line: number) => {
-                    (this._chart.data as any).labels.push(line);
+                    Array.isArray(this._chart.data.labels) && this._chart.data.labels.push(line);
                     line === 0 && this._resetDatasets();
                     this._fillDatasets(idValues, line);
                     this._stuffDatasetGaps(line);
@@ -254,5 +258,20 @@ export class Filter {
             },
         );
         this._parent.detectChanges();
+    }
+
+    private _getActiveFilterRequests(): StoredEntity<FilterRequest>[] {
+        return Array.from(
+            this._session.search
+                .store()
+                .filters()
+                .get()
+                .filter((entity: FilterRequest) => entity.definition.active),
+        );
+    }
+
+    private _mapUpdated() {
+        this._initDatasets();
+        this._initData();
     }
 }

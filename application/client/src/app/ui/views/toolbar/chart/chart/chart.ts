@@ -5,8 +5,6 @@ import {
     ChartTypeRegistry,
     ScatterDataPoint,
     Chart as CanvasChart,
-    ScaleOptionsByType,
-    CartesianScaleTypeRegistry,
 } from 'chart.js';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { IlcInterface } from '@service/ilc';
@@ -14,6 +12,8 @@ import { Session } from '@service/session';
 import { ChartRequest } from '@service/session/dependencies/search/charts/request';
 import { IRange } from '@platform/types/range';
 import { Service } from '../service';
+import { StoredEntity } from '@service/session/dependencies/search/store';
+import { _DeepPartialObject } from 'chart.js/types/utils';
 
 export class Chart {
     private readonly _session: Session;
@@ -58,9 +58,17 @@ export class Chart {
     }
 
     public get reverseScaleType(): EScaleType {
-        return (this._chart.options as any).scales['y'].type === EScaleType.linear
-            ? EScaleType.logarithmic
-            : EScaleType.linear;
+        const options = this._chart.options;
+        if (
+            options !== undefined &&
+            options.scales !== undefined &&
+            options.scales['y'] !== undefined
+        ) {
+            return options.scales['y'].type === EScaleType.linear
+                ? EScaleType.logarithmic
+                : EScaleType.linear;
+        }
+        return EScaleType.linear;
     }
 
     public destroy() {
@@ -68,16 +76,27 @@ export class Chart {
     }
 
     public switchScaleType() {
-        (this._chart.options as any).scales['y'].type = this.reverseScaleType;
+        const options = this._chart.options;
+        if (
+            options !== undefined &&
+            options.scales !== undefined &&
+            options.scales['y'] !== undefined
+        ) {
+            options.scales['y'].type = this.reverseScaleType;
+        }
         this._chart.update();
     }
 
     public zoom(zoomedRange: IRange) {
-        this._zoomedRange = zoomedRange;
-        [
-            (this._chart.config.options as any).scales['x'].min,
-            (this._chart.config.options as any).scales['x'].max,
-        ] = this._updateLabels();
+        const options = this._chart.config.options;
+        if (
+            options !== undefined &&
+            options.scales !== undefined &&
+            options.scales['x'] !== undefined
+        ) {
+            this._zoomedRange = zoomedRange;
+            [options.scales['x'].min, options.scales['x'].max] = this._updateLabels();
+        }
         this._chart.update();
     }
 
@@ -103,10 +122,7 @@ export class Chart {
         this._parent
             .env()
             .subscriber.register(
-                this._session.search
-                    .store()
-                    .charts()
-                    .chartSelected.subscribe(this._onChartSelected.bind(this)),
+                this._session.search.values.updated.subscribe(this._valuesUpdated.bind(this)),
             );
     }
 
@@ -170,30 +186,26 @@ export class Chart {
 
     private _initDatasets() {
         this._chart.data.datasets = [];
-        this._session.search
-            .store()
-            .charts()
-            .getActive()
-            .forEach((request: ChartRequest, index: number) => {
-                // const uuid: string = request.uuid();
-                this._chart.data.datasets[index] = {
-                    label: request.definition.filter,
-                    data: [],
-                    backgroundColor: request.definition.color,
-                    borderColor: request.definition.color,
-                    stepped: request.definition.stepped,
-                    spanGaps: true,
-                    borderWidth: request.definition.borderWidth,
-                    tension: request.definition.tension,
-                    pointRadius: request.definition.pointRadius,
-                    // yAxisID: uuid,
-                };
-                // this._showYAxis(request);
-            });
+        this._getActiveChartRequests().forEach((request: ChartRequest, index: number) => {
+            // const uuid: string = request.uuid();
+            this._chart.data.datasets[index] = {
+                label: request.definition.filter,
+                data: [],
+                backgroundColor: request.definition.color,
+                borderColor: request.definition.color,
+                stepped: request.definition.stepped,
+                spanGaps: true,
+                borderWidth: request.definition.borderWidth,
+                tension: request.definition.tension,
+                pointRadius: request.definition.pointRadius,
+                // yAxisID: uuid,
+            };
+            // this._showYAxis(request);
+        });
     }
 
     private _initData() {
-        if (this._session.search.store().charts().getActive().length === 0) {
+        if (this._getActiveChartRequests().length === 0) {
             this._updateHasNoData();
             return;
         }
@@ -202,18 +214,26 @@ export class Chart {
         for (const [line, values] of this._session.search.values.get()) {
             values.forEach((sValue: string, id: number) => {
                 const value: number = parseInt(sValue);
-                const scaleX = (this._chart.config.options as any).scales['x'];
-                if (line < scaleX.min) {
-                    scaleX.min = line;
-                } else if (line > scaleX.max) {
-                    scaleX.max = line;
+                const options = this._chart.config.options;
+                if (options !== undefined && options.scales !== undefined) {
+                    const scaleX = options.scales['x'];
+                    if (scaleX !== undefined) {
+                        if (typeof scaleX.min === 'number' && line < scaleX.min) {
+                            scaleX.min = line;
+                        } else if (typeof scaleX.max === 'number' && line > scaleX.max) {
+                            scaleX.max = scaleX.min === line ? line + 1 : line;
+                        }
+                    }
+                    const labels = this._chart.config.data.labels;
+                    Array.isArray(labels) && labels.push(line);
+                    this._chart.data.datasets[id].data.push({ x: line, y: value });
                 }
-                (this._chart.data.labels as number[]).push(line);
-                this._chart.data.datasets[id].data.push({ x: line, y: value });
             });
-            this._chart.data.labels = [...new Set(this._chart.data.labels as number[])].sort(
-                (a, b) => a - b,
-            );
+            if (Array.isArray(this._chart.data.labels)) {
+                this._chart.data.labels = [...new Set(this._chart.data.labels as number[])].sort(
+                    (a, b) => a - b,
+                );
+            }
         }
         this._labelState.loading = false;
         this._chart.update();
@@ -221,62 +241,70 @@ export class Chart {
     }
 
     // Postponed due to overlapping with filters canvas
-    private _showYAxis(request: ChartRequest) {
-        const uuid: string = request.uuid();
-        this._chart.update();
-        if (
-            this._chart.options.scales !== undefined &&
-            this._chart.options.scales[uuid] !== undefined
-        ) {
-            const yAxis = this._chart.options.scales[uuid] as ScaleOptionsByType<
-                'radialLinear' | keyof CartesianScaleTypeRegistry
-            >;
-            yAxis.display = this._session.search.store().charts().selectedGuid === uuid;
-            yAxis.ticks.color = request.definition.color;
-        }
-    }
+    // private _showYAxis(request: ChartRequest) {
+    //     const uuid: string = request.uuid();
+    //     this._chart.update();
+    //     if (
+    //         this._chart.options.scales !== undefined &&
+    //         this._chart.options.scales[uuid] !== undefined
+    //     ) {
+    //         const yAxis = this._chart.options.scales[uuid] as ScaleOptionsByType<
+    //             'radialLinear' | keyof CartesianScaleTypeRegistry
+    //         >;
+    //         yAxis.display = ChartsService.selectedGuid === uuid;
+    //         yAxis.ticks.color = request.definition.color;
+    //     }
+    // }
 
     // Postponed due to overlapping with filters canvas
-    private _updateYAxes(entities: ChartRequest[]) {
-        this._chart.update();
-        const selectedUuid: string = this._session.search.store().charts().selectedGuid;
-        Object.keys(
-            this._chart.options.scales as {
-                [key: string]: ScaleOptionsByType<
-                    'radialLinear' | keyof CartesianScaleTypeRegistry
-                >;
-            },
-        ).forEach((axis: string) => {
-            if (axis === 'x' || axis === 'y') {
-                return;
-            }
-            const entity: ChartRequest | undefined = entities.find(
-                (entity: ChartRequest) => entity.uuid() === axis,
-            );
-            if (entity === undefined) {
-                delete (this._chart.options as any).scales[axis];
-            } else {
-                if (axis === selectedUuid && entity.definition.active) {
-                    (this._chart.options as any).scales[axis].display = true;
-                    (this._chart.options as any).scales[axis].color;
-                }
-                (this._chart.options as any).scales[axis].display =
-                    axis === selectedUuid && entity.definition.active;
-            }
-        });
-    }
+    // private _updateYAxes(entities: ChartRequest[]) {
+    //     this._chart.update();
+    //     const selectedUuid: string = ChartsService.selectedGuid;
+    //     Object.keys(
+    //         this._chart.options.scales as {
+    //             [key: string]: ScaleOptionsByType<
+    //                 'radialLinear' | keyof CartesianScaleTypeRegistry
+    //             >;
+    //         },
+    //     ).forEach((axis: string) => {
+    //         if (axis === 'x' || axis === 'y') {
+    //             return;
+    //         }
+    //         const entity: ChartRequest | undefined = entities.find(
+    //             (entity: ChartRequest) => entity.uuid() === axis,
+    //         );
+    //         if (this._chart.options !== undefined && this._chart.options.scales !== undefined) {
+    //             if (entity === undefined) {
+    //                 delete this._chart.options.scales[axis];
+    //             } else {
+    //                 const scale = this._chart.options.scales[axis];
+    //                 if (scale !== undefined) {
+    //                     scale.display = axis === selectedUuid && entity.definition.active;
+    //                 }
+    //             }
+    //         }
+    //     });
+    // }
 
-    private _updateLabels(): [number, number] {
-        const labels: number[] = this._chart.config.data.labels as number[];
-        const streamLength: number = this._session.stream.len();
-        const indexZoomFrom: number = Math.round(
-            labels.length * (this._zoomedRange.from / streamLength),
-        );
-        let indexZoomTo: number = Math.round(labels.length * (this._zoomedRange.to / streamLength));
-        if (indexZoomTo >= labels.length) {
-            indexZoomTo = labels.length - 1;
+    private _updateLabels(): [number, number] | [undefined, undefined] {
+        const labels = this._chart.config.data.labels;
+        if (Array.isArray(labels)) {
+            const streamLength: number = this._session.stream.len();
+            const indexZoomFrom: number = Math.round(
+                labels.length * (this._zoomedRange.from / streamLength),
+            );
+            let indexZoomTo: number = Math.round(
+                labels.length * (this._zoomedRange.to / streamLength),
+            );
+            indexZoomTo =
+                indexZoomTo >= labels.length
+                    ? labels.length - 1
+                    : indexZoomTo <= indexZoomFrom
+                    ? indexZoomFrom + 1
+                    : indexZoomTo;
+            return [indexZoomFrom, indexZoomTo >= labels.length ? indexZoomTo - 1 : indexZoomTo];
         }
-        return [indexZoomFrom, indexZoomTo];
+        return [undefined, undefined];
     }
 
     private _createChart(): CanvasChart {
@@ -335,8 +363,11 @@ export class Chart {
                         const scales = this._chart.options.scales;
                         dataset.backgroundColor = entityColor;
                         dataset.borderColor = entityColor;
-                        if (scales && scales[uuid] && (scales[uuid] as any).ticks) {
-                            (scales[uuid] as any).ticks.color = entityColor;
+                        if (scales !== undefined) {
+                            const scale = scales[uuid];
+                            if (scale !== undefined && scale.ticks !== undefined) {
+                                scale.ticks.color = entityColor;
+                            }
                         }
                     }
                 },
@@ -353,8 +384,12 @@ export class Chart {
         ) {
             return;
         }
-        Object.keys(this._chart.options.scales).forEach((axis: string) => {
-            (this._chart.options as any).scales[axis].display = axis === uuid;
+        const scales = this._chart.options.scales;
+        Object.keys(scales).forEach((axis: string) => {
+            const scale = scales[axis];
+            if (scale !== undefined) {
+                scale.display = axis === uuid;
+            }
         });
         this._chart.update();
     }
@@ -388,5 +423,20 @@ export class Chart {
             },
         );
         this._parent.detectChanges();
+    }
+
+    private _getActiveChartRequests(): StoredEntity<ChartRequest>[] {
+        return Array.from(
+            this._session.search
+                .store()
+                .charts()
+                .get()
+                .filter((entity: ChartRequest) => entity.definition.active),
+        );
+    }
+
+    private _valuesUpdated() {
+        this._initDatasets();
+        this._initData();
     }
 }

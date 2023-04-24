@@ -11,6 +11,7 @@ import {
 } from 'chart.js';
 import { Service } from '../service';
 import { EChartName, EScaleType, ILabel } from '../common/types';
+import { StoredEntity } from '@service/session/dependencies/search/store';
 
 export class Chart {
     private readonly _session: Session;
@@ -63,6 +64,11 @@ export class Chart {
             .subscriber.register(
                 this._service.subjects.scaleType.subscribe(this._onScaleTypeChange.bind(this)),
             );
+        this._parent
+            .env()
+            .subscriber.register(
+                this._session.search.values.updated.subscribe(this._valuesUpdated.bind(this)),
+            );
     }
 
     private _onChange(entities: ChartRequest[]) {
@@ -87,7 +93,8 @@ export class Chart {
                     this._hideYAxes();
                     this._initData();
                 } else {
-                    const dataset = this._chart.data.datasets[index] as any;
+                    const dataset: ChartDataset<'line', ScatterDataPoint[]> = this._chart.data
+                        .datasets[index] as ChartDataset<'line', ScatterDataPoint[]>;
                     dataset.stepped = entity.definition.stepped;
                     dataset.borderWidth = entity.definition.borderWidth;
                     dataset.tension = entity.definition.tension;
@@ -99,8 +106,14 @@ export class Chart {
     }
 
     private _onScaleTypeChange(type: EScaleType) {
-        (this._chart.options as any).scales['y'].type = type;
-        this._chart.update();
+        const options = this._chart.options;
+        if (options !== undefined && options.scales !== undefined) {
+            const scale = options.scales['y'];
+            if (scale !== undefined) {
+                scale.type = type;
+            }
+            this._chart.update();
+        }
     }
 
     private _removeRedundantDatasets(entities: ChartRequest[]) {
@@ -124,11 +137,8 @@ export class Chart {
 
     private _initDatasets() {
         this._chart.data.datasets = [];
-        this._session.search
-            .store()
-            .charts()
-            .getActive()
-            .forEach((activeChartRequest: ChartRequest, index: number) => {
+        this._getActiveChartRequests().forEach(
+            (activeChartRequest: ChartRequest, index: number) => {
                 this._chart.data.datasets[index] = {
                     label: activeChartRequest.definition.filter,
                     data: [],
@@ -140,18 +150,19 @@ export class Chart {
                     tension: activeChartRequest.definition.tension,
                     pointRadius: 0,
                 };
-            });
+            },
+        );
         this._hideYAxes();
     }
 
     private _initData() {
-        if (this._session.search.store().charts().getActive().length === 0) {
+        if (this._getActiveChartRequests().length === 0) {
             this._updateHasNoData();
             return;
         }
         this._chart.data.labels = [];
         for (const [line, values] of this._session.search.values.get()) {
-            (this._chart.data.labels as any).push(line);
+            Array.isArray(this._chart.data.labels) && this._chart.data.labels.push(line);
             values.forEach((value: string, id: number) => {
                 if (this._chart.data.datasets[id] !== undefined) {
                     this._chart.data.datasets[id].data.push({
@@ -171,7 +182,13 @@ export class Chart {
         }
         this._chart.update();
         Object.keys(this._chart.options.scales).forEach((axis: string) => {
-            (this._chart as any).options.scales[axis].display = false;
+            const options = this._chart.options;
+            if (options !== undefined && options.scales) {
+                const scale = options.scales[axis];
+                if (scale !== undefined) {
+                    scale.display = false;
+                }
+            }
         });
     }
 
@@ -246,5 +263,20 @@ export class Chart {
             },
         );
         this._parent.detectChanges();
+    }
+
+    private _getActiveChartRequests(): StoredEntity<ChartRequest>[] {
+        return Array.from(
+            this._session.search
+                .store()
+                .charts()
+                .get()
+                .filter((entity: ChartRequest) => entity.definition.active),
+        );
+    }
+
+    private _valuesUpdated() {
+        this._initDatasets();
+        this._initData();
     }
 }

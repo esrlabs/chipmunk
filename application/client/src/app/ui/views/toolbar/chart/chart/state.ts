@@ -10,7 +10,6 @@ import { IRange } from '@platform/types/range';
 import { Owner } from '@schema/content/row';
 import { Filter } from './filter';
 import { Chart } from './chart';
-import { InternalAPI } from '@service/ilc';
 
 export class State extends AbstractState {
     public readonly EChartName = EChartName;
@@ -34,7 +33,6 @@ export class State extends AbstractState {
     };
     private _chart!: Chart;
     private _filter!: Filter;
-    private _ilc!: InternalAPI;
     private _canvasWidth: number = 0;
     private _defaultPosition: IPosition = {
         full: this._canvasWidth,
@@ -47,8 +45,7 @@ export class State extends AbstractState {
         super();
     }
 
-    public init(ilc: InternalAPI) {
-        this._ilc = ilc;
+    public init() {
         this._canvasWidth = this._element.getBoundingClientRect().width;
         this._chart = new Chart(
             this._session,
@@ -91,7 +88,7 @@ export class State extends AbstractState {
     }
 
     public onContextMenu(event: MouseEvent) {
-        this._ilc.emitter.ui.contextmenu.open({
+        this._parent.ilc().emitter.ui.contextmenu.open({
             items: [
                 {
                     caption: `Scale type: ${this._chart.reverseScaleType}`,
@@ -110,8 +107,8 @@ export class State extends AbstractState {
         if (event.target === undefined) {
             return -1;
         }
-        let pos: IPosition | undefined = this._service.getPosition(this._session.uuid());
-        pos ??= this._defaultPosition;
+        const pos: IPosition =
+            this._service.getPosition(this._session.uuid()) ?? this._defaultPosition;
         const streamLen: number = this._session.stream.len();
         const width: number = pos.full === 0 ? this._canvasWidth : pos.full;
         if (streamLen > width) {
@@ -151,8 +148,7 @@ export class State extends AbstractState {
             return;
         }
         const streamLength: number = this._session.stream.len();
-        let position: IPosition | undefined = positionChange.position;
-        position ??= this._defaultPosition;
+        const position: IPosition = positionChange.position ?? this._defaultPosition;
         this._zoomedRange = {
             from: Math.round((position.left / position.full) * streamLength),
             to: Math.round(((position.left + position.width) / position.full) * streamLength),

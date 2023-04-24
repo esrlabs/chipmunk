@@ -12,7 +12,6 @@ import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { EntityData } from '../providers/definitions/entity.data';
 import { StoredEntity } from '@service/session/dependencies/search/store';
 import { ChartRequest } from '@service/session/dependencies/search/charts/request';
-import { getContrastColor } from '@ui/styles/colors';
 
 export class ProviderFilters extends Provider<FilterRequest> {
     private _entities: Map<string, Entity<FilterRequest>> = new Map();
@@ -194,12 +193,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
                             .store()
                             .charts()
                             .update([
-                                new ChartRequest({
-                                    filter: request.definition.filter.filter,
-                                    active: request.definition.active,
-                                    color: request.definition.colors.background,
-                                    uuid: request.definition.uuid,
-                                }) as StoredEntity<ChartRequest>,
+                                ChartRequest.fromFilter(request) as StoredEntity<ChartRequest>,
                             ]);
                     },
                 });
@@ -332,22 +326,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
                         .store()
                         .filters()
                         .update([
-                            new FilterRequest({
-                                filter: {
-                                    filter: chartRequest.definition.filter,
-                                    flags: {
-                                        word: false,
-                                        cases: false,
-                                        reg: true,
-                                    },
-                                },
-                                active: chartRequest.definition.active,
-                                colors: {
-                                    color: getContrastColor(chartRequest.definition.color),
-                                    background: chartRequest.definition.color,
-                                },
-                                uuid: chartRequest.definition.uuid,
-                            }) as StoredEntity<FilterRequest>,
+                            FilterRequest.fromChart(chartRequest) as StoredEntity<FilterRequest>,
                         ]);
                 }
             }

@@ -10,6 +10,7 @@ import { Equal } from '@platform/types/env/types';
 import { Updatable } from '../store';
 import { UpdateEvent } from './store.update';
 import { getFilterError } from '@module/util';
+import { FilterRequest } from '../filters/request';
 
 import * as regexFilters from '@platform/env/filters';
 import * as obj from '@platform/env/obj';
@@ -105,6 +106,15 @@ export class ChartRequest
         return error;
     }
 
+    static fromFilter(request: FilterRequest) {
+        return new ChartRequest({
+            filter: request.definition.filter.filter,
+            active: request.definition.active,
+            color: request.definition.colors.background,
+            uuid: request.definition.uuid,
+        });
+    }
+
     constructor(def: OptionalDefinition) {
         super();
         this.definition = {
@@ -189,20 +199,17 @@ export class ChartRequest
                 if (typeof desc.stepped === 'string' && this.set(true).stepped(desc.stepped)) {
                     event.on().stepped();
                 }
-                if (
-                    typeof desc.tension === 'string' &&
-                    this.set(true).tension(desc.tension)
-                ) {
+                if (typeof desc.tension === 'number' && this.set(true).tension(desc.tension)) {
                     event.on().tension();
                 }
                 if (
-                    typeof desc.borderWidth === 'string' &&
+                    typeof desc.borderWidth === 'number' &&
                     this.set(true).borderWidth(desc.borderWidth)
                 ) {
                     event.on().borderWidth();
                 }
                 if (
-                    typeof desc.pointRadius === 'string' &&
+                    typeof desc.pointRadius === 'number' &&
                     this.set(true).pointRadius(desc.pointRadius)
                 ) {
                     event.on().pointRadius();

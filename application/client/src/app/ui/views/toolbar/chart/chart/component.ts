@@ -33,7 +33,7 @@ export class ViewChartCanvas extends ChangesDetector implements AfterViewInit, O
 
     public ngAfterViewInit() {
         this.state.bind(this, this.session, this.vcRef.element.nativeElement as HTMLElement);
-        this.state.init(this.ilc());
+        this.state.init();
     }
 
     public ngOnDestroy() {
