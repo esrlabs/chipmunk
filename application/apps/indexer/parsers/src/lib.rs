@@ -18,6 +18,19 @@ pub enum Error {
     Eof,
 }
 
+#[derive(Debug)]
+pub enum ParseYield<T> {
+    Message(T),
+    Attachment(Attachment),
+    MessageAndAttachment((T, Attachment)),
+}
+
+impl<T> From<T> for ParseYield<T> {
+    fn from(item: T) -> Self {
+        Self::Message(item)
+    }
+}
+
 /// Parser trait that needs to be implemented for any parser we support
 /// in chipmunk
 pub trait Parser<T> {
@@ -31,7 +44,24 @@ pub trait Parser<T> {
         &mut self,
         input: &'a [u8],
         timestamp: Option<u64>,
-    ) -> Result<(&'a [u8], Option<T>), Error>;
+    ) -> Result<(&'a [u8], Option<ParseYield<T>>), Error>;
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Attachment {
+    pub name: String,
+    pub size: usize,
+    pub created_date: Option<String>,
+    pub modified_date: Option<String>,
+    /// The message indexes (1-based) within the original trace.
+    pub messages: Vec<usize>,
+    /// The data chunks with byte offset and length within the original trace.
+    pub chunks: Vec<(usize, usize)>,
+}
+
+pub trait Collector<T> {
+    fn register_message(&mut self, offset: usize, msg: &T);
+    fn attachment_indexes(&self) -> Vec<Attachment>;
 }
 
 pub trait LineFormat {
@@ -51,7 +81,7 @@ pub trait LogMessage: Display + Serialize {
 
 #[derive(Debug)]
 pub enum MessageStreamItem<T: LogMessage> {
-    Item(T),
+    Item(ParseYield<T>),
     Skipped,
     Incomplete,
     Empty,

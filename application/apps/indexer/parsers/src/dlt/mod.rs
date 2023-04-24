@@ -1,6 +1,7 @@
+pub mod attachment;
 pub mod fmt;
 
-use crate::{dlt::fmt::FormattableMessage, Error, LogMessage, Parser};
+use crate::{dlt::fmt::FormattableMessage, Error, LogMessage, ParseYield, Parser};
 use byteorder::{BigEndian, WriteBytesExt};
 pub use dlt_core::{
     dlt::LogLevel,
@@ -13,6 +14,8 @@ use dlt_core::{
 };
 use serde::Serialize;
 use std::{io::Write, ops::Range};
+
+use self::attachment::FtScanner;
 
 impl LogMessage for FormattableMessage<'_> {
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
@@ -66,6 +69,8 @@ pub struct DltParser<'m> {
     pub filter_config: Option<ProcessedDltFilterConfig>,
     pub fibex_metadata: Option<&'m FibexMetadata>,
     pub with_storage_header: bool,
+    ft_scanner: FtScanner,
+    offset: usize,
 }
 
 #[derive(Default)]
@@ -101,6 +106,8 @@ impl<'m> DltParser<'m> {
             filter_config,
             fibex_metadata,
             with_storage_header,
+            ft_scanner: FtScanner::new(),
+            offset: 0,
         }
     }
 }
@@ -110,16 +117,19 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
         &mut self,
         input: &'b [u8],
         timestamp: Option<u64>,
-    ) -> Result<(&'b [u8], Option<FormattableMessage<'m>>), Error> {
+    ) -> Result<(&'b [u8], Option<ParseYield<FormattableMessage<'m>>>), Error> {
         match dlt_message(input, self.filter_config.as_ref(), self.with_storage_header)
             .map_err(|e| Error::Parse(format!("{e}")))?
         {
-            (rest, dlt_core::parse::ParsedMessage::FilteredOut(_n)) => Ok((rest, None)),
-
+            (rest, dlt_core::parse::ParsedMessage::FilteredOut(_n)) => {
+                self.offset += input.len() - rest.len();
+                Ok((rest, None))
+            }
             (_, dlt_core::parse::ParsedMessage::Invalid) => {
                 Err(Error::Parse("Invalid parse".to_owned()))
             }
             (rest, dlt_core::parse::ParsedMessage::Item(i)) => {
+                let attachment = self.ft_scanner.process(self.offset, &i);
                 let msg_with_storage_header = if i.storage_header.is_some() {
                     i
                 } else {
@@ -130,7 +140,15 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
                     fibex_metadata: self.fibex_metadata,
                     options: None,
                 };
-                Ok((rest, Some(msg)))
+                self.offset += input.len() - rest.len();
+                Ok((
+                    rest,
+                    if let Some(attachment) = attachment {
+                        Some(ParseYield::MessageAndAttachment((msg, attachment)))
+                    } else {
+                        Some(ParseYield::Message(msg))
+                    },
+                ))
             }
         }
     }
@@ -141,7 +159,7 @@ impl Parser<RangeMessage> for DltRangeParser {
         &mut self,
         input: &'b [u8],
         _timestamp: Option<u64>,
-    ) -> Result<(&'b [u8], Option<RangeMessage>), Error> {
+    ) -> Result<(&'b [u8], Option<ParseYield<RangeMessage>>), Error> {
         let (rest, consumed) = dlt_consume_msg(input).map_err(|e| Error::Parse(format!("{e}")))?;
         let msg = consumed.map(|c| {
             self.offset += c as usize;
@@ -152,7 +170,7 @@ impl Parser<RangeMessage> for DltRangeParser {
                 },
             }
         });
-        Ok((rest, msg))
+        Ok((rest, msg.map(|m| m.into())))
     }
 }
 
@@ -161,11 +179,11 @@ impl Parser<RawMessage> for DltRawParser {
         &mut self,
         input: &'b [u8],
         _timestamp: Option<u64>,
-    ) -> Result<(&'b [u8], Option<RawMessage>), Error> {
+    ) -> Result<(&'b [u8], Option<ParseYield<RawMessage>>), Error> {
         let (rest, consumed) = dlt_consume_msg(input).map_err(|e| Error::Parse(format!("{e}")))?;
         let msg = consumed.map(|c| RawMessage {
             content: Vec::from(&input[0..c as usize]),
         });
-        Ok((rest, msg))
+        Ok((rest, msg.map(|m| m.into())))
     }
 }

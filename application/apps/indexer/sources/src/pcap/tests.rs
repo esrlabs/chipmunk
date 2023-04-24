@@ -1,6 +1,6 @@
 use crate::{pcap::file::PcapngByteSource, producer::MessageProducer};
 use futures::{pin_mut, stream::StreamExt};
-use parsers::{dlt::DltParser, MessageStreamItem};
+use parsers::{dlt::DltParser, MessageStreamItem, ParseYield};
 use std::fs::File;
 
 lazy_static! {
@@ -21,7 +21,12 @@ async fn test_read_messages_from_pcapng() {
     while let Some(item) = msg_stream.next().await {
         if let (_, MessageStreamItem::Item(v)) = item {
             found_msg += 1;
-            assert_eq!(v.message.header.ecu_id, Some("TEST".to_owned()));
+            match v {
+                ParseYield::Message(m) => {
+                    assert_eq!(m.message.header.ecu_id, Some("TEST".to_owned()));
+                }
+                _ => panic!("No message item in stream"),
+            }
         }
     }
     assert_eq!(found_msg, 1);

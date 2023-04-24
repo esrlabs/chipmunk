@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+    "addon",
     "indexer_base",
     "indexer_cli",
     "merging",
