@@ -16,6 +16,7 @@ log = "0.4.17"
 memchr = "2.4"
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0"
+rand = "0.8.5"
 rustc-hash = "1.1"
 # someip-messages = { path = "../../../../../someip"}
 someip-messages = { git = "https://github.com/esrlabs/someip" }

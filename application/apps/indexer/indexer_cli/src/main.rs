@@ -22,6 +22,7 @@ mod dlt;
 mod interactive;
 
 use crate::interactive::handle_interactive_session;
+use addon::{extract_dlt_ft, scan_dlt_ft};
 use anyhow::{anyhow, Result};
 use crossbeam_channel as cc;
 use crossbeam_channel::unbounded;
@@ -48,13 +49,14 @@ use parsers::{
     dlt::{DltParser, DltRangeParser},
     someip::SomeipParser,
     text::StringTokenizer,
-    LogMessage, MessageStreamItem,
+    LogMessage, MessageStreamItem, ParseYield,
 };
 use processor::{
     export::export_raw,
     grabber::{GrabError, Grabber},
     text_source::TextFileSource,
 };
+use parsers::dlt::attachment::FileExtractor;
 use sources::{
     pcap::file::{
         convert_from_pcapng, create_index_and_mapping_from_pcapng, print_from_pcapng,
@@ -207,6 +209,27 @@ enum Chip {
         filter_config: Option<PathBuf>,
         #[structopt(short = "n", long, help = "do not use storage header")]
         no_storage_header: bool,
+    },
+    #[structopt(about = "extract files from dlt trace")]
+    DltFt {
+        #[structopt(help = "the DLT file to parse")]
+        input: PathBuf,
+        #[structopt(
+            long = "out",
+            name = "OUT",
+            help = "Output directory, \"input directory\" if not present"
+        )]
+        output: Option<PathBuf>,
+        #[structopt(
+            long = "filter",
+            name = "FILTER_CONFIG",
+            help = "json file that defines dlt filter settings"
+        )]
+        filter_config: Option<PathBuf>,
+        #[structopt(short, long, help = "run in interactive mode")]
+        interactive: bool,
+        #[structopt(short, long, help = "parse input without storage headers")]
+        raw: bool,
     },
     #[structopt(about = "dlt from pcap files")]
     DltPcap {
@@ -411,6 +434,13 @@ pub async fn main() -> Result<()> {
             )
             .await
         }
+        Chip::DltFt {
+            input,
+            output,
+            filter_config,
+            interactive,
+            raw,
+        } => handle_dlt_ft_subcommand(input, output, filter_config, interactive, raw, start).await,
         Chip::DltPcap {
             input,
             tag,
@@ -961,7 +991,7 @@ pub async fn main() -> Result<()> {
             let mut last_grab_call = Instant::now();
             while let Some((_, item)) = dlt_stream.next().await {
                 match item {
-                    MessageStreamItem::Item(msg) => {
+                    MessageStreamItem::Item(ParseYield::Message(msg)) => {
                         create_tagged_line_d(&tag_string, &mut out_writer, &msg, line_nr, true)
                             .unwrap();
                         line_nr += 1;
@@ -976,6 +1006,28 @@ pub async fn main() -> Result<()> {
                                 }
                             }
                         }
+                    }
+                    MessageStreamItem::Item(ParseYield::MessageAndAttachment((
+                        msg,
+                        _attachment,
+                    ))) => {
+                        create_tagged_line_d(&tag_string, &mut out_writer, &msg, line_nr, true)
+                            .unwrap();
+                        line_nr += 1;
+                        if let Some(grabber) = grabber.as_mut() {
+                            if last_grab_call.elapsed().as_millis() > 500 {
+                                last_grab_call = Instant::now();
+                                if let Err(err) = grabber.update_from_file(None) {
+                                    report_error(format!(
+                                        "fail to update grabber metadata {err:?}"
+                                    ));
+                                    std::process::exit(2)
+                                }
+                            }
+                        }
+                    }
+                    MessageStreamItem::Item(ParseYield::Attachment(_attachment)) => {
+                        println!("--- attachment")
                     }
                     MessageStreamItem::Empty => println!("--- empty"),
                     MessageStreamItem::Done => println!("--- done"),
@@ -1004,6 +1056,126 @@ pub async fn main() -> Result<()> {
         }
 
         println!("done with handle_dlt_subcommand");
+        std::process::exit(0)
+    }
+
+    async fn handle_dlt_ft_subcommand(
+        file_path: PathBuf,
+        out_path: Option<PathBuf>,
+        filter_config: Option<PathBuf>,
+        interactive: bool,
+        raw: bool,
+        start: std::time::Instant,
+    ) {
+        debug!("handle_dlt_ft_subcommand");
+
+        let filter_conf: Option<DltFilterConfig> = match filter_config {
+            Some(config_path) => {
+                let mut cnf_file = match fs::File::open(&config_path) {
+                    Ok(file) => file,
+                    Err(_) => {
+                        report_error(format!("could not open filter config {config_path:?}"));
+                        std::process::exit(2)
+                    }
+                };
+                read_filter_options(&mut cnf_file)
+            }
+            None => None,
+        };
+
+        let with_storage_header = !raw;
+        let output_dir = match out_path {
+            Some(path) => path,
+            None => file_path.parent().unwrap().to_path_buf(),
+        };
+
+        if interactive {
+            // extract selected files
+            println!("scan files..");
+            let files = scan_dlt_ft(
+                file_path.clone(),
+                filter_conf.clone(),
+                with_storage_header,
+                CancellationToken::new(),
+            )
+            .await
+            .unwrap();
+
+            if files.is_empty() {
+                println!("no file(s) found!");
+                std::process::exit(0);
+            }
+            for (pos, file) in files.iter().enumerate() {
+                let index: usize = pos + 1;
+                println!("<{}>\t{} ({} bytes)", index, file.name, file.size);
+            }
+            loop {
+                println!("enter file indexes [<num>,...] or 'q' for exit:");
+                let mut input = String::new();
+                std::io::stdin().read_line(&mut input).unwrap();
+                if input.trim() == "q" {
+                    std::process::exit(0)
+                }
+
+                let mut selected_files = Vec::new();
+                for part in input.trim().split(',') {
+                    if let Ok(index) = part.parse::<usize>() {
+                        if let Some(file) = files.get(index - 1) {
+                            selected_files.push(file.clone());
+                        }
+                    }
+                }
+
+                let size = extract_dlt_ft(
+                    &file_path,
+                    Path::new(&output_dir),
+                    FileExtractor::files_with_names(selected_files),
+                    CancellationToken::new(),
+                )
+                .unwrap();
+
+                println!("{size} bytes written");
+            }
+        } else {
+            // extract all files
+            println!("scan files..");
+            let files = scan_dlt_ft(
+                file_path.clone(),
+                filter_conf.clone(),
+                with_storage_header,
+                CancellationToken::new(),
+            )
+            .await
+            .unwrap();
+
+            println!("extract files..");
+            let size = extract_dlt_ft(
+                &file_path,
+                Path::new(&output_dir),
+                FileExtractor::files_with_names_prefixed(files),
+                CancellationToken::new(),
+            )
+            .unwrap();
+
+            println!("{size} bytes written");
+
+            let source_file_size = fs::metadata(file_path).expect("file size error").len();
+            let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
+            let out_file_size_in_mb = size as f64 / 1024.0 / 1024.0;
+
+            duration_report_throughput(
+                start,
+                format!(
+                    "processing ~{} MB (wrote ~{} MB contained data)",
+                    file_size_in_mb.round(),
+                    out_file_size_in_mb.round(),
+                ),
+                file_size_in_mb,
+                "MB".to_string(),
+            );
+        }
+
+        println!("done with handle_dlt_ft_subcommand");
         std::process::exit(0)
     }
 
@@ -1090,11 +1262,11 @@ pub async fn main() -> Result<()> {
         let cancel = CancellationToken::new();
         let fibex_config = load_test_fibex();
         let fibex_metadata: Option<FibexMetadata> = gather_fibex_data(fibex_config);
-        let dlt_parser = DltParser {
-            filter_config: filter_conf.map(|f| f.into()),
-            fibex_metadata: fibex_metadata.as_ref(),
-            with_storage_header: false,
-        };
+        let dlt_parser = DltParser::new(
+            filter_conf.map(|f| f.into()),
+            fibex_metadata.as_ref(),
+            false,
+        );
         if in_one_go {
             println!("one-go");
             let (tx, rx): (mpsc::Sender<VoidResults>, mpsc::Receiver<VoidResults>) =
@@ -1610,13 +1782,28 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
             let msg_stream = dlt_msg_producer.as_stream();
             pin_mut!(msg_stream);
             let mut item_count = 0usize;
+            let mut attachment_count = 0usize;
             let mut err_count = 0usize;
             let mut consumed = 0usize;
             loop {
                 match msg_stream.next().await {
-                    Some((_, MessageStreamItem::Item(item))) => {
+                    Some((_, MessageStreamItem::Item(ParseYield::Message(item)))) => {
                         item_count += 1;
                         consumed += item.range.len();
+                    }
+                    Some((
+                        _,
+                        MessageStreamItem::Item(ParseYield::MessageAndAttachment((
+                            item,
+                            _attachment,
+                        ))),
+                    )) => {
+                        item_count += 1;
+                        attachment_count += 1;
+                        consumed += item.range.len();
+                    }
+                    Some((_, MessageStreamItem::Item(ParseYield::Attachment(_attachment)))) => {
+                        attachment_count += 1;
                     }
                     Some((_, MessageStreamItem::Skipped)) => item_count += 1,
                     Some((_, MessageStreamItem::Incomplete)) => err_count += 1,
@@ -1626,7 +1813,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                 }
                 if item_count > 10 || err_count > 10 {
                     println!(
-                        "DLT parser, item_count: {item_count}, err_count: {err_count}, consumed: {consumed}"
+                        "DLT parser, item_count: {item_count}, err_count: {err_count}, consumed: {consumed}, attachments: {attachment_count}"
                     );
                     break;
                 }
@@ -1680,15 +1867,29 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                     let msg_stream = dlt_msg_producer.as_stream();
                     pin_mut!(msg_stream);
                     let mut item_count = 0usize;
+                    let mut attachment_count = 0usize;
                     let mut err_count = 0usize;
                     let mut consumed = 0usize;
                     let mut skipped_count = 0usize;
                     loop {
                         let x = msg_stream.next().await;
                         match x {
-                            Some((_, MessageStreamItem::Item(item))) => {
+                            Some((_, MessageStreamItem::Item(ParseYield::Message(item)))) => {
                                 item_count += 1;
                                 consumed += item.message.byte_len() as usize;
+                            }
+                            Some((
+                                _,
+                                MessageStreamItem::Item(ParseYield::MessageAndAttachment((
+                                    item,
+                                    _attachment,
+                                ))),
+                            )) => {
+                                item_count += 1;
+                                consumed += item.message.byte_len() as usize;
+                            }
+                            Some((_, MessageStreamItem::Item(ParseYield::Attachment(_)))) => {
+                                attachment_count += 1
                             }
                             Some((_, MessageStreamItem::Skipped)) => skipped_count += 1,
                             Some((_, MessageStreamItem::Incomplete)) => err_count += 1,
@@ -1698,7 +1899,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                         }
                         if item_count > 10 || err_count > 10 {
                             println!(
-                                "DLT pcap parser, item_count: {item_count}, err_count: {err_count}, consumed: {consumed} (skipped: {skipped_count})"
+                                "DLT pcap parser, item_count: {item_count}, err_count: {err_count}, consumed: {consumed}, attachment_count: {attachment_count} (skipped: {skipped_count})"
                             );
                             break;
                         }
@@ -1721,10 +1922,11 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
             let mut err_count = 0usize;
             let mut skipped_count = 0usize;
             let mut consumed = 0usize;
+            let mut attachment_count = 0usize;
             use std::io::Cursor;
             loop {
                 match msg_stream.next().await {
-                    Some((_rest, MessageStreamItem::Item(item))) => {
+                    Some((_rest, MessageStreamItem::Item(ParseYield::Message(item)))) => {
                         let mut buff = Cursor::new(vec![0; 100 * 1024]);
                         let cnt = item.to_writer(&mut buff);
                         consumed += cnt.unwrap_or(0);
@@ -1735,6 +1937,27 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
 
                         item_count += 1
                     }
+                    Some((
+                        _rest,
+                        MessageStreamItem::Item(ParseYield::MessageAndAttachment((
+                            item,
+                            _attachment,
+                        ))),
+                    )) => {
+                        let mut buff = Cursor::new(vec![0; 100 * 1024]);
+                        let cnt = item.to_writer(&mut buff);
+                        consumed += cnt.unwrap_or(0);
+                        match std::str::from_utf8(buff.get_ref()) {
+                            Ok(_) => println!("valid utf8-text"),
+                            Err(_) => println!("INVALID utf8-text"),
+                        }
+
+                        item_count += 1
+                    }
+                    Some((
+                        _rest,
+                        MessageStreamItem::Item(ParseYield::Attachment(_attachment)),
+                    )) => attachment_count += 1,
                     Some((_, MessageStreamItem::Skipped)) => skipped_count += 1,
                     Some((_, MessageStreamItem::Incomplete)) => err_count += 1,
                     Some((_, MessageStreamItem::Empty)) => err_count += 1,
@@ -1743,7 +1966,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                 }
                 if item_count > 10 || err_count > 10 {
                     println!(
-                        "TEXT parser, item_count: {item_count}, err_count: {err_count}, skipped count: {skipped_count}, consumed: {consumed}"
+                        "TEXT parser, item_count: {item_count}, err_count: {err_count}, skipped count: {skipped_count}, consumed: {consumed}, attachment_count: {attachment_count}"
                     );
                     break;
                 }

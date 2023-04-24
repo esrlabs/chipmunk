@@ -12,7 +12,7 @@ use indexer_base::{
     utils,
 };
 use log::{debug, error, trace, warn};
-use parsers::{LogMessage, MessageStreamItem, Parser};
+use parsers::{LogMessage, MessageStreamItem, ParseYield, Parser};
 use pcap_parser::{traits::PcapReaderIterator, PcapBlockOwned, PcapError, PcapNGReader};
 use std::{
     fs::*,
@@ -501,9 +501,18 @@ where
                             }
                         }
                         match msg {
-                            MessageStreamItem::Item(msg) => {
+                            MessageStreamItem::Item(ParseYield::Message(msg)) => {
                                 trace!("received msg event");
                                 output.consume_msg(msg).await?;
+                            }
+                            MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _attachment))) => {
+                                trace!("received msg event AND attachment");
+                                output.consume_msg(msg).await?;
+                                // TODO @kevin: use attachment
+                            }
+                            MessageStreamItem::Item(ParseYield::Attachment(_attachment)) => {
+                                trace!("received attachment event");
+                                // TODO @kevin: use attachment
                             }
                             MessageStreamItem::Skipped => {
                                 trace!("msg was skipped due to filters");

@@ -1,0 +1,24 @@
+[package]
+name = "addon"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dlt-core = "0.14"
+env_logger = "0.10"
+futures = "0.3"
+chrono = { version = "0.4", features = ["serde"] }
+indexer_base = { path = "../indexer_base" }
+log = "0.4.17"
+parsers = { path = "../parsers" }
+processor = { path = "../processor" }
+sources = { path = "../sources" }
+thiserror = "1.0"
+tokio = { version = "1.17", features = ["full"] }
+tokio-util = {version = "0.7", features = ["codec", "net"] }
+tokio-stream = "0.1.5"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[dev-dependencies]
+rand = "0.8.5"

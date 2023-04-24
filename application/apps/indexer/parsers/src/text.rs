@@ -1,4 +1,4 @@
-use crate::{Error, LogMessage, Parser};
+use crate::{Error, LogMessage, ParseYield, Parser};
 use serde::Serialize;
 use std::{fmt, io::Write};
 
@@ -31,7 +31,7 @@ where
         &mut self,
         input: &'b [u8],
         _timestamp: Option<u64>,
-    ) -> Result<(&'b [u8], Option<StringMessage>), Error> {
+    ) -> Result<(&'b [u8], Option<ParseYield<StringMessage>>), Error> {
         // TODO: support non-utf8 encodings
         use memchr::memchr;
         if input.is_empty() {
@@ -42,13 +42,13 @@ where
             let string_msg = StringMessage {
                 content: content.to_string(),
             };
-            Ok((&input[msg_size + 1..], Some(string_msg)))
+            Ok((&input[msg_size + 1..], Some(string_msg.into())))
         } else {
             Ok((
                 &[],
-                Some(StringMessage {
+                Some(ParseYield::from(StringMessage {
                     content: String::new(),
-                }),
+                })),
             ))
         }
     }
@@ -59,11 +59,17 @@ fn test_string_tokenizer() {
     let mut parser = StringTokenizer;
     let content = b"hello\nworld\n";
     let (rest_1, first_msg) = parser.parse(content, None).unwrap();
-    assert_eq!("hello", first_msg.unwrap().content);
+    match first_msg {
+        Some(ParseYield::Message(StringMessage { content })) if content.eq("hello") => {}
+        _ => panic!("First message did not match"),
+    }
     println!("rest_1 = {:?}", String::from_utf8_lossy(rest_1));
     let (rest_2, second_msg) = parser.parse(rest_1, None).unwrap();
-    assert_eq!("world", second_msg.unwrap().content);
+    match second_msg {
+        Some(ParseYield::Message(StringMessage { content })) if content.eq("world") => {}
+        _ => panic!("Second message did not match"),
+    }
     let (rest_3, third_msg) = parser.parse(rest_2, None).unwrap();
     println!("rest_3 = {:?}", String::from_utf8_lossy(rest_3));
-    assert_eq!(None, third_msg);
+    assert!(third_msg.is_none());
 }

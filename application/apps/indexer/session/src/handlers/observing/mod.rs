@@ -6,7 +6,9 @@ use crate::{
 };
 use indexer_base::progress::Severity;
 use log::trace;
-use parsers::{dlt::DltParser, text::StringTokenizer, LogMessage, MessageStreamItem, Parser};
+use parsers::{
+    dlt::DltParser, text::StringTokenizer, LogMessage, MessageStreamItem, ParseYield, Parser,
+};
 use sources::{
     factory::ParserType,
     producer::{MessageProducer, SdeReceiver},
@@ -103,10 +105,21 @@ pub async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
         match next {
             Next::Item(item) => {
                 match item {
-                    MessageStreamItem::Item(item) => {
+                    MessageStreamItem::Item(ParseYield::Message(item)) => {
                         state
                             .write_session_file(source_id, format!("{item}\n"))
                             .await?;
+                    }
+                    MessageStreamItem::Item(ParseYield::MessageAndAttachment((
+                        item,
+                        _attachment,
+                    ))) => {
+                        state
+                            .write_session_file(source_id, format!("{item}\n"))
+                            .await?;
+                    }
+                    MessageStreamItem::Item(ParseYield::Attachment(_attachment)) => {
+                        trace!("found an attachment");
                     }
                     MessageStreamItem::Done => {
                         trace!("observe, message stream is done");
