@@ -1,11 +1,5 @@
 import { EChartName, ILabel, IPosition, EScaleType } from '../common/types';
-import {
-    BubbleDataPoint,
-    ChartDataset,
-    ChartTypeRegistry,
-    ScatterDataPoint,
-    Chart as CanvasChart,
-} from 'chart.js';
+import { ChartDataset, ScatterDataPoint, Chart as CanvasChart } from 'chart.js';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { IlcInterface } from '@service/ilc';
 import { Session } from '@service/session';
@@ -13,7 +7,6 @@ import { ChartRequest } from '@service/session/dependencies/search/charts/reques
 import { IRange } from '@platform/types/range';
 import { Service } from '../service';
 import { StoredEntity } from '@service/session/dependencies/search/store';
-import { _DeepPartialObject } from 'chart.js/types/utils';
 
 export class Chart {
     private readonly _session: Session;
@@ -95,7 +88,18 @@ export class Chart {
             options.scales['x'] !== undefined
         ) {
             this._zoomedRange = zoomedRange;
-            [options.scales['x'].min, options.scales['x'].max] = this._updateLabels();
+            const labels: number[] | undefined = this._chart.config.data.labels as number[];
+            const streamLength: number = this._session.stream.len();
+            if (Array.isArray(labels) && labels.length > 0) {
+                const from: number = Math.floor(
+                    (labels.length - 1) * (this._zoomedRange.from / streamLength),
+                );
+                const to: number = Math.ceil(
+                    (labels.length - 1) * (this._zoomedRange.to / streamLength),
+                );
+                options.scales['x'].min = from;
+                options.scales['x'].max = to >= labels.length ? labels.length - 1 : to;
+            }
         }
         this._chart.update();
     }
@@ -166,22 +170,15 @@ export class Chart {
     }
 
     private _removeRedundantDatasets(entities: ChartRequest[]) {
-        this._chart.data.datasets = this._chart.data.datasets.filter(
-            (
-                dataset: ChartDataset<
-                    keyof ChartTypeRegistry,
-                    (number | ScatterDataPoint | BubbleDataPoint | null)[]
-                >,
-            ) => {
-                return (
-                    entities.findIndex((entity: ChartRequest) => {
-                        return (
-                            entity.definition.filter === dataset.label && entity.definition.active
-                        );
-                    }) !== -1
-                );
-            },
-        );
+        this._chart.data.datasets = (
+            this._chart.data.datasets as ChartDataset<'line', ScatterDataPoint[]>[]
+        ).filter((dataset: ChartDataset<'line', ScatterDataPoint[]>) => {
+            return (
+                entities.findIndex((entity: ChartRequest) => {
+                    return entity.definition.filter === dataset.label && entity.definition.active;
+                }) !== -1
+            );
+        });
     }
 
     private _initDatasets() {
@@ -286,27 +283,6 @@ export class Chart {
     //     });
     // }
 
-    private _updateLabels(): [number, number] | [undefined, undefined] {
-        const labels = this._chart.config.data.labels;
-        if (Array.isArray(labels)) {
-            const streamLength: number = this._session.stream.len();
-            const indexZoomFrom: number = Math.round(
-                labels.length * (this._zoomedRange.from / streamLength),
-            );
-            let indexZoomTo: number = Math.round(
-                labels.length * (this._zoomedRange.to / streamLength),
-            );
-            indexZoomTo =
-                indexZoomTo >= labels.length
-                    ? labels.length - 1
-                    : indexZoomTo <= indexZoomFrom
-                    ? indexZoomFrom + 1
-                    : indexZoomTo;
-            return [indexZoomFrom, indexZoomTo >= labels.length ? indexZoomTo - 1 : indexZoomTo];
-        }
-        return [undefined, undefined];
-    }
-
     private _createChart(): CanvasChart {
         return new CanvasChart(`${EChartName.canvasCharts}-${this._session.uuid()}`, {
             type: 'line',
@@ -351,13 +327,8 @@ export class Chart {
     private _onChartColorChange(entities: ChartRequest[]) {
         entities.forEach((entity: ChartRequest) => {
             const entityColor: string = entity.definition.color;
-            this._chart.data.datasets.forEach(
-                (
-                    dataset: ChartDataset<
-                        keyof ChartTypeRegistry,
-                        (number | ScatterDataPoint | BubbleDataPoint | null)[]
-                    >,
-                ) => {
+            (this._chart.data.datasets as ChartDataset<'line', ScatterDataPoint[]>[]).forEach(
+                (dataset: ChartDataset<'line', ScatterDataPoint[]>) => {
                     if (dataset.label === entity.definition.filter) {
                         const uuid: string = entity.uuid();
                         const scales = this._chart.options.scales;
@@ -410,13 +381,8 @@ export class Chart {
 
     private _updateHasNoData() {
         this._labelState.hasNoData = true;
-        this._chart.data.datasets.forEach(
-            (
-                dataset: ChartDataset<
-                    keyof ChartTypeRegistry,
-                    (number | ScatterDataPoint | BubbleDataPoint | null)[]
-                >,
-            ) => {
+        (this._chart.data.datasets as ChartDataset<'line', ScatterDataPoint[]>[]).forEach(
+            (dataset: ChartDataset<'line', ScatterDataPoint[]>) => {
                 if (dataset.data.length > 0) {
                     this._labelState.hasNoData = false;
                 }
@@ -438,5 +404,6 @@ export class Chart {
     private _valuesUpdated() {
         this._initDatasets();
         this._initData();
+        this._restoreZoomedRange();
     }
 }

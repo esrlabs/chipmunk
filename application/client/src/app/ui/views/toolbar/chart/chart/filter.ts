@@ -1,13 +1,7 @@
 import { Session } from '@service/session';
 import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import {
-    BubbleDataPoint,
-    Chart,
-    ChartDataset,
-    ChartTypeRegistry,
-    ScatterDataPoint,
-} from 'chart.js';
+import { Chart, ChartDataset } from 'chart.js';
 import { EChartName, ILabel, IPosition } from '../common/types';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { ISearchMap } from '@platform/interfaces/interface.rust.api.general';
@@ -115,23 +109,18 @@ export class Filter {
     }
 
     private _removeRedundantDatasets(entities: FilterRequest[]) {
-        this._chart.data.datasets = this._chart.data.datasets.filter(
-            (
-                dataset: ChartDataset<
-                    keyof ChartTypeRegistry,
-                    (number | ScatterDataPoint | BubbleDataPoint | null)[]
-                >,
-            ) => {
-                return (
-                    entities.findIndex((entity: FilterRequest) => {
-                        return (
-                            entity.definition.filter.filter === dataset.label &&
-                            entity.definition.active
-                        );
-                    }) !== -1
-                );
-            },
-        );
+        this._chart.data.datasets = (
+            this._chart.data.datasets as ChartDataset<'bar', number[]>[]
+        ).filter((dataset: ChartDataset<'bar', number[]>) => {
+            return (
+                entities.findIndex((entity: FilterRequest) => {
+                    return (
+                        entity.definition.filter.filter === dataset.label &&
+                        entity.definition.active
+                    );
+                }) !== -1
+            );
+        });
     }
 
     private _initDatasets() {
@@ -222,13 +211,8 @@ export class Filter {
     }
 
     private _resetDatasets() {
-        this._chart.data.datasets.forEach(
-            (
-                dataset: ChartDataset<
-                    keyof ChartTypeRegistry,
-                    (number | ScatterDataPoint | BubbleDataPoint | null)[]
-                >,
-            ) => {
+        (this._chart.data.datasets as ChartDataset<'bar', number[]>[]).forEach(
+            (dataset: ChartDataset<'bar', number[]>) => {
                 dataset.data = [];
             },
         );
@@ -244,13 +228,8 @@ export class Filter {
     }
 
     private _stuffDatasetGaps(line: number) {
-        this._chart.data.datasets.forEach(
-            (
-                dataset: ChartDataset<
-                    keyof ChartTypeRegistry,
-                    (number | ScatterDataPoint | BubbleDataPoint | null)[]
-                >,
-            ) => {
+        (this._chart.data.datasets as ChartDataset<'bar', number[]>[]).forEach(
+            (dataset: ChartDataset<'bar', number[]>) => {
                 dataset.data[line] === undefined && dataset.data.push(0);
             },
         );
@@ -259,13 +238,8 @@ export class Filter {
     private _onColorChange(entities: FilterRequest[]) {
         entities.forEach((entity: FilterRequest) => {
             const entityColor: string = entity.definition.colors.background;
-            this._chart.data.datasets.forEach(
-                (
-                    dataset: ChartDataset<
-                        keyof ChartTypeRegistry,
-                        (number | ScatterDataPoint | BubbleDataPoint | null)[]
-                    >,
-                ) => {
+            (this._chart.data.datasets as ChartDataset<'bar', number[]>[]).forEach(
+                (dataset: ChartDataset<'bar', number[]>) => {
                     if (dataset.label === entity.definition.filter.filter) {
                         dataset.backgroundColor = entityColor;
                         dataset.borderColor = entityColor;
@@ -292,13 +266,8 @@ export class Filter {
 
     private _updateHasNoData() {
         this._labelState.hasNoData = true;
-        this._chart.data.datasets.forEach(
-            (
-                dataset: ChartDataset<
-                    keyof ChartTypeRegistry,
-                    (number | ScatterDataPoint | BubbleDataPoint | null)[]
-                >,
-            ) => {
+        (this._chart.data.datasets as ChartDataset<'bar', number[]>[]).forEach(
+            (dataset: ChartDataset<'bar', number[]>) => {
                 if (dataset.data.length > 0) {
                     this._labelState.hasNoData = false;
                 }

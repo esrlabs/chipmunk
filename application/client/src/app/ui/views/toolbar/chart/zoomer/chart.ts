@@ -2,13 +2,7 @@ import { IlcInterface } from '@service/ilc';
 import { Session } from '@service/session';
 import { ChartRequest } from '@service/session/dependencies/search/charts/request';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import {
-    BubbleDataPoint,
-    ChartDataset,
-    ChartTypeRegistry,
-    ScatterDataPoint,
-    Chart as CanvasChart,
-} from 'chart.js';
+import { ChartDataset, ScatterDataPoint, Chart as CanvasChart } from 'chart.js';
 import { Service } from '../service';
 import { EChartName, EScaleType, ILabel } from '../common/types';
 import { StoredEntity } from '@service/session/dependencies/search/store';
@@ -117,22 +111,15 @@ export class Chart {
     }
 
     private _removeRedundantDatasets(entities: ChartRequest[]) {
-        this._chart.data.datasets = this._chart.data.datasets.filter(
-            (
-                dataset: ChartDataset<
-                    keyof ChartTypeRegistry,
-                    (number | ScatterDataPoint | BubbleDataPoint | null)[]
-                >,
-            ) => {
-                return (
-                    entities.findIndex((entity: ChartRequest) => {
-                        return (
-                            entity.definition.filter === dataset.label && entity.definition.active
-                        );
-                    }) !== -1
-                );
-            },
-        );
+        this._chart.data.datasets = (
+            this._chart.data.datasets as ChartDataset<'line', ScatterDataPoint[]>[]
+        ).filter((dataset: ChartDataset<'line', ScatterDataPoint[]>) => {
+            return (
+                entities.findIndex((entity: ChartRequest) => {
+                    return entity.definition.filter === dataset.label && entity.definition.active;
+                }) !== -1
+            );
+        });
     }
 
     private _initDatasets() {
@@ -231,13 +218,8 @@ export class Chart {
 
     private _onColorChange(entities: ChartRequest[]) {
         entities.forEach((entity: ChartRequest) => {
-            this._chart.data.datasets.forEach(
-                (
-                    dataset: ChartDataset<
-                        keyof ChartTypeRegistry,
-                        (number | ScatterDataPoint | BubbleDataPoint | null)[]
-                    >,
-                ) => {
+            (this._chart.data.datasets as ChartDataset<'line', ScatterDataPoint[]>[]).forEach(
+                (dataset: ChartDataset<'line', ScatterDataPoint[]>) => {
                     if (dataset.label === entity.definition.filter) {
                         dataset.backgroundColor = entity.definition.color;
                         dataset.borderColor = entity.definition.color;
@@ -250,13 +232,8 @@ export class Chart {
 
     private _updateHasNoData() {
         this._labelState.hasNoData = true;
-        this._chart.data.datasets.forEach(
-            (
-                dataset: ChartDataset<
-                    keyof ChartTypeRegistry,
-                    (number | ScatterDataPoint | BubbleDataPoint | null)[]
-                >,
-            ) => {
+        (this._chart.data.datasets as ChartDataset<'line', ScatterDataPoint[]>[]).forEach(
+            (dataset: ChartDataset<'line', ScatterDataPoint[]>) => {
                 if (dataset.data.length > 0) {
                     this._labelState.hasNoData = false;
                 }
