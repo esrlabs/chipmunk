@@ -1,6 +1,6 @@
 import { AbstractState } from '../common/abstract.state';
 import { EChartName, ILabelState, IRectangle } from '../common/types';
-import { Zoom } from './zoom';
+import { Zoom } from '../zoom';
 import { Chart } from './chart';
 import { Filter } from './filter';
 
@@ -35,7 +35,7 @@ export class State extends AbstractState {
             this._dataState.filter,
         );
         this._chart = new Chart(this._session, this._parent, this._dataState.chart, this._service);
-        this._zoom = new Zoom(this._session, this._parent, this._service, this._canvasWidth);
+        this._zoom = this._service.getZoom(this._session, this._parent, this._canvasWidth);
         this._initSubscriptions();
         this._updateCanvasWidth();
     }
@@ -49,10 +49,8 @@ export class State extends AbstractState {
         return this._zoom
             ? this._zoom.rectangle
             : {
-                  borderWidth: 1,
                   width: 0,
                   left: 0,
-                  isCursorVisible: true,
               };
     }
 

@@ -2,6 +2,9 @@ import { Subscriber, Subject } from '@platform/env/subscription';
 import { Destroy } from '@env/declarations';
 import { Session } from '@service/session';
 import { EScaleType, IPosition, IPositionChange } from './common/types';
+import { Zoom } from './zoom';
+import { IlcInterface } from '@service/ilc';
+import { ChangesDetector } from '@ui/env/extentions/changes';
 
 const CHART_SERVICE = 'workspace_chart_service';
 
@@ -16,6 +19,7 @@ export class Service extends Subscriber implements Destroy {
         wheel: new Subject<WheelEvent>(),
         scaleType: new Subject<EScaleType>(),
     };
+    private _zoom!: Zoom;
 
     public static from(session: Session): Service {
         const restored = session.storage.get<Service>(CHART_SERVICE);
@@ -57,6 +61,14 @@ export class Service extends Subscriber implements Destroy {
 
     public get subjects() {
         return this._subjects;
+    }
+
+    public getZoom(
+        session: Session,
+        parent: IlcInterface & ChangesDetector,
+        canvasWidth: number,
+    ): Zoom {
+        return this._zoom ? this._zoom : new Zoom(session, parent, this, canvasWidth);
     }
 
     public destroy() {

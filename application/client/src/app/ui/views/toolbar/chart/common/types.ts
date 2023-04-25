@@ -17,10 +17,8 @@ export enum EChartName {
 }
 
 export interface IRectangle {
-    readonly borderWidth: number;
     width: number;
     left: number;
-    isCursorVisible: boolean;
 }
 
 export interface ILabel {

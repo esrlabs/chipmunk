@@ -81,22 +81,18 @@ export class Chart {
     }
 
     public zoom(zoomedRange: IRange) {
+        this._zoomedRange = zoomedRange;
         const options = this._chart.config.options;
+        const labels = this._chart.data.labels;
+        const streamLength: number = this._session.stream.len();
         if (
             options !== undefined &&
             options.scales !== undefined &&
             options.scales['x'] !== undefined
         ) {
-            this._zoomedRange = zoomedRange;
-            const labels: number[] | undefined = this._chart.config.data.labels as number[];
-            const streamLength: number = this._session.stream.len();
             if (Array.isArray(labels) && labels.length > 0) {
-                const from: number = Math.floor(
-                    (labels.length - 1) * (this._zoomedRange.from / streamLength),
-                );
-                const to: number = Math.ceil(
-                    (labels.length - 1) * (this._zoomedRange.to / streamLength),
-                );
+                const from: number = (labels.length - 1) * (this._zoomedRange.from / streamLength);
+                const to: number = (labels.length - 1) * (this._zoomedRange.to / streamLength);
                 options.scales['x'].min = from;
                 options.scales['x'].max = to >= labels.length ? labels.length - 1 : to;
             }
@@ -209,28 +205,13 @@ export class Chart {
         this._labelState.loading = true;
         this._chart.data.labels = [];
         for (const [line, values] of this._session.search.values.get()) {
-            values.forEach((sValue: string, id: number) => {
-                const value: number = parseInt(sValue);
-                const options = this._chart.config.options;
-                if (options !== undefined && options.scales !== undefined) {
-                    const scaleX = options.scales['x'];
-                    if (scaleX !== undefined) {
-                        if (typeof scaleX.min === 'number' && line < scaleX.min) {
-                            scaleX.min = line;
-                        } else if (typeof scaleX.max === 'number' && line > scaleX.max) {
-                            scaleX.max = scaleX.min === line ? line + 1 : line;
-                        }
-                    }
-                    const labels = this._chart.config.data.labels;
-                    Array.isArray(labels) && labels.push(line);
-                    this._chart.data.datasets[id].data.push({ x: line, y: value });
-                }
+            Array.isArray(this._chart.data.labels) && this._chart.data.labels.push(line);
+            values.forEach((value: string, id: number) => {
+                this._chart.data.datasets[id].data.push({
+                    x: line,
+                    y: parseInt(value),
+                });
             });
-            if (Array.isArray(this._chart.data.labels)) {
-                this._chart.data.labels = [...new Set(this._chart.data.labels as number[])].sort(
-                    (a, b) => a - b,
-                );
-            }
         }
         this._labelState.loading = false;
         this._chart.update();
@@ -303,7 +284,12 @@ export class Chart {
                         display: false,
                     },
                     tooltip: {
-                        enabled: true,
+                        callbacks: {
+                            label: (tooltipItem) =>
+                                `Line: ${(tooltipItem.raw as any).x} Value: ${
+                                    (tooltipItem.raw as any).y
+                                }`,
+                        },
                     },
                 },
                 animation: false,

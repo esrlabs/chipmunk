@@ -2,15 +2,13 @@ import { IRange } from '@platform/types/range';
 import { IlcInterface } from '@service/ilc';
 import { Session } from '@service/session';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Service } from '../service';
-import { IRectangle } from '../common/types';
+import { Service } from './service';
+import { IRectangle } from './common/types';
 
 export class Zoom {
     private readonly _rectangle: IRectangle = {
-        borderWidth: 1,
         width: 0,
         left: 0,
-        isCursorVisible: true,
     };
     private readonly _session: Session;
     private readonly _parent: IlcInterface & ChangesDetector;
@@ -60,7 +58,7 @@ export class Zoom {
         const linesTotal: number = this._session.stream.len();
         const linesDiffPercent: number = linesDiff / linesTotal;
         const fromPercent: number = this._shownRange.from / linesTotal;
-        const border: number = 2 * this._rectangle.borderWidth;
+        const border: number = 2;
 
         this._rectangle.width = Math.round(linesDiffPercent * this._canvasWidth);
         this._rectangle.left = Math.round(fromPercent * this._canvasWidth);
@@ -71,13 +69,10 @@ export class Zoom {
     }
 
     private _updateCursor() {
-        const streamSize: number = this._session.stream.len();
-        this._rectangle.isCursorVisible = streamSize > 0 && this._canvasWidth < streamSize;
-        !this._rectangle.isCursorVisible &&
-            this._service.setPosition({
-                session: this._session.uuid(),
-                position: { full: this._canvasWidth, left: 0, width: this._canvasWidth },
-            });
+        this._service.setPosition({
+            session: this._session.uuid(),
+            position: { full: this._canvasWidth, left: 0, width: this._canvasWidth },
+        });
         this._parent.detectChanges();
     }
 }
