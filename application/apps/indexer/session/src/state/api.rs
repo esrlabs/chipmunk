@@ -6,6 +6,7 @@ use crate::{
     },
     tracker::OperationTrackerAPI,
 };
+use parsers::Attachment;
 use processor::{
     grabber::LineRange,
     map::{FilterMatch, FiltersStats, NearestPosition, ScaledDistribution},
@@ -126,6 +127,7 @@ pub enum Api {
     SetDebugMode((bool, oneshot::Sender<()>)),
     NotifyCancelingOperation(Uuid),
     NotifyCanceledOperation(Uuid),
+    AddAttachment(Attachment),
     Shutdown,
 }
 
@@ -174,6 +176,7 @@ impl Display for Api {
                 Self::SetDebugMode(_) => "SetDebugMode",
                 Self::NotifyCancelingOperation(_) => "NotifyCancelingOperation",
                 Self::NotifyCanceledOperation(_) => "NotifyCanceledOperation",
+                Self::AddAttachment(_) => "AddAttachment",
                 Self::Shutdown => "Shutdown",
             }
         )
@@ -509,6 +512,14 @@ impl SessionStateAPI {
         self.tx_api.send(Api::Shutdown).map_err(|e| {
             NativeError::channel(&format!("fail to send to Api::Shutdown; error: {e}",))
         })
+    }
+
+    pub fn add_attachment(&self, attachment: Attachment) -> Result<(), NativeError> {
+        self.tx_api
+            .send(Api::AddAttachment(attachment))
+            .map_err(|e| {
+                NativeError::channel(&format!("fail to send to Api::AddAttachment; error: {e}",))
+            })
     }
 
     pub fn is_closing(&self) -> bool {

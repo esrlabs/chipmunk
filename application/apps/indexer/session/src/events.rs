@@ -184,6 +184,14 @@ pub enum CallbackEvent {
      */
     SearchValuesUpdated(Option<String>),
     /**
+     * Triggered with new attachment has been detected
+     * len - number of already detected attachments (in session)
+     * uuid - UUID of new attachment
+     * >> Scope: async operation
+     * >> Kind: repeated
+     */
+    AttachmentsUpdated { len: u64, uuid: String },
+    /**
      * Triggered on progress of async operation
      * @event Progress: { total: usize, done: usize }
      * >> Scope: async operation
@@ -226,7 +234,6 @@ pub enum CallbackEvent {
      * >> Kind: repeated
      */
     OperationDone(OperationDone),
-
     /**
      * Triggered on session is destroyed
      * >> Scope: session
@@ -257,6 +264,7 @@ impl std::fmt::Display for CallbackEvent {
             Self::IndexedMapUpdated { len } => write!(f, "IndexedMapUpdated({len})"),
             Self::SearchMapUpdated(_) => write!(f, "SearchMapUpdated"),
             Self::SearchValuesUpdated(_) => write!(f, "SearchValuesUpdated"),
+            Self::AttachmentsUpdated { len, uuid: _ } => write!(f, "AttachmentsUpdated: {}", len),
             Self::Progress {
                 uuid: _,
                 progress: _,
