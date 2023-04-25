@@ -264,6 +264,7 @@ impl FtScanner {
                             size: ft_start.size as usize,
                             created_date: Some(ft_start.created),
                             modified_date: None,
+                            mime: None,
                             messages: vec![self.index],
                             chunks: Vec::new(),
                         },
@@ -729,6 +730,7 @@ pub mod tests {
             size: 4,
             created_date: Some("date".to_string()),
             modified_date: None,
+            mime: None,
             messages: vec![1, 2, 3],
             chunks: vec![(181, 4)],
         };
@@ -759,6 +761,7 @@ pub mod tests {
             size: 26,
             created_date: Some("date".to_string()),
             modified_date: None,
+            mime: None,
             messages: vec![1, 2, 3, 4, 5],
             chunks: vec![(181, 10), (269, 10), (357, 6)],
         };

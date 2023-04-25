@@ -24,6 +24,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "addon"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "dlt-core",
+ "env_logger",
+ "futures 0.3.28",
+ "indexer_base",
+ "log",
+ "parsers",
+ "processor",
+ "rand 0.8.5",
+ "serde",
+ "serde_json",
+ "sources",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+]
+
+[[package]]
 name = "ahash"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -301,6 +323,7 @@ dependencies = [
  "js-sys",
  "num-integer",
  "num-traits",
+ "serde",
  "time",
  "wasm-bindgen",
  "winapi 0.3.9",
@@ -1277,6 +1300,7 @@ dependencies = [
 name = "indexer_cli"
 version = "0.35.2"
 dependencies = [
+ "addon",
  "anyhow",
  "async-stream",
  "bytes 1.4.0",
@@ -1592,6 +1616,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "mime"
+version = "0.3.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
+
+[[package]]
+name = "mime_guess"
+version = "2.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4192263c238a5f0d0c6bfd21f336a313a4ce1c450542449ca191bb657b4642ef"
+dependencies = [
+ "mime",
+ "unicase",
+]
+
+[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1896,6 +1936,7 @@ dependencies = [
  "lazy_static",
  "log",
  "memchr",
+ "rand 0.8.5",
  "rustc-hash",
  "serde",
  "someip-messages",
@@ -2557,7 +2598,7 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "crossbeam-channel",
- "dirs 4.0.0",
+ "dirs 5.0.0",
  "dlt-core",
  "envvars",
  "futures 0.3.28",
@@ -2565,6 +2606,8 @@ dependencies = [
  "lazy_static",
  "log",
  "merging",
+ "mime",
+ "mime_guess",
  "parsers",
  "processor",
  "rustc-hash",
@@ -3126,6 +3169,15 @@ name = "unarray"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eaea85b334db583fe3274d12b4cd1880032beab409c0d774be044d4480ab9a94"
+
+[[package]]
+name = "unicase"
+version = "2.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50f37be617794602aabbeee0be4f259dc1778fabe05e2d67ee8f79326d5cb4f6"
+dependencies = [
+ "version_check",
+]
 
 [[package]]
 name = "unicode-ident"

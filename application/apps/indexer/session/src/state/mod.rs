@@ -1,6 +1,7 @@
 use crate::events::{CallbackEvent, NativeError, NativeErrorKind};
 use indexer_base::progress::Severity;
 use log::{debug, error};
+use parsers::Attachment;
 use processor::{
     grabber::LineRange,
     map::SearchMap,
@@ -18,6 +19,7 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 mod api;
+mod attachments;
 mod indexes;
 mod observed;
 mod searchers;
@@ -25,6 +27,7 @@ mod session_file;
 mod source_ids;
 
 pub use api::{Api, SessionStateAPI};
+use attachments::Attachments;
 pub use indexes::{
     controller::{Controller as Indexes, Mode as IndexesMode},
     frame::Frame,
@@ -50,6 +53,7 @@ pub struct SessionState {
     pub search_map: SearchMap,
     pub indexes: Indexes,
     pub searchers: Searchers,
+    pub attachments: Attachments,
     pub cancelling_operations: HashMap<Uuid, bool>,
     pub status: Status,
     pub debug: bool,
@@ -65,6 +69,7 @@ impl SessionState {
                 regular: SearcherState::NotInited,
                 values: SearcherState::NotInited,
             },
+            attachments: Attachments::new(),
             indexes: Indexes::new(Some(tx_callback_events)),
             status: Status::Open,
             cancelling_operations: HashMap::new(),
@@ -336,6 +341,19 @@ impl SessionState {
                 Ok(ValueSearchHolder::new(&filename, uuid, 0, 0))
             }
         }
+    }
+
+    fn handle_add_attachment(
+        &mut self,
+        attachment: Attachment,
+        tx_callback_events: UnboundedSender<CallbackEvent>,
+    ) -> Result<(), NativeError> {
+        let uuid = self.attachments.add(attachment);
+        tx_callback_events.send(CallbackEvent::AttachmentsUpdated {
+            len: self.attachments.len() as u64,
+            uuid: uuid.to_string(),
+        })?;
+        Ok(())
     }
 }
 
@@ -659,6 +677,9 @@ pub async fn run(
             }
             Api::NotifyCanceledOperation(uuid) => {
                 state.cancelling_operations.remove(&uuid);
+            }
+            Api::AddAttachment(attachment) => {
+                state.handle_add_attachment(attachment, tx_callback_events.clone())?;
             }
             Api::Shutdown => {
                 state_cancellation_token.cancel();
