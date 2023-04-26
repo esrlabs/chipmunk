@@ -2606,7 +2606,6 @@ dependencies = [
  "lazy_static",
  "log",
  "merging",
- "mime",
  "mime_guess",
  "parsers",
  "processor",

@@ -52,7 +52,6 @@ pub struct Attachment {
     pub size: usize,
     pub created_date: Option<String>,
     pub modified_date: Option<String>,
-    pub mime: Option<String>,
     /// The message indexes (1-based) within the original trace.
     pub messages: Vec<usize>,
     /// The data chunks with byte offset and length within the original trace.
