@@ -29,7 +29,6 @@ envvars = "0.1"
 tokio-serial = "5.4"
 dlt-core = "0.14"
 mime_guess = "2.0.4"
-mime = "0.3.17"
 
 [dev-dependencies]
 lazy_static = "1.4"

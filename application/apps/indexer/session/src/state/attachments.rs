@@ -1,8 +1,37 @@
-use mime::Mime;
 use mime_guess;
-use parsers::Attachment;
-use std::collections::HashMap;
+use parsers;
+use serde::Serialize;
+use std::{collections::HashMap, path::Path};
 use uuid::Uuid;
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Attachment {
+    pub uuid: Uuid,
+    pub filename: String,
+    pub name: String,
+    pub ext: Option<String>,
+    pub size: usize,
+    pub mime: Option<String>,
+    pub messages: Vec<usize>,
+}
+
+impl Attachment {
+    pub fn from(origin: parsers::Attachment) -> Attachment {
+        Attachment {
+            uuid: Uuid::new_v4(),
+            filename: String::new(),
+            name: origin.name.clone(),
+            ext: Path::new(&origin.name)
+                .extension()
+                .map(|ex| ex.to_string_lossy().to_string()),
+            size: origin.size,
+            mime: mime_guess::from_path(origin.name)
+                .first()
+                .map(|guess| guess.to_string()),
+            messages: origin.messages,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct Attachments {
@@ -20,24 +49,11 @@ impl Attachments {
         self.attachments.len()
     }
 
-    pub fn add(&mut self, attachment: Attachment) -> Uuid {
-        let uuid = Uuid::new_v4();
-        let a = Attachments::check_mime(attachment);
-        self.attachments.insert(uuid, a);
+    pub fn add(&mut self, origin: parsers::Attachment) -> Uuid {
+        let attachment = Attachment::from(origin);
+        let uuid = attachment.uuid;
+        self.attachments.insert(uuid, attachment);
         uuid
-    }
-
-    fn check_mime(mut attachment: Attachment) -> Attachment {
-        if if let Some(mime_str) = attachment.mime.as_ref() {
-            mime_str.parse::<Mime>().is_err()
-        } else {
-            true
-        } {
-            attachment.mime = mime_guess::from_path(&attachment.name)
-                .first()
-                .map(|guess| guess.to_string());
-        }
-        attachment
     }
 }
 
