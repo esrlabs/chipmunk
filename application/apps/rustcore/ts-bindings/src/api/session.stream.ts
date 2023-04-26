@@ -14,7 +14,7 @@ import {
 } from '../interfaces/index';
 import { IRange } from 'platform/types/range';
 import { ObservedSourceLink } from 'platform/types/observe';
-import { IndexingMode } from 'platform/types/content';
+import { Attachment, IndexingMode } from 'platform/types/content';
 
 export { IExtractDTFormatOptions, IExtractDTFormatResult, Observe };
 
@@ -108,6 +108,10 @@ export class SessionStream {
                 return Promise.reject(new Error(`Fail to parse response`));
             }
         });
+    }
+
+    public getAttachments(): Promise<Attachment[]> {
+        return this._session.getAttachments();
     }
 
     public export(dest: string, ranges: IRange[]): ICancelablePromise<boolean> {

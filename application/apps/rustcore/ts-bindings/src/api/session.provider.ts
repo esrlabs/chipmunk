@@ -7,6 +7,7 @@ import {
     SearchValuesResult,
     parseOriginValues,
 } from '../api/executors/session.stream.searchvalues.executor';
+import { IAttachment } from 'platform/types/content';
 
 export interface IProgressState {
     total: number;
@@ -50,6 +51,11 @@ export interface IEventMatchesUpdated {
     matches: IMatchEntity[];
 }
 
+export interface IAttachmentsUpdatedUpdated {
+    len: number;
+    attachment: IAttachment;
+}
+
 export interface ISessionEvents {
     StreamUpdated: Subject<number>;
     FileRead: Subject<void>;
@@ -60,6 +66,7 @@ export interface ISessionEvents {
     IndexedMapUpdated: Subject<IEventIndexedMapUpdated>;
     MatchesUpdated: Subject<IEventMatchesUpdated>;
     Progress: Subject<IProgressEvent>;
+    AttachmentsUpdated: Subject<IAttachmentsUpdatedUpdated>;
     SessionError: Subject<IError>;
     OperationError: Subject<IErrorEvent>;
     SessionDestroyed: Subject<void>;
@@ -82,6 +89,7 @@ interface ISessionEventsSignatures {
     IndexedMapUpdated: 'IndexedMapUpdated';
     MatchesUpdated: 'MatchesUpdated';
     Progress: 'Progress';
+    AttachmentsUpdated: 'AttachmentsUpdated';
     SessionError: 'SessionError';
     OperationError: 'OperationError';
     SessionDestroyed: 'SessionDestroyed';
@@ -99,6 +107,7 @@ const SessionEventsSignatures: ISessionEventsSignatures = {
     MapUpdated: 'MapUpdated',
     IndexedMapUpdated: 'IndexedMapUpdated',
     MatchesUpdated: 'MatchesUpdated',
+    AttachmentsUpdated: 'AttachmentsUpdated',
     Progress: 'Progress',
     SessionError: 'SessionError',
     OperationError: 'OperationError',
@@ -125,6 +134,7 @@ interface ISessionEventsInterfaces {
             { self: 'object'; type: 'string' },
         ];
     };
+    AttachmentsUpdated: { self: 'object'; len: 'number'; attachment: typeof Object };
     SessionError: { self: 'object'; severity: 'string'; message: 'string'; kind: 'string' };
     OperationError: {
         self: 'object';
@@ -154,6 +164,7 @@ const SessionEventsInterfaces: ISessionEventsInterfaces = {
             { self: 'object', type: 'string' },
         ],
     },
+    AttachmentsUpdated: { self: 'object', len: 'number', attachment: Object },
     SessionError: { self: 'object', severity: 'string', message: 'string', kind: 'string' },
     OperationError: {
         self: 'object',
@@ -181,6 +192,7 @@ export class EventProvider extends Computation<
         IndexedMapUpdated: new Subject<IEventIndexedMapUpdated>(),
         MatchesUpdated: new Subject<IEventMatchesUpdated>(), // dummy
         Progress: new Subject<IProgressEvent>(),
+        AttachmentsUpdated: new Subject<IAttachmentsUpdatedUpdated>(),
         SessionError: new Subject<IError>(),
         OperationError: new Subject<IErrorEvent>(),
         SessionDestroyed: new Subject<void>(),

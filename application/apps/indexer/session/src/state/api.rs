@@ -2,11 +2,11 @@ use crate::{
     events::NativeError,
     state::{
         indexes::controller::Mode as IndexesMode, observed::Observed, session_file::GrabbedElement,
-        source_ids::SourceDefinition,
+        source_ids::SourceDefinition, Attachment,
     },
     tracker::OperationTrackerAPI,
 };
-use parsers::Attachment;
+use parsers;
 use processor::{
     grabber::LineRange,
     map::{FilterMatch, FiltersStats, NearestPosition, ScaledDistribution},
@@ -127,7 +127,8 @@ pub enum Api {
     SetDebugMode((bool, oneshot::Sender<()>)),
     NotifyCancelingOperation(Uuid),
     NotifyCanceledOperation(Uuid),
-    AddAttachment(Attachment),
+    AddAttachment(parsers::Attachment),
+    GetAttachments(oneshot::Sender<Vec<Attachment>>),
     Shutdown,
 }
 
@@ -177,6 +178,7 @@ impl Display for Api {
                 Self::NotifyCancelingOperation(_) => "NotifyCancelingOperation",
                 Self::NotifyCanceledOperation(_) => "NotifyCanceledOperation",
                 Self::AddAttachment(_) => "AddAttachment",
+                Self::GetAttachments(_) => "GetAttachments",
                 Self::Shutdown => "Shutdown",
             }
         )
@@ -514,12 +516,15 @@ impl SessionStateAPI {
         })
     }
 
-    pub fn add_attachment(&self, attachment: Attachment) -> Result<(), NativeError> {
-        self.tx_api
-            .send(Api::AddAttachment(attachment))
-            .map_err(|e| {
-                NativeError::channel(&format!("fail to send to Api::AddAttachment; error: {e}",))
-            })
+    pub fn add_attachment(&self, origin: parsers::Attachment) -> Result<(), NativeError> {
+        self.tx_api.send(Api::AddAttachment(origin)).map_err(|e| {
+            NativeError::channel(&format!("fail to send to Api::AddAttachment; error: {e}",))
+        })
+    }
+
+    pub async fn get_attachments(&self) -> Result<Vec<Attachment>, NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GetAttachments(tx), rx).await
     }
 
     pub fn is_closing(&self) -> bool {

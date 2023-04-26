@@ -3,7 +3,7 @@ use crate::{
     operations,
     operations::Operation,
     state,
-    state::{GrabbedElement, IndexesMode, SessionStateAPI, SourceDefinition},
+    state::{Attachment, GrabbedElement, IndexesMode, SessionStateAPI, SourceDefinition},
     tracker,
     tracker::OperationTrackerAPI,
 };
@@ -382,6 +382,13 @@ impl Session {
                 operations::OperationKind::GetNearestPosition(position_in_stream),
             ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
+    }
+
+    pub async fn get_attachments(&self) -> Result<Vec<Attachment>, ComputationError> {
+        self.state
+            .get_attachments()
+            .await
+            .map_err(ComputationError::NativeError)
     }
 
     /// Used for debug goals

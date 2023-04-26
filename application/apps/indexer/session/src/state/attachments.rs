@@ -1,10 +1,10 @@
 use mime_guess;
 use parsers;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::Path};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Attachment {
     pub uuid: Uuid,
     pub filename: String,
@@ -49,11 +49,23 @@ impl Attachments {
         self.attachments.len()
     }
 
-    pub fn add(&mut self, origin: parsers::Attachment) -> Uuid {
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn add(&mut self, origin: parsers::Attachment) -> Attachment {
         let attachment = Attachment::from(origin);
         let uuid = attachment.uuid;
-        self.attachments.insert(uuid, attachment);
-        uuid
+        self.attachments.insert(uuid, attachment.clone());
+        attachment
+    }
+
+    pub fn get(&self) -> Vec<Attachment> {
+        self.attachments
+            .values()
+            .cloned()
+            .collect::<Vec<Attachment>>()
     }
 }
 

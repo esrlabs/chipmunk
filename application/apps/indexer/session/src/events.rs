@@ -1,3 +1,4 @@
+use crate::state::Attachment;
 use crossbeam_channel as cc;
 use indexer_base::progress::{Progress, Severity, Ticks};
 use processor::{grabber::GrabError, search::error::SearchError};
@@ -190,7 +191,7 @@ pub enum CallbackEvent {
      * >> Scope: async operation
      * >> Kind: repeated
      */
-    AttachmentsUpdated { len: u64, uuid: String },
+    AttachmentsUpdated { len: u64, attachment: Attachment },
     /**
      * Triggered on progress of async operation
      * @event Progress: { total: usize, done: usize }
@@ -264,7 +265,9 @@ impl std::fmt::Display for CallbackEvent {
             Self::IndexedMapUpdated { len } => write!(f, "IndexedMapUpdated({len})"),
             Self::SearchMapUpdated(_) => write!(f, "SearchMapUpdated"),
             Self::SearchValuesUpdated(_) => write!(f, "SearchValuesUpdated"),
-            Self::AttachmentsUpdated { len, uuid: _ } => write!(f, "AttachmentsUpdated: {}", len),
+            Self::AttachmentsUpdated { len, attachment: _ } => {
+                write!(f, "AttachmentsUpdated: {}", len)
+            }
             Self::Progress {
                 uuid: _,
                 progress: _,

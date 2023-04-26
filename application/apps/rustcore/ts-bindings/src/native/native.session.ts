@@ -16,8 +16,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { getValidNum } from '../util/numbers';
 import { IRange } from 'platform/types/range';
 import { ObservedSourceLink } from 'platform/types/observe';
-import { IndexingMode } from 'platform/types/content';
-import { Logger } from 'platform/log';
+import { IndexingMode, Attachment } from 'platform/types/content';
+import { Logger, utils } from 'platform/log';
 import { scope } from 'platform/env/scope';
 
 export type RustSessionConstructorImpl<T> = new (
@@ -168,6 +168,8 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract sendIntoSde(targetOperationUuid: string, jsonStrMsg: string): Promise<string>;
 
+    public abstract getAttachments(): Promise<Attachment[]>;
+
     public abstract abort(
         selfOperationUuid: string,
         targetOperationUuid: string,
@@ -273,6 +275,7 @@ export abstract class RustSessionNative {
     ): Promise<number[] | null>;
 
     public abstract sendIntoSde(targetOperationUuid: string, jsonStrMsg: string): Promise<string>;
+    public abstract getAttachments(): Promise<string>;
 
     public abstract abort(
         selfOperationUuid: string,
@@ -1027,6 +1030,34 @@ export class RustSessionWrapper extends RustSession {
                 .then(resolve)
                 .catch((err) => {
                     reject(new NativeError(NativeError.from(err), Type.Other, Source.SendIntoSde));
+                });
+        });
+    }
+
+    public getAttachments(): Promise<Attachment[]> {
+        return new Promise((resolve, reject) => {
+            this._native
+                .getAttachments()
+                .then((str: string) => {
+                    try {
+                        const attachments: Attachment[] = [];
+                        for (const unchecked of JSON.parse(str) as unknown[]) {
+                            const attachment = Attachment.from(unchecked);
+                            if (attachment instanceof Error) {
+                                reject(attachment);
+                                return;
+                            }
+                            attachments.push(attachment);
+                        }
+                        resolve(attachments);
+                    } catch (e) {
+                        reject(new Error(utils.error(e)));
+                    }
+                })
+                .catch((err) => {
+                    reject(
+                        new NativeError(NativeError.from(err), Type.Other, Source.GetAttachments),
+                    );
                 });
         });
     }

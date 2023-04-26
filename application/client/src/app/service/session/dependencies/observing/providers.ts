@@ -1,22 +1,23 @@
+import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Provider, ProviderConstructor } from './provider';
 import { Session } from '@service/session/session';
-import { Logger } from '@platform/log';
 import { Subscriber } from '@platform/env/subscription';
 import { ParserName, Origin } from '@platform/types/observe';
 import { Mutable } from '@platform/types/unity/mutable';
 import { PROVIDERS } from './implementations';
+import { cutUuid } from '@log/index';
 
+@SetupLogger()
 export class Providers extends Subscriber {
     public readonly session!: Session;
-    public readonly logger!: Logger;
 
     public readonly list: Map<string, Provider> = new Map();
 
-    public init(session: Session, logger: Logger) {
+    public init(session: Session) {
+        this.setLoggerName(`Providers: ${cutUuid(session.uuid())}`);
         (this as Mutable<Providers>).session = session;
-        (this as Mutable<Providers>).logger = logger;
         PROVIDERS.forEach((providerConstructor: ProviderConstructor) => {
-            const provider = new providerConstructor(session, logger);
+            const provider = new providerConstructor(session, this.log());
             this.list.set(provider.uuid, provider.setPanels());
         });
         this.register(
@@ -102,3 +103,4 @@ export class Providers extends Subscriber {
         });
     }
 }
+export interface Providers extends LoggerInterface {}

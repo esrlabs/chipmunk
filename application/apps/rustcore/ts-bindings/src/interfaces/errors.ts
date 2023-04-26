@@ -31,6 +31,7 @@ export enum Source {
     GetOperationsStat = 'GetOperationsStat',
     SetDebug = 'SetDebug',
     SendIntoSde = 'SendIntoSde',
+    GetAttachments = 'GetAttachments',
     Concat = 'Concat',
     Merge = 'Merge',
     Extract = 'Extract',
