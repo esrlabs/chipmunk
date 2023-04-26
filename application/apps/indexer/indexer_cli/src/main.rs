@@ -46,7 +46,7 @@ use indexer_base::{
 use indicatif::{ProgressBar, ProgressStyle};
 use merging::merger::merge_files_use_config_file;
 use parsers::{
-    dlt::{DltParser, DltRangeParser},
+    dlt::{attachment::FileExtractor, DltParser, DltRangeParser},
     someip::SomeipParser,
     text::StringTokenizer,
     LogMessage, MessageStreamItem, ParseYield,
@@ -56,7 +56,6 @@ use processor::{
     grabber::{GrabError, Grabber},
     text_source::TextFileSource,
 };
-use parsers::dlt::attachment::FileExtractor;
 use sources::{
     pcap::file::{
         convert_from_pcapng, create_index_and_mapping_from_pcapng, print_from_pcapng,
@@ -1127,7 +1126,6 @@ pub async fn main() -> Result<()> {
                 }
 
                 let size = extract_dlt_ft(
-                    &file_path,
                     Path::new(&output_dir),
                     FileExtractor::files_with_names(selected_files),
                     CancellationToken::new(),
@@ -1150,7 +1148,6 @@ pub async fn main() -> Result<()> {
 
             println!("extract files..");
             let size = extract_dlt_ft(
-                &file_path,
                 Path::new(&output_dir),
                 FileExtractor::files_with_names_prefixed(files),
                 CancellationToken::new(),
@@ -1954,10 +1951,9 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
 
                         item_count += 1
                     }
-                    Some((
-                        _rest,
-                        MessageStreamItem::Item(ParseYield::Attachment(_attachment)),
-                    )) => attachment_count += 1,
+                    Some((_rest, MessageStreamItem::Item(ParseYield::Attachment(_attachment)))) => {
+                        attachment_count += 1
+                    }
                     Some((_, MessageStreamItem::Skipped)) => skipped_count += 1,
                     Some((_, MessageStreamItem::Incomplete)) => err_count += 1,
                     Some((_, MessageStreamItem::Empty)) => err_count += 1,

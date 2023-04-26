@@ -16,14 +16,11 @@ extern crate log;
 
 use dlt_core::filtering::DltFilterConfig;
 use futures::pin_mut;
-use parsers::{
-    dlt::{attachment::FileExtractor, DltParser},
-    Attachment, MessageStreamItem, ParseYield,
-};
+use parsers::{dlt::DltParser, Attachment, MessageStreamItem, ParseYield};
 use sources::{producer::MessageProducer, raw::binary::BinaryByteSource};
 use std::{
     fs::File,
-    io::BufReader,
+    io::{BufReader, BufWriter, Write},
     path::{Path, PathBuf},
 };
 use tokio_util::sync::CancellationToken;
@@ -81,7 +78,6 @@ pub async fn scan_dlt_ft(
 }
 
 pub fn extract_dlt_ft(
-    input: &Path,
     output: &Path,
     files_with_names: Vec<(Attachment, String)>,
     cancel: CancellationToken,
@@ -95,14 +91,14 @@ pub fn extract_dlt_ft(
             canceled = true;
             break;
         }
-        match FileExtractor::extract(input, &output.join(name), file.chunks.clone()) {
-            Ok(size) => {
-                result += size;
-            }
-            Err(error) => {
-                return Err(format!("failed after {result} bytes: {error}"));
-            }
-        }
+
+        let mut out = BufWriter::new(
+            File::create(&output.join(name)).map_err(|e| format!("Error opening file: {e}"))?,
+        );
+
+        out.write_all(&file.data)
+            .map_err(|e| format!("Failed to write attachement data: {e}"))?;
+        result += file.data.len();
     }
 
     if canceled {
@@ -114,7 +110,7 @@ pub fn extract_dlt_ft(
 
 #[cfg(test)]
 mod tests {
-    use parsers::dlt::attachment::TempDir;
+    use parsers::dlt::attachment::{FileExtractor, TempDir};
 
     use super::*;
     use std::path::Path;
@@ -187,11 +183,9 @@ mod tests {
         let output = TempDir::new();
 
         let cancel = CancellationToken::new();
-        match scan_dlt_ft(input.clone(), None, true, cancel).await {
+        match scan_dlt_ft(input.clone(), None, true, cancel.clone()).await {
             Ok(files) => {
-                let cancel = CancellationToken::new();
                 match extract_dlt_ft(
-                    &input,
                     &output.dir,
                     FileExtractor::files_with_names_prefixed(files),
                     cancel,
@@ -224,12 +218,7 @@ mod tests {
             Ok(files) => {
                 let cancel = CancellationToken::new();
                 cancel.cancel();
-                match extract_dlt_ft(
-                    &input,
-                    &output.dir,
-                    FileExtractor::files_with_names(files),
-                    cancel,
-                ) {
+                match extract_dlt_ft(&output.dir, FileExtractor::files_with_names(files), cancel) {
                     Ok(size) => {
                         assert_eq!(size, 0);
                     }
@@ -262,12 +251,7 @@ mod tests {
         match scan_dlt_ft(input.clone(), Some(filter), true, cancel).await {
             Ok(files) => {
                 let cancel = CancellationToken::new();
-                match extract_dlt_ft(
-                    &input,
-                    &output.dir,
-                    FileExtractor::files_with_names(files),
-                    cancel,
-                ) {
+                match extract_dlt_ft(&output.dir, FileExtractor::files_with_names(files), cancel) {
                     Ok(size) => {
                         assert_eq!(size, 6);
                     }
@@ -294,7 +278,6 @@ mod tests {
             Ok(files) => {
                 let cancel = CancellationToken::new();
                 match extract_dlt_ft(
-                    &input,
                     &output.dir,
                     FileExtractor::files_with_names(vec![files.get(1).unwrap().clone()]),
                     cancel,
@@ -333,12 +316,7 @@ mod tests {
         match scan_dlt_ft(input.clone(), Some(filter), true, cancel).await {
             Ok(files) => {
                 let cancel = CancellationToken::new();
-                match extract_dlt_ft(
-                    &input,
-                    &output.dir,
-                    FileExtractor::files_with_names(files),
-                    cancel,
-                ) {
+                match extract_dlt_ft(&output.dir, FileExtractor::files_with_names(files), cancel) {
                     Ok(size) => {
                         assert_eq!(size, 6);
                     }

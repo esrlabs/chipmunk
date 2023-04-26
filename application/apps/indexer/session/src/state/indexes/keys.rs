@@ -190,10 +190,7 @@ mod test {
         keys.add(7);
         keys.sort();
         assert_eq!(
-            keys.remove_ranges(&vec![
-                RangeInclusive::new(11, 15),
-                RangeInclusive::new(100, 105),
-            ]),
+            keys.remove_ranges(&[RangeInclusive::new(11, 15), RangeInclusive::new(100, 105)]),
             Ok(())
         );
         assert_eq!(keys.keys.len(), 1);
