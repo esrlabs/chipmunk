@@ -671,6 +671,28 @@ impl RustSession {
     }
 
     #[node_bindgen]
+    async fn get_attachments(&self) -> Result<String, ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            let attachments = session
+                .state
+                .get_attachments()
+                .await
+                .map_err(|e: NativeError| {
+                    <ComputationError as Into<ComputationErrorWrapper>>::into(
+                        ComputationError::NativeError(e),
+                    )
+                })?;
+            Ok(serde_json::to_string(&attachments).map_err(|e| {
+                ComputationErrorWrapper(ComputationError::IoOperation(e.to_string()))
+            })?)
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
     async fn set_debug(&self, debug: bool) -> Result<(), ComputationErrorWrapper> {
         if let Some(ref session) = self.session {
             session

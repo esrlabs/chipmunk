@@ -94,6 +94,20 @@ export const handler = Requests.InjectLogger<
                             }),
                     );
                     subscriber.register(
+                        session.getEvents().AttachmentsUpdated.subscribe((event) => {
+                            if (!sessions.exists(uuid)) {
+                                return;
+                            }
+                            Events.IpcEvent.emit(
+                                new Events.Stream.Attachment.Event({
+                                    session: uuid,
+                                    len: event.len,
+                                    attachment: event.attachment,
+                                }),
+                            );
+                        }),
+                    );
+                    subscriber.register(
                         session.getEvents().FileRead.subscribe(() => {
                             if (!sessions.exists(uuid)) {
                                 return;

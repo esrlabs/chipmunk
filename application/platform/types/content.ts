@@ -1,3 +1,7 @@
+import { error } from '../log/utils';
+
+import * as obj from '../env/obj';
+
 export interface IGrabbedContent {
     grabbed_elements: IGrabbedElement[];
 }
@@ -80,5 +84,54 @@ export class Nature {
             types.push(NatureTypes.BreadcrumbSeporator);
         }
         return types;
+    }
+}
+
+export interface IAttachment {
+    uuid: string;
+    filename: string;
+    name: string;
+    ext: string | undefined;
+    size: number;
+    mime: string | undefined;
+    messages: number[];
+}
+
+export class Attachment {
+    public readonly uuid: string;
+    public readonly filename: string;
+    public readonly name: string;
+    public readonly ext: string | undefined;
+    public readonly size: number;
+    public readonly mime: string | undefined;
+    public readonly messages: number[];
+
+    static from(smth: string | unknown): Attachment | Error {
+        try {
+            if (typeof smth === 'string') {
+                smth = JSON.parse(smth);
+            }
+            return new Attachment({
+                uuid: obj.getAsString(smth, 'uuid'),
+                filename: obj.getAsString(smth, 'filename'),
+                name: obj.getAsString(smth, 'name'),
+                ext: obj.getAsNotEmptyString(smth, 'ext'),
+                size: obj.getAsValidNumber(smth, 'size'),
+                mime: obj.getAsNotEmptyString(smth, 'mime'),
+                messages: obj.getAsArray(smth, 'messages'),
+            });
+        } catch (e) {
+            return new Error(error(e));
+        }
+    }
+
+    constructor(attachment: IAttachment) {
+        this.uuid = attachment.uuid;
+        this.filename = attachment.filename;
+        this.name = attachment.name;
+        this.ext = attachment.ext;
+        this.size = attachment.size;
+        this.mime = attachment.mime;
+        this.messages = attachment.messages;
     }
 }

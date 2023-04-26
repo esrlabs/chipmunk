@@ -13,6 +13,7 @@ import { Bookmarks } from './dependencies/bookmarks';
 import { Exporter } from './dependencies/exporter';
 import { IRange, fromIndexes } from '@platform/types/range';
 import { Providers } from './dependencies/observing/providers';
+import { Attachments } from './dependencies/attachments';
 
 import * as ids from '@schema/ids';
 import * as Requests from '@platform/ipc/request';
@@ -30,6 +31,7 @@ export class Session extends Base {
     public readonly exporter: Exporter = new Exporter();
     public readonly render: Render<unknown>;
     public readonly observed: Providers = new Providers();
+    public readonly attachments: Attachments = new Attachments();
 
     private _uuid!: string;
     private _tab!: ITabAPI;
@@ -137,7 +139,8 @@ export class Session extends Base {
                     this.bookmarks.init(this._uuid, this.cursor);
                     this.search.init(this._uuid);
                     this.exporter.init(this._uuid, this.stream, this.search);
-                    this.observed.init(this, this.log());
+                    this.observed.init(this);
+                    this.attachments.init(this._uuid);
                     this.inited = true;
                     resolve(this._uuid);
                 })

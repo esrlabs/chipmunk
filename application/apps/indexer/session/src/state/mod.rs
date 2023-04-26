@@ -1,7 +1,7 @@
 use crate::events::{CallbackEvent, NativeError, NativeErrorKind};
 use indexer_base::progress::Severity;
 use log::{debug, error};
-use parsers::Attachment;
+use parsers;
 use processor::{
     grabber::LineRange,
     map::SearchMap,
@@ -27,7 +27,7 @@ mod session_file;
 mod source_ids;
 
 pub use api::{Api, SessionStateAPI};
-use attachments::Attachments;
+pub use attachments::{Attachment, Attachments};
 pub use indexes::{
     controller::{Controller as Indexes, Mode as IndexesMode},
     frame::Frame,
@@ -345,13 +345,13 @@ impl SessionState {
 
     fn handle_add_attachment(
         &mut self,
-        attachment: Attachment,
+        origin: parsers::Attachment,
         tx_callback_events: UnboundedSender<CallbackEvent>,
     ) -> Result<(), NativeError> {
-        let uuid = self.attachments.add(attachment);
+        let attachment = self.attachments.add(origin);
         tx_callback_events.send(CallbackEvent::AttachmentsUpdated {
             len: self.attachments.len() as u64,
-            uuid: uuid.to_string(),
+            attachment,
         })?;
         Ok(())
     }
@@ -680,6 +680,11 @@ pub async fn run(
             }
             Api::AddAttachment(attachment) => {
                 state.handle_add_attachment(attachment, tx_callback_events.clone())?;
+            }
+            Api::GetAttachments(tx_response) => {
+                tx_response.send(state.attachments.get()).map_err(|_| {
+                    NativeError::channel("Failed to respond to Api::GetAttachments")
+                })?;
             }
             Api::Shutdown => {
                 state_cancellation_token.cancel();
