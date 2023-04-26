@@ -1,8 +1,12 @@
-use std::{io::BufWriter, path::Path};
+use std::{
+    fs::File,
+    io::{BufWriter, Write},
+    path::Path,
+};
 
 use futures::StreamExt;
 use indexer_base::config::IndexSection;
-use parsers::{LogMessage, MessageStreamItem, ParseYield};
+use parsers::{Attachment, LogMessage, MessageStreamItem, ParseYield};
 use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 
@@ -59,6 +63,7 @@ where
     } else {
         std::fs::File::create(destination_path)?
     };
+    let out_folder = destination_path.parent();
     let mut out_writer = BufWriter::new(out_file);
     let mut section_index = 0usize;
     let mut current_index = 0usize;
@@ -76,13 +81,13 @@ where
                     msg.to_writer(&mut out_writer)?;
                     exported += 1;
                 }
-                MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _attachment))) => {
+                MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, attachment))) => {
                     msg.to_writer(&mut out_writer)?;
+                    store_attachment(out_folder, &attachment)?;
                     exported += 1;
-                    // TODO @kevin: use attachment
                 }
-                MessageStreamItem::Item(ParseYield::Attachment(_attachment)) => {
-                    // TODO @kevin: use attachment
+                MessageStreamItem::Item(ParseYield::Attachment(attachment)) => {
+                    store_attachment(out_folder, &attachment)?;
                 }
                 MessageStreamItem::Skipped => {}
                 MessageStreamItem::Incomplete => {}
@@ -123,13 +128,18 @@ where
                 }
                 current_index += 1;
             }
-            MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _attachment))) => {
+            MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, attachment))) => {
                 if inside {
                     msg.to_writer(&mut out_writer)?;
+                    store_attachment(out_folder, &attachment)?;
                 }
                 current_index += 1;
             }
-            MessageStreamItem::Item(ParseYield::Attachment(_attachment)) => {}
+            MessageStreamItem::Item(ParseYield::Attachment(attachment)) => {
+                if inside {
+                    store_attachment(out_folder, &attachment)?;
+                }
+            }
             MessageStreamItem::Skipped => {}
             MessageStreamItem::Incomplete => {}
             MessageStreamItem::Empty => {}
@@ -157,6 +167,22 @@ where
     }
     debug!("export_raw done ({current_index} messages)");
     Ok(current_index)
+}
+
+fn store_attachment(out_folder: Option<&Path>, attachment: &Attachment) -> Result<(), ExportError> {
+    if let Some(out_folder) = out_folder {
+        let attachment_path = out_folder.join(&attachment.name);
+        if !attachment_path.exists() {
+            let mut attachment_file = File::create(&attachment_path)?;
+            attachment_file.write_all(&attachment.data)?;
+        } else {
+            warn!(
+                "Could not store attachment {}, path already exists",
+                attachment.name
+            );
+        }
+    }
+    Ok(())
 }
 
 fn sections_valid(sections: &[IndexSection]) -> bool {

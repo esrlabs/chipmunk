@@ -1,18 +1,11 @@
 use dlt_core::dlt::{Argument, LogLevel, Message, MessageType, PayloadContent, Value};
-use std::{
-    collections::HashMap,
-    fs::File,
-    io::{Read, Seek, SeekFrom, Write},
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, path::PathBuf};
 
 use crate::Attachment;
 
 const FT_START_TAG: &str = "FLST";
 const FT_DATA_TAG: &str = "FLDA";
 const FT_END_TAG: &str = "FLFI";
-
-const FT_DATA_HEADER_SIZE: usize = 49;
 
 /// List of DLT-FT messages.
 #[derive(Debug, PartialEq, Eq)]
@@ -250,7 +243,7 @@ impl FtScanner {
     ///
     /// * `offset` - The offset of the message in the original DLT trace.
     /// * `message` - The message to be processed.
-    pub fn process(&mut self, offset: usize, message: &Message) -> Option<Attachment> {
+    pub fn process(&mut self, message: &Message) -> Option<Attachment> {
         self.index += 1;
         if let Some(ft_message) = FtMessageParser::parse(message) {
             match ft_message {
@@ -265,7 +258,7 @@ impl FtScanner {
                             created_date: Some(ft_start.created),
                             modified_date: None,
                             messages: vec![self.index],
-                            chunks: Vec::new(),
+                            data: Vec::new(),
                         },
                     );
                     None
@@ -273,11 +266,7 @@ impl FtScanner {
                 FtMessage::Data(ft_data) => {
                     if let Some(mut ft_file) = self.files.remove(&ft_data.id) {
                         ft_file.messages.push(self.index);
-                        let header_len: usize =
-                            (message.byte_len() - message.header.payload_length) as usize;
-                        let chunk_offset = offset + header_len + FT_DATA_HEADER_SIZE;
-                        let chunk_size = ft_data.bytes.len();
-                        ft_file.chunks.push((chunk_offset, chunk_size));
+                        ft_file.data.extend_from_slice(ft_data.bytes);
                         self.files.insert(ft_data.id, ft_file);
                     }
                     None
@@ -307,50 +296,6 @@ impl Default for FtScanner {
 pub struct FileExtractor;
 
 impl FileExtractor {
-    /// Extracts data chunks from a file and returns the total size of bytes being extracted or and error.
-    ///
-    /// # Arguments
-    ///
-    /// * `origin` - The origin file to extract from.
-    /// * `destination` - The destination file to extract to.
-    /// * `chunks` - The data chunks with byte offset and length to extract.
-    pub fn extract(
-        origin: &Path,
-        destination: &Path,
-        chunks: Vec<(usize, usize)>,
-    ) -> Result<usize, String> {
-        let mut bytes: usize = 0;
-
-        match File::open(origin) {
-            Ok(mut input) => match File::create(destination) {
-                Ok(mut output) => {
-                    for (offset, size) in chunks {
-                        let mut buffer: Vec<u8> = vec![0; size];
-                        if let Err(error) = input.seek(SeekFrom::Start(offset as u64)) {
-                            return Err(format!("{error}"));
-                        }
-                        if let Err(error) = input.read_exact(&mut buffer) {
-                            return Err(format!("{error}"));
-                        }
-                        if let Err(error) = output.write_all(&buffer) {
-                            return Err(format!("{error}"));
-                        }
-
-                        bytes += size;
-                    }
-                }
-                Err(error) => {
-                    return Err(format!("failed to create file: {error}"));
-                }
-            },
-            Err(error) => {
-                return Err(format!("failed to open file: {error}"));
-            }
-        }
-
-        Ok(bytes)
-    }
-
     /// Returns the list of files with their file-system save names.
     pub fn files_with_names(files: Vec<Attachment>) -> Vec<(Attachment, String)> {
         let names: Vec<String> = files
@@ -382,6 +327,9 @@ impl FileExtractor {
 #[allow(clippy::get_first)]
 #[cfg(test)]
 pub mod tests {
+
+    use std::{fs::File, io::Write};
+
     use super::*;
     use dlt_core::dlt::*;
 
@@ -598,13 +546,11 @@ pub mod tests {
 
     fn scan_messages(messages: &[Message]) -> Vec<Attachment> {
         let mut scanner = FtScanner::new();
-        let mut offset: usize = 0;
         let mut result_vec = vec![];
         for message in messages {
-            if let Some(attachment) = scanner.process(offset, message) {
+            if let Some(attachment) = scanner.process(message) {
                 result_vec.push(attachment);
             }
-            offset += DLT_HEADER_SIZE + message.as_bytes().len();
         }
         result_vec
     }
@@ -658,7 +604,7 @@ pub mod tests {
         assert_eq!(file.name, String::from("test.txt"));
         assert_eq!(file.size, 4);
         assert_eq!(file.messages, vec![1, 2, 3]);
-        assert_eq!(file.chunks, vec![(181, 4)]);
+        assert_eq!(file.data, vec![0x74, 0x65, 0x73, 0x74]);
     }
 
     #[test]
@@ -678,7 +624,13 @@ pub mod tests {
         assert_eq!(file.name, String::from("test.txt"));
         assert_eq!(file.size, 26);
         assert_eq!(file.messages, vec![1, 2, 3, 4, 5]);
-        assert_eq!(file.chunks, vec![(181, 10), (269, 10), (357, 6)]);
+        assert_eq!(
+            file.data,
+            vec![
+                0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e,
+                0x6f, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a
+            ]
+        );
     }
 
     #[test]
@@ -691,27 +643,24 @@ pub mod tests {
 
         let file = index.get(0).unwrap();
         assert!(file.created_date.is_some());
-        // assert_eq!(file.id, ids[0]);
         assert_eq!(file.name, String::from("test1.txt"));
         assert_eq!(file.size, 5);
         assert_eq!(file.messages, vec![1, 3, 7]);
-        assert_eq!(file.chunks, vec![(297, 5)]);
+        assert_eq!(file.data, vec![0x74, 0x65, 0x73, 0x74, 0x31]);
 
         let file = index.get(1).unwrap();
         assert!(file.created_date.is_some());
-        // assert_eq!(file.id, ids[1]);
         assert_eq!(file.name, String::from("test2.txt"));
         assert_eq!(file.size, 6);
         assert_eq!(file.messages, vec![2, 4, 8]);
-        assert_eq!(file.chunks, vec![(380, 6)]);
+        assert_eq!(file.data, vec![0x74, 0x65, 0x73, 0x74, 0x32, 0x32]);
 
         let file = index.get(2).unwrap();
         assert!(file.created_date.is_some());
-        // assert_eq!(file.id, ids[2]);
         assert_eq!(file.name, String::from("test3.txt"));
         assert_eq!(file.size, 7);
         assert_eq!(file.messages, vec![5, 6, 9]);
-        assert_eq!(file.chunks, vec![(579, 7)]);
+        assert_eq!(file.data, vec![0x74, 0x65, 0x73, 0x74, 0x33, 0x33, 0x33]);
     }
 
     #[test]
@@ -722,7 +671,7 @@ pub mod tests {
         assert_eq!(3, messages.len());
 
         let dlt = output.dir.join("sample.dlt");
-        write_dlt_file(dlt.clone(), &messages);
+        write_dlt_file(dlt, &messages);
 
         let file = Attachment {
             name: "test.txt".to_string(),
@@ -730,13 +679,11 @@ pub mod tests {
             created_date: Some("date".to_string()),
             modified_date: None,
             messages: vec![1, 2, 3],
-            chunks: vec![(181, 4)],
+            data: vec![0x74, 0x65, 0x73, 0x74],
         };
 
-        let size = FileExtractor::extract(&dlt, &output.dir.join(&file.name), file.chunks).unwrap();
+        let size = file.data.len();
         assert_eq!(file.size, size);
-
-        output.assert_file(&file.name, "test");
     }
 
     #[test]
@@ -752,7 +699,7 @@ pub mod tests {
         assert_eq!(5, messages.len());
 
         let dlt = output.dir.join("sample.dlt");
-        write_dlt_file(dlt.clone(), &messages);
+        write_dlt_file(dlt, &messages);
 
         let file = Attachment {
             name: "test.txt".to_string(),
@@ -760,13 +707,14 @@ pub mod tests {
             created_date: Some("date".to_string()),
             modified_date: None,
             messages: vec![1, 2, 3, 4, 5],
-            chunks: vec![(181, 10), (269, 10), (357, 6)],
+            data: vec![
+                0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e,
+                0x6f, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a,
+            ],
         };
 
-        let size = FileExtractor::extract(&dlt, &output.dir.join(&file.name), file.chunks).unwrap();
+        let size = file.data.len();
         assert_eq!(file.size, size);
-
-        output.assert_file(&file.name, "abcdefghijklmnopqrstuvwxyz");
     }
 
     #[test]

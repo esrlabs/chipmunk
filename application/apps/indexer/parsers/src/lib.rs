@@ -54,8 +54,7 @@ pub struct Attachment {
     pub modified_date: Option<String>,
     /// The message indexes (1-based) within the original trace.
     pub messages: Vec<usize>,
-    /// The data chunks with byte offset and length within the original trace.
-    pub chunks: Vec<(usize, usize)>,
+    pub data: Vec<u8>,
 }
 
 pub trait Collector<T> {

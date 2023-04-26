@@ -129,7 +129,7 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
                 Err(Error::Parse("Invalid parse".to_owned()))
             }
             (rest, dlt_core::parse::ParsedMessage::Item(i)) => {
-                let attachment = self.ft_scanner.process(self.offset, &i);
+                let attachment = self.ft_scanner.process(&i);
                 let msg_with_storage_header = if i.storage_header.is_some() {
                     i
                 } else {
