@@ -6,7 +6,7 @@ use crate::{
 };
 use indexer_base::progress::Severity;
 use log::{debug, error, warn};
-use merging::{concatenator::ConcatenatorInput, merger::FileMergeOptions};
+use merging::merger::FileMergeOptions;
 use processor::search::filter::SearchFilter;
 use serde::Serialize;
 use sources::{
@@ -102,12 +102,6 @@ pub enum OperationKind {
         dataset_len: u16,
         range: Option<(u64, u64)>,
     },
-    Concat {
-        files: Vec<ConcatenatorInput>,
-        out_path: PathBuf,
-        append: bool,
-        source_id: String,
-    },
     Merge {
         files: Vec<FileMergeOptions>,
         out_path: PathBuf,
@@ -135,7 +129,6 @@ impl std::fmt::Display for OperationKind {
                 OperationKind::ExportRaw { .. } => "Exporting as Raw",
                 OperationKind::Extract { .. } => "Extracting",
                 OperationKind::Map { .. } => "Mapping",
-                OperationKind::Concat { .. } => "Concating",
                 OperationKind::Merge { .. } => "Merging",
                 OperationKind::Sleep(_) => "Sleeping",
                 OperationKind::Cancel { .. } => "Canceling",
@@ -361,19 +354,6 @@ impl OperationAPI {
                                 .await;
                         }
                     }
-                }
-                OperationKind::Concat {
-                    files,
-                    out_path,
-                    append,
-                    source_id,
-                } => {
-                    api.finish(
-                        handlers::concat::handle(&api, files, &out_path, append, source_id, state)
-                            .await,
-                        operation_str,
-                    )
-                    .await;
                 }
                 OperationKind::Merge {
                     files,
