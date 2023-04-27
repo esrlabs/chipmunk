@@ -7,6 +7,8 @@ use std::collections::HashMap;
 use thiserror::Error;
 use uuid::Uuid;
 
+use crate::state::attachments::AttachmentsError;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum NativeErrorKind {
     /// The file in question does not exist
@@ -36,6 +38,16 @@ impl NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::ChannelError,
             message: Some(String::from(msg)),
+        }
+    }
+}
+
+impl From<AttachmentsError> for NativeError {
+    fn from(err: AttachmentsError) -> Self {
+        NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Io,
+            message: Some(err.to_string()),
         }
     }
 }

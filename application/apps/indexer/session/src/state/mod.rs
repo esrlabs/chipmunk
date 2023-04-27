@@ -1,4 +1,7 @@
-use crate::events::{CallbackEvent, NativeError, NativeErrorKind};
+use crate::{
+    events::{CallbackEvent, NativeError, NativeErrorKind},
+    paths,
+};
 use indexer_base::progress::Severity;
 use log::{debug, error};
 use parsers;
@@ -19,7 +22,7 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 mod api;
-mod attachments;
+pub(crate) mod attachments;
 mod indexes;
 mod observed;
 mod searchers;
@@ -348,7 +351,8 @@ impl SessionState {
         origin: parsers::Attachment,
         tx_callback_events: UnboundedSender<CallbackEvent>,
     ) -> Result<(), NativeError> {
-        let attachment = self.attachments.add(origin);
+        let session_file_dir = paths::get_streams_dir()?;
+        let attachment = self.attachments.add(origin, &session_file_dir)?;
         tx_callback_events.send(CallbackEvent::AttachmentsUpdated {
             len: self.attachments.len() as u64,
             attachment,

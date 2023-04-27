@@ -458,7 +458,7 @@ pub async fn convert_from_pcapng<
     index_from_message_stream(total, cancel, msg_stream, output).await
 }
 
-pub async fn index_from_message_stream<T, S, O>(
+async fn index_from_message_stream<T, S, O>(
     total: u64,
     cancel: CancellationToken,
     mut pcap_msg_producer: S,
