@@ -11,7 +11,7 @@ use sources::{
     producer::SdeReceiver,
 };
 
-pub async fn handle(
+pub async fn start_observing(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     options: ObserveOptions,
@@ -22,7 +22,8 @@ pub async fn handle(
     }
     match &options.origin {
         ObserveOrigin::File(uuid, filename) => {
-            observing::file::listen(operation_api, state, uuid, filename, &options.parser).await
+            observing::file::observe_file(operation_api, state, uuid, filename, &options.parser)
+                .await
         }
         ObserveOrigin::Concat(files) => {
             if files.is_empty() {
@@ -32,11 +33,11 @@ pub async fn handle(
                     message: Some(String::from("No files are defined for Concat operation")),
                 })
             } else {
-                observing::concat::listen(operation_api, state, files, &options.parser).await
+                observing::concat::concat_files(operation_api, state, files, &options.parser).await
             }
         }
         ObserveOrigin::Stream(uuid, transport) => {
-            observing::stream::listen(
+            observing::stream::observe_stream(
                 operation_api,
                 state,
                 uuid,

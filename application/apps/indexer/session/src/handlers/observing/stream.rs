@@ -13,7 +13,7 @@ use sources::{
     socket::{tcp::TcpSource, udp::UdpSource},
 };
 
-pub async fn listen<'a>(
+pub async fn observe_stream<'a>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     uuid: &str,
@@ -31,7 +31,7 @@ pub async fn listen<'a>(
                     kind: NativeErrorKind::Interrupted,
                     message: Some(format!("{e}")),
                 })?;
-            observing::run(
+            observing::run_source(
                 operation_api,
                 state,
                 udp_source,
@@ -50,7 +50,7 @@ pub async fn listen<'a>(
                     kind: NativeErrorKind::Interrupted,
                     message: Some(format!("{e}")),
                 })?;
-            observing::run(
+            observing::run_source(
                 operation_api,
                 state,
                 tcp_source,
@@ -67,7 +67,7 @@ pub async fn listen<'a>(
                 kind: NativeErrorKind::Interrupted,
                 message: Some(format!("{e}")),
             })?;
-            observing::run(
+            observing::run_source(
                 operation_api,
                 state,
                 serial_source,
@@ -90,7 +90,7 @@ pub async fn listen<'a>(
                 kind: NativeErrorKind::Interrupted,
                 message: Some(format!("{e}")),
             })?;
-            observing::run(
+            observing::run_source(
                 operation_api,
                 state,
                 process_source,

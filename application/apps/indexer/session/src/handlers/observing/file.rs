@@ -13,7 +13,7 @@ use tokio::{
 };
 
 #[allow(clippy::type_complexity)]
-pub async fn listen<'a>(
+pub async fn observe_file<'a>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     uuid: &str,
@@ -69,7 +69,7 @@ pub async fn listen<'a>(
             let source = BinaryByteSource::new(input_file(filename)?);
             let (_, listening) = join!(
                 tail::track(filename, tx_tail, operation_api.cancellation_token()),
-                super::run(
+                super::run_source(
                     operation_api,
                     state,
                     source,
@@ -85,7 +85,7 @@ pub async fn listen<'a>(
             let source = PcapngByteSource::new(input_file(filename)?)?;
             let (_, listening) = join!(
                 tail::track(filename, tx_tail, operation_api.cancellation_token()),
-                super::run(
+                super::run_source(
                     operation_api,
                     state,
                     source,
@@ -101,7 +101,7 @@ pub async fn listen<'a>(
             let source = BinaryByteSource::new(input_file(filename)?);
             let (_, listening) = join!(
                 tail::track(filename, tx_tail, operation_api.cancellation_token()),
-                super::run(
+                super::run_source(
                     operation_api,
                     state,
                     source,

@@ -1,4 +1,4 @@
-use super::{observed::Observed, source_ids::SourceIDs};
+use super::source_ids::SourceIDs;
 use crate::{
     events::{NativeError, NativeErrorKind},
     paths,
@@ -53,7 +53,6 @@ pub struct SessionFile {
     pub writer: Option<BufWriter<File>>,
     pub last_message_timestamp: Instant,
     pub sources: SourceIDs,
-    pub observing: Observed,
 }
 
 impl SessionFile {
@@ -64,7 +63,6 @@ impl SessionFile {
             writer: None,
             last_message_timestamp: Instant::now(),
             sources: SourceIDs::new(),
-            observing: Observed::new(),
         }
     }
 

@@ -33,7 +33,7 @@ pub mod stream;
 
 pub const FLUSH_TIMEOUT_IN_MS: u128 = 500;
 
-pub async fn run<S: ByteSource>(
+pub async fn run_source<S: ByteSource>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     source: S,
@@ -50,7 +50,7 @@ pub async fn run<S: ByteSource>(
         }),
         ParserType::Text => {
             let producer = MessageProducer::new(StringTokenizer {}, source, rx_sde);
-            listen(operation_api, state, source_id, producer, rx_tail).await
+            run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
         ParserType::Pcap(settings) => {
             let parser = DltParser::new(
@@ -59,7 +59,7 @@ pub async fn run<S: ByteSource>(
                 settings.dlt.with_storage_header,
             );
             let producer = MessageProducer::new(parser, source, rx_sde);
-            listen(operation_api, state, source_id, producer, rx_tail).await
+            run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
         ParserType::Dlt(settings) => {
             let dlt_parser = DltParser::new(
@@ -68,12 +68,12 @@ pub async fn run<S: ByteSource>(
                 settings.with_storage_header,
             );
             let producer = MessageProducer::new(dlt_parser, source, rx_sde);
-            listen(operation_api, state, source_id, producer, rx_tail).await
+            run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
     }
 }
 
-pub async fn listen<T: LogMessage, P: Parser<T>, S: ByteSource>(
+async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     source_id: u8,
