@@ -295,35 +295,45 @@ impl OperationAPI {
             match operation.kind {
                 OperationKind::Observe(options) => {
                     api.finish(
-                        handlers::observe::handle(api.clone(), state, options, rx_sde).await,
+                        handlers::observe::start_observing(api.clone(), state, options, rx_sde)
+                            .await,
                         operation_str,
                     )
                     .await;
                 }
                 OperationKind::Search { filters } => {
                     api.finish(
-                        handlers::search::handle(&api, filters, state).await,
+                        handlers::search::execute_search(&api, filters, state).await,
                         operation_str,
                     )
                     .await;
                 }
                 OperationKind::SearchValues { filters } => {
                     api.finish(
-                        handlers::search_values::handle(&api, filters, state).await,
+                        handlers::search_values::execute_value_search(&api, filters, state).await,
                         operation_str,
                     )
                     .await;
                 }
                 OperationKind::Export { out_path, ranges } => {
                     api.finish(
-                        handlers::export::handle(&api, state, out_path, ranges).await,
+                        Ok(state
+                            .export_session(out_path, ranges, api.cancellation_token())
+                            .await
+                            .ok()),
                         operation_str,
                     )
                     .await;
                 }
                 OperationKind::ExportRaw { out_path, ranges } => {
                     api.finish(
-                        handlers::export_raw::handle(&api, state, out_path, ranges).await,
+                        handlers::export_raw::execute_export(
+                            &api.cancellation_token(),
+                            state,
+                            out_path,
+                            ranges,
+                        )
+                        .await,
                         operation_str,
                     )
                     .await;

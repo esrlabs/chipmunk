@@ -28,7 +28,7 @@ type SearchResultChannel = (
 );
 
 #[allow(clippy::type_complexity)]
-pub async fn handle(
+pub async fn execute_search(
     operation_api: &OperationAPI,
     filters: Vec<SearchFilter>,
     state: SessionStateAPI,

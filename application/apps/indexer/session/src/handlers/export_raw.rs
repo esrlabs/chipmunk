@@ -1,6 +1,6 @@
 use crate::{
     events::{NativeError, NativeErrorKind},
-    operations::{OperationAPI, OperationResult},
+    operations::OperationResult,
     state::SessionStateAPI,
 };
 use indexer_base::{config::IndexSection, progress::Severity};
@@ -17,8 +17,8 @@ use std::{
 };
 use tokio_util::sync::CancellationToken;
 
-pub async fn handle(
-    operation_api: &OperationAPI,
+pub async fn execute_export(
+    cancel: &CancellationToken,
     state: SessionStateAPI,
     out_path: PathBuf,
     ranges: Vec<std::ops::RangeInclusive<u64>>,
@@ -38,7 +38,6 @@ pub async fn handle(
         .iter()
         .map(IndexSection::from)
         .collect::<Vec<IndexSection>>();
-    let cancel = operation_api.cancellation_token();
     let count = observed.get_files().len();
     for (i, (parser, filename)) in observed.get_files().iter().enumerate() {
         if indexes.is_empty() {
@@ -50,7 +49,7 @@ pub async fn handle(
             parser,
             &indexes,
             i != (count - 1),
-            &cancel,
+            cancel,
         )
         .await?
         {

@@ -8,11 +8,11 @@ use sources::{factory::ParserType, pcap::file::PcapngByteSource, raw::binary::Bi
 use std::{fs::File, path::PathBuf};
 
 #[allow(clippy::type_complexity)]
-pub async fn listen<'a>(
+pub async fn concat_files(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     files: &[(String, PathBuf)],
-    parser: &'a ParserType,
+    parser: &ParserType,
 ) -> OperationResult<()> {
     for file in files.iter() {
         let (uuid, _filename) = file;
@@ -48,7 +48,7 @@ pub async fn listen<'a>(
             }
             ParserType::Pcap(_) => {
                 let source = PcapngByteSource::new(input_file)?;
-                super::run(
+                super::run_source(
                     operation_api.clone(),
                     state.clone(),
                     source,
@@ -61,7 +61,7 @@ pub async fn listen<'a>(
             }
             ParserType::Dlt(_) => {
                 let source = BinaryByteSource::new(input_file);
-                super::run(
+                super::run_source(
                     operation_api.clone(),
                     state.clone(),
                     source,
@@ -74,7 +74,7 @@ pub async fn listen<'a>(
             }
             ParserType::Text => {
                 let source = BinaryByteSource::new(input_file);
-                super::run(
+                super::run_source(
                     operation_api.clone(),
                     state.clone(),
                     source,
