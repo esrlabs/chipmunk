@@ -1,4 +1,4 @@
-use crate::state::Attachment;
+use crate::state::AttachmentInfo;
 use crossbeam_channel as cc;
 use indexer_base::progress::{Progress, Severity, Ticks};
 use processor::{grabber::GrabError, search::error::SearchError};
@@ -203,7 +203,10 @@ pub enum CallbackEvent {
      * >> Scope: async operation
      * >> Kind: repeated
      */
-    AttachmentsUpdated { len: u64, attachment: Attachment },
+    AttachmentsUpdated {
+        len: u64,
+        attachment: AttachmentInfo,
+    },
     /**
      * Triggered on progress of async operation
      * @event Progress: { total: usize, done: usize }

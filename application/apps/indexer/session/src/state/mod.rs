@@ -30,7 +30,7 @@ mod session_file;
 mod source_ids;
 
 pub use api::{Api, SessionStateAPI};
-pub use attachments::{Attachment, Attachments};
+pub use attachments::{AttachmentInfo, Attachments};
 pub use indexes::{
     controller::{Controller as Indexes, Mode as IndexesMode},
     frame::Frame,

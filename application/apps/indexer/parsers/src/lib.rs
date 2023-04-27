@@ -2,7 +2,7 @@ pub mod dlt;
 pub mod someip;
 pub mod text;
 use serde::Serialize;
-use std::{fmt::Display, io::Write, path::PathBuf};
+use std::{fmt::Display, io::Write};
 use thiserror::Error;
 
 extern crate log;
@@ -47,12 +47,6 @@ pub trait Parser<T> {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub enum AttachmentData {
-    File(PathBuf),
-    Data(Vec<u8>),
-}
-
-#[derive(Debug, Clone, Serialize)]
 pub struct Attachment {
     pub name: String,
     pub size: usize,
@@ -60,26 +54,12 @@ pub struct Attachment {
     pub modified_date: Option<String>,
     /// The message indexes (1-based) within the original trace.
     pub messages: Vec<usize>,
-    pub data: AttachmentData,
+    pub data: Vec<u8>,
 }
 
 impl Attachment {
-    pub fn add_data(&mut self, new_data: &[u8]) -> bool {
-        match self.data {
-            AttachmentData::File(_) => false,
-            AttachmentData::Data(ref mut data) => {
-                data.extend_from_slice(new_data);
-                true
-            }
-        }
-    }
-
-    pub fn get_data(&self) -> Option<Vec<u8>> {
-        if let AttachmentData::Data(data) = &self.data {
-            Some(data.clone())
-        } else {
-            None
-        }
+    pub fn add_data(&mut self, new_data: &[u8]) {
+        self.data.extend_from_slice(new_data);
     }
 }
 

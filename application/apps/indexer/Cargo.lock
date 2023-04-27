@@ -1314,7 +1314,6 @@ dependencies = [
  "indicatif",
  "lazy_static",
  "log",
- "merging",
  "parsers",
  "processor",
  "rustyline",
@@ -2598,7 +2597,7 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "crossbeam-channel",
- "dirs 5.0.0",
+ "dirs 4.0.0",
  "dlt-core",
  "envvars",
  "futures 0.3.28",

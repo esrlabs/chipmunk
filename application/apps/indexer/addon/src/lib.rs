@@ -96,9 +96,7 @@ pub fn extract_dlt_ft(
             File::create(&output.join(name)).map_err(|e| format!("Error opening file: {e}"))?,
         );
 
-        let data = &file
-            .get_data()
-            .ok_or("no unstored data in attachment".to_string())?;
+        let data = &file.data;
         out.write_all(data)
             .map_err(|e| format!("Failed to write attachement data: {e}"))?;
         result += data.len();

@@ -2,7 +2,7 @@ use crate::{
     events::NativeError,
     state::{
         indexes::controller::Mode as IndexesMode, observed::Observed, session_file::GrabbedElement,
-        source_ids::SourceDefinition, Attachment,
+        source_ids::SourceDefinition, AttachmentInfo,
     },
     tracker::OperationTrackerAPI,
 };
@@ -128,7 +128,7 @@ pub enum Api {
     NotifyCancelingOperation(Uuid),
     NotifyCanceledOperation(Uuid),
     AddAttachment(parsers::Attachment),
-    GetAttachments(oneshot::Sender<Vec<Attachment>>),
+    GetAttachments(oneshot::Sender<Vec<AttachmentInfo>>),
     Shutdown,
 }
 
@@ -522,7 +522,7 @@ impl SessionStateAPI {
         })
     }
 
-    pub async fn get_attachments(&self) -> Result<Vec<Attachment>, NativeError> {
+    pub async fn get_attachments(&self) -> Result<Vec<AttachmentInfo>, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetAttachments(tx), rx).await
     }
