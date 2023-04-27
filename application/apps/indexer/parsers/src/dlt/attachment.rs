@@ -1,7 +1,7 @@
 use dlt_core::dlt::{Argument, LogLevel, Message, MessageType, PayloadContent, Value};
 use std::{collections::HashMap, path::PathBuf};
 
-use crate::{Attachment, AttachmentData};
+use crate::Attachment;
 
 const FT_START_TAG: &str = "FLST";
 const FT_DATA_TAG: &str = "FLDA";
@@ -258,7 +258,7 @@ impl FtScanner {
                             created_date: Some(ft_start.created),
                             modified_date: None,
                             messages: vec![self.index],
-                            data: AttachmentData::Data(Vec::new()),
+                            data: Vec::new(),
                         },
                     );
                     None
@@ -604,7 +604,7 @@ pub mod tests {
         assert_eq!(file.name, String::from("test.txt"));
         assert_eq!(file.size, 4);
         assert_eq!(file.messages, vec![1, 2, 3]);
-        assert_eq!(file.get_data(), Some(vec![0x74, 0x65, 0x73, 0x74]));
+        assert_eq!(file.data, vec![0x74, 0x65, 0x73, 0x74]);
     }
 
     #[test]
@@ -625,11 +625,11 @@ pub mod tests {
         assert_eq!(file.size, 26);
         assert_eq!(file.messages, vec![1, 2, 3, 4, 5]);
         assert_eq!(
-            file.get_data(),
-            Some(vec![
+            file.data,
+            vec![
                 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e,
                 0x6f, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a
-            ])
+            ]
         );
     }
 
@@ -646,27 +646,21 @@ pub mod tests {
         assert_eq!(file.name, String::from("test1.txt"));
         assert_eq!(file.size, 5);
         assert_eq!(file.messages, vec![1, 3, 7]);
-        assert_eq!(file.get_data(), Some(vec![0x74, 0x65, 0x73, 0x74, 0x31]));
+        assert_eq!(file.data, vec![0x74, 0x65, 0x73, 0x74, 0x31]);
 
         let file = index.get(1).unwrap();
         assert!(file.created_date.is_some());
         assert_eq!(file.name, String::from("test2.txt"));
         assert_eq!(file.size, 6);
         assert_eq!(file.messages, vec![2, 4, 8]);
-        assert_eq!(
-            file.get_data(),
-            Some(vec![0x74, 0x65, 0x73, 0x74, 0x32, 0x32])
-        );
+        assert_eq!(file.data, vec![0x74, 0x65, 0x73, 0x74, 0x32, 0x32]);
 
         let file = index.get(2).unwrap();
         assert!(file.created_date.is_some());
         assert_eq!(file.name, String::from("test3.txt"));
         assert_eq!(file.size, 7);
         assert_eq!(file.messages, vec![5, 6, 9]);
-        assert_eq!(
-            file.get_data(),
-            Some(vec![0x74, 0x65, 0x73, 0x74, 0x33, 0x33, 0x33])
-        );
+        assert_eq!(file.data, vec![0x74, 0x65, 0x73, 0x74, 0x33, 0x33, 0x33]);
     }
 
     #[test]
@@ -685,10 +679,10 @@ pub mod tests {
             created_date: Some("date".to_string()),
             modified_date: None,
             messages: vec![1, 2, 3],
-            data: AttachmentData::Data(vec![0x74, 0x65, 0x73, 0x74]),
+            data: vec![0x74, 0x65, 0x73, 0x74],
         };
 
-        let size = file.get_data().expect("needs to contain data").len();
+        let size = file.data.len();
         assert_eq!(file.size, size);
     }
 
@@ -713,13 +707,13 @@ pub mod tests {
             created_date: Some("date".to_string()),
             modified_date: None,
             messages: vec![1, 2, 3, 4, 5],
-            data: AttachmentData::Data(vec![
+            data: vec![
                 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e,
                 0x6f, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a,
-            ]),
+            ],
         };
 
-        let size = file.get_data().expect("needs to contain data").len();
+        let size = file.data.len();
         assert_eq!(file.size, size);
     }
 

@@ -3,7 +3,7 @@ use crate::{
     operations,
     operations::Operation,
     state,
-    state::{Attachment, GrabbedElement, IndexesMode, SessionStateAPI, SourceDefinition},
+    state::{AttachmentInfo, GrabbedElement, IndexesMode, SessionStateAPI, SourceDefinition},
     tracker,
     tracker::OperationTrackerAPI,
 };
@@ -384,7 +384,7 @@ impl Session {
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
-    pub async fn get_attachments(&self) -> Result<Vec<Attachment>, ComputationError> {
+    pub async fn get_attachments(&self) -> Result<Vec<AttachmentInfo>, ComputationError> {
         self.state
             .get_attachments()
             .await
