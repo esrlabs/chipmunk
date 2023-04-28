@@ -89,7 +89,7 @@ export class Nature {
 
 export interface IAttachment {
     uuid: string;
-    filename: string;
+    filepath: string;
     name: string;
     ext: string | undefined;
     size: number;
@@ -99,7 +99,7 @@ export interface IAttachment {
 
 export class Attachment {
     public readonly uuid: string;
-    public readonly filename: string;
+    public readonly filepath: string;
     public readonly name: string;
     public readonly ext: string | undefined;
     public readonly size: number;
@@ -113,7 +113,7 @@ export class Attachment {
             }
             return new Attachment({
                 uuid: obj.getAsString(smth, 'uuid'),
-                filename: obj.getAsString(smth, 'filename'),
+                filepath: obj.getAsString(smth, 'filepath'),
                 name: obj.getAsString(smth, 'name'),
                 ext: obj.getAsNotEmptyStringOrAsUndefined(smth, 'ext'),
                 size: obj.getAsValidNumber(smth, 'size'),
@@ -127,7 +127,7 @@ export class Attachment {
 
     constructor(attachment: IAttachment) {
         this.uuid = attachment.uuid;
-        this.filename = attachment.filename;
+        this.filepath = attachment.filepath;
         this.name = attachment.name;
         this.ext = attachment.ext;
         this.size = attachment.size;

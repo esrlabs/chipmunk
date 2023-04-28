@@ -5,6 +5,7 @@ import {
     AfterViewInit,
     ElementRef,
     ChangeDetectorRef,
+    AfterContentInit,
 } from '@angular/core';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -19,10 +20,13 @@ import { stop } from '@ui/env/dom';
     styleUrls: ['./styles.less'],
 })
 @Ilc()
-export class Preview extends ChangesDetector implements AfterViewInit {
+export class Preview extends ChangesDetector implements AfterViewInit, AfterContentInit {
     @Input() attachment!: Attachment;
     @Input() maximizible: boolean = true;
+
     @ViewChild('image') public imageElRef!: ElementRef<HTMLImageElement>;
+
+    public url!: string;
 
     protected rotation: number = 0;
     protected zoom: number = 1;
@@ -92,6 +96,10 @@ export class Preview extends ChangesDetector implements AfterViewInit {
     public originImageDomRect() {
         this.origin = this.imageElRef.nativeElement.getBoundingClientRect();
         this.updateImageDomRect();
+    }
+
+    public ngAfterContentInit(): void {
+        this.url = `attachment://${this.attachment.filepath}`;
     }
 
     public ngAfterViewInit(): void {

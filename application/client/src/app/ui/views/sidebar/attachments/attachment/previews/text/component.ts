@@ -22,7 +22,7 @@ export class Preview extends ChangesDetector implements AfterContentInit {
     }
 
     public ngAfterContentInit(): void {
-        new URLFileReader(`attachment://text`)
+        new URLFileReader(`attachment://${this.attachment.filepath}`)
             .read()
             .then((response) => {
                 if (typeof response !== 'string') {

@@ -1,7 +1,4 @@
-use crate::{
-    events::{CallbackEvent, NativeError, NativeErrorKind},
-    paths,
-};
+use crate::events::{CallbackEvent, NativeError, NativeErrorKind};
 use indexer_base::progress::Severity;
 use log::{debug, error};
 use parsers;
@@ -351,8 +348,7 @@ impl SessionState {
         origin: parsers::Attachment,
         tx_callback_events: UnboundedSender<CallbackEvent>,
     ) -> Result<(), NativeError> {
-        let session_file_dir = paths::get_streams_dir()?;
-        let attachment = self.attachments.add(origin, &session_file_dir)?;
+        let attachment = self.attachments.add(origin)?;
         tx_callback_events.send(CallbackEvent::AttachmentsUpdated {
             len: self.attachments.len() as u64,
             attachment,
@@ -371,11 +367,15 @@ pub async fn run(
     while let Some(msg) = rx_api.recv().await {
         match msg {
             Api::SetSessionFile((session_file, tx_response)) => {
-                tx_response
-                    .send(state.session_file.init(session_file))
-                    .map_err(|_| {
-                        NativeError::channel("Failed to response to Api::SetSessionFile")
-                    })?;
+                let set_session_file_res = state.session_file.init(session_file);
+                if let (Ok(_), Ok(filename)) =
+                    (&set_session_file_res, state.session_file.filename())
+                {
+                    state.attachments.set_dest_path(filename);
+                }
+                tx_response.send(set_session_file_res).map_err(|_| {
+                    NativeError::channel("Failed to response to Api::SetSessionFile")
+                })?;
             }
             Api::GetSessionFile(tx_response) => {
                 tx_response

@@ -5,7 +5,7 @@
         [min]="min"
         [max]="max"
         (changed)="move($event)" 
-        [ngStyle]="getStyles()" src="attachment://girl"/>
+        [ngStyle]="getStyles()" [attr.src]="url"/>
 </div>
 <div class="controlls">
     <button mat-icon-button *ngIf="maximizible" (click)="maximize()">

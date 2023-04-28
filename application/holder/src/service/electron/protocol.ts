@@ -1,6 +1,7 @@
 import { protocol } from 'electron';
 
 import * as url from 'url';
+import * as fs from 'fs';
 
 export class Protocol {
     public register() {
@@ -8,10 +9,14 @@ export class Protocol {
     }
 
     protected attachment(
-        _request: Electron.ProtocolRequest,
+        request: Electron.ProtocolRequest,
         callback: (response: string | Electron.ProtocolResponse) => void,
     ): void {
-        const filePath = url.fileURLToPath('');
-        callback(filePath);
+        const path = request.url.slice('attachment://'.length);
+        if (fs.existsSync(path)) {
+            callback(url.fileURLToPath(`file://${path}`));
+        } else {
+            callback('attachment://file_does_not_exist');
+        }
     }
 }
