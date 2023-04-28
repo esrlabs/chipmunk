@@ -3,7 +3,8 @@ use parsers::{self};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    fs::File,
+    fs::{create_dir, File},
+    io,
     io::Write,
     path::{Path, PathBuf},
 };
@@ -16,12 +17,16 @@ pub enum AttachmentsError {
     Save(String),
     #[error("IO error: {0:?}")]
     Io(#[from] std::io::Error),
+    #[error("Session isn't created")]
+    SessionNotCreated,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AttachmentInfo {
     pub uuid: Uuid,
-    pub file_path: PathBuf,
+    // This entity will be propagated into JS world side, to avoid unusual naming file_path,
+    // would be used filepath instead
+    pub filepath: PathBuf,
     pub name: String,
     pub ext: Option<String>,
     pub size: usize,
@@ -29,18 +34,60 @@ pub struct AttachmentInfo {
     pub messages: Vec<usize>,
 }
 
+const FILE_NAME_INDEXES_LIMIT: usize = 1000;
+
+fn get_valid_filename(origin: PathBuf) -> Result<PathBuf, io::Error> {
+    if let (Some(parent), Some(basename)) = (origin.parent(), origin.file_stem()) {
+        let extension = origin.extension();
+        let mut index: usize = 0;
+        loop {
+            let mut suggestion = if index == 0 {
+                parent.join(PathBuf::from(basename))
+            } else {
+                parent.join(PathBuf::from(format!(
+                    "{}_{index}",
+                    basename.to_string_lossy()
+                )))
+            };
+            if let Some(extension) = extension {
+                suggestion = suggestion.with_extension(extension);
+            }
+            if !suggestion.exists() {
+                return Ok(suggestion);
+            } else {
+                index += 1;
+            }
+            if index > FILE_NAME_INDEXES_LIMIT {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Cannot find suitable file name for {origin:?}"),
+                ));
+            }
+        }
+    } else {
+        Err(io::Error::new(
+            io::ErrorKind::Other,
+            "Fail to parse origin attachment path",
+        ))
+    }
+}
+
 impl AttachmentInfo {
     pub fn from(
         origin: parsers::Attachment,
         store_folder: &Path,
     ) -> Result<AttachmentInfo, AttachmentsError> {
+        if !store_folder.exists() {
+            create_dir(store_folder).map_err(AttachmentsError::Io)?;
+        }
         let uuid = Uuid::new_v4();
-        let attachment_path = store_folder.join(uuid.to_string()).join(&origin.name);
+        let attachment_path =
+            get_valid_filename(store_folder.join(&origin.name)).map_err(AttachmentsError::Io)?;
         let mut attachment_file = File::create(&attachment_path)?;
         attachment_file.write_all(&origin.data)?;
         Ok(AttachmentInfo {
             uuid,
-            file_path: attachment_path,
+            filepath: attachment_path,
             name: origin.name.clone(),
             ext: Path::new(&origin.name)
                 .extension()
@@ -57,12 +104,24 @@ impl AttachmentInfo {
 #[derive(Debug)]
 pub struct Attachments {
     attachments: HashMap<Uuid, AttachmentInfo>,
+    dest: Option<PathBuf>,
 }
 
 impl Attachments {
     pub fn new() -> Self {
         Attachments {
             attachments: HashMap::new(),
+            dest: None,
+        }
+    }
+
+    pub fn set_dest_path(&mut self, dest: PathBuf) -> bool {
+        if let (Some(parent), Some(file_stem)) = (dest.parent(), dest.file_stem()) {
+            let dest = parent.join(file_stem);
+            self.dest = Some(dest);
+            true
+        } else {
+            false
         }
     }
 
@@ -78,12 +137,15 @@ impl Attachments {
     pub fn add(
         &mut self,
         attachment: parsers::Attachment,
-        store_folder: &Path,
     ) -> Result<AttachmentInfo, AttachmentsError> {
-        let uuid = Uuid::new_v4();
-        let a = AttachmentInfo::from(attachment, store_folder)?;
-        self.attachments.insert(uuid, a.clone());
-        Ok(a)
+        if let Some(dest) = self.dest.as_ref() {
+            let uuid = Uuid::new_v4();
+            let a = AttachmentInfo::from(attachment, dest)?;
+            self.attachments.insert(uuid, a.clone());
+            Ok(a)
+        } else {
+            Err(AttachmentsError::SessionNotCreated)
+        }
     }
 
     pub fn get(&self) -> Vec<AttachmentInfo> {

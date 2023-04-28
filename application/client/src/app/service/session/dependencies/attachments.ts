@@ -27,14 +27,14 @@ export class Attachments extends Subscriber {
                 }
                 if (this.attachments.has(event.attachment.uuid)) {
                     this.log().error(
-                        `Attachment ${event.attachment.uuid} already exist; attachment: ${event.attachment.name}(${event.attachment.filename})`,
+                        `Attachment ${event.attachment.uuid} already exist; attachment: ${event.attachment.name}(${event.attachment.filepath})`,
                     );
                     return;
                 }
                 const attachment = Attachment.from(event.attachment);
                 if (attachment instanceof Error) {
                     this.log().error(
-                        `Fail to parse attachment ${event.attachment.uuid}; attachment: ${event.attachment.name}(${event.attachment.filename})`,
+                        `Fail to parse attachment ${event.attachment.uuid}; attachment: ${event.attachment.name}(${event.attachment.filepath})`,
                     );
                     return;
                 }
