@@ -1,0 +1,33 @@
+<mat-expansion-panel [hideToggle]="true" [expanded]="true">
+<mat-expansion-panel-header>
+    <mat-panel-title>Attachments</mat-panel-title>
+    <mat-panel-description>found: {{attachments.length}}</mat-panel-description>
+</mat-expansion-panel-header>
+    <div class="attachments">
+        <app-views-attachments-item *ngFor="let attachment of attachments"
+            (click)="select(attachment)"
+            [attachment]="attachment"></app-views-attachments-item>
+    </div>
+</mat-expansion-panel>
+<mat-expansion-panel [hideToggle]="true" [expanded]="true" *ngIf="preview !== undefined">
+    <mat-expansion-panel-header>
+        <mat-panel-title>Preview</mat-panel-title>
+    </mat-expansion-panel-header>
+    <div class="preview">
+        <lib-containers-dynamic
+                [component]="preview"
+        ></lib-containers-dynamic>
+    </div>
+    <div class="controlls">
+        <button mat-stroked-button>Save As</button>
+    </div>
+</mat-expansion-panel>
+<mat-expansion-panel [hideToggle]="true" [expanded]="true">
+    <mat-expansion-panel-header>
+        <mat-panel-title>Actions</mat-panel-title>
+    </mat-expansion-panel-header>
+    <div class="controlls">
+        <button mat-stroked-button>Save All Into</button>
+    </div>
+</mat-expansion-panel>
+

@@ -31,7 +31,14 @@ export class Attachments extends Subscriber {
                     );
                     return;
                 }
-                this.attachments.set(event.attachment.uuid, event.attachment);
+                const attachment = Attachment.from(event.attachment);
+                if (attachment instanceof Error) {
+                    this.log().error(
+                        `Fail to parse attachment ${event.attachment.uuid}; attachment: ${event.attachment.name}(${event.attachment.filename})`,
+                    );
+                    return;
+                }
+                this.attachments.set(event.attachment.uuid, attachment);
                 if (this.attachments.size !== event.len) {
                     this.log().warn(
                         `Count of attachment on backend dismatch with attachments on frontend`,

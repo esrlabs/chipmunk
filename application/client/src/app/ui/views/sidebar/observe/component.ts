@@ -1,4 +1,4 @@
-import { Component, Input, ChangeDetectorRef, ElementRef, ViewEncapsulation } from '@angular/core';
+import { Component, Input, ChangeDetectorRef, ViewEncapsulation } from '@angular/core';
 import { Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
@@ -15,7 +15,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 export class Observed extends ChangesDetector {
     @Input() session!: Session;
 
-    constructor(cdRef: ChangeDetectorRef, private _self: ElementRef) {
+    constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
 }

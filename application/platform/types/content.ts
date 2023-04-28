@@ -115,9 +115,9 @@ export class Attachment {
                 uuid: obj.getAsString(smth, 'uuid'),
                 filename: obj.getAsString(smth, 'filename'),
                 name: obj.getAsString(smth, 'name'),
-                ext: obj.getAsNotEmptyString(smth, 'ext'),
+                ext: obj.getAsNotEmptyStringOrAsUndefined(smth, 'ext'),
                 size: obj.getAsValidNumber(smth, 'size'),
-                mime: obj.getAsNotEmptyString(smth, 'mime'),
+                mime: obj.getAsNotEmptyStringOrAsUndefined(smth, 'mime'),
                 messages: obj.getAsArray(smth, 'messages'),
             });
         } catch (e) {
@@ -133,5 +133,43 @@ export class Attachment {
         this.size = attachment.size;
         this.mime = attachment.mime;
         this.messages = attachment.messages;
+    }
+
+    public extAsString(): string {
+        return typeof this.ext === 'string' ? this.ext : '';
+    }
+
+    public is(): {
+        image(): boolean;
+        video(): boolean;
+        audio(): boolean;
+        text(): boolean;
+    } {
+        return {
+            image: (): boolean => {
+                if (typeof this.mime !== 'string') {
+                    return false;
+                }
+                return this.mime.toLowerCase().includes('image');
+            },
+            video: (): boolean => {
+                if (typeof this.mime !== 'string') {
+                    return false;
+                }
+                return this.mime.toLowerCase().includes('video');
+            },
+            audio: (): boolean => {
+                if (typeof this.mime !== 'string') {
+                    return false;
+                }
+                return this.mime.toLowerCase().includes('audio');
+            },
+            text: (): boolean => {
+                if (typeof this.mime !== 'string') {
+                    return false;
+                }
+                return this.mime.toLowerCase().includes('text');
+            },
+        };
     }
 }
