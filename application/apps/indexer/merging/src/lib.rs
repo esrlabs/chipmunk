@@ -12,10 +12,4 @@
 
 extern crate log;
 
-// pub mod concatenator;
 pub mod merger;
-// WIP for new merger api
-// pub mod merger_async;
-
-// #[cfg(test)]
-// mod tests;

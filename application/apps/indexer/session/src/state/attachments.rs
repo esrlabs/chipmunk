@@ -1,8 +1,12 @@
-use log::warn;
 use mime_guess;
 use parsers::{self};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fs::File, io::Write, path::Path};
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::Write,
+    path::{Path, PathBuf},
+};
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -17,7 +21,7 @@ pub enum AttachmentsError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AttachmentInfo {
     pub uuid: Uuid,
-    pub filename: String,
+    pub file_path: PathBuf,
     pub name: String,
     pub ext: Option<String>,
     pub size: usize,
@@ -32,18 +36,11 @@ impl AttachmentInfo {
     ) -> Result<AttachmentInfo, AttachmentsError> {
         let uuid = Uuid::new_v4();
         let attachment_path = store_folder.join(uuid.to_string()).join(&origin.name);
-        if !attachment_path.exists() {
-            let mut attachment_file = File::create(&attachment_path)?;
-            attachment_file.write_all(&origin.data)?;
-        } else {
-            warn!(
-                "Could not store attachment {}, path already exists",
-                origin.name
-            );
-        }
+        let mut attachment_file = File::create(&attachment_path)?;
+        attachment_file.write_all(&origin.data)?;
         Ok(AttachmentInfo {
             uuid,
-            filename: String::new(),
+            file_path: attachment_path,
             name: origin.name.clone(),
             ext: Path::new(&origin.name)
                 .extension()
