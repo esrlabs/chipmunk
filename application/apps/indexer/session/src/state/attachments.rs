@@ -36,15 +36,20 @@ pub struct AttachmentInfo {
 
 const FILE_NAME_INDEXES_LIMIT: usize = 1000;
 
-fn get_valid_filename(origin: PathBuf) -> Result<PathBuf, io::Error> {
-    if let (Some(parent), Some(basename)) = (origin.parent(), origin.file_stem()) {
-        let extension = origin.extension();
+fn get_valid_file_path(dest: &Path, origin: &str) -> Result<PathBuf, io::Error> {
+    let origin_path = PathBuf::from(origin);
+    let origin_file_name = PathBuf::from(origin_path.file_name().ok_or(io::Error::new(
+        io::ErrorKind::Other,
+        format!("Cannot get file name from {origin:?}"),
+    ))?);
+    if let Some(basename) = origin_file_name.file_stem() {
+        let extension = origin_file_name.extension();
         let mut index: usize = 0;
         loop {
             let mut suggestion = if index == 0 {
-                parent.join(PathBuf::from(basename))
+                dest.join(PathBuf::from(basename))
             } else {
-                parent.join(PathBuf::from(format!(
+                dest.join(PathBuf::from(format!(
                     "{}_{index}",
                     basename.to_string_lossy()
                 )))
@@ -60,7 +65,7 @@ fn get_valid_filename(origin: PathBuf) -> Result<PathBuf, io::Error> {
             if index > FILE_NAME_INDEXES_LIMIT {
                 return Err(io::Error::new(
                     io::ErrorKind::Other,
-                    format!("Cannot find suitable file name for {origin:?}"),
+                    format!("Cannot find suitable file name for {origin}"),
                 ));
             }
         }
@@ -75,14 +80,14 @@ fn get_valid_filename(origin: PathBuf) -> Result<PathBuf, io::Error> {
 impl AttachmentInfo {
     pub fn from(
         origin: parsers::Attachment,
-        store_folder: &Path,
+        store_folder: &PathBuf,
     ) -> Result<AttachmentInfo, AttachmentsError> {
         if !store_folder.exists() {
             create_dir(store_folder).map_err(AttachmentsError::Io)?;
         }
         let uuid = Uuid::new_v4();
         let attachment_path =
-            get_valid_filename(store_folder.join(&origin.name)).map_err(AttachmentsError::Io)?;
+            get_valid_file_path(store_folder, &origin.name).map_err(AttachmentsError::Io)?;
         let mut attachment_file = File::create(&attachment_path)?;
         attachment_file.write_all(&origin.data)?;
         Ok(AttachmentInfo {
