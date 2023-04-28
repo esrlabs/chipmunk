@@ -110,6 +110,19 @@ export class Session extends Base {
             },
         });
         this._sidebar.add({
+            uuid: ids.SIDEBAR_TAB_ATTACHMENTS,
+            name: 'Attachments',
+            active: false,
+            closable: false,
+            uppercaseTitle: true,
+            content: {
+                factory: components.get('app-views-attachments-list'),
+                inputs: {
+                    session: this,
+                },
+            },
+        });
+        this._sidebar.add({
             uuid: ids.SIDEBAR_TAB_FILTERS,
             name: 'Filters',
             active: true,
@@ -157,6 +170,7 @@ export class Session extends Base {
         this.cursor.destroy();
         this.exporter.destroy();
         this.observed.destroy();
+        this.attachments.destroy();
         this.unsubscribe();
         if (!this.inited) {
             return Promise.resolve();

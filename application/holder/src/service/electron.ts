@@ -12,6 +12,7 @@ import { services } from '@register/services';
 import { app, session } from 'electron';
 import { Transport } from 'platform/ipc/transport';
 import { Subjects, Subject } from 'platform/env/subscription';
+import { Protocol } from './electron/protocol';
 
 @DependOn(paths)
 @SetupService(services['electron'])
@@ -25,6 +26,7 @@ export class Service extends Implementation {
     });
     private _window!: Window;
     private _dialogs!: Dialogs;
+    private _protocol: Protocol = new Protocol();
     private _state: {
         closing: boolean;
         closed: boolean;
@@ -41,13 +43,15 @@ export class Service extends Implementation {
 
     public override async ready(): Promise<void> {
         await app.whenReady();
+        // Register protocol
+        this._protocol.register();
         // Setup minimal security requirements for angular app
         session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
             callback({
                 responseHeaders: {
                     ...details.responseHeaders,
                     'Content-Security-Policy': [
-                        "default-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src * data:; ",
+                        "default-src 'self' data: https: http: attachment: 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src * 'self' data: https: http: attachment:;",
                         "trusted-types angular angular#unsafe-bypass; require-trusted-types-for 'script';",
                     ],
                 },
@@ -75,7 +79,7 @@ export class Service extends Implementation {
     public override async destroy(): Promise<void> {
         this.subjects.destroy();
         await this._window.destroy().catch((err: Error) => {
-            this.log().error(`Fail to destroy window controller: ${err.message}`)
+            this.log().error(`Fail to destroy window controller: ${err.message}`);
         });
         return Promise.resolve();
     }
