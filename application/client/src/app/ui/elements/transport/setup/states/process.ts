@@ -80,7 +80,7 @@ export class State extends Base<ProcessTransportSettings> {
     }
 
     public getSelectedEnvs(): Map<string | number | symbol, string> {
-        return obj.objToMap<string>(this.env);
+        return obj.objToStringMap(this.env);
     }
 
     public isShellSelected(profile: ShellProfile): boolean {

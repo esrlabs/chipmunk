@@ -294,3 +294,13 @@ export function objToMap<V>(obj: {
     Object.keys(obj).forEach((k) => output.set(k, obj[k]));
     return output;
 }
+
+export function objToStringMap(obj: {
+    [key: string | number | symbol]: string;
+}): Map<string | number | symbol, string> {
+    const output: Map<string | number | symbol, string> = new Map();
+    Object.keys(obj).forEach((k) => {
+        output.set(k, typeof obj[k] !== 'string' ? `${obj[k]}` : obj[k]);
+    });
+    return output;
+}
