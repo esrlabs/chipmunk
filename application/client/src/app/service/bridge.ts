@@ -49,6 +49,8 @@ export class Service extends Implementation {
         name(
             path: string,
         ): Promise<{ name: string; filename: string; parent: string; ext: string }>;
+        cp(src: string, dest: string): Promise<void>;
+        copy(files: string[], dest: string): Promise<void>;
         select: {
             any(): Promise<File[]>;
             dlt(): Promise<File[]>;
@@ -204,6 +206,34 @@ export class Service extends Implementation {
                         this.cache.checksums.set(filename, checksum);
                         return Promise.resolve(checksum);
                     });
+            },
+            cp: (src: string, dest: string): Promise<void> => {
+                return Requests.IpcRequest.send(
+                    Requests.File.CopyFile.Response,
+                    new Requests.File.CopyFile.Request({
+                        src,
+                        dest,
+                    }),
+                ).then((response) => {
+                    if (response.error !== undefined) {
+                        return Promise.reject(new Error(response.error));
+                    }
+                    return Promise.resolve();
+                });
+            },
+            copy: (files: string[], dest: string): Promise<void> => {
+                return Requests.IpcRequest.send(
+                    Requests.File.Copy.Response,
+                    new Requests.File.Copy.Request({
+                        files,
+                        dest,
+                    }),
+                ).then((response) => {
+                    if (response.error !== undefined) {
+                        return Promise.reject(new Error(response.error));
+                    }
+                    return Promise.resolve();
+                });
             },
             select: {
                 any: (): Promise<File[]> => {

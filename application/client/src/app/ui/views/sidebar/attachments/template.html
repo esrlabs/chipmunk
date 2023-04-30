@@ -1,12 +1,20 @@
-<mat-expansion-panel [hideToggle]="true" [expanded]="true" class="list">
-<mat-expansion-panel-header>
-    <mat-panel-title>Attachments</mat-panel-title>
-    <mat-panel-description>found: {{attachments.length}}</mat-panel-description>
-</mat-expansion-panel-header>
+<div class="caption">
+    <span class="title">Attachments</span>
+    <span class="subtitle">({{attachments.length}})</span>
+    <span class="filler"></span>
+    <span class="small-icon-button codicon codicon-checklist" *ngIf="attachments.length > 0" [matMenuTriggerFor]="menu"></span>
+</div>
+<p class="info" *ngIf="attachments.length === 0">No attachments has been received</p>
+<mat-expansion-panel *ngIf="attachments.length > 0" [hideToggle]="true" [expanded]="true" class="list">
+    <mat-expansion-panel-header>
+        <mat-panel-title>Received Attachments</mat-panel-title>
+    </mat-expansion-panel-header>
     <div class="attachments">
-        <app-views-attachments-item *ngFor="let attachment of attachments"
-            (click)="select(attachment)"
-            [attachment]="attachment"></app-views-attachments-item>
+        <app-views-attachments-item *ngFor="let wrapped of attachments"
+            (contextmenu)="contextmenu($event, wrapped.attachment)"
+            [attr.class]="(wrapped.selected ? 'selected' : '')"
+            (click)="select(wrapped.attachment)"
+            [attachment]="wrapped.attachment"></app-views-attachments-item>
     </div>
 </mat-expansion-panel>
 <mat-expansion-panel [hideToggle]="true" [expanded]="true" *ngIf="preview !== undefined" class="preview">
@@ -14,12 +22,25 @@
         <mat-panel-title>Preview</mat-panel-title>
     </mat-expansion-panel-header>
     <div class="preview">
-        <lib-containers-dynamic
-                [component]="preview"
-        ></lib-containers-dynamic>
+        <lib-containers-dynamic [component]="preview"></lib-containers-dynamic>
     </div>
     <div class="controlls">
         <button mat-stroked-button>Save As</button>
     </div>
 </mat-expansion-panel>
+<mat-menu #menu="matMenu">
+    <button mat-menu-item (click)="save().selected()">
+        <mat-icon>list</mat-icon>
+        <span>Save Selected</span>
+    </button>
+    <button mat-menu-item (click)="save().all()">
+        <mat-icon>done_all</mat-icon>
+        <span>Save All</span>
+    </button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item *ngFor="let ext of extensions | keyvalue" (click)="save().typed(ext.key)">
+        <span>Save All *.{{ext.key}} ({{ext.value}})</span>
+    </button>
+    
+</mat-menu>
 
