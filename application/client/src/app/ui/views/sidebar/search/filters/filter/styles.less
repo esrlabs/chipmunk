@@ -31,7 +31,6 @@
         display: block;
         position: relative;
         margin: 2px 0 2px 0;
-        transition: all 150ms ease-in-out;
     }
     span.background {
         flex: 0;
@@ -42,7 +41,6 @@
         display: block;
         position: relative;
         margin: 2px 0 2px 0;
-        transition: all 150ms ease-in-out;
     }
     span.request{
         flex: auto;
@@ -67,21 +65,23 @@
     input.request {
         margin: 0 6px;
         padding: 0;
+        border: none;
         border-bottom: dashed 1px @scheme-color-1;
         flex: auto;
         white-space: nowrap;
         color: @scheme-color-0;
+        background: none;
+        outline: none;
     }
     span.flags {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
         flex: 0;
-        white-space: nowrap;
-        width: 60px;
-        transition: all 150ms ease-in-out;
         padding-right: 8px;
         & span {
             font-size: 14px;
             line-height: 14px;
-            padding: 0px 4px 2px 4px;
             vertical-align: bottom;
             cursor: default;
             &.active{
@@ -104,23 +104,14 @@
     &.edited {
         padding-left: 0;
         background: @scheme-color-6;
-        transition: background 150ms ease-in-out;
-
         span.color {
-            width: 0;
-            max-width: 0;
-            min-width: 0;
-            margin-right: 0;
+            display: none;
         }
         span.background {
-            width: 0;
-            max-width: 0;
-            min-width: 0;
-            margin-right: 0;
+            display: none;
         }
         span.flags {
-            width: 0;
-            padding-right: 0;
+            display: none;
         }
     }
     &.cdk-drag-preview {
