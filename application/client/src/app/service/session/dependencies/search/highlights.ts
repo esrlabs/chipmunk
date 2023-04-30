@@ -27,6 +27,13 @@ export class Highlights extends Subscriber {
                 .highlights.subscribe(() => {
                     this.subjects.get().update.emit();
                 }),
+            this._session
+                .store()
+                .filters()
+                .subjects.get()
+                .value.subscribe(() => {
+                    this.subjects.get().update.emit();
+                }),
         );
         this.register(
             this._session
