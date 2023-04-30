@@ -34,7 +34,6 @@ export class Listener {
     public emit(event: KeyboardEvent | string): boolean {
         let postponed = false;
         if (typeof event === 'string') {
-            console.log(`Recieved key: ${event}`);
             const emitter = this.emitters.get(event);
             if (emitter === undefined) {
                 return false;
@@ -42,7 +41,6 @@ export class Listener {
             this.iteration.emitted.indexOf(emitter.uuid()) === -1 &&
                 this.iteration.emitted.push(emitter.uuid());
         } else {
-            console.log(`Registred key: ${event.key}`);
             if (this.iteration.timer === undefined) {
                 this.iteration.emitted = [];
                 this.iteration.timer = setTimeout(() => {
