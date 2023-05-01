@@ -8,6 +8,7 @@ export enum Owner {
     Search = 'Search',
     Bookmark = 'Bookmark',
     Chart = 'Chart',
+    Attachment = 'Attachment',
 }
 
 export interface RowInputs {

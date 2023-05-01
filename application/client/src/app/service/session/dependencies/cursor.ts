@@ -138,9 +138,10 @@ export class Cursor extends Subscriber {
         };
     }
 
-    public drop() {
+    public drop(): Cursor {
         this._selected = [];
         this.subjects.get().updated.emit();
+        return this;
     }
 }
 export interface Cursor extends LoggerInterface {}

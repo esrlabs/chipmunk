@@ -31,6 +31,7 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
     public render: number = 1;
     public bookmarked: boolean = false;
     public selected: boolean = false;
+    public attachment: string | undefined = undefined;
     public source: {
         color: string | undefined;
     } = {
@@ -262,7 +263,7 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
     }
 
     protected hash(): string {
-        return `${this.bookmarked}.${this.selected}.${this.source.color}`;
+        return `${this.bookmarked}.${this.selected}.${this.attachment}.${this.source.color}`;
     }
 
     protected update() {
@@ -274,6 +275,12 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
             this.source.color = undefined;
         }
         this.selected = this.row.select().is();
+        const attachments = this.row.session.attachments;
+        if (attachments.has(this.row.position)) {
+            this.attachment = attachments.getRefByPos(this.row.position);
+        } else {
+            this.attachment = undefined;
+        }
         if (prev !== this.hash()) {
             this.detectChanges();
         }

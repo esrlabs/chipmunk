@@ -13,6 +13,7 @@ import { Preview as VideoPreview } from './attachment/previews/video/component';
 import { Preview as AudioPreview } from './attachment/previews/audio/component';
 import { Locker } from '@ui/service/lockers';
 import { Notification } from '@ui/service/notifications';
+import { Owner } from '@schema/content/row';
 
 const UNTYPED = 'untyped';
 
@@ -117,6 +118,40 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
                 caption: 'Save As',
                 handler: () => {
                     this.save().as(attachment);
+                },
+            },
+            {},
+            {
+                caption: 'GoTo Related Row',
+                handler: () => {
+                    if (attachment.messages.length === 0) {
+                        this.log().warn(
+                            `Attachment ${attachment.name} isn't bound with any row(s)`,
+                        );
+                        return;
+                    }
+                    this.session.cursor.select(
+                        attachment.messages[0],
+                        Owner.Attachment,
+                        undefined,
+                        undefined,
+                    );
+                },
+            },
+            {
+                caption: 'Select Related Row(s)',
+                handler: () => {
+                    if (attachment.messages.length === 0) {
+                        this.log().warn(
+                            `Attachment ${attachment.name} isn't bound with any row(s)`,
+                        );
+                        return;
+                    }
+                    const cursor = this.session.cursor;
+                    cursor
+                        .drop()
+                        .select(attachment.messages[0], Owner.Attachment, undefined, undefined);
+                    attachment.messages.forEach((pos) => cursor.mark(pos).selected());
                 },
             },
         ];
