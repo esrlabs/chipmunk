@@ -1,11 +1,9 @@
 # Remove previous sources #
 ###################
 application/client.core
-application/electron
 application/client.libs
 application/node.libs
 application/client.core/**
-application/electron/**
 application/client.libs/**
 application/node.libs/**
 # Compiled source #
@@ -62,8 +60,6 @@ application/apps/rustcore/ts-cli
 .vscode
 !webpack.config.js
 .idea
-application/electron/**/*.js
-application/electron/*.js
 !application/platform
 ./external
 TODO.md
