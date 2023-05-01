@@ -1,15 +1,13 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
 import { Details } from './component';
 
 const entryComponents = [Details];
 const components = [...entryComponents];
 
 @NgModule({
-    imports: [CommonModule, MatIconModule, MatButtonModule],
+    imports: [CommonModule],
     declarations: [...components],
-    exports: [...components]
+    exports: [...components],
 })
 export class DetailsModule {}
