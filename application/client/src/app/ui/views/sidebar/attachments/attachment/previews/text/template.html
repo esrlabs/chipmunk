@@ -1,3 +1,6 @@
 <div [attr.uuid]="uuid" class="content" tabindex="10">
     <p *ngFor="let line of lines" class="line">{{line}}</p>
 </div>
+<div class="shortcuts">
+    <span class="small-icon-button codicon codicon-copy" (click)="copy()"></span>
+</div>

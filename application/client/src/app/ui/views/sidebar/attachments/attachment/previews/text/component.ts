@@ -52,20 +52,28 @@ export class Preview extends ChangesDetector implements AfterContentInit {
             });
         this.env().subscriber.register(
             this.ilc().services.system.hotkeys.listen('Ctrl + C', () => {
-                const active = document.activeElement;
-                if (active === null) {
-                    return;
-                }
-                if (active.getAttribute('uuid') !== this.uuid) {
-                    return;
-                }
-                const selection = document.getSelection();
-                if (selection === null) {
-                    return;
-                }
-                navigator.clipboard.writeText(selection.toString());
+                this.copy(false);
             }),
         );
+    }
+
+    public copy(all = true): void {
+        if (all) {
+            navigator.clipboard.writeText(this.lines.join('\n'));
+        } else {
+            const active = document.activeElement;
+            if (active === null) {
+                return;
+            }
+            if (active.getAttribute('uuid') !== this.uuid) {
+                return;
+            }
+            const selection = document.getSelection();
+            if (selection === null) {
+                return;
+            }
+            navigator.clipboard.writeText(selection.toString());
+        }
     }
 }
 export interface Preview extends IlcInterface {}

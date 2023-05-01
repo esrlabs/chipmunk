@@ -1,9 +1,7 @@
 <div *ngIf="row !== undefined" class="summary">
     <span class="t-medium color-scheme-0"><span class="color-scheme-3">Row #:</span> {{row.position}}</span>
     <span class="filler"></span>
-    <button mat-icon-button class="tray-icon" (click)="copy()">
-        <mat-icon class="color-scheme-1">file_copy</mat-icon>
-    </button>
+    <span class="small-icon-button codicon codicon-copy" (click)="copy()"></span>
 </div>
 <div class="content" *ngIf="origin !== undefined">
     <p class="t-small color-scheme-3 caption" *ngIf="origin !== undefined && parsed !== undefined">Origin</p>
