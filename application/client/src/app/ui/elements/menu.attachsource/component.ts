@@ -1,4 +1,11 @@
-import { Component, Input, ChangeDetectorRef, ElementRef, ViewEncapsulation } from '@angular/core';
+import {
+    Component,
+    Input,
+    ChangeDetectorRef,
+    ElementRef,
+    ViewEncapsulation,
+    ChangeDetectionStrategy,
+} from '@angular/core';
 import { Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -9,6 +16,7 @@ import { File } from '@platform/types/files';
     selector: 'app-attach-new-source-menu',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     encapsulation: ViewEncapsulation.None,
 })
 @Ilc()

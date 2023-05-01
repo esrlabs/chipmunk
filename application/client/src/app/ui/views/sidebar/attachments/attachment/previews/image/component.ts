@@ -5,6 +5,7 @@ import {
     AfterViewInit,
     ElementRef,
     ChangeDetectorRef,
+    ChangeDetectionStrategy,
     AfterContentInit,
 } from '@angular/core';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -18,6 +19,7 @@ import { stop } from '@ui/env/dom';
     selector: 'app-views-attachments-item-image-preview',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Ilc()
 export class Preview extends ChangesDetector implements AfterViewInit, AfterContentInit {

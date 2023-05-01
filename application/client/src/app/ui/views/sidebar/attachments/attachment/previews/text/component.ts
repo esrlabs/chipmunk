@@ -1,4 +1,4 @@
-import { Component, Input, AfterContentInit, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, AfterContentInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Attachment } from '@platform/types/content';
 import { URLFileReader } from '@env/urlfilereader';
@@ -10,6 +10,7 @@ const MAX_LINES_COUNT = 1000;
     selector: 'app-views-attachments-item-text-preview',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Ilc()
 export class Preview extends ChangesDetector implements AfterContentInit {
