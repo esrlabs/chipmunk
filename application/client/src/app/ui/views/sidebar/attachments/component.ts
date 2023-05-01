@@ -180,7 +180,7 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
         all(): Promise<void>;
         selected(): Promise<void>;
         typed(ext: string): Promise<void>;
-        as(attachment: Attachment): Promise<void>;
+        as(attachment?: Attachment): Promise<void>;
     } {
         const bridge = this.ilc().services.system.bridge;
         const copy = async (files: string[]) => {
@@ -219,7 +219,14 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
             typed: async (ext: string): Promise<void> => {
                 copy(this.attachments.filter((a) => a.ext(ext)).map((a) => a.attachment.filepath));
             },
-            as: async (attachment: Attachment): Promise<void> => {
+            as: async (attachment?: Attachment): Promise<void> => {
+                if (attachment === undefined) {
+                    const selected = this.getSelected();
+                    if (selected.length !== 1) {
+                        return;
+                    }
+                    attachment = selected[0];
+                }
                 const dest = await bridge.files().select.save();
                 if (dest === undefined) {
                     return;

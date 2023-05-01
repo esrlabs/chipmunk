@@ -25,7 +25,7 @@
         <lib-containers-dynamic [component]="preview"></lib-containers-dynamic>
     </div>
     <div class="controlls">
-        <button mat-stroked-button>Save As</button>
+        <button mat-stroked-button (click)="save().as()">Save As</button>
     </div>
 </mat-expansion-panel>
 <mat-menu #menu="matMenu">
