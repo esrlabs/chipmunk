@@ -72,7 +72,12 @@ export class Preview extends ChangesDetector implements AfterContentInit {
             if (selection === null) {
                 return;
             }
-            navigator.clipboard.writeText(selection.toString());
+            navigator.clipboard.writeText(
+                selection
+                    .toString()
+                    .replace(/[\n\r]/gi, '\n')
+                    .replace(/\n{2,}/gi, '\n'),
+            );
         }
     }
 }
