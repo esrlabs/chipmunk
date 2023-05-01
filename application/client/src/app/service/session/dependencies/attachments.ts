@@ -14,6 +14,9 @@ export class Attachments extends Subscriber {
         updated: new Subject<number>(),
     });
     public readonly attachments: Map<string, Attachment> = new Map();
+
+    protected readonly positions: Map<number, Attachment> = new Map();
+
     private _len: number = 0;
     private _uuid!: string;
 
@@ -44,6 +47,9 @@ export class Attachments extends Subscriber {
                         `Count of attachment on backend dismatch with attachments on frontend`,
                     );
                 }
+                attachment.messages.forEach((pos) => {
+                    this.positions.set(pos, attachment);
+                });
                 this.subjects.get().updated.emit(this.attachments.size);
             }),
         );
@@ -56,6 +62,15 @@ export class Attachments extends Subscriber {
 
     public len(): number {
         return this._len;
+    }
+
+    public has(position: number): boolean {
+        return this.positions.has(position);
+    }
+
+    public getRefByPos(position: number): string | undefined {
+        const attachment = this.positions.get(position);
+        return attachment === undefined ? undefined : attachment.name;
     }
 }
 export interface Attachments extends LoggerInterface {}
