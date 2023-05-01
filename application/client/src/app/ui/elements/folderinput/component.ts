@@ -9,6 +9,8 @@ import {
     EventEmitter,
     Output,
     ViewEncapsulation,
+    ChangeDetectionStrategy,
+    OnDestroy,
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -31,10 +33,14 @@ export { ErrorState, Options };
     selector: 'app-folderinput-input',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     encapsulation: ViewEncapsulation.None,
 })
 @Ilc()
-export class FolderInput extends ChangesDetector implements AfterContentInit, AfterViewInit {
+export class FolderInput
+    extends ChangesDetector
+    implements OnDestroy, AfterContentInit, AfterViewInit
+{
     @Input() public options!: Options;
 
     @Output() public edit: EventEmitter<string> = new EventEmitter();
@@ -52,21 +58,27 @@ export class FolderInput extends ChangesDetector implements AfterContentInit, Af
         super(cdRef);
     }
 
+    public ngOnDestroy(): void {
+        this.control.destroy();
+    }
+
     public ngAfterContentInit(): void {
         this.control = new Controll();
         this.folders = new FoldersList(this.control.control);
         this.control.set(this.options.defaults);
-        this.control.actions.edit.subscribe((value: string) => {
-            this.edit.emit(value);
-        });
-        this.control.actions.enter.subscribe((value: string) => {
-            this.enter.emit(value);
-        });
-        this.control.actions.panel.subscribe((opened: boolean) => {
-            this.panel.emit(opened);
-            this.markChangesForCheck();
-        });
         this.env().subscriber.register(
+            this.control.actions.edit.subscribe((value: string) => {
+                this.edit.emit(value);
+                this.detectChanges();
+            }),
+            this.control.actions.enter.subscribe((value: string) => {
+                this.enter.emit(value);
+                this.detectChanges();
+            }),
+            this.control.actions.panel.subscribe((opened: boolean) => {
+                this.panel.emit(opened);
+                this.detectChanges();
+            }),
             this.error.subject.subscribe(() => {
                 this.edit.emit(this.control.value);
                 this.detectChanges();

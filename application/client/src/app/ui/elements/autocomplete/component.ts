@@ -9,6 +9,8 @@ import {
     EventEmitter,
     Output,
     ViewEncapsulation,
+    OnDestroy,
+    ChangeDetectionStrategy,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -37,10 +39,14 @@ export { ErrorState, Options };
     selector: 'app-autocomplete-input',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     encapsulation: ViewEncapsulation.None,
 })
 @Ilc()
-export class AutocompleteInput extends ChangesDetector implements AfterContentInit, AfterViewInit {
+export class AutocompleteInput
+    extends ChangesDetector
+    implements OnDestroy, AfterContentInit, AfterViewInit
+{
     @Input() public options!: Options;
 
     @Output() public edit: EventEmitter<string> = new EventEmitter();
@@ -58,6 +64,10 @@ export class AutocompleteInput extends ChangesDetector implements AfterContentIn
         super(cdRef);
     }
 
+    public ngOnDestroy(): void {
+        this.control.destroy();
+    }
+
     public ngAfterContentInit(): void {
         this.control = new Controll();
         this.recent = new List(this.control.control, this.options.name, this.options.storage);
@@ -66,23 +76,23 @@ export class AutocompleteInput extends ChangesDetector implements AfterContentIn
     }
 
     public ngAfterViewInit(): void {
-        this.control.actions.edit.subscribe((value: string) => {
-            this.edit.emit(value);
-        });
-        this.control.actions.enter.subscribe((value: string) => {
-            this.enter.emit(value);
-        });
-        this.control.actions.panel.subscribe((opened: boolean) => {
-            this.panel.emit(opened);
-            this.markChangesForCheck();
-        });
         this.env().subscriber.register(
+            this.control.actions.edit.subscribe((value: string) => {
+                this.edit.emit(value);
+                this.detectChanges();
+            }),
+            this.control.actions.enter.subscribe((value: string) => {
+                this.enter.emit(value);
+                this.detectChanges();
+            }),
+            this.control.actions.panel.subscribe((opened: boolean) => {
+                this.panel.emit(opened);
+                this.detectChanges();
+            }),
             this.options.recent.subscribe((value: string | undefined) => {
                 value = value === undefined ? this.control.value : value;
                 value.trim() !== '' && this.recent.update(value);
             }),
-        );
-        this.env().subscriber.register(
             this.error.observer().subscribe(() => {
                 this.detectChanges();
             }),
