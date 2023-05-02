@@ -1,4 +1,10 @@
-import { Component, Input, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import {
+    Component,
+    Input,
+    AfterViewInit,
+    ChangeDetectorRef,
+    ChangeDetectionStrategy,
+} from '@angular/core';
 import { Base } from '@service/session';
 import { TabsOptions, ETabsListDirection } from '@elements/tabs/options';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -8,6 +14,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
     selector: 'app-layout-sidebar',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Ilc()
 export class LayoutSidebar extends ChangesDetector implements AfterViewInit {
