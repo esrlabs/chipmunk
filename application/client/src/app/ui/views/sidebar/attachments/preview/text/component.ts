@@ -46,6 +46,21 @@ export class Preview extends ChangesDetector implements AfterContentInit {
         );
     }
 
+    public contextmenu(event: MouseEvent) {
+        this.ilc().emitter.ui.contextmenu.open({
+            items: [
+                {
+                    caption: 'Copy Into Clipboard',
+                    handler: () => {
+                        this.copy();
+                    },
+                },
+            ],
+            x: event.x,
+            y: event.y,
+        });
+    }
+
     public copy(all = true): void {
         if (all) {
             navigator.clipboard.writeText(this.lines.join('\n'));

@@ -100,6 +100,21 @@ export class Preview extends ChangesDetector implements AfterViewInit, AfterCont
         }
     }
 
+    public contextmenu(event: MouseEvent) {
+        this.ilc().emitter.ui.contextmenu.open({
+            items: [
+                {
+                    caption: 'Copy Into Clipboard',
+                    handler: () => {
+                        this.copy();
+                    },
+                },
+            ],
+            x: event.x,
+            y: event.y,
+        });
+    }
+
     public originImageDomRect() {
         this.origin = this.imageElRef.nativeElement.getBoundingClientRect();
         this.updateImageDomRect();
