@@ -7,9 +7,12 @@ export class URLFileReader {
         this.url = url;
     }
 
-    public read(): Promise<string | Blob | ArrayBuffer | { [key: string]: any } | Document> {
+    public read(
+        responseType?: 'blob' | 'arraybuffer' | 'document' | 'json' | 'text',
+    ): Promise<string | Blob | ArrayBuffer | { [key: string]: any } | Document> {
         return new Promise((resolve, reject) => {
             this.request.open('GET', this.url, true);
+            responseType !== undefined && (this.request.responseType = responseType);
             this.request.send(null);
             this.request.onreadystatechange = () => {
                 if (this.done) {
