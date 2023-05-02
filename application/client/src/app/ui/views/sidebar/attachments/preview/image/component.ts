@@ -19,8 +19,6 @@ import { components } from '@env/decorators/initial';
 import { Locker } from '@ui/service/lockers';
 import { URLFileReader } from '@env/urlfilereader';
 
-import * as utils from '@platform/log/utils';
-
 @Component({
     selector: 'app-views-attachments-item-image-preview',
     templateUrl: './template.html',
@@ -187,20 +185,20 @@ export class Preview extends ChangesDetector implements AfterViewInit, AfterCont
         );
         new URLFileReader(`attachment://${this.attachment.filepath}`)
             .read('blob')
-            .then(async (response) => {
+            .then((response) => {
                 if (!(response instanceof Blob)) {
                     this.log().warn(`Fail to fetch image as Blob`);
                     return;
                 }
-                try {
-                    await navigator.clipboard.write([
+                navigator.clipboard
+                    .write([
                         new ClipboardItem({
                             [response.type]: response,
                         }),
-                    ]);
-                } catch (err) {
-                    this.log().warn(`Fail to copy image into clipboard: ${utils.error(err)}`);
-                }
+                    ])
+                    .catch((err: Error) => {
+                        this.log().warn(`Fail to copy image into clipboard: ${err.message}`);
+                    });
             })
             .catch((err: Error) => {
                 this.log().error(`Fail to get a blob for ${this.attachment.name}: ${err.message}.`);
