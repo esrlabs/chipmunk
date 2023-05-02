@@ -1,0 +1,67 @@
+@import '../../../../styles/variables.less';
+
+:host {
+    position: relative;
+    display: block;
+    padding: 0;
+    margin: 0;
+    &.popup {
+        margin: 16px;
+    }
+    & div.title {
+        position: relative;
+        display: flex;
+        padding: 0;
+        margin: 0;
+        flex-direction: row;
+        align-items: center;
+        margin-left: -24px;
+        height: 32px;
+        overflow: hidden;
+        padding: 3px 24px;
+        cursor: default;
+        margin-bottom: 16px;
+        & span.extention {
+            position: relative;
+            display: flex;
+            width: 32px;
+            height: 32px;
+            text-transform: uppercase;
+            align-items: center;
+            align-content: center;
+            color: @scheme-color-1;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        & div.desc {
+            position: relative;
+            display: flex;
+            height: 32px;
+            overflow: hidden;
+            flex-direction: column;
+            padding-left: 8px;
+            & p.name, 
+            & p.size {
+                font-size: 14px;
+                font-weight: 400;
+                line-height: 14px;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                white-space: nowrap;
+            }
+            & p.name {
+                color: @scheme-color-1;
+            }
+            & p.size {
+                color: @scheme-color-3;
+    
+            }
+        }
+    }
+    & div.controlls {
+        text-align: right;
+        & button {
+            margin-left: 8px;
+        }
+    }
+}

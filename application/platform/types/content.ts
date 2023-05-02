@@ -1,4 +1,5 @@
 import { error } from '../log/utils';
+import { Mutable } from './unity/mutable';
 
 import * as obj from '../env/obj';
 
@@ -105,6 +106,7 @@ export class Attachment {
     public readonly size: number;
     public readonly mime: string | undefined;
     public readonly messages: number[];
+    public readonly color: string | undefined;
 
     static from(smth: string | unknown): Attachment | Error {
         try {
@@ -133,6 +135,10 @@ export class Attachment {
         this.size = attachment.size;
         this.mime = attachment.mime;
         this.messages = attachment.messages;
+    }
+
+    public setColor(color: string): void {
+        (this as Mutable<Attachment>).color = color;
     }
 
     public extAsString(): string {

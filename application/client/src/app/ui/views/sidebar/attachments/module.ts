@@ -5,6 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { Attachments } from './component';
 import { ItemModule } from './attachment/module';
+import { PreviewModule } from './preview/module';
 import { MatCardModule } from '@angular/material/card';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatMenuModule } from '@angular/material/menu';
@@ -24,6 +25,7 @@ const components = [...entryComponents];
         MatIconModule,
         MatDividerModule,
         ItemModule,
+        PreviewModule,
     ],
     declarations: [...components],
     exports: [...components],

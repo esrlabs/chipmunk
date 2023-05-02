@@ -2,6 +2,7 @@ import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { cutUuid } from '@log/index';
 import { Attachment } from '@platform/types/content';
+import { getNextColor } from '@ui/styles/colors';
 
 // import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -41,6 +42,7 @@ export class Attachments extends Subscriber {
                     );
                     return;
                 }
+                attachment.setColor(getNextColor());
                 this.attachments.set(event.attachment.uuid, attachment);
                 if (this.attachments.size !== event.len) {
                     this.log().warn(
@@ -68,9 +70,8 @@ export class Attachments extends Subscriber {
         return this.positions.has(position);
     }
 
-    public getRefByPos(position: number): string | undefined {
-        const attachment = this.positions.get(position);
-        return attachment === undefined ? undefined : attachment.name;
+    public getByPos(position: number): Attachment | undefined {
+        return this.positions.get(position);
     }
 }
 export interface Attachments extends LoggerInterface {}
