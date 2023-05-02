@@ -50,6 +50,16 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
             this.session.attachments.subjects.get().updated.subscribe(this.update.bind(this)),
         );
         this.env().subscriber.register(
+            this.ilc().services.ui.listener.listen<Event>('focus', window, (_event: Event) => {
+                this.holded.ctrl = false;
+                this.holded.shift = false;
+                return true;
+            }),
+            this.ilc().services.ui.listener.listen<Event>('blur', window, (_event: Event) => {
+                this.holded.ctrl = false;
+                this.holded.shift = false;
+                return true;
+            }),
             this.ilc().services.ui.listener.listen<KeyboardEvent>(
                 'keyup',
                 window,
