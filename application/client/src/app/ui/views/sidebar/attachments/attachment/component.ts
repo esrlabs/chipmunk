@@ -1,4 +1,4 @@
-import { Component, Input, AfterContentInit } from '@angular/core';
+import { Component, Input, AfterContentInit, ChangeDetectionStrategy } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Attachment } from '@platform/types/content';
 import { bytesToStr } from '@env/str';
@@ -7,6 +7,7 @@ import { bytesToStr } from '@env/str';
     selector: 'app-views-attachments-item',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Ilc()
 export class Item implements AfterContentInit {
