@@ -21,12 +21,7 @@
     <mat-expansion-panel-header>
         <mat-panel-title>Preview</mat-panel-title>
     </mat-expansion-panel-header>
-    <div class="preview">
-        <lib-containers-dynamic [component]="preview"></lib-containers-dynamic>
-    </div>
-    <div class="controlls">
-        <button mat-stroked-button (click)="save().as()">Save As</button>
-    </div>
+    <app-views-attachments-preview #previewref [attachment]="preview" [embedded]="true"></app-views-attachments-preview>
 </mat-expansion-panel>
 <mat-menu #menu="matMenu">
     <button mat-menu-item (click)="save().selected()">

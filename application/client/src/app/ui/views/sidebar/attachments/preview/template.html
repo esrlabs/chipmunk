@@ -1,0 +1,18 @@
+<div class="title" *ngIf="!embedded">
+    <span class="extention" [ngStyle]="{'color': attachment.color}">{{ext}}</span>
+    <div class="desc">
+        <p class="name">{{attachment.name}}</p>
+        <p class="size">{{size}}</p>
+    </div>
+</div>
+<div class="preview">
+    <app-views-attachments-item-audio-preview *ngIf="type === 'audio'" [attachment]="attachment" [embedded]="embedded" [updated]="updated"></app-views-attachments-item-audio-preview>
+    <app-views-attachments-item-video-preview *ngIf="type === 'video'" [attachment]="attachment" [embedded]="embedded" [updated]="updated"></app-views-attachments-item-video-preview>
+    <app-views-attachments-item-image-preview *ngIf="type === 'image'" [attachment]="attachment" [embedded]="embedded" [updated]="updated"></app-views-attachments-item-image-preview>
+    <app-views-attachments-item-text-preview *ngIf="type === 'text'" [attachment]="attachment" [embedded]="embedded" [updated]="updated"></app-views-attachments-item-text-preview>
+    <app-views-attachments-item-unknown-preview *ngIf="type === 'unknown'" [attachment]="attachment" [embedded]="embedded" [updated]="updated"></app-views-attachments-item-unknown-preview>
+</div>
+<div class="controlls">
+    <button mat-stroked-button (click)="saveAs()">Save As</button>
+    <button mat-stroked-button *ngIf="!embedded" (click)="close()">Close</button>
+</div>

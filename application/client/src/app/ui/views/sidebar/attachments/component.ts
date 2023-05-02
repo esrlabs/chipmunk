@@ -1,19 +1,14 @@
-import { Component, Input, ChangeDetectorRef, AfterContentInit } from '@angular/core';
+import { Component, Input, ChangeDetectorRef, AfterContentInit, ViewChild } from '@angular/core';
 import { Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Attachment } from '@platform/types/content';
 import { Wrapped } from './attachment/wrapper';
-import { IComponentDesc } from '@elements/containers/dynamic/component';
-import { Preview as ImagePreview } from './attachment/previews/image/component';
-import { Preview as TextPreview } from './attachment/previews/text/component';
-import { Preview as UnknownPreview } from './attachment/previews/unknown/component';
-import { Preview as VideoPreview } from './attachment/previews/video/component';
-import { Preview as AudioPreview } from './attachment/previews/audio/component';
 import { Locker } from '@ui/service/lockers';
 import { Notification } from '@ui/service/notifications';
 import { Owner } from '@schema/content/row';
+import { Preview } from './preview/component';
 
 const UNTYPED = 'untyped';
 
@@ -26,9 +21,10 @@ const UNTYPED = 'untyped';
 @Ilc()
 export class Attachments extends ChangesDetector implements AfterContentInit {
     @Input() session!: Session;
+    @ViewChild('previewref') previewElRef!: Preview;
 
     public attachments: Wrapped[] = [];
-    public preview: IComponentDesc | undefined;
+    public preview: Attachment | undefined;
     public extensions: Map<string, number> = new Map();
 
     protected readonly selection: {
@@ -195,7 +191,10 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
         }
         const selected = this.getSelected();
         if (selected.length === 1) {
-            this.preview = this.getPreviewComponent(selected[0]);
+            this.preview = selected[0];
+            if (this.previewElRef !== undefined) {
+                this.previewElRef.assign(this.preview);
+            }
         } else {
             this.preview = undefined;
         }
@@ -285,45 +284,6 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
                     });
             },
         };
-    }
-
-    protected getPreviewComponent(target: Attachment): IComponentDesc {
-        if (target.is().image()) {
-            return {
-                factory: ImagePreview,
-                inputs: {
-                    attachment: target,
-                },
-            };
-        } else if (target.is().video()) {
-            return {
-                factory: VideoPreview,
-                inputs: {
-                    attachment: target,
-                },
-            };
-        } else if (target.is().audio()) {
-            return {
-                factory: AudioPreview,
-                inputs: {
-                    attachment: target,
-                },
-            };
-        } else if (target.is().text()) {
-            return {
-                factory: TextPreview,
-                inputs: {
-                    attachment: target,
-                },
-            };
-        } else {
-            return {
-                factory: UnknownPreview,
-                inputs: {
-                    attachment: target,
-                },
-            };
-        }
     }
 
     protected update(): void {

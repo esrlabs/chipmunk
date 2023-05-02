@@ -10,6 +10,7 @@ import { Attachment } from '@platform/types/content';
 import { URLFileReader } from '@env/urlfilereader';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { unique } from '@platform/env/sequence';
+import { Subject } from '@platform/env/subscription';
 
 const MAX_LINES_COUNT = 1000;
 
@@ -22,6 +23,8 @@ const MAX_LINES_COUNT = 1000;
 @Ilc()
 export class Preview extends ChangesDetector implements AfterContentInit {
     @Input() attachment!: Attachment;
+    @Input() embedded!: boolean;
+    @Input() updated!: Subject<void>;
 
     public lines: string[] = [];
 
@@ -32,27 +35,13 @@ export class Preview extends ChangesDetector implements AfterContentInit {
     }
 
     public ngAfterContentInit(): void {
-        new URLFileReader(`attachment://${this.attachment.filepath}`)
-            .read()
-            .then((response) => {
-                if (typeof response !== 'string') {
-                    this.log().error(`Expecting to get a text for ${this.attachment.name}.`);
-                    return;
-                }
-                this.lines = response.split(/[\n\r]/gi);
-                if (this.lines.length > MAX_LINES_COUNT) {
-                    const cutted = this.lines.length - MAX_LINES_COUNT;
-                    this.lines.splice(MAX_LINES_COUNT, cutted);
-                    this.lines.push(`... (more ${cutted} lines) ...`);
-                }
-                this.detectChanges();
-            })
-            .catch((err: Error) => {
-                this.log().error(`Fail to get a text for ${this.attachment.name}: ${err.message}.`);
-            });
+        this.update();
         this.env().subscriber.register(
             this.ilc().services.system.hotkeys.listen('Ctrl + C', () => {
                 this.copy(false);
+            }),
+            this.updated.subscribe(() => {
+                this.update();
             }),
         );
     }
@@ -79,6 +68,27 @@ export class Preview extends ChangesDetector implements AfterContentInit {
                     .replace(/\n{2,}/gi, '\n'),
             );
         }
+    }
+
+    protected update() {
+        new URLFileReader(`attachment://${this.attachment.filepath}`)
+            .read()
+            .then((response) => {
+                if (typeof response !== 'string') {
+                    this.log().error(`Expecting to get a text for ${this.attachment.name}.`);
+                    return;
+                }
+                this.lines = response.split(/[\n\r]/gi);
+                if (this.lines.length > MAX_LINES_COUNT) {
+                    const cutted = this.lines.length - MAX_LINES_COUNT;
+                    this.lines.splice(MAX_LINES_COUNT, cutted);
+                    this.lines.push(`... (more ${cutted} lines) ...`);
+                }
+                this.detectChanges();
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to get a text for ${this.attachment.name}: ${err.message}.`);
+            });
     }
 }
 export interface Preview extends IlcInterface {}

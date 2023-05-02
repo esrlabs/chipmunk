@@ -8,7 +8,7 @@
         [ngStyle]="getStyles()" [attr.src]="url"/>
 </div>
 <div class="controlls">
-    <button mat-icon-button *ngIf="maximizible" (click)="maximize()">
+    <button mat-icon-button *ngIf="embedded" (click)="maximize()">
         <mat-icon>aspect_ratio</mat-icon>
     </button>
     <button mat-icon-button (click)="rotate().left()">

@@ -16,6 +16,9 @@ import { Locker, Level } from '@ui/service/lockers';
 import { getSourceColor } from '@ui/styles/colors';
 import { Notification } from '@ui/service/notifications';
 import { Selecting } from '../controllers/selection';
+import { popup, Vertical, Horizontal } from '@ui/service/popup';
+import { components } from '@env/decorators/initial';
+import { scheme_color_1 } from '@ui/styles/colors';
 
 @Component({
     selector: 'app-scrollarea-row',
@@ -31,7 +34,12 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
     public render: number = 1;
     public bookmarked: boolean = false;
     public selected: boolean = false;
-    public attachment: string | undefined = undefined;
+    public attachment:
+        | {
+              name: string;
+              color: string;
+          }
+        | undefined = undefined;
     public source: {
         color: string | undefined;
     } = {
@@ -262,6 +270,34 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         this.row.bookmark().toggle();
     }
 
+    public showAttachment() {
+        if (this.attachment === undefined) {
+            return;
+        }
+        const attachment = this.row.session.attachments.getByPos(this.row.position);
+        if (attachment === undefined) {
+            return;
+        }
+        const instance = popup.open({
+            component: {
+                factory: components.get('app-views-attachments-preview'),
+                inputs: {
+                    attachment: attachment,
+                    embedded: false,
+                    close: () => {
+                        instance.close();
+                    },
+                },
+            },
+            position: {
+                vertical: Vertical.center,
+                horizontal: Horizontal.center,
+            },
+            closeOnKey: 'Escape',
+            uuid: attachment.uuid,
+        });
+    }
+
     protected hash(): string {
         return `${this.bookmarked}.${this.selected}.${this.attachment}.${this.source.color}`;
     }
@@ -277,7 +313,15 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         this.selected = this.row.select().is();
         const attachments = this.row.session.attachments;
         if (attachments.has(this.row.position)) {
-            this.attachment = attachments.getRefByPos(this.row.position);
+            const attachment = attachments.getByPos(this.row.position);
+            if (attachment !== undefined) {
+                this.attachment = {
+                    color: attachment.color === undefined ? scheme_color_1 : attachment.color,
+                    name: attachment.name,
+                };
+            } else {
+                this.attachment = undefined;
+            }
         } else {
             this.attachment = undefined;
         }

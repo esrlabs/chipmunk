@@ -14,6 +14,7 @@ import { Attachment } from '@platform/types/content';
 import { popup, Vertical, Horizontal } from '@ui/service/popup';
 import { ChangeEvent } from '@directives/dragging';
 import { stop } from '@ui/env/dom';
+import { Subject } from '@platform/env/subscription';
 
 @Component({
     selector: 'app-views-attachments-item-image-preview',
@@ -24,7 +25,8 @@ import { stop } from '@ui/env/dom';
 @Ilc()
 export class Preview extends ChangesDetector implements AfterViewInit, AfterContentInit {
     @Input() attachment!: Attachment;
-    @Input() maximizible: boolean = true;
+    @Input() embedded!: boolean;
+    @Input() updated!: Subject<void>;
 
     @ViewChild('image') public imageElRef!: ElementRef<HTMLImageElement>;
 
@@ -101,7 +103,13 @@ export class Preview extends ChangesDetector implements AfterViewInit, AfterCont
     }
 
     public ngAfterContentInit(): void {
-        this.url = `attachment://${this.attachment.filepath}`;
+        this.update();
+        this.env().subscriber.register(
+            this.updated.subscribe(() => {
+                this.update();
+                this.detectChanges();
+            }),
+        );
     }
 
     public ngAfterViewInit(): void {
@@ -145,7 +153,7 @@ export class Preview extends ChangesDetector implements AfterViewInit, AfterCont
                 factory: Preview,
                 inputs: {
                     attachment: this.attachment,
-                    maximizible: false,
+                    embedded: false,
                 },
             },
             position: {
@@ -160,6 +168,10 @@ export class Preview extends ChangesDetector implements AfterViewInit, AfterCont
     public move(event: ChangeEvent) {
         this.position.top = event.top;
         this.position.left = event.left;
+    }
+
+    protected update() {
+        this.url = `attachment://${this.attachment.filepath}`;
     }
 }
 export interface Preview extends IlcInterface {}
