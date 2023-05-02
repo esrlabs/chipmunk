@@ -16,6 +16,10 @@ import { ChangeEvent } from '@directives/dragging';
 import { stop } from '@ui/env/dom';
 import { Subject } from '@platform/env/subscription';
 import { components } from '@env/decorators/initial';
+import { Locker } from '@ui/service/lockers';
+import { URLFileReader } from '@env/urlfilereader';
+
+import * as utils from '@platform/log/utils';
 
 @Component({
     selector: 'app-views-attachments-item-image-preview',
@@ -172,6 +176,38 @@ export class Preview extends ChangesDetector implements AfterViewInit, AfterCont
     public move(event: ChangeEvent) {
         this.position.top = event.top;
         this.position.left = event.left;
+    }
+
+    public copy(): void {
+        const message = this.ilc().services.ui.lockers.lock(
+            new Locker(true, `Copying into clipboard...`),
+            {
+                closable: false,
+            },
+        );
+        new URLFileReader(`attachment://${this.attachment.filepath}`)
+            .read('blob')
+            .then(async (response) => {
+                if (!(response instanceof Blob)) {
+                    this.log().warn(`Fail to fetch image as Blob`);
+                    return;
+                }
+                try {
+                    await navigator.clipboard.write([
+                        new ClipboardItem({
+                            [response.type]: response,
+                        }),
+                    ]);
+                } catch (err) {
+                    this.log().warn(`Fail to copy image into clipboard: ${utils.error(err)}`);
+                }
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to get a blob for ${this.attachment.name}: ${err.message}.`);
+            })
+            .finally(() => {
+                message.popup.close();
+            });
     }
 
     protected update() {
