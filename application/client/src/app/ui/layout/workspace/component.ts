@@ -1,4 +1,9 @@
-import { Component, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import {
+    Component,
+    AfterViewInit,
+    ChangeDetectorRef,
+    ChangeDetectionStrategy,
+} from '@angular/core';
 import { TabsService } from '@elements/tabs/service';
 import { LayoutHome } from './no-tabs-content/component';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -11,6 +16,7 @@ import * as ids from '@schema/ids';
     selector: 'app-layout-workspace',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Ilc()
 export class LayoutWorkspace extends ChangesDetector implements AfterViewInit {

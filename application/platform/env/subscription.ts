@@ -178,20 +178,19 @@ export class Subject<T> {
             this._handlers.forEach((handler: (value: T) => void) => {
                 handler(value);
             });
+            this._balanced.last = Date.now();
         };
         if (this._delay === undefined) {
             emit();
         } else {
             clearTimeout(this._balanced.timer);
-            if (this._balanced.last === -1) {
-                this._balanced.last = Date.now();
-            }
-            if (Date.now() - this._balanced.last >= this._delay) {
+            const diff = Date.now() - this._balanced.last;
+            if (diff >= this._delay) {
                 emit();
             } else {
                 this._balanced.timer = setTimeout(() => {
                     emit();
-                }, this._delay);
+                }, diff);
             }
         }
     }

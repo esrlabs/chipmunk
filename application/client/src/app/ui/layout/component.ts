@@ -3,8 +3,8 @@ import {
     ChangeDetectorRef,
     AfterViewInit,
     HostBinding,
-    SkipSelf,
     NgZone,
+    ChangeDetectionStrategy,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { LimittedValue } from '@ui/env/entities/value.limited';
@@ -32,6 +32,7 @@ function initialSidebarWidth(): LimittedValue {
     selector: 'app-layout',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Ilc()
 export class Layout extends ChangesDetector implements AfterViewInit {
@@ -48,14 +49,15 @@ export class Layout extends ChangesDetector implements AfterViewInit {
         toolbar: Subject<number>;
         sidebar: Subject<number>;
     } = {
-        toolbar: new Subject<number>().balanced(25),
-        sidebar: new Subject<number>().balanced(25),
+        toolbar: new Subject<number>().balanced(50),
+        sidebar: new Subject<number>().balanced(50),
     };
 
     private _layout: DOMRect | undefined;
+
     private readonly _sessions: Map<string, { toolbar: number; sidebar: number }> = new Map();
 
-    constructor(@SkipSelf() cdRef: ChangeDetectorRef, private ngZone: NgZone) {
+    constructor(cdRef: ChangeDetectorRef, private ngZone: NgZone) {
         super(cdRef);
         this.ilc().channel.session.change(this._onSessionChange.bind(this));
         this.ilc().channel.session.closed(this._onSessionClosed.bind(this));

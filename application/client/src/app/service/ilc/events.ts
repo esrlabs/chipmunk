@@ -130,7 +130,7 @@ export class Events {
                 ),
             },
             window: {
-                resize: this._add<void>(new Subject<void>()),
+                resize: this._add<void>(new Subject<void>().balanced(50)),
             },
             layout: {
                 resize: this._add<void>(new Subject<void>()),
