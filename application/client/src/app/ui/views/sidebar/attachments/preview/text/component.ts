@@ -27,8 +27,8 @@ export class Preview extends ChangesDetector implements AfterContentInit {
     @Input() updated!: Subject<void>;
 
     public lines: string[] = [];
-
     public uuid: string = unique();
+    public reading: boolean = true;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -71,6 +71,8 @@ export class Preview extends ChangesDetector implements AfterContentInit {
     }
 
     protected update() {
+        this.reading = true;
+        this.detectChanges();
         new URLFileReader(`attachment://${this.attachment.filepath}`)
             .read()
             .then((response) => {
@@ -84,10 +86,13 @@ export class Preview extends ChangesDetector implements AfterContentInit {
                     this.lines.splice(MAX_LINES_COUNT, cutted);
                     this.lines.push(`... (more ${cutted} lines) ...`);
                 }
-                this.detectChanges();
             })
             .catch((err: Error) => {
                 this.log().error(`Fail to get a text for ${this.attachment.name}: ${err.message}.`);
+            })
+            .finally(() => {
+                this.reading = false;
+                this.detectChanges();
             });
     }
 }
