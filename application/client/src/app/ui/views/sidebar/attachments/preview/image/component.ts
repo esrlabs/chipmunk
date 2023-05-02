@@ -15,6 +15,7 @@ import { popup, Vertical, Horizontal } from '@ui/service/popup';
 import { ChangeEvent } from '@directives/dragging';
 import { stop } from '@ui/env/dom';
 import { Subject } from '@platform/env/subscription';
+import { components } from '@env/decorators/initial';
 
 @Component({
     selector: 'app-views-attachments-item-image-preview',
@@ -148,12 +149,15 @@ export class Preview extends ChangesDetector implements AfterViewInit, AfterCont
     }
 
     public maximize() {
-        popup.open({
+        const instance = popup.open({
             component: {
-                factory: Preview,
+                factory: components.get('app-views-attachments-preview'),
                 inputs: {
                     attachment: this.attachment,
                     embedded: false,
+                    close: () => {
+                        instance.close();
+                    },
                 },
             },
             position: {
