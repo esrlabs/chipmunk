@@ -1,5 +1,6 @@
 <div class="image" (wheel)="scrolling($event)">
     <img #image appDragging (load)="originImageDomRect()"
+        (contextmenu)="contextmenu($event)"
         [top]="position.top" 
         [left]="position.left" 
         [min]="min"
