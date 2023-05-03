@@ -5,19 +5,12 @@ import { SafeHtml } from '@angular/platform-browser';
 import { fromStr, serialize } from '@platform/env/regex';
 import { getFileExtention } from '@platform/types/files';
 
-const ICONS: { [key: string]: string[] } = {
-    description: ['.txt', '.log', '.logs', '.info', '.cfg', '.json'],
-    bug_report: ['.dlt'],
-    cell_tower: ['.pcap', '.ngpcap'],
-};
-
 const EXTENTION_PATTERN = /^\*\.|^\./gi;
-const CACHE: Map<string, string> = new Map();
 
 export class Entity {
     public readonly entity: IEntity;
     public readonly parent: string;
-    public icon: string | undefined;
+    public ext: string | undefined;
     public selected: boolean = false;
     public favourite: boolean = false;
     public expanded: boolean = false;
@@ -38,21 +31,7 @@ export class Entity {
         this.exists = exists;
         this.filter = filter;
         if (entity.details !== undefined) {
-            const ext = entity.details.ext.toLowerCase();
-            const icon = CACHE.get(ext);
-            if (icon !== undefined) {
-                this.icon = icon;
-            } else {
-                Object.keys(ICONS).forEach((icon) => {
-                    if (this.icon !== undefined) {
-                        return;
-                    }
-                    if (ICONS[icon].indexOf(ext) !== -1) {
-                        this.icon = icon;
-                        CACHE.set(ext, icon);
-                    }
-                });
-            }
+            this.ext = entity.details.ext.toUpperCase().replace('.', '');
         }
     }
 

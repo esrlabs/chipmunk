@@ -93,6 +93,7 @@ export class State {
                     this.ilc.log().error(`Fail to update state of folder's tree: ${err.message}`);
                 });
             },
+            this.ilc,
         );
         db.bind(source);
         source.data = db.initialData();
@@ -109,6 +110,9 @@ export class State {
                     })
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to get favorites places list: ${err.message}`);
+                    })
+                    .finally(() => {
+                        this.ilc.detectChanges();
                     });
             }),
         );
@@ -133,6 +137,7 @@ export class State {
         if (this.scheme.source.data.length > 0) {
             this.scheme.source.data[0].item.selecting().select();
         }
+        this.ilc.detectChanges();
     }
 
     public expand() {
