@@ -3,6 +3,7 @@ import {
     ChangeDetectorRef,
     AfterContentInit,
     Input,
+    ChangeDetectionStrategy,
 } from '@angular/core';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
@@ -17,6 +18,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
     selector: 'app-sidebar-filters-list',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Initial()
 @Ilc()

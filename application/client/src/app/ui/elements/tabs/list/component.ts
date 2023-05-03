@@ -8,19 +8,25 @@ import {
     ElementRef,
     ViewChildren,
     OnChanges,
+    ChangeDetectionStrategy,
 } from '@angular/core';
 import type { QueryList } from '@angular/core';
 import { ITabInternal, TabsService } from '../service';
 import { TabsOptions } from '../options';
 import { Subscription } from 'rxjs';
 import { stop } from '@ui/env/dom';
+import { ChangesDetector } from '@ui/env/extentions/changes';
 
 @Component({
     selector: 'element-tabs-list',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
+export class TabsListComponent
+    extends ChangesDetector
+    implements OnDestroy, AfterViewInit, OnChanges
+{
     @ViewChild('holdernode', { static: false }) _ng_holderNode!: ElementRef;
     @ViewChild('tabsnode', { static: false }) _ng_tabsNode!: ElementRef;
     @ViewChild('injectionsnode', { static: false }) _ng_injectionsNode!: ElementRef;
@@ -33,7 +39,6 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
     public tabs: ITabInternal[] = [];
 
     private _subscriptions: Map<string, Subscription> = new Map();
-    private _destroyed: boolean = false;
     private _tabs: Map<string, ITabInternal> = new Map();
     private _sizes: {
         space: number;
@@ -47,7 +52,8 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
         first: 0,
     };
 
-    constructor(private _cdRef: ChangeDetectorRef) {
+    constructor(cdRef: ChangeDetectorRef) {
+        super(cdRef);
         this._subscribeToWinEvents();
     }
 
@@ -57,24 +63,23 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
     }
 
     ngOnDestroy() {
-        this._destroyed = true;
         this._unsubscribe();
         this._unsubscribeToWinEvents();
     }
 
     ngOnChanges() {
         this._apply();
-        this._forceUpdate();
+        this.detectChanges();
     }
 
     public _ng_onClick(tabkey: string) {
         this.service.setActive(tabkey);
-        this._forceUpdate();
+        this.detectChanges();
     }
 
     public _ng_onTabClose(event: MouseEvent, tabkey: string) {
         this.service.remove(tabkey);
-        this._forceUpdate();
+        this.detectChanges();
         return stop(event);
     }
 
@@ -101,7 +106,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
         this._sizes.first = start;
         this._ng_offset = offset;
         this._ng_offset = this._ng_offset > 0 ? 0 : this._ng_offset;
-        this._forceUpdate();
+        this.detectChanges();
     }
 
     public _ng_onRightArrowClick() {
@@ -121,7 +126,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
         }
         this._sizes.first = last + (last + 1 <= this._sizes.tabs.length - 1 ? 1 : 0);
         this._ng_offset -= offset;
-        this._forceUpdate();
+        this.detectChanges();
     }
 
     public _ng_onContextMenu(event: MouseEvent, tab: ITabInternal) {
@@ -181,7 +186,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
         } else {
             this.tabs.push(tab);
         }
-        this._forceUpdate(true);
+        this._calculateSizes().detectChanges();
     }
 
     private async onRemoveTab(uuid: string) {
@@ -189,7 +194,7 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
         this.tabs = this.tabs.filter((tab: ITabInternal) => {
             return tab.uuid !== uuid;
         });
-        this._forceUpdate(true);
+        this._calculateSizes().detectChanges();
         this._checkOffset();
     }
 
@@ -204,17 +209,17 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
                 this._tabs.set(uuid, storedTab);
             }
         });
-        this._forceUpdate();
+        this.detectChanges();
     }
 
     private async _getDefaultOptions() {
         this._ng_options = await this.service.getOptions();
-        this._forceUpdate();
+        this.detectChanges();
     }
 
     private async _onOptionsUpdated(options: TabsOptions) {
         this._ng_options = await options;
-        this._forceUpdate(true);
+        this._calculateSizes().detectChanges();
     }
 
     private async _onTabUpdated(tab: ITabInternal) {
@@ -225,15 +230,15 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
             }
             return storedTab;
         });
-        this._forceUpdate(true);
+        this._calculateSizes().detectChanges();
     }
 
-    private _calculateSizes() {
+    private _calculateSizes(): TabsListComponent {
         if (this._ng_holderNode === undefined || this._ng_holderNode === null) {
-            return;
+            return this;
         }
         if (this._ng_tabsNode === undefined || this._ng_tabsNode === null) {
-            return;
+            return this;
         }
         const width: number = (
             this._ng_holderNode.nativeElement as HTMLElement
@@ -256,27 +261,17 @@ export class TabsListComponent implements OnDestroy, AfterViewInit, OnChanges {
         this._ng_tabsElRegs.forEach((tab: ElementRef<HTMLElement>) => {
             this._sizes.tabs.push(tab.nativeElement.getBoundingClientRect().width);
         });
+        return this;
     }
 
     private _onWindowResize() {
         this._calculateSizes();
-        this._forceUpdate();
+        this.detectChanges();
     }
 
     private _checkOffset() {
         if (this._sizes.first >= this._sizes.tabs.length) {
             this._ng_onLeftArrowClick();
-        }
-    }
-
-    private _forceUpdate(updateSize: boolean = false) {
-        if (this._destroyed) {
-            return;
-        }
-        this._cdRef.detectChanges();
-        if (updateSize) {
-            this._calculateSizes();
-            this._cdRef.detectChanges();
         }
     }
 }

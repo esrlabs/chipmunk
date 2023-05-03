@@ -6,6 +6,7 @@ import {
     HostBinding,
     SkipSelf,
     ViewEncapsulation,
+    ChangeDetectionStrategy,
 } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Row } from '@schema/content/row';
@@ -19,6 +20,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
     styleUrls: ['./styles.less'],
     templateUrl: './template.html',
     encapsulation: ViewEncapsulation.None,
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Ilc()
 export class Columns extends ChangesDetector implements AfterContentInit {

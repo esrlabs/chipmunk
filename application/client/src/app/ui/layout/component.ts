@@ -49,8 +49,8 @@ export class Layout extends ChangesDetector implements AfterViewInit {
         toolbar: Subject<number>;
         sidebar: Subject<number>;
     } = {
-        toolbar: new Subject<number>().balanced(50),
-        sidebar: new Subject<number>().balanced(50),
+        toolbar: new Subject<number>(),
+        sidebar: new Subject<number>(),
     };
 
     private _layout: DOMRect | undefined;
@@ -125,14 +125,14 @@ export class Layout extends ChangesDetector implements AfterViewInit {
         this.env().subscriber.register(
             this.resizes.toolbar.subscribe((height: number) => {
                 this.toolbar.set(height);
-                this.detectChanges();
+                this.markChangesForCheck();
                 this.ilc().emitter.ui.toolbar.resize();
             }),
         );
         this.env().subscriber.register(
             this.resizes.sidebar.subscribe((width: number) => {
                 this.sidebar.set(width);
-                this.detectChanges();
+                this.markChangesForCheck();
                 this.ilc().emitter.ui.sidebar.resize();
             }),
         );
