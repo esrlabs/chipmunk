@@ -51,17 +51,24 @@ app-elements-tree {
         position: absolute;
         top:32px;
         left:0;
-        width: 100%;
+        width: ~"calc(100% - 22px)";
+        padding: 0 11px;
         bottom: 0;
-        overflow: auto;
+        overflow-y:auto;
+        overflow-x: hidden;
         outline: none;
         & mat-tree {
             background: none;
+            padding-left: 4px;
+            & button[disabled="true"] {
+                display: none;
+            }
         }
         & mat-tree-node {
             position: relative;
             min-height: 18px;
             border: solid thin rgba(0,0,0,0);
+            z-index: 0;
             &[data-selected="true"] {
                 &:after {
                     position: absolute;
@@ -69,51 +76,67 @@ app-elements-tree {
                     display: block;
                     width: 2px;
                     height: 100%;
-                    left: 0;
+                    right: 0;
                     top:0;
-                    background: @scheme-color-3;
+                    background: @scheme-color-active;
                 }
             }
             &[data-exists="false"] {
                 color: @scheme-color-4;
-                & span.name {
-                    &.no-icon {
-                        padding-left: 0px;
-                    }
-                }
             }
             &:hover {
-                background: @scheme-color-hover;
+                &:before {
+                    position: absolute;
+                    content: '';
+                    display: block;
+                    width: ~"calc(100% + 36px)";
+                    height: 100%;
+                    left: -16px;
+                    top:0;
+                    background: @scheme-color-hover;
+                    z-index: -1;
+                }
             }
             & button {
-                line-height: 18px!important;
-                width: 18px!important;
-                height: 18px!important;
+                line-height: 16px!important;
+                width: 16px!important;
+                height: 16px!important;
                 padding: 0!important;
                 overflow: hidden;
+                margin-left: -8px;
+                margin-right: 4px;
             }
             & mat-icon {
-                height: 18px;
-                width: 18px;
-                line-height: 18px;
-                font-size: 18px;
+                height: 16px;
+                width: 16px;
+                line-height: 16px;
+                font-size: 16px;
             }
             & mat-progress-bar {
                 position: absolute;
                 height: 2px;
-                bottom: 0;                
+                bottom: 0;
             }
             & span.name {
                 position: relative;
                 white-space: nowrap;
                 display: flex;
-                &.no-icon {
-                    padding-left: 21px;
-                    color: @scheme-color-2;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                align-items: center;
+                & > span {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
                 }
-                & mat-icon {
-                    margin-right: 4px;
+                & span.ext {
+                    margin-right: 6px;
                     color: @scheme-color-2;
+                    flex: none;
+                    font-size: 10px;
+                    line-height: 10px;
+                    height: 10px;
+                    font-weight: 500;
+                    margin-left: 12px;
                 }
                 & span.match {
                     background: @scheme-color-active;

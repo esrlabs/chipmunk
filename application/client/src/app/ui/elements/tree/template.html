@@ -12,7 +12,7 @@
   </div>
   <mat-tree [dataSource]="state.scheme.source" [treeControl]="state.scheme.tree" >
     <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding
-      [matTreeNodePaddingIndent]="20"
+      [matTreeNodePaddingIndent]="8"
       [attr.data-selected]="node.item.selected"
       [attr.data-exists]="node.item.exists"
       (click)="state.select(node)"
@@ -20,13 +20,13 @@
       [style.display]="!node.isVisible() ? 'none' : ''"
       (contextmenu)="ngItemContextMenu($event, node.item)">
       <button mat-icon-button disabled></button>
-      <span [attr.class]="'name ' + (node.item.icon === undefined ? 'no-icon' : '')">
-        <mat-icon *ngIf="node.item.icon !== undefined" class="item-icon">{{node.item.icon}}</mat-icon>
+      <span class="name">
+        <span class="ext" *ngIf="node.item.ext !== undefined">{{node.item.ext}}</span>
         <span [innerHTML]="node.item.html()"></span>
       </span>
     </mat-tree-node>
     <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding 
-      [matTreeNodePaddingIndent]="20"
+      [matTreeNodePaddingIndent]="8"
       (contextmenu)="ngItemContextMenu($event, node.item)"
       (click)="state.select(node)"
       [style.display]="!node.isVisible() ? 'none' : ''"

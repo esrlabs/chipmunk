@@ -7,6 +7,8 @@ import { EntityType, Entity as IEntity } from '@platform/types/files';
 import { Services } from '@service/ilc/services';
 import { Filter } from '@elements/filter/filter';
 import { FavoritePlace } from '@service/favorites';
+import { IlcInterface } from '@service/ilc';
+import { ChangesDetector } from '@ui/env/extentions/changes';
 
 export { Entity };
 
@@ -125,15 +127,17 @@ export type OnToggleHandler = (entity: Entity, expand: boolean) => void;
 
 export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     public readonly dataChange = new BehaviorSubject<DynamicFlatNode[]>([]);
-    private readonly _treeControl: FlatTreeControl<DynamicFlatNode>;
-    private readonly _database: DynamicDatabase;
-    private readonly _onToggle: OnToggleHandler;
+
+    protected readonly treeControl: FlatTreeControl<DynamicFlatNode>;
+    protected readonly database: DynamicDatabase;
+    protected readonly onToggle: OnToggleHandler;
+    protected readonly ilc: IlcInterface & ChangesDetector;
 
     get data(): DynamicFlatNode[] {
         return this.dataChange.value;
     }
     set data(value: DynamicFlatNode[]) {
-        this._treeControl.dataNodes = value;
+        this.treeControl.dataNodes = value;
         this.dataChange.next(value);
     }
 
@@ -141,14 +145,16 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
         treeControl: FlatTreeControl<DynamicFlatNode>,
         database: DynamicDatabase,
         onToggle: OnToggleHandler,
+        ilc: IlcInterface & ChangesDetector,
     ) {
-        this._treeControl = treeControl;
-        this._database = database;
-        this._onToggle = onToggle;
+        this.treeControl = treeControl;
+        this.database = database;
+        this.onToggle = onToggle;
+        this.ilc = ilc;
     }
 
     public connect(collectionViewer: CollectionViewer): Observable<DynamicFlatNode[]> {
-        this._treeControl.expansionModel.changed.subscribe((change) => {
+        this.treeControl.expansionModel.changed.subscribe((change) => {
             if (
                 (change as SelectionChange<DynamicFlatNode>).added ||
                 (change as SelectionChange<DynamicFlatNode>).removed
@@ -160,7 +166,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
     }
 
     public disconnect(_collectionViewer: CollectionViewer): void {
-        this._database.destroy();
+        this.database.destroy();
     }
 
     public handleTreeControl(change: SelectionChange<DynamicFlatNode>) {
@@ -197,7 +203,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
             node.onExpanded(() => {
                 done();
             });
-            this._treeControl.expand(node);
+            this.treeControl.expand(node);
         });
     }
 
@@ -207,7 +213,7 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
                 await this.expandByPath(path);
             }
         } else {
-            this._treeControl.expand(paths);
+            this.treeControl.expand(paths);
         }
         return Promise.resolve();
     }
@@ -223,11 +229,11 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
             node.afterExpanded();
             return Promise.resolve();
         }
-        this._onToggle(node.item, expand);
+        this.onToggle(node.item, expand);
         node.item.expanded = expand;
         return new Promise((resolve, _reject) => {
             node.isLoading = true;
-            this._database
+            this.database
                 .getChildren(node.item.getPath())
                 .then((entries: Entity[]) => {
                     if (expand) {
@@ -251,11 +257,14 @@ export class DynamicDataSource implements DataSource<DynamicFlatNode> {
                     this.dataChange.next(this.data);
                 })
                 .catch((err: Error) => {
-                    console.log(`Unexpected error: ${err.message}`);
+                    this.ilc
+                        .log()
+                        .error(`Unexpected error with getting childs for tree: ${err.message}`);
                 })
                 .finally(() => {
                     node.isLoading = false;
                     node.afterExpanded();
+                    this.ilc.detectChanges();
                     resolve();
                 });
         });
