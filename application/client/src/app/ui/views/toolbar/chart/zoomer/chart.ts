@@ -43,24 +43,12 @@ export class Chart {
                     .charts()
                     .subjects.get()
                     .highlights.subscribe(this._onColorChange.bind(this)),
-            );
-        this._parent
-            .env()
-            .subscriber.register(
                 this._session.search
                     .store()
                     .charts()
                     .subjects.get()
                     .value.subscribe(this._onChange.bind(this)),
-            );
-        this._parent
-            .env()
-            .subscriber.register(
                 this._service.subjects.scaleType.subscribe(this._onScaleTypeChange.bind(this)),
-            );
-        this._parent
-            .env()
-            .subscriber.register(
                 this._session.search.values.updated.subscribe(this._valuesUpdated.bind(this)),
             );
     }
@@ -84,7 +72,6 @@ export class Chart {
                         tension: entity.definition.tension,
                         pointRadius: 0,
                     });
-                    this._hideYAxes();
                     this._initData();
                 } else {
                     const dataset: ChartDataset<'line', ScatterDataPoint[]> = this._chart.data
@@ -139,7 +126,6 @@ export class Chart {
                 };
             },
         );
-        this._hideYAxes();
     }
 
     private _initData() {
@@ -161,22 +147,6 @@ export class Chart {
         }
         this._chart.update();
         this._updateHasNoData();
-    }
-
-    private _hideYAxes() {
-        if (this._chart.options.scales === undefined) {
-            return;
-        }
-        this._chart.update();
-        Object.keys(this._chart.options.scales).forEach((axis: string) => {
-            const options = this._chart.options;
-            if (options !== undefined && options.scales) {
-                const scale = options.scales[axis];
-                if (scale !== undefined) {
-                    scale.display = false;
-                }
-            }
-        });
     }
 
     private _createChart(): CanvasChart {
@@ -204,11 +174,9 @@ export class Chart {
                 scales: {
                     y: {
                         display: false,
-                        stacked: true,
                         beginAtZero: true,
                     },
                     x: {
-                        stacked: true,
                         display: false,
                     },
                 },

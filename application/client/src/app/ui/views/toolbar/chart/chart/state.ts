@@ -148,10 +148,6 @@ export class State extends AbstractState {
             .env()
             .subscriber.register(
                 this._parent.ilc().channel.ui.sidebar.resize(this._onSidebarResize.bind(this)),
-            );
-        this._parent
-            .env()
-            .subscriber.register(
                 this._service.subjects.change.subscribe(this._onZoomChange.bind(this)),
             );
     }

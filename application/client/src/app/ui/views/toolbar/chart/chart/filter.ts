@@ -69,19 +69,11 @@ export class Filter {
                     .filters()
                     .subjects.get()
                     .highlights.subscribe(this._onColorChange.bind(this)),
-            );
-        this._parent
-            .env()
-            .subscriber.register(
                 this._session.search
                     .store()
                     .filters()
                     .subjects.get()
                     .value.subscribe(this._onChange.bind(this)),
-            );
-        this._parent
-            .env()
-            .subscriber.register(
                 this._session.search.subjects.get().map.subscribe(this._mapUpdated.bind(this)),
             );
     }
