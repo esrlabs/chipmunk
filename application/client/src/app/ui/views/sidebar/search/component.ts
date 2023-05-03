@@ -8,6 +8,7 @@ import {
     HostBinding,
     HostListener,
     ElementRef,
+    ChangeDetectionStrategy,
 } from '@angular/core';
 import { Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -29,6 +30,7 @@ import * as ids from '@schema/ids';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Initial()
 @Ilc()
@@ -56,16 +58,7 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
             {
                 caption: `Clear recent history`,
                 handler: () => {
-                    // this._session
-                    //         .getSessionSearch()
-                    //         .getStoreAPI()
-                    //         .clear()
-                    //         .catch((error: Error) => {
-                    //             this._notifications.add({
-                    //                 caption: 'Error',
-                    //                 message: `Fail to drop recent filters history due error: ${error.message}`,
-                    //             });
-                    //         });
+                    this.log().debug(`Not implemented yet`);
                 },
             },
         ];
@@ -118,13 +111,12 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
         );
         this.env().subscriber.register(
             this._providers.subjects.change.subscribe(() => {
-                if (this.selected === undefined) {
-                    return;
+                if (
+                    this.selected !== undefined &&
+                    this.selected.select().getEntities().length === 0
+                ) {
+                    this.selected = undefined;
                 }
-                if (this.selected.select().getEntities().length !== 0) {
-                    return;
-                }
-                this.selected = undefined;
                 this.detectChanges();
             }),
         );

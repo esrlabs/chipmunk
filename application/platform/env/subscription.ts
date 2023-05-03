@@ -1,4 +1,5 @@
 import { unique } from './sequence';
+import { NormalizedBackgroundTask } from './normalized';
 
 export type THandler = (...args: any[]) => any;
 
@@ -13,14 +14,7 @@ export class Subject<T> {
     private _handlers: Array<(value: T) => any> = [];
     private _name: string = '';
     private _emitted: boolean = false;
-    private _delay: number | undefined;
-    private _balanced: {
-        timer: any;
-        last: number;
-    } = {
-        timer: undefined,
-        last: -1,
-    };
+    private _runner: NormalizedBackgroundTask | undefined;
 
     public static unsubscribe(subjects: unknown): void {
         if (typeof subjects !== 'object' || subjects === null) {
@@ -150,7 +144,7 @@ export class Subject<T> {
     }
 
     public balanced(delay: number): Subject<T> {
-        this._delay = delay;
+        this._runner = new NormalizedBackgroundTask(delay);
         return this;
     }
 
@@ -168,30 +162,22 @@ export class Subject<T> {
 
     public destroy(): void {
         this._handlers = [];
+        this._runner !== undefined && this._runner.abort();
     }
 
     public emit(value: T) {
         const emit = () => {
             this._emitted = true;
-            this._balanced.last = -1;
-            this._balanced.timer = -1;
             this._handlers.forEach((handler: (value: T) => void) => {
                 handler(value);
             });
-            this._balanced.last = Date.now();
         };
-        if (this._delay === undefined) {
-            emit();
-        } else {
-            clearTimeout(this._balanced.timer);
-            const diff = Date.now() - this._balanced.last;
-            if (diff >= this._delay) {
+        if (this._runner !== undefined) {
+            this._runner.run(() => {
                 emit();
-            } else {
-                this._balanced.timer = setTimeout(() => {
-                    emit();
-                }, diff);
-            }
+            });
+        } else {
+            emit();
         }
     }
 

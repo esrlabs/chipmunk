@@ -1,4 +1,10 @@
-import { Component, ChangeDetectorRef, AfterContentInit, Input } from '@angular/core';
+import {
+    Component,
+    ChangeDetectorRef,
+    AfterContentInit,
+    Input,
+    ChangeDetectionStrategy,
+} from '@angular/core';
 import { DisabledRequest } from '@service/session/dependencies/search/disabled/request';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ProviderDisabled } from '../provider';
@@ -12,6 +18,7 @@ import { EntityData } from '../../providers/definitions/entity.data';
     selector: 'app-sidebar-disabled-list',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Initial()
 @Ilc()

@@ -1,4 +1,11 @@
-import { Component, Input, ChangeDetectorRef, AfterContentInit, ViewChild } from '@angular/core';
+import {
+    Component,
+    Input,
+    ChangeDetectorRef,
+    AfterContentInit,
+    ViewChild,
+    ChangeDetectionStrategy,
+} from '@angular/core';
 import { Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
@@ -16,6 +23,7 @@ const UNTYPED = 'untyped';
     selector: 'app-views-attachments-list',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Initial()
 @Ilc()

@@ -5,25 +5,29 @@ import {
     AfterViewInit,
     ChangeDetectorRef,
     OnChanges,
+    ChangeDetectionStrategy,
 } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { TabsService } from './service';
 import { TabsOptions } from './options';
+import { ChangesDetector } from '@ui/env/extentions/changes';
 
 @Component({
     selector: 'element-tabs',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TabsComponent implements OnDestroy, AfterViewInit, OnChanges {
+export class TabsComponent extends ChangesDetector implements OnDestroy, AfterViewInit, OnChanges {
     @Input() public service: TabsService | undefined;
 
     private _subscriptions: Map<string, Subscription> = new Map();
-    private _destroyed: boolean = false;
 
     public _options: TabsOptions = new TabsOptions();
 
-    constructor(private _cdRef: ChangeDetectorRef) {}
+    constructor(cdRef: ChangeDetectorRef) {
+        super(cdRef);
+    }
 
     ngAfterViewInit() {
         this._subscribe();
@@ -31,14 +35,13 @@ export class TabsComponent implements OnDestroy, AfterViewInit, OnChanges {
     }
 
     ngOnDestroy() {
-        this._destroyed = true;
         this._unsubscribe();
     }
 
     ngOnChanges() {
         this._subscribe();
         this._getDefaultOptions();
-        this._forceUpdate();
+        this.detectChanges();
     }
 
     private _subscribe() {
@@ -63,7 +66,7 @@ export class TabsComponent implements OnDestroy, AfterViewInit, OnChanges {
             return;
         }
         this._options = await this.service.getOptions();
-        this._forceUpdate();
+        this.detectChanges();
     }
 
     private async _onOptionsUpdated(options: TabsOptions) {
@@ -71,13 +74,6 @@ export class TabsComponent implements OnDestroy, AfterViewInit, OnChanges {
             return;
         }
         this._options = await options;
-        this._forceUpdate();
-    }
-
-    private _forceUpdate() {
-        if (this._destroyed) {
-            return;
-        }
-        this._cdRef.detectChanges();
+        this.detectChanges();
     }
 }

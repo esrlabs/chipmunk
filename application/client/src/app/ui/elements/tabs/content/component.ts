@@ -5,33 +5,39 @@ import {
     ChangeDetectorRef,
     AfterViewInit,
     OnChanges,
+    ChangeDetectionStrategy,
 } from '@angular/core';
 import { ITab, TabsService } from '../service';
 import { Subscription } from 'rxjs';
 import { IComponentDesc } from '../../containers/dynamic/component';
+import { ChangesDetector } from '@ui/env/extentions/changes';
 
 @Component({
     selector: 'lib-complex-tab-content',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TabContentComponent implements OnDestroy, AfterViewInit, OnChanges {
+export class TabContentComponent
+    extends ChangesDetector
+    implements OnDestroy, AfterViewInit, OnChanges
+{
     @Input() public service!: TabsService;
 
     public _ng_tab: ITab | undefined = undefined;
     public _ng_noTabContent: IComponentDesc | undefined;
 
-    private _destroyed: boolean = false;
     private _subscriptions: Map<string, Subscription> = new Map();
 
-    constructor(private _cdRef: ChangeDetectorRef) {}
+    constructor(cdRef: ChangeDetectorRef) {
+        super(cdRef);
+    }
 
     ngAfterViewInit() {
         this._apply();
     }
 
     ngOnDestroy() {
-        this._destroyed = true;
         this._unsubscribe();
     }
 
@@ -65,7 +71,7 @@ export class TabContentComponent implements OnDestroy, AfterViewInit, OnChanges 
 
     private async _getDefaultTab() {
         this._ng_tab = await this.service.getActiveTab();
-        this._forceUpdate();
+        this.detectChanges();
     }
 
     private async onActiveTabChange(tab: ITab) {
@@ -74,7 +80,7 @@ export class TabContentComponent implements OnDestroy, AfterViewInit, OnChanges 
             this._ng_tab = _tab;
             this._ng_noTabContent = undefined;
         }
-        this._forceUpdate();
+        this.detectChanges();
     }
 
     private async onRemoveTab() {
@@ -83,13 +89,6 @@ export class TabContentComponent implements OnDestroy, AfterViewInit, OnChanges 
         }
         this._ng_tab = undefined;
         this._ng_noTabContent = this.service.getOptions().noTabsContent;
-        this._forceUpdate();
-    }
-
-    private _forceUpdate() {
-        if (this._destroyed) {
-            return;
-        }
-        this._cdRef.detectChanges();
+        this.detectChanges();
     }
 }

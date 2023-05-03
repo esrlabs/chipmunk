@@ -6,51 +6,56 @@ import {
     Output,
     EventEmitter,
 } from '@angular/core';
+import { NormalizedBackgroundTask } from '@platform/env/normalized';
 
-export enum Direction {
-    Vertical = 'Vertical',
-    Horizontal = 'Horizontal',
-}
+const UPDATE_DELAY_MS = 20;
 
 @Directive({
     selector: '[appResizeObserver]',
 })
 export class ResizeObserverDirective implements AfterViewInit, OnDestroy {
     @Output() changesize = new EventEmitter<DOMRect>();
-    private _hostElement!: HTMLElement;
-    private _domRect!: DOMRect;
-    private _resizeObserve: ResizeObserver | undefined;
 
+    protected hostElement!: HTMLElement;
+    protected domRect!: DOMRect;
+    protected resizeObserve: ResizeObserver | undefined;
+    protected readonly runner: NormalizedBackgroundTask = new NormalizedBackgroundTask(
+        UPDATE_DELAY_MS,
+    );
     constructor(hostElement: ElementRef<HTMLElement>) {
-        this._hostElement = hostElement.nativeElement;
+        this.hostElement = hostElement.nativeElement;
     }
 
     public ngAfterViewInit() {
-        if (this._resizeObserve !== undefined) {
+        if (this.resizeObserve !== undefined) {
             throw new Error(`Holder cannot be bound muliple times`);
         }
-        this._resizeObserve = new ResizeObserver((entries: ResizeObserverEntry[]) => {
+        this.resizeObserve = new ResizeObserver((entries: ResizeObserverEntry[]) => {
             if (entries.length !== 1) {
                 return;
             }
             this._detect(entries[0].contentRect);
         });
-        this._resizeObserve.observe(this._hostElement);
-        this._detect(this._hostElement.getBoundingClientRect());
+        this.resizeObserve.observe(this.hostElement);
+        this._detect(this.hostElement.getBoundingClientRect());
     }
 
     public ngOnDestroy(): void {
-        if (this._resizeObserve !== undefined) {
-            this._resizeObserve.unobserve(this._hostElement);
+        if (this.resizeObserve !== undefined) {
+            this.resizeObserve.unobserve(this.hostElement);
         }
+        this.runner.abort();
     }
 
     private _detect(rect: DOMRect) {
         const changed =
-            this._domRect === undefined
+            this.domRect === undefined
                 ? true
-                : rect.height !== this._domRect.height || rect.width !== this._domRect.width;
-        this._domRect = rect;
-        changed && this.changesize.emit(rect);
+                : rect.height !== this.domRect.height || rect.width !== this.domRect.width;
+        this.domRect = rect;
+        changed &&
+            this.runner.run(() => {
+                this.changesize.emit(rect);
+            });
     }
 }
