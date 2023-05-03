@@ -3,4 +3,3 @@
     <canvas [attr.id]="state.EChartName.zoomerCharts + '-' + session.uuid()"></canvas>
 </div>
 <app-views-chart-zoomer-cursor-canvas [session]="session" *ngIf="state.isCursorVisible"></app-views-chart-zoomer-cursor-canvas>
-<div *ngIf="!state.hasNoData" class="rectangle" [ngStyle]="{'width': state.rectangle.width + 'px', 'left': state.rectangle.left + 'px'}">

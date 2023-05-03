@@ -1,10 +1,7 @@
 import { Subscriber, Subject } from '@platform/env/subscription';
 import { Destroy } from '@env/declarations';
 import { Session } from '@service/session';
-import { EScaleType, IPosition, IPositionChange } from './common/types';
-import { Zoom } from './zoom';
-import { IlcInterface } from '@service/ilc';
-import { ChangesDetector } from '@ui/env/extentions/changes';
+import { EHasNoData, EScaleType, IPosition, IPositionChange } from './common/types';
 
 const CHART_SERVICE = 'workspace_chart_service';
 
@@ -14,12 +11,20 @@ export class Service extends Subscriber implements Destroy {
         change: Subject<IPositionChange>;
         wheel: Subject<WheelEvent>;
         scaleType: Subject<EScaleType>;
+        hasNoData: Subject<boolean>;
     } = {
         change: new Subject<IPositionChange>(),
         wheel: new Subject<WheelEvent>(),
         scaleType: new Subject<EScaleType>(),
+        hasNoData: new Subject<boolean>(),
     };
-    private _zoom!: Zoom;
+    private readonly _hasNoData: {
+        filter: boolean;
+        chart: boolean;
+    } = {
+        filter: true,
+        chart: true,
+    };
 
     public static from(session: Session): Service {
         const restored = session.storage.get<Service>(CHART_SERVICE);
@@ -43,6 +48,11 @@ export class Service extends Subscriber implements Destroy {
         return position;
     }
 
+    public setHasNoData(type: EHasNoData, hasNoData: boolean) {
+        this._hasNoData[type] = hasNoData;
+        this._subjects.hasNoData.emit(this._hasNoData.chart && this._hasNoData.filter);
+    }
+
     public setPosition(data: IPositionChange) {
         if (data.position === undefined) {
             return;
@@ -61,14 +71,6 @@ export class Service extends Subscriber implements Destroy {
 
     public get subjects() {
         return this._subjects;
-    }
-
-    public getZoom(
-        session: Session,
-        parent: IlcInterface & ChangesDetector,
-        canvasWidth: number,
-    ): Zoom {
-        return this._zoom ? this._zoom : new Zoom(session, parent, this, canvasWidth);
     }
 
     public destroy() {

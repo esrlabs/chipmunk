@@ -16,6 +16,11 @@ export enum EChartName {
     zoomerCharts = 'view-chart-zoomer-charts',
 }
 
+export enum EHasNoData {
+    chart = 'chart',
+    filter = 'filter',
+}
+
 export interface IRectangle {
     width: number;
     left: number;

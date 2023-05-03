@@ -1,6 +1,5 @@
 import { AbstractState } from '../common/abstract.state';
 import {
-    IRectangle,
     EChartName,
     ILabelState,
     IPosition,
@@ -11,7 +10,6 @@ import { IRange } from '@platform/types/range';
 import { Owner } from '@schema/content/row';
 import { Filter } from './filter';
 import { Chart } from './chart';
-import { Zoom } from '../zoom';
 
 export class State extends AbstractState {
     public readonly EChartName = EChartName;
@@ -42,7 +40,6 @@ export class State extends AbstractState {
         width: this._canvasWidth,
     };
     private _zoomedRange!: IRange;
-    private _zoom!: Zoom;
 
     constructor() {
         super();
@@ -64,7 +61,6 @@ export class State extends AbstractState {
             this._canvasWidth,
             this._dataState.filter,
         );
-        this._zoom = this._service.getZoom(this._session, this._parent, this._canvasWidth);
         this._initializeSubscriptions();
         this._onSidebarResize();
     }
@@ -105,15 +101,6 @@ export class State extends AbstractState {
             x: event.x,
             y: event.y,
         });
-    }
-
-    public get rectangle(): IRectangle {
-        return this._zoom
-            ? this._zoom.rectangle
-            : {
-                  width: 0,
-                  left: 0,
-              };
     }
 
     private _calculatePosition(event: MouseEvent): number {

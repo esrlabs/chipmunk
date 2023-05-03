@@ -1,4 +1,4 @@
-import { EChartName, ILabel, IPosition, EScaleType } from '../common/types';
+import { EChartName, ILabel, IPosition, EScaleType, EHasNoData } from '../common/types';
 import { ChartDataset, ScatterDataPoint, Chart as CanvasChart } from 'chart.js';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { IlcInterface } from '@service/ilc';
@@ -420,6 +420,7 @@ export class Chart {
                 this._labelState.hasNoData = false;
             }
         });
+        this._service.setHasNoData(EHasNoData.chart, this._labelState.hasNoData);
         this._parent.detectChanges();
     }
 

@@ -174,7 +174,6 @@ export class Chart {
                 scales: {
                     y: {
                         display: false,
-                        beginAtZero: true,
                     },
                     x: {
                         display: false,

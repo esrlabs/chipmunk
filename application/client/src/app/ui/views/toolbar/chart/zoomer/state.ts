@@ -1,6 +1,5 @@
 import { AbstractState } from '../common/abstract.state';
-import { EChartName, ILabelState, IRectangle } from '../common/types';
-import { Zoom } from '../zoom';
+import { EChartName, ILabelState } from '../common/types';
 import { Chart } from './chart';
 import { Filter } from './filter';
 
@@ -20,7 +19,6 @@ export class State extends AbstractState {
     private _filter!: Filter;
     private _chart!: Chart;
     private _canvasWidth: number = 0;
-    private _zoom!: Zoom;
 
     constructor() {
         super();
@@ -35,7 +33,6 @@ export class State extends AbstractState {
             this._dataState.filter,
         );
         this._chart = new Chart(this._session, this._parent, this._dataState.chart, this._service);
-        this._zoom = this._service.getZoom(this._session, this._parent, this._canvasWidth);
         this._initSubscriptions();
         this._updateCanvasWidth();
     }
@@ -43,15 +40,6 @@ export class State extends AbstractState {
     public destroy() {
         this._chart && this._chart.destroy();
         this._filter && this._filter.destroy();
-    }
-
-    public get rectangle(): IRectangle {
-        return this._zoom
-            ? this._zoom.rectangle
-            : {
-                  width: 0,
-                  left: 0,
-              };
     }
 
     public get isCursorVisible(): boolean {
@@ -75,7 +63,6 @@ export class State extends AbstractState {
 
     private _updateCanvasWidth() {
         this._canvasWidth = this._element.getBoundingClientRect().width;
-        this._zoom.canvasWidth = this._canvasWidth;
         this._filter.canvasWidth = this._canvasWidth;
     }
 }

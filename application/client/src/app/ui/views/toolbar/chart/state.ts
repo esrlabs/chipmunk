@@ -1,34 +1,25 @@
 import { IRange } from '@platform/types/range';
-import { IlcInterface } from '@service/ilc';
-import { Session } from '@service/session';
-import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Service } from './service';
 import { IRectangle } from './common/types';
+import { AbstractState } from './common/abstract.state';
 
-export class Zoom {
+export class State extends AbstractState {
     private readonly _rectangle: IRectangle = {
         width: 0,
         left: 0,
     };
-    private readonly _session: Session;
-    private readonly _parent: IlcInterface & ChangesDetector;
-    private readonly _service: Service;
     private _shownRange: IRange = {
         from: 0,
         to: 0,
     };
     private _canvasWidth: number = 0;
+    private _hasNoData: boolean = true;
 
-    constructor(
-        session: Session,
-        parent: IlcInterface & ChangesDetector,
-        service: Service,
-        canvasWidth: number,
-    ) {
-        this._session = session;
-        this._parent = parent;
-        this._service = service;
-        this._canvasWidth = canvasWidth;
+    constructor() {
+        super();
+    }
+
+    public init() {
+        this._canvasWidth = this._element.getBoundingClientRect().width;
         this._updateCursor();
         this._positionChange(this._session.cursor.frame().get());
         this._parent
@@ -37,6 +28,9 @@ export class Zoom {
                 this._session.cursor.subjects
                     .get()
                     .frame.subscribe(this._positionChange.bind(this)),
+                this._parent.ilc().channel.ui.sidebar.resize(this._updateCanvasWidth.bind(this)),
+                this._parent.ilc().channel.ui.window.resize(this._updateCanvasWidth.bind(this)),
+                this._service.subjects.hasNoData.subscribe(this._onHasNoData.bind(this)),
             );
     }
 
@@ -44,9 +38,8 @@ export class Zoom {
         return this._rectangle;
     }
 
-    public set canvasWidth(canvasWidth: number) {
-        this._canvasWidth = canvasWidth;
-        this._positionChange();
+    public get hasNoData(): boolean {
+        return this._hasNoData;
     }
 
     private _positionChange(range?: IRange) {
@@ -75,4 +68,16 @@ export class Zoom {
         });
         this._parent.detectChanges();
     }
+
+    private _onHasNoData(hasNoData: boolean) {
+        this._hasNoData = hasNoData;
+        this._parent.detectChanges();
+    }
+
+    private _updateCanvasWidth() {
+        this._canvasWidth = this._element.getBoundingClientRect().width;
+        this._positionChange();
+    }
+
+    // [TODO] Subscribe to window and sidebar change -> Adjust rectangle
 }

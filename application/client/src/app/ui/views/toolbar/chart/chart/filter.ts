@@ -2,7 +2,7 @@ import { Session } from '@service/session';
 import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Chart, ChartDataset } from 'chart.js';
-import { EChartName, ILabel, IPosition } from '../common/types';
+import { EChartName, EHasNoData, ILabel, IPosition } from '../common/types';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { ISearchMap } from '@platform/interfaces/interface.rust.api.general';
 import { IRange } from '@platform/types/range';
@@ -265,6 +265,7 @@ export class Filter {
                 }
             },
         );
+        this._service.setHasNoData(EHasNoData.filter, this._labelState.hasNoData);
         this._parent.detectChanges();
     }
 
