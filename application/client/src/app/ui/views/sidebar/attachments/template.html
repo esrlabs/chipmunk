@@ -4,16 +4,16 @@
     <span class="filler"></span>
     <span class="small-icon-button codicon codicon-checklist" *ngIf="attachments.length > 0" [matMenuTriggerFor]="menu"></span>
 </div>
-<p class="info" *ngIf="attachments.length === 0">No attachments has been received</p>
-<mat-expansion-panel *ngIf="attachments.length > 0" [hideToggle]="true" [expanded]="true" class="list">
+<p class="info" *ngIf="filtered.attachments">No attachments has been received</p>
+<mat-expansion-panel *ngIf="filtered.attachments.length > 0" [hideToggle]="true" [expanded]="true" class="list">
     <mat-expansion-panel-header>
         <mat-panel-title>Received Attachments</mat-panel-title>
     </mat-expansion-panel-header>
     <div class="attachments">
-        <app-views-attachments-item *ngFor="let wrapped of attachments"
-            (contextmenu)="contextmenu($event, wrapped.attachment)"
+        <app-views-attachments-item *ngFor="let wrapped of filtered.attachments"
+            (contextmenu)="onItemContextMenu($event, wrapped.attachment)"
             [attr.class]="(wrapped.selected ? 'selected' : '')"
-            (click)="select(wrapped.attachment)"
+            (click)="select().attachment(wrapped.attachment)"
             [attachment]="wrapped.attachment"></app-views-attachments-item>
     </div>
 </mat-expansion-panel>
@@ -36,6 +36,5 @@
     <button mat-menu-item *ngFor="let ext of extensions | keyvalue" (click)="save().typed(ext.key)">
         <span>Save All *.{{ext.key}} ({{ext.value}})</span>
     </button>
-    
 </mat-menu>
 
