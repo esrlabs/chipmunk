@@ -5,6 +5,7 @@ import {
     AfterContentInit,
     ViewChild,
     ChangeDetectionStrategy,
+    HostListener,
 } from '@angular/core';
 import { Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -16,6 +17,8 @@ import { Locker } from '@ui/service/lockers';
 import { Notification } from '@ui/service/notifications';
 import { Owner } from '@schema/content/row';
 import { Preview } from './preview/component';
+import { NormalizedBackgroundTask } from '@platform/env/normalized';
+import { IMenuItem } from '@ui/service/contextmenu';
 
 const UNTYPED = 'untyped';
 
@@ -31,16 +34,23 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
     @Input() session!: Session;
     @ViewChild('previewref') previewElRef!: Preview;
 
-    public attachments: Wrapped[] = [];
     public preview: Attachment | undefined;
     public extensions: Map<string, number> = new Map();
+    public readonly filtered: {
+        ext: string | undefined;
+        attachments: Wrapped[];
+    } = {
+        ext: undefined,
+        attachments: [],
+    };
 
+    protected readonly runner: NormalizedBackgroundTask = new NormalizedBackgroundTask(20);
+    protected readonly attachments: Wrapped[] = [];
     protected readonly selection: {
         last: number;
     } = {
         last: -1,
     };
-
     protected readonly holded: {
         ctrl: boolean;
         shift: boolean;
@@ -48,6 +58,14 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
         ctrl: false,
         shift: false,
     };
+
+    @HostListener('contextmenu', ['$event']) onContextMenu(event: MouseEvent) {
+        this.ilc().emitter.ui.contextmenu.open({
+            items: this.getCommonContextMenu(),
+            x: event.x,
+            y: event.y,
+        });
+    }
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -98,7 +116,7 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
         this.update();
     }
 
-    public contextmenu(event: MouseEvent, attachment: Attachment) {
+    public onItemContextMenu(event: MouseEvent, attachment: Attachment) {
         const items = [
             {
                 caption: 'Select All',
@@ -168,6 +186,8 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
                     attachment.messages.forEach((pos) => cursor.mark(pos).selected());
                 },
             },
+            {},
+            ...this.getCommonContextMenu(),
         ];
         this.ilc().emitter.ui.contextmenu.open({
             items,
@@ -176,56 +196,95 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
         });
     }
 
-    public select(attachment: Attachment): void {
-        const target = this.attachments.find((a) => a.equal(attachment));
-        if (target === undefined) {
-            return;
-        }
-        if (!this.holded.ctrl && !this.holded.shift) {
-            const selected = target.selected;
-            this.attachments.map((a) => a.unselect());
-            !selected && target.select();
-        } else if (this.holded.ctrl) {
-            target.toggle();
-        } else if (this.holded.shift) {
-            if (this.selection.last === -1) {
-                return;
-            }
-            const index = this.attachments.findIndex((a) => a.equal(attachment));
-            if (index === -1) {
-                return;
-            }
-            if (index === this.selection.last) {
-                target.toggle();
-            } else if (index > this.selection.last) {
-                for (let i = this.selection.last + 1; i <= index; i += 1) {
-                    this.attachments[i].toggle();
+    public select(): {
+        attachment(attachment: Attachment): void;
+        drop(): void;
+    } {
+        return {
+            attachment: (attachment: Attachment): void => {
+                const target = this.attachments.find((a) => a.equal(attachment));
+                if (target === undefined) {
+                    return;
                 }
-            } else if (index < this.selection.last) {
-                for (let i = this.selection.last - 1; i >= index; i -= 1) {
-                    this.attachments[i].toggle();
+                if (!this.holded.ctrl && !this.holded.shift) {
+                    const selected = target.selected;
+                    this.attachments.map((a) => a.unselect());
+                    !selected && target.select();
+                } else if (this.holded.ctrl) {
+                    target.toggle();
+                } else if (this.holded.shift) {
+                    if (this.selection.last === -1) {
+                        return;
+                    }
+                    const index = this.attachments.findIndex((a) => a.equal(attachment));
+                    if (index === -1) {
+                        return;
+                    }
+                    if (index === this.selection.last) {
+                        target.toggle();
+                    } else if (index > this.selection.last) {
+                        for (let i = this.selection.last + 1; i <= index; i += 1) {
+                            this.attachments[i].toggle();
+                        }
+                    } else if (index < this.selection.last) {
+                        for (let i = this.selection.last - 1; i >= index; i -= 1) {
+                            this.attachments[i].toggle();
+                        }
+                    }
                 }
-            }
-        }
-        const selected = this.getSelected();
-        if (selected.length === 1) {
-            this.preview = selected[0];
-            if (this.previewElRef !== undefined) {
-                this.previewElRef.assign(this.preview);
-            }
-        } else {
-            this.preview = undefined;
-        }
-        if (selected.length > 0) {
-            this.selection.last = this.attachments.findIndex((a) => a.equal(attachment));
-        } else {
-            this.selection.last = -1;
-        }
-        this.detectChanges();
+                const selected = this.getSelected();
+                if (selected.length === 1) {
+                    this.preview = selected[0];
+                    if (this.previewElRef !== undefined) {
+                        this.previewElRef.assign(this.preview);
+                    }
+                } else {
+                    this.preview = undefined;
+                }
+                if (selected.length > 0) {
+                    this.selection.last = this.attachments.findIndex((a) => a.equal(attachment));
+                } else {
+                    this.selection.last = -1;
+                }
+                this.detectChanges();
+            },
+            drop: (): void => {
+                this.attachments.map((a) => a.unselect());
+                this.preview = undefined;
+            },
+        };
     }
 
     public getSelected(): Attachment[] {
         return this.attachments.filter((a) => a.selected).map((a) => a.attachment);
+    }
+
+    public filter(): {
+        ext(ext: string): void;
+        update(): void;
+        all(): void;
+    } {
+        return {
+            ext: (ext: string): void => {
+                this.filtered.ext = ext === UNTYPED ? '' : ext;
+                this.select().drop();
+                this.filter().update();
+            },
+            update: (): void => {
+                const ext = this.filtered.ext;
+                if (ext === undefined) {
+                    this.filtered.attachments = this.attachments;
+                } else {
+                    this.filtered.attachments = this.attachments.filter((a) => a.ext(ext));
+                }
+                this.detectChanges();
+            },
+            all: (): void => {
+                this.filtered.ext = undefined;
+                this.select().drop();
+                this.filter().update();
+            },
+        };
     }
 
     public save(): {
@@ -304,13 +363,42 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
         };
     }
 
+    protected getCommonContextMenu(): IMenuItem[] {
+        return [
+            {
+                caption: `Show All (${this.attachments.length})`,
+                handler: () => {
+                    this.filter().all();
+                },
+            },
+            {},
+            ...Array.from(this.extensions.entries()).map((entry) => {
+                const ext = entry[0];
+                const count = entry[1];
+                return ext === UNTYPED
+                    ? {
+                          caption: `Show All Untyped (${count})`,
+                          handler: () => {
+                              this.filter().ext('');
+                          },
+                      }
+                    : {
+                          caption: `Show: *.${ext} (${count})`,
+                          handler: () => {
+                              this.filter().ext(ext);
+                          },
+                      };
+            }),
+        ];
+    }
+
     protected update(): void {
         const attachments = Array.from(this.session.attachments.attachments.values()).filter(
             (a) => this.attachments.find((w) => w.equal(a)) === undefined,
         );
         this.attachments.push(...attachments.map((a) => new Wrapped(a)));
         attachments.forEach((attachment) => {
-            const ext = attachment.ext === undefined ? UNTYPED : attachment.ext;
+            const ext = typeof attachment.ext !== 'string' ? UNTYPED : attachment.ext;
             const count = this.extensions.get(ext);
             if (count === undefined) {
                 this.extensions.set(ext, 1);
@@ -318,6 +406,7 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
                 this.extensions.set(ext, count + 1);
             }
         });
+        this.filter().update();
         this.detectChanges();
     }
 }
