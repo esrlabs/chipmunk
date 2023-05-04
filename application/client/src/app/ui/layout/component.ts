@@ -12,6 +12,8 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Direction } from '@directives/resizer';
 import { Base } from '@service/session';
 import { Subject } from '@platform/env/subscription';
+import { File } from '@platform/types/files';
+import { Action as FileAnyAction } from '@service/actions/file.any';
 
 const TOOLBAR_NORMAL_HEIGHT = 250;
 const SIDEBAR_NORMAL_WIDTH = 350;
@@ -177,6 +179,18 @@ export class Layout extends ChangesDetector implements AfterViewInit {
         return {
             width: `${this.sidebar.value}px`,
         };
+    }
+
+    public onDropFile(files: File[]) {
+        if (files.length === 0) {
+            return;
+        }
+        const action = new FileAnyAction();
+        if (files.length === 1) {
+            action.from(files[0]);
+        } else {
+            action.multiple(files);
+        }
     }
 
     protected toggle(): {
