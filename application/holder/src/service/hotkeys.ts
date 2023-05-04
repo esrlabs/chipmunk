@@ -10,6 +10,9 @@ import { KeysMap, KeyDescription } from 'platform/types/hotkeys/map';
 import { app, globalShortcut, powerMonitor, BrowserWindow } from 'electron';
 import { electron } from '@service/electron';
 import { CancelablePromise } from 'platform/env/promise';
+import { ChipmunkGlobal } from '@register/global';
+
+declare const global: ChipmunkGlobal;
 
 import * as Events from 'platform/ipc/event';
 import * as Requests from 'platform/ipc/request';
@@ -49,6 +52,27 @@ export class Service extends Implementation {
                         return new CancelablePromise((resolve, _reject) => {
                             this.unbind();
                             resolve(new Requests.Hotkey.Off.Response({ error: undefined }));
+                        });
+                    },
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.System.Exit.Request,
+                    (
+                        _request: Requests.System.Exit.Request,
+                    ): CancelablePromise<Requests.System.Exit.Response> => {
+                        return new CancelablePromise((resolve, _reject) => {
+                            global.application
+                                .shutdown('ClosingWithMenu')
+                                .close()
+                                .catch((err: Error) => {
+                                    this.log().error(`Fail to close: ${err.message}`);
+                                });
+                            resolve(new Requests.System.Exit.Response());
                         });
                     },
                 ),

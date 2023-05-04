@@ -253,6 +253,16 @@ export const KeysMap: KeyDescription[] = [
         uuid: '?',
         client: { key: '?' },
     },
+    {
+        alias: 'Ctrl + Q',
+        shortkeys: { darwin: ['Cmd + Q'], others: ['Ctrl + Q'] },
+        display: { darwin: ['⌘ + Q'], others: ['Ctrl + Q'] },
+        description: 'Quit',
+        category: Category.Other,
+        required: [],
+        uuid: 'Ctrl + Q',
+        client: undefined,
+    },
     // Hidden
     {
         alias: 'Ctrl + C',

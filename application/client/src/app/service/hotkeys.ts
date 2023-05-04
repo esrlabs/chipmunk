@@ -17,6 +17,7 @@ import { Vertical, Horizontal } from '@ui/service/popup';
 import { env } from '@service/env';
 import { Action as FileAnyAction } from '@service/actions/file.any';
 import { Action as SettingsAction } from '@service/actions/settings';
+import { Action as ExitAction } from '@service/actions/exit';
 
 import * as Events from '@platform/ipc/event/index';
 import * as Requests from '@platform/ipc/request';
@@ -157,6 +158,13 @@ export class Service extends Implementation {
             this.listen('Ctrl + ,', () => {
                 new SettingsAction().apply().catch((err: Error) => {
                     this.log().error(`Fail to call action SettingsAction; error: ${err.message}`);
+                });
+            }),
+        );
+        this.register(
+            this.listen('Ctrl + Q', () => {
+                new ExitAction().apply().catch((err: Error) => {
+                    this.log().error(`Fail to call action ExitAction; error: ${err.message}`);
                 });
             }),
         );
