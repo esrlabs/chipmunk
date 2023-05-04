@@ -1,5 +1,15 @@
 import { EChartName, ILabel, IPosition, EScaleType, EHasNoData } from '../common/types';
-import { ChartDataset, ScatterDataPoint, Chart as CanvasChart } from 'chart.js';
+import {
+    ChartDataset,
+    ScatterDataPoint,
+    Chart as CanvasChart,
+    Interaction,
+    InteractionOptions,
+    InteractionModeFunction,
+    ChartEvent,
+    InteractionModeMap,
+    ScriptableContext,
+} from 'chart.js';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { IlcInterface } from '@service/ilc';
 import { Session } from '@service/session';
@@ -7,6 +17,13 @@ import { ChartRequest } from '@service/session/dependencies/search/charts/reques
 import { IRange } from '@platform/types/range';
 import { Service } from '../service';
 import { StoredEntity } from '@service/session/dependencies/search/store';
+import { AnyObject } from 'chart.js/dist/types/basic';
+
+declare module 'chart.js' {
+    interface InteractionModeMap {
+        myCustomMode: InteractionModeFunction;
+    }
+}
 
 export class Chart {
     private readonly _session: Session;
@@ -84,6 +101,21 @@ export class Chart {
     public zoom(zoomedRange: IRange) {
         this._zoomedRange = zoomedRange;
         const options = this._chart.config.options;
+        this._clearInject();
+        if (options && options.scales && options.scales['x']) {
+            const matchSize = this._session.search.values.get().size - 1;
+            const streamSize = this._session.stream.len();
+            const from = matchSize * (zoomedRange.from / streamSize);
+            const to = matchSize * (zoomedRange.to / streamSize);
+            from % 1 > 0 && this._inject(from);
+            to % 1 > 0 && this._inject(to);
+            options.scales['x'].min = zoomedRange.from === 0 ? 0 : from;
+            options.scales['x'].max = zoomedRange.to === streamSize - 1 ? matchSize : to;
+        }
+        this._chart.update();
+    }
+
+    private _clearInject() {
         (this._chart.data.datasets as ChartDataset<'scatter', ScatterDataPoint[]>[]).forEach(
             (dataset) => {
                 if (dataset.label === undefined) {
@@ -98,17 +130,6 @@ export class Chart {
             },
         );
         this._injected = {};
-        if (options && options.scales && options.scales['x']) {
-            const matchSize = this._session.search.values.get().size - 1;
-            const streamSize = this._session.stream.len();
-            const from = matchSize * (zoomedRange.from / streamSize);
-            const to = matchSize * (zoomedRange.to / streamSize);
-            from % 1 > 0 && this._inject(from);
-            to % 1 > 0 && this._inject(to);
-            options.scales['x'].min = from;
-            options.scales['x'].max = to;
-        }
-        this._chart.update();
     }
 
     private _inject(index: number) {
@@ -243,7 +264,28 @@ export class Chart {
                 spanGaps: true,
                 borderWidth: request.definition.borderWidth,
                 tension: request.definition.tension,
-                pointRadius: request.definition.pointRadius,
+                pointHoverRadius: (ctx: ScriptableContext<'line'>, _options: AnyObject) => {
+                    const points = this._injected[request.definition.filter];
+                    return points === undefined
+                        ? request.definition.pointRadius
+                        : points.findIndex(
+                              (point: ScatterDataPoint) =>
+                                  point.x === (ctx.raw as ScatterDataPoint).x,
+                          ) === -1
+                        ? request.definition.pointRadius
+                        : 0;
+                },
+                pointRadius: (ctx: ScriptableContext<'line'>, _options: AnyObject) => {
+                    const points = this._injected[request.definition.filter];
+                    return points === undefined
+                        ? request.definition.pointRadius
+                        : points.findIndex(
+                              (point: ScatterDataPoint) =>
+                                  point.x === (ctx.raw as ScatterDataPoint).x,
+                          ) === -1
+                        ? request.definition.pointRadius
+                        : 0;
+                },
                 // yAxisID: uuid,
             };
             // this._showYAxis(request);
@@ -315,7 +357,37 @@ export class Chart {
     //     });
     // }
 
+    private _hideTooltipOnInserted() {
+        Interaction.modes['myCustomMode'] = (
+            chart: CanvasChart,
+            event: ChartEvent,
+            options: InteractionOptions,
+            useFinalPosition: boolean | undefined,
+        ) => {
+            const pointItems = Interaction.modes.point(
+                chart,
+                event,
+                { axis: 'x', intersect: true },
+                useFinalPosition,
+            );
+            return pointItems.filter((pointItem) => {
+                let isInjected: boolean = false;
+                Object.values(this._injected).every((points: ScatterDataPoint[]) => {
+                    points.every((point: ScatterDataPoint) => {
+                        if (point.x === (pointItem.element as any).$context.raw.x) {
+                            isInjected = true;
+                        }
+                        return !isInjected;
+                    });
+                    return !isInjected;
+                });
+                return !isInjected;
+            });
+        };
+    }
+
     private _createChart(): CanvasChart {
+        this._hideTooltipOnInserted();
         return new CanvasChart(`${EChartName.canvasCharts}-${this._session.uuid()}`, {
             type: 'scatter',
             data: {
@@ -324,8 +396,7 @@ export class Chart {
             options: {
                 showLine: true,
                 interaction: {
-                    intersect: false,
-                    mode: 'x',
+                    mode: 'myCustomMode' as keyof InteractionModeMap,
                 },
                 plugins: {
                     title: {
@@ -335,16 +406,24 @@ export class Chart {
                         display: false,
                     },
                     tooltip: {
-                        enabled: false,
-                        // callbacks: {
-                        //     label: (tooltipItem) =>
-                        //         `Line: ${(tooltipItem.raw as any).x} Value: ${
-                        //             (tooltipItem.raw as any).y
-                        //         }`,
-                        // },
+                        enabled: true,
+                        animation: false,
+                        callbacks: {
+                            title: (tooltipItems) =>
+                                `Line: ${
+                                    tooltipItems.length === 0
+                                        ? ''
+                                        : Array.from(this._session.search.values.get().keys())[
+                                              (tooltipItems[0].raw as ScatterDataPoint).x
+                                          ] ?? ''
+                                }`,
+                            label: (tooltipItem) => `${tooltipItem.parsed.y}`,
+                        },
                     },
                 },
-                animation: false,
+                animation: {
+                    duration: 0,
+                },
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
