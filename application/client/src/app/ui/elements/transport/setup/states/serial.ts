@@ -3,8 +3,11 @@ import { Base } from './state';
 import { bridge } from '@service/bridge';
 import { scope } from '@platform/env/scope';
 import { Subject } from '@platform/env/subscription';
-import * as Errors from '../bases/serial/error';
 
+import * as Errors from '../bases/serial/error';
+import { error } from '@platform/log/utils';
+
+const SERIAL_PORT_SETTINGS_STORAGE = 'serial_port_settings';
 const REGULAR_RESCAN_PORTS_DURATION_MS = 3000;
 const NOPORTS_RESCAN_PORTS_DURATION_MS = 1000;
 
@@ -67,7 +70,7 @@ export class State extends Base<SerialTransportSettings> {
     public errors: {
         baudRate: Errors.ErrorState;
     };
-    public baudRate: number = 9600;
+    public baudRate: number | string = 9600;
     public dataBits: number = 8;
     public flowControl: number = 0;
     public parity: number = 0;
@@ -95,6 +98,7 @@ export class State extends Base<SerialTransportSettings> {
                 this.update();
             }),
         };
+        this.history().load();
     }
 
     public from(opt: SerialTransportSettings) {
@@ -108,7 +112,7 @@ export class State extends Base<SerialTransportSettings> {
 
     public asSourceDefinition(): SerialTransportSettings {
         return {
-            baud_rate: this.baudRate,
+            baud_rate: this.baudRate as number,
             data_bits: this.dataBits,
             flow_control: this.flowControl,
             parity: this.parity,
@@ -140,6 +144,7 @@ export class State extends Base<SerialTransportSettings> {
                             return;
                         }
                         this.path = this.ports[0] === undefined ? '' : this.ports[0];
+                        this.path !== '' && this.history().restore(this.path);
                         this.prev = this.path;
                         this.changed.emit();
                     })
@@ -169,12 +174,22 @@ export class State extends Base<SerialTransportSettings> {
 
     public history(): {
         update(path: string): void;
+        restore(path: string): void;
+        load(): void;
+        save(): void;
     } {
+        const logger = scope.getLogger('SerialPorts Settings History');
         return {
             update: (path: string): void => {
                 if (this.prev !== '') {
                     this.states.set(this.prev, this.asSourceDefinition());
                 }
+                this.history().restore(path);
+                this.prev = path;
+                this.history().save();
+                this.changed.emit();
+            },
+            restore: (path: string): void => {
                 const state = this.states.get(path);
                 if (state === undefined) {
                     this.from(DEFAULTS);
@@ -183,8 +198,44 @@ export class State extends Base<SerialTransportSettings> {
                 }
                 this.baudRateProxtUpdate();
                 this.path = path;
-                this.prev = path;
-                this.changed.emit();
+            },
+            load: (): void => {
+                bridge
+                    .storage(SERIAL_PORT_SETTINGS_STORAGE)
+                    .read()
+                    .then((content: string) => {
+                        try {
+                            const map = JSON.parse(content);
+                            if (!(map instanceof Array)) {
+                                logger.warn(`Invalid format of history`);
+                                return;
+                            }
+                            this.states.clear();
+                            map.forEach((pair) => {
+                                if (pair instanceof Array && pair.length === 2) {
+                                    this.states.set(pair[0], pair[1]);
+                                }
+                            });
+                            this.path !== '' && this.history().restore(this.path);
+                        } catch (e) {
+                            logger.warn(`Fail to parse history: ${error(e)}`);
+                        }
+                    })
+                    .catch((err: Error) => {
+                        logger.warn(`Fail to get history: ${err.message}`);
+                    });
+            },
+            save: (): void => {
+                const map: [string, SerialTransportSettings][] = [];
+                this.states.forEach((value, key) => {
+                    map.push([key, value]);
+                });
+                bridge
+                    .storage(SERIAL_PORT_SETTINGS_STORAGE)
+                    .write(JSON.stringify(map))
+                    .catch((err: Error) => {
+                        logger.warn(`Fail to save history: ${err.message}`);
+                    });
             },
         };
     }
@@ -197,6 +248,9 @@ export class State extends Base<SerialTransportSettings> {
         this.baudRate = typeof this.baudRateProxy === 'string' ? this.baudRate : this.baudRateProxy;
         this.baudRate =
             typeof this.baudRate === 'string' ? parseInt(this.baudRate, 10) : this.baudRate;
+        if (isNaN(this.baudRate) || !isFinite(this.baudRate)) {
+            this.baudRate = '';
+        }
         this.changed.emit();
     }
 
@@ -206,6 +260,7 @@ export class State extends Base<SerialTransportSettings> {
         this.path = path;
         this.states.set(this.path, this.asSourceDefinition());
         this.baudRateProxtUpdate();
+        this.history().save();
         this.changed.emit();
     }
 
