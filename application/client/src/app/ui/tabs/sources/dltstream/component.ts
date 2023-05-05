@@ -54,7 +54,7 @@ export class TabSourceDltStream extends ChangesDetector implements AfterContentI
         { value: EMTIN.DLT_LOG_DEBUG, caption: 'Debug' },
         { value: EMTIN.DLT_LOG_VERBOSE, caption: 'Verbose' },
     ];
-    public group: string | undefined;
+    public errors: boolean = false;
 
     private _filterLockTocken: LockToken = LockToken.simple(false);
 
@@ -75,17 +75,12 @@ export class TabSourceDltStream extends ChangesDetector implements AfterContentI
             this.state.fromOptions(this.options);
         }
         this.action.setCaption('Run');
+        this.errors = this.ilc().services.ui.lockers.get(this.tab.uuid).length > 0;
         this.env().subscriber.register(
             this.ilc().services.ui.lockers.unbound.subscribe(() => {
-                if (this.ilc().services.ui.lockers.get(this.tab.uuid).length !== 0) {
-                    this.group = this.tab.uuid;
-                } else {
-                    this.group = undefined;
-                }
+                this.errors = this.ilc().services.ui.lockers.get(this.tab.uuid).length > 0;
                 this.detectChanges();
             }),
-        );
-        this.env().subscriber.register(
             this.action.subjects.get().applied.subscribe(() => {
                 this.done(this.state.asOptions(), (err: Error | undefined) => {
                     if (err === undefined) {
@@ -94,8 +89,6 @@ export class TabSourceDltStream extends ChangesDetector implements AfterContentI
                     }
                 });
             }),
-        );
-        this.env().subscriber.register(
             this.action.subjects.get().canceled.subscribe(() => {
                 this.tab.close();
             }),
@@ -130,22 +123,25 @@ export class TabSourceDltStream extends ChangesDetector implements AfterContentI
 
     public ngTimezoneSelect() {
         this._filterLockTocken.lock();
-        this.ilc().services.ui.popup.open({
-            component: {
-                factory: components.get('app-elements-timezone-selector'),
-                inputs: {
-                    selected: (timezone: Timezone): void => {
-                        this.state.timezone = timezone;
+        const subscription = this.ilc()
+            .services.ui.popup.open({
+                component: {
+                    factory: components.get('app-elements-timezone-selector'),
+                    inputs: {
+                        selected: (timezone: Timezone): void => {
+                            this.state.timezone = timezone;
+                        },
                     },
                 },
-            },
-            closeOnKey: 'Escape',
-            width: 350,
-            closed: () => {
+                closeOnKey: 'Escape',
+                width: 350,
+                uuid: 'app-elements-timezone-selector',
+            })
+            .subjects.get()
+            .closed.subscribe(() => {
                 this._filterLockTocken.unlock();
-            },
-            uuid: 'app-elements-timezone-selector',
-        });
+                subscription.unsubscribe();
+            });
     }
 
     public defaultRecentAction(source: SourceDefinition): boolean {

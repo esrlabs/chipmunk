@@ -41,6 +41,7 @@ export class LayoutPopups extends ChangesDetector implements AfterContentInit {
             this.ilc().services.ui.popup.setCount(this.popups.size);
             this.ilc().emitter.ui.popup.updated(this.popups.size);
             this.detectChanges();
+            popup.subjects.get().opened.emit();
         });
         this.ilc().channel.ui.popup.close((uuid: string) => {
             this._close(uuid);
@@ -64,12 +65,12 @@ export class LayoutPopups extends ChangesDetector implements AfterContentInit {
         if (stored === undefined) {
             return;
         }
-        stored.popup.options.closed !== undefined && stored.popup.options.closed();
         this.popups.delete(uuid);
         this.popups.size === 0 && (this.visible = false);
         this.ilc().services.ui.popup.setCount(this.popups.size);
         this.ilc().emitter.ui.popup.updated(this.popups.size);
         this.detectChanges();
+        stored.popup.subjects.get().closed.emit();
     }
 }
 export interface LayoutPopups extends IlcInterface {}

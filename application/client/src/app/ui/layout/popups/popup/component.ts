@@ -3,7 +3,6 @@ import {
     ChangeDetectorRef,
     AfterViewInit,
     AfterContentInit,
-    OnDestroy,
     ChangeDetectionStrategy,
     Input,
     HostBinding,
@@ -20,10 +19,7 @@ import { Popup } from '@ui/service/popup';
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Ilc()
-export class LayoutPopup
-    extends ChangesDetector
-    implements AfterViewInit, AfterContentInit, OnDestroy
-{
+export class LayoutPopup extends ChangesDetector implements AfterViewInit, AfterContentInit {
     @Input() public popup!: Popup;
     @Input() public close!: () => void;
 
@@ -61,7 +57,6 @@ export class LayoutPopup
     }
 
     public ngAfterViewInit(): void {
-        this.popup.subjects.get().opened.emit();
         this.env().subscriber.register(
             this.ilc().services.ui.listener.listen<KeyboardEvent>(
                 'keydown',
@@ -85,10 +80,6 @@ export class LayoutPopup
                 },
             ),
         );
-    }
-
-    public ngOnDestroy(): void {
-        this.popup.subjects.get().closed.emit();
     }
 
     public ngStyle(): { width: string } {

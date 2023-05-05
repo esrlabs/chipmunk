@@ -16,6 +16,7 @@ import { MatInputModule } from '@angular/material/input';
 import { TransportModule } from '@elements/transport/setup/module';
 import { RecentActionsModule } from '@elements/recent/module';
 import { SourcesCommonModule } from '../common/module';
+import { LocksHistoryModule } from '@elements/locks.history/module';
 
 import { TabSourceDltStream } from './component';
 
@@ -39,9 +40,10 @@ import { TabSourceDltStream } from './component';
         TransportModule,
         RecentActionsModule,
         SourcesCommonModule,
+        LocksHistoryModule,
     ],
     declarations: [TabSourceDltStream],
     exports: [TabSourceDltStream],
-    bootstrap: [TabSourceDltStream]
+    bootstrap: [TabSourceDltStream],
 })
 export class TabSourceDltStreamModule {}

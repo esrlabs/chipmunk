@@ -84,8 +84,12 @@ export class Service extends Implementation {
                 if (stored === undefined) {
                     return;
                 }
-                stored.popup = undefined;
-                this.lockers.set(uuid, stored);
+                if ([Level.error, Level.warning].includes(stored.locker.type)) {
+                    stored.popup = undefined;
+                    this.lockers.set(uuid, stored);
+                } else {
+                    this.lockers.delete(uuid);
+                }
                 this.unbound.emit(stored.locker);
             },
         };
