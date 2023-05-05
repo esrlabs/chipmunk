@@ -11,8 +11,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { Available } from './port/components';
-import { Options } from './options/component';
 
 @NgModule({
     imports: [
@@ -30,7 +28,7 @@ import { Options } from './options/component';
         MatAutocompleteModule,
         MatRadioModule,
     ],
-    declarations: [Available, Options],
-    exports: [Available, Options]
+    declarations: [],
+    exports: [],
 })
 export class BaseModule {}

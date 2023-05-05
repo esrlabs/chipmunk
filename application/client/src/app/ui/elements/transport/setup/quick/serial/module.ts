@@ -13,6 +13,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { BaseModule } from '../../bases/serial/module';
 import { QuickSetup } from './component';
+import { SetupModule } from '../../complete/serial/module';
 
 @NgModule({
     imports: [
@@ -30,8 +31,9 @@ import { QuickSetup } from './component';
         MatAutocompleteModule,
         MatRadioModule,
         BaseModule,
+        SetupModule,
     ],
     declarations: [QuickSetup],
-    exports: [QuickSetup]
+    exports: [QuickSetup],
 })
 export class QuickSetupModule {}

@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Input, OnDestroy, AfterViewInit } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, OnDestroy, AfterContentInit } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Subject } from '@platform/env/subscription';
 import { SetupBase } from '../../bases/serial/component';
@@ -9,21 +9,21 @@ import { SetupBase } from '../../bases/serial/component';
     styleUrls: ['./styles.less'],
 })
 @Ilc()
-export class Setup extends SetupBase implements AfterViewInit, OnDestroy {
+export class Setup extends SetupBase implements AfterContentInit, OnDestroy {
     @Input() public update?: Subject<void>;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
 
-    public override ngAfterViewInit() {
+    public override ngAfterContentInit() {
         this.update !== undefined &&
             this.env().subscriber.register(
                 this.update.subscribe(() => {
                     this.detectChanges();
                 }),
             );
-        super.ngAfterViewInit();
+        super.ngAfterContentInit();
     }
 }
 export interface TransportSerial extends IlcInterface {}
