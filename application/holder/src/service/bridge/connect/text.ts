@@ -77,11 +77,6 @@ export const handler = Requests.InjectLogger<
                             }),
                         );
                     });
-                resolve(
-                    new Requests.Connect.Text.Response({
-                        session: stored.session.getUUID(),
-                    }),
-                );
             } else if (request.source.process !== undefined) {
                 if (request.source.process.cwd.trim() === '') {
                     request.source.process.cwd = os.homedir();
