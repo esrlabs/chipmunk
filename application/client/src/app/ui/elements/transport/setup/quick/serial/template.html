@@ -1,7 +1,4 @@
-<p class="no_devices" *ngIf="_ng_ports.length === 0">No devices detected</p>
-<div *ngIf="_ng_ports.length > 0">
-    <app-transport-serial-available *ngFor="let port of _ng_ports" [port]="port" [state]="state"></app-transport-serial-available>
-</div>
+<app-transport-serial [state]="state"></app-transport-serial>
 <div class="controlls">
     <button mat-stroked-button (click)="connect()" [disabled]="action.disabled">Connect</button>
 </div>
