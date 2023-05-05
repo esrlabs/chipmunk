@@ -52,4 +52,5 @@ module Paths
   RELEASE_RESOURCES = "#{RELEASE}/#{Paths.get_release_resources_folder}"
   RELEASE_BUILD = "#{RELEASE}/#{Paths.get_release_build_folder}"
   JASMINE = './node_modules/.bin/electron ./node_modules/jasmine/bin/jasmine.js'
+  CHECKLISTS = 'scripts/tools/file_checklists'
 end
