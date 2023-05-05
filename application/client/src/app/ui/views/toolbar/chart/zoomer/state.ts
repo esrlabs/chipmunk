@@ -34,7 +34,7 @@ export class State extends AbstractState {
         );
         this._chart = new Chart(this._session, this._parent, this._dataState.chart, this._service);
         this._initSubscriptions();
-        this._updateCanvasWidth();
+        this._onResize();
     }
 
     public destroy() {
@@ -57,11 +57,12 @@ export class State extends AbstractState {
         this._parent
             .env()
             .subscriber.register(
-                this._parent.ilc().channel.ui.sidebar.resize(this._updateCanvasWidth.bind(this)),
+                this._parent.ilc().channel.ui.sidebar.resize(this._onResize.bind(this)),
+                this._parent.ilc().channel.ui.window.resize(this._onResize.bind(this)),
             );
     }
 
-    private _updateCanvasWidth() {
+    private _onResize() {
         this._canvasWidth = this._element.getBoundingClientRect().width;
         this._filter.canvasWidth = this._canvasWidth;
     }

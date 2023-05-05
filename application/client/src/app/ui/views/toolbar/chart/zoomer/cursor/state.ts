@@ -36,7 +36,8 @@ export class State extends AbstractState {
         this._parent
             .env()
             .subscriber.register(
-                this._parent.ilc().channel.ui.sidebar.resize(this._resizeSidebar.bind(this)),
+                this._parent.ilc().channel.ui.sidebar.resize(this._onResize.bind(this)),
+                this._parent.ilc().channel.ui.window.resize(this._onResize.bind(this)),
             );
         this._parent
             .env()
@@ -44,7 +45,7 @@ export class State extends AbstractState {
         window.addEventListener('mousemove', this._onWindowMousemove);
         window.addEventListener('mouseup', this._onWindowMouseup);
         this._restore();
-        this._resizeSidebar();
+        this._onResize();
     }
 
     public destroy() {
@@ -189,7 +190,7 @@ export class State extends AbstractState {
         stop(event);
     }
 
-    private _resizeSidebar() {
+    private _onResize() {
         const scrollWidth: number = this._element.getBoundingClientRect().width;
         const width: number = scrollWidth - this._leftOffset();
         if (width <= 0 || isNaN(width) || !isFinite(width)) {

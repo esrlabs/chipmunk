@@ -78,6 +78,4 @@ export class State extends AbstractState {
         this._canvasWidth = this._element.getBoundingClientRect().width;
         this._positionChange();
     }
-
-    // [TODO] Subscribe to window and sidebar change -> Adjust rectangle
 }

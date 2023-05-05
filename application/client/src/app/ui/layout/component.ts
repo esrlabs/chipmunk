@@ -142,6 +142,7 @@ export class Layout extends ChangesDetector implements AfterViewInit {
 
     public ngLayoutResize(rect: DOMRect) {
         this._updateSizes(rect).detectChanges();
+        this.ilc().emitter.ui.window.resize();
     }
 
     public ngWorkspaceStyle(): { [key: string]: string } {

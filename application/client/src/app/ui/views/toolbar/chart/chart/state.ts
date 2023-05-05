@@ -62,7 +62,7 @@ export class State extends AbstractState {
             this._dataState.filter,
         );
         this._initializeSubscriptions();
-        this._onSidebarResize();
+        this._onResize();
     }
 
     public destroy() {
@@ -134,7 +134,8 @@ export class State extends AbstractState {
         this._parent
             .env()
             .subscriber.register(
-                this._parent.ilc().channel.ui.sidebar.resize(this._onSidebarResize.bind(this)),
+                this._parent.ilc().channel.ui.sidebar.resize(this._onResize.bind(this)),
+                this._parent.ilc().channel.ui.window.resize(this._onResize.bind(this)),
                 this._service.subjects.change.subscribe(this._onZoomChange.bind(this)),
             );
     }
@@ -159,7 +160,7 @@ export class State extends AbstractState {
         }, UPDATE_TIMEOUT_MS);
     }
 
-    private _onSidebarResize() {
+    private _onResize() {
         this._timeout.canvasWidth !== -1 && clearTimeout(this._timeout.canvasWidth);
         this._timeout.canvasWidth = window.setTimeout(() => {
             this._canvasWidth = this._element.getBoundingClientRect().width;
