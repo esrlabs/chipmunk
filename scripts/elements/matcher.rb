@@ -8,6 +8,7 @@ class Matcher
     @rebuild = rebuild
     @installed = File.exist?("#{Paths::MATCHER}/node_modules")
     @targets = [@pkg, @target, @node_modules, @test_output]
+    @changes_to_files = ChangeChecker.has_changes?(Paths::MATCHER)
   end
 
   def clean
@@ -19,6 +20,7 @@ class Matcher
         Reporter.add(Jobs::Clearing, Owner::Matcher, "doesn't exist: #{path}", '')
       end
     end
+    ChangeChecker.changelist(Paths::MATCHER)
   end
 
   def install
@@ -31,20 +33,22 @@ class Matcher
     else
       Reporter.add(Jobs::Skipped, Owner::Matcher, 'installing', '')
     end
+    ChangeChecker.changelist(Paths::MATCHER)
   end
 
   def build
-    if File.exist?(@pkg) && File.exist?(@target) && !@rebuild
+    if !@changes_to_files && !@rebuild
       Reporter.add(Jobs::Skipped, Owner::Matcher, 'already built', '')
     else
       Environment.check
-      Shell.rm_rf(@pkg)
-      Reporter.add(Jobs::Clearing, Owner::Matcher, @pkg, '')
-      Shell.rm_rf(@target)
-      Reporter.add(Jobs::Clearing, Owner::Matcher, @target, '')
+      [@pkg, @target].each do |path|
+        Shell.rm_rf(path)
+        Reporter.add(Jobs::Clearing, Owner::Matcher, path, '')
+      end
       Shell.chdir(Paths::MATCHER) do
         Shell.sh 'wasm-pack build --target bundler'
       end
+      ChangeChecker.changelist(Paths::MATCHER)
       Reporter.add(Jobs::Building, Owner::Matcher, @target, '')
     end
   end
