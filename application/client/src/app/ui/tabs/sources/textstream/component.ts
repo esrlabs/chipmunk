@@ -31,7 +31,7 @@ export class TabSourceTextStream extends ChangesDetector implements AfterContent
         | undefined;
 
     public state: State = new State();
-    public group: string | undefined;
+    public errors: boolean = false;
     public action: Action = new Action();
 
     constructor(cdRef: ChangeDetectorRef) {
@@ -57,17 +57,12 @@ export class TabSourceTextStream extends ChangesDetector implements AfterContent
             this.state.fromOptions(this.options);
         }
         this.action.setCaption('Run');
+        this.errors = this.ilc().services.ui.lockers.get(this.tab.uuid).length > 0;
         this.env().subscriber.register(
             this.ilc().services.ui.lockers.unbound.subscribe(() => {
-                if (this.ilc().services.ui.lockers.get(this.tab.uuid).length !== 0) {
-                    this.group = this.tab.uuid;
-                } else {
-                    this.group = undefined;
-                }
+                this.errors = this.ilc().services.ui.lockers.get(this.tab.uuid).length > 0;
                 this.detectChanges();
             }),
-        );
-        this.env().subscriber.register(
             this.action.subjects.get().applied.subscribe(() => {
                 this.done(this.state.asOptions(), (err: Error | undefined) => {
                     if (err === undefined) {
@@ -76,8 +71,6 @@ export class TabSourceTextStream extends ChangesDetector implements AfterContent
                     }
                 });
             }),
-        );
-        this.env().subscriber.register(
             this.action.subjects.get().canceled.subscribe(() => {
                 this.tab.close();
             }),

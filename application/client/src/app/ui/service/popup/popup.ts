@@ -25,7 +25,6 @@ export interface PopupOptions {
     position?: Position;
     closeOnKey?: string;
     closeOnBGClick?: boolean;
-    closed?: () => void;
     uuid?: string;
 }
 

@@ -46,9 +46,6 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
                     },
                     closeOnKey: 'Escape',
                     width: 450,
-                    closed: () => {
-                        //
-                    },
                     uuid: 'app-recent-actions-popup-observed',
                 });
             },

@@ -22,10 +22,10 @@
                     <p>Doesn't require any kind of special settings. Would be shown all income content.</p>
                 </mat-card-content>
             </mat-card>
-            <mat-card *ngIf="group !== undefined" class="fill">
+            <mat-card *ngIf="errors" class="fill">
                 <mat-card-title>Warnings / Errors</mat-card-title>
                 <mat-card-content>
-                    <app-elements-locks-history [group]="group"></app-elements-locks-history>
+                    <app-elements-locks-history [group]="tab.uuid"></app-elements-locks-history>
                 </mat-card-content>
             </mat-card>
             <div class="spacer"></div>

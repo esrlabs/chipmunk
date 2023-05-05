@@ -168,22 +168,25 @@ export class TabSourceDltFile extends ChangesDetector implements AfterViewInit, 
     public ngTimezoneSelect() {
         this._filterLockTocken.lock();
         this.filter.filter.drop();
-        this.ilc().services.ui.popup.open({
-            component: {
-                factory: components.get('app-elements-timezone-selector'),
-                inputs: {
-                    selected: (timezone: Timezone): void => {
-                        this.state.timezone = timezone;
+        const subscription = this.ilc()
+            .services.ui.popup.open({
+                component: {
+                    factory: components.get('app-elements-timezone-selector'),
+                    inputs: {
+                        selected: (timezone: Timezone): void => {
+                            this.state.timezone = timezone;
+                        },
                     },
                 },
-            },
-            closeOnKey: 'Escape',
-            width: 350,
-            closed: () => {
+                closeOnKey: 'Escape',
+                width: 350,
+                uuid: 'app-elements-timezone-selector',
+            })
+            .subjects.get()
+            .closed.subscribe(() => {
                 this._filterLockTocken.unlock();
-            },
-            uuid: 'app-elements-timezone-selector',
-        });
+                subscription.unsubscribe();
+            });
     }
 
     public ngContextMenu(event: MouseEvent) {

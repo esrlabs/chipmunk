@@ -64,6 +64,12 @@
                     </div>
                 </mat-card-content>
             </mat-card>
+            <mat-card *ngIf="errors" class="fill">
+                <mat-card-title>Warnings / Errors</mat-card-title>
+                <mat-card-content>
+                    <app-elements-locks-history [group]="tab.uuid"></app-elements-locks-history>
+                </mat-card-content>
+            </mat-card>
             <div class="spacer"></div>
             <app-tabs-source-actions [action]="action"></app-tabs-source-actions>
         </div>
