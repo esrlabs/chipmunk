@@ -204,6 +204,9 @@ export class State extends Base<SerialTransportSettings> {
                     .storage(SERIAL_PORT_SETTINGS_STORAGE)
                     .read()
                     .then((content: string) => {
+                        if (content === '') {
+                            return;
+                        }
                         try {
                             const map = JSON.parse(content);
                             if (!(map instanceof Array)) {
