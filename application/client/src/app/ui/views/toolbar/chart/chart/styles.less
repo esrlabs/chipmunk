@@ -33,4 +33,11 @@
     & .hidden {
         visibility: hidden;
     }
+    & div.rectangle {
+        height: calc(100% - 2px);
+        bottom: 0px;
+        pointer-events: none;
+        position: absolute;
+        border: dashed @scheme-color-1 thin;
+    }
 }

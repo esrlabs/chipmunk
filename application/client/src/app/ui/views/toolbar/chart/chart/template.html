@@ -6,3 +6,4 @@
     <canvas [attr.id]="state.EChartName.canvasFilters + '-' + session.uuid()"></canvas>
     <canvas (contextmenu)="state.onContextMenu($event)" [attr.id]="state.EChartName.canvasCharts + '-' + session.uuid()"></canvas>
 </div>
+<div *ngIf="!state.hasNoData" class="rectangle" [ngStyle]="{'width': state.rectangle.width + 'px', 'left': state.rectangle.left + 'px'}"></div>
