@@ -40,7 +40,7 @@ export class LayoutHome extends ChangesDetector implements AfterViewInit, OnDest
             new actions.StreamTextOnCustom.Action(),
             new actions.StreamDltOnCustom.Action(),
         ],
-        terminal: [new actions.StdoutText.Action()],
+        terminal: new actions.StdoutText.Action(),
     };
     public actions: ActionsStorage = new ActionsStorage();
     public pinned: Array<Action | null> = [];
