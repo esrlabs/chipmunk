@@ -161,6 +161,8 @@ export class Service extends Implementation {
                               { type: 'separator' },
                               {
                                   label: this.isMac ? 'Quit' : 'Close',
+                                  registerAccelerator: false,
+                                  accelerator: 'CommandOrControl + Q',
                                   click: () => {
                                       global.application
                                           .shutdown('ClosingWithMenu')
@@ -287,6 +289,8 @@ export class Service extends Implementation {
                               { type: 'separator' },
                               {
                                   label: this.isMac ? 'Quit' : 'Close',
+                                  registerAccelerator: false,
+                                  accelerator: 'CommandOrControl + Q',
                                   click: () => {
                                       global.application
                                           .shutdown('ClosingWithMenu')
