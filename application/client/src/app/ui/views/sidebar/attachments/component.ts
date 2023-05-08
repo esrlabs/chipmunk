@@ -20,6 +20,8 @@ import { Preview } from './preview/component';
 import { NormalizedBackgroundTask } from '@platform/env/normalized';
 import { IMenuItem } from '@ui/service/contextmenu';
 
+import * as dom from '@ui/env/dom';
+
 const UNTYPED = 'untyped';
 
 @Component({
@@ -194,6 +196,7 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
             x: event.x,
             y: event.y,
         });
+        dom.stop(event);
     }
 
     public select(): {
