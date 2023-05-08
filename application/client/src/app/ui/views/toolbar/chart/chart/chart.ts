@@ -1,4 +1,11 @@
-import { EChartName, ILabel, IPosition, EScaleType, EHasNoData } from '../common/types';
+import {
+    EChartName,
+    ILabel,
+    IPosition,
+    EScaleType,
+    EHasNoData,
+    IScatterDataPointHolder,
+} from '../common/types';
 import {
     ChartDataset,
     ScatterDataPoint,
@@ -103,14 +110,10 @@ export class Chart {
         const options = this._chart.config.options;
         this._clearInject();
         if (options && options.scales && options.scales['x']) {
-            const matchSize = this._session.search.values.get().size - 1;
-            const streamSize = this._session.stream.len();
-            const from = matchSize * (zoomedRange.from / streamSize);
-            const to = matchSize * (zoomedRange.to / streamSize);
-            from % 1 > 0 && this._inject(from);
-            to % 1 > 0 && this._inject(to);
-            options.scales['x'].min = zoomedRange.from === 0 ? 0 : from;
-            options.scales['x'].max = zoomedRange.to === streamSize - 1 ? matchSize : to;
+            this._inject(zoomedRange.from);
+            this._inject(zoomedRange.to);
+            options.scales['x'].min = zoomedRange.from;
+            options.scales['x'].max = zoomedRange.to;
         }
         this._chart.update();
     }
@@ -118,10 +121,8 @@ export class Chart {
     private _clearInject() {
         (this._chart.data.datasets as ChartDataset<'scatter', ScatterDataPoint[]>[]).forEach(
             (dataset) => {
-                if (dataset.label === undefined) {
-                    return;
-                }
-                this._injected[dataset.label] !== undefined &&
+                dataset.label !== undefined &&
+                    this._injected[dataset.label] !== undefined &&
                     this._injected[dataset.label].forEach((injectedPoint: ScatterDataPoint) => {
                         dataset.data = dataset.data.filter(
                             (dataPoint: ScatterDataPoint) => dataPoint.x !== injectedPoint.x,
@@ -132,39 +133,39 @@ export class Chart {
         this._injected = {};
     }
 
-    private _inject(index: number) {
-        const previous: number = Math.floor(index);
-        const upcoming: number = Math.ceil(index);
+    private _inject(zoom: number) {
         (this._chart.data.datasets as ChartDataset<'scatter', ScatterDataPoint[]>[]).forEach(
             (dataset) => {
-                if (upcoming >= dataset.data.length && dataset.label === undefined) {
+                if (
+                    dataset.label === undefined ||
+                    dataset.data.length === 0 ||
+                    dataset.data[0].x > zoom ||
+                    dataset.data[dataset.data.length - 1].x < zoom
+                ) {
                     return;
                 }
-                let previousIndex = -1;
-                let upcomingIndex = -1;
+                const holder: IScatterDataPointHolder = {};
                 dataset.data.every((point: ScatterDataPoint, index: number) => {
-                    if (point.x === previous) {
-                        previousIndex = index;
+                    if (point.x < zoom) {
+                        holder.previous = point;
+                    } else if (holder.index === undefined && point.x > zoom) {
+                        holder.upcoming = point;
+                        holder.index = index;
                     }
-                    if (point.x === upcoming) {
-                        upcomingIndex = index;
-                    }
-                    if (previousIndex !== -1 && upcomingIndex !== -1) {
-                        return false;
-                    }
-                    return true;
+                    return !(holder.index !== undefined);
                 });
-                if (previousIndex !== -1 && upcomingIndex !== -1 && dataset.label !== undefined) {
-                    const injected = this._getGapPoint(
-                        dataset.data[previousIndex] as ScatterDataPoint,
-                        dataset.data[upcomingIndex] as ScatterDataPoint,
-                        index,
-                    );
+                if (
+                    holder.previous !== undefined &&
+                    holder.upcoming !== undefined &&
+                    holder.index !== undefined &&
+                    dataset.label !== undefined
+                ) {
+                    const point = this._getGapPoint(holder.previous, holder.upcoming, zoom);
                     if (this._injected[dataset.label] === undefined) {
                         this._injected[dataset.label] = [];
                     }
-                    this._injected[dataset.label].push(injected);
-                    dataset.data.splice(upcomingIndex, 0, injected);
+                    this._injected[dataset.label].push(point);
+                    dataset.data.splice(holder.index, 0, point);
                 }
             },
         );
@@ -173,13 +174,12 @@ export class Chart {
     private _getGapPoint(
         previousPoint: ScatterDataPoint,
         upcomingPoint: ScatterDataPoint,
-        index: number,
+        x: number,
     ): { x: number; y: number } {
         const x1 = previousPoint.x;
         const y1 = previousPoint.y;
         const x2 = upcomingPoint.x;
         const y2 = upcomingPoint.y;
-        const x = previousPoint.x + (index % 1);
         const y = ((y2 - y1) / (x2 - x1)) * x + (x2 * y1 - x1 * y2) / (x2 - x1);
         return { x: x, y: y };
     }
@@ -210,7 +210,6 @@ export class Chart {
                     return dataset.label === entity.definition.filter;
                 });
                 if (index === -1) {
-                    // const uuid: string = entity.uuid();
                     this._chart.data.datasets.push({
                         label: entity.definition.filter,
                         data: [],
@@ -221,7 +220,6 @@ export class Chart {
                         borderWidth: entity.definition.borderWidth,
                         tension: entity.definition.tension,
                         pointRadius: entity.definition.pointRadius,
-                        // yAxisID: uuid,
                     });
                     this._initData();
                 } else {
@@ -236,7 +234,6 @@ export class Chart {
                 }
             }
         });
-        // this._updateYAxes(entities);
         this._chart.update();
         this._updateHasNoData();
     }
@@ -249,12 +246,17 @@ export class Chart {
                 }) !== -1
             );
         });
+        Object.keys(this._injected).forEach((label) => {
+            entities.forEach((entity: ChartRequest) => {
+                entity.definition.filter === label && delete this._injected[label];
+            });
+        });
     }
 
     private _initDatasets() {
         this._chart.data.datasets = [];
         this._getActiveChartRequests().forEach((request: ChartRequest, index: number) => {
-            // const uuid: string = request.uuid();
+            this._injected[request.definition.filter] = [];
             this._chart.data.datasets[index] = {
                 label: request.definition.filter,
                 data: [],
@@ -265,10 +267,10 @@ export class Chart {
                 borderWidth: request.definition.borderWidth,
                 tension: request.definition.tension,
                 pointHoverRadius: (ctx: ScriptableContext<'line'>, _options: AnyObject) => {
-                    const points = this._injected[request.definition.filter];
-                    return points === undefined
+                    const injectedPoints = this._injected[request.definition.filter];
+                    return injectedPoints === undefined
                         ? request.definition.pointRadius
-                        : points.findIndex(
+                        : injectedPoints.findIndex(
                               (point: ScatterDataPoint) =>
                                   point.x === (ctx.raw as ScatterDataPoint).x,
                           ) === -1
@@ -276,19 +278,17 @@ export class Chart {
                         : 0;
                 },
                 pointRadius: (ctx: ScriptableContext<'line'>, _options: AnyObject) => {
-                    const points = this._injected[request.definition.filter];
-                    return points === undefined
+                    const injectedPoints = this._injected[request.definition.filter];
+                    return injectedPoints === undefined
                         ? request.definition.pointRadius
-                        : points.findIndex(
+                        : injectedPoints.findIndex(
                               (point: ScatterDataPoint) =>
                                   point.x === (ctx.raw as ScatterDataPoint).x,
                           ) === -1
                         ? request.definition.pointRadius
                         : 0;
                 },
-                // yAxisID: uuid,
             };
-            // this._showYAxis(request);
         });
     }
 
@@ -298,64 +298,18 @@ export class Chart {
             return;
         }
         this._labelState.loading = true;
-        Array.from(this._session.search.values.get().values()).forEach((values, index) => {
+        for (const [line, values] of this._session.search.values.get()) {
             values.forEach((value: string, id: number) => {
                 this._chart.data.datasets[id].data.push({
-                    x: index,
+                    x: line,
                     y: parseInt(value),
                 });
             });
-        });
+        }
         this._labelState.loading = false;
         this._chart.update();
         this._updateHasNoData();
     }
-
-    // Postponed due to overlapping with filters canvas
-    // private _showYAxis(request: ChartRequest) {
-    //     const uuid: string = request.uuid();
-    //     this._chart.update();
-    //     if (
-    //         this._chart.options.scales !== undefined &&
-    //         this._chart.options.scales[uuid] !== undefined
-    //     ) {
-    //         const yAxis = this._chart.options.scales[uuid] as ScaleOptionsByType<
-    //             'radialLinear' | keyof CartesianScaleTypeRegistry
-    //         >;
-    //         yAxis.display = ChartsService.selectedGuid === uuid;
-    //         yAxis.ticks.color = request.definition.color;
-    //     }
-    // }
-
-    // Postponed due to overlapping with filters canvas
-    // private _updateYAxes(entities: ChartRequest[]) {
-    //     this._chart.update();
-    //     const selectedUuid: string = ChartsService.selectedGuid;
-    //     Object.keys(
-    //         this._chart.options.scales as {
-    //             [key: string]: ScaleOptionsByType<
-    //                 'radialLinear' | keyof CartesianScaleTypeRegistry
-    //             >;
-    //         },
-    //     ).forEach((axis: string) => {
-    //         if (axis === 'x' || axis === 'y') {
-    //             return;
-    //         }
-    //         const entity: ChartRequest | undefined = entities.find(
-    //             (entity: ChartRequest) => entity.uuid() === axis,
-    //         );
-    //         if (this._chart.options !== undefined && this._chart.options.scales !== undefined) {
-    //             if (entity === undefined) {
-    //                 delete this._chart.options.scales[axis];
-    //             } else {
-    //                 const scale = this._chart.options.scales[axis];
-    //                 if (scale !== undefined) {
-    //                     scale.display = axis === selectedUuid && entity.definition.active;
-    //                 }
-    //             }
-    //         }
-    //     });
-    // }
 
     private _hideTooltipOnInserted() {
         Interaction.modes['myCustomMode'] = (
@@ -413,9 +367,7 @@ export class Chart {
                                 `Line: ${
                                     tooltipItems.length === 0
                                         ? ''
-                                        : Array.from(this._session.search.values.get().keys())[
-                                              (tooltipItems[0].raw as ScatterDataPoint).x
-                                          ] ?? ''
+                                        : (tooltipItems[0].raw as ScatterDataPoint).x ?? ''
                                 }`,
                             label: (tooltipItem) => `${tooltipItem.parsed.y}`,
                         },
@@ -458,25 +410,6 @@ export class Chart {
         });
         this._chart.update();
     }
-
-    // Postponed due to overlapping with filters canvas
-    // private _onChartSelected(uuid: string) {
-    //     uuid = uuid.trim();
-    //     if (
-    //         this._chart.options.scales === undefined ||
-    //         (uuid !== '' && this._chart.options.scales[uuid] === undefined)
-    //     ) {
-    //         return;
-    //     }
-    //     const scales = this._chart.options.scales;
-    //     Object.keys(scales).forEach((axis: string) => {
-    //         const scale = scales[axis];
-    //         if (scale !== undefined) {
-    //             scale.display = axis === uuid;
-    //         }
-    //     });
-    //     this._chart.update();
-    // }
 
     private _restoreZoomedRange() {
         let position: IPosition | undefined = this._service.getPosition(this._session.uuid());

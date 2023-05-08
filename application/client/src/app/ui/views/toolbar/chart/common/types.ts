@@ -1,3 +1,5 @@
+import { ScatterDataPoint } from 'chart.js';
+
 export interface IPosition {
     left: number;
     width: number;
@@ -34,6 +36,12 @@ export interface ILabel {
 export interface ILabelState {
     filter: ILabel;
     chart: ILabel;
+}
+
+export interface IScatterDataPointHolder {
+    previous?: ScatterDataPoint;
+    upcoming?: ScatterDataPoint;
+    index?: number;
 }
 
 export enum EScaleType {

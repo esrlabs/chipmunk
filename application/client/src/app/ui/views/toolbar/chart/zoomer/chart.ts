@@ -74,8 +74,8 @@ export class Chart {
                     });
                     this._initData();
                 } else {
-                    const dataset: ChartDataset<'line', ScatterDataPoint[]> = this._chart.data
-                        .datasets[index] as ChartDataset<'line', ScatterDataPoint[]>;
+                    const dataset: ChartDataset<'scatter', ScatterDataPoint[]> = this._chart.data
+                        .datasets[index] as ChartDataset<'scatter', ScatterDataPoint[]>;
                     dataset.stepped = entity.definition.stepped;
                     dataset.borderWidth = entity.definition.borderWidth;
                     dataset.tension = entity.definition.tension;
@@ -98,9 +98,7 @@ export class Chart {
     }
 
     private _removeRedundantDatasets(entities: ChartRequest[]) {
-        this._chart.data.datasets = (
-            this._chart.data.datasets as ChartDataset<'line', ScatterDataPoint[]>[]
-        ).filter((dataset: ChartDataset<'line', ScatterDataPoint[]>) => {
+        this._chart.data.datasets = this._chart.data.datasets.filter((dataset) => {
             return (
                 entities.findIndex((entity: ChartRequest) => {
                     return entity.definition.filter === dataset.label && entity.definition.active;
@@ -111,21 +109,19 @@ export class Chart {
 
     private _initDatasets() {
         this._chart.data.datasets = [];
-        this._getActiveChartRequests().forEach(
-            (activeChartRequest: ChartRequest, index: number) => {
-                this._chart.data.datasets[index] = {
-                    label: activeChartRequest.definition.filter,
-                    data: [],
-                    backgroundColor: activeChartRequest.definition.color,
-                    borderColor: activeChartRequest.definition.color,
-                    stepped: activeChartRequest.definition.stepped,
-                    spanGaps: true,
-                    borderWidth: activeChartRequest.definition.borderWidth,
-                    tension: activeChartRequest.definition.tension,
-                    pointRadius: 0,
-                };
-            },
-        );
+        this._getActiveChartRequests().forEach((request: ChartRequest, index: number) => {
+            this._chart.data.datasets[index] = {
+                label: request.definition.filter,
+                data: [],
+                backgroundColor: request.definition.color,
+                borderColor: request.definition.color,
+                stepped: request.definition.stepped,
+                spanGaps: true,
+                borderWidth: request.definition.borderWidth,
+                tension: request.definition.tension,
+                pointRadius: 0,
+            };
+        });
     }
 
     private _initData() {
@@ -133,17 +129,17 @@ export class Chart {
             this._updateHasNoData();
             return;
         }
-        this._chart.data.labels = [];
         for (const [line, values] of this._session.search.values.get()) {
-            Array.isArray(this._chart.data.labels) && this._chart.data.labels.push(line);
             values.forEach((value: string, id: number) => {
-                if (this._chart.data.datasets[id] !== undefined) {
-                    this._chart.data.datasets[id].data.push({
-                        x: line,
-                        y: parseInt(value),
-                    });
-                }
+                this._chart.data.datasets[id].data.push({
+                    x: line,
+                    y: parseInt(value),
+                });
             });
+        }
+        const options = this._chart.config.options;
+        if (options && options.scales && options.scales['x']) {
+            options.scales['x'].max = this._session.stream.len() - 1;
         }
         this._chart.update();
         this._updateHasNoData();
@@ -151,12 +147,12 @@ export class Chart {
 
     private _createChart(): CanvasChart {
         return new CanvasChart(`${EChartName.zoomerCharts}-${this._session.uuid()}`, {
-            type: 'line',
+            type: 'scatter',
             data: {
-                labels: [],
                 datasets: [],
             },
             options: {
+                showLine: true,
                 plugins: {
                     title: {
                         display: false,
@@ -177,6 +173,7 @@ export class Chart {
                     },
                     x: {
                         display: false,
+                        beginAtZero: true,
                     },
                 },
             },
@@ -185,27 +182,23 @@ export class Chart {
 
     private _onColorChange(entities: ChartRequest[]) {
         entities.forEach((entity: ChartRequest) => {
-            (this._chart.data.datasets as ChartDataset<'line', ScatterDataPoint[]>[]).forEach(
-                (dataset: ChartDataset<'line', ScatterDataPoint[]>) => {
-                    if (dataset.label === entity.definition.filter) {
-                        dataset.backgroundColor = entity.definition.color;
-                        dataset.borderColor = entity.definition.color;
-                    }
-                },
-            );
+            this._chart.data.datasets.forEach((dataset) => {
+                if (dataset.label === entity.definition.filter) {
+                    dataset.backgroundColor = entity.definition.color;
+                    dataset.borderColor = entity.definition.color;
+                }
+            });
         });
         this._chart.update();
     }
 
     private _updateHasNoData() {
         this._labelState.hasNoData = true;
-        (this._chart.data.datasets as ChartDataset<'line', ScatterDataPoint[]>[]).forEach(
-            (dataset: ChartDataset<'line', ScatterDataPoint[]>) => {
-                if (dataset.data.length > 0) {
-                    this._labelState.hasNoData = false;
-                }
-            },
-        );
+        this._chart.data.datasets.forEach((dataset) => {
+            if (dataset.data.length > 0) {
+                this._labelState.hasNoData = false;
+            }
+        });
         this._parent.detectChanges();
     }
 
