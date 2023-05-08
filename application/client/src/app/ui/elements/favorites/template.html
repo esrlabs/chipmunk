@@ -20,7 +20,7 @@
         <p class="info t-small" *ngFor="let root of state.roots">{{root}}</p>
     </div>    
 </div>
-<div class="wrapper" *ngIf="state.isEmpty()">
+<div class="wrapper" *ngIf="state.isEmpty() && state.loading() === undefined">
     <p class="warning t-medium">You didn't add any locations into favorites yet. You always can add/remove favorite places on the home screen.</p>
     <div class="controlls">
         <button mat-stroked-button (click)="addFolder()">Add Folder(s) to Favorites</button>

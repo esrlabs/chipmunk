@@ -11,6 +11,7 @@ import { EntityType, getFileName } from '@platform/types/files';
 export type CloseHandler = () => void;
 
 const MAX_VISIBLE_ITEMS = 50;
+const DEFAULT_DEEP = 5;
 
 export class State extends Holder {
     public filter: Filter;
@@ -225,8 +226,8 @@ export class State extends Holder {
             this.folders.push(path);
         }
         this.scanning = getFileName(path);
-        const list = await bridge.files().ls(path);
-        const folders: string[] = [];
+        this.update.emit();
+        const list = await bridge.files().ls(path, DEFAULT_DEEP);
         list.forEach((item) => {
             if (this.abort.signal.aborted) {
                 return;
@@ -235,18 +236,9 @@ export class State extends Holder {
                 this.items.push(
                     new Item(item.fullname, item.name, item.details.path, this.matcher),
                 );
-            } else if (item.type === EntityType.Directory) {
-                folders.push(item.fullname);
             }
         });
         this.update.emit();
-        if (this.abort.signal.aborted) {
-            return Promise.resolve();
-        }
-        for (const path of await folders) {
-            await this.includeFromFolder(path).catch((err: Error) => {
-                console.log(`Fail to get items from folder: ${err.message}`);
-            });
-        }
+        return Promise.resolve();
     }
 }

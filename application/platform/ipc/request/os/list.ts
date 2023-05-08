@@ -6,11 +6,13 @@ import * as validator from '../../../env/obj';
 @Define({ name: 'ListFilesAndFoldersRequest' })
 export class Request extends SignatureRequirement {
     public path: string;
+    public deep: number;
 
-    constructor(input: { path: string }) {
+    constructor(input: { path: string; deep: number }) {
         super();
         validator.isObject(input);
         this.path = validator.getAsNotEmptyString(input, 'path');
+        this.deep = validator.getAsValidNumber(input, 'deep');
     }
 }
 export interface Request extends Interface {}

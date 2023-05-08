@@ -38,11 +38,6 @@ export class Favorites
     constructor(cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
         super(cdRef);
         this.state = new State(this);
-        this.env().subscriber.register(
-            this.state.update.subscribe(() => {
-                this.bindFilterInput();
-            }),
-        );
     }
 
     public ngOnDestroy(): void {
@@ -55,6 +50,11 @@ export class Favorites
 
     public ngAfterViewInit(): void {
         this.bindFilterInput();
+        this.env().subscriber.register(
+            this.state.update.subscribe(() => {
+                this.bindFilterInput();
+            }),
+        );
     }
 
     public ngItemContextMenu(event: MouseEvent, item: Item) {
