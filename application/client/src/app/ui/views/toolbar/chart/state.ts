@@ -42,6 +42,10 @@ export class State extends AbstractState {
         return this._hasNoData;
     }
 
+    public onWheel(event: WheelEvent) {
+        this._service.wheel.emit(event);
+    }
+
     private _positionChange(range?: IRange) {
         if (range !== undefined) {
             range.to += 1;

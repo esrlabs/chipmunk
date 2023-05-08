@@ -26,10 +26,6 @@ export class ViewChartZoomerCursorCanvas extends ChangesDetector implements Afte
         super(cdRef);
     }
 
-    @HostListener('wheel', ['$event']) _ng_onWheel(event: WheelEvent) {
-        this.state.onWheel(event);
-    }
-
     @HostListener('click', ['$event']) _ng_onClick(event: MouseEvent) {
         this.state.onClick(event);
     }

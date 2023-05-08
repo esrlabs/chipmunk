@@ -4,6 +4,7 @@ import {
     AfterViewInit,
     ChangeDetectorRef,
     ViewContainerRef,
+    HostListener,
 } from '@angular/core';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Session } from '@service/session';
@@ -23,6 +24,10 @@ Chart.register(...registerables);
 @Ilc()
 export class ViewChart extends ChangesDetector implements AfterViewInit {
     @Input() public session!: Session;
+
+    @HostListener('wheel', ['$event']) _ng_onWheel(event: WheelEvent) {
+        this.state.onWheel(event);
+    }
 
     public state: State = new State();
 

@@ -78,10 +78,6 @@ export class State extends AbstractState {
         return this._dataState.filter.hasNoData && this._dataState.chart.hasNoData;
     }
 
-    public onWheel(event: WheelEvent) {
-        this._service.wheel.emit(event);
-    }
-
     public onClick(event: MouseEvent) {
         const position: number = this._calculatePosition(event);
         position >= 0 && this._session.cursor.select(position, Owner.Chart, undefined, undefined);

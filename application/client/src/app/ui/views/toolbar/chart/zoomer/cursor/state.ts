@@ -41,7 +41,7 @@ export class State extends AbstractState {
             );
         this._parent
             .env()
-            .subscriber.register(this._service.wheel.subscribe(this.onWheel.bind(this)));
+            .subscriber.register(this._service.wheel.subscribe(this._onWheel.bind(this)));
         window.addEventListener('mousemove', this._onWindowMousemove);
         window.addEventListener('mouseup', this._onWindowMouseup);
         this._restore();
@@ -53,7 +53,47 @@ export class State extends AbstractState {
         window.removeEventListener('mouseup', this._onWindowMouseup);
     }
 
-    public onWheel(event: WheelEvent) {
+    public onClick(event: MouseEvent) {
+        if (this._ng_width === -1 || this._width === -1) {
+            return;
+        }
+        let x: number = event.offsetX;
+        if ((event.target as HTMLElement).className === 'cursor') {
+            x += this._ng_left;
+        }
+        let left: number = x - Math.round(this._ng_width / 2);
+        if (left < 0) {
+            left = 0;
+        }
+        if (left + this._ng_width > this._width) {
+            left = this._width - this._ng_width;
+        }
+        this._ng_left = left;
+        this._emitChanges();
+        this._parent.detectChanges();
+    }
+
+    public onMove(event: MouseEvent) {
+        if (this._ng_width >= this._width) {
+            return;
+        }
+        this._mouse.x = event.x;
+        this._mouse.kind = EChangeKind.move;
+    }
+
+    public onLeft(event: MouseEvent) {
+        this._mouse.x = event.x;
+        this._mouse.kind = EChangeKind.left;
+        stop(event);
+    }
+
+    public onRight(event: MouseEvent) {
+        this._mouse.x = event.x;
+        this._mouse.kind = EChangeKind.right;
+        stop(event);
+    }
+
+    private _onWheel(event: WheelEvent) {
         if (this._ng_width === -1 || this._width === -1) {
             return;
         }
@@ -97,46 +137,6 @@ export class State extends AbstractState {
         this._ng_left = left;
         this._emitChanges();
         this._parent.detectChanges();
-        stop(event);
-    }
-
-    public onClick(event: MouseEvent) {
-        if (this._ng_width === -1 || this._width === -1) {
-            return;
-        }
-        let x: number = event.offsetX;
-        if ((event.target as HTMLElement).className === 'cursor') {
-            x += this._ng_left;
-        }
-        let left: number = x - Math.round(this._ng_width / 2);
-        if (left < 0) {
-            left = 0;
-        }
-        if (left + this._ng_width > this._width) {
-            left = this._width - this._ng_width;
-        }
-        this._ng_left = left;
-        this._emitChanges();
-        this._parent.detectChanges();
-    }
-
-    public onMove(event: MouseEvent) {
-        if (this._ng_width >= this._width) {
-            return;
-        }
-        this._mouse.x = event.x;
-        this._mouse.kind = EChangeKind.move;
-    }
-
-    public onLeft(event: MouseEvent) {
-        this._mouse.x = event.x;
-        this._mouse.kind = EChangeKind.left;
-        stop(event);
-    }
-
-    public onRight(event: MouseEvent) {
-        this._mouse.x = event.x;
-        this._mouse.kind = EChangeKind.right;
         stop(event);
     }
 
