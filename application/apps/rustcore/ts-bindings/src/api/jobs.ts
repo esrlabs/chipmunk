@@ -39,11 +39,12 @@ export class Jobs extends Base {
         const sequence = this.sequence();
         const job: CancelablePromise<string> = this.execute(
             (res: string): any | Error => {
-                try {
-                    return JSON.parse(res);
-                } catch (e) {
-                    return new Error(error(e));
+                if (typeof res !== 'string') {
+                    return new Error(
+                        `[jobs.listContent] Expecting string, but gotten: ${typeof res}`,
+                    );
                 }
+                return res;
             },
             this.native.listFolderContent(sequence, depth, path),
             sequence,

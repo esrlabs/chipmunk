@@ -177,15 +177,6 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
-                    Requests.Os.List.Request,
-                    RequestHandlers.Os.List.handler,
-                ),
-        );
-        this.register(
-            electron
-                .ipc()
-                .respondent(
-                    this.getName(),
                     Requests.Os.AsFSEntity.Request,
                     RequestHandlers.Os.AsFSEntity.handler,
                 ),

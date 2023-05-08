@@ -99,7 +99,7 @@ export class DynamicDatabase {
         return new Promise((resolve, reject) => {
             this.services.system.bridge
                 .files()
-                .ls(path)
+                .ls(path, 1)
                 .then((entities: IEntity[]) => {
                     const sub = entities.map(
                         (entity) => new Entity(entity, path, false, true, this.filter),

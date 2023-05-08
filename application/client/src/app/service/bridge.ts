@@ -41,7 +41,7 @@ export class Service extends Implementation {
     public files(): {
         getByPath(filenames: string[]): Promise<File[]>;
         getByPathWithCache(filenames: string[]): Promise<File[]>;
-        ls(path: string): Promise<Entity[]>;
+        ls(path: string, deep: number): Promise<Entity[]>;
         stat(path: string): Promise<Entity>;
         checksum(filename: string): Promise<string>;
         checksumWithCache(filename: string): Promise<string>;
@@ -118,12 +118,13 @@ export class Service extends Implementation {
                         .catch(reject);
                 });
             },
-            ls(path: string): Promise<Entity[]> {
+            ls(path: string, deep: number): Promise<Entity[]> {
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(
                         Requests.Os.List.Response,
                         new Requests.Os.List.Request({
                             path,
+                            deep,
                         }),
                     )
                         .then((response) => {
