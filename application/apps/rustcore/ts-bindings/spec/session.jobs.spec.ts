@@ -96,7 +96,7 @@ describe('Jobs', function () {
             const path = os.homedir();
             jobs.listContent(1, path)
                 .then((ls) => {
-                    expect(typeof ls).toEqual('object');
+                    expect(typeof ls).toEqual('string');
                     const job = jobs
                         .listContent(10, path)
                         .then((_res) => {
