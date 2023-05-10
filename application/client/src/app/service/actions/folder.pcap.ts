@@ -44,8 +44,8 @@ export class Action extends Base {
             return Promise.resolve();
         }
         return opener
-            .file(files[0])
-            .pcap()
+            .pcap(files[0])
+            .dlt()
             .then(() => {
                 return Promise.resolve();
             });

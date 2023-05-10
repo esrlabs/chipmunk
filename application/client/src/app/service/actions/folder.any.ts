@@ -47,11 +47,12 @@ export class Action extends Base {
             return (() => {
                 switch (files[0].type) {
                     case FileType.Dlt:
-                        return opener.file(files[0]).dlt();
+                        return opener.binary(files[0]).dlt();
                     case FileType.Pcap:
-                        throw new Error(`Not supported`);
+                        return opener.pcap(files[0]).dlt();
+                    // TODO: Ask about parser >>>>>>>>>>>>>>>>>>>>>>>>
                     default:
-                        return opener.file(files[0]).text();
+                        return opener.text(files[0]).text();
                 }
             })().then((_) => Promise.resolve());
         }

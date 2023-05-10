@@ -39,7 +39,7 @@ describe('Grab ranges', function () {
                     }
                     const tmpobj = createSampleFile(1000, logger, (i: number) => `${i}\n`);
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;
                     events.StreamUpdated.subscribe((rows: number) => {
