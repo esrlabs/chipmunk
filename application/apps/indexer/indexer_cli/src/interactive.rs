@@ -5,7 +5,7 @@ use processor::grabber::LineRange;
 use rustyline::{error::ReadlineError, Editor};
 use session::session::Session;
 use sources::{
-    factory::{DltParserSettings, ObserveOptions, ParserType},
+    factory::{DltParserSettings, ObserveFileType, ObserveOptions, ParserType},
     producer::MessageProducer,
     socket::udp::UdpSource,
 };
@@ -78,7 +78,7 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                         start = Instant::now();
                         let uuid = Uuid::new_v4();
                         let file_path = input.clone().expect("input must be present");
-                        session.observe(uuid, ObserveOptions::file(file_path.clone(), ParserType::Text)).expect("observe failed");
+                        session.observe(uuid, ObserveOptions::file(file_path.clone(),ObserveFileType::Text, ParserType::Text)).expect("observe failed");
                     }
                     Some(Command::Dlt) => {
                         println!("dlt command received");
@@ -86,7 +86,7 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                         let uuid = Uuid::new_v4();
                         let file_path = input.clone().expect("input must be present");
                         let dlt_parser_settings = DltParserSettings { filter_config: None, fibex_file_paths: None, with_storage_header: true, fibex_metadata: None };
-                        session.observe(uuid, ObserveOptions::file(file_path.clone(), ParserType::Dlt(dlt_parser_settings))).expect("observe failed");
+                        session.observe(uuid, ObserveOptions::file(file_path.clone(), ObserveFileType::Binary, ParserType::Dlt(dlt_parser_settings))).expect("observe failed");
                         println!("dlt session was destroyed");
                     }
                     Some(Command::Grab) => {

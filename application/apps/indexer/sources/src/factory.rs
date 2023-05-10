@@ -7,7 +7,6 @@ use uuid::Uuid;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ParserType {
     Dlt(DltParserSettings),
-    Pcap(PcapParserSettings),
     SomeIP(SomeIPParserSettings),
     Text,
 }
@@ -104,8 +103,15 @@ pub struct UDPTransportConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum ObserveFileType {
+    Pcap,
+    Text,
+    Binary,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ObserveOrigin {
-    File(String, PathBuf),
+    File(String, ObserveFileType, PathBuf),
     Concat(Vec<(String, PathBuf)>),
     Stream(String, Transport),
 }
@@ -117,9 +123,9 @@ pub struct ObserveOptions {
 }
 
 impl ObserveOptions {
-    pub fn file(filename: PathBuf, parser: ParserType) -> Self {
+    pub fn file(filename: PathBuf, file_origin: ObserveFileType, parser: ParserType) -> Self {
         ObserveOptions {
-            origin: ObserveOrigin::File(Uuid::new_v4().to_string(), filename),
+            origin: ObserveOrigin::File(Uuid::new_v4().to_string(), file_origin, filename),
             parser,
         }
     }
