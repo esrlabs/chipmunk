@@ -4,7 +4,7 @@ use crate::{
     state::SessionStateAPI,
 };
 use indexer_base::progress::Severity;
-use sources::{factory::ParserType, pcap::file::PcapngByteSource, raw::binary::BinaryByteSource};
+use sources::{factory::ParserType, raw::binary::BinaryByteSource};
 use std::{fs::File, path::PathBuf};
 
 #[allow(clippy::type_complexity)]
@@ -46,19 +46,19 @@ pub async fn concat_files(
                     message: Some(String::from("SomeIP parser not yet supported")),
                 })
             }
-            ParserType::Pcap(_) => {
-                let source = PcapngByteSource::new(input_file)?;
-                super::run_source(
-                    operation_api.clone(),
-                    state.clone(),
-                    source,
-                    source_id,
-                    parser,
-                    None,
-                    None,
-                )
-                .await?;
-            }
+            // ParserType::Pcap(_) => {
+            //     let source = PcapngByteSource::new(input_file)?;
+            //     super::run_source(
+            //         operation_api.clone(),
+            //         state.clone(),
+            //         source,
+            //         source_id,
+            //         parser,
+            //         None,
+            //         None,
+            //     )
+            //     .await?;
+            // }
             ParserType::Dlt(_) => {
                 let source = BinaryByteSource::new(input_file);
                 super::run_source(

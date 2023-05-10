@@ -7,10 +7,7 @@ use indexer_base::{config::IndexSection, progress::Severity};
 use log::debug;
 use parsers::{dlt::DltParser, text::StringTokenizer, LogMessage, MessageStreamItem};
 use processor::export::{export_raw, ExportError};
-use sources::{
-    factory::ParserType, pcap::file::PcapngByteSource, producer::MessageProducer,
-    raw::binary::BinaryByteSource,
-};
+use sources::{factory::ParserType, producer::MessageProducer, raw::binary::BinaryByteSource};
 use std::{
     fs::File,
     path::{Path, PathBuf},
@@ -85,22 +82,22 @@ async fn export(
             kind: NativeErrorKind::UnsupportedFileType,
             message: Some(String::from("SomeIP parser not yet supported")),
         }),
-        ParserType::Pcap(settings) => {
-            let parser = DltParser::new(
-                settings.dlt.filter_config.as_ref().map(|f| f.into()),
-                settings.dlt.fibex_metadata.as_ref(),
-                settings.dlt.with_storage_header,
-            );
-            let mut producer = MessageProducer::new(parser, PcapngByteSource::new(src_file)?, None);
-            export_runner(
-                Box::pin(producer.as_stream()),
-                dest,
-                sections,
-                read_to_end,
-                cancel,
-            )
-            .await
-        }
+        // ParserType::Pcap(settings) => {
+        //     let parser = DltParser::new(
+        //         settings.dlt.filter_config.as_ref().map(|f| f.into()),
+        //         settings.dlt.fibex_metadata.as_ref(),
+        //         settings.dlt.with_storage_header,
+        //     );
+        //     let mut producer = MessageProducer::new(parser, PcapngByteSource::new(src_file)?, None);
+        //     export_runner(
+        //         Box::pin(producer.as_stream()),
+        //         dest,
+        //         sections,
+        //         read_to_end,
+        //         cancel,
+        //     )
+        //     .await
+        // }
         ParserType::Dlt(settings) => {
             let parser = DltParser::new(
                 settings.filter_config.as_ref().map(|f| f.into()),
