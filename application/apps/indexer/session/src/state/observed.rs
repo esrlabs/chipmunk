@@ -35,7 +35,7 @@ impl Observed {
                 files.append(
                     &mut list
                         .iter()
-                        .map(|(_, filename)| (opt.parser.clone(), filename.clone()))
+                        .map(|(_, _, filename)| (opt.parser.clone(), filename.clone()))
                         .collect::<Vec<(ParserType, PathBuf)>>(),
                 );
             }
