@@ -35,7 +35,7 @@ export const handler = Requests.InjectLogger<
                     case FileType.Text:
                         stored
                             .observe()
-                            .start(Observe.DataSource.file(request.file.filename).text())
+                            .start(Observe.DataSource.file(request.file.filename).text().text())
                             .then((uuid: string) => {
                                 resolve(
                                     new Requests.File.Open.Response({
@@ -57,16 +57,18 @@ export const handler = Requests.InjectLogger<
                         stored
                             .observe()
                             .start(
-                                Observe.DataSource.file(request.file.filename).dlt(
-                                    request.file.options.dlt === undefined
-                                        ? defaultParserSettings(true)
-                                        : optionsToParserSettings(
-                                              request.file.options.dlt,
-                                              true,
-                                              0,
-                                              0,
-                                          ),
-                                ),
+                                Observe.DataSource.file(request.file.filename)
+                                    .binary()
+                                    .dlt(
+                                        request.file.options.dlt === undefined
+                                            ? defaultParserSettings(true)
+                                            : optionsToParserSettings(
+                                                  request.file.options.dlt,
+                                                  true,
+                                                  0,
+                                                  0,
+                                              ),
+                                    ),
                             )
                             .then((uuid: string) => {
                                 resolve(
@@ -89,8 +91,9 @@ export const handler = Requests.InjectLogger<
                         stored
                             .observe()
                             .start(
-                                Observe.DataSource.file(request.file.filename).pcap({
-                                    dlt:
+                                Observe.DataSource.file(request.file.filename)
+                                    .pcap()
+                                    .dlt(
                                         request.file.options.dlt === undefined
                                             ? defaultParserSettings(false)
                                             : optionsToParserSettings(
@@ -99,7 +102,7 @@ export const handler = Requests.InjectLogger<
                                                   0,
                                                   0,
                                               ),
-                                }),
+                                    ),
                             )
                             .then((uuid: string) => {
                                 resolve(

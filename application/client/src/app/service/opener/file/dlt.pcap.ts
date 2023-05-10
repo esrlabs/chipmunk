@@ -3,7 +3,7 @@ import { Render } from '@schema/render/index';
 import { getRenderFor } from '@schema/render/tools';
 import { IDLTOptions } from '@platform/types/parsers/dlt';
 
-export class Pcap extends FileOpener<IDLTOptions, { dlt: IDLTOptions }> {
+export class DltInPcap extends FileOpener<IDLTOptions, { dlt: IDLTOptions }> {
     public getRender(): Render<unknown> {
         return getRenderFor().dlt();
     }
@@ -14,7 +14,7 @@ export class Pcap extends FileOpener<IDLTOptions, { dlt: IDLTOptions }> {
           }
         | undefined {
         return {
-            name: 'Opening PCAP file',
+            name: 'Opening PCAP file with DLT',
             component: 'app-tabs-source-pcapfile',
         };
     }

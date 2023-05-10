@@ -4,10 +4,11 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
 use uuid::Uuid;
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ParserType {
     Dlt(DltParserSettings),
-    SomeIP(SomeIPParserSettings),
+    SomeIp(SomeIpParserSettings),
     Text,
 }
 
@@ -59,12 +60,7 @@ impl DltParserSettings {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PcapParserSettings {
-    pub dlt: DltParserSettings,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SomeIPParserSettings {}
+pub struct SomeIpParserSettings {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Transport {

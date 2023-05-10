@@ -55,7 +55,7 @@ describe('Exporting', function () {
                         return `____${i}____\n`;
                     });
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .catch(finish.bind(null, session, done));
                     let gotten: boolean = false;
                     events.StreamUpdated.subscribe((rows: number) => {
@@ -162,7 +162,12 @@ describe('Exporting', function () {
                         return `____${i * 1000}____\n`;
                     });
                     stream
-                        .observe(Observe.DataSource.concat([tmpobj_a.name, tmpobj_b.name]).text())
+                        .observe(
+                            Observe.DataSource.concat([
+                                [Observe.FileType.Text, tmpobj_a.name],
+                                [Observe.FileType.Text, tmpobj_b.name],
+                            ]).text(),
+                        )
                         .catch(finish.bind(null, session, done));
                     let gotten: boolean = false;
                     events.StreamUpdated.subscribe((rows: number) => {
@@ -266,7 +271,7 @@ describe('Exporting', function () {
                         }`;
                     });
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -398,11 +403,13 @@ describe('Exporting', function () {
                         }
                         stream
                             .observe(
-                                Observe.DataSource.file(config.regular.files['dlt'][0]).dlt({
-                                    fibex_file_paths: [],
-                                    filter_config: undefined,
-                                    with_storage_header: true,
-                                }),
+                                Observe.DataSource.file(config.regular.files['dlt'][0])
+                                    .binary()
+                                    .dlt({
+                                        fibex_file_paths: [],
+                                        filter_config: undefined,
+                                        with_storage_header: true,
+                                    }),
                             )
                             .catch(finish.bind(null, session, done));
                         let gotten: boolean = false;
@@ -508,11 +515,13 @@ describe('Exporting', function () {
                         }
                         stream
                             .observe(
-                                Observe.DataSource.file(config.regular.files['dlt'][0]).dlt({
-                                    fibex_file_paths: [],
-                                    filter_config: undefined,
-                                    with_storage_header: true,
-                                }),
+                                Observe.DataSource.file(config.regular.files['dlt'][0])
+                                    .binary()
+                                    .dlt({
+                                        fibex_file_paths: [],
+                                        filter_config: undefined,
+                                        with_storage_header: true,
+                                    }),
                             )
                             .catch(finish.bind(null, session, done));
                         let gotten: boolean = false;
@@ -541,13 +550,15 @@ describe('Exporting', function () {
                                                             }
                                                             stream
                                                                 .observe(
-                                                                    Observe.DataSource.file(
-                                                                        output,
-                                                                    ).dlt({
-                                                                        fibex_file_paths: [],
-                                                                        filter_config: undefined,
-                                                                        with_storage_header: true,
-                                                                    }),
+                                                                    Observe.DataSource.file(output)
+                                                                        .binary()
+                                                                        .dlt({
+                                                                            fibex_file_paths: [],
+                                                                            filter_config:
+                                                                                undefined,
+                                                                            with_storage_header:
+                                                                                true,
+                                                                        }),
                                                                 )
                                                                 .catch(
                                                                     finish.bind(
@@ -720,8 +731,8 @@ describe('Exporting', function () {
                         stream
                             .observe(
                                 Observe.DataSource.concat([
-                                    config.regular.files['dlt'][1],
-                                    config.regular.files['dlt'][1],
+                                    [Observe.FileType.Binary, config.regular.files['dlt'][1]],
+                                    [Observe.FileType.Binary, config.regular.files['dlt'][1]],
                                 ]).dlt({
                                     fibex_file_paths: [],
                                     filter_config: undefined,
@@ -835,8 +846,8 @@ describe('Exporting', function () {
                         stream
                             .observe(
                                 Observe.DataSource.concat([
-                                    config.regular.files['dlt'][1],
-                                    config.regular.files['dlt'][1],
+                                    [Observe.FileType.Binary, config.regular.files['dlt'][1]],
+                                    [Observe.FileType.Binary, config.regular.files['dlt'][1]],
                                 ]).dlt({
                                     fibex_file_paths: [],
                                     filter_config: undefined,
@@ -872,13 +883,15 @@ describe('Exporting', function () {
                                                             }
                                                             stream
                                                                 .observe(
-                                                                    Observe.DataSource.file(
-                                                                        output,
-                                                                    ).dlt({
-                                                                        fibex_file_paths: [],
-                                                                        filter_config: undefined,
-                                                                        with_storage_header: true,
-                                                                    }),
+                                                                    Observe.DataSource.file(output)
+                                                                        .binary()
+                                                                        .dlt({
+                                                                            fibex_file_paths: [],
+                                                                            filter_config:
+                                                                                undefined,
+                                                                            with_storage_header:
+                                                                                true,
+                                                                        }),
                                                                 )
                                                                 .catch(
                                                                     finish.bind(
@@ -1038,8 +1051,8 @@ describe('Exporting', function () {
                         stream
                             .observe(
                                 Observe.DataSource.concat([
-                                    config.regular.files['dlt'][1],
-                                    config.regular.files['dlt'][1],
+                                    [Observe.FileType.Binary, config.regular.files['dlt'][1]],
+                                    [Observe.FileType.Binary, config.regular.files['dlt'][1]],
                                 ]).dlt({
                                     fibex_file_paths: [],
                                     filter_config: undefined,
@@ -1090,13 +1103,15 @@ describe('Exporting', function () {
                                                             }
                                                             stream
                                                                 .observe(
-                                                                    Observe.DataSource.file(
-                                                                        output,
-                                                                    ).dlt({
-                                                                        fibex_file_paths: [],
-                                                                        filter_config: undefined,
-                                                                        with_storage_header: true,
-                                                                    }),
+                                                                    Observe.DataSource.file(output)
+                                                                        .binary()
+                                                                        .dlt({
+                                                                            fibex_file_paths: [],
+                                                                            filter_config:
+                                                                                undefined,
+                                                                            with_storage_header:
+                                                                                true,
+                                                                        }),
                                                                 )
                                                                 .catch(
                                                                     finish.bind(

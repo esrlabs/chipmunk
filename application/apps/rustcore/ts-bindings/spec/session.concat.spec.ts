@@ -40,7 +40,12 @@ describe('Concat', function () {
                         (i: number) => `file b: some line data: ${i}\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.concat([tmpobj_a.name, tmpobj_b.name]).text())
+                        .observe(
+                            Observe.DataSource.concat([
+                                [Observe.FileType.Text, tmpobj_a.name],
+                                [Observe.FileType.Text, tmpobj_b.name],
+                            ]).text(),
+                        )
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;
                     events.StreamUpdated.subscribe((rows: number) => {

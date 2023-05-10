@@ -1,4 +1,5 @@
 import { Implementation as Dlt } from './dlt';
+import { Implementation as SomeIp } from './someip';
 import { Implementation as Text } from './text';
 import { Render } from './index';
 import { Columns } from './columns';
@@ -6,12 +7,13 @@ import { Session } from '@service/session/session';
 
 export enum Alias {
     dlt = 'dlt',
+    someip = 'someip',
     text = 'text',
 }
 
 export function getRenderFor(): {
     dlt(): Render<Columns>;
-    pcap(): Render<Columns>;
+    someip(): Render<Columns>;
     text(): Render<void>;
     any(): Render<void>;
 } {
@@ -19,8 +21,8 @@ export function getRenderFor(): {
         dlt: (): Render<Columns> => {
             return new Dlt();
         },
-        pcap: (): Render<Columns> => {
-            return new Dlt();
+        someip: (): Render<Columns> => {
+            return new SomeIp();
         },
         text: (): Render<void> => {
             return new Text();

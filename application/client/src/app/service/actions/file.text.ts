@@ -36,7 +36,7 @@ export class Action extends Base {
             return Promise.resolve();
         }
         return opener
-            .file(files[0])
+            .text(files[0])
             .text()
             .then(() => {
                 return Promise.resolve();
