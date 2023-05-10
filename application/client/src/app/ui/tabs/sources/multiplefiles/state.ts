@@ -105,7 +105,7 @@ export class State extends Holder {
 
     public isConcatable(): boolean {
         return (
-            (this._selected.types.length === 1 && this._selected.types[0] !== FileType.SomeIP) ||
+            (this._selected.types.length === 1 && this._selected.types[0] !== FileType.SomeIp) ||
             (this._selected.types.length === 2 &&
                 this._selected.types.includes(FileType.Any) &&
                 this._selected.types.includes(FileType.Text))
@@ -135,8 +135,6 @@ export class State extends Holder {
                             return this._ilc.services.system.opener.concat(files).text();
                         case FileType.Dlt:
                             return this._ilc.services.system.opener.concat(files).dlt();
-                        case FileType.Pcap:
-                            return this._ilc.services.system.opener.concat(files).pcap();
                         default:
                             return Promise.reject(
                                 new Error(`Unsupported type ${this.files[0].type}`),
@@ -166,7 +164,7 @@ export class State extends Holder {
                         case FileType.Any:
                         case FileType.Text:
                             this._ilc.services.system.opener
-                                .file(file.filename)
+                                .text(file.filename)
                                 .text()
                                 .catch((err: Error) => {
                                     this._ilc.logger.error(
@@ -176,7 +174,7 @@ export class State extends Holder {
                             break;
                         case FileType.Dlt:
                             this._ilc.services.system.opener
-                                .file(file.filename)
+                                .binary(file.filename)
                                 .dlt()
                                 .catch((err: Error) => {
                                     this._ilc.logger.error(
@@ -185,9 +183,10 @@ export class State extends Holder {
                                 });
                             break;
                         case FileType.Pcap:
+                            // TODO: Ask parser >>>>>>>>>>>>>>>>>>>>>>>>
                             this._ilc.services.system.opener
-                                .file(file.filename)
-                                .pcap()
+                                .pcap(file.filename)
+                                .dlt()
                                 .catch((err: Error) => {
                                     this._ilc.logger.error(
                                         `Fail to open pcap file; error: ${err.message}`,

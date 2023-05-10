@@ -1,6 +1,7 @@
 import { Recent as RecentFileAction, BaseInfo } from './implementations/file/file';
 import { Recent as RecentStreamDltAction } from './implementations/stream/dlt';
 import { Recent as RecentStreamTextAction } from './implementations/stream/text';
+import { Recent as RecentStreamSomeIpAction } from './implementations/stream/someip';
 
 import { IComponentDesc } from '@elements/containers/dynamic/component';
 import { Entry } from '@platform/types/storage/entry';
@@ -19,12 +20,14 @@ import { Stat } from './stat';
 import { recent } from '@service/recent';
 
 import * as obj from '@platform/env/obj';
+import { ISomeIpOptions } from '@platform/types/parsers/someip';
 
 export type AfterHandler = () => void;
 
 export class Action {
     public file: RecentFileAction | undefined;
     public dlt_stream: RecentStreamDltAction | undefined;
+    public someip_stream: RecentStreamSomeIpAction | undefined;
     public text_stream: RecentStreamTextAction | undefined;
     public stat: Stat = Stat.defaults();
 
@@ -64,7 +67,7 @@ export class Action {
         if (parser !== undefined) {
             switch (parser) {
                 case ParserName.Text:
-                    if (this.dlt_stream !== undefined) {
+                    if (this.dlt_stream !== undefined || this.dlt_stream !== undefined) {
                         return false;
                     }
                     if (this.file !== undefined) {
@@ -72,7 +75,7 @@ export class Action {
                     }
                     break;
                 case ParserName.Dlt:
-                    if (this.text_stream !== undefined) {
+                    if (this.text_stream !== undefined || this.someip_stream !== undefined) {
                         return false;
                     }
                     if (this.file !== undefined) {
@@ -80,13 +83,15 @@ export class Action {
                     }
                     break;
                 case ParserName.Someip:
-                    return false;
-                case ParserName.Pcap:
-                    if (this.file === undefined) {
+                    if (this.text_stream !== undefined || this.dlt_stream !== undefined) {
                         return false;
                     }
-                    return this.file.isSuitable(parser);
+                    if (this.file !== undefined) {
+                        return this.file.isSuitable(parser);
+                    }
+                    break;
             }
+            return false;
         }
         return true;
     }
@@ -98,6 +103,8 @@ export class Action {
             return this.file.description();
         } else if (this.dlt_stream !== undefined) {
             return this.dlt_stream.description();
+        } else if (this.someip_stream !== undefined) {
+            return this.someip_stream.description();
         } else if (this.text_stream !== undefined) {
             return this.text_stream.description();
         } else {
@@ -119,6 +126,8 @@ export class Action {
                     return this.text_stream.source;
                 } else if (this.dlt_stream !== undefined) {
                     return this.dlt_stream.source;
+                } else if (this.someip_stream !== undefined) {
+                    return this.someip_stream.source;
                 } else {
                     return undefined;
                 }
@@ -134,6 +143,8 @@ export class Action {
                     return this.file.asComponent();
                 } else if (this.dlt_stream !== undefined) {
                     return this.dlt_stream.asComponent();
+                } else if (this.someip_stream !== undefined) {
+                    return this.someip_stream.asComponent();
                 } else if (this.text_stream !== undefined) {
                     return this.text_stream.asComponent();
                 } else {
@@ -146,6 +157,8 @@ export class Action {
                     body['file'] = this.file.asObj();
                 } else if (this.dlt_stream !== undefined) {
                     body['dlt_stream'] = this.dlt_stream.asObj();
+                } else if (this.someip_stream !== undefined) {
+                    body['someip_stream'] = this.someip_stream.asObj();
                 } else if (this.text_stream !== undefined) {
                     body['text_stream'] = this.text_stream.asObj();
                 } else {
@@ -165,6 +178,7 @@ export class Action {
         file(file: File, options: TargetFileOptions): Action;
         stream(source: SourceDefinition): {
             dlt(options: IDLTOptions): Action;
+            someip(options: ISomeIpOptions): Action;
             text(): Action;
         };
     } {
@@ -178,6 +192,10 @@ export class Action {
                     } else if (action['dlt_stream'] !== undefined) {
                         this.dlt_stream = new RecentStreamDltAction().from(
                             obj.asAnyObj(action['dlt_stream']),
+                        );
+                    } else if (action['someip_stream'] !== undefined) {
+                        this.someip_stream = new RecentStreamSomeIpAction().from(
+                            obj.asAnyObj(action['someip_stream']),
                         );
                     } else if (action['text_stream'] !== undefined) {
                         this.text_stream = new RecentStreamTextAction().from(
@@ -221,6 +239,18 @@ export class Action {
                         this.uuid = source_holder.uuid();
                         try {
                             this.dlt_stream = new RecentStreamDltAction().from({ source, options });
+                        } catch (err) {
+                            throw new Error(`Fail to parse action: ${error(err)}`);
+                        }
+                        return this;
+                    },
+                    someip: (options: ISomeIpOptions): Action => {
+                        this.uuid = source_holder.uuid();
+                        try {
+                            this.someip_stream = new RecentStreamSomeIpAction().from({
+                                source,
+                                options,
+                            });
                         } catch (err) {
                             throw new Error(`Fail to parse action: ${error(err)}`);
                         }
@@ -279,7 +309,7 @@ export class Action {
                                                 options,
                                                 done: (opt: IDLTOptions) => {
                                                     opener
-                                                        .file(file)
+                                                        .binary(file)
                                                         .dlt(opt)
                                                         .catch((err: Error) => {
                                                             console.error(
@@ -318,7 +348,7 @@ export class Action {
                                                 options,
                                                 done: (opt: IDLTOptions) => {
                                                     opener
-                                                        .file(file)
+                                                        .binary(file)
                                                         .dlt(opt)
                                                         .catch((err: Error) => {
                                                             console.error(
@@ -361,6 +391,28 @@ export class Action {
                     },
                 },
             ];
+        } else if (this.someip_stream !== undefined) {
+            const opt = this.someip_stream;
+            return [
+                {
+                    caption: 'Reconnect',
+                    handler: this.apply.bind(this, remove),
+                },
+                {
+                    caption: 'Open connection preset',
+                    handler: () => {
+                        opener
+                            .stream(opt.source, true, undefined)
+                            .someip(opt.options)
+                            .then(() => {
+                                this.handlers.after !== undefined && this.handlers.after();
+                            })
+                            .catch((err: Error) => {
+                                console.error(`Fail to open stream; error: ${err.message}`);
+                            });
+                    },
+                },
+            ];
         } else if (this.text_stream !== undefined) {
             const opt = this.text_stream;
             return [
@@ -391,9 +443,9 @@ export class Action {
         (() => {
             if (this.file !== undefined) {
                 if (this.file.text !== undefined) {
-                    return opener.file(this.file.text.filename).text();
+                    return opener.text(this.file.text.filename).text();
                 } else if (this.file.dlt !== undefined) {
-                    return opener.file(this.file.dlt.filename).dlt(this.file.dlt.options);
+                    return opener.binary(this.file.dlt.filename).dlt(this.file.dlt.options);
                 } else {
                     return Promise.reject(new Error(`Opener for file action isn't found`));
                 }
@@ -401,6 +453,10 @@ export class Action {
                 return opener
                     .stream(this.dlt_stream.source, undefined, undefined)
                     .dlt(this.dlt_stream.options);
+            } else if (this.someip_stream !== undefined) {
+                return opener
+                    .stream(this.someip_stream.source, undefined, undefined)
+                    .someip(this.someip_stream.options);
             } else if (this.text_stream !== undefined) {
                 return opener.stream(this.text_stream.source, undefined, undefined).text({});
             } else {

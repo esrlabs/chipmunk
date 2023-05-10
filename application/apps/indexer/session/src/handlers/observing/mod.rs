@@ -43,10 +43,10 @@ pub async fn run_source<S: ByteSource>(
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
     match parser {
-        ParserType::SomeIP(_) => Err(NativeError {
+        ParserType::SomeIp(_) => Err(NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::UnsupportedFileType,
-            message: Some(String::from("SomeIP parser not yet supported")),
+            message: Some(String::from("SomeIp parser not yet supported")),
         }),
         ParserType::Text => {
             let producer = MessageProducer::new(StringTokenizer {}, source, rx_sde);

@@ -25,8 +25,6 @@ export class Recent extends RecentAction {
             case ParserName.Dlt:
                 return this.dlt !== undefined;
             case ParserName.Someip:
-                return false;
-            case ParserName.Pcap:
                 return this.pcap !== undefined;
         }
     }

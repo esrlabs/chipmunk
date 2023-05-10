@@ -31,7 +31,7 @@ export async function action(cli: Service, request: Requests.Cli.Open.Request): 
         switch (getFileTypeByExt(file)) {
             case FileType.Dlt:
                 session = await opener
-                    .file(file)
+                    .binary(file)
                     .dlt()
                     .catch((err: Error) => {
                         cli.log().warn(
@@ -52,7 +52,7 @@ export async function action(cli: Service, request: Requests.Cli.Open.Request): 
             case FileType.Any:
             default:
                 session = await opener
-                    .file(file)
+                    .text(file)
                     .text()
                     .catch((err: Error) => {
                         cli.log().warn(

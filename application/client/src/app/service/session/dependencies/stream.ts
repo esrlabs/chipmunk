@@ -8,7 +8,15 @@ import { DataSource, ObservedSourceLink } from '@platform/types/observe';
 import { ObserveOperation } from './observing/operation';
 import { ObserveSource } from './observing/source';
 import { SourceDefinition } from '@platform/types/transport';
-import { IDLTOptions, parserSettingsToOptions } from '@platform/types/parsers/dlt';
+import {
+    IDLTOptions,
+    parserSettingsToOptions as parserDLTSettingsToOptions,
+} from '@platform/types/parsers/dlt';
+import {
+    ISomeIpOptions,
+    parserSettingsToOptions as parserSomeIpSettingsToOptions,
+} from '@platform/types/parsers/someip';
+
 import { TargetFile } from '@platform/types/files';
 import { lockers } from '@ui/service/lockers';
 import { Sde } from './observing/sde';
@@ -171,6 +179,7 @@ export class Stream extends Subscriber {
 
     public connect(source: SourceDefinition): {
         dlt(options: IDLTOptions): Promise<void>;
+        someip(options: ISomeIpOptions): Promise<void>;
         text(): Promise<void>;
         source(source: DataSource): Promise<void>;
     } {
@@ -180,6 +189,27 @@ export class Stream extends Subscriber {
                     Requests.IpcRequest.send<Requests.Connect.Dlt.Response>(
                         Requests.Connect.Dlt.Response,
                         new Requests.Connect.Dlt.Request({ session: this._uuid, source, options }),
+                    )
+                        .then((response) => {
+                            if (typeof response.error === 'string' && response.error !== '') {
+                                reject(new Error(response.error));
+                            } else {
+                                resolve(undefined);
+                            }
+                        })
+                        .catch(reject)
+                        .finally(lockers.progress(`Creating stream`));
+                });
+            },
+            someip: (options: ISomeIpOptions): Promise<void> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send<Requests.Connect.Dlt.Response>(
+                        Requests.Connect.SomeIp.Response,
+                        new Requests.Connect.SomeIp.Request({
+                            session: this._uuid,
+                            source,
+                            options,
+                        }),
                     )
                         .then((response) => {
                             if (typeof response.error === 'string' && response.error !== '') {
@@ -215,7 +245,11 @@ export class Stream extends Subscriber {
                     return Promise.reject(new Error(`Operation is available only for streams`));
                 }
                 if (src.parser.Dlt !== undefined) {
-                    return this.connect(source).dlt(parserSettingsToOptions(src.parser.Dlt));
+                    return this.connect(source).dlt(parserDLTSettingsToOptions(src.parser.Dlt));
+                } else if (src.parser.Someip !== undefined) {
+                    return this.connect(source).someip(
+                        parserSomeIpSettingsToOptions(src.parser.Someip),
+                    );
                 } else if (src.parser.Text !== undefined) {
                     return this.connect(source).text();
                 }

@@ -53,7 +53,7 @@ describe('Errors', () => {
                         return finish(session, done, stream);
                     }
                     stream
-                        .observe(Observe.DataSource.file('/fake/path/to/fake/file').text())
+                        .observe(Observe.DataSource.file('/fake/path/to/fake/file').text().text())
                         .then(
                             finish.bind(
                                 null,
@@ -96,7 +96,7 @@ describe('Errors', () => {
                         (i: number) => `some line data: ${i}\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;
                     events.StreamUpdated.subscribe((rows: number) => {
@@ -158,7 +158,7 @@ describe('Errors', () => {
                             }`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -225,7 +225,7 @@ describe('Errors', () => {
                         (i: number) => `some line data: ${i}\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .catch((err: Error) => {
                             finish(
                                 session,
@@ -283,7 +283,7 @@ describe('Errors', () => {
                         (i: number) => `some line data: ${i}\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .catch((err: Error) =>
                             finish(
                                 session,
