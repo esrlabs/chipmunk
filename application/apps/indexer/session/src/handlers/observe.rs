@@ -7,7 +7,7 @@ use crate::{
 use indexer_base::progress::Severity;
 use log::error;
 use sources::{
-    factory::{ObserveOptions, ObserveOrigin, ParserType},
+    factory::{ObserveFileType, ObserveOptions, ObserveOrigin, ParserType},
     producer::SdeReceiver,
 };
 
@@ -24,10 +24,38 @@ pub async fn start_observing(
         error!("Fail to store observe options: {:?}", err);
     }
     match &options.origin {
-        ObserveOrigin::File(uuid, filename) => {
-            observing::file::observe_file(operation_api, state, uuid, filename, &options.parser)
+        ObserveOrigin::File(uuid, file_origin, filename) => match file_origin {
+            ObserveFileType::Text => {
+                observing::text_file::observe_text_file(
+                    operation_api,
+                    state,
+                    uuid,
+                    filename,
+                    &options.parser,
+                )
                 .await
-        }
+            }
+            ObserveFileType::Binary => {
+                observing::binary_file::observe_binary_file(
+                    operation_api,
+                    state,
+                    uuid,
+                    filename,
+                    &options.parser,
+                )
+                .await
+            }
+            ObserveFileType::Pcap => {
+                observing::pcap_file::observe_pcap_file(
+                    operation_api,
+                    state,
+                    uuid,
+                    filename,
+                    &options.parser,
+                )
+                .await
+            }
+        },
         ObserveOrigin::Concat(files) => {
             if files.is_empty() {
                 Err(NativeError {
