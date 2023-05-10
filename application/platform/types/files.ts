@@ -73,7 +73,7 @@ export interface File {
 export enum FileType {
     Text = 'Text',
     Dlt = 'Dlt',
-    SomeIP = 'SomeIP',
+    SomeIp = 'SomeIp',
     Pcap = 'Pcap',
     Any = 'Any',
 }

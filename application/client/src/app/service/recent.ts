@@ -13,6 +13,7 @@ import { TargetFileOptions, File } from '@platform/types/files';
 import { SourceDefinition } from '@platform/types/transport';
 import { IDLTOptions } from '@platform/types/parsers/dlt';
 import { Subject } from '@platform/env/subscription';
+import { ISomeIpOptions } from '@platform/types/parsers/someip';
 
 const STORAGE_KEY = 'user_recent_actions';
 
@@ -91,6 +92,7 @@ export class Service extends Implementation {
         file(file: File, options: TargetFileOptions): Promise<void>;
         stream(source: SourceDefinition): {
             dlt(options: IDLTOptions): Promise<void>;
+            someip(options: ISomeIpOptions): Promise<void>;
             text(): Promise<void>;
         };
     } {
@@ -108,6 +110,14 @@ export class Service extends Implementation {
                     dlt: async (options: IDLTOptions): Promise<void> => {
                         try {
                             const action = new Action().from().stream(source).dlt(options);
+                            return this.update([action]);
+                        } catch (err) {
+                            return Promise.reject(new Error(error(err)));
+                        }
+                    },
+                    someip: async (options: ISomeIpOptions): Promise<void> => {
+                        try {
+                            const action = new Action().from().stream(source).someip(options);
                             return this.update([action]);
                         } catch (err) {
                             return Promise.reject(new Error(error(err)));

@@ -36,11 +36,12 @@ export class Action extends Base {
         return (() => {
             switch (file.type) {
                 case FileType.Dlt:
-                    return opener.file(file).dlt();
+                    return opener.binary(file).dlt();
                 case FileType.Pcap:
-                    return opener.file(file).pcap();
+                    return opener.pcap(file).dlt();
+                    // TODO: Ask about parser >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                 default:
-                    return opener.file(file).text();
+                    return opener.text(file).text();
             }
         })().then((_) => Promise.resolve());
     }

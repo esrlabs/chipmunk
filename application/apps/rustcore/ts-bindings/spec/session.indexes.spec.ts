@@ -44,7 +44,7 @@ describe('Indexes', function () {
                     });
                     let read: boolean = false;
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .catch(finish.bind(null, session, done));
                     const updates: number[] = [];
                     events.IndexedMapUpdated.subscribe((event) => {

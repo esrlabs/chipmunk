@@ -41,7 +41,7 @@ describe('Values', function () {
                         }
                     });
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             search
                                 .values([`CPU=(\\d{1,})`])
@@ -113,7 +113,7 @@ describe('Values', function () {
                     });
                     let results = new Map();
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             search
                                 .values([`CPU=(\\d{1,})`])
