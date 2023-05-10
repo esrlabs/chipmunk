@@ -28,7 +28,9 @@ impl Observed {
     pub fn get_files(&self) -> Vec<(ParserType, PathBuf)> {
         let mut files: Vec<(ParserType, PathBuf)> = vec![];
         self.executed.iter().for_each(|opt| match &opt.origin {
-            ObserveOrigin::File(_, filename) => files.push((opt.parser.clone(), filename.clone())),
+            ObserveOrigin::File(_, _, filename) => {
+                files.push((opt.parser.clone(), filename.clone()))
+            }
             ObserveOrigin::Concat(list) => {
                 files.append(
                     &mut list
