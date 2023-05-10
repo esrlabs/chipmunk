@@ -134,8 +134,8 @@ export class Service extends Implementation {
                     .empty(
                         parser === ParserName.Dlt
                             ? getRenderFor().dlt()
-                            : parser === ParserName.Pcap
-                            ? getRenderFor().pcap()
+                            : parser === ParserName.Someip
+                            ? getRenderFor().someip()
                             : getRenderFor().text(),
                     );
                 this.streams.set(parser, stream);

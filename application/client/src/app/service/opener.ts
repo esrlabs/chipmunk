@@ -3,9 +3,17 @@ import { services } from '@register/services';
 import { ilc, Emitter, Channel, Services } from '@service/ilc';
 import { Session } from './session/session';
 import { TabControls } from './session/tab';
-import { File, FileType } from '@platform/types/files';
+import { File } from '@platform/types/files';
+import { FileType } from '@platform/types/observe';
 import { SourceDefinition, Source as SourceRef } from '@platform/types/transport';
-import { IDLTOptions, parserSettingsToOptions } from '@platform/types/parsers/dlt';
+import {
+    IDLTOptions,
+    parserSettingsToOptions as parserDLTSettingsToOptions,
+} from '@platform/types/parsers/dlt';
+import {
+    ISomeIpOptions,
+    parserSettingsToOptions as parserSomeIpSettingsToOptions,
+} from '@platform/types/parsers/someip';
 import { DataSource, ParserName } from '@platform/types/observe';
 
 import * as Files from './opener/file/index';
@@ -16,19 +24,35 @@ export { Session, TabControls, SourceRef, ParserName };
 
 export interface StreamConnectFuncs {
     dlt(options?: IDLTOptions): Promise<string>;
+    someip(options?: ISomeIpOptions): Promise<string>;
     text(options?: {}): Promise<string>;
     source(src: DataSource): Promise<string>;
     assign(session: Session | undefined): StreamConnectFuncs;
     byParser(parser: ParserName): Promise<string>;
 }
 
-export interface FileOpenFuncs {
+export interface ITextFileFuncs {
+    text(): Promise<string>;
+    assign(session: Session | undefined): ITextFileFuncs;
+}
+
+export interface IBinaryFileFuncs {
+    dlt(options?: IDLTOptions): Promise<string>;
+    assign(session: Session | undefined): IBinaryFileFuncs;
+}
+
+export interface IPcapFileFuncs {
+    dlt(options?: IDLTOptions): Promise<string>;
+    someip(options?: ISomeIpOptions): Promise<string>;
+    assign(session: Session | undefined): IPcapFileFuncs;
+}
+
+export interface IConcatFuncs {
     text(): Promise<string>;
     dlt(options?: IDLTOptions): Promise<string>;
-    pcap(options?: IDLTOptions): Promise<string>;
-    assign(session: Session | undefined): FileOpenFuncs;
+    someip(options?: ISomeIpOptions): Promise<string>;
+    assign(session: Session | undefined): IConcatFuncs;
     byParser(parser: ParserName): Promise<string>;
-    auto(): Promise<string>;
 }
 
 @SetupService(services['opener'])
@@ -61,6 +85,11 @@ export class Service extends Implementation {
                     .assign(scope)
                     .stream(source, options, openPresetSettings, preselected);
             },
+            someip: (options?: ISomeIpOptions): Promise<string> => {
+                return new Streams.SomeIp(this._services, this.log())
+                    .assign(scope)
+                    .stream(source, options, openPresetSettings, preselected);
+            },
             assign: (session: Session | undefined): StreamConnectFuncs => {
                 scope = session;
                 return out;
@@ -70,7 +99,9 @@ export class Service extends Implementation {
                     return Promise.reject(new Error(`Operation is available only for streams`));
                 }
                 if (src.parser.Dlt !== undefined) {
-                    return out.dlt(parserSettingsToOptions(src.parser.Dlt));
+                    return out.dlt(parserDLTSettingsToOptions(src.parser.Dlt));
+                } else if (src.parser.Someip !== undefined) {
+                    return out.someip(parserSomeIpSettingsToOptions(src.parser.Someip));
                 } else if (src.parser.Text !== undefined) {
                     return out.text();
                 }
@@ -83,6 +114,10 @@ export class Service extends Implementation {
                         .stream(source, undefined, openPresetSettings, preselected);
                 } else if (parser === ParserName.Text) {
                     return new Streams.Text(this._services, this.log())
+                        .assign(scope)
+                        .stream(source, undefined, openPresetSettings, preselected);
+                } else if (parser === ParserName.Someip) {
+                    return new Streams.SomeIp(this._services, this.log())
                         .assign(scope)
                         .stream(source, undefined, openPresetSettings, preselected);
                 } else {
@@ -99,15 +134,33 @@ export class Service extends Implementation {
         const origin = source.origin;
         const parser = source.parser;
         if (origin.File !== undefined) {
-            const open = this.file(origin.File[1]);
-            if (parser.Text !== undefined) {
-                return open.text();
-            } else if (parser.Dlt !== undefined) {
-                return open.dlt(parserSettingsToOptions(parser.Dlt));
-            } else if (parser.Pcap !== undefined) {
-                return open.pcap(parserSettingsToOptions(parser.Pcap.dlt));
-            } else {
-                return Promise.reject(new Error(`Unsupported parser`));
+            switch (origin.File[1]) {
+                case FileType.Text:
+                    return this.text(origin.File[2]).text();
+                case FileType.Binary:
+                    if (parser.Dlt !== undefined) {
+                        return this.binary(origin.File[2]).dlt(
+                            parserDLTSettingsToOptions(parser.Dlt),
+                        );
+                    } else {
+                        return Promise.reject(
+                            `Parser ${parser} isn't supported with binary source`,
+                        );
+                    }
+                case FileType.Pcap:
+                    if (parser.Dlt !== undefined) {
+                        return this.pcap(origin.File[2]).dlt(
+                            parserDLTSettingsToOptions(parser.Dlt),
+                        );
+                    } else if (parser.Someip !== undefined) {
+                        return this.pcap(origin.File[2]).someip(
+                            parserSomeIpSettingsToOptions(parser.Someip),
+                        );
+                    } else {
+                        return Promise.reject(
+                            `Parser ${parser} isn't supported with binary source`,
+                        );
+                    }
             }
         } else if (origin.Stream !== undefined) {
             const sourceDef = source.asSourceDefinition();
@@ -121,13 +174,13 @@ export class Service extends Implementation {
                 sourceRef instanceof Error ? undefined : sourceRef,
             ).source(source);
         } else if (origin.Concat !== undefined) {
-            const concat = this.concat(origin.Concat.map((c) => c[1]));
+            const concat = this.concat(origin.Concat.map((c) => c[2]));
             if (parser.Text !== undefined) {
                 return concat.text();
             } else if (parser.Dlt !== undefined) {
-                return concat.dlt(parserSettingsToOptions(parser.Dlt));
-            } else if (parser.Pcap !== undefined) {
-                return concat.pcap(parserSettingsToOptions(parser.Pcap.dlt));
+                return concat.dlt(parserDLTSettingsToOptions(parser.Dlt));
+            } else if (parser.Someip !== undefined) {
+                return concat.someip(parserSomeIpSettingsToOptions(parser.Someip));
             } else {
                 return Promise.reject(new Error(`Unsupported parser`));
             }
@@ -136,65 +189,58 @@ export class Service extends Implementation {
         }
     }
 
-    public file(file: File | string): FileOpenFuncs {
+    public text(file: File | string): ITextFileFuncs {
         let scope: Session | undefined;
-        const out = {
+        const output: ITextFileFuncs = {
             text: (): Promise<string> => {
                 return new Files.Text(this._services, this.log())
                     .assign(scope)
                     .open(file, undefined);
             },
+            assign: (session: Session | undefined): ITextFileFuncs => {
+                scope = session;
+                return output;
+            },
+        };
+        return output;
+    }
+
+    public binary(file: File | string): IBinaryFileFuncs {
+        let scope: Session | undefined;
+        const output: IBinaryFileFuncs = {
             dlt: (options?: IDLTOptions): Promise<string> => {
                 return new Files.Dlt(this._services, this.log()).assign(scope).open(file, options);
             },
-            pcap: (options?: IDLTOptions): Promise<string> => {
-                return new Files.Pcap(this._services, this.log()).assign(scope).open(file, options);
-            },
-            assign: (session: Session | undefined): FileOpenFuncs => {
+            assign: (session: Session | undefined): IBinaryFileFuncs => {
                 scope = session;
-                return out;
-            },
-            byParser: (parser: ParserName): Promise<string> => {
-                if (parser === ParserName.Dlt) {
-                    return new Files.Dlt(this._services, this.log())
-                        .assign(scope)
-                        .open(file, undefined);
-                } else if (parser === ParserName.Pcap) {
-                    return new Files.Pcap(this._services, this.log())
-                        .assign(scope)
-                        .open(file, undefined);
-                } else if (parser === ParserName.Text) {
-                    return new Files.Text(this._services, this.log())
-                        .assign(scope)
-                        .open(file, undefined);
-                } else {
-                    return Promise.reject(
-                        new Error(`Parser ${parser} isn't supported for stream.`),
-                    );
-                }
-            },
-            auto: async (): Promise<string> => {
-                if (typeof file === 'string') {
-                    const data = await this._services.system.bridge.files().getByPath([file]);
-                    if (data.length !== 1) {
-                        return Promise.reject(new Error(`Fail to get info about file: ${file}`));
-                    }
-                    file = data[0];
-                }
-                switch (file.type) {
-                    case FileType.Dlt:
-                        return this.file(file).dlt();
-                    case FileType.Pcap:
-                        return this.file(file).pcap();
-                    default:
-                        return this.file(file).text();
-                }
+                return output;
             },
         };
-        return out;
+        return output;
     }
 
-    public concat(files: File[] | string[]): FileOpenFuncs {
+    public pcap(file: File | string): IPcapFileFuncs {
+        let scope: Session | undefined;
+        const output: IPcapFileFuncs = {
+            dlt: (options?: IDLTOptions): Promise<string> => {
+                return new Files.DltInPcap(this._services, this.log())
+                    .assign(scope)
+                    .open(file, options);
+            },
+            someip: (options?: ISomeIpOptions): Promise<string> => {
+                return new Files.SomeIpInPcap(this._services, this.log())
+                    .assign(scope)
+                    .open(file, options);
+            },
+            assign: (session: Session | undefined): IPcapFileFuncs => {
+                scope = session;
+                return output;
+            },
+        };
+        return output;
+    }
+
+    public concat(files: File[] | string[]): IConcatFuncs {
         let scope: Session | undefined;
         const out = {
             text: (): Promise<string> => {
@@ -207,12 +253,12 @@ export class Service extends Implementation {
                     .assign(scope)
                     .open(files, options);
             },
-            pcap: (options?: IDLTOptions): Promise<string> => {
-                return new Concat.Pcap(this._services, this.log())
+            someip: (options?: ISomeIpOptions): Promise<string> => {
+                return new Concat.SomeIp(this._services, this.log())
                     .assign(scope)
                     .open(files, options);
             },
-            assign: (session: Session | undefined): FileOpenFuncs => {
+            assign: (session: Session | undefined): IConcatFuncs => {
                 scope = session;
                 return out;
             },
@@ -221,8 +267,8 @@ export class Service extends Implementation {
                     return new Concat.Dlt(this._services, this.log())
                         .assign(scope)
                         .open(files, undefined);
-                } else if (parser === ParserName.Pcap) {
-                    return new Concat.Pcap(this._services, this.log())
+                } else if (parser === ParserName.Someip) {
+                    return new Concat.SomeIp(this._services, this.log())
                         .assign(scope)
                         .open(files, undefined);
                 } else if (parser === ParserName.Text) {
@@ -234,11 +280,6 @@ export class Service extends Implementation {
                         new Error(`Parser ${parser} isn't supported for stream.`),
                     );
                 }
-            },
-            auto: (): Promise<string> => {
-                return Promise.reject(
-                    new Error(`Auto detection of file type of concat isn't implemented`),
-                );
             },
         };
         return out;

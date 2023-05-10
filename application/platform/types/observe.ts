@@ -2,8 +2,7 @@ import {
     DltParserSettings,
     defaultParserSettings as defaultDLTParserSettings,
 } from './parsers/dlt';
-import { PcapParserSettings } from './parsers/pcap';
-import { SomeIPParserSettings } from './parsers/someip';
+import { SomeIpParserSettings } from './parsers/someip';
 import { UDPTransportSettings } from './transport/udp';
 import { TCPTransportSettings } from './transport/tcp';
 import { ProcessTransportSettings } from './transport/process';
@@ -28,9 +27,14 @@ export interface ObservedSourceLink {
 
 export enum ParserName {
     Dlt = 'Dlt',
-    Pcap = 'Pcap',
     Someip = 'Someip',
     Text = 'Text',
+}
+
+export enum FileType {
+    Pcap,
+    Text,
+    Binary,
 }
 
 export enum Origin {
@@ -41,8 +45,7 @@ export enum Origin {
 
 export interface Parser {
     Dlt?: DltParserSettings;
-    Pcap?: PcapParserSettings;
-    Someip?: SomeIPParserSettings;
+    Someip?: SomeIpParserSettings;
     Text?: null;
     /// Text type is default. No need to define
 }
@@ -55,8 +58,8 @@ export interface Transport {
 }
 
 export interface IOrigin {
-    File?: [string, string];
-    Concat?: Array<[string, string]>;
+    File?: [string, FileType, string];
+    Concat?: Array<[string, FileType, string]>;
     Stream?: [string, Transport];
 }
 
@@ -67,7 +70,7 @@ export interface ISource {
 
 export interface SourcesFactory {
     dlt(settings: DltParserSettings): DataSource;
-    pcap(settings: PcapParserSettings): DataSource;
+    someip(settings: SomeIpParserSettings): DataSource;
     text(): DataSource;
 }
 
@@ -117,62 +120,79 @@ export class DataSource {
         }
     }
 
-    public static file(file: string): SourcesFactory {
+    public static file(file: string): {
+        text(): SourcesFactory;
+        binary(): SourcesFactory;
+        pcap(): SourcesFactory;
+    } {
+        const factory = (fileType: FileType) => {
+            return {
+                dlt: (settings: DltParserSettings): DataSource => {
+                    return new DataSource({
+                        origin: {
+                            File: [unique(), fileType, file],
+                        },
+                        parser: { Dlt: settings },
+                    });
+                },
+                someip: (settings: SomeIpParserSettings): DataSource => {
+                    return new DataSource({
+                        origin: {
+                            File: [unique(), fileType, file],
+                        },
+                        parser: { Someip: settings },
+                    });
+                },
+                text: (): DataSource => {
+                    return new DataSource({
+                        origin: {
+                            File: [unique(), fileType, file],
+                        },
+                        parser: { Text: null },
+                    });
+                },
+            };
+        };
         return {
-            dlt: (settings: DltParserSettings): DataSource => {
-                return new DataSource({
-                    origin: {
-                        File: [unique(), file],
-                    },
-                    parser: { Dlt: settings },
-                });
+            text: (): SourcesFactory => {
+                return factory(FileType.Text);
             },
-            pcap: (settings: PcapParserSettings): DataSource => {
-                return new DataSource({
-                    origin: {
-                        File: [unique(), file],
-                    },
-                    parser: { Pcap: settings },
-                });
+            binary: (): SourcesFactory => {
+                return factory(FileType.Binary);
             },
-            text: (): DataSource => {
-                return new DataSource({
-                    origin: {
-                        File: [unique(), file],
-                    },
-                    parser: { Text: null },
-                });
+            pcap: (): SourcesFactory => {
+                return factory(FileType.Pcap);
             },
         };
     }
 
-    public static concat(files: string[]): SourcesFactory {
+    public static concat(files: [FileType, string][]): SourcesFactory {
         return {
             dlt: (settings: DltParserSettings): DataSource => {
                 return new DataSource({
                     origin: {
-                        Concat: files.map((f) => {
-                            return [unique(), f];
+                        Concat: files.map((f: [FileType, string]) => {
+                            return [unique(), f[0], f[1]];
                         }),
                     },
                     parser: { Dlt: settings },
                 });
             },
-            pcap: (settings: PcapParserSettings): DataSource => {
+            someip: (settings: SomeIpParserSettings): DataSource => {
                 return new DataSource({
                     origin: {
-                        Concat: files.map((f) => {
-                            return [unique(), f];
+                        Concat: files.map((f: [FileType, string]) => {
+                            return [unique(), f[0], f[1]];
                         }),
                     },
-                    parser: { Pcap: settings },
+                    parser: { Someip: settings },
                 });
             },
             text: (): DataSource => {
                 return new DataSource({
                     origin: {
-                        Concat: files.map((f) => {
-                            return [unique(), f];
+                        Concat: files.map((f: [FileType, string]) => {
+                            return [unique(), f[0], f[1]];
                         }),
                     },
                     parser: { Text: null },
@@ -197,10 +217,10 @@ export class DataSource {
                             parser: { Dlt: settings },
                         });
                     },
-                    pcap: (settings: PcapParserSettings): DataSource => {
+                    someip: (settings: SomeIpParserSettings): DataSource => {
                         return new DataSource({
                             origin,
-                            parser: { Pcap: settings },
+                            parser: { Someip: settings },
                         });
                     },
                     text: (): DataSource => {
@@ -222,10 +242,10 @@ export class DataSource {
                             parser: { Dlt: settings },
                         });
                     },
-                    pcap: (settings: PcapParserSettings): DataSource => {
+                    someip: (settings: SomeIpParserSettings): DataSource => {
                         return new DataSource({
                             origin,
-                            parser: { Pcap: settings },
+                            parser: { Someip: settings },
                         });
                     },
                     text: (): DataSource => {
@@ -245,10 +265,10 @@ export class DataSource {
                             parser: { Dlt: settings },
                         });
                     },
-                    pcap: (settings: PcapParserSettings): DataSource => {
+                    someip: (settings: SomeIpParserSettings): DataSource => {
                         return new DataSource({
                             origin,
-                            parser: { Pcap: settings },
+                            parser: { Someip: settings },
                         });
                     },
                     text: (): DataSource => {
@@ -268,10 +288,10 @@ export class DataSource {
                             parser: { Dlt: settings },
                         });
                     },
-                    pcap: (settings: PcapParserSettings): DataSource => {
+                    someip: (settings: SomeIpParserSettings): DataSource => {
                         return new DataSource({
                             origin,
-                            parser: { Pcap: settings },
+                            parser: { Someip: settings },
                         });
                     },
                     text: (): DataSource => {
@@ -326,14 +346,14 @@ export class DataSource {
         if (this.origin.File === undefined) {
             return undefined;
         }
-        return this.origin.File[1];
+        return this.origin.File[2];
     }
 
     public asConcatedFiles(): string[] | undefined {
         if (this.origin.Concat === undefined) {
             return undefined;
         }
-        return this.origin.Concat.map((f) => f[1]);
+        return this.origin.Concat.map((f) => f[2]);
     }
 
     public asStream():
@@ -381,8 +401,6 @@ export class DataSource {
         }
         if (parser.Dlt !== undefined) {
             return ParserName.Dlt;
-        } else if (parser.Pcap !== undefined) {
-            return ParserName.Pcap;
         } else if (parser.Someip !== undefined) {
             return ParserName.Someip;
         } else if (parser.Text !== undefined) {
