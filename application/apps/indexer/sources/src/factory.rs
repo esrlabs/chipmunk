@@ -112,7 +112,7 @@ pub enum ObserveFileType {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ObserveOrigin {
     File(String, ObserveFileType, PathBuf),
-    Concat(Vec<(String, PathBuf)>),
+    Concat(Vec<(String, ObserveFileType, PathBuf)>),
     Stream(String, Transport),
 }
 
