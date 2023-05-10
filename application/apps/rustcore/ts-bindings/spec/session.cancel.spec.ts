@@ -119,7 +119,9 @@ describe('Cancel', function () {
                         return;
                     }
                     stream
-                        .observe(Observe.DataSource.file(config.regular.files['text']).text())
+                        .observe(
+                            Observe.DataSource.file(config.regular.files['text']).text().text(),
+                        )
                         .catch(finish.bind(null, session, done));
                     let canceled: number = 0;
                     let started: number = 0;

@@ -4,6 +4,7 @@ import { sessions } from '@service/sessions';
 import { Logger } from 'platform/log';
 import { jobs, aliases } from '@service/jobs';
 import { FileType } from 'platform/types/files';
+import { FileType as ObserveFileType } from 'platform/types/observe';
 import { defaultParserSettings, optionsToParserSettings } from 'platform/types/parsers/dlt';
 
 import * as Requests from 'platform/ipc/request';
@@ -37,7 +38,7 @@ export const handler = Requests.InjectLogger<
                             .observe()
                             .start(
                                 Observe.DataSource.concat(
-                                    request.files.map((f) => f.filename),
+                                    request.files.map((f) => [ObserveFileType.Text, f.filename]),
                                 ).text(),
                             )
                             .then(() => {
@@ -60,7 +61,9 @@ export const handler = Requests.InjectLogger<
                         stored
                             .observe()
                             .start(
-                                Observe.DataSource.concat(request.files.map((f) => f.filename)).dlt(
+                                Observe.DataSource.concat(
+                                    request.files.map((f) => [ObserveFileType.Binary, f.filename]),
+                                ).dlt(
                                     request.files[0].options.dlt === undefined
                                         ? defaultParserSettings(true)
                                         : optionsToParserSettings(
@@ -92,18 +95,17 @@ export const handler = Requests.InjectLogger<
                             .observe()
                             .start(
                                 Observe.DataSource.concat(
-                                    request.files.map((f) => f.filename),
-                                ).pcap({
-                                    dlt:
-                                        request.files[0].options.dlt === undefined
-                                            ? defaultParserSettings(false)
-                                            : optionsToParserSettings(
-                                                  request.files[0].options.dlt,
-                                                  false,
-                                                  0,
-                                                  0,
-                                              ),
-                                }),
+                                    request.files.map((f) => [ObserveFileType.Pcap, f.filename]),
+                                ).dlt(
+                                    request.files[0].options.dlt === undefined
+                                        ? defaultParserSettings(false)
+                                        : optionsToParserSettings(
+                                              request.files[0].options.dlt,
+                                              false,
+                                              0,
+                                              0,
+                                          ),
+                                ),
                             )
                             .then(() => {
                                 resolve(

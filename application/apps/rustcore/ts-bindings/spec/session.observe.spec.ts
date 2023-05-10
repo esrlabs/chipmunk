@@ -38,7 +38,7 @@ describe('Observe', function () {
                         (i: number) => `some line data: ${i}\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;
                     events.StreamUpdated.subscribe((rows: number) => {
@@ -106,12 +106,10 @@ describe('Observe', function () {
                     }
                     stream
                         .observe(
-                            Observe.DataSource.file(config.regular.files['pcapng']).pcap({
-                                dlt: {
-                                    filter_config: undefined,
-                                    fibex_file_paths: undefined,
-                                    with_storage_header: false,
-                                },
+                            Observe.DataSource.file(config.regular.files['pcapng']).binary().dlt({
+                                filter_config: undefined,
+                                fibex_file_paths: undefined,
+                                with_storage_header: false,
                             }),
                         )
                         .catch(finish.bind(null, session, done));
@@ -185,7 +183,7 @@ describe('Observe', function () {
                     }
                     stream
                         .observe(
-                            Observe.DataSource.file(config.regular.files['dlt']).dlt({
+                            Observe.DataSource.file(config.regular.files['dlt']).binary().dlt({
                                 filter_config: undefined,
                                 fibex_file_paths: undefined,
                                 with_storage_header: true,
@@ -367,13 +365,15 @@ describe('Observe', function () {
                                 switch (test.open_as) {
                                     case 'text':
                                         stream
-                                            .observe(Observe.DataSource.file(test.file).text())
+                                            .observe(
+                                                Observe.DataSource.file(test.file).text().text(),
+                                            )
                                             .catch(finish.bind(null, session, done));
                                         break;
                                     case 'dlt':
                                         stream
                                             .observe(
-                                                Observe.DataSource.file(test.file).dlt({
+                                                Observe.DataSource.file(test.file).binary().dlt({
                                                     filter_config: undefined,
                                                     fibex_file_paths: undefined,
                                                     with_storage_header: true,
@@ -384,12 +384,10 @@ describe('Observe', function () {
                                     case 'pcap':
                                         stream
                                             .observe(
-                                                Observe.DataSource.file(test.file).pcap({
-                                                    dlt: {
-                                                        filter_config: undefined,
-                                                        fibex_file_paths: undefined,
-                                                        with_storage_header: false,
-                                                    },
+                                                Observe.DataSource.file(test.file).binary().dlt({
+                                                    filter_config: undefined,
+                                                    fibex_file_paths: undefined,
+                                                    with_storage_header: false,
                                                 }),
                                             )
                                             .catch(finish.bind(null, session, done));

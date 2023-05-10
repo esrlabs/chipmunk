@@ -125,7 +125,7 @@ export class State extends Holder {
             dlt: (): void => {
                 this.ilc
                     .ilc()
-                    .services.system.opener.file(item.filename)
+                    .services.system.opener.binary(item.filename)
                     .dlt()
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
@@ -134,8 +134,8 @@ export class State extends Holder {
             pcap: (): void => {
                 this.ilc
                     .ilc()
-                    .services.system.opener.file(item.filename)
-                    .pcap()
+                    .services.system.opener.pcap(item.filename)
+                    .dlt()
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
                     });
@@ -143,20 +143,21 @@ export class State extends Holder {
             text: (): void => {
                 this.ilc
                     .ilc()
-                    .services.system.opener.file(item.filename)
+                    .services.system.opener.text(item.filename)
                     .text()
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
                     });
             },
             auto: (): void => {
-                this.ilc
-                    .ilc()
-                    .services.system.opener.file(item.filename)
-                    .auto()
-                    .catch((err: Error) => {
-                        this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
-                    });
+                // TODO: needs implementation >>>>>>>>>>>>>>>>>>>>
+                // this.ilc
+                //     .ilc()
+                //     .services.system.opener.text(item.filename)
+                //     .auto()
+                //     .catch((err: Error) => {
+                //         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
+                //     });
             },
         };
     }

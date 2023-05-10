@@ -1,3 +1,4 @@
 export { Text } from './text';
 export { Dlt } from './dlt';
-export { Pcap } from './pcap';
+export { DltInPcap } from './dlt.pcap';
+export { SomeIpInPcap } from './someip.pcap';
