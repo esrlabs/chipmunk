@@ -98,8 +98,6 @@ export abstract class Provider {
         const source = (() => {
             if (previous.source.parser.Dlt !== undefined) {
                 return factory.dlt(previous.source.parser.Dlt);
-            } else if (previous.source.parser.Pcap !== undefined) {
-                return factory.pcap(previous.source.parser.Pcap);
             } else if (previous.source.parser.Someip !== undefined) {
                 throw new Error(`Ins't supported yet`);
             } else {

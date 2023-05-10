@@ -41,7 +41,7 @@ describe('Extracting', function () {
                         }`;
                     });
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             const filter = 'cpu=(\\d{1,})';
                             search
@@ -130,7 +130,7 @@ describe('Extracting', function () {
                         }`;
                     });
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             const filterA = 'cpu=(\\d{1,})';
                             const filterB = 'temp=(\\d{1,})';

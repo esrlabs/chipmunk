@@ -43,7 +43,7 @@ describe('Search', function () {
                             }`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -198,7 +198,7 @@ describe('Search', function () {
                             }`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -338,7 +338,7 @@ describe('Search', function () {
                         (i: number) => `[${i}]:: some line data\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -397,7 +397,7 @@ describe('Search', function () {
                             }`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -541,7 +541,7 @@ describe('Search', function () {
                             }`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -688,7 +688,7 @@ describe('Search', function () {
                             }`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -829,7 +829,7 @@ describe('Search', function () {
                             }`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             const calls = ['match A', 'match D', 'match C', 'match B'];
                             let canceled = 0;

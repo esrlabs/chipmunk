@@ -47,7 +47,7 @@ describe('Map', function () {
                             `[${i}]:: some ${i % 100 === 0 || i < 5 ? 'match' : ''} line data }\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -128,7 +128,7 @@ describe('Map', function () {
                             `[${i}]:: some ${i % 100 === 0 || i < 5 ? 'match' : ''} line data }\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -213,7 +213,7 @@ describe('Map', function () {
                             }\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -348,7 +348,7 @@ describe('Map', function () {
                             }\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -433,7 +433,7 @@ describe('Map', function () {
                             } as expected\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -518,7 +518,7 @@ describe('Map', function () {
                             } right now.\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -603,7 +603,7 @@ describe('Map', function () {
                             })\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text())
+                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
                         .on('confirmed', () => {
                             search
                                 .search([

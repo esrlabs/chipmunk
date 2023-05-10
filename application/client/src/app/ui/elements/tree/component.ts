@@ -107,7 +107,7 @@ export class ElementsTreeSelector
                     caption: 'Open as text',
                     handler: () => {
                         this.ilc()
-                            .services.system.opener.file(entity.getPath())
+                            .services.system.opener.text(entity.getPath())
                             .text()
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open text file; error: ${err.message}`);
@@ -118,7 +118,7 @@ export class ElementsTreeSelector
                     caption: 'Open as DLT',
                     handler: () => {
                         this.ilc()
-                            .services.system.opener.file(entity.getPath())
+                            .services.system.opener.binary(entity.getPath())
                             .dlt()
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open dlt file; error: ${err.message}`);
@@ -129,8 +129,8 @@ export class ElementsTreeSelector
                     caption: 'Open as PCAP',
                     handler: () => {
                         this.ilc()
-                            .services.system.opener.file(entity.getPath())
-                            .pcap()
+                            .services.system.opener.pcap(entity.getPath())
+                            .dlt()
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open pcap file; error: ${err.message}`);
                             });
@@ -146,12 +146,13 @@ export class ElementsTreeSelector
         if (entity.isFolder()) {
             return;
         }
-        this.ilc()
-            .services.system.opener.file(entity.getPath())
-            .auto()
-            .catch((err: Error) => {
-                this.log().error(`Fail to open text file; error: ${err.message}`);
-            });
+        // TODO: Needs implementation >>>>>>>>>>>>>>>>>>>>>>>
+        // this.ilc()
+        //     .services.system.opener.text(entity.getPath())
+        //     .auto()
+        //     .catch((err: Error) => {
+        //         this.log().error(`Fail to open text file; error: ${err.message}`);
+        //     });
     }
 
     public onScrolling(event: Event) {
