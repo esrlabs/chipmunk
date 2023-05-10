@@ -5,18 +5,23 @@ use crate::{
     tail,
 };
 use indexer_base::progress::Severity;
-use sources::factory::ParserType;
-use std::path::Path;
+use sources::{
+    factory::{ObserveFileType, ParserType},
+    pcap::file::PcapngByteSource,
+    raw::binary::BinaryByteSource,
+};
+use std::{fs::File, path::Path};
 use tokio::{
     join, select,
     sync::mpsc::{channel, Receiver, Sender},
 };
 
 #[allow(clippy::type_complexity)]
-pub async fn observe_text_file<'a>(
+pub async fn observe_file<'a>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     uuid: &str,
+    file_type: &ObserveFileType,
     filename: &Path,
     parser: &'a ParserType,
 ) -> OperationResult<()> {
@@ -25,8 +30,40 @@ pub async fn observe_text_file<'a>(
         Sender<Result<(), tail::Error>>,
         Receiver<Result<(), tail::Error>>,
     ) = channel(1);
-    match parser {
-        ParserType::Text => {
+    match file_type {
+        ObserveFileType::Binary => {
+            let source = BinaryByteSource::new(input_file(filename)?);
+            let (_, listening) = join!(
+                tail::track(filename, tx_tail, operation_api.cancellation_token()),
+                super::run_source(
+                    operation_api,
+                    state,
+                    source,
+                    source_id,
+                    parser,
+                    None,
+                    Some(rx_tail)
+                )
+            );
+            listening
+        }
+        ObserveFileType::Pcap => {
+            let source = PcapngByteSource::new(input_file(filename)?)?;
+            let (_, listening) = join!(
+                tail::track(filename, tx_tail, operation_api.cancellation_token()),
+                super::run_source(
+                    operation_api,
+                    state,
+                    source,
+                    source_id,
+                    parser,
+                    None,
+                    Some(rx_tail)
+                )
+            );
+            listening
+        }
+        ObserveFileType::Text => {
             state.set_session_file(Some(filename.to_path_buf())).await?;
             // Grab main file content
             state.update_session(source_id).await?;
@@ -65,17 +102,17 @@ pub async fn observe_text_file<'a>(
                 })
                 .map(|_| None)
         }
-        ParserType::Dlt(_) => Err(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::UnsupportedFileType,
-            message: Some(String::from("Text file cannot be opened with DLT Parser")),
-        }),
-        ParserType::SomeIP(_) => Err(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::UnsupportedFileType,
-            message: Some(String::from(
-                "Text file cannot be opened with SomeIP Parser",
-            )),
-        }),
     }
+}
+
+fn input_file(filename: &Path) -> Result<File, NativeError> {
+    File::open(filename).map_err(|e| NativeError {
+        severity: Severity::ERROR,
+        kind: NativeErrorKind::Io,
+        message: Some(format!(
+            "Fail open file {}: {}",
+            filename.to_string_lossy(),
+            e
+        )),
+    })
 }

@@ -27,11 +27,9 @@ enum Next<T: LogMessage> {
     Waiting,
 }
 
-pub mod binary_file;
 pub mod concat;
-pub mod pcap_file;
+pub mod file;
 pub mod stream;
-pub mod text_file;
 
 pub const FLUSH_TIMEOUT_IN_MS: u128 = 500;
 
