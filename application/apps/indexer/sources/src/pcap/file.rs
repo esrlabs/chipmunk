@@ -11,7 +11,7 @@ use parsers::{LogMessage, MessageStreamItem, ParseYield, Parser};
 use pcap_parser::{traits::PcapReaderIterator, PcapBlockOwned, PcapError, PcapNGReader};
 use std::{
     fs::*,
-    io::{BufWriter, Read, Write},
+    io::{BufWriter, Read, Seek, Write},
     path::Path,
 };
 use thiserror::Error;
@@ -30,14 +30,14 @@ pub enum Error {
     Unrecoverable(String),
 }
 
-pub struct PcapngByteSource<R: Read> {
+pub struct PcapngByteSource<R: Read + Seek> {
     pcapng_reader: PcapNGReader<R>,
     buffer: Buffer,
     last_know_timestamp: Option<u64>,
     total: usize,
 }
 
-impl<R: Read> PcapngByteSource<R> {
+impl<R: Read + Seek> PcapngByteSource<R> {
     pub fn new(reader: R) -> Result<Self, SourceError> {
         Ok(Self {
             pcapng_reader: PcapNGReader::new(65536, reader)
@@ -50,7 +50,7 @@ impl<R: Read> PcapngByteSource<R> {
 }
 
 #[async_trait]
-impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
+impl<R: Read + Send + Sync + Seek> ByteSource for PcapngByteSource<R> {
     async fn reload(
         &mut self,
         filter: Option<&SourceFilter>,
