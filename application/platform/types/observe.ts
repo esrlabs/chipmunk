@@ -32,9 +32,9 @@ export enum ParserName {
 }
 
 export enum FileType {
-    Pcap,
-    Text,
-    Binary,
+    Pcap = 'Pcap',
+    Text = 'Text',
+    Binary = 'Binary',
 }
 
 export enum Origin {
