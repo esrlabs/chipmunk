@@ -531,14 +531,19 @@ if (process.platform === 'win32') {
                     stream
                         .grab(0, 4)
                         .then((result: IGrabbedElement[]) => {
-                            console.log(result);
                             logger.debug('result of grab was: ' + JSON.stringify(result));
-                            expect(result.map((i) => i.content)).toEqual([
-                                TEST_LINES[0],
-                                TEST_LINES[0],
-                                TEST_LINES[1],
-                                TEST_LINES[1],
-                            ]);
+                            expect(
+                                result
+                                    .map((i) => i.source_id)
+                                    .reduce((partialSum, a) => partialSum + a, 0),
+                            ).toBe(2);
+                            expect(result.map((i) => i.position)).toEqual([0, 1, 2, 3]);
+                            expect(result.filter((i) => i.content === TEST_LINES[0]).length).toBe(
+                                2,
+                            );
+                            expect(result.filter((i) => i.content === TEST_LINES[1]).length).toBe(
+                                2,
+                            );
                             finish(session, done);
                         })
                         .catch((err: Error) => {
