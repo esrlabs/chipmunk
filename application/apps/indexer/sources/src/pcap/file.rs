@@ -111,7 +111,8 @@ impl<R: Read + Send + Sync + Seek> ByteSource for PcapngByteSource<R> {
         let res = match etherparse::SlicedPacket::from_ethernet(raw_data) {
             Ok(value) => {
                 skipped += consumed - value.payload.len();
-                match (value.transport, filter) {
+
+                let copy = match (value.transport, filter) {
                     (
                         Some(actual),
                         Some(SourceFilter {
@@ -119,32 +120,25 @@ impl<R: Read + Send + Sync + Seek> ByteSource for PcapngByteSource<R> {
                         }),
                     ) => {
                         let actual_tp: TransportProtocol = actual.into();
-                        let received_bytes = self.buffer.copy_from_slice(value.payload);
-                        if actual_tp == *wanted {
-                            Ok(Some(ReloadInfo::new(
-                                received_bytes,
-                                received_bytes,
-                                skipped,
-                                self.last_know_timestamp,
-                            )))
-                        } else {
-                            Ok(Some(ReloadInfo::new(
-                                0,
-                                0,
-                                value.payload.len() + skipped,
-                                self.last_know_timestamp,
-                            )))
-                        }
+                        actual_tp == *wanted
                     }
-                    _ => {
-                        let copied = self.buffer.copy_from_slice(value.payload);
-                        Ok(Some(ReloadInfo::new(
-                            copied,
-                            copied,
-                            skipped,
-                            self.last_know_timestamp,
-                        )))
-                    }
+                    _ => true,
+                };
+                if copy {
+                    let copied = self.buffer.copy_from_slice(value.payload);
+                    Ok(Some(ReloadInfo::new(
+                        copied,
+                        copied,
+                        skipped,
+                        self.last_know_timestamp,
+                    )))
+                } else {
+                    Ok(Some(ReloadInfo::new(
+                        0,
+                        0,
+                        value.payload.len() + skipped,
+                        self.last_know_timestamp,
+                    )))
                 }
             }
             Err(e) => Err(SourceError::Unrecoverable(format!(

@@ -6,7 +6,7 @@ use crate::{
 };
 use indexer_base::progress::Severity;
 use sources::{
-    factory::{ObserveFileType, ParserType},
+    factory::{FileFormat, ParserType},
     pcap::file::PcapngByteSource,
     raw::binary::BinaryByteSource,
 };
@@ -21,7 +21,7 @@ pub async fn observe_file<'a>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     uuid: &str,
-    file_type: &ObserveFileType,
+    file_format: &FileFormat,
     filename: &Path,
     parser: &'a ParserType,
 ) -> OperationResult<()> {
@@ -30,8 +30,8 @@ pub async fn observe_file<'a>(
         Sender<Result<(), tail::Error>>,
         Receiver<Result<(), tail::Error>>,
     ) = channel(1);
-    match file_type {
-        ObserveFileType::Binary => {
+    match file_format {
+        FileFormat::Binary => {
             let source = BinaryByteSource::new(input_file(filename)?);
             let (_, listening) = join!(
                 tail::track(filename, tx_tail, operation_api.cancellation_token()),
@@ -47,7 +47,7 @@ pub async fn observe_file<'a>(
             );
             listening
         }
-        ObserveFileType::Pcap => {
+        FileFormat::PcapNG => {
             let source = PcapngByteSource::new(input_file(filename)?)?;
             let (_, listening) = join!(
                 tail::track(filename, tx_tail, operation_api.cancellation_token()),
@@ -63,7 +63,7 @@ pub async fn observe_file<'a>(
             );
             listening
         }
-        ObserveFileType::Text => {
+        FileFormat::Text => {
             state.set_session_file(Some(filename.to_path_buf())).await?;
             // Grab main file content
             state.update_session(source_id).await?;
