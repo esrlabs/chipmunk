@@ -45,6 +45,30 @@ impl Matcher {
     }
 
     #[wasm_bindgen]
+    pub fn set_items(&mut self, items: String) -> Result<usize, String> {
+        match serde_json::from_str(&items) {
+            Ok::<Vec<HashMap<String, String>>, _>(mut items) => {
+                let from = self.items_initial.len();
+                self.items_initial.append(&mut items);
+                self.search(String::new(), None)
+                    .map_err(|e| format!("Initializing with empty search failed: {}", e))?;
+                Ok(from)
+            }
+            Err(err) => Err(format!("Parsing item into JSON String failed: {}", err)),
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn len(&self) -> usize {
+        self.items_initial.len()
+    }
+
+    #[wasm_bindgen]
+    pub fn is_empty(&self) -> bool {
+        self.items_initial.is_empty()
+    }
+
+    #[wasm_bindgen]
     pub fn search(&mut self, query: String, tag: Option<String>) -> Result<(), String> {
         self.items_scored = HashMap::new();
         let mut total_score: i64;

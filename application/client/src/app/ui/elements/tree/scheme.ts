@@ -3,7 +3,7 @@ import { FlatTreeControl } from '@angular/cdk/tree';
 import { BehaviorSubject, merge, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Entity } from './entity';
-import { EntityType, Entity as IEntity } from '@platform/types/files';
+import { EntityType } from '@platform/types/files';
 import { Services } from '@service/ilc/services';
 import { Filter } from '@elements/filter/filter';
 import { FavoritePlace } from '@service/favorites';
@@ -13,6 +13,8 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 export { Entity };
 
 type ExpandedCallback = () => void;
+
+const DEFAULT_LEN = 10000;
 
 export class DynamicFlatNode {
     protected expandedCallback: ExpandedCallback | undefined;
@@ -99,9 +101,9 @@ export class DynamicDatabase {
         return new Promise((resolve, reject) => {
             this.services.system.bridge
                 .files()
-                .ls(path, 1)
-                .then((entities: IEntity[]) => {
-                    const sub = entities.map(
+                .ls(path, 1, DEFAULT_LEN)
+                .then((data) => {
+                    const sub = data.entities.map(
                         (entity) => new Entity(entity, path, false, true, this.filter),
                     );
                     sub.sort((a) => {

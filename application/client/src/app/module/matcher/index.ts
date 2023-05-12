@@ -1,2 +1,2 @@
 export { Holder } from './holder';
-export { Matchee } from './matchee';
+export { Matchee, PassiveMatchee, createPassiveMatcheeList } from './matchee';

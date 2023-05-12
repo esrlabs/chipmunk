@@ -7,11 +7,14 @@ import { Holder } from '@module/matcher/holder';
 import { favorites } from '@service/favorites';
 import { bridge } from '@service/bridge';
 import { EntityType, getFileName } from '@platform/types/files';
+import { notifications, Notification } from '@ui/service/notifications';
+import { createPassiveMatcheeList } from '@module/matcher';
 
 export type CloseHandler = () => void;
 
 const MAX_VISIBLE_ITEMS = 50;
 const DEFAULT_DEEP = 5;
+const DEFAULT_LEN = 20000;
 
 export class State extends Holder {
     public filter: Filter;
@@ -227,17 +230,31 @@ export class State extends Holder {
         }
         this.scanning = getFileName(path);
         this.update.emit();
-        const list = await bridge.files().ls(path, DEFAULT_DEEP);
-        list.forEach((item) => {
+        const data = await bridge.files().ls(path, DEFAULT_DEEP, DEFAULT_LEN);
+        let items: Item[] = [];
+        data.entities.forEach((entity) => {
             if (this.abort.signal.aborted) {
                 return;
             }
-            if (item.type === EntityType.File && item.details !== undefined) {
-                this.items.push(
-                    new Item(item.fullname, item.name, item.details.path, this.matcher),
+            if (entity.type === EntityType.File && entity.details !== undefined) {
+                items.push(
+                    new Item(entity.fullname, entity.name, entity.details.path, this.matcher),
                 );
             }
         });
+        items = createPassiveMatcheeList<Item>(items, this.matcher);
+        this.items = this.items.concat(items);
+        if (this.items.length !== this.matcher.len()) {
+            this.ilc.log().error(`Matcher indexes are dismatch`);
+        }
+        if (data.max) {
+            notifications.notify(
+                new Notification({
+                    message: `Folder ${path} includes too many files (more than ${DEFAULT_LEN}).`,
+                    actions: [],
+                }),
+            );
+        }
         this.update.emit();
         return Promise.resolve();
     }

@@ -35,7 +35,7 @@ export class Jobs extends Base {
         return job;
     }
 
-    public listContent(depth: number, path: string): CancelablePromise<string> {
+    public listContent(depth: number, max: number, path: string): CancelablePromise<string> {
         const sequence = this.sequence();
         const job: CancelablePromise<string> = this.execute(
             (res: string): any | Error => {
@@ -46,7 +46,7 @@ export class Jobs extends Base {
                 }
                 return res;
             },
-            this.native.listFolderContent(sequence, depth, path),
+            this.native.listFolderContent(sequence, depth, max, path),
             sequence,
             'listContent',
         );

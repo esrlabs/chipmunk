@@ -5,6 +5,7 @@ import { Entity, entityFromObj } from 'platform/types/files';
 import { unbound } from '@service/unbound';
 
 import * as Requests from 'platform/ipc/request';
+import * as obj from 'platform/env/obj';
 
 export const handler = Requests.InjectLogger<
     Requests.Os.List.Request,
@@ -16,14 +17,12 @@ export const handler = Requests.InjectLogger<
     ): CancelablePromise<Requests.Os.List.Response> => {
         return new CancelablePromise((resolve, reject) => {
             unbound.jobs
-                .listContent(request.deep, request.path)
+                .listContent(request.deep, request.max, request.path)
                 .then((content: string) => {
                     try {
-                        const list = typeof content === 'string' ? JSON.parse(content) : content;
-                        if (!(list instanceof Array)) {
-                            log.warn(`Gets invalid data from listContent`);
-                            return reject(new Error(`Invalid data`));
-                        }
+                        const data = typeof content === 'string' ? JSON.parse(content) : content;
+                        const list = obj.getAsArray(data, 'list') as { [key: string]: unknown }[];
+                        const max = obj.getAsBool(data, 'max_len_reached');
                         resolve(
                             new Requests.Os.List.Response({
                                 entities: list
@@ -38,6 +37,7 @@ export const handler = Requests.InjectLogger<
                                         }
                                     })
                                     .filter((e) => e !== undefined) as Entity[],
+                                max,
                             }),
                         );
                     } catch (e) {
