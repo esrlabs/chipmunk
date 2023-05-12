@@ -36,8 +36,7 @@ impl Matcher {
         match serde_json::from_str(&item) {
             Ok::<HashMap<String, String>, _>(item) => {
                 self.items_initial.push(item);
-                self.search(String::new(), None)
-                    .map_err(|e| format!("Initializing with empty search failed: {}", e))?;
+                self.search(String::new(), None);
                 Ok(self.items_initial.len() - 1)
             }
             Err(err) => Err(format!("Parsing item into JSON String failed: {}", err)),
@@ -50,8 +49,7 @@ impl Matcher {
             Ok::<Vec<HashMap<String, String>>, _>(mut items) => {
                 let from = self.items_initial.len();
                 self.items_initial.append(&mut items);
-                self.search(String::new(), None)
-                    .map_err(|e| format!("Initializing with empty search failed: {}", e))?;
+                self.search(String::new(), None);
                 Ok(from)
             }
             Err(err) => Err(format!("Parsing item into JSON String failed: {}", err)),
@@ -69,7 +67,7 @@ impl Matcher {
     }
 
     #[wasm_bindgen]
-    pub fn search(&mut self, query: String, tag: Option<String>) -> Result<(), String> {
+    pub fn search(&mut self, query: String, tag: Option<String>) {
         self.items_scored = HashMap::new();
         let mut total_score: i64;
         let mut temp_hashmap: HashMap<String, String> = HashMap::new();
@@ -82,14 +80,12 @@ impl Matcher {
                     total_score += (self.items_initial.len() - index) as i64;
                 } else {
                     match self.matcher.fuzzy_indices(value.as_str(), &query) {
-                        Some(score) => match self.tag_match(value.to_owned(), score.1, &tag) {
-                            Ok(tagged_match) => {
-                                temp_hashmap.insert(key.clone(), value.to_owned());
-                                temp_hashmap.insert(format!("html_{}", key), tagged_match);
-                                total_score += score.0;
-                            }
-                            Err(err) => return Err(err),
-                        },
+                        Some(score) => {
+                            let tagged_match = self.tag_match(value.to_owned(), score.1, &tag);
+                            temp_hashmap.insert(key.clone(), value.to_owned());
+                            temp_hashmap.insert(format!("html_{}", key), tagged_match);
+                            total_score += score.0;
+                        }
                         None => {
                             temp_hashmap.insert(key.clone(), value.clone());
                             temp_hashmap.insert(format!("html_{}", key), value.to_string());
@@ -101,7 +97,6 @@ impl Matcher {
                 .insert(index, (temp_hashmap.to_owned(), total_score));
             temp_hashmap.clear();
         }
-        Ok(())
     }
 
     #[wasm_bindgen]
@@ -124,12 +119,7 @@ impl Matcher {
         }
     }
 
-    fn tag_match(
-        &self,
-        mut value: String,
-        indexes: Vec<usize>,
-        tag: &Option<String>,
-    ) -> Result<String, String> {
+    fn tag_match(&self, mut value: String, indexes: Vec<usize>, tag: &Option<String>) -> String {
         let tag = tag.to_owned().unwrap_or_else(|| "span".to_string());
         let op_tag = format!("<{}>", tag);
         let ed_tag = format!("</{}>", tag);
@@ -155,7 +145,7 @@ impl Matcher {
                         start = curr;
                         prev = curr;
                     }
-                    Err(err) => return Err(format!("Converting bytes to UTF-8 failed: {}", err)),
+                    Err(_err) => return value,
                 }
             } else {
                 prev = curr;
@@ -167,10 +157,10 @@ impl Matcher {
                     prev..start + 1,
                     format!("{}{}{}", op_tag, substring, ed_tag).as_str(),
                 );
+                value
             }
-            Err(err) => return Err(format!("Converting bytes to UTF-8 failed: {}", err)),
+            Err(_err) => value,
         }
-        Ok(value)
     }
 }
 
@@ -203,9 +193,7 @@ fn test(query: String, tag: Option<String>, expected: Vec<HashMap<&str, &str>>) 
             Err(err) => panic!("{}", err),
         }
     }
-    if let Err(err) = matcher.search(query, tag) {
-        panic!("{}", err)
-    }
+    matcher.search(query, tag);
     for (index, map) in expected.iter().enumerate() {
         for (&key, &value) in map {
             match matcher.get_html_of(index, key.to_string()) {
