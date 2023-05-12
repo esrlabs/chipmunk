@@ -71,3 +71,4 @@ application/sandbox/serial/render/lib/views/dialog/port.available
 sandbox
 sandbox.backup
 **/holder/release
+scripts/tools/file_checklists/*.*
