@@ -5,7 +5,7 @@ use crate::{
 };
 use indexer_base::progress::Severity;
 use sources::{
-    factory::{ObserveFileType, ParserType},
+    factory::{FileFormat, ParserType},
     pcap::file::PcapngByteSource,
     raw::binary::BinaryByteSource,
 };
@@ -15,7 +15,7 @@ use std::{fs::File, path::PathBuf};
 pub async fn concat_files(
     operation_api: OperationAPI,
     state: SessionStateAPI,
-    files: &[(String, ObserveFileType, PathBuf)],
+    files: &[(String, FileFormat, PathBuf)],
     parser: &ParserType,
 ) -> OperationResult<()> {
     for file in files.iter() {
@@ -43,7 +43,7 @@ pub async fn concat_files(
             )),
         })?;
         match file_type {
-            ObserveFileType::Binary => {
+            FileFormat::Binary => {
                 super::run_source(
                     operation_api.clone(),
                     state.clone(),
@@ -55,7 +55,7 @@ pub async fn concat_files(
                 )
                 .await?
             }
-            ObserveFileType::Pcap => {
+            FileFormat::PcapNG => {
                 super::run_source(
                     operation_api.clone(),
                     state.clone(),
@@ -67,7 +67,7 @@ pub async fn concat_files(
                 )
                 .await?
             }
-            ObserveFileType::Text => {
+            FileFormat::Text => {
                 super::run_source(
                     operation_api.clone(),
                     state.clone(),

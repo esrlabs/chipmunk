@@ -99,16 +99,16 @@ pub struct UDPTransportConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum ObserveFileType {
-    Pcap,
+pub enum FileFormat {
+    PcapNG,
     Text,
     Binary,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ObserveOrigin {
-    File(String, ObserveFileType, PathBuf),
-    Concat(Vec<(String, ObserveFileType, PathBuf)>),
+    File(String, FileFormat, PathBuf),
+    Concat(Vec<(String, FileFormat, PathBuf)>),
     Stream(String, Transport),
 }
 
@@ -119,7 +119,7 @@ pub struct ObserveOptions {
 }
 
 impl ObserveOptions {
-    pub fn file(filename: PathBuf, file_origin: ObserveFileType, parser: ParserType) -> Self {
+    pub fn file(filename: PathBuf, file_origin: FileFormat, parser: ParserType) -> Self {
         ObserveOptions {
             origin: ObserveOrigin::File(Uuid::new_v4().to_string(), file_origin, filename),
             parser,
