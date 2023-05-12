@@ -82,22 +82,6 @@ async fn export(
             kind: NativeErrorKind::UnsupportedFileType,
             message: Some(String::from("SomeIp parser not yet supported")),
         }),
-        // ParserType::Pcap(settings) => {
-        //     let parser = DltParser::new(
-        //         settings.dlt.filter_config.as_ref().map(|f| f.into()),
-        //         settings.dlt.fibex_metadata.as_ref(),
-        //         settings.dlt.with_storage_header,
-        //     );
-        //     let mut producer = MessageProducer::new(parser, PcapngByteSource::new(src_file)?, None);
-        //     export_runner(
-        //         Box::pin(producer.as_stream()),
-        //         dest,
-        //         sections,
-        //         read_to_end,
-        //         cancel,
-        //     )
-        //     .await
-        // }
         ParserType::Dlt(settings) => {
             let parser = DltParser::new(
                 settings.filter_config.as_ref().map(|f| f.into()),
