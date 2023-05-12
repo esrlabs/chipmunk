@@ -8,7 +8,7 @@ class Utils
     @rebuild = rebuild
     @installed = File.exist?("#{Paths::UTILS}/node_modules")
     @targets = [@pkg, @target, @node_modules, @test_output]
-    @changes_to_files = ChangeChecker.has_changes?(Paths::UTILS)
+    @changes_to_files = ChangeChecker.has_changes?(Paths::UTILS, @targets)
   end
   
   def clean
@@ -20,7 +20,6 @@ class Utils
         Reporter.add(Jobs::Clearing, Owner::Utils, "doesn't exist: #{path}", '')
       end
     end
-    ChangeChecker.changelist(Paths::UTILS)
   end
   
   def install
@@ -33,7 +32,6 @@ class Utils
     else
       Reporter.add(Jobs::Skipped, Owner::Utils, 'installing', '')
     end
-    ChangeChecker.changelist(Paths::UTILS)
   end
   
   def build
@@ -48,7 +46,6 @@ class Utils
       Shell.chdir(Paths::UTILS) do
         Shell.sh 'wasm-pack build --target bundler'
       end
-      ChangeChecker.changelist(Paths::UTILS)
       Reporter.add(Jobs::Building, Owner::Utils, @target, '')
     end
   end
