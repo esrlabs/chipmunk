@@ -55,9 +55,7 @@ export abstract class PassiveMatchee {
         if (this._index === undefined) {
             return undefined;
         }
-        const r = this._matcher.get_html_of(this._index, key);
-        console.log(`>>>>>>>>>>>>>>>>>>>>>>>>>>: "${r}"`);
-        return r;
+        return this._matcher.get_html_of(this._index, key);
     }
 }
 
