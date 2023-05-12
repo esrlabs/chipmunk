@@ -46,6 +46,12 @@ impl EntityDetails {
 }
 
 #[derive(Serialize, Deserialize)]
+struct ScanningResult {
+    pub list: Vec<Entity>,
+    pub max_len_reached: bool,
+}
+
+#[derive(Serialize, Deserialize)]
 struct Entity {
     name: String,
     fullname: String,
@@ -95,9 +101,11 @@ impl Entity {
 pub fn get_folder_content(
     path: &str,
     depth: usize,
+    max_len: usize,
     signal: Signal,
 ) -> Result<CommandOutcome<String>, ComputationError> {
     let mut list: Vec<Entity> = vec![];
+    let mut max_len_reached: bool = false;
     for dir_entry in WalkDir::new(path)
         .min_depth(1)
         .max_depth(depth)
@@ -115,8 +123,16 @@ pub fn get_folder_content(
                 list.push(entity)
             }
         }
+        if list.len() >= max_len {
+            max_len_reached = true;
+            break;
+        }
     }
-    serde_json::to_string(&list)
+    let results = ScanningResult {
+        list,
+        max_len_reached,
+    };
+    serde_json::to_string(&results)
         .map(CommandOutcome::Finished)
         .map_err(|e| -> ComputationError {
             ComputationError::Process(format!("Could not produce json: {e}"))

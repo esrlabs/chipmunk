@@ -16,6 +16,7 @@ export abstract class JobsNative {
     public abstract listFolderContent(
         sequence: number,
         depth: number,
+        max: number,
         path: string,
     ): Promise<string>;
 

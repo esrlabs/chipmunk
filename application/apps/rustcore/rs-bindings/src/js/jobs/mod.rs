@@ -114,12 +114,18 @@ impl UnboundJobs {
         &self,
         id: i64,
         depth: i64,
+        max_len: i64,
         path: String,
     ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
-            .list_folder_content(id_from_i64(id)?, usize_from_i64(depth)?, path)
+            .list_folder_content(
+                id_from_i64(id)?,
+                usize_from_i64(depth)?,
+                usize_from_i64(max_len)?,
+                path,
+            )
             .await
             .map_err(ComputationErrorWrapper)
             .map(CommandOutcomeWrapper)

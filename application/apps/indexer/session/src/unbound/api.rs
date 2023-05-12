@@ -82,13 +82,14 @@ impl UnboundSessionAPI {
         &self,
         id: u64,
         depth: usize,
+        max_len: usize,
         path: String,
     ) -> Result<CommandOutcome<String>, ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(
             id,
             rx_results,
-            Command::FolderContent(path, depth, tx_results),
+            Command::FolderContent(path, depth, max_len, tx_results),
         )
         .await
     }

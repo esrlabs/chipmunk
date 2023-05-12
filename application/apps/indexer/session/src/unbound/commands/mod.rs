@@ -43,6 +43,7 @@ pub enum Command {
     FolderContent(
         String,
         usize,
+        usize,
         oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>,
     ),
     SpawnProcess(
@@ -80,7 +81,7 @@ impl std::fmt::Display for Command {
             match self {
                 Command::CancelTest(_, _, _) => "CancelTest",
                 Command::SpawnProcess(_, _, _) => "Spawning process",
-                Command::FolderContent(_, _, _) => "Getting folder's content",
+                Command::FolderContent(_, _, _, _) => "Getting folder's content",
                 Command::GetShellProfiles(_) => "Getting shell profiles",
                 Command::GetContextEnvvars(_) => "Getting context envvars",
                 Command::SerialPortsList(_) => "Getting serial ports list",
@@ -96,8 +97,8 @@ pub async fn process(command: Command, signal: Signal) {
     let cmd = command.to_string();
     trace!("Processing command: {cmd}");
     if match command {
-        Command::FolderContent(path, depth, tx) => tx
-            .send(folder::get_folder_content(&path, depth, signal))
+        Command::FolderContent(path, depth, max_len, tx) => tx
+            .send(folder::get_folder_content(&path, depth, max_len, signal))
             .is_err(),
         Command::SpawnProcess(path, args, tx) => {
             tx.send(process::execute(path, args, signal)).is_err()
@@ -121,7 +122,7 @@ pub async fn process(command: Command, signal: Signal) {
 pub async fn err(command: Command, err: ComputationError) {
     let cmd = command.to_string();
     if match command {
-        Command::FolderContent(_path, _depth, tx) => tx.send(Err(err)).is_err(),
+        Command::FolderContent(_path, _depth, _max_len, tx) => tx.send(Err(err)).is_err(),
         Command::SpawnProcess(_path, _args, tx) => tx.send(Err(err)).is_err(),
         Command::GetRegexError(_filter, tx) => tx.send(Err(err)).is_err(),
         Command::Checksum(_file, tx) => tx.send(Err(err)).is_err(),
