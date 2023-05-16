@@ -28,7 +28,7 @@ export class Service extends Implementation {
                                         return new handlers.FileAny.Action().apply();
                                     case FileType.Dlt:
                                         return new handlers.FileDlt.Action().apply();
-                                    case FileType.Pcap:
+                                    case FileType.PcapNG:
                                         return new handlers.FilePcap.Action().apply();
                                     default:
                                         return Promise.reject(
@@ -70,7 +70,7 @@ export class Service extends Implementation {
                                         return new handlers.FolderAny.Action().apply();
                                     case FileType.Dlt:
                                         return new handlers.FolderDlt.Action().apply();
-                                    case FileType.Pcap:
+                                    case FileType.PcapNG:
                                         return new handlers.FolderPcap.Action().apply();
                                     default:
                                         return Promise.reject(

@@ -37,9 +37,9 @@ export class Action extends Base {
             switch (file.type) {
                 case FileType.Dlt:
                     return opener.binary(file).dlt();
-                case FileType.Pcap:
-                    return opener.pcap(file).dlt();
-                    // TODO: Ask about parser >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+                case FileType.PcapNG:
+                    return opener.pcapng(file).dlt();
+                // TODO: Ask about parser >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                 default:
                     return opener.text(file).text();
             }

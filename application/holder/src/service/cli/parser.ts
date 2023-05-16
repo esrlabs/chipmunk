@@ -3,7 +3,7 @@ import { Service } from '@service/cli';
 import { ParserName } from 'platform/types/observe';
 
 export class Action extends CLIAction {
-    static parsers = ['dlt', 'pcap', 'text'];
+    static parsers = ['dlt', 'pcapng', 'text'];
 
     protected parser: ParserName | undefined;
     protected error: Error[] = [];
