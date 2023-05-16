@@ -94,11 +94,11 @@ describe('Jobs', function () {
         return runner(config.regular, 3, async (logger, done, collector) => {
             const jobs = collector(await Jobs.create()) as Jobs;
             const path = os.homedir();
-            jobs.listContent(1, 100, path)
+            jobs.listContent(1, 100, [path], true, true)
                 .then((ls) => {
                     expect(typeof ls).toEqual('string');
                     const job = jobs
-                        .listContent(10, 100, path)
+                        .listContent(10, 100, [path], true, true)
                         .then((_res) => {
                             finish(
                                 jobs,

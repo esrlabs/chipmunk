@@ -115,7 +115,9 @@ impl UnboundJobs {
         id: i64,
         depth: i64,
         max_len: i64,
-        path: String,
+        paths: Vec<String>,
+        include_files: bool,
+        include_folders: bool,
     ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
         self.api
             .as_ref()
@@ -124,7 +126,9 @@ impl UnboundJobs {
                 id_from_i64(id)?,
                 usize_from_i64(depth)?,
                 usize_from_i64(max_len)?,
-                path,
+                paths,
+                include_files,
+                include_folders,
             )
             .await
             .map_err(ComputationErrorWrapper)

@@ -67,7 +67,7 @@ export class FoldersList extends Holder {
         }
         const target = this.parent;
         this.items = await (
-            await bridge.folders().ls(target)
+            await bridge.folders().ls([target])
         ).map((i) => new Folder(target, i, this.delimiter, this.matcher));
         this.previous = target;
         this.assign();

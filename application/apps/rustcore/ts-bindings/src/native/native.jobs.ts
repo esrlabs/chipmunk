@@ -17,7 +17,9 @@ export abstract class JobsNative {
         sequence: number,
         depth: number,
         max: number,
-        path: string,
+        paths: string[],
+        includeFiles: boolean,
+        includeFolders: boolean,
     ): Promise<string>;
 
     public abstract spawnProcess(sequence: number, path: string, args: string[]): Promise<void>;

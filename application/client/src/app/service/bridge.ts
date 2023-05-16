@@ -41,7 +41,7 @@ export class Service extends Implementation {
     public files(): {
         getByPath(filenames: string[]): Promise<File[]>;
         getByPathWithCache(filenames: string[]): Promise<File[]>;
-        ls(path: string, deep: number, max: number): Promise<{ entities: Entity[]; max: boolean }>;
+        ls(paths: string[], deep: number, max: number, includeFiles: boolean, includeFolders: boolean): Promise<{ entities: Entity[]; max: boolean }>;
         stat(path: string): Promise<Entity>;
         checksum(filename: string): Promise<string>;
         checksumWithCache(filename: string): Promise<string>;
@@ -119,17 +119,21 @@ export class Service extends Implementation {
                 });
             },
             ls(
-                path: string,
+                paths: string[],
                 deep: number,
                 max: number,
+                includeFiles: boolean,
+                includeFolders: boolean,
             ): Promise<{ entities: Entity[]; max: boolean }> {
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(
                         Requests.Os.List.Response,
                         new Requests.Os.List.Request({
-                            path,
+                            paths,
                             deep,
                             max,
+                            includeFiles,
+                            includeFolders,
                         }),
                     )
                         .then((response) => {
@@ -281,7 +285,7 @@ export class Service extends Implementation {
         text(): Promise<File[]>;
         custom(ext: string): Promise<File[]>;
         select(): Promise<string[]>;
-        ls(path: string): Promise<string[]>;
+        ls(paths: string[]): Promise<string[]>;
         delimiter(): Promise<string>;
     } {
         const request = (target: FileType, ext?: string): Promise<File[]> => {
@@ -327,10 +331,10 @@ export class Service extends Implementation {
                         .catch(reject);
                 });
             },
-            ls: (path: string): Promise<string[]> => {
+            ls: (paths: string[]): Promise<string[]> => {
                 return Requests.IpcRequest.send(
                     Requests.Folder.Ls.Response,
-                    new Requests.Folder.Ls.Request({ path }),
+                    new Requests.Folder.Ls.Request({ paths }),
                 ).then((response) => {
                     return response.folders;
                 });
