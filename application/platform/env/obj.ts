@@ -132,6 +132,17 @@ export function getAsNotEmptyString(src: any, key: string): string {
     }
     return src[key];
 }
+export function getAsArrayOfNotEmptyString(src: any, key: string): string[] {
+    if (!(src[key] instanceof Array)) {
+        throw new Error(`Parameter "${key}" should be valid array`);
+    }
+    for (const elem in src[key]) {
+        if (typeof elem !== 'string' || elem.trim() === '') {
+            throw new Error(`Parameter "${key}" should be a array of none-empty string`);
+        }
+    }
+    return src[key];
+}
 export function getAsNotEmptyStringOrAsUndefined(src: any, key: string): string {
     if (typeof src[key] === 'string' && src[key].trim() === '') {
         throw new Error(`Parameter "${key}" should be a none-empty string`);

@@ -206,31 +206,36 @@ export class State extends Holder {
         this.items = [];
         const data = await favorites.places().get();
         this.roots = data.filter((f) => f.exists).map((f) => f.path);
-        for (const path of this.roots) {
-            if (this.abort.signal.aborted) {
-                return Promise.resolve();
-            }
-            await this.includeFromFolder(path).catch((err: Error) => {
-                console.log(`Fail to get items from folder: ${err.message}`);
-            });
-        }
+        await this.includeFromFolder(this.roots).catch((err: Error) => {
+            console.log(`Fail to get items from folder: ${err.message}`);
+        });
         this.scanning = undefined;
         this.update.emit();
     }
 
-    protected async includeFromFolder(path: string): Promise<void> {
+    protected async includeFromFolder(paths: string[]): Promise<void> {
         if (this.abort.signal.aborted) {
             return Promise.resolve();
         }
         // User can add into favorites nested folder - we should preven duplicates in such cases
-        if (this.folders.indexOf(path) !== -1) {
-            return Promise.resolve();
-        } else {
-            this.folders.push(path);
+        for (const path of paths) {
+            if (this.folders.indexOf(path) !== -1) {
+                return Promise.resolve();
+            } else {
+                this.folders.push(path);
+            }
         }
-        this.scanning = getFileName(path);
+        let allScanning = "";
+        for (const path of paths) {
+            if (allScanning.length > 0) {
+                allScanning = `${allScanning} - ${getFileName(path)}`
+            } else {
+                allScanning = `${getFileName(path)}`;
+            }
+        }
+        this.scanning = allScanning;
         this.update.emit();
-        const data = await bridge.files().ls(path, DEFAULT_DEEP, DEFAULT_LEN);
+        const data = await bridge.files().ls(paths, DEFAULT_DEEP, DEFAULT_LEN, true, false);
         let items: Item[] = [];
         data.entities.forEach((entity) => {
             if (this.abort.signal.aborted) {
@@ -250,7 +255,7 @@ export class State extends Holder {
         if (data.max) {
             notifications.notify(
                 new Notification({
-                    message: `Folder ${path} includes too many files (more than ${DEFAULT_LEN}).`,
+                    message: `Too many files in: ${allScanning}`,
                     actions: [],
                 }),
             );

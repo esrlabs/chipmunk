@@ -15,13 +15,13 @@ export const handler = Requests.InjectLogger<
     ): CancelablePromise<Requests.Folder.Ls.Response> => {
         return new CancelablePromise((resolve, reject) => {
             fs.promises
-                .readdir(request.path, { withFileTypes: true })
+                .readdir(request.paths[0], { withFileTypes: true })
                 .then((list) => {
                     resolve(
                         new Requests.Folder.Ls.Response({
                             folders: list
                                 .filter((el) => el.isDirectory())
-                                .map((el) => path.resolve(request.path, el.name)),
+                                .map((el) => path.resolve(request.paths[0], el.name)),
                         }),
                     );
                 })

@@ -4,12 +4,12 @@ import * as validator from '../../../env/obj';
 
 @Define({ name: 'ListFoldersFromRequest' })
 export class Request extends SignatureRequirement {
-    public path: string;
+    public paths: string[];
 
-    constructor(input: { path: string }) {
+    constructor(input: { paths: string[] }) {
         super();
         validator.isObject(input);
-        this.path = validator.getAsNotEmptyString(input, 'path');
+        this.paths = validator.getAsArrayOfNotEmptyString(input, 'paths');
     }
 }
 export interface Request extends Interface {}
