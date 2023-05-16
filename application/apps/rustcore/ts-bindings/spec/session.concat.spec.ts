@@ -110,7 +110,7 @@ describe('Concat', function () {
     //                 }
     //                 stream
     //                     .observe(
-    //                         Observe.DataSource.file(config.regular.files['pcapng']).pcap({
+    //                         Observe.DataSource.file(config.regular.files['pcapng']).pcapng({
     //                             dlt: {
     //                                 filter_config: undefined,
     //                                 fibex_file_paths: undefined,

@@ -182,14 +182,14 @@ export class State extends Holder {
                                     );
                                 });
                             break;
-                        case FileType.Pcap:
+                        case FileType.PcapNG:
                             // TODO: Ask parser >>>>>>>>>>>>>>>>>>>>>>>>
                             this._ilc.services.system.opener
-                                .pcap(file.filename)
+                                .pcapng(file.filename)
                                 .dlt()
                                 .catch((err: Error) => {
                                     this._ilc.logger.error(
-                                        `Fail to open pcap file; error: ${err.message}`,
+                                        `Fail to open pcapng file; error: ${err.message}`,
                                     );
                                 });
                             break;

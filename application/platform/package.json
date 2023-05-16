@@ -90,7 +90,6 @@
         "./types/hotkeys/map": "./dist/types/hotkeys/map.js",
         "./types/parsers": "./dist/types/parsers/index.js",
         "./types/parsers/dlt": "./dist/types/parsers/dlt.js",
-        "./types/parsers/pcap": "./dist/types/parsers/pcap.js",
         "./types/parsers/someip": "./dist/types/parsers/someip.js",
         "./types/storage": "./dist/types/storage/index.js",
         "./types/storage/json": "./dist/types/storage/json.js",

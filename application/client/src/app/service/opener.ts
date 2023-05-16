@@ -147,13 +147,13 @@ export class Service extends Implementation {
                             `Parser ${parser} isn't supported with binary source`,
                         );
                     }
-                case FileType.Pcap:
+                case FileType.PcapNG:
                     if (parser.Dlt !== undefined) {
-                        return this.pcap(origin.File[2]).dlt(
+                        return this.pcapng(origin.File[2]).dlt(
                             parserDLTSettingsToOptions(parser.Dlt),
                         );
                     } else if (parser.Someip !== undefined) {
-                        return this.pcap(origin.File[2]).someip(
+                        return this.pcapng(origin.File[2]).someip(
                             parserSomeIpSettingsToOptions(parser.Someip),
                         );
                     } else {
@@ -219,7 +219,7 @@ export class Service extends Implementation {
         return output;
     }
 
-    public pcap(file: File | string): IPcapFileFuncs {
+    public pcapng(file: File | string): IPcapFileFuncs {
         let scope: Session | undefined;
         const output: IPcapFileFuncs = {
             dlt: (options?: IDLTOptions): Promise<string> => {
