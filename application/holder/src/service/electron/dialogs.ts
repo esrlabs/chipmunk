@@ -58,7 +58,7 @@ export class Dialogs extends Implementation {
     public openFile(): {
         any(ext?: string): Promise<string[]>;
         dlt(): Promise<string[]>;
-        pcap(): Promise<string[]>;
+        pcapng(): Promise<string[]>;
     } {
         const opener = async (target: number, ext?: string): Promise<string[]> => {
             let results;
@@ -90,9 +90,9 @@ export class Dialogs extends Implementation {
                 case 2:
                     this.fixFocusAndMouse();
                     results = await dialog.showOpenDialog(this._window, {
-                        title: 'Opening a PCAP/PCAPNG file',
+                        title: 'Opening a PCAPNG file',
                         properties: ['openFile', 'multiSelections'],
-                        filters: [{ name: 'PCAP/PCAPNG Files', extensions: ['pcap', 'pcapng'] }],
+                        filters: [{ name: 'PCAPNG Files', extensions: ['pcapng'] }],
                     });
                     break;
                 default:
@@ -103,7 +103,7 @@ export class Dialogs extends Implementation {
         return {
             any: (ext?: string) => opener(0, ext),
             dlt: () => opener(1),
-            pcap: () => opener(2),
+            pcapng: () => opener(2),
         };
     }
 }

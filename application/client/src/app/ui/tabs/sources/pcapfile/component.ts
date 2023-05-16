@@ -71,7 +71,7 @@ export class TabSourcePcapFile extends ChangesDetector implements AfterViewInit,
 
     public ngAfterViewInit(): void {
         this.tab.setTitle(
-            this.files.length === 1 ? this.files[0].name : `${this.files.length} PCAP files`,
+            this.files.length === 1 ? this.files[0].name : `${this.files.length} PcapNG files`,
         );
     }
 

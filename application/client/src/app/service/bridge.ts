@@ -59,7 +59,7 @@ export class Service extends Implementation {
         select: {
             any(): Promise<File[]>;
             dlt(): Promise<File[]>;
-            pcap(): Promise<File[]>;
+            pcapng(): Promise<File[]>;
             text(): Promise<File[]>;
             custom(ext: string): Promise<File[]>;
             save(ext?: string): Promise<string | undefined>;
@@ -249,13 +249,13 @@ export class Service extends Implementation {
             },
             select: {
                 any: (): Promise<File[]> => {
-                    return request(FileType.Any, `dlt,pcap,txt,log,logs`);
+                    return request(FileType.Any, `dlt,pcapng,txt,log,logs`);
                 },
                 dlt: (): Promise<File[]> => {
                     return request(FileType.Dlt);
                 },
-                pcap: (): Promise<File[]> => {
-                    return request(FileType.Pcap);
+                pcapng: (): Promise<File[]> => {
+                    return request(FileType.PcapNG);
                 },
                 text: (): Promise<File[]> => {
                     return request(FileType.Text);
@@ -283,7 +283,7 @@ export class Service extends Implementation {
     public folders(): {
         any(): Promise<File[]>;
         dlt(): Promise<File[]>;
-        pcap(): Promise<File[]>;
+        pcapng(): Promise<File[]>;
         text(): Promise<File[]>;
         custom(ext: string): Promise<File[]>;
         select(): Promise<string[]>;
@@ -312,8 +312,8 @@ export class Service extends Implementation {
             dlt: (): Promise<File[]> => {
                 return request(FileType.Dlt);
             },
-            pcap: (): Promise<File[]> => {
-                return request(FileType.Pcap);
+            pcapng: (): Promise<File[]> => {
+                return request(FileType.PcapNG);
             },
             text: (): Promise<File[]> => {
                 return request(FileType.Any);

@@ -354,9 +354,9 @@ export class Service extends Implementation {
                                         },
                                     },
                                     {
-                                        label: 'PCAP',
+                                        label: 'PCAPNG',
                                         click: async () => {
-                                            Actions.openFolder(FileType.Pcap).catch(
+                                            Actions.openFolder(FileType.PcapNG).catch(
                                                 (err: Error) => {
                                                     this.log().error(
                                                         `Fail call action openFile: ${err.message}`,

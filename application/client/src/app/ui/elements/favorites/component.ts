@@ -75,9 +75,9 @@ export class Favorites
                     },
                 },
                 {
-                    caption: 'Open as PCAP',
+                    caption: 'Open as PcapNG',
                     handler: () => {
-                        this.state.open(item).pcap();
+                        this.state.open(item).pcapng();
                     },
                 },
             ],

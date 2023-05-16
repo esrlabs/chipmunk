@@ -116,7 +116,7 @@ export class State extends Holder {
 
     public open(item: Item): {
         dlt(): void;
-        pcap(): void;
+        pcapng(): void;
         text(): void;
         auto(): void;
     } {
@@ -131,10 +131,10 @@ export class State extends Holder {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
                     });
             },
-            pcap: (): void => {
+            pcapng: (): void => {
                 this.ilc
                     .ilc()
-                    .services.system.opener.pcap(item.filename)
+                    .services.system.opener.pcapng(item.filename)
                     .dlt()
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);

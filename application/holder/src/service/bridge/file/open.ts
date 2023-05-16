@@ -87,12 +87,12 @@ export const handler = Requests.InjectLogger<
                                 );
                             });
                         break;
-                    case FileType.Pcap:
+                    case FileType.PcapNG:
                         stored
                             .observe()
                             .start(
                                 Observe.DataSource.file(request.file.filename)
-                                    .pcap()
+                                    .pcapng()
                                     .dlt(
                                         request.file.options.dlt === undefined
                                             ? defaultParserSettings(false)
