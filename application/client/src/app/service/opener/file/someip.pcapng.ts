@@ -1,9 +1,9 @@
 import { FileOpener } from '../file';
 import { Render } from '@schema/render/index';
 import { getRenderFor } from '@schema/render/tools';
-import { IDLTOptions } from '@platform/types/parsers/dlt';
+import { ISomeIpOptions } from '@platform/types/parsers/someip';
 
-export class DltInPcap extends FileOpener<IDLTOptions, { dlt: IDLTOptions }> {
+export class SomeIpInPcap extends FileOpener<ISomeIpOptions, { someip: ISomeIpOptions }> {
     public getRender(): Render<unknown> {
         return getRenderFor().dlt();
     }
@@ -14,11 +14,12 @@ export class DltInPcap extends FileOpener<IDLTOptions, { dlt: IDLTOptions }> {
           }
         | undefined {
         return {
-            name: 'Opening PCAP file with DLT',
+            name: 'Opening PcapNG file with SomeIp',
             component: 'app-tabs-source-pcapfile',
         };
+        // TODO: create component >>>>>>>>>>>>>>>>>>>>>>
     }
-    public getNamedOptions(options: IDLTOptions): { dlt: IDLTOptions } {
-        return { dlt: options };
+    public getNamedOptions(options: ISomeIpOptions): { someip: ISomeIpOptions } {
+        return { someip: options };
     }
 }

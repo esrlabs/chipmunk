@@ -126,13 +126,13 @@ export class ElementsTreeSelector
                     },
                 },
                 {
-                    caption: 'Open as PCAP',
+                    caption: 'Open as PcapNG',
                     handler: () => {
                         this.ilc()
-                            .services.system.opener.pcap(entity.getPath())
+                            .services.system.opener.pcapng(entity.getPath())
                             .dlt()
                             .catch((err: Error) => {
-                                this.log().error(`Fail to open pcap file; error: ${err.message}`);
+                                this.log().error(`Fail to open pcapng file; error: ${err.message}`);
                             });
                     },
                 },

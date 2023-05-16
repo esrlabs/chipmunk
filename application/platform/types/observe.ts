@@ -32,7 +32,7 @@ export enum ParserName {
 }
 
 export enum FileType {
-    Pcap = 'Pcap',
+    PcapNG = 'PcapNG',
     Text = 'Text',
     Binary = 'Binary',
 }
@@ -123,7 +123,7 @@ export class DataSource {
     public static file(file: string): {
         text(): SourcesFactory;
         binary(): SourcesFactory;
-        pcap(): SourcesFactory;
+        pcapng(): SourcesFactory;
     } {
         const factory = (fileType: FileType) => {
             return {
@@ -160,8 +160,8 @@ export class DataSource {
             binary: (): SourcesFactory => {
                 return factory(FileType.Binary);
             },
-            pcap: (): SourcesFactory => {
-                return factory(FileType.Pcap);
+            pcapng: (): SourcesFactory => {
+                return factory(FileType.PcapNG);
             },
         };
     }
