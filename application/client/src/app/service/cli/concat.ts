@@ -43,7 +43,7 @@ export async function action(
     }
     const groups: { [key: string]: string[] } = {
         dlt: [],
-        pcap: [],
+        pcapng: [],
         any: [],
     };
     request.files.forEach((file) => {
@@ -51,8 +51,8 @@ export async function action(
             case FileType.Dlt:
                 groups['dlt'].push(file);
                 break;
-            case FileType.Pcap:
-                groups['pcap'].push(file);
+            case FileType.PcapNG:
+                groups['pcapng'].push(file);
                 break;
             case FileType.Any:
             default:
@@ -67,8 +67,8 @@ export async function action(
         const executor: () => Promise<string> = (() => {
             if (group === 'dlt') {
                 return opener.concat(files).dlt;
-            } else if (group === 'pcap') {
-                throw new Error(`Not implemented PCAP support`);
+            } else if (group === 'pcapng') {
+                throw new Error(`Not implemented PcapNG support`);
             } else {
                 return opener.concat(files).text;
             }
