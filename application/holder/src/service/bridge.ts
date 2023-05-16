@@ -114,15 +114,6 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
-                    Requests.Folder.Ls.Request,
-                    RequestHandlers.Folder.Ls.handler,
-                ),
-        );
-        this.register(
-            electron
-                .ipc()
-                .respondent(
-                    this.getName(),
                     Requests.Folder.Delimiter.Request,
                     RequestHandlers.Folder.Delimiter.handler,
                 ),

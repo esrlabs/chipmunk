@@ -333,10 +333,10 @@ export class Service extends Implementation {
             },
             ls: (paths: string[]): Promise<string[]> => {
                 return Requests.IpcRequest.send(
-                    Requests.Folder.Ls.Response,
-                    new Requests.Folder.Ls.Request({ paths }),
+                    Requests.Os.List.Response,
+                    new Requests.Os.List.Request({ paths, deep: 1, max: 500, includeFiles: false, includeFolders: true }),
                 ).then((response) => {
-                    return response.folders;
+                    return response.entities.map((e) => e.fullname);
                 });
             },
             delimiter: (): Promise<string> => {
