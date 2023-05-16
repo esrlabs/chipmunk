@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export interface IPerformanceTest {
-    open_as: 'text' | 'dlt' | 'pcap';
+    open_as: 'text' | 'dlt' | 'pcapng';
     ignore: boolean;
     alias: string;
     expectation_ms: number;

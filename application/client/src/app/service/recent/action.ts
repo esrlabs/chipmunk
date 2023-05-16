@@ -223,8 +223,8 @@ export class Action {
                     };
                     if (options.dlt !== undefined) {
                         opt['dlt'] = options.dlt;
-                    } else if (options.pcap !== undefined) {
-                        opt['pcap'] = options.pcap;
+                    } else if (options.pcapng !== undefined) {
+                        opt['pcapng'] = options.pcapng;
                     }
                     this.file = new RecentFileAction().from(opt);
                 } catch (err) {

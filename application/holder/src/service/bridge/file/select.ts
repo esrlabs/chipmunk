@@ -42,12 +42,12 @@ function dlt(): Promise<File[]> {
     });
 }
 
-function pcap(): Promise<File[]> {
+function pcapng(): Promise<File[]> {
     return new Promise((resolve, reject) => {
         electron
             .dialogs()
             .openFile()
-            .pcap()
+            .pcapng()
             .then((files: string[]) => {
                 const entities = getFileEntities(files);
                 if (entities instanceof Error) {
@@ -76,8 +76,8 @@ export const handler = Requests.InjectLogger<
                         return any(request.ext);
                     case FileType.Dlt:
                         return dlt();
-                    case FileType.Pcap:
-                        return pcap();
+                    case FileType.PcapNG:
+                        return pcapng();
                     default:
                         return Promise.reject(new Error(`Unsupported format of file`));
                 }

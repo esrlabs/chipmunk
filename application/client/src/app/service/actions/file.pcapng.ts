@@ -4,9 +4,7 @@ import { opener } from '@service/opener';
 import { session } from '@service/session';
 import { TabSourceMultipleFiles } from '@tabs/sources/multiplefiles/component';
 
-import { notifications, Notification } from '@ui/service/notifications';
-
-export const ACTION_UUID = 'open_pcap_folder';
+export const ACTION_UUID = 'open_pcap_file';
 
 export class Action extends Base {
     public group(): number {
@@ -17,18 +15,12 @@ export class Action extends Base {
     }
 
     public caption(): string {
-        return 'Select Folder with PCAP';
+        return 'Open PcapNG File';
     }
 
     public async apply(): Promise<void> {
-        const files = await bridge.folders().pcap();
+        const files = await bridge.files().select.pcapng();
         if (files.length === 0) {
-            notifications.notify(
-                new Notification({
-                    message: 'No files has been found',
-                    actions: [],
-                }),
-            );
             return Promise.resolve();
         }
         if (files.length > 1) {
@@ -44,7 +36,7 @@ export class Action extends Base {
             return Promise.resolve();
         }
         return opener
-            .pcap(files[0])
+            .pcapng(files[0])
             .dlt()
             .then(() => {
                 return Promise.resolve();

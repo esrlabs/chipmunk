@@ -381,7 +381,7 @@ describe('Observe', function () {
                                             )
                                             .catch(finish.bind(null, session, done));
                                         break;
-                                    case 'pcap':
+                                    case 'pcapng':
                                         stream
                                             .observe(
                                                 Observe.DataSource.file(test.file).binary().dlt({

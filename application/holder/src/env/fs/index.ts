@@ -131,9 +131,8 @@ export function detectSupportedFileType(filename: string): FileType {
     switch (path.extname(filename).toLowerCase()) {
         case '.dlt':
             return FileType.Dlt;
-        case '.pcap':
         case '.pcapng':
-            return FileType.Pcap;
+            return FileType.PcapNG;
         default:
             return FileType.Text;
     }
