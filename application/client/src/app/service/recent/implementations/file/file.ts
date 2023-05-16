@@ -16,7 +16,7 @@ export interface BaseInfo {
 export class Recent extends RecentAction {
     public text: Files.Text | undefined;
     public dlt: Files.Dlt | undefined;
-    public pcap: Files.Pcap | undefined;
+    public pcapng: Files.PcapNG | undefined;
 
     public isSuitable(parser: ParserName): boolean {
         switch (parser) {
@@ -25,7 +25,7 @@ export class Recent extends RecentAction {
             case ParserName.Dlt:
                 return this.dlt !== undefined;
             case ParserName.Someip:
-                return this.pcap !== undefined;
+                return this.pcapng !== undefined;
         }
     }
 
@@ -35,7 +35,7 @@ export class Recent extends RecentAction {
             inputs: {
                 text: this.text,
                 dlt: this.dlt,
-                pcap: this.pcap,
+                pcapng: this.pcapng,
             },
         };
     }
@@ -46,8 +46,8 @@ export class Recent extends RecentAction {
                 ? this.text
                 : this.dlt !== undefined
                 ? this.dlt
-                : this.pcap !== undefined
-                ? this.pcap
+                : this.pcapng !== undefined
+                ? this.pcapng
                 : undefined;
         if (base === undefined) {
             throw new Error(`No file data provided`);
@@ -69,8 +69,8 @@ export class Recent extends RecentAction {
                 ? this.text
                 : this.dlt !== undefined
                 ? this.dlt
-                : this.pcap !== undefined
-                ? this.pcap
+                : this.pcapng !== undefined
+                ? this.pcapng
                 : undefined;
         if (base === undefined) {
             throw new Error(`No file data provided`);
@@ -85,8 +85,8 @@ export class Recent extends RecentAction {
             return this.text.asObj();
         } else if (this.dlt !== undefined) {
             return this.dlt.asObj();
-        } else if (this.pcap !== undefined) {
-            return this.pcap.asObj();
+        } else if (this.pcapng !== undefined) {
+            return this.pcapng.asObj();
         } else {
             throw new Error(`No any file type defined`);
         }
@@ -100,8 +100,8 @@ export class Recent extends RecentAction {
         }
         if (inputs['dlt'] !== undefined) {
             this.dlt = new Files.Dlt(inputs);
-        } else if (inputs['pcap'] !== undefined) {
-            this.pcap = new Files.Pcap(inputs);
+        } else if (inputs['pcapng'] !== undefined) {
+            this.pcapng = new Files.PcapNG(inputs);
         } else {
             this.text = new Files.Text(inputs);
         }

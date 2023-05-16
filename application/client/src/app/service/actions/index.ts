@@ -1,10 +1,10 @@
 import * as FileDlt from './file.dlt';
 import * as FileText from './file.text';
-import * as FilePcap from './file.pcap';
+import * as FilePcap from './file.pcapng';
 import * as FileAny from './file.any';
 import * as FolderDlt from './folder.dlt';
 import * as FolderText from './folder.text';
-import * as FolderPcap from './folder.pcap';
+import * as FolderPcap from './folder.pcapng';
 import * as FolderAny from './folder.any';
 import * as StreamDltOnCustom from './stream.dlt.custom';
 import * as StreamTextOnCustom from './stream.text.custom';
@@ -22,11 +22,11 @@ import { Base } from './action';
 
 export * as FileDlt from './file.dlt';
 export * as FileText from './file.text';
-export * as FilePcap from './file.pcap';
+export * as FilePcap from './file.pcapng';
 export * as FileAny from './file.any';
 export * as FolderDlt from './folder.dlt';
 export * as FolderText from './folder.text';
-export * as FolderPcap from './folder.pcap';
+export * as FolderPcap from './folder.pcapng';
 export * as FolderAny from './folder.any';
 export * as StreamDltOnCustom from './stream.dlt.custom';
 export * as StreamTextOnCustom from './stream.text.custom';

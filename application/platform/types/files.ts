@@ -74,14 +74,14 @@ export enum FileType {
     Text = 'Text',
     Dlt = 'Dlt',
     SomeIp = 'SomeIp',
-    Pcap = 'Pcap',
+    PcapNG = 'PcapNG',
     Any = 'Any',
 }
 
 export interface TargetFileOptions {
     dlt?: IDLTOptions;
     someip?: Record<string, unknown>;
-    pcap?: Record<string, unknown>;
+    pcapng?: Record<string, unknown>;
 }
 
 export interface TargetFile {
@@ -138,7 +138,7 @@ export function getFileTypeByExt(filename: string): FileType {
     if (normalized.endsWith('.dlt')) {
         return FileType.Dlt;
     } else if (normalized.endsWith('.pcapng')) {
-        return FileType.Pcap;
+        return FileType.PcapNG;
     } else {
         return FileType.Any;
     }

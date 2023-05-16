@@ -15,7 +15,7 @@ import * as Files from '@service/recent/implementations/file/index';
 export class RecentFile implements AfterContentInit {
     @Input() public text: Files.Text | undefined;
     @Input() public dlt: Files.Dlt | undefined;
-    @Input() public pcap: Files.Pcap | undefined;
+    @Input() public pcapng: Files.PcapNG | undefined;
 
     public name!: string;
     public path!: string;
@@ -28,8 +28,8 @@ export class RecentFile implements AfterContentInit {
                 ? this.text
                 : this.dlt !== undefined
                 ? this.dlt
-                : this.pcap !== undefined
-                ? this.pcap
+                : this.pcapng !== undefined
+                ? this.pcapng
                 : undefined;
         if (base === undefined) {
             throw new Error(`No file data provided`);

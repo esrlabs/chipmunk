@@ -40,11 +40,11 @@ export async function action(cli: Service, request: Requests.Cli.Open.Request): 
                         return undefined;
                     });
                 break;
-            case FileType.Pcap:
-                // TODO: add pcap support
+            case FileType.PcapNG:
+                // TODO: add pcapng support
                 // await opener
                 //     .file(file)
-                //     .pcap()
+                //     .pcapng()
                 //     .catch((err: Error) => {
                 //         logger.warn(`Fail to apply action (Events.Cli.Open.Event): ${err.message}`);
                 //     });
