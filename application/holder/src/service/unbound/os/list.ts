@@ -17,7 +17,7 @@ export const handler = Requests.InjectLogger<
     ): CancelablePromise<Requests.Os.List.Response> => {
         return new CancelablePromise((resolve, reject) => {
             unbound.jobs
-                .listContent(request.deep, request.max, request.paths, request.includeFiles, request.includeFolders)
+                .listContent(request)
                 .then((content: string) => {
                     try {
                         const data = typeof content === 'string' ? JSON.parse(content) : content;

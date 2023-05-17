@@ -94,11 +94,21 @@ describe('Jobs', function () {
         return runner(config.regular, 3, async (logger, done, collector) => {
             const jobs = collector(await Jobs.create()) as Jobs;
             const path = os.homedir();
-            jobs.listContent(1, 100, [path], true, true)
+            jobs.listContent({
+                depth: 1,
+                max: 100,
+                paths: [path],
+                include: { files: true, folders: true },
+            })
                 .then((ls) => {
                     expect(typeof ls).toEqual('string');
                     const job = jobs
-                        .listContent(10, 100, [path], true, true)
+                        .listContent({
+                            depth: 10,
+                            max: 100,
+                            paths: [path],
+                            include: { files: true, folders: true },
+                        })
                         .then((_res) => {
                             finish(
                                 jobs,

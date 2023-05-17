@@ -101,7 +101,7 @@ export class DynamicDatabase {
         return new Promise((resolve, reject) => {
             this.services.system.bridge
                 .files()
-                .ls([path], 1, DEFAULT_LEN, true, true)
+                .ls({ paths: [path], depth: 1, max: DEFAULT_LEN })
                 .then((data) => {
                     const sub = data.entities.map(
                         (entity) => new Entity(entity, path, false, true, this.filter),

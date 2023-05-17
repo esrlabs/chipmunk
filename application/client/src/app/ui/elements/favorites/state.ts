@@ -225,17 +225,24 @@ export class State extends Holder {
                 this.folders.push(path);
             }
         }
-        let allScanning = "";
+        let allScanning = '';
         for (const path of paths) {
             if (allScanning.length > 0) {
-                allScanning = `${allScanning} - ${getFileName(path)}`
+                allScanning = `${allScanning} - ${getFileName(path)}`;
             } else {
                 allScanning = `${getFileName(path)}`;
             }
         }
         this.scanning = allScanning;
         this.update.emit();
-        const data = await bridge.files().ls(paths, DEFAULT_DEEP, DEFAULT_LEN, true, false);
+        const data = await bridge
+            .files()
+            .ls({
+                paths,
+                depth: DEFAULT_DEEP,
+                max: DEFAULT_LEN,
+                include: { files: true, folders: false },
+            });
         let items: Item[] = [];
         data.entities.forEach((entity) => {
             if (this.abort.signal.aborted) {
