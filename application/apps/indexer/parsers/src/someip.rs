@@ -30,6 +30,9 @@ impl<'m> SomeipParser<'m> {
     }
 }
 
+unsafe impl<'m> Send for SomeipParser<'m> {}
+unsafe impl<'m> Sync for SomeipParser<'m> {}
+
 impl<'m> Parser<SomeipLogMessage> for SomeipParser<'m> {
     fn parse<'a>(
         &mut self,
