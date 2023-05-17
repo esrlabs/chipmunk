@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fx:FIBEX>
+  <fx:PROJECT ID="/Project_simulation">
+    <ho:SHORT-NAME>simulation</ho:SHORT-NAME>
+  </fx:PROJECT>
+  <fx:ELEMENTS>
+    <fx:PACKAGES>
+      <fx:PACKAGE ID="/SOMEIP">
+        <ho:SHORT-NAME>SOMEIP</ho:SHORT-NAME>
+      </fx:PACKAGE>
+      <fx:PACKAGE ID="/SOMEIP/TEST">
+        <ho:SHORT-NAME>TEST</ho:SHORT-NAME>
+        <fx:PACKAGE-REF ID-REF="/SOMEIP"/>
+      </fx:PACKAGE>
+    </fx:PACKAGES>
+    <fx:SERVICE-INTERFACES>
+        <fx:SERVICE-INTERFACE ID="/SOMEIP/TEST/ServiceInterface_TestService">
+            <ho:SHORT-NAME>TestService</ho:SHORT-NAME>
+            <fx:SERVICE-IDENTIFIER>123</fx:SERVICE-IDENTIFIER>
+            <fx:PACKAGE-REF ID-REF="/SOMEIP/TEST"/>
+            <service:API-VERSION>
+                <service:MAJOR>1</service:MAJOR>
+                <service:MINOR>0</service:MINOR>
+            </service:API-VERSION>
+            <service:EVENTS>
+                <service:EVENT ID="/SOMEIP/TEST/ServiceInterface_TestService/Method_TimeEvent">
+                    <ho:SHORT-NAME>TimeEvent</ho:SHORT-NAME>
+                    <service:METHOD-IDENTIFIER>32773</service:METHOD-IDENTIFIER>
+                    <service:CALL-SEMANTIC>FIRE_AND_FORGET</service:CALL-SEMANTIC>
+                    <service:INPUT-PARAMETERS>
+                        <service:INPUT-PARAMETER ID="/SOMEIP/TEST/ServiceInterface_TestService/Method_TimeEvent/in/Parameter_Value1">
+                            <ho:SHORT-NAME>Timestamp</ho:SHORT-NAME>
+                            <fx:DATATYPE-REF ID-REF="/CommonDatatype_INT64"/>
+                            <fx:UTILIZATION>
+                                <fx:IS-HIGH-LOW-BYTE-ORDER>true</fx:IS-HIGH-LOW-BYTE-ORDER>
+                            </fx:UTILIZATION>
+                            <service:POSITION>0</service:POSITION>
+                        </service:INPUT-PARAMETER>
+                    </service:INPUT-PARAMETERS>
+                </service:EVENT>
+            </service:EVENTS>
+        </fx:SERVICE-INTERFACE>
+    </fx:SERVICE-INTERFACES>
+    <fx:DATATYPES>
+        <fx:DATATYPE xsi:type="fx:COMMON-DATATYPE-TYPE" ID="/CommonDatatype_INT64">
+            <ho:SHORT-NAME>INT64</ho:SHORT-NAME>
+        </fx:DATATYPE>
+    </fx:DATATYPES>
+  </fx:ELEMENTS>
+</fx:FIBEX>
