@@ -27,7 +27,7 @@ export interface ObservedSourceLink {
 
 export enum ParserName {
     Dlt = 'Dlt',
-    Someip = 'Someip',
+    SomeIp = 'SomeIp',
     Text = 'Text',
 }
 
@@ -45,7 +45,7 @@ export enum Origin {
 
 export interface Parser {
     Dlt?: DltParserSettings;
-    Someip?: SomeIpParserSettings;
+    SomeIp?: SomeIpParserSettings;
     Text?: null;
     /// Text type is default. No need to define
 }
@@ -140,7 +140,7 @@ export class DataSource {
                         origin: {
                             File: [unique(), fileType, file],
                         },
-                        parser: { Someip: settings },
+                        parser: { SomeIp: settings },
                     });
                 },
                 text: (): DataSource => {
@@ -185,7 +185,7 @@ export class DataSource {
                             return [unique(), f[0], f[1]];
                         }),
                     },
-                    parser: { Someip: settings },
+                    parser: { SomeIp: settings },
                 });
             },
             text: (): DataSource => {
@@ -220,7 +220,7 @@ export class DataSource {
                     someip: (settings: SomeIpParserSettings): DataSource => {
                         return new DataSource({
                             origin,
-                            parser: { Someip: settings },
+                            parser: { SomeIp: settings },
                         });
                     },
                     text: (): DataSource => {
@@ -245,7 +245,7 @@ export class DataSource {
                     someip: (settings: SomeIpParserSettings): DataSource => {
                         return new DataSource({
                             origin,
-                            parser: { Someip: settings },
+                            parser: { SomeIp: settings },
                         });
                     },
                     text: (): DataSource => {
@@ -268,7 +268,7 @@ export class DataSource {
                     someip: (settings: SomeIpParserSettings): DataSource => {
                         return new DataSource({
                             origin,
-                            parser: { Someip: settings },
+                            parser: { SomeIp: settings },
                         });
                     },
                     text: (): DataSource => {
@@ -291,7 +291,7 @@ export class DataSource {
                     someip: (settings: SomeIpParserSettings): DataSource => {
                         return new DataSource({
                             origin,
-                            parser: { Someip: settings },
+                            parser: { SomeIp: settings },
                         });
                     },
                     text: (): DataSource => {
@@ -401,8 +401,8 @@ export class DataSource {
         }
         if (parser.Dlt !== undefined) {
             return ParserName.Dlt;
-        } else if (parser.Someip !== undefined) {
-            return ParserName.Someip;
+        } else if (parser.SomeIp !== undefined) {
+            return ParserName.SomeIp;
         } else if (parser.Text !== undefined) {
             return ParserName.Text;
         } else {
