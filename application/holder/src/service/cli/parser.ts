@@ -34,7 +34,7 @@ export class Action extends CLIAction {
                 this.parser = ParserName.Dlt;
                 return arg;
             case 'someip':
-                this.parser = ParserName.Someip;
+                this.parser = ParserName.SomeIp;
                 return arg;
             case 'text':
                 this.parser = ParserName.Text;

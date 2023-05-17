@@ -82,7 +82,7 @@ export class Action {
                         return this.file.isSuitable(parser);
                     }
                     break;
-                case ParserName.Someip:
+                case ParserName.SomeIp:
                     if (this.text_stream !== undefined || this.dlt_stream !== undefined) {
                         return false;
                     }
