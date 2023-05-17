@@ -242,9 +242,9 @@ export class Stream extends Subscriber {
                 }
                 if (src.parser.Dlt !== undefined) {
                     return this.connect(source).dlt(parserDLTSettingsToOptions(src.parser.Dlt));
-                } else if (src.parser.Someip !== undefined) {
+                } else if (src.parser.SomeIp !== undefined) {
                     return this.connect(source).someip(
-                        parserSomeIpSettingsToOptions(src.parser.Someip),
+                        parserSomeIpSettingsToOptions(src.parser.SomeIp),
                     );
                 } else if (src.parser.Text !== undefined) {
                     return this.connect(source).text();

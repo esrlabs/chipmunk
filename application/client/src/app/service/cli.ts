@@ -134,7 +134,7 @@ export class Service extends Implementation {
                     .empty(
                         parser === ParserName.Dlt
                             ? getRenderFor().dlt()
-                            : parser === ParserName.Someip
+                            : parser === ParserName.SomeIp
                             ? getRenderFor().someip()
                             : getRenderFor().text(),
                     );
