@@ -35,7 +35,12 @@ export class Jobs extends Base {
         return job;
     }
 
-    public listContent(depth: number, max: number, paths: string[], includeFiles: boolean, includeFolders: boolean): CancelablePromise<string> {
+    public listContent(options: {
+        depth: number;
+        max: number;
+        paths: string[];
+        include: { files: boolean; folders: boolean };
+    }): CancelablePromise<string> {
         const sequence = this.sequence();
         const job: CancelablePromise<string> = this.execute(
             (res: string): any | Error => {
@@ -46,7 +51,14 @@ export class Jobs extends Base {
                 }
                 return res;
             },
-            this.native.listFolderContent(sequence, depth, max, paths, includeFiles, includeFolders),
+            this.native.listFolderContent(
+                sequence,
+                options.depth,
+                options.max,
+                options.paths,
+                options.include.files,
+                options.include.folders,
+            ),
             sequence,
             'listContent',
         );

@@ -41,7 +41,12 @@ export class Service extends Implementation {
     public files(): {
         getByPath(filenames: string[]): Promise<File[]>;
         getByPathWithCache(filenames: string[]): Promise<File[]>;
-        ls(paths: string[], deep: number, max: number, includeFiles: boolean, includeFolders: boolean): Promise<{ entities: Entity[]; max: boolean }>;
+        ls(options: {
+            paths: string[];
+            depth: number;
+            max: number;
+            include?: { files: boolean; folders: boolean };
+        }): Promise<{ entities: Entity[]; max: boolean }>;
         stat(path: string): Promise<Entity>;
         checksum(filename: string): Promise<string>;
         checksumWithCache(filename: string): Promise<string>;
@@ -118,29 +123,26 @@ export class Service extends Implementation {
                         .catch(reject);
                 });
             },
-            ls(
-                paths: string[],
-                deep: number,
-                max: number,
-                includeFiles: boolean,
-                includeFolders: boolean,
-            ): Promise<{ entities: Entity[]; max: boolean }> {
-                return new Promise((resolve, reject) => {
-                    Requests.IpcRequest.send(
-                        Requests.Os.List.Response,
-                        new Requests.Os.List.Request({
-                            paths,
-                            deep,
-                            max,
-                            includeFiles,
-                            includeFolders,
-                        }),
-                    )
-                        .then((response) => {
-                            resolve(response);
-                        })
-                        .catch(reject);
-                });
+            ls(options: {
+                paths: string[];
+                depth: number;
+                max: number;
+                include?: { files: boolean; folders: boolean };
+            }): Promise<{ entities: Entity[]; max: boolean }> {
+                return Requests.IpcRequest.send(
+                    Requests.Os.List.Response,
+                    new Requests.Os.List.Request(
+                        Object.assign(
+                            {
+                                include:
+                                    options.include !== undefined
+                                        ? options.include
+                                        : { files: true, folders: true },
+                            },
+                            options,
+                        ),
+                    ),
+                );
             },
             stat(path: string): Promise<Entity> {
                 return new Promise((resolve, reject) => {
@@ -332,12 +334,11 @@ export class Service extends Implementation {
                 });
             },
             ls: (paths: string[]): Promise<string[]> => {
-                return Requests.IpcRequest.send(
-                    Requests.Os.List.Response,
-                    new Requests.Os.List.Request({ paths, deep: 1, max: 500, includeFiles: false, includeFolders: true }),
-                ).then((response) => {
-                    return response.entities.map((e) => e.fullname);
-                });
+                return this.files()
+                    .ls({ paths, depth: 1, max: 500, include: { files: false, folders: true } })
+                    .then((response) => {
+                        return response.entities.map((e) => e.fullname);
+                    });
             },
             delimiter: (): Promise<string> => {
                 return Requests.IpcRequest.send(

@@ -6,19 +6,24 @@ import * as validator from '../../../env/obj';
 @Define({ name: 'ListFilesAndFoldersRequest' })
 export class Request extends SignatureRequirement {
     public paths: string[];
-    public deep: number;
+    public depth: number;
     public max: number;
-    public includeFiles: boolean;
-    public includeFolders: boolean;
+    public include: { files: boolean; folders: boolean };
 
-    constructor(input: { paths: string[]; deep: number; max: number, includeFiles: boolean, includeFolders: boolean }) {
+    constructor(input: {
+        paths: string[];
+        depth: number;
+        max: number;
+        include: { files: boolean; folders: boolean };
+    }) {
         super();
         validator.isObject(input);
         this.paths = validator.getAsArrayOfNotEmptyString(input, 'paths');
-        this.deep = validator.getAsValidNumber(input, 'deep');
+        this.depth = validator.getAsValidNumber(input, 'depth');
         this.max = validator.getAsValidNumber(input, 'max');
-        this.includeFiles = validator.getAsBool(input, 'includeFiles');
-        this.includeFolders = validator.getAsBool(input, 'includeFolders');
+        this.include = validator.getAsObj(input, 'include');
+        this.include.files = validator.getAsBool(this.include, 'files');
+        this.include.folders = validator.getAsBool(this.include, 'folders');
     }
 }
 export interface Request extends Interface {}
