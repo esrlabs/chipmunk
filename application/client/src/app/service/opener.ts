@@ -100,8 +100,8 @@ export class Service extends Implementation {
                 }
                 if (src.parser.Dlt !== undefined) {
                     return out.dlt(parserDLTSettingsToOptions(src.parser.Dlt));
-                } else if (src.parser.Someip !== undefined) {
-                    return out.someip(parserSomeIpSettingsToOptions(src.parser.Someip));
+                } else if (src.parser.SomeIp !== undefined) {
+                    return out.someip(parserSomeIpSettingsToOptions(src.parser.SomeIp));
                 } else if (src.parser.Text !== undefined) {
                     return out.text();
                 }
@@ -116,7 +116,7 @@ export class Service extends Implementation {
                     return new Streams.Text(this._services, this.log())
                         .assign(scope)
                         .stream(source, undefined, openPresetSettings, preselected);
-                } else if (parser === ParserName.Someip) {
+                } else if (parser === ParserName.SomeIp) {
                     return new Streams.SomeIp(this._services, this.log())
                         .assign(scope)
                         .stream(source, undefined, openPresetSettings, preselected);
@@ -152,9 +152,9 @@ export class Service extends Implementation {
                         return this.pcapng(origin.File[2]).dlt(
                             parserDLTSettingsToOptions(parser.Dlt),
                         );
-                    } else if (parser.Someip !== undefined) {
+                    } else if (parser.SomeIp !== undefined) {
                         return this.pcapng(origin.File[2]).someip(
-                            parserSomeIpSettingsToOptions(parser.Someip),
+                            parserSomeIpSettingsToOptions(parser.SomeIp),
                         );
                     } else {
                         return Promise.reject(
@@ -179,8 +179,8 @@ export class Service extends Implementation {
                 return concat.text();
             } else if (parser.Dlt !== undefined) {
                 return concat.dlt(parserDLTSettingsToOptions(parser.Dlt));
-            } else if (parser.Someip !== undefined) {
-                return concat.someip(parserSomeIpSettingsToOptions(parser.Someip));
+            } else if (parser.SomeIp !== undefined) {
+                return concat.someip(parserSomeIpSettingsToOptions(parser.SomeIp));
             } else {
                 return Promise.reject(new Error(`Unsupported parser`));
             }
@@ -267,7 +267,7 @@ export class Service extends Implementation {
                     return new Concat.Dlt(this._services, this.log())
                         .assign(scope)
                         .open(files, undefined);
-                } else if (parser === ParserName.Someip) {
+                } else if (parser === ParserName.SomeIp) {
                     return new Concat.SomeIp(this._services, this.log())
                         .assign(scope)
                         .open(files, undefined);

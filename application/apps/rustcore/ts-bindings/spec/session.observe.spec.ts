@@ -239,6 +239,81 @@ describe('Observe', function () {
         });
     });
 
+    it(config.regular.list[4], function () {
+        return runner(config.regular, 4, async (logger, done, collector) => {
+            Session.create()
+                .then((session: Session) => {
+                    // Set provider into debug mode
+                    session.debug(true);
+                    const stream = session.getStream();
+                    if (stream instanceof Error) {
+                        finish(session, done, stream);
+                        return;
+                    }
+                    const events = session.getEvents();
+                    if (events instanceof Error) {
+                        finish(session, done, events);
+                        return;
+                    }
+                    stream
+                        .observe(
+                            Observe.DataSource.file(config.regular.files['someip']).pcapng().someip({
+                                dummy: "todo",
+                            }),
+                        )
+                        .catch(finish.bind(null, session, done));
+                    let grabbing: boolean = false;
+                    let received: number = 0;
+                    const timeout = setTimeout(() => {
+                        finish(
+                            session,
+                            done,
+                            new Error(
+                                `Failed because timeout. Waited for at least 100 rows. Has been gotten: ${received}`,
+                            ),
+                        );
+                    }, 20000);
+                    events.StreamUpdated.subscribe((rows: number) => {
+                        received = rows;
+                        if (rows < 10 || grabbing) {
+                            return;
+                        }
+                        clearTimeout(timeout);
+                        grabbing = true;
+                        stream
+                            .grab(1, 10)
+                            .then((result: IGrabbedElement[]) => {
+                                expect(result.length).toEqual(10);
+                                logger.debug('result of grab was: ' + JSON.stringify(result));
+                                finish(session, done);
+                            })
+                            .catch((err: Error) => {
+                                finish(
+                                    session,
+                                    done,
+                                    new Error(
+                                        `Fail to grab data due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                );
+                            });
+                    });
+                })
+                .catch((err: Error) => {
+                    finish(
+                        undefined,
+                        done,
+                        new Error(
+                            `Fail to create session due error: ${
+                                err instanceof Error ? err.message : err
+                            }`,
+                        ),
+                    );
+                });
+        });
+    });
+
     config.performance.run &&
         Object.keys(config.regular.execute_only).length === 0 &&
         Object.keys(config.performance.tests).forEach((alias: string, index: number) => {

@@ -1,13 +1,11 @@
 use crate::{
-    events::{NativeError, NativeErrorKind},
     operations::{OperationAPI, OperationResult},
     state::SessionStateAPI,
     tail,
 };
-use indexer_base::progress::Severity;
 use log::trace;
 use parsers::{
-    dlt::DltParser, text::StringTokenizer, LogMessage, MessageStreamItem, ParseYield, Parser,
+    dlt::DltParser, someip::SomeipParser, text::StringTokenizer, LogMessage, MessageStreamItem, ParseYield, Parser,
 };
 use sources::{
     factory::ParserType,
@@ -43,11 +41,11 @@ pub async fn run_source<S: ByteSource>(
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
     match parser {
-        ParserType::SomeIp(_) => Err(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::UnsupportedFileType,
-            message: Some(String::from("SomeIp parser not yet supported")),
-        }),
+        ParserType::SomeIp(_) => {
+            let someip_parser = SomeipParser::new();
+            let producer = MessageProducer::new(someip_parser, source, rx_sde);
+            run_producer(operation_api, state, source_id, producer, rx_tail).await
+        },
         ParserType::Text => {
             let producer = MessageProducer::new(StringTokenizer {}, source, rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
