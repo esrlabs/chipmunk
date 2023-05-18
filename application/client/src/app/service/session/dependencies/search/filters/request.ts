@@ -53,6 +53,12 @@ export class FilterRequest
 {
     public static KEY: Key = Key.filters;
 
+    public static fromDefinition(def: IFilter): FilterRequest {
+        return new FilterRequest({
+            filter: def,
+        });
+    }
+
     public static fromJson(json: string): FilterRequest | Error {
         try {
             const def: Definition = JSON.parse(json);
@@ -69,13 +75,6 @@ export class FilterRequest
             return new Error(error(e));
         }
     }
-
-    public readonly definition: Definition;
-    public readonly updated: Subject<UpdateEvent> = new Subject<UpdateEvent>();
-
-    private _regex!: RegExp;
-    private _hash!: string;
-    public found: number = 0;
 
     static isValid(filter: IFilter): boolean {
         return (
@@ -114,6 +113,13 @@ export class FilterRequest
             },
         });
     }
+
+    public readonly definition: Definition;
+    public readonly updated: Subject<UpdateEvent> = new Subject<UpdateEvent>();
+
+    private _regex!: RegExp;
+    private _hash!: string;
+    public found: number = 0;
 
     constructor(def: OptionalDefinition) {
         super();

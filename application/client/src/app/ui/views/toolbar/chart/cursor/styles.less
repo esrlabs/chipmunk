@@ -1,0 +1,73 @@
+@import '../../../../styles/variables.less';
+
+:host {
+    display: block;
+    position: absolute;
+    height: 3rem;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    & div.cursor {
+        position: absolute;
+        height: 100%;
+        top: 0;
+        border-left: thin solid @scheme-color-0;
+        border-right: thin solid @scheme-color-0;
+        background: @scheme-color-active-75;
+        cursor: move;
+        & div.left,
+        & div.right {
+            position: absolute;
+            height: 100%;
+            width: 6px;
+            margin-left: -3px;
+            cursor: col-resize;
+            &::after {
+                position: absolute;
+                display: none;
+                font-size: 12px;
+                color: @scheme-color-1;
+                content: attr(row);
+                background: @scheme-color-active-75;
+                padding: 2px 4px;
+                border-radius: 2px;
+                top: 0;
+            }
+        }
+        & div.left {
+            left: 0;
+            &::after {
+                right: 5px;
+            }
+        }
+        & div.right {
+            right: 0;
+            &::after {
+                left: 8px;
+            }
+        }
+        &.move {
+            & div.left,
+            & div.right {
+                &::after {
+                    display: block;
+                }
+            }
+        }
+        &.left {
+            & div.left {
+                &::after {
+                    display: block;
+                }
+            }
+        }
+        &.right {
+            & div.right {
+                &::after {
+                    display: block;
+                }
+            }
+        }
+    }
+}

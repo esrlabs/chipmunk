@@ -10,7 +10,6 @@ import { ChartsStore } from './search/charts/store';
 import { Highlights } from './search/highlights';
 import { State } from './search/state';
 import { Map } from './search/map';
-import { Values } from './search/values';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -25,7 +24,6 @@ export class Search extends Subscriber {
         map: new Subject<void>(),
     });
     public readonly map: Map = new Map();
-    public readonly values: Values = new Values();
     private _len: number = 0;
     private _uuid!: string;
     private _store!: {
@@ -61,18 +59,6 @@ export class Search extends Subscriber {
                 }
             }),
         );
-        this.register(
-            Events.IpcEvent.subscribe(Events.Values.Updated.Event, (event) => {
-                if (event.session !== this._uuid) {
-                    return;
-                }
-                if (event.values === null) {
-                    this.values.drop();
-                } else {
-                    this.values.merge(event.values);
-                }
-            }),
-        );
         this._store = {
             filters: new FiltersStore(uuid),
             charts: new ChartsStore(uuid),
@@ -84,6 +70,15 @@ export class Search extends Subscriber {
                     .filters()
                     .catch((err: Error) => {
                         this.log().error(`Fail to trigger search by filters: ${err.message}`);
+                    });
+            }),
+        );
+        this.register(
+            this._store.charts.subjects.get().value.subscribe(() => {
+                this.state()
+                    .charts()
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to trigger search by charts: ${err.message}`);
                     });
             }),
         );
@@ -99,7 +94,6 @@ export class Search extends Subscriber {
         this._highlights.destroy();
         this._state.destroy();
         this.map.destroy();
-        this.values.destroy();
         this.subjects.destroy();
     }
 
@@ -140,7 +134,6 @@ export class Search extends Subscriber {
                     if (typeof response.error === 'string' && response.error.trim() !== '') {
                         reject(new Error(response.error));
                     } else {
-                        this.values.drop(true).merge(response.values);
                         resolve();
                     }
                 })

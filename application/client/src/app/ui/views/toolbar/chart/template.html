@@ -1,6 +1,3 @@
-<div class="main">
-    <app-views-chart-canvas [session]="session"></app-views-chart-canvas>
-</div>
-<div class="secondary">
-    <app-views-chart-zoomer-canvas [session]="session"></app-views-chart-zoomer-canvas>
-</div>
+<app-views-chart-output [session]="session" [state]="state"></app-views-chart-output>
+<app-views-chart-summary [session]="session" [state]="state"></app-views-chart-summary>
+<app-views-chart-cursor [session]="session" [state]="state"></app-views-chart-cursor>
