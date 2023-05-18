@@ -9,6 +9,18 @@ const LOG_FILE = 'chipmunk.indexer.log';
 const HOME = '.chipmunk';
 const FORCED_REPORT_TIMEOUT = 2 * 60 * 1000;
 
+const BLOCKS_LOGS = ((): boolean => {
+    const value = (process.env as any)['JASMIN_TEST_BLOCKS_LOGS'];
+    if (typeof value === 'string') {
+        return ['true', 'on', '1'].includes(value.toLowerCase());
+    } else if (typeof value === 'number') {
+        return value > 0;
+    } else if (typeof value === 'boolean') {
+        return value;
+    } else {
+        return false;
+    }
+})();
 export function getLogger(signature: string): Logger {
     return new Logger(signature);
 }
@@ -84,6 +96,6 @@ jasmine.getEnv().addReporter({
             return;
         }
         clearTimeout(timeout);
-        Logger.report();
+        !BLOCKS_LOGS && Logger.report();
     },
 });

@@ -9,9 +9,9 @@ import {
     ISearchMap,
     TExtractedValues,
     INearest,
+    IValuesMap,
 } from '../interfaces/index';
 import { Executors } from './executors/session.stream.executors';
-import { SearchValuesResult } from 'platform/types/filter';
 import { SearchTaskManager } from './executors/single.task.search';
 import { ValuesTaskManager } from './executors/single.task.values';
 import { ExtractTaskManager } from './executors/single.task.extract';
@@ -71,7 +71,7 @@ export class SessionSearch {
         return this.managers.search.run(filters);
     }
 
-    public values(filters: string[]): ICancelablePromise<SearchValuesResult> {
+    public values(filters: string[]): ICancelablePromise<void> {
         return this.managers.values.run(filters);
     }
 
@@ -93,6 +93,18 @@ export class SessionSearch {
         to?: number,
     ): ICancelablePromise<ISearchMap> {
         return Executors.map(this.session, this.provider, this.logger, {
+            datasetLength,
+            from,
+            to,
+        });
+    }
+
+    public getValues(
+        datasetLength: number,
+        from?: number,
+        to?: number,
+    ): ICancelablePromise<IValuesMap> {
+        return Executors.values_getter(this.session, this.provider, this.logger, {
             datasetLength,
             from,
             to,
