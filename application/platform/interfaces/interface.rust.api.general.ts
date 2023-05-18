@@ -46,7 +46,10 @@ export interface IResultSearchElement {
     content: string; // Row value
 }
 
-export type ISearchMap = Array<Array<Array<number>>>;
+export type ISearchMap = Array<[number, number][]>;
+
+export type IValuesMap = { [key: number]: [number, number][] };
+export type IValuesMinMaxMap = { [key: number]: [number, number] };
 
 /**
  * Output for @extract method of session

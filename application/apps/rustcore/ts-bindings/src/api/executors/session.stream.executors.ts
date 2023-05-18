@@ -1,6 +1,7 @@
 import { executor as SearchExecutor } from './session.stream.search.executor';
 import { executor as SearchValuesExecutor } from './session.stream.searchvalues.executor';
 import { executor as MapExecutor } from './session.stream.map.executor';
+import { executor as ValuesGetterExecutor } from './session.stream.get_values.executor';
 import { executor as AssignExecutor } from './session.stream.observe.executor';
 import { executor as ExportExecutor } from './session.stream.export.executor';
 import { executor as ExportRawExecutor } from './session.stream.export_raw.executor';
@@ -11,6 +12,7 @@ export const Executors = {
     search: SearchExecutor,
     values: SearchValuesExecutor,
     map: MapExecutor,
+    values_getter: ValuesGetterExecutor,
     observe: AssignExecutor,
     export: ExportExecutor,
     exportRaw: ExportRawExecutor,

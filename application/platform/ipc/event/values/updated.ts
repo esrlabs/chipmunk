@@ -1,18 +1,18 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { SearchValuesResult } from '../../../types/filter';
+import { IValuesMinMaxMap } from '../../../interfaces/interface.rust.api.general';
 
 import * as validator from '../../../env/obj';
 
 @Define({ name: 'SearchValuesUpdated' })
 export class Event extends SignatureRequirement {
     public session: string;
-    public values: SearchValuesResult | null;
+    public map: IValuesMinMaxMap | null;
 
-    constructor(input: { session: string; values: SearchValuesResult | null }) {
+    constructor(input: { session: string; map: IValuesMinMaxMap | null }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
-        this.values = validator.getAsMapOrNull(input, 'values');
+        this.map = validator.getAsObjOrUndefined(input, 'map', null);
     }
 }
 

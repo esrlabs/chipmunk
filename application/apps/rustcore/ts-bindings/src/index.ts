@@ -22,7 +22,6 @@ export {
     IEventMapUpdated,
     IEventMatchesUpdated,
     IEventIndexedMapUpdated,
-    ISearchValuesUpdated,
 } from './api/session';
 
 export { Jobs } from './api/jobs';
@@ -38,6 +37,7 @@ export {
     IFilter,
     IFilterFlags,
     IGrabbedContent,
+    IValuesMap,
 } from './interfaces/index';
 
 export { Units, Events, Interfaces };
