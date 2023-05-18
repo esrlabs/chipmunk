@@ -167,10 +167,10 @@ export class State {
                 .filter((request) => request.definition.active)
                 .map((request) => request.as().filter());
             this.hash().charts.update();
-            if (charts.length === 0) {
-                finish({});
-                return resolve();
-            }
+            // if (charts.length === 0) {
+            //     finish({});
+            //     return resolve();
+            // }
             this._controller
                 .extract(charts)
                 .then(() => {

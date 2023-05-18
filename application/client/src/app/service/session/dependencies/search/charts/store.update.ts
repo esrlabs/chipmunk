@@ -4,7 +4,9 @@ import { ChartRequest } from './request';
 export interface UpdateEventInner {
     filter: boolean;
     state: boolean;
-    colors: boolean;
+    color: boolean;
+    line: boolean;
+    point: boolean;
     stat: boolean;
 }
 
@@ -13,7 +15,9 @@ export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartReques
     protected event: UpdateEventInner = {
         filter: false,
         state: false,
-        colors: false,
+        color: false,
+        line: false,
+        point: false,
         stat: false,
     };
 
@@ -25,7 +29,9 @@ export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartReques
     public on(): {
         filter(): UpdateEvent;
         state(): UpdateEvent;
-        colors(): UpdateEvent;
+        color(): UpdateEvent;
+        line(): UpdateEvent;
+        point(): UpdateEvent;
         stat(): UpdateEvent;
     } {
         return {
@@ -37,8 +43,16 @@ export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartReques
                 this.event.state = true;
                 return this;
             },
-            colors: (): UpdateEvent => {
-                this.event.colors = true;
+            color: (): UpdateEvent => {
+                this.event.color = true;
+                return this;
+            },
+            line: (): UpdateEvent => {
+                this.event.line = true;
+                return this;
+            },
+            point: (): UpdateEvent => {
+                this.event.point = true;
                 return this;
             },
             stat: (): UpdateEvent => {
@@ -49,7 +63,14 @@ export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartReques
     }
 
     public changed(): boolean {
-        return this.event.colors || this.event.filter || this.event.stat || this.event.state;
+        return (
+            this.event.line ||
+            this.event.point ||
+            this.event.color ||
+            this.event.filter ||
+            this.event.stat ||
+            this.event.state
+        );
     }
 
     public consequence(): {
@@ -58,9 +79,15 @@ export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartReques
         inner: boolean;
     } {
         return {
-            highlights: this.event.colors,
+            highlights: this.event.line || this.event.point || this.event.color,
             value: this.event.state || this.event.filter,
-            inner: this.event.colors || this.event.filter || this.event.stat || this.event.state,
+            inner:
+                this.event.line ||
+                this.event.point ||
+                this.event.color ||
+                this.event.filter ||
+                this.event.stat ||
+                this.event.state,
         };
     }
     public inner(): UpdateEventInner {

@@ -1,6 +1,0 @@
-<div *ngIf="state._ng_width !== -1" class="shadow left" [ngStyle]="{'width': state._ng_left + 'px'}"></div>
-<div *ngIf="state._ng_width !== -1" class="cursor" [ngStyle]="{'width': state._ng_width + 'px', 'left': state._ng_left + 'px'}" (mousedown)="state.onMove($event)" (click)="state.stop($event)">
-    <div class="l-border" (mousedown)="state.onLeft($event)" (click)="state.stop($event)"></div>
-    <div class="r-border" (mousedown)="state.onRight($event)" (click)="state.stop($event)"></div>
-</div>
-<div *ngIf="state._ng_width !== -1" class="shadow right" [ngStyle]="{'left': (state._ng_left + state._ng_width) + 'px'}"></div>

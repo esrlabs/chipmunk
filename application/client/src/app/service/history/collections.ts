@@ -1,5 +1,6 @@
 import { Definition } from './definition';
 import { FiltersCollection } from './collection.filters';
+import { ChartsCollection } from './collection.charts';
 import { DisabledCollection } from './collection.disabled';
 import { BookmarksCollection } from './collection.bookmarks';
 import { Collection } from './collection';
@@ -88,10 +89,12 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
 
     public readonly collections: {
         filters: FiltersCollection;
+        charts: ChartsCollection;
         disabled: DisabledCollection;
         bookmarks: BookmarksCollection;
     } = {
         filters: new FiltersCollection(),
+        charts: new ChartsCollection(),
         disabled: new DisabledCollection(),
         bookmarks: new BookmarksCollection(),
     };
@@ -190,6 +193,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
     public isSame(collections: Collections): boolean {
         return (
             this.collections.filters.isSame(collections.collections.filters) &&
+            this.collections.charts.isSame(collections.collections.charts) &&
             this.collections.disabled.isSame(collections.collections.disabled)
         );
     }

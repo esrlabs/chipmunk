@@ -54,9 +54,5 @@ export class Map extends Subscriber {
         this.updated.emit();
         return undefined;
     }
-
-    public len(): number {
-        return this._matches.length;
-    }
 }
 export interface Map extends LoggerInterface {}

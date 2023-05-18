@@ -18,6 +18,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSelectModule } from '@angular/material/select';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatSliderModule } from '@angular/material/slider';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { ComColorSelectorComponent } from '@elements/color.selector/component';
@@ -26,6 +27,11 @@ import { FilterDetails } from './filters/details/component';
 import { Filter } from './filters/filter/component';
 import { FiltersList } from './filters/list/component';
 import { FiltersPlaceholder } from './filters/placeholder/component';
+
+import { ChartrDetails } from './charts/details/component';
+import { Chart } from './charts/chart/component';
+import { ChartsList } from './charts/list/component';
+import { ChartsPlaceholder } from './charts/placeholder/component';
 
 import { Disabled } from './disabled/entity/component';
 import { DisabledList } from './disabled/list/component';
@@ -38,6 +44,10 @@ const entryComponents = [
     Filter,
     FiltersList,
     FiltersPlaceholder,
+    ChartrDetails,
+    Chart,
+    ChartsList,
+    ChartsPlaceholder,
     Disabled,
     DisabledList,
     ComColorSelectorComponent,
@@ -64,8 +74,9 @@ const components = [...entryComponents];
         FormsModule,
         ReactiveFormsModule,
         DragDropModule,
+        MatSliderModule,
     ],
     declarations: [...components, FilterItemDirective, FiltersListDirective],
-    exports: [...components, FilterItemDirective, FiltersListDirective]
+    exports: [...components, FilterItemDirective, FiltersListDirective],
 })
 export class FiltersModule {}
