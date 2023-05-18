@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::state::attachments::AttachmentsError;
+use crate::state::{attachments::AttachmentsError, values::ValuesError};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum NativeErrorKind {
@@ -44,6 +44,16 @@ impl NativeError {
 
 impl From<AttachmentsError> for NativeError {
     fn from(err: AttachmentsError) -> Self {
+        NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Io,
+            message: Some(err.to_string()),
+        }
+    }
+}
+
+impl From<ValuesError> for NativeError {
+    fn from(err: ValuesError) -> Self {
         NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Io,
@@ -188,14 +198,13 @@ pub enum CallbackEvent {
     SearchMapUpdated(Option<String>),
     /**
      * Triggered on update of search values data. Used for charts
-     * @event SearchMapUpdated { Option<String> }
-     * includes JSON String of HashMap<u64, Vec<(u8, String)>> - map of all matches
+     * @event SearchValuesUpdated
      * in search with values also called with each search update if there are streaming
-     * None - map is dropped
+     * true - map is dropped
      * >> Scope: session
      * >> Kind: repeated
      */
-    SearchValuesUpdated(Option<String>),
+    SearchValuesUpdated(Option<HashMap<u8, (f64, f64)>>),
     /**
      * Triggered with new attachment has been detected
      * len - number of already detected attachments (in session)

@@ -14,6 +14,7 @@ use sources::{
     producer::{SdeReceiver, SdeSender},
 };
 use std::{
+    ops::RangeInclusive,
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -102,6 +103,10 @@ pub enum OperationKind {
         dataset_len: u16,
         range: Option<(u64, u64)>,
     },
+    Values {
+        dataset_len: u16,
+        range: Option<RangeInclusive<u64>>,
+    },
     Merge {
         files: Vec<FileMergeOptions>,
         out_path: PathBuf,
@@ -129,6 +134,7 @@ impl std::fmt::Display for OperationKind {
                 OperationKind::ExportRaw { .. } => "Exporting as Raw",
                 OperationKind::Extract { .. } => "Extracting",
                 OperationKind::Map { .. } => "Mapping",
+                OperationKind::Values { .. } => "Values",
                 OperationKind::Merge { .. } => "Merging",
                 OperationKind::Sleep(_) => "Sleeping",
                 OperationKind::Cancel { .. } => "Canceling",
@@ -346,6 +352,17 @@ impl OperationAPI {
                 }
                 OperationKind::Map { dataset_len, range } => {
                     match state.get_scaled_map(dataset_len, range).await {
+                        Ok(map) => {
+                            api.finish(Ok(Some(map)), operation_str).await;
+                        }
+                        Err(err) => {
+                            api.finish::<OperationResult<()>>(Err(err), operation_str)
+                                .await;
+                        }
+                    }
+                }
+                OperationKind::Values { dataset_len, range } => {
+                    match state.get_search_values(range, dataset_len).await {
                         Ok(map) => {
                             api.finish(Ok(Some(map)), operation_str).await;
                         }

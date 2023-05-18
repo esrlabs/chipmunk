@@ -26,20 +26,23 @@ pub async fn execute_value_search(
     operation_api: &OperationAPI,
     filters: Vec<String>,
     state: SessionStateAPI,
-) -> OperationResult<HashMap<u64, Vec<(u8, String)>>> {
+) -> OperationResult<()> {
     debug!("RUST: Search values operation is requested");
     state.drop_search_values().await?;
     let (rows, read_bytes) = state.get_stream_len().await?;
+    let mut holder = state.get_search_values_holder(operation_api.id()).await?;
+    holder.setup(filters.clone()).map_err(|e| NativeError {
+        severity: Severity::ERROR,
+        kind: NativeErrorKind::OperationSearch,
+        message: Some(format!("Error setting filters: {e}")),
+    })?;
     if filters.is_empty() {
-        debug!("RUST: Search values will be dropped. Filters are empty");
-        Ok(Some(HashMap::new()))
+        debug!("RUST: Search values are dropped. Filters are empty");
+        state
+            .set_search_values_holder(Some(holder), operation_api.id())
+            .await?;
+        Ok(Some(()))
     } else {
-        let mut holder = state.get_search_values_holder(operation_api.id()).await?;
-        holder.setup(filters.clone()).map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::OperationSearch,
-            message: Some(format!("Error setting filters: {e}")),
-        })?;
         let (tx_result, mut rx_result): SearchResultChannel = channel(1);
         let cancel = operation_api.cancellation_token();
         let cancel_search = operation_api.cancellation_token();
@@ -54,7 +57,7 @@ pub async fn execute_value_search(
             Result<
                 (
                     Range<usize>,
-                    HashMap<u64, Vec<(u8, String)>>,
+                    HashMap<u8, Vec<(u64, f64)>>,
                     ValueSearchHolder,
                 ),
                 (Option<ValueSearchHolder>, NativeError),
@@ -92,7 +95,7 @@ pub async fn execute_value_search(
                         }
                         Err(_) => {
                             if !cancel.is_cancelled() {
-                                state.set_matches(None, None).await.map_err(|err| (None, err))?;
+                                state.drop_search_values().await.map_err(|err| (None, err))?;
                             }
                         },
                     };
@@ -108,9 +111,8 @@ pub async fn execute_value_search(
                     state
                         .set_search_values_holder(Some(holder), operation_api.id())
                         .await?;
-                    // stats - isn't big object, it's small hashmap and clone operation here will not decrease performance.
-                    // even this happens just once per search
-                    Ok(Some(values))
+                    state.set_search_values(values).await?;
+                    Ok(Some(()))
                 }
                 Err((holder, err)) => {
                     if let Some(holder) = holder {
@@ -132,7 +134,7 @@ pub async fn execute_value_search(
                 .set_search_values_holder(None, operation_api.id())
                 .await?;
             state.drop_search_values().await?;
-            Ok(Some(HashMap::new()))
+            Ok(Some(()))
         }
     }
 }
