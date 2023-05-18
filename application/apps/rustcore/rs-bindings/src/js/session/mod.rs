@@ -628,6 +628,43 @@ impl RustSession {
     }
 
     #[node_bindgen]
+    async fn get_values(
+        &self,
+        operation_id: String,
+        dataset_len: i32,
+        from: Option<i64>,
+        to: Option<i64>,
+    ) -> Result<(), ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            let range: Option<RangeInclusive<u64>> = if let (Some(from), Some(to)) = (from, to) {
+                if from < 0 || to < 0 || from > to {
+                    return Err(ComputationErrorWrapper(ComputationError::InvalidArgs(
+                        format!("Invalid range:from = {from}; to = {to}"),
+                    )));
+                }
+                Some(RangeInclusive::new(from as u64, to as u64))
+            } else {
+                None
+            };
+            info!(
+                target: targets::SESSION,
+                "Values requested (operation: {}). Range: {:?}", operation_id, range
+            );
+            session
+                .get_values(
+                    operations::uuid_from_str(&operation_id)?,
+                    dataset_len as u16,
+                    range,
+                )
+                .map_err(ComputationErrorWrapper)
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
     async fn get_nearest_to(
         &self,
         operation_id: String,
