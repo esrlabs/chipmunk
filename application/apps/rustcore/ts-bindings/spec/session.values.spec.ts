@@ -45,29 +45,25 @@ describe('Values', function () {
                         .on('confirmed', () => {
                             search
                                 .values([`CPU=(\\d{1,})`])
-                                .then((results) => {
-                                    expect(valuesAreDropped).toEqual(true);
-                                    let control = 0;
-                                    results.forEach((values, position) => {
-                                        expect(values.size).toEqual(1);
-                                        const value = values.get(0);
-                                        expect(typeof value).toEqual('string');
-                                        const numValue = parseInt(value as string, 10);
-                                        control += numValue;
-                                        expect(numValue).toEqual(position);
-                                    });
-                                    expect(control).toEqual(sum);
-                                    finish(session, done);
-                                })
                                 .catch(finish.bind(null, session, done));
                         })
                         .catch(finish.bind(null, session, done));
-                    let valuesAreDropped = false;
-                    events.SearchValuesUpdated.subscribe((event) => {
-                        // Before get results rustcore should inform FE about dropping results.
-                        // It happens with NULL value of update
-                        expect(event).toBeNull();
-                        valuesAreDropped = true;
+                    events.SearchValuesUpdated.subscribe((map) => {
+                        if (map === null) {
+                            // Before get results rustcore should inform FE about dropping results.
+                            return;
+                        }
+                        search
+                            .getValues(1)
+                            .then((data) => {
+                                let control = 0;
+                                data[0].forEach((pair) => {
+                                    control += pair[1];
+                                });
+                                expect(control).toEqual(sum);
+                                finish(session, done);
+                            })
+                            .catch(finish.bind(null, session, done));
                     });
                 })
                 .catch((err: Error) => {
@@ -111,23 +107,27 @@ describe('Values', function () {
                             return `[${i}]:: some line data\n`;
                         }
                     });
-                    let results = new Map();
+                    let iteration = 0;
                     stream
                         .observe(Observe.DataSource.file(tmpobj.name).text())
                         .on('confirmed', () => {
                             search
                                 .values([`CPU=(\\d{1,})`])
-                                .then((res) => {
-                                    results = res;
-                                    expect(valuesAreDropped).toEqual(true);
+                                .catch(finish.bind(null, session, done));
+                        })
+                        .catch(finish.bind(null, session, done));
+                    events.SearchValuesUpdated.subscribe((map) => {
+                        if (map === null) {
+                            // Before get results rustcore should inform FE about dropping results.
+                            return;
+                        }
+                        if (iteration === 0) {
+                            search
+                                .getValues(1)
+                                .then((data) => {
                                     let control = 0;
-                                    results.forEach((values, position) => {
-                                        expect(values.size).toEqual(1);
-                                        const value = values.get(0);
-                                        expect(typeof value).toEqual('string');
-                                        const numValue = parseInt(value as string, 10);
-                                        control += numValue;
-                                        expect(numValue).toEqual(position);
+                                    data[0].forEach((pair) => {
+                                        control += pair[1];
                                     });
                                     expect(control).toEqual(sum);
                                     const offset = 5000;
@@ -143,33 +143,22 @@ describe('Values', function () {
                                     });
                                 })
                                 .catch(finish.bind(null, session, done));
-                        })
-                        .catch(finish.bind(null, session, done));
-                    let valuesAreDropped = false;
-                    events.SearchValuesUpdated.subscribe((event) => {
-                        // Before get results rustcore should inform FE about dropping results.
-                        // It happens with NULL value of update
-                        if (!valuesAreDropped) {
-                            expect(event).toBeNull();
-                            valuesAreDropped = true;
-                            return;
+                            iteration += 1;
+                        } else if (iteration === 1) {
+                            search
+                                .getValues(1)
+                                .then((data) => {
+                                    let control = 0;
+                                    data[0].forEach((pair) => {
+                                        control += pair[1];
+                                    });
+                                    expect(control).toEqual(sum);
+                                    finish(session, done);
+                                })
+                                .catch(finish.bind(null, session, done));
+                        } else {
+                            expect(iteration).toEqual(1);
                         }
-                        if (event === null) {
-                            expect(event === null).toBe(false);
-                            return;
-                        }
-                        results = new Map([...results].concat([...event.values]));
-                        let control = 0;
-                        results.forEach((values, position) => {
-                            expect(values.size).toEqual(1);
-                            const value = values.get(0);
-                            expect(typeof value).toEqual('string');
-                            const numValue = parseInt(value as string, 10);
-                            control += numValue;
-                            expect(numValue).toEqual(position);
-                        });
-                        expect(control).toEqual(sum);
-                        finish(session, done);
                     });
                 })
                 .catch((err: Error) => {

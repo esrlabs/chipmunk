@@ -6,14 +6,14 @@ import { ICancelablePromise } from 'platform/env/promise';
 import * as Requests from 'platform/ipc/request';
 
 export const handler = Requests.InjectLogger<
-    Requests.Values.Extract.Request,
-    ICancelablePromise<Requests.Values.Extract.Response>
+    Requests.Values.Frame.Request,
+    ICancelablePromise<Requests.Values.Frame.Response>
 >(
     (
         log: Logger,
-        request: Requests.Values.Extract.Request,
-    ): ICancelablePromise<Requests.Values.Extract.Response> => {
-        return new CancelablePromise<Requests.Values.Extract.Response>((resolve, reject) => {
+        request: Requests.Values.Frame.Request,
+    ): ICancelablePromise<Requests.Values.Frame.Response> => {
+        return new CancelablePromise<Requests.Values.Frame.Response>((resolve, reject) => {
             const session_uuid = request.session;
             const stored = sessions.get(session_uuid);
             if (stored === undefined) {
@@ -25,29 +25,32 @@ export const handler = Requests.InjectLogger<
             stored.register(Jobs.values).registerAsUnknown(
                 stored.session
                     .getSearch()
-                    .values(request.filters)
-                    .then(() => {
+                    .getValues(request.width, request.from, request.to)
+                    .then((map) => {
                         resolve(
-                            new Requests.Values.Extract.Response({
+                            new Requests.Values.Frame.Response({
                                 session: session_uuid,
+                                values: map,
                                 canceled: false,
                             }),
                         );
                     })
                     .canceled(() => {
                         resolve(
-                            new Requests.Values.Extract.Response({
+                            new Requests.Values.Frame.Response({
                                 session: session_uuid,
                                 canceled: true,
+                                values: {},
                             }),
                         );
                     })
                     .catch((err) => {
                         log.warn(`Search values was finished with error: ${err.message}`);
                         resolve(
-                            new Requests.Values.Extract.Response({
+                            new Requests.Values.Frame.Response({
                                 session: session_uuid,
                                 canceled: false,
+                                values: {},
                                 error: err.message,
                             }),
                         );

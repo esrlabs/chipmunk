@@ -15,6 +15,8 @@ export {
     IMatchEntity,
     IMapEntity,
     INearest,
+    IValuesMap,
+    IValuesMinMaxMap,
 } from 'platform/interfaces/interface.rust.api.general';
 export { Logger, TLogFunc, IChipmunkNodeGlobal } from 'platform/interfaces/interface.node.global';
 export * as Observe from 'platform/types/observe';

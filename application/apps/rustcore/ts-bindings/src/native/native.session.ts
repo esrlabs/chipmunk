@@ -161,6 +161,13 @@ export abstract class RustSession extends RustSessionRequiered {
         to?: number,
     ): Promise<string>;
 
+    public abstract getValues(
+        operationUuid: string,
+        datasetLength: number,
+        from?: number,
+        to?: number,
+    ): Promise<string>;
+
     public abstract getNearestTo(
         operationUuid: string,
         positionInStream: number,
@@ -263,6 +270,13 @@ export abstract class RustSessionNative {
     ): Promise<void>;
 
     public abstract getMap(
+        operationUuid: string,
+        datasetLength: number,
+        from?: number,
+        to?: number,
+    ): Promise<string>;
+
+    public abstract getValues(
         operationUuid: string,
         datasetLength: number,
         from?: number,
@@ -983,6 +997,28 @@ export class RustSessionWrapper extends RustSession {
                     return this._native.getMap(operationUuid, datasetLength);
                 } else {
                     return this._native.getMap(operationUuid, datasetLength, from, to);
+                }
+            })()
+                .then(resolve)
+                .catch((err) => {
+                    reject(new NativeError(NativeError.from(err), Type.Other, Source.GetMap));
+                });
+        });
+    }
+
+    public getValues(
+        operationUuid: string,
+        datasetLength: number,
+        from?: number,
+        to?: number,
+    ): Promise<string> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('getValues', operationUuid);
+            (() => {
+                if (from === undefined || to === undefined) {
+                    return this._native.getValues(operationUuid, datasetLength);
+                } else {
+                    return this._native.getValues(operationUuid, datasetLength, from, to);
                 }
             })()
                 .then(resolve)
