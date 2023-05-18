@@ -1,8 +1,12 @@
 use crate::{
     events::NativeError,
     state::{
-        indexes::controller::Mode as IndexesMode, observed::Observed, session_file::GrabbedElement,
-        source_ids::SourceDefinition, AttachmentInfo,
+        indexes::controller::Mode as IndexesMode,
+        observed::Observed,
+        session_file::GrabbedElement,
+        source_ids::SourceDefinition,
+        values::{Point, ValuesError},
+        AttachmentInfo,
     },
     tracker::OperationTrackerAPI,
 };
@@ -13,7 +17,7 @@ use processor::{
     search::searchers::{regular::RegularSearchHolder, values::ValueSearchHolder},
 };
 use sources::factory::ObserveOptions;
-use std::{fmt::Display, ops::RangeInclusive, path::PathBuf};
+use std::{collections::HashMap, fmt::Display, ops::RangeInclusive, path::PathBuf};
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot,
@@ -122,6 +126,15 @@ pub enum Api {
             oneshot::Sender<Result<(), NativeError>>,
         ),
     ),
+    SetSearchValues(HashMap<u8, Vec<(u64, f64)>>, oneshot::Sender<()>),
+    #[allow(clippy::type_complexity)]
+    GetSearchValues(
+        (
+            Option<RangeInclusive<u64>>,
+            u16,
+            oneshot::Sender<Result<HashMap<u8, Vec<Point>>, ValuesError>>,
+        ),
+    ),
     DropSearchValues(oneshot::Sender<bool>),
     CloseSession(oneshot::Sender<()>),
     SetDebugMode((bool, oneshot::Sender<()>)),
@@ -172,6 +185,8 @@ impl Display for Api {
                 Self::SetMatches(_) => "SetMatches",
                 Self::GetSearchValuesHolder(_) => "GetSearchValuesHolder",
                 Self::SetSearchValuesHolder(_) => "SetSearchValuesHolder",
+                Self::SetSearchValues(_, _) => "SetSearchValues",
+                Self::GetSearchValues(_) => "GetSearchValues",
                 Self::DropSearchValues(_) => "DropSearchValues",
                 Self::CloseSession(_) => "CloseSession",
                 Self::SetDebugMode(_) => "SetDebugMode",
@@ -490,6 +505,26 @@ impl SessionStateAPI {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::SetSearchValuesHolder((holder, uuid, tx)), rx)
             .await?
+    }
+
+    pub async fn set_search_values(
+        &self,
+        values: HashMap<u8, Vec<(u64, f64)>>,
+    ) -> Result<(), NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::SetSearchValues(values, tx), rx)
+            .await
+    }
+
+    pub async fn get_search_values(
+        &self,
+        frame: Option<RangeInclusive<u64>>,
+        width: u16,
+    ) -> Result<HashMap<u8, Vec<Point>>, NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GetSearchValues((frame, width, tx)), rx)
+            .await?
+            .map_err(|e| e.into())
     }
 
     pub async fn drop_search_values(&self) -> Result<bool, NativeError> {

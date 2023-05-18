@@ -11,11 +11,11 @@ use uuid::Uuid;
 
 use super::{BaseSearcher, SearchState};
 
-pub type OperationResults = Result<(Range<usize>, HashMap<u64, Vec<(u8, String)>>), SearchError>;
+pub type OperationResults = Result<(Range<usize>, HashMap<u8, Vec<(u64, f64)>>), SearchError>;
 
 #[derive(Debug)]
 struct Results {
-    indexes: Option<HashMap<u64, Vec<(u8, String)>>>,
+    indexes: Option<HashMap<u8, Vec<(u64, f64)>>>,
 }
 
 impl Results {
@@ -34,22 +34,23 @@ pub fn as_regex(filter: &str) -> String {
 pub struct ValueSearchState {
     pub file_path: PathBuf,
     pub uuid: Uuid,
-    filters: Vec<String>,
+    terms: Vec<String>,
     matchers: Vec<Regex>,
     results: Results,
+    errors: HashMap<u64, Vec<(u8, String)>>,
 }
 
 pub type ValueSearchHolder = BaseSearcher<ValueSearchState>;
 
 impl ValueSearchHolder {
-    pub fn setup(&mut self, filters: Vec<String>) -> Result<(), SearchError> {
+    pub fn setup(&mut self, terms: Vec<String>) -> Result<(), SearchError> {
         let mut matchers = vec![];
-        for (_pos, filter) in filters.iter().enumerate() {
+        for (_pos, filter) in terms.iter().enumerate() {
             matchers.push(Regex::from_str(&as_regex(filter)).map_err(|err| {
                 SearchError::Regex(format!("Failed to create regex for {filter}: {err}"))
             })?);
         }
-        self.search_state.filters = filters;
+        self.search_state.terms = terms;
         self.search_state.matchers = matchers;
         Ok(())
     }
@@ -61,27 +62,39 @@ impl SearchState for ValueSearchState {
         Self {
             file_path: PathBuf::from(path),
             uuid,
-            filters: vec![],
+            terms: vec![],
             matchers: vec![],
             results: Results::new(),
+            errors: HashMap::new(),
         }
     }
     fn get_terms(&self) -> Vec<String> {
-        self.filters.iter().map(|f| as_regex(f)).collect()
+        self.terms.iter().map(|f| as_regex(f)).collect()
     }
 }
 
 fn collect(row: u64, line: &str, state: &mut ValueSearchState) {
-    let mut matches = vec![];
-    for (index, re) in state.matchers.iter().enumerate() {
+    for (term_index, re) in state.matchers.iter().enumerate() {
         if let Some(caps) = re.captures(line) {
             if let Some(value) = caps.get(1) {
-                matches.push((index as u8, value.as_str().to_owned()));
+                let value_str = value.as_str().to_owned();
+                if let Ok(value_i64) = value_str.parse::<f64>() {
+                    if let Some(indexes) = state.results.indexes.as_mut() {
+                        if let Some(matches) = indexes.get_mut(&(term_index as u8)) {
+                            matches.push((row, value_i64));
+                        } else {
+                            indexes.insert(term_index as u8, vec![(row, value_i64)]);
+                        }
+                    }
+                } else if let Some(errors) = state.errors.get_mut(&row) {
+                    errors.push((term_index as u8, value_str));
+                } else {
+                    state
+                        .errors
+                        .insert(row, vec![(term_index as u8, value_str)]);
+                }
             }
         }
-    }
-    if let Some(indexes) = state.results.indexes.as_mut() {
-        indexes.insert(row, matches);
     }
 }
 

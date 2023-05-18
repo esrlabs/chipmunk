@@ -371,6 +371,20 @@ impl Session {
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
+    pub fn get_values(
+        &self,
+        operation_id: Uuid,
+        dataset_len: u16,
+        range: Option<RangeInclusive<u64>>,
+    ) -> Result<(), ComputationError> {
+        self.tx_operations
+            .send(Operation::new(
+                operation_id,
+                operations::OperationKind::Values { dataset_len, range },
+            ))
+            .map_err(|e| ComputationError::Communication(e.to_string()))
+    }
+
     pub fn get_nearest_to(
         &self,
         operation_id: Uuid,

@@ -25,6 +25,7 @@ mod observed;
 mod searchers;
 mod session_file;
 mod source_ids;
+pub(crate) mod values;
 
 pub use api::{Api, SessionStateAPI};
 pub use attachments::{AttachmentInfo, Attachments};
@@ -36,9 +37,9 @@ pub use indexes::{
 };
 use observed::Observed;
 use searchers::{SearcherState, Searchers};
-use serde_json;
 pub use session_file::{GrabbedElement, SessionFile, SessionFileState};
 pub use source_ids::SourceDefinition;
+pub use values::Values;
 
 #[derive(Debug)]
 pub enum Status {
@@ -52,6 +53,7 @@ pub struct SessionState {
     pub observed: Observed,
     pub search_map: SearchMap,
     pub indexes: Indexes,
+    pub values: Values,
     pub searchers: Searchers,
     pub attachments: Attachments,
     pub cancelling_operations: HashMap<Uuid, bool>,
@@ -70,7 +72,8 @@ impl SessionState {
                 values: SearcherState::NotInited,
             },
             attachments: Attachments::new(),
-            indexes: Indexes::new(Some(tx_callback_events)),
+            indexes: Indexes::new(Some(tx_callback_events.clone())),
+            values: Values::new(Some(tx_callback_events)),
             status: Status::Open,
             cancelling_operations: HashMap::new(),
             debug: false,
@@ -233,13 +236,7 @@ impl SessionState {
             .search(rows, bytes, state_cancellation_token)
         {
             Some(Ok((_processed, values))) => {
-                tx_callback_events.send(CallbackEvent::SearchValuesUpdated(Some(
-                    serde_json::to_string(&values).map_err(|e| NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Io,
-                        message: Some(format!("Fail to convert search values to json: {e}",)),
-                    })?,
-                )))?;
+                self.values.append_values(values);
             }
             Some(Err(err)) => error!("Fail to update search values: {err}"),
             None => (),
@@ -645,6 +642,20 @@ pub async fn run(
                     NativeError::channel("Failed to respond to Api::SetSearchValuesHolder")
                 })?;
             }
+            Api::GetSearchValues((frame, width, tx_response)) => {
+                let frame = frame.unwrap_or(RangeInclusive::new(0, state.session_file.len()));
+                tx_response
+                    .send(state.values.get(&frame, width))
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::SetSearchValuesHolder")
+                    })?;
+            }
+            Api::SetSearchValues(values, tx_response) => {
+                state.values.set_values(values);
+                tx_response.send(()).map_err(|_| {
+                    NativeError::channel("Failed to respond to Api::SetSearchValues")
+                })?;
+            }
             Api::DropSearchValues(tx_response) => {
                 let result = if state.searchers.values.is_using() {
                     false
@@ -652,7 +663,7 @@ pub async fn run(
                     state.searchers.values.not_inited();
                     true
                 };
-                tx_callback_events.send(CallbackEvent::SearchValuesUpdated(None))?;
+                state.values.drop();
                 tx_response.send(result).map_err(|_| {
                     NativeError::channel("Failed to respond to Api::DropSearchValues")
                 })?;
