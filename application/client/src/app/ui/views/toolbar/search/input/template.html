@@ -12,6 +12,7 @@
             <button
                 [class]="active.isPossibleToSaveAsChart() ? 'enabled' : ''"
                 [disabled]="!active.isPossibleToSaveAsChart()"
+                (click)="onSaveAsChart()"
             >
                 <mat-icon [class]="!active.isPossibleToSaveAsChart() ? 'disabled' : ''">timeline</mat-icon>
             </button>

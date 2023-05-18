@@ -1,5 +1,5 @@
 import { Subject } from '@platform/env/subscription';
-import { getContrastColor, scheme_color_match, getNextColor } from '@styles/colors';
+import { scheme_color_match, getNextColor } from '@styles/colors';
 import { DisableConvertable } from '../disabled/converting';
 import { Hash, Recognizable } from '@platform/types/storage/entry';
 import { Json } from '@platform/types/storage/json';
@@ -9,26 +9,29 @@ import { Key } from '../store';
 import { Equal } from '@platform/types/env/types';
 import { Updatable } from '../store';
 import { UpdateEvent } from './store.update';
+import { getFilterError } from '@module/util';
 
 import * as regexFilters from '@platform/env/filters';
-import * as regex from '@platform/env/regex';
 import * as obj from '@platform/env/obj';
 
 export interface Definition {
     filter: string;
-    colors: Colors;
+    color: string;
+    widths: {
+        line: number;
+        point: number;
+    };
     active: boolean;
     uuid: string;
 }
 
-export interface Colors {
-    color: string;
-    background: string;
-}
-
 export interface OptionalDefinition {
     filter: string;
-    colors?: Colors;
+    color?: string;
+    widths?: {
+        line: number;
+        point: number;
+    };
     active?: boolean;
     uuid?: string;
 }
@@ -41,7 +44,8 @@ export interface OptionalColors {
 export interface UpdateRequest {
     filter?: string;
     color?: string;
-    background?: string;
+    line?: number;
+    point?: number;
     active?: boolean;
 }
 
@@ -49,17 +53,19 @@ export class ChartRequest
     extends Json<ChartRequest>
     implements Recognizable, DisableConvertable, Hash, Equal<ChartRequest>, Updatable<UpdateEvent>
 {
-    public static KEY: Key = Key.filters;
+    public static KEY: Key = Key.charts;
+    public static DEFAULT_LINE_WIDTH = 1;
+    public static DEFAULT_POINT_RADIUS = 0;
 
     public static fromJson(json: string): ChartRequest | Error {
         try {
             const def: Definition = JSON.parse(json);
             def.uuid = obj.getAsString(def, 'uuid');
-            def.filter = obj.getAsObj(def, 'filter');
-            def.filter = obj.getAsNotEmptyString(def.filter, 'filter');
-            def.colors = obj.getAsObj(def, 'colors');
-            def.colors.color = obj.getAsNotEmptyString(def.colors, 'color');
-            def.colors.background = obj.getAsNotEmptyString(def.colors, 'background');
+            def.filter = obj.getAsNotEmptyString(def, 'filter');
+            def.color = obj.getAsNotEmptyString(def, 'color');
+            def.widths = obj.getAsObj(def, 'widths');
+            def.widths.line = obj.getAsValidNumber(def.widths, 'line');
+            def.widths.point = obj.getAsValidNumber(def.widths, 'point');
             def.active = obj.getAsBool(def, 'active');
             return new ChartRequest(def);
         } catch (e) {
@@ -73,23 +79,31 @@ export class ChartRequest
     private _regex!: RegExp;
     private _hash!: string;
 
-    static isValid(request: string | undefined): boolean {
-        if (request === undefined) {
-            return false;
+    static isValid(filter: string | undefined): boolean {
+        return filter === undefined
+            ? false
+            : getFilterError(filter, false, false, true) === undefined;
+    }
+
+    static getValidationError(filter: string): string | undefined {
+        let error: string | undefined = getFilterError(filter, false, false, true);
+        if (error !== undefined) {
+            const match: RegExpMatchArray | null = error.match(/error:.+/i);
+            if (match !== null && match[0] !== undefined) {
+                error = match[0].trim();
+            }
         }
-        if (!regex.isValid(request)) {
-            return false;
-        }
-        return true;
+        return error;
     }
 
     static defaults(value: string): ChartRequest {
         const color = getNextColor();
         return new ChartRequest({
             filter: value,
-            colors: {
-                background: color,
-                color: getContrastColor(color, true),
+            color: color,
+            widths: {
+                line: ChartRequest.DEFAULT_LINE_WIDTH,
+                point: ChartRequest.DEFAULT_POINT_RADIUS,
             },
         });
     }
@@ -100,20 +114,14 @@ export class ChartRequest
             filter: def.filter,
             uuid: def.uuid === undefined ? unique() : def.uuid,
             active: def.active === undefined ? true : def.active,
-            colors: {
-                color:
-                    def.colors === undefined
-                        ? getContrastColor(scheme_color_match, true)
-                        : def.colors.color === undefined
-                        ? getContrastColor(scheme_color_match, true)
-                        : def.colors.color,
-                background:
-                    def.colors === undefined
-                        ? scheme_color_match
-                        : def.colors.background === undefined
-                        ? scheme_color_match
-                        : def.colors.background,
-            },
+            color: def.color === undefined ? scheme_color_match : def.color,
+            widths:
+                def.widths === undefined
+                    ? {
+                          line: ChartRequest.DEFAULT_LINE_WIDTH,
+                          point: ChartRequest.DEFAULT_POINT_RADIUS,
+                      }
+                    : def.widths,
         };
         this.update();
     }
@@ -165,7 +173,8 @@ export class ChartRequest
     public set(silence: boolean = false): {
         from(desc: UpdateRequest): boolean;
         color(color: string): boolean;
-        background(background: string): boolean;
+        line(width: number): boolean;
+        point(width: number): boolean;
         state(active: boolean): boolean;
         filter(filter: string): boolean;
     } {
@@ -179,13 +188,13 @@ export class ChartRequest
                     event.on().state();
                 }
                 if (typeof desc.color === 'string' && this.set(true).color(desc.color)) {
-                    event.on().colors();
+                    event.on().color();
                 }
-                if (
-                    typeof desc.background === 'string' &&
-                    this.set(true).background(desc.background)
-                ) {
-                    event.on().colors();
+                if (typeof desc.line === 'number' && this.set(true).line(desc.line)) {
+                    event.on().line();
+                }
+                if (typeof desc.point === 'number' && this.set(true).point(desc.point)) {
+                    event.on().point();
                 }
                 if (event.changed() && this.update()) {
                     this.updated.emit(event);
@@ -193,16 +202,23 @@ export class ChartRequest
                 return event.changed();
             },
             color: (color: string): boolean => {
-                this.definition.colors.color = color;
+                this.definition.color = color;
                 if (!silence && this.update()) {
-                    this.updated.emit(new UpdateEvent(this).on().colors());
+                    this.updated.emit(new UpdateEvent(this).on().color());
                 }
                 return true;
             },
-            background: (background: string): boolean => {
-                this.definition.colors.background = background;
+            line: (width: number): boolean => {
+                this.definition.widths.line = width;
                 if (!silence && this.update()) {
-                    this.updated.emit(new UpdateEvent(this).on().colors());
+                    this.updated.emit(new UpdateEvent(this).on().line());
+                }
+                return true;
+            },
+            point: (width: number): boolean => {
+                this.definition.widths.point = width;
+                if (!silence && this.update()) {
+                    this.updated.emit(new UpdateEvent(this).on().point());
                 }
                 return true;
             },
@@ -253,10 +269,12 @@ export class ChartRequest
         const prev: string = this._hash;
         this._regex = regexFilters.getMarkerRegExp(this.definition.filter, {
             reg: true,
-            cases: false,
             word: false,
+            cases: false,
         });
-        this._hash = this.definition.filter;
+        this._hash = `${this.definition.filter}${this.definition.color}${
+            this.definition.widths.line
+        }${this.definition.widths.point}${this.definition.active ? '1' : '0'}`;
         return prev !== this._hash;
     }
 }

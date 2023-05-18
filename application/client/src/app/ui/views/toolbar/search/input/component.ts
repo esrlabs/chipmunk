@@ -176,6 +176,14 @@ export class ViewSearchInput
         this.drop();
     }
 
+    public onSaveAsChart(): void {
+        if (this.active === undefined) {
+            return;
+        }
+        this.session.search.store().charts().addFromFilter(this.active.filter);
+        this.drop();
+    }
+
     protected toolbar(): {
         resized(): void;
     } {

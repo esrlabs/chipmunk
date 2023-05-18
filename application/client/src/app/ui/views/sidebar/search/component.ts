@@ -19,6 +19,7 @@ import { DragAndDropService } from './draganddrop/service';
 import { IMenuItem, contextmenu } from '@ui/service/contextmenu';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { ProviderFilters } from './filters/provider';
+import { ProviderCharts } from './charts/provider';
 import { ProviderDisabled } from './disabled/provider';
 import { stop } from '@ui/env/dom';
 
@@ -84,6 +85,7 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
         this.draganddrop = new DragAndDropService();
         this._providers = new Providers(this.session, this.draganddrop, this.log());
         this._providers.add(ProviderData.filters, ProviderFilters);
+        this._providers.add(ProviderData.charts, ProviderCharts);
         this._providers.add(ProviderData.disabled, ProviderDisabled);
         this.providers = this._providers.list();
         this.env().subscriber.register(

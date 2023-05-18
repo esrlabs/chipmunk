@@ -1,5 +1,0 @@
-<div [attr.class]="'container ' + (this.state.filters === undefined || this.state.noData ? 'hidden' : '')">
-    <canvas [attr.id]="'view-chart-zoomer-filters-canvas-' + this.session.uuid()"></canvas>
-</div>
-<app-views-chart-zoomer-cursor-canvas [session]="this.session" *ngIf="state.isCursorVisible && !this.state.noData"></app-views-chart-zoomer-cursor-canvas>
-<div *ngIf="!this.state.noData" class="rectangle" [ngStyle]="{'width': state._ng_rectWidth + 'px', 'left': state._ng_rectLeft + 'px', 'border-width': state._ng_borderWidth + 'px'}"></div>

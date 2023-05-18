@@ -1,0 +1,124 @@
+@import '../../../../../styles/variables.less';
+
+
+:host {
+    display: flex;
+    position: relative;
+    flex-flow: row;
+    padding: 3px 12px 5px 24px;
+    overflow: hidden;
+    height: 20px;
+    cursor: default;
+    align-items: center;
+    &:hover{
+        background: @scheme-color-5;
+    }
+    &.selected{
+        background: fadeout(@scheme-color-accent, 50%);
+    }
+
+    div.doubleclick {
+        display: flex;
+        flex: auto;
+        align-items: center;
+    }
+    span.color {
+        flex: 0;
+        width: 8px;
+        max-width: 8px;
+        min-width: 8px;
+        min-height: 16px;
+        display: block;
+        position: relative;
+        margin: 2px 0 2px 0;
+    }
+    span.request{
+        flex: auto;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding-left: 6px;
+        color: @scheme-color-0;
+        cursor: default;
+    }
+    span.found {
+        flex: 0;
+        white-space: nowrap;
+        color: @scheme-color-0;
+        padding: 0 6px;
+        font-size: 12px;
+        margin: 0;
+        border: thin solid @scheme-color-active;
+        background: @scheme-color-active;
+        border-radius: 6px;
+    }
+    input.request {
+        margin: 0 8px;
+        padding: 0;
+        border: none;
+        border-bottom: dashed 1px @scheme-color-1;
+        flex: auto;
+        white-space: nowrap;
+        color: @scheme-color-0;
+        background: none;
+        outline: none;
+    }
+    span.flags {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        flex: 0;
+        padding-right: 8px;
+        & span {
+            font-size: 14px;
+            line-height: 14px;
+            vertical-align: bottom;
+            cursor: default;
+            &.active{
+                color: @scheme-color-0;
+            }
+            &.inactive{
+                color: @scheme-color-3;
+            }
+            &.invalid {
+                color: @scheme-color-error;
+            }
+        }
+    }
+    &.notvalid {
+        input.request {
+            color: @scheme-color-error;
+            border-bottom: dashed 1px @scheme-color-error;
+        }
+    }
+    &.edited {
+        padding-left: 0;
+        background: @scheme-color-6;
+        mat-checkbox {
+            display: none;
+        }
+        span.color {
+            display: none;
+        }
+        span.background {
+            display: none;
+        }
+        span.flags {
+            display: none;
+        }
+    }
+    &.cdk-drag-preview {
+        box-sizing: border-box;
+        box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
+                    0 8px 10px 1px rgba(0, 0, 0, 0.14),
+                    0 3px 14px 2px rgba(0, 0, 0, 0.12);
+        font-size: 14px;
+        line-height: 20px;
+    }
+    &.cdk-drag-placeholder {
+        opacity: 0;
+    }
+    &.cdk-drag-animating {
+        transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+    }
+}

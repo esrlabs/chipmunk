@@ -1,0 +1,9 @@
+<canvas #canvas [attr.width]="rect.width" [attr.height]="rect.height"></canvas>
+<span class="pointer" *ngIf="x !== undefined" [ngStyle]="{'left': x}">
+    <span class="label range" *ngIf="range !== undefined">{{range.from}} - {{range.to}}</span>
+    <span class="label" [ngStyle]="{'background': label[0], 'color': getLabelColor(label[0])}" *ngFor="let label of labels">
+        <span class="value"> {{label[1]}}</span>
+        <span class="row">({{label[2]}})</span>
+    </span>
+    <span class="label more" *ngIf="cutted !== 0">and more {{cutted}}</span>
+</span>
