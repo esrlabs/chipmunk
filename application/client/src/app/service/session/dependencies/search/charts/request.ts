@@ -82,7 +82,9 @@ export class ChartRequest
     static isValid(filter: string | undefined): boolean {
         return filter === undefined
             ? false
-            : getFilterError(filter, false, false, true) === undefined;
+            : getFilterError(filter, false, false, true) === undefined
+            ? filter.replace('\\(', '') === ''
+            : false;
     }
 
     static getValidationError(filter: string): string | undefined {

@@ -1,5 +1,4 @@
 <div class="holder" (mouseover)="_ng_onMouseOver()">
-    <!-- <app-sidebar-app-searchmanager-controls></app-sidebar-app-searchmanager-controls> -->
     <div class="wrapper" *ngFor="let provider of providers">
         <mat-expansion-panel
             *ngIf="!provider.isEmpty() || provider.panels.nocontent.comp !== undefined"
@@ -25,7 +24,6 @@
             ></lib-containers-dynamic>
         </mat-expansion-panel>
     </div>
-  
     <div class="wrapper" *ngIf="selected && selected.panels.details.comp !== undefined">
         <mat-expansion-panel
             [disabled]="true"

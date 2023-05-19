@@ -168,19 +168,34 @@ export class ProviderFilters extends Provider<FilterRequest> {
         };
     }
 
-    public getContextMenuItems(target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[] {
+    public getContextMenuItems(_target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[] {
         if (selected.length !== 1) {
             return [];
         }
         const entity = selected[0].extract();
         const items: IMenuItem[] = [];
-        if (entity instanceof FilterRequest) {
-            items.push({
-                caption: `Show Matches`,
-                handler: () => {
-                    this.search(selected[0]);
-                },
-            });
+        if (selected[0].extract() instanceof FilterRequest) {
+            items.push(
+                ...[
+                    {
+                        caption: `Show Matches`,
+                        handler: () => {
+                            this.search(selected[0]);
+                        },
+                    },
+                    {},
+                    {
+                        caption: `Into Chart`,
+                        disabled: !this.session.search.store().charts().isConvertableFrom(entity),
+                        handler: () => {
+                            if (!this.session.search.store().charts().tryFromFilter(entity)) {
+                                return;
+                            }
+                            this.session.search.store().filters().delete([entity.uuid()]);
+                        },
+                    },
+                ],
+            );
         }
         return items;
     }
@@ -296,8 +311,9 @@ export class ProviderFilters extends Provider<FilterRequest> {
                     return;
                 }
                 const disabled: DisabledRequest = outside.extract();
-                this.session.search.store().disabled().delete([disabled.uuid()]);
-                this.session.search.store().filters().tryRestore(disabled.entity());
+                if (this.session.search.store().filters().tryRestore(disabled.entity())) {
+                    this.session.search.store().disabled().delete([disabled.uuid()]);
+                }
                 // if (data.entries !== undefined) {
                 //     const outside: Entity<ChartRequest> | undefined =
                 //         data.entries[event.previousIndex] !== undefined
