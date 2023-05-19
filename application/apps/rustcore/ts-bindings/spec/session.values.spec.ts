@@ -58,7 +58,7 @@ describe('Values', function () {
                             .then((data) => {
                                 let control = 0;
                                 data[0].forEach((pair) => {
-                                    control += pair[1];
+                                    control += pair[3];
                                 });
                                 expect(control).toEqual(sum);
                                 finish(session, done);
@@ -127,7 +127,7 @@ describe('Values', function () {
                                 .then((data) => {
                                     let control = 0;
                                     data[0].forEach((pair) => {
-                                        control += pair[1];
+                                        control += pair[3];
                                     });
                                     expect(control).toEqual(sum);
                                     const offset = 5000;
@@ -150,7 +150,7 @@ describe('Values', function () {
                                 .then((data) => {
                                     let control = 0;
                                     data[0].forEach((pair) => {
-                                        control += pair[1];
+                                        control += pair[3];
                                     });
                                     expect(control).toEqual(sum);
                                     finish(session, done);
