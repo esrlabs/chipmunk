@@ -47,7 +47,7 @@ impl<'m> Parser<SomeipLogMessage> for SomeipParser<'m> {
                 Ok((
                     &input[len..],
                     Some(ParseYield::from(SomeipLogMessage::from(
-                        sd_message_string(&payload),
+                        sd_message_string(&header, &payload),
                         input[..len].to_vec(),
                     ))),
                 ))
@@ -70,7 +70,7 @@ impl<'m> Parser<SomeipLogMessage> for SomeipParser<'m> {
                 Ok((
                     &input[Header::LENGTH..],
                     Some(ParseYield::from(SomeipLogMessage::from(
-                        String::from("Magic-Cookie-Client"),
+                        String::from("MCC"), // Magic-Cookie-Client
                         input[..Header::LENGTH].to_vec(),
                     ))),
                 ))
@@ -81,7 +81,7 @@ impl<'m> Parser<SomeipLogMessage> for SomeipParser<'m> {
                 Ok((
                     &input[Header::LENGTH..],
                     Some(ParseYield::from(SomeipLogMessage::from(
-                        String::from("Magic-Cookie-Server"),
+                        String::from("MCS"), // Magic-Cookie-Server
                         input[..Header::LENGTH].to_vec(),
                     ))),
                 ))
@@ -96,54 +96,66 @@ impl<'m> Parser<SomeipLogMessage> for SomeipParser<'m> {
     }
 }
 
-fn sd_message_string(payload: &SdPayload) -> String {
+const COLUMN_SEP: char = '\u{0004}';
+
+fn header_string(header: &Header) -> String {
+    format!(
+        "{}{COLUMN_SEP}{}{COLUMN_SEP}{}{COLUMN_SEP}{}{COLUMN_SEP}{}{COLUMN_SEP}{}{COLUMN_SEP}{}{COLUMN_SEP}{}",
+        header.message_id.service_id,
+        header.message_id.method_id,
+        header.length,
+        header.request_id.client_id,
+        header.request_id.session_id,
+        header.interface_version,
+        u8::from(header.message_type),
+        u8::from(header.return_code),
+    )
+}
+
+fn sd_message_string(header: &Header, payload: &SdPayload) -> String {
     let mut string = format!(
-        "SD\n- Flags: {}",
-        match (payload.reboot_flag(), payload.unicast_flag()) {
-            (true, false) => "R",
-            (false, true) => "U",
-            (true, true) => "R,U",
-            (false, false) => "-",
-        }
+        "SD{COLUMN_SEP}{}{COLUMN_SEP}{}",
+        header_string(header),
+        format!("Flags: [{:02X?}]", payload.flags)
     );
 
     for (i, entry) in payload.entries.iter().enumerate() {
         let (entry_string, entry_options) = match entry {
             SdEntry::FindService(value) => (
-                sd_service_entry_string(
+                service_entry_string(
                     match value.has_ttl() {
-                        true => "FindService",
-                        false => "StopFindService",
+                        true => "Find",
+                        false => "Stop-Find",
                     },
                     value,
                 ),
                 payload.options(i),
             ),
             SdEntry::OfferService(value) => (
-                sd_service_entry_string(
+                service_entry_string(
                     match value.has_ttl() {
-                        true => "OfferService",
-                        false => "StopOfferService",
+                        true => "Offer",
+                        false => "Stop-Offer",
                     },
                     value,
                 ),
                 payload.options(i),
             ),
             SdEntry::SubscribeEventgroup(value) => (
-                sd_eventgroup_entry_string(
+                eventgroup_entry_string(
                     match value.has_ttl() {
-                        true => "SubscribeEventgroup",
-                        false => "StopSubscribeEventgroup",
+                        true => "Subscribe",
+                        false => "Stop-Subscribe",
                     },
                     value,
                 ),
                 payload.options(i),
             ),
             SdEntry::SubscribeEventgroupAck(value) => (
-                sd_eventgroup_entry_string(
+                eventgroup_entry_string(
                     match value.has_ttl() {
-                        true => "SubscribeEventgroupAck",
-                        false => "SubscribeEventgroupNack",
+                        true => "Subscribe-Ack",
+                        false => "Subscribe-Nack",
                     },
                     value,
                 ),
@@ -151,107 +163,113 @@ fn sd_message_string(payload: &SdPayload) -> String {
             ),
         };
 
-        string = format!("{string}\n- {entry_string}");
+        string = format!("{string}, {entry_string}");
 
         for option in entry_options {
-            string = format!("{}\n  |- {}", string, sd_option_string(option));
+            string = format!("{} {}", string, option_string(option));
         }
     }
 
     string
 }
 
-fn sd_service_entry_string(name: &str, entry: &SdServiceEntry) -> String {
+fn service_entry_string(name: &str, entry: &SdServiceEntry) -> String {
     format!(
-        "{}: Service {}, Instance {}, Version {}.{}{}",
+        "{} {} v{}.{} Inst {}{}",
         name,
         entry.service_id,
-        entry.instance_id,
         entry.major_version,
         entry.minor_version,
+        entry.instance_id,
         match entry.has_ttl() {
-            true => Cow::Owned(format!(", Ttl {}", entry.ttl)),
+            true => Cow::Owned(format!(" Ttl {}", entry.ttl)),
             false => Cow::Borrowed(""),
         }
     )
 }
 
-fn sd_eventgroup_entry_string(name: &str, entry: &SdEventgroupEntry) -> String {
+fn eventgroup_entry_string(name: &str, entry: &SdEventgroupEntry) -> String {
     format!(
-        "{}: Service {}, Instance {}, Eventgroup {}, Version {}{}",
+        "{} {}-{} v{} Inst {}{}",
         name,
         entry.service_id,
-        entry.instance_id,
         entry.eventgroup_id,
         entry.major_version,
+        entry.instance_id,
         match entry.has_ttl() {
-            true => Cow::Owned(format!(", Ttl {}", entry.ttl)),
+            true => Cow::Owned(format!(" Ttl {}", entry.ttl)),
             false => Cow::Borrowed(""),
         }
     )
 }
 
-fn sd_option_string(option: &SdEndpointOption) -> String {
+fn option_string(option: &SdEndpointOption) -> String {
     format!(
-        "{}:{} ({})",
-        option.ip,
-        option.port,
+        "{} {}:{}",
         match option.proto {
             IpProto::UDP => "UDP",
             IpProto::TCP => "TCP",
         },
+        option.ip,
+        option.port,
     )
 }
 
 fn rpc_message_string(header: &Header, payload: &RpcPayload, model: Option<&FibexModel>) -> String {
-    let service_id = header.message_id.service_id as usize;
-    let service_version = header.interface_version as usize;
-    let method_id = header.message_id.method_id as usize;
-    let message_type = header.message_type;
-
-    let mut service_name: Option<&str> = None;
-    let mut method_name: Option<&str> = None;
-
-    let fibex_type = model.and_then(|model| {
-        model
-            .get_service(service_id, service_version)
-            .and_then(|service| {
-                service_name = Some(&service.name);
-                service.get_method(method_id).and_then(|method| {
-                    method_name = Some(&method.name);
-                    match message_type {
-                        MessageType::Request
-                        | MessageType::RequestNoReturn
-                        | MessageType::Notification => method.get_request(),
-                        MessageType::Response => method.get_response(),
-                        _ => None,
-                    }
-                })
-            })
-    });
-
-    let som_type = fibex_type.and_then(|value| FibexTypes::build(value).ok());
-
     format!(
-        "RPC\n- Service {}, Method {}, Version {}\n- {:?} ({:?})\n- Payload {} bytes\n- {}::{} {}",
-        service_id,
-        method_id,
-        service_version,
-        message_type,
-        header.return_code,
-        header.payload_len(),
-        service_name.unwrap_or("UnknownService"),
-        method_name.unwrap_or("UnknownMethod"),
-        match payload.is_empty() {
-            true => Cow::Borrowed(""),
-            false => {
-                let mut som_parser = SOMParser::new(payload);
-                som_type
-                    .map(|mut value| match value.parse(&mut som_parser) {
-                        Ok(_) => Cow::Owned(format!("{value}")),
-                        Err(error) => Cow::Owned(format!("{error}")),
-                    })
-                    .unwrap_or(Cow::Borrowed("(UnknownType)"))
+        "RPC{COLUMN_SEP}{}{COLUMN_SEP}{}",
+        header_string(header),
+        match model {
+            None => {
+                format!("Bytes: {:02X?}", *payload)
+            }
+            Some(model) => {
+                let service_id = header.message_id.service_id as usize;
+                let service_version = header.interface_version as usize;
+                let method_id = header.message_id.method_id as usize;
+                let message_type = header.message_type;
+
+                let mut service_name: Option<&str> = None;
+                let mut method_name: Option<&str> = None;
+
+                let fibex_type =
+                    model
+                        .get_service(service_id, service_version)
+                        .and_then(|service| {
+                            service_name = Some(&service.name);
+                            service.get_method(method_id).and_then(|method| {
+                                method_name = Some(&method.name);
+                                match message_type {
+                                    MessageType::Request
+                                    | MessageType::RequestNoReturn
+                                    | MessageType::Notification => method.get_request(),
+                                    MessageType::Response => method.get_response(),
+                                    _ => None,
+                                }
+                            })
+                        });
+
+                let som_type = fibex_type.and_then(|value| FibexTypes::build(value).ok());
+
+                format!(
+                    "{}::{} {}",
+                    service_name.unwrap_or("Service?"),
+                    method_name.unwrap_or("Method?"),
+                    match payload.is_empty() {
+                        true => Cow::Borrowed(""),
+                        false => {
+                            let mut som_parser = SOMParser::new(payload);
+                            som_type
+                                .map(|mut value| match value.parse(&mut som_parser) {
+                                    Ok(_) => {
+                                        Cow::Owned(format!("{value}").replace([' ', '\n'], ""))
+                                    }
+                                    Err(error) => Cow::Owned(format!("{error}")),
+                                })
+                                .unwrap_or(Cow::Borrowed("(Type?)"))
+                        }
+                    }
+                )
             }
         }
     )
@@ -280,7 +298,7 @@ impl LogMessage for SomeipLogMessage {
 
 impl Display for SomeipLogMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "SOME/IP {}", self.description,)
+        write!(f, "{}", self.description,)
     }
 }
 
@@ -291,12 +309,8 @@ mod test {
     use std::io::BufReader;
     use stringreader::StringReader;
 
-    fn flatten_str(string: &str) -> String {
-        string.replace([' ', '\n'], "")
-    }
-
     fn assert_str(expected: &str, actual: &str) {
-        assert_eq!(flatten_str(expected), flatten_str(actual), "\n{actual}\n");
+        assert_eq!(expected, actual.replace(COLUMN_SEP, "|"), "\n{actual}\n");
     }
 
     fn test_model() -> FibexModel {
@@ -364,7 +378,7 @@ mod test {
         assert!(output.is_empty());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_str("SOME/IP Magic-Cookie-Client", &format!("{}", item));
+            assert_str("MCC", &format!("{}", item));
         } else {
             panic!("unexpected parse yield");
         }
@@ -385,7 +399,7 @@ mod test {
         assert!(output.is_empty());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_str("SOME/IP Magic-Cookie-Server", &format!("{}", item));
+            assert_str("MCS", &format!("{}", item));
         } else {
             panic!("unexpected parse yield");
         }
@@ -405,13 +419,7 @@ mod test {
 
         assert!(output.is_empty());
 
-        let expected = r#"
-            SOME/IP RPC
-            - Service 259, Method 32772, Version 1
-            - Notification (Ok)
-            - Payload 0 bytes
-            - UnknownService::UnknownMethod
-        "#;
+        let expected = r#"RPC|259|32772|8|1|2|1|2|0|Bytes: []"#;
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_str(expected, &format!("{}", item));
@@ -436,13 +444,7 @@ mod test {
 
         assert!(output.is_empty());
 
-        let expected = r#"
-            SOME/IP RPC
-            - Service 259, Method 32772, Version 1
-            - Notification (Ok)
-            - Payload 0 bytes
-            - TestService::emptyEvent
-        "#;
+        let expected = r#"RPC|259|32772|8|1|2|1|2|0|TestService::emptyEvent "#;
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_str(expected, &format!("{}", item));
@@ -466,13 +468,7 @@ mod test {
 
         assert!(output.is_empty());
 
-        let expected = r#"
-            SOME/IP RPC
-            - Service 259, Method 32773, Version 1
-            - Notification (Ok)
-            - Payload 2 bytes
-            - UnknownService::UnknownMethod (UnknownType)
-        "#;
+        let expected = r#"RPC|259|32773|10|1|2|1|2|0|Bytes: [01, 02]"#;
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_str(expected, &format!("{}", item));
@@ -498,16 +494,7 @@ mod test {
 
         assert!(output.is_empty());
 
-        let expected = r#"
-            SOME/IP RPC
-            - Service 259, Method 32773, Version 1
-            - Notification (Ok)
-            - Payload 2 bytes
-            - TestService::testEvent {
-                value1 (UINT8) : 1,
-                value2 (UINT8) : 2,
-            }
-        "#;
+        let expected = r#"RPC|259|32773|10|1|2|1|2|0|TestService::testEvent {value1(UINT8):1,value2(UINT8):2,}"#;
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_str(expected, &format!("{}", item));
@@ -533,10 +520,7 @@ mod test {
 
         assert!(output.is_empty());
 
-        let expected = r#"
-            SOME/IP SD
-            - Flags: R,U
-        "#;
+        let expected = r#"SD|65535|33024|20|0|0|1|2|0|Flags: [C0]"#;
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_str(expected, &format!("{}", item));
@@ -578,13 +562,7 @@ mod test {
 
         assert!(output.is_empty());
 
-        let expected = r#"
-            SOME/IP SD
-            - Flags: R,U
-            - SubscribeEventgroup: Service 259, Instance 1, Eventgroup 456, Version 2, Ttl 3
-            - SubscribeEventgroupAck: Service 259, Instance 1, Eventgroup 456, Version 2, Ttl 3
-              |- 127.0.0.1:30000 (UDP)
-        "#;
+        let expected = r#"SD|65535|33024|64|0|0|1|2|0|Flags: [C0], Subscribe 259-456 v2 Inst 1 Ttl 3, Subscribe-Ack 259-456 v2 Inst 1 Ttl 3 UDP 127.0.0.1:30000"#;
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_str(expected, &format!("{}", item));
