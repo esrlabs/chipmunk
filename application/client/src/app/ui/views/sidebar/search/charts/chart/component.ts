@@ -1,33 +1,24 @@
-import {
-    Component,
-    Input,
-    ChangeDetectorRef,
-    AfterContentInit,
-    HostBinding,
-    ViewChild,
-    ChangeDetectionStrategy,
-} from '@angular/core';
+import { Component, AfterContentInit, HostBinding, ViewChild } from '@angular/core';
 import { ChartRequest } from '@service/session/dependencies/search/charts/request';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatInput } from '@angular/material/input';
 import { MatCheckbox } from '@angular/material/checkbox';
-import { FilterItemDirective } from '../../directives/item.directive';
 import { ProviderCharts } from '../provider';
-import { Entity } from '../../providers/definitions/entity';
-import { MatDragDropResetFeatureDirective } from '@ui/env/directives/material.dragdrop';
+// import { MatDragDropResetFeatureDirective } from '@ui/env/directives/material.dragdrop';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
 import { EFlag } from '@platform/types/filter';
+import { EntityItem } from '../../base/entity';
 
 @Component({
     selector: 'app-sidebar-charts-filter',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
+    hostDirectives: EntityItem.HOST_DIRECTIVES,
 })
 @Ilc()
-export class Chart extends ChangesDetector implements AfterContentInit {
+export class Chart extends EntityItem<ProviderCharts, ChartRequest> implements AfterContentInit {
     @HostBinding('class.notvalid') get cssClassNotValid() {
         return true;
         // return !ChartRequest.isValid({
@@ -43,22 +34,18 @@ export class Chart extends ChangesDetector implements AfterContentInit {
     @ViewChild(MatInput) _inputRefCom!: MatInput;
     @ViewChild(MatCheckbox) _stateRefCom!: MatCheckbox;
 
-    @Input() entity!: Entity<ChartRequest>;
-    @Input() provider!: ProviderCharts;
-
     public state!: State;
-    public directive: FilterItemDirective;
     public EFlag = EFlag;
 
-    constructor(
-        cdRef: ChangeDetectorRef,
-        directive: FilterItemDirective,
-        accessor: MatDragDropResetFeatureDirective,
-    ) {
-        super(cdRef);
-        this.directive = directive;
-        this.directive.setResetFeatureAccessorRef(accessor);
-    }
+    // constructor(
+    //     cdRef: ChangeDetectorRef,
+    //     directive: EntityDirective,
+    //     accessor: MatDragDropResetFeatureDirective,
+    // ) {
+    //     super(cdRef);
+    //     this.directive = directive;
+    //     this.directive.setResetFeatureAccessorRef(accessor);
+    // }
 
     public ngAfterContentInit() {
         this.env().subscriber.register(
@@ -96,7 +83,7 @@ export class Chart extends ChangesDetector implements AfterContentInit {
     }
 
     public _ng_onStateClick() {
-        this.directive.ignoreMouseClick();
+        // this.directive.ignoreMouseClick();
     }
 
     public _ng_onRequestInputKeyUp(event: KeyboardEvent) {

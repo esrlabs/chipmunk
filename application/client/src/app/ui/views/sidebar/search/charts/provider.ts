@@ -8,8 +8,7 @@ import { ChartsPlaceholder } from './placeholder/component';
 import { ChartrDetails } from './details/component';
 import { IMenuItem } from '@ui/service/contextmenu';
 import { DragableRequest, ListContent } from '../draganddrop/service';
-import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { EntityData } from '../providers/definitions/entity.data';
+import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 
 export class ProviderCharts extends Provider<ChartRequest> {
     private _entities: Map<string, Entity<ChartRequest>> = new Map();
@@ -295,25 +294,22 @@ export class ProviderCharts extends Provider<ChartRequest> {
         return false;
     }
 
-    public dropped(event: CdkDragDrop<EntityData<DragableRequest>>) {
-        if (event.previousContainer === event.container) {
-            this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
-        } else {
-            const index: number = event.previousIndex;
-            const data: EntityData<DragableRequest> = event.previousContainer.data;
-            if (data.disabled !== undefined) {
-                const outside: Entity<DisabledRequest> | undefined =
-                    data.disabled[event.previousIndex] !== undefined
-                        ? data.disabled[index]
-                        : undefined;
-                if (outside === undefined) {
-                    return;
-                }
-                const disabled: DisabledRequest = outside.extract();
-                this.session.search.store().disabled().delete([disabled.uuid()]);
-                this.session.search.store().charts().tryRestore(disabled.entity());
+    public tryToInsertEntity(entity: unknown, _index: number): boolean {
+        if (entity instanceof FilterRequest) {
+            if (this.session.search.store().charts().tryFromFilter(entity)) {
+                this.session.search.store().filters().delete([entity.uuid()]);
+                return true;
+            }
+            return false;
+        } else if (entity instanceof DisabledRequest) {
+            if (this.session.search.store().charts().tryRestore(entity.entity())) {
+                this.session.search.store().disabled().delete([entity.uuid()]);
+                return true;
+            } else {
+                return false;
             }
         }
+        return false;
     }
 
     public get listID(): ListContent {

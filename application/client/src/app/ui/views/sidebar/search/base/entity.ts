@@ -1,33 +1,51 @@
 import {
-    Directive,
+    Component,
     ChangeDetectorRef,
     OnInit,
-    OnDestroy,
     Input,
     HostBinding,
     HostListener,
+    ChangeDetectionStrategy,
 } from '@angular/core';
-import { Entity } from '../providers/definitions/entity';
 import { Provider, ISelectEvent } from '../providers/definitions/provider';
-import { CdkDragRelease } from '@angular/cdk/drag-drop';
-import { MatDragDropResetFeatureDirective } from '@ui/env/directives/material.dragdrop';
-import { Subscriber } from '@platform/env/subscription';
+import { Entity } from '../providers/definitions/entity';
+import { Ilc, IlcInterface } from '@env/decorators/component';
+import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { DisabledRequest } from '@service/session/dependencies/search/disabled/request';
+import { ChartRequest } from '@service/session/dependencies/search/charts/request';
+import { CdkDrag, CdkDragRelease } from '@angular/cdk/drag-drop';
+import { MatDragDropResetFeatureDirective } from '@ui/env/directives/material.dragdrop';
 
-@Directive({
-    selector: '[appSearchItem]',
+export enum ListId {
+    Filters = 'searchmanager-filters-list',
+    Charts = 'searchmanager-charts-list',
+    Disabled = 'searchmanager-disabled-list',
+    Bin = 'searchmanager-bin-list',
+}
+
+@Component({
+    selector: 'app-sidebar-entity-item-base',
+    template: '',
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class FilterItemDirective extends ChangesDetector implements OnInit, OnDestroy {
-    @Input() provider!: Provider<any>;
-    @Input() entity!: Entity<any>;
+@Initial()
+@Ilc()
+export abstract class EntityItem<P, T> extends ChangesDetector implements OnInit {
+    static HOST_DIRECTIVES = [
+        {
+            directive: CdkDrag,
+        },
+    ];
+
+    @Input() provider!: P & Provider<T>;
+    @Input() entity!: Entity<T>;
 
     public edit: boolean = false;
     public selected: boolean = false;
     public dragging: boolean = false;
 
-    private _subscriber: Subscriber = new Subscriber();
     private _ignore: boolean = false;
     private _resetFeatureAccessorRef: MatDragDropResetFeatureDirective | undefined;
     private _overBin: boolean | undefined;
@@ -66,17 +84,11 @@ export class FilterItemDirective extends ChangesDetector implements OnInit, OnDe
         super(cdRef);
     }
 
-    public ngOnDestroy() {
-        this._subscriber.unsubscribe();
-    }
-
     public ngOnInit() {
-        this._subscriber.register(
+        this.env().subscriber.register(
             this.provider.draganddrop.subjects.mouseOverBin.subscribe((status: boolean) => {
                 this._overBin = status;
             }),
-        );
-        this._subscriber.register(
             this.provider.draganddrop.subjects.remove.subscribe(() => {
                 const dragging =
                     this.provider.draganddrop.dragging !== undefined
@@ -89,16 +101,14 @@ export class FilterItemDirective extends ChangesDetector implements OnInit, OnDe
                     this.provider.session.search.store().filters().delete([dragging.uuid()]);
                 } else if (dragging instanceof DisabledRequest) {
                     this.provider.session.search.store().disabled().delete([dragging.uuid()]);
+                } else if (dragging instanceof ChartRequest) {
+                    this.provider.session.search.store().charts().delete([dragging.uuid()]);
                 }
             }),
-        );
-        this._subscriber.register(
             this.provider.subjects.edit.subscribe((guid: string | undefined) => {
                 this.edit = this.entity.uuid() === guid;
                 this.detectChanges();
             }),
-        );
-        this._subscriber.register(
             this.provider.subjects.selection.subscribe((event: ISelectEvent) => {
                 this.selected = event.guids.indexOf(this.entity.uuid()) !== -1;
                 if (!this.selected) {
@@ -118,3 +128,5 @@ export class FilterItemDirective extends ChangesDetector implements OnInit, OnDe
         this._resetFeatureAccessorRef = ref;
     }
 }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export interface EntityItem<P, T> extends IlcInterface {}

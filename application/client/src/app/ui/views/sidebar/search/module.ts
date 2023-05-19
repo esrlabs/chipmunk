@@ -3,10 +3,6 @@ import { CommonModule } from '@angular/common';
 import { ContainersModule } from '@elements/containers/module';
 import { AppDirectiviesModule } from '@directives/module';
 import { DragDropModule } from '@angular/cdk/drag-drop';
-
-import { FilterItemDirective } from './directives/item.directive';
-import { FiltersListDirective } from './directives/list.directive';
-
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
@@ -20,23 +16,19 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatSliderModule } from '@angular/material/slider';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-
 import { ComColorSelectorComponent } from '@elements/color.selector/component';
 import { Filters } from './component';
 import { FilterDetails } from './filters/details/component';
 import { Filter } from './filters/filter/component';
 import { FiltersList } from './filters/list/component';
 import { FiltersPlaceholder } from './filters/placeholder/component';
-
 import { ChartrDetails } from './charts/details/component';
 import { Chart } from './charts/chart/component';
 import { ChartsList } from './charts/list/component';
 import { ChartsPlaceholder } from './charts/placeholder/component';
-
 import { Disabled } from './disabled/entity/component';
 import { DisabledList } from './disabled/list/component';
-
-import { Bin } from './bin/component';
+// import { Bin } from './bin/component';
 
 const entryComponents = [
     Filters,
@@ -51,7 +43,7 @@ const entryComponents = [
     Disabled,
     DisabledList,
     ComColorSelectorComponent,
-    Bin,
+    // Bin,
 ];
 const components = [...entryComponents];
 
@@ -76,7 +68,7 @@ const components = [...entryComponents];
         DragDropModule,
         MatSliderModule,
     ],
-    declarations: [...components, FilterItemDirective, FiltersListDirective],
-    exports: [...components, FilterItemDirective, FiltersListDirective],
+    declarations: [...components],
+    exports: [...components],
 })
 export class FiltersModule {}
