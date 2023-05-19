@@ -7,14 +7,45 @@ const MAX_COLUMN_WIDTH = 600;
 export class Implementation extends Render<Columns> {
     public static HEADERS = [
         {
-            caption: 'Caption Column 1',
-            desc: 'Description Column 1',
+            caption: 'SOME/IP',
+            desc: 'The Message-Kind.',
         },
         {
-            caption: 'Caption Column 2',
-            desc: 'Description Column 2',
+            caption: 'SERV',
+            desc: 'The Service-ID',
         },
-        
+        {
+            caption: 'METH',
+            desc: 'The Method-ID',
+        },
+        {
+            caption: 'LENG',
+            desc: 'The Length-Field',
+        },
+        {
+            caption: 'CLIT',
+            desc: 'The Client-ID',
+        },
+        {
+            caption: 'SESN',
+            desc: 'The Session-ID',
+        },
+        {
+            caption: 'IFVR',
+            desc: 'The Interface-Version',
+        },
+        {
+            caption: 'MSTP',
+            desc: 'The Message-Type',
+        },
+        {
+            caption: 'RETP',
+            desc: 'The Return-Type',
+        },
+        {
+            caption: 'PAYLOAD',
+            desc: 'Payload',
+        },
     ];
 
     constructor() {
@@ -23,9 +54,7 @@ export class Implementation extends Render<Columns> {
             new Columns(
                 Implementation.HEADERS,
                 true,
-                // Length -1 means - do not setup width of column. It should be used for last column, which better
-                // to be Payload column
-                [150, -1],
+                [50, 50, 50, 30, 30, 30, 30, 30, 30, -1],
                 MIN_COLUMN_WIDTH,
                 MAX_COLUMN_WIDTH,
             ),
