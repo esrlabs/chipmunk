@@ -48,7 +48,7 @@ export interface IResultSearchElement {
 
 export type ISearchMap = Array<[number, number][]>;
 
-export type IValuesMap = { [key: number]: [number, number][] };
+export type IValuesMap = { [key: number]: [number, number, number, number][] };
 export type IValuesMinMaxMap = { [key: number]: [number, number] };
 
 /**

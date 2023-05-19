@@ -49,7 +49,6 @@ export class DragAndDropService {
     }
 
     public onMouseOver(listID: ListContent) {
-        console.log(`>>>>>>>>>>>>>>>>>>>>>>>>>> onMouseOver: IGNORE`);
         this._ignore = true;
         this._droppedOut = false;
         this.subjects.mouseOver.emit(listID);

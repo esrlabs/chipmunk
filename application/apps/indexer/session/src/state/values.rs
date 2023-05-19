@@ -4,7 +4,9 @@ use std::{collections::HashMap, ops::RangeInclusive};
 use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
 
-pub type Point = (u64, f64);
+///(row_number, min_value_in_range, max_value_in_range, value)
+/// value - can be last value in range or some kind of average
+pub type Point = (u64, f64, f64, f64);
 
 #[derive(Error, Debug)]
 pub enum ValuesError {
@@ -90,7 +92,7 @@ impl Values {
                 *k,
                 fragment
                     .iter()
-                    .map(|(r, v)| (*r, *v))
+                    .map(|(r, v)| (*r, 0f64, 0f64, *v))
                     .collect::<Vec<Point>>(),
             );
         });
