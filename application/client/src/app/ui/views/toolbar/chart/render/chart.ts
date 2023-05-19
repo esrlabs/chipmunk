@@ -52,9 +52,9 @@ export class Render extends Base {
             };
             this.context.beginPath();
             const coors: [number, number][] = [];
-            values.forEach((pair: [number, number], i: number) => {
+            values.forEach((pair: [number, number, number, number], i: number) => {
                 const position = pair[0];
-                const value = pair[1];
+                const value = pair[3];
                 const x = Math.round((position - frame.from) * rate.byX);
                 const y = size.height - Math.round((value - peaks[0]) * rate.byY);
                 if (i === 0) {
