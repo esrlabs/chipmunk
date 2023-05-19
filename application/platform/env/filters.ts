@@ -27,7 +27,7 @@ export function getMarkerRegExp(request: string, flags: IFilterFlags): RegExp {
     }
 }
 
-export function hasGroups(strReg: String): boolean {
+export function hasGroups(strReg: string): boolean {
     strReg = strReg.replaceAll('\\(', '').replaceAll('\\)', '');
     const left = strReg.split('').filter((s) => s === '(').length;
     const right = strReg.split('').filter((s) => s === ')').length;

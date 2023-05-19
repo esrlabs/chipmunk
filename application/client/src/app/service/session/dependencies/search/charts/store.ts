@@ -36,7 +36,7 @@ export class ChartsStore extends Store<ChartRequest> {
         );
     }
 
-    public tryFromFilter(smth: StoredEntity<unknown>): boolean {
+    public tryFromFilter(smth: StoredEntity<unknown> | FilterRequest): boolean {
         if (
             smth instanceof FilterRequest &&
             regexFilters.hasGroups(smth.definition.filter.filter)

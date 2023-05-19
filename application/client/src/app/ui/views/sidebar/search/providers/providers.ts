@@ -294,7 +294,7 @@ export class Providers {
             restore: (provider: string) => {
                 const stored = self._store().load();
                 this._providers.forEach((target: Provider<any>) => {
-                    if (provider !== target.getGuid()) {
+                    if (provider !== target.uuid) {
                         return;
                     }
                     target.select().drop(self.SENDER);
@@ -330,7 +330,7 @@ export class Providers {
         if (!this._keyboard.ctrl() && !this._keyboard.shift()) {
             this._providers.forEach((provider: Provider<any>) => {
                 // Drop selection on all others providers
-                if (provider.getGuid() !== event.provider.getGuid()) {
+                if (provider.uuid !== event.provider.uuid) {
                     provider.select().drop(this.SENDER);
                 }
             });
