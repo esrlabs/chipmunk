@@ -7,9 +7,8 @@ import { IMenuItem } from '@ui/service/contextmenu';
 import { DisableConvertable } from '@service/session/dependencies/search/disabled/converting';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { ChartRequest } from '@service/session/dependencies/search/charts/request';
-import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { DragableRequest, ListContent } from '../draganddrop/service';
-import { EntityData } from '../providers/definitions/entity.data';
+import { ListContent } from '../draganddrop/service';
+
 
 export class ProviderDisabled extends Provider<DisabledRequest> {
     private readonly _entities: Map<string, Entity<DisabledRequest>> = new Map();
@@ -247,31 +246,15 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         return true;
     }
 
-    public dropped(event: CdkDragDrop<EntityData<DragableRequest>>) {
-        if (event.previousContainer === event.container) {
-            this.reorder({ prev: event.previousIndex, curt: event.currentIndex });
-        } else {
-            const index: number = event.previousIndex;
-            const data: EntityData<DragableRequest> = event.previousContainer.data;
-            if (data.entries !== undefined) {
-                const outside: Entity<DragableRequest> | undefined =
-                    data.entries[event.previousIndex] !== undefined
-                        ? data.entries[index]
-                        : undefined;
-                if (outside === undefined) {
-                    return;
-                }
-                const extracted = outside.extract();
-                if (extracted instanceof DisabledRequest) {
-                    return;
-                }
-                this.session.search.store().disabled().addFromEntity([extracted]);
-                extracted instanceof FilterRequest &&
-                    this.session.search.store().filters().delete([extracted.uuid()]);
-                extracted instanceof ChartRequest &&
-                    this.session.search.store().charts().delete([extracted.uuid()]);
-            }
+    public tryToInsertEntity(entity: unknown, _index: number): boolean {
+        if (entity instanceof ChartRequest || entity instanceof FilterRequest) {
+            this.session.search.store().disabled().addFromEntity([entity]);
+            entity instanceof FilterRequest &&
+                this.session.search.store().filters().delete([entity.uuid()]);
+            entity instanceof ChartRequest &&
+                this.session.search.store().charts().delete([entity.uuid()]);
         }
+        return false;
     }
 
     public get listID(): ListContent {

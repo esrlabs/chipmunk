@@ -1,12 +1,10 @@
 import { Subject, Subscriber } from '@platform/env/subscription';
-import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Entity } from './entity';
 import { IComponentDesc } from '@elements/containers/dynamic/component';
 import { KeyboardListener } from './keyboard.listener';
 import { IMenuItem } from '@ui/service/contextmenu';
-import { EntityData } from './entity.data';
 import { unique } from '@platform/env/sequence';
-import { DragAndDropService, DragableRequest, ListContent } from '../../draganddrop/service';
+import { DragAndDropService, ListContent } from '../../draganddrop/service';
 import { Logger } from '@platform/log';
 import { Session } from '@service/session/session';
 
@@ -86,6 +84,7 @@ export abstract class Provider<T> {
     public readonly logger: Logger;
     public readonly draganddrop: DragAndDropService;
     public readonly subscriber: Subscriber = new Subscriber();
+    public readonly uuid: string = unique();
     public panels!: {
         list: {
             name: string;
@@ -109,7 +108,6 @@ export abstract class Provider<T> {
         last: undefined,
     };
     private _keyboard: KeyboardListener | undefined;
-    private _uuld: string = unique();
     private _providers: ProvidersGetter | undefined;
 
     constructor(session: Session, draganddrop: DragAndDropService, logger: Logger) {
@@ -121,10 +119,6 @@ export abstract class Provider<T> {
     public destroy() {
         Subject.unsubscribe(this.subjects);
         this.subscriber.unsubscribe();
-    }
-
-    public getGuid(): string {
-        return this._uuld;
     }
 
     public setKeyboardListener(listener: KeyboardListener) {
@@ -390,6 +384,11 @@ export abstract class Provider<T> {
         };
     }
 
+    public getEntityByIndex(index: number): T | undefined {
+        const entities = this.entities();
+        return entities[index] !== undefined ? entities[index].extract() : undefined;
+    }
+
     public abstract init(): void;
 
     public abstract entities(): Entity<T>[];
@@ -418,8 +417,6 @@ export abstract class Provider<T> {
 
     public abstract isVisable(): boolean;
 
-    public abstract dropped(event: CdkDragDrop<EntityData<DragableRequest>>): void;
-
     public abstract get listID(): ListContent;
 
     public abstract getContextMenuItems(
@@ -436,4 +433,6 @@ export abstract class Provider<T> {
         remove?: () => void;
         edit?: () => void;
     };
+
+    public abstract tryToInsertEntity(entity: unknown, index: number): boolean;
 }

@@ -1,16 +1,6 @@
-<div id="filters-entities"
-    cdkDropList
-    [cdkDropListConnectedTo]="['charts-entities', 'disabled-entities', 'bin-entity']"
-    [cdkDropListData]="_ng_getDragAndDropData()"
-    [cdkDropListEnterPredicate]="_ng_viablePredicate()"
-    (cdkDropListDropped)="_ng_onItemDragged($event)"
-    class="filters">
-    <app-sidebar-filters-filter
-        (contextmenu)="_ng_onContexMenu($event, entity)"
-        appSearchItem
-        appMatDragDropResetFeature
-        cdkDrag
-        [provider]="provider"
-        [entity]="entity"
-        *ngFor="let entity of entries;"></app-sidebar-filters-filter>
-</div>
+<app-sidebar-filters-filter
+    (contextmenu)="onContexMenu($event, entity)"
+    appMatDragDropResetFeature
+    [provider]="provider"
+    [entity]="entity"
+    *ngFor="let entity of entries;"></app-sidebar-filters-filter>
