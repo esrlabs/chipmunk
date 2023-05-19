@@ -26,3 +26,10 @@ export function getMarkerRegExp(request: string, flags: IFilterFlags): RegExp {
         return fromStr(serialize(request), `g${flags.cases ? '' : 'i'}m`) as RegExp;
     }
 }
+
+export function hasGroups(strReg: String): boolean {
+    strReg = strReg.replaceAll('\\(', '').replaceAll('\\)', '');
+    const left = strReg.split('').filter((s) => s === '(').length;
+    const right = strReg.split('').filter((s) => s === ')').length;
+    return left >= 1 ? left === right : false;
+}

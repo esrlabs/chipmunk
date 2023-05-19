@@ -13,7 +13,7 @@ import { EntityData } from '../providers/definitions/entity.data';
 
 export class ProviderCharts extends Provider<ChartRequest> {
     private _entities: Map<string, Entity<ChartRequest>> = new Map();
-    private _listID: ListContent = ListContent.filtersList;
+    private _listID: ListContent = ListContent.chartsList;
 
     public init(): void {
         this.updatePanels();
@@ -26,17 +26,6 @@ export class ProviderCharts extends Provider<ChartRequest> {
                     super.change();
                 }),
         );
-        // this.subscriber.register(
-        //     this.session.search.subjects.get().updated.subscribe((event) => {
-        //         this._entities.forEach((entity) => {
-        //             const alias = entity.extract().alias();
-        //             entity
-        //                 .extract()
-        //                 .set()
-        //                 .found(event.stat[alias] === undefined ? 0 : event.stat[alias]);
-        //         });
-        //     }),
-        // );
     }
 
     public entities(): Array<Entity<ChartRequest>> {
@@ -168,19 +157,41 @@ export class ProviderCharts extends Provider<ChartRequest> {
         };
     }
 
-    public getContextMenuItems(target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[] {
+    public getContextMenuItems(_target: Entity<any>, selected: Array<Entity<any>>): IMenuItem[] {
         if (selected.length !== 1) {
             return [];
         }
         const entity = selected[0].extract();
         const items: IMenuItem[] = [];
         if (entity instanceof ChartRequest) {
-            items.push({
-                caption: `Show Matches`,
-                handler: () => {
-                    this.search(selected[0]);
-                },
-            });
+            items.push(
+                ...[
+                    {
+                        caption: `Show Matches`,
+                        handler: () => {
+                            this.search(selected[0]);
+                        },
+                    },
+                    {},
+                    {
+                        caption: `Into Fitler`,
+                        handler: () => {
+                            if (
+                                !this.session.search
+                                    .store()
+                                    .filters()
+                                    .addFromFilter({
+                                        filter: entity.as().filter(),
+                                        flags: { reg: true, word: false, cases: false },
+                                    })
+                            ) {
+                                return;
+                            }
+                            this.session.search.store().charts().delete([entity.uuid()]);
+                        },
+                    },
+                ],
+            );
         }
         return items;
     }
@@ -257,7 +268,15 @@ export class ProviderCharts extends Provider<ChartRequest> {
     }
 
     public search(entity: Entity<any>) {
-        console.log(`Not implemented: ${entity}`);
+        this.session.search
+            .state()
+            .setActive({
+                filter: entity.extract().definition.filter,
+                flags: { reg: true, word: false, cases: false },
+            })
+            .catch((error: Error) => {
+                this.logger.error(`Fail to make search: ${error.message}`);
+            });
     }
 
     public isVisable(): boolean {

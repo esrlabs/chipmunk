@@ -1,9 +1,10 @@
 import { Subject, unsubscribeAllInHolder } from '@platform/env/subscription';
 import { Entity } from '../providers/definitions/entity';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
+import { ChartRequest } from '@service/session/dependencies/search/charts/request';
 import { DisabledRequest } from '@service/session/dependencies/search/disabled/request';
 
-export type DragableRequest = FilterRequest | DisabledRequest;
+export type DragableRequest = FilterRequest | ChartRequest | DisabledRequest;
 
 export enum ListContent {
     filtersList = 'filtersList',
@@ -48,6 +49,7 @@ export class DragAndDropService {
     }
 
     public onMouseOver(listID: ListContent) {
+        console.log(`>>>>>>>>>>>>>>>>>>>>>>>>>> onMouseOver: IGNORE`);
         this._ignore = true;
         this._droppedOut = false;
         this.subjects.mouseOver.emit(listID);

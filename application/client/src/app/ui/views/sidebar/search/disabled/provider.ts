@@ -6,6 +6,7 @@ import { DisabledList } from './list/component';
 import { IMenuItem } from '@ui/service/contextmenu';
 import { DisableConvertable } from '@service/session/dependencies/search/disabled/converting';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
+import { ChartRequest } from '@service/session/dependencies/search/charts/request';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { DragableRequest, ListContent } from '../draganddrop/service';
 import { EntityData } from '../providers/definitions/entity.data';
@@ -177,53 +178,40 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
                                 .store()
                                 .filters()
                                 .tryRestore(disabled.entity()));
-                        // !restored &&
-                        //     (restored = this.session.search
-                        //         .store()
-                        //         .charts()
-                        //         .tryRestore(disabled.entity()));
+                        !restored &&
+                            (restored = this.session.search
+                                .store()
+                                .charts()
+                                .tryRestore(disabled.entity()));
                         restored &&
                             this.session.search.store().disabled().delete([disabled.uuid()]);
                     });
                 },
             });
         }
-        // if (match !== undefined) {
-        //     const entry = match.entity();
-        //     items.push({
-        //         caption: `Show Matches`,
-        //         handler: () => {
-        //             entry.matches !== undefined && entry.matches(session);
-        //         },
-        //     });
-        // }
         return items;
     }
 
-    public search(entity: Entity<any>) {
-        console.log(`Not implemented: ${entity}`);
-        // const cEntity = entity.extract().getEntity();
-        // if (cEntity instanceof ChartRequest) {
-        //     this.session.search.search(
-        //         new FilterRequest({
-        //             request: (cEntity as ChartRequest).asDesc().request,
-        //             flags: {
-        //                 casesensitive: false,
-        //                 wholeword: false,
-        //                 regexp: true,
-        //             },
-        //         }),
-        //     );
-        // } else if (cEntity instanceof FilterRequest) {
-        //     session.getSessionSearch().search(cEntity);
-        // }
-        // if (cEntity instanceof FilterRequest) {
-        //     this.session.search.search([cEntity.definition.filter]).catch((err: Error) => {
-        //         this.logger.error(
-        //             `Fail to make search for "${cEntity.definition.filter.filter}": ${err.message}`,
-        //         );
-        //     });
-        // }
+    public search(target: Entity<any>) {
+        const entity = target.extract();
+        if (entity instanceof ChartRequest) {
+            this.session.search
+                .state()
+                .setActive({
+                    filter: entity.definition.filter,
+                    flags: { reg: true, word: false, cases: false },
+                })
+                .catch((error: Error) => {
+                    this.logger.error(`Fail to make search: ${error.message}`);
+                });
+        } else if (entity instanceof FilterRequest) {
+            this.session.search
+                .state()
+                .setActive(entity.definition.filter)
+                .catch((error: Error) => {
+                    this.logger.error(`Fail to make search: ${error.message}`);
+                });
+        }
     }
 
     public actions(
@@ -280,6 +268,8 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
                 this.session.search.store().disabled().addFromEntity([extracted]);
                 extracted instanceof FilterRequest &&
                     this.session.search.store().filters().delete([extracted.uuid()]);
+                extracted instanceof ChartRequest &&
+                    this.session.search.store().charts().delete([extracted.uuid()]);
             }
         }
     }
