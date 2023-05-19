@@ -10,12 +10,13 @@ export class FiltersStore extends Store<FilterRequest> {
         return Key.filters;
     }
 
-    public addFromFilter(filter: IFilter): void {
+    public addFromFilter(filter: IFilter): boolean {
         const request = new FilterRequest({ filter });
         if (this.has(request)) {
-            return;
+            return false;
         }
         this.update([request as StoredEntity<FilterRequest>]);
+        return true;
     }
 
     public tryRestore(smth: DisableConvertable): boolean {

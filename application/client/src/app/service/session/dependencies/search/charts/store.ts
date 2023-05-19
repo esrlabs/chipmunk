@@ -2,6 +2,9 @@ import { Key, Store, StoredEntity } from '../store';
 import { ChartRequest } from './request';
 import { IFilter } from '@platform/types/filter';
 import { DisableConvertable } from '../disabled/converting';
+import { FilterRequest } from '../filters/request';
+
+import * as regexFilters from '@platform/env/filters';
 
 export { ChartRequest } from './request';
 
@@ -21,6 +24,31 @@ export class ChartsStore extends Store<ChartRequest> {
     public tryRestore(smth: DisableConvertable): boolean {
         if (smth instanceof ChartRequest) {
             this.update([smth as StoredEntity<ChartRequest>]);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public isConvertableFrom(smth: StoredEntity<unknown>): boolean {
+        return (
+            smth instanceof FilterRequest && regexFilters.hasGroups(smth.definition.filter.filter)
+        );
+    }
+
+    public tryFromFilter(smth: StoredEntity<unknown>): boolean {
+        if (
+            smth instanceof FilterRequest &&
+            regexFilters.hasGroups(smth.definition.filter.filter)
+        ) {
+            const def = smth.definition;
+            this.update([
+                new ChartRequest({
+                    filter: def.filter.filter,
+                    color: def.colors.background,
+                    active: true,
+                }) as StoredEntity<ChartRequest>,
+            ]);
             return true;
         } else {
             return false;

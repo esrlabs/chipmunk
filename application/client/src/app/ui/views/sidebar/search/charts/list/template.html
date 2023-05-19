@@ -1,6 +1,6 @@
-<div id="filters-entities"
+<div id="charts-entities"
     cdkDropList
-    [cdkDropListConnectedTo]="['disabled-entities', 'bin-entity']"
+    [cdkDropListConnectedTo]="['filters-entities', 'disabled-entities', 'bin-entity']"
     [cdkDropListData]="_ng_getDragAndDropData()"
     [cdkDropListEnterPredicate]="_ng_viablePredicate()"
     (cdkDropListDropped)="_ng_onItemDragged($event)"
