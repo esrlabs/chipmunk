@@ -35,11 +35,6 @@ export abstract class EntitiesList<P, T>
 {
     static HOST_DIRECTIVE = {
         directive: CdkDropList,
-        // inputs: [
-        //     'cdkDropListConnectedTo: cdkDropListConnectedTo()',
-        //     'cdkDropListData: cdkDropListData()',
-        //     'cdkDropListEnterPredicate: cdkDropListEnterPredicate()',
-        // ],
     };
 
     @Input() provider!: P & Provider<T>;
@@ -80,13 +75,10 @@ export abstract class EntitiesList<P, T>
                         return;
                     }
                     this.provider.tryToInsertEntity(dragged, event.currentIndex);
-                    // this.provider.draganddrop.onDragStart(false);
-                    // if (this.provider.draganddrop.droppedOut) {
-                    //     return;
-                    // }
                 }),
                 this.cdkDropListDir._dropListRef.beforeStarted.subscribe(() => {
                     this.cdkDropListDir.data = this.provider;
+                    this.provider.events.get().dragging.emit();
                 }),
             ],
         );
@@ -99,15 +91,11 @@ export abstract class EntitiesList<P, T>
     public ngAfterContentInit() {
         this.entries = this.provider.entities();
         this.env().subscriber.register(
-            this.provider.subjects.change.subscribe(() => {
+            this.provider.subjects.get().change.subscribe(() => {
                 this.entries = this.provider.entities();
                 this.detectChanges();
             }),
         );
-    }
-
-    public cdkDropListEnterPredicate() {
-        return this.provider.isVisable.bind(this);
     }
 
     public onContexMenu(event: MouseEvent, entity: Entity<T>) {

@@ -28,7 +28,7 @@ import { ChartsList } from './charts/list/component';
 import { ChartsPlaceholder } from './charts/placeholder/component';
 import { Disabled } from './disabled/entity/component';
 import { DisabledList } from './disabled/list/component';
-// import { Bin } from './bin/component';
+import { Bin } from './bin/component';
 
 const entryComponents = [
     Filters,
@@ -43,7 +43,7 @@ const entryComponents = [
     Disabled,
     DisabledList,
     ComColorSelectorComponent,
-    // Bin,
+    Bin,
 ];
 const components = [...entryComponents];
 

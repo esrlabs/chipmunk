@@ -54,10 +54,10 @@ export class FilterDetails extends ChangesDetector implements AfterContentInit {
 
     public ngAfterContentInit() {
         this.env().subscriber.register(
-            this.provider.subjects.selection.subscribe(this._init.bind(this)),
+            this.provider.subjects.get().selection.subscribe(this._init.bind(this)),
         );
         this.env().subscriber.register(
-            this.provider.subjects.change.subscribe(this._onChange.bind(this)),
+            this.provider.subjects.get().change.subscribe(this._onChange.bind(this)),
         );
         this._init();
     }

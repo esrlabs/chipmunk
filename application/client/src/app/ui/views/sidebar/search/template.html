@@ -1,5 +1,5 @@
-<div class="holder" (mouseover)="_ng_onMouseOver()">
-    <div class="wrapper" *ngFor="let provider of providers">
+<div class="holder">
+    <div class="wrapper" *ngFor="let provider of list">
         <mat-expansion-panel
             *ngIf="!provider.isEmpty() || provider.panels.nocontent.comp !== undefined"
             [disabled]="true"
@@ -45,4 +45,4 @@
         <mat-icon>menu_open</mat-icon>
     </button>
 </div>
-<!-- <app-sidebar-filters-bin [draganddrop]="draganddrop"></app-sidebar-filters-bin> -->
+<app-sidebar-entities-bin [providers]="providers"></app-sidebar-entities-bin>
