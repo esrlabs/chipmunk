@@ -7,36 +7,28 @@ import {
     EActions,
     IDoubleclickEvent,
 } from './definitions/provider';
-import { Subject, unsubscribeAllInHolder } from '@platform/env/subscription';
+import { Subject, Subjects } from '@platform/env/subscription';
 import { Session } from '@service/session/session';
 import { KeyboardListener } from './definitions/keyboard.listener';
 import { IMenuItem } from '@ui/service/contextmenu';
 import { Entity } from './definitions/entity';
 import { unique } from '@platform/env/sequence';
-import { DragAndDropService } from '../draganddrop/service';
 import { Logger } from '@platform/log';
+import { ProvidersEvents } from './definitions/events';
 
 type TSelectedEntities = string[];
 
-// const PROVIDERS_SCOPE_KEY: string = 'SEARCH_MANAGER_PROVIDERS_SCOPE_KEY';
-
 export class Providers {
-    public readonly subjects: {
-        select: Subject<ISelectEvent | undefined>;
-        context: Subject<IContextMenuEvent>;
-        doubleclick: Subject<IDoubleclickEvent>;
-        change: Subject<void>;
-        edit: Subject<string | undefined>;
-    } = {
+    public readonly subjects: Subjects<ProvidersEvents> = new Subjects({
         select: new Subject(),
         context: new Subject(),
         doubleclick: new Subject(),
         change: new Subject(),
         edit: new Subject(),
-    };
+        dragging: new Subject(),
+    });
     public readonly session: Session;
     public readonly logger: Logger;
-    public readonly draganddrop: DragAndDropService;
 
     private readonly SENDER = unique();
     private readonly PROVIDERS_ORDER: ProviderData[] = [
@@ -49,14 +41,13 @@ export class Providers {
     private readonly _providers: Map<ProviderData, Provider<any>> = new Map();
     private readonly _keyboard: KeyboardListener = new KeyboardListener();
 
-    constructor(session: Session, draganddrop: DragAndDropService, logger: Logger) {
-        this.draganddrop = draganddrop;
+    constructor(session: Session, logger: Logger) {
         this.session = session;
         this.logger = logger;
     }
 
     public destroy() {
-        unsubscribeAllInHolder(this.subjects);
+        this.subjects.destroy();
         this._providers.forEach((provider: Provider<any>) => {
             provider.destroy();
         });
@@ -68,15 +59,16 @@ export class Providers {
         if (this._providers.has(name)) {
             return false;
         }
-        const provider = new providerConstructor(this.session, this.draganddrop, this.logger);
+        const provider = new providerConstructor(this.session, this.logger);
         provider.setKeyboardListener(this._keyboard);
         provider.setProvidersGetter(this.list.bind(this));
-        provider.subjects.selection.subscribe(this._onSelectionEntity.bind(this));
-        provider.subjects.context.subscribe(this._onContextMenuEvent.bind(this));
-        provider.subjects.doubleclick.subscribe(this._onDoubleclickEvent.bind(this));
-        provider.subjects.change.subscribe(this._onChange.bind(this));
-        provider.subjects.reload.subscribe(this._onReload.bind(this));
-        provider.subjects.edit.subscribe(this._onEdit.bind(this));
+        provider.setProvidersEvents(this.subjects);
+        provider.subjects.get().selection.subscribe(this._onSelectionEntity.bind(this));
+        provider.subjects.get().context.subscribe(this._onContextMenuEvent.bind(this));
+        provider.subjects.get().doubleclick.subscribe(this._onDoubleclickEvent.bind(this));
+        provider.subjects.get().change.subscribe(this._onChange.bind(this));
+        provider.subjects.get().reload.subscribe(this._onReload.bind(this));
+        provider.subjects.get().edit.subscribe(this._onEdit.bind(this));
         provider.init();
         this._providers.set(name, provider);
         return true;
@@ -302,7 +294,7 @@ export class Providers {
                     if (stored.length === 1) {
                         const entity = target.entities().find((e) => e.uuid() === stored[0]);
                         entity !== undefined &&
-                            this.subjects.select.emit({
+                            this.subjects.get().select.emit({
                                 entity: entity,
                                 provider: target,
                                 guids: stored,
@@ -310,7 +302,7 @@ export class Providers {
                     }
                 });
                 if (stored.length === 0) {
-                    this.subjects.select.emit(undefined);
+                    this.subjects.get().select.emit(undefined);
                 }
             },
             drop: () => {
@@ -347,7 +339,7 @@ export class Providers {
         if (guids.length === 1) {
             this._providers.forEach((provider: Provider<any>) => {
                 if (provider.select().get().length === 1) {
-                    this.subjects.select.emit({
+                    this.subjects.get().select.emit({
                         entity: event.entity,
                         provider: provider,
                         guids: provider.select().get(),
@@ -355,7 +347,7 @@ export class Providers {
                 }
             });
         } else {
-            this.subjects.select.emit(undefined);
+            this.subjects.get().select.emit(undefined);
         }
         this._providers.forEach((provider: Provider<any>) => {
             provider.setLastSelection(guids.length > 0 ? event.entity : undefined);
@@ -503,7 +495,7 @@ export class Providers {
                 event.items = event.items.concat(custom);
             }
         });
-        this.subjects.context.emit(event);
+        this.subjects.get().context.emit(event);
     }
 
     private _onDoubleclickEvent(event: IDoubleclickEvent) {
@@ -512,7 +504,7 @@ export class Providers {
 
     private _onChange() {
         this._providers.forEach((p) => p.updatePanels());
-        this.subjects.change.emit();
+        this.subjects.get().change.emit();
     }
 
     private _onReload(provider: string) {
@@ -520,6 +512,6 @@ export class Providers {
     }
 
     private _onEdit(guid: string | undefined) {
-        this.subjects.edit.emit(guid);
+        this.subjects.get().edit.emit(guid);
     }
 }

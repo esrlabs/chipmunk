@@ -7,16 +7,14 @@ import { FiltersList } from './list/component';
 import { FiltersPlaceholder } from './placeholder/component';
 import { FilterDetails } from './details/component';
 import { IMenuItem } from '@ui/service/contextmenu';
-import { DragableRequest, ListContent } from '../draganddrop/service';
 import { ChartRequest } from '@service/session/dependencies/search/charts/request';
 
 export class ProviderFilters extends Provider<FilterRequest> {
     private _entities: Map<string, Entity<FilterRequest>> = new Map();
-    private _listID: ListContent = ListContent.filtersList;
 
     public init(): void {
         this.updatePanels();
-        this.subscriber.register(
+        this.register(
             this.session.search
                 .store()
                 .filters()
@@ -25,7 +23,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
                     super.change();
                 }),
         );
-        this.subscriber.register(
+        this.register(
             this.session.search.subjects.get().updated.subscribe((event) => {
                 this._entities.forEach((entity) => {
                     const alias = entity.extract().alias();
@@ -104,7 +102,6 @@ export class ProviderFilters extends Provider<FilterRequest> {
                             factory: FiltersList,
                             inputs: {
                                 provider: this,
-                                draganddrop: this.draganddrop,
                                 session: this.session,
                             },
                         };
@@ -135,7 +132,6 @@ export class ProviderFilters extends Provider<FilterRequest> {
                             factory: FilterDetails,
                             inputs: {
                                 provider: this,
-                                draganddrop: this.draganddrop,
                             },
                         };
                     },
@@ -158,7 +154,6 @@ export class ProviderFilters extends Provider<FilterRequest> {
                             factory: FiltersPlaceholder,
                             inputs: {
                                 provider: this,
-                                draganddrop: this.draganddrop,
                             },
                         };
                     },
@@ -279,20 +274,6 @@ export class ProviderFilters extends Provider<FilterRequest> {
         return actions;
     }
 
-    public isVisable(): boolean {
-        const dragging: Entity<DragableRequest> = this.draganddrop.dragging;
-        if (dragging) {
-            const request: DragableRequest = dragging.extract();
-            if (request instanceof DisabledRequest) {
-                if ((request as DisabledRequest).entity() instanceof FilterRequest) {
-                    return true;
-                }
-                return false;
-            }
-        }
-        return false;
-    }
-
     public tryToInsertEntity(entity: unknown, _index: number): boolean {
         if (entity instanceof ChartRequest) {
             if (
@@ -320,7 +301,11 @@ export class ProviderFilters extends Provider<FilterRequest> {
         return false;
     }
 
-    public get listID(): ListContent {
-        return this._listID;
+    public removeEntity(entity: unknown): boolean {
+        if (!(entity instanceof FilterRequest)) {
+            return false;
+        }
+        this.session.search.store().filters().delete([entity.uuid()]);
+        return true;
     }
 }

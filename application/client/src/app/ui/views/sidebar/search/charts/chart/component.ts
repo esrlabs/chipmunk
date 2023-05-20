@@ -4,7 +4,6 @@ import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatInput } from '@angular/material/input';
 import { MatCheckbox } from '@angular/material/checkbox';
 import { ProviderCharts } from '../provider';
-// import { MatDragDropResetFeatureDirective } from '@ui/env/directives/material.dragdrop';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
@@ -37,19 +36,9 @@ export class Chart extends EntityItem<ProviderCharts, ChartRequest> implements A
     public state!: State;
     public EFlag = EFlag;
 
-    // constructor(
-    //     cdRef: ChangeDetectorRef,
-    //     directive: EntityDirective,
-    //     accessor: MatDragDropResetFeatureDirective,
-    // ) {
-    //     super(cdRef);
-    //     this.directive = directive;
-    //     this.directive.setResetFeatureAccessorRef(accessor);
-    // }
-
     public ngAfterContentInit() {
         this.env().subscriber.register(
-            this.provider.subjects.edit.subscribe((guid: string | undefined) => {
+            this.provider.subjects.get().edit.subscribe((guid: string | undefined) => {
                 if (this.entity.uuid() === guid) {
                     this.update();
                     if (this._inputRefCom !== undefined) {
@@ -80,10 +69,6 @@ export class Chart extends EntityItem<ProviderCharts, ChartRequest> implements A
     public _ng_onStateChange(event: MatCheckboxChange) {
         this.state.setState(event.checked);
         this.update();
-    }
-
-    public _ng_onStateClick() {
-        // this.directive.ignoreMouseClick();
     }
 
     public _ng_onRequestInputKeyUp(event: KeyboardEvent) {

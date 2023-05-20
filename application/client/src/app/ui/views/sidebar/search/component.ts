@@ -15,7 +15,6 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { Providers } from './providers/providers';
 import { Provider, ProviderData, ISelectEvent } from './providers/definitions/provider';
-import { DragAndDropService } from './draganddrop/service';
 import { IMenuItem, contextmenu } from '@ui/service/contextmenu';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { ProviderFilters } from './filters/provider';
@@ -38,11 +37,10 @@ import * as ids from '@schema/ids';
 export class Filters extends ChangesDetector implements OnDestroy, AfterContentInit {
     @Input() session!: Session;
 
-    public providers: Provider<any>[] = [];
+    public list: Provider<any>[] = [];
     public selected: Provider<any> | undefined;
-    public draganddrop!: DragAndDropService;
-
-    private _providers!: Providers;
+    public providers!: Providers;
+    
     private _focused: boolean = false;
 
     @HostBinding('attr.tabindex') get tabindex() {
@@ -77,19 +75,18 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
     }
 
     public ngOnDestroy() {
-        this._providers.destroy();
+        this.providers.destroy();
         window.removeEventListener('keyup', this._onGlobalKeyUp);
     }
 
     public ngAfterContentInit(): void {
-        this.draganddrop = new DragAndDropService();
-        this._providers = new Providers(this.session, this.draganddrop, this.log());
-        this._providers.add(ProviderData.filters, ProviderFilters);
-        this._providers.add(ProviderData.charts, ProviderCharts);
-        this._providers.add(ProviderData.disabled, ProviderDisabled);
-        this.providers = this._providers.list();
+        this.providers = new Providers(this.session, this.log());
+        this.providers.add(ProviderData.filters, ProviderFilters);
+        this.providers.add(ProviderData.charts, ProviderCharts);
+        this.providers.add(ProviderData.disabled, ProviderDisabled);
+        this.list = this.providers.list();
         this.env().subscriber.register(
-            this._providers.subjects.select.subscribe((event: ISelectEvent | undefined) => {
+            this.providers.subjects.get().select.subscribe((event: ISelectEvent | undefined) => {
                 if (event === undefined && this.selected === undefined) {
                     return;
                 }
@@ -102,7 +99,7 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
             }),
         );
         this.env().subscriber.register(
-            this._providers.subjects.context.subscribe((event) => {
+            this.providers.subjects.get().context.subscribe((event) => {
                 contextmenu.show({
                     items: event.items,
                     x: event.event.pageX,
@@ -112,7 +109,7 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
             }),
         );
         this.env().subscriber.register(
-            this._providers.subjects.change.subscribe(() => {
+            this.providers.subjects.get().change.subscribe(() => {
                 if (
                     this.selected !== undefined &&
                     this.selected.select().getEntities().length === 0
@@ -123,17 +120,13 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
             }),
         );
         this.env().subscriber.register(
-            this._providers.subjects.edit.subscribe((guid: string | undefined) => {
+            this.providers.subjects.get().edit.subscribe((guid: string | undefined) => {
                 setTimeout(() => {
                     guid === undefined && (this._self.nativeElement as HTMLElement).focus();
                 });
             }),
         );
         window.addEventListener('keyup', this._onGlobalKeyUp);
-    }
-
-    public _ng_onMouseOver() {
-        this.draganddrop.onMouseOverGlobal();
     }
 
     public onShowPresets(event: MouseEvent) {
@@ -173,13 +166,13 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
         }
         switch (event.code) {
             case 'ArrowUp':
-                this._providers.select().prev();
+                this.providers.select().prev();
                 break;
             case 'ArrowDown':
-                this._providers.select().next();
+                this.providers.select().next();
                 break;
             case 'Enter':
-                this._providers.edit().in();
+                this.providers.edit().in();
                 break;
         }
         stop(event);
