@@ -1,27 +1,29 @@
 @import '../../../../styles/variables.less';
-
-& mat-expansion-panel {
-    width: 48px;
-    height: 48px;
-    margin: auto;
-    position: sticky;
-    bottom: 0px;
-}
-
-& div {
-    transform: translateY(-100%);
-}
-
-& div:hover {
-    & mat-icon {
-        color: @scheme-color-error;
+:host {
+    position: absolute;
+    display: block;
+    bottom: 0;
+    border-radius: 3px;
+    margin: 8px 0px;
+    padding: 16px 0;
+    text-align: center;
+    width: 100%;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 0.001;
+    height: 0px;
+    &[data-dragging="true"] {
+        background: @scheme-bk-color-0;
+        pointer-events: all;
+        opacity: 1;
+        height: auto;
     }
-}
-
-& mat-icon {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: @scheme-color-accent;
+    & p {
+        color: @scheme-color-2;
+    }
+    & mat-icon {
+        position: relative;
+        display: inline-block;
+        color: @scheme-color-accent;
+    }
 }

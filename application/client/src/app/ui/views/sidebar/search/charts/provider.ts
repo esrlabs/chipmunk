@@ -7,16 +7,14 @@ import { ChartsList } from './list/component';
 import { ChartsPlaceholder } from './placeholder/component';
 import { ChartrDetails } from './details/component';
 import { IMenuItem } from '@ui/service/contextmenu';
-import { DragableRequest, ListContent } from '../draganddrop/service';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 
 export class ProviderCharts extends Provider<ChartRequest> {
     private _entities: Map<string, Entity<ChartRequest>> = new Map();
-    private _listID: ListContent = ListContent.chartsList;
 
     public init(): void {
         this.updatePanels();
-        this.subscriber.register(
+        this.register(
             this.session.search
                 .store()
                 .charts()
@@ -93,7 +91,6 @@ export class ProviderCharts extends Provider<ChartRequest> {
                             factory: ChartsList,
                             inputs: {
                                 provider: this,
-                                draganddrop: this.draganddrop,
                                 session: this.session,
                             },
                         };
@@ -124,7 +121,6 @@ export class ProviderCharts extends Provider<ChartRequest> {
                             factory: ChartrDetails,
                             inputs: {
                                 provider: this,
-                                draganddrop: this.draganddrop,
                             },
                         };
                     },
@@ -147,7 +143,6 @@ export class ProviderCharts extends Provider<ChartRequest> {
                             factory: ChartsPlaceholder,
                             inputs: {
                                 provider: this,
-                                draganddrop: this.draganddrop,
                             },
                         };
                     },
@@ -278,22 +273,6 @@ export class ProviderCharts extends Provider<ChartRequest> {
             });
     }
 
-    public isVisable(): boolean {
-        const dragging: Entity<DragableRequest> = this.draganddrop.dragging;
-        if (dragging) {
-            const request: DragableRequest = dragging.extract();
-            if (request instanceof DisabledRequest) {
-                if ((request as DisabledRequest).entity() instanceof ChartRequest) {
-                    return true;
-                } else if (request instanceof ChartRequest || request instanceof ChartRequest) {
-                    return true;
-                }
-                return false;
-            }
-        }
-        return false;
-    }
-
     public tryToInsertEntity(entity: unknown, _index: number): boolean {
         if (entity instanceof FilterRequest) {
             if (this.session.search.store().charts().tryFromFilter(entity)) {
@@ -312,7 +291,11 @@ export class ProviderCharts extends Provider<ChartRequest> {
         return false;
     }
 
-    public get listID(): ListContent {
-        return this._listID;
+    public removeEntity(entity: unknown): boolean {
+        if (!(entity instanceof ChartRequest)) {
+            return false;
+        }
+        this.session.search.store().charts().delete([entity.uuid()]);
+        return true;
     }
 }

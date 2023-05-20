@@ -1,15 +1,2 @@
-<div [@inOut]="dragging ? 'in' : 'out'">
-    <mat-expansion-panel
-        id="bin-entity"
-        [ngStyle]="{ 'pointer-events': dragging ? 'all' : 'none' }"
-        [disabled]="true"
-        [hideToggle]="true"
-        [expanded]="true"
-        [listID]="listID"
-        [draganddrop]="draganddrop"
-        appEntitiesList
-        cdkDropList
-        (cdkDropListDropped)="_ng_onListDropped()">
-    </mat-expansion-panel>
-    <mat-icon>delete_outline</mat-icon>
-</div>
+<mat-icon>delete_outline</mat-icon>
+<p class="t-small">Drop entity here to remove</p>

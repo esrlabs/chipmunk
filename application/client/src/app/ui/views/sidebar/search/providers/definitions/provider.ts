@@ -1,15 +1,16 @@
-import { Subject, Subscriber } from '@platform/env/subscription';
+import { Subject, Subscriber, Subjects } from '@platform/env/subscription';
 import { Entity } from './entity';
 import { IComponentDesc } from '@elements/containers/dynamic/component';
 import { KeyboardListener } from './keyboard.listener';
 import { IMenuItem } from '@ui/service/contextmenu';
 import { unique } from '@platform/env/sequence';
-import { DragAndDropService, ListContent } from '../../draganddrop/service';
 import { Logger } from '@platform/log';
 import { Session } from '@service/session/session';
+import { ProvidersEvents, ProviderEvents } from './events';
+import { Mutable } from '@platform/types/unity/mutable';
 
 export interface ProviderConstructor {
-    new (session: Session, draganddrop: DragAndDropService, logger: Logger): Provider<any>;
+    new (session: Session, logger: Logger): Provider<any>;
 }
 
 export enum ProviderData {
@@ -64,27 +65,20 @@ interface IStoredSelection {
 
 type ProvidersGetter = () => Provider<any>[];
 
-export abstract class Provider<T> {
-    public subjects: {
-        change: Subject<void>;
-        selection: Subject<ISelectEvent>;
-        edit: Subject<string | undefined>;
-        context: Subject<IContextMenuEvent>;
-        doubleclick: Subject<IDoubleclickEvent>;
-        reload: Subject<string>;
-    } = {
+export abstract class Provider<T> extends Subscriber {
+    public subjects: Subjects<ProviderEvents> = new Subjects({
         change: new Subject(),
         selection: new Subject(),
         edit: new Subject(),
         context: new Subject(),
         doubleclick: new Subject(),
         reload: new Subject(),
-    };
+    });
     public readonly session: Session;
     public readonly logger: Logger;
-    public readonly draganddrop: DragAndDropService;
-    public readonly subscriber: Subscriber = new Subscriber();
     public readonly uuid: string = unique();
+    public readonly events!: Subjects<ProvidersEvents>;
+
     public panels!: {
         list: {
             name: string;
@@ -110,15 +104,15 @@ export abstract class Provider<T> {
     private _keyboard: KeyboardListener | undefined;
     private _providers: ProvidersGetter | undefined;
 
-    constructor(session: Session, draganddrop: DragAndDropService, logger: Logger) {
-        this.draganddrop = draganddrop;
+    constructor(session: Session, logger: Logger) {
+        super();
         this.session = session;
         this.logger = logger;
     }
 
     public destroy() {
-        Subject.unsubscribe(this.subjects);
-        this.subscriber.unsubscribe();
+        this.unsubscribe();
+        this.subjects.destroy();
     }
 
     public setKeyboardListener(listener: KeyboardListener) {
@@ -127,6 +121,10 @@ export abstract class Provider<T> {
 
     public setProvidersGetter(getter: () => Provider<any>[]) {
         this._providers = getter;
+    }
+
+    public setProvidersEvents(subjects: Subjects<ProvidersEvents>): void {
+        (this as Mutable<Provider<unknown>>).events = subjects;
     }
 
     public setLastSelection(selection: Entity<any> | undefined) {
@@ -187,7 +185,7 @@ export abstract class Provider<T> {
                     }
                 }
             }
-            this.subjects.selection.emit({
+            this.subjects.get().selection.emit({
                 provider: this,
                 entity: entity,
                 guids: this.select().get(),
@@ -266,7 +264,7 @@ export abstract class Provider<T> {
                     return;
                 }
                 this._selection.current = [];
-                this.subjects.selection.emit({
+                this.subjects.get().selection.emit({
                     provider: this,
                     entity: undefined,
                     guids: this.select().get(),
@@ -276,7 +274,7 @@ export abstract class Provider<T> {
             apply: (sender: string, guids: string[]) => {
                 const own: string[] = this.entities().map((e) => e.uuid());
                 this._selection.current = guids.filter((g) => own.indexOf(g) !== -1);
-                this.subjects.selection.emit({
+                this.subjects.get().selection.emit({
                     provider: this,
                     entity: undefined,
                     guids: this.select().get(),
@@ -306,14 +304,14 @@ export abstract class Provider<T> {
                 });
             },
             context: (event: MouseEvent, entity: Entity<T>) => {
-                this.subjects.context.emit({
+                this.subjects.get().context.emit({
                     event: event,
                     entity: entity,
                     provider: this,
                 });
             },
             doubleclick: (event: MouseEvent, entity: Entity<T>) => {
-                this.subjects.doubleclick.emit({
+                this.subjects.get().doubleclick.emit({
                     event: event,
                     entity: entity,
                     provider: this,
@@ -344,20 +342,20 @@ export abstract class Provider<T> {
                         entity.getEditState().out();
                     }
                 });
-                this.subjects.edit.emit(guid);
+                this.subjects.get().edit.emit(guid);
             },
             out: () => {
                 this.entities().forEach((entity: Entity<any>) => {
                     entity.getEditState().out();
                 });
-                this.subjects.edit.emit(undefined);
+                this.subjects.get().edit.emit(undefined);
                 this.change();
             },
         };
     }
 
     public change() {
-        this.subjects.change.emit();
+        this.subjects.get().change.emit();
     }
 
     public isEmpty(): boolean {
@@ -415,10 +413,6 @@ export abstract class Provider<T> {
 
     public abstract search(entity: Entity<T>): void;
 
-    public abstract isVisable(): boolean;
-
-    public abstract get listID(): ListContent;
-
     public abstract getContextMenuItems(
         target: Entity<any>,
         selected: Array<Entity<any>>,
@@ -435,4 +429,6 @@ export abstract class Provider<T> {
     };
 
     public abstract tryToInsertEntity(entity: unknown, index: number): boolean;
+
+    public abstract removeEntity(entity: unknown): boolean;
 }

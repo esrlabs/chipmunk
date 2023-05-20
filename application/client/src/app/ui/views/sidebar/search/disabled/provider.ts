@@ -7,16 +7,13 @@ import { IMenuItem } from '@ui/service/contextmenu';
 import { DisableConvertable } from '@service/session/dependencies/search/disabled/converting';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { ChartRequest } from '@service/session/dependencies/search/charts/request';
-import { ListContent } from '../draganddrop/service';
-
 
 export class ProviderDisabled extends Provider<DisabledRequest> {
     private readonly _entities: Map<string, Entity<DisabledRequest>> = new Map();
-    private readonly _listID: ListContent = ListContent.disabledList;
 
     public init(): void {
         super.updatePanels();
-        this.subscriber.register(
+        this.register(
             this.session.search
                 .store()
                 .disabled()
@@ -94,7 +91,6 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
                             factory: DisabledList,
                             inputs: {
                                 provider: this,
-                                draganddrop: this.draganddrop,
                                 session: this.session,
                             },
                         };
@@ -241,11 +237,6 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         };
     }
 
-    // Method because of abstract class, not used
-    public isVisable() {
-        return true;
-    }
-
     public tryToInsertEntity(entity: unknown, _index: number): boolean {
         if (entity instanceof ChartRequest || entity instanceof FilterRequest) {
             this.session.search.store().disabled().addFromEntity([entity]);
@@ -257,7 +248,11 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
         return false;
     }
 
-    public get listID(): ListContent {
-        return this._listID;
+    public removeEntity(entity: unknown): boolean {
+        if (!(entity instanceof DisabledRequest)) {
+            return false;
+        }
+        this.session.search.store().disabled().delete([entity.uuid()]);
+        return true;
     }
 }
