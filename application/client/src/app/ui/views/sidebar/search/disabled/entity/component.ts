@@ -18,8 +18,8 @@ export class Disabled
 {
     @ViewChild(MatInput) _inputRefCom!: MatInput;
 
-    public _ng_display_name: string | undefined;
-    public _ng_icon: string | undefined;
+    public display_name: string | undefined;
+    public icon: string | undefined;
 
     public ngAfterContentInit() {
         this.env().subscriber.register(
@@ -33,8 +33,8 @@ export class Disabled
             }),
         );
         const entity = this.entity.extract().entity();
-        this._ng_display_name = entity.disabled().displayName();
-        this._ng_icon = entity.disabled().icon();
+        this.display_name = entity.disabled().displayName();
+        this.icon = entity.disabled().icon();
     }
 }
 export interface Disabled extends IlcInterface {}
