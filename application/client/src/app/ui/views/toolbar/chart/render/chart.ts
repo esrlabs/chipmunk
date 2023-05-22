@@ -27,10 +27,10 @@ export class Render extends Base {
         const size = this.size();
         this.context.beginPath();
         const step = Math.floor(size.height / GRID_LINES_COUNT);
-        for (let s = 0; s < GRID_LINES_COUNT; s += 1) {
-            const y = s * step;
-            this.context.moveTo(0, y + 0.5);
-            this.context.lineTo(size.width, y + 0.5);
+        for (let s = 0; s <= GRID_LINES_COUNT; s += 1) {
+            const y = s * step + (s === GRID_LINES_COUNT ? -0.5 : 0.5);
+            this.context.moveTo(0, y);
+            this.context.lineTo(size.width, y);
         }
         this.context.lineWidth = 1;
         this.context.strokeStyle = scheme_color_0;
@@ -40,9 +40,10 @@ export class Render extends Base {
         this.context.fillStyle = scheme_color_0;
         this.context.font = '10px sans-serif';
         this.context.textAlign = 'right';
+        const diffStep = diff / GRID_LINES_COUNT;
         for (let s = 0; s <= GRID_LINES_COUNT; s += 1) {
             const y = s * step;
-            const text = (min + diff / (s + 1)).toFixed(2);
+            const text = (min + diffStep * (GRID_LINES_COUNT - s)).toFixed(2);
             const box = this.context.measureText(text);
             let yOffset = -2;
             this.context.fillStyle = scheme_color_5_75;
@@ -90,6 +91,9 @@ export class Render extends Base {
     public render(): void {
         const frame = this.frame;
         if (frame === undefined) {
+            return;
+        }
+        if (frame.to - frame.from <= 0) {
             return;
         }
         this.coors.drop();
