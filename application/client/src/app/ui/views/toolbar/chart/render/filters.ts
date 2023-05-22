@@ -24,6 +24,10 @@ export class Render extends Base {
         if (frame === undefined) {
             return;
         }
+        const frameLength = frame.to - frame.from;
+        if (frameLength <= 0) {
+            return;
+        }
         let max = 0;
         this.map.forEach((matches: [number, number][]) => {
             const m = Math.max(...matches.map((p) => p[1]));
@@ -34,6 +38,10 @@ export class Render extends Base {
         }
         const size = this.size();
         const rateByY = size.height / max;
+
+        const maxColumns = size.width / Render.COLUMN_WIDTH;
+        const columnWidth =
+            maxColumns <= frameLength ? Render.COLUMN_WIDTH : size.width / frameLength;
         this.map.forEach((matches: [number, number][], left: number) => {
             matches.forEach((pair: [number, number]) => {
                 const color =
@@ -42,12 +50,7 @@ export class Render extends Base {
                         : this.filters[pair[0]].definition.colors.background;
                 const h = Math.round(pair[1] * rateByY);
                 this.context.fillStyle = color;
-                this.context.fillRect(
-                    left * Render.COLUMN_WIDTH,
-                    size.height - h,
-                    Render.COLUMN_WIDTH,
-                    h,
-                );
+                this.context.fillRect(left * columnWidth, size.height - h, columnWidth, h);
             });
         });
     }
