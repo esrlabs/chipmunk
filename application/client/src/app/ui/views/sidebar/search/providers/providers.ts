@@ -346,8 +346,10 @@ export class Providers {
                     });
                 }
             });
+            this.session.charts.selecting().set(guids[0]);
         } else {
             this.subjects.get().select.emit(undefined);
+            this.session.charts.selecting().set(undefined);
         }
         this._providers.forEach((provider: Provider<any>) => {
             provider.setLastSelection(guids.length > 0 ? event.entity : undefined);
