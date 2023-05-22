@@ -1,5 +1,5 @@
 import { IValuesMap, IValuesMinMaxMap } from '@platform/interfaces/interface.rust.api.general';
-import { scheme_color_0 } from '@styles/colors';
+import { scheme_color_0, scheme_color_5_75 } from '@styles/colors';
 import { Base } from './render';
 import { ChartRequest } from '@service/session/dependencies/search/charts/request';
 import { ChartCoors } from './chart.coors';
@@ -22,17 +22,19 @@ export class Render extends Base {
         if (selected === undefined || peaks === undefined) {
             return;
         }
-        const diff = peaks[1] - peaks[0];
+        const min = peaks[0];
+        const diff = peaks[1] - min;
         const size = this.size();
         this.context.beginPath();
         const step = Math.floor(size.height / GRID_LINES_COUNT);
         for (let s = 0; s < GRID_LINES_COUNT; s += 1) {
             const y = s * step;
-            this.context.moveTo(0, y);
-            this.context.lineTo(size.width, y);
+            this.context.moveTo(0, y + 0.5);
+            this.context.lineTo(size.width, y + 0.5);
         }
         this.context.lineWidth = 1;
         this.context.strokeStyle = scheme_color_0;
+        this.context.setLineDash([1, 1]);
         this.context.stroke();
         this.context.closePath();
         this.context.fillStyle = scheme_color_0;
@@ -40,15 +42,22 @@ export class Render extends Base {
         this.context.textAlign = 'right';
         for (let s = 0; s <= GRID_LINES_COUNT; s += 1) {
             const y = s * step;
+            const text = (min + diff / (s + 1)).toFixed(2);
+            const box = this.context.measureText(text);
             let yOffset = -2;
+            this.context.fillStyle = scheme_color_5_75;
             if (s === 0) {
                 this.context.textBaseline = 'top';
                 yOffset = 2;
+                this.context.fillRect(size.width - 18 - box.width - 6, y, box.width + 12, 16);
             } else {
                 this.context.textBaseline = 'bottom';
+                this.context.fillRect(size.width - 18 - box.width - 6, y - 16, box.width + 12, 16);
             }
-            this.context.fillText((diff / (s + 1)).toFixed(2), size.width - 18, y + yOffset);
+            this.context.fillStyle = scheme_color_0;
+            this.context.fillText(text, size.width - 18, y + yOffset);
         }
+        this.context.setLineDash([]);
     }
 
     public readonly coors: ChartCoors = new ChartCoors();
