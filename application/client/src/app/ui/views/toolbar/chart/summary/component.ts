@@ -27,6 +27,7 @@ export class ViewChartSummary extends OutputBase implements AfterViewInit {
         this.env().subscriber.register(
             this.session.charts.subjects.get().summary.subscribe((event) => {
                 this.renders.charts
+                    .setSelected(undefined)
                     .setValues(event.values)
                     .setPeaks(event.peaks)
                     .setCharts(event.charts)

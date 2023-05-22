@@ -4,16 +4,62 @@ import { Base } from './render';
 import { ChartRequest } from '@service/session/dependencies/search/charts/request';
 import { ChartCoors } from './chart.coors';
 
+const GRID_LINES_COUNT = 5;
+
 export class Render extends Base {
     protected values: IValuesMap = {};
     protected peaks: IValuesMinMaxMap = {};
     protected charts: ChartRequest[] = [];
     protected points: boolean = true;
+    protected selected: number | undefined;
+
+    protected yAxisRender(): void {
+        if (this.selected === undefined) {
+            return;
+        }
+        const selected = this.values[this.selected];
+        const peaks = this.peaks[this.selected];
+        if (selected === undefined || peaks === undefined) {
+            return;
+        }
+        const diff = peaks[1] - peaks[0];
+        const size = this.size();
+        this.context.beginPath();
+        const step = Math.floor(size.height / GRID_LINES_COUNT);
+        for (let s = 0; s < GRID_LINES_COUNT; s += 1) {
+            const y = s * step;
+            this.context.moveTo(0, y);
+            this.context.lineTo(size.width, y);
+        }
+        this.context.lineWidth = 1;
+        this.context.strokeStyle = scheme_color_0;
+        this.context.stroke();
+        this.context.closePath();
+        this.context.fillStyle = scheme_color_0;
+        this.context.font = '10px sans-serif';
+        this.context.textAlign = 'right';
+        for (let s = 0; s <= GRID_LINES_COUNT; s += 1) {
+            const y = s * step;
+            let yOffset = -2;
+            if (s === 0) {
+                this.context.textBaseline = 'top';
+                yOffset = 2;
+            } else {
+                this.context.textBaseline = 'bottom';
+            }
+            this.context.fillText((diff / (s + 1)).toFixed(2), size.width - 18, y + yOffset);
+        }
+    }
 
     public readonly coors: ChartCoors = new ChartCoors();
 
     public ignorePoints(): Render {
         this.points = false;
+        return this;
+    }
+
+    public setSelected(index: number | undefined): Render {
+        this.selected = index;
         return this;
     }
 
@@ -90,5 +136,6 @@ export class Render extends Base {
                 this.context.closePath();
             });
         });
+        this.yAxisRender();
     }
 }
