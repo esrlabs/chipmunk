@@ -1,4 +1,10 @@
-import { Component, AfterContentInit, HostBinding, ViewChild } from '@angular/core';
+import {
+    Component,
+    AfterContentInit,
+    HostBinding,
+    ViewChild,
+    ChangeDetectorRef,
+} from '@angular/core';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { MatInput } from '@angular/material/input';
@@ -35,6 +41,10 @@ export class Filter extends EntityItem<ProviderFilters, FilterRequest> implement
 
     public state!: State;
     public EFlag = EFlag;
+
+    constructor(cdRef: ChangeDetectorRef) {
+        super(cdRef);
+    }
 
     public ngAfterContentInit() {
         this.env().subscriber.register(

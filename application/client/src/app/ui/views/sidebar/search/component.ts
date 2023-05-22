@@ -40,7 +40,7 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
     public list: Provider<any>[] = [];
     public selected: Provider<any> | undefined;
     public providers!: Providers;
-    
+
     private _focused: boolean = false;
 
     @HostBinding('attr.tabindex') get tabindex() {
@@ -87,15 +87,12 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
         this.list = this.providers.list();
         this.env().subscriber.register(
             this.providers.subjects.get().select.subscribe((event: ISelectEvent | undefined) => {
-                if (event === undefined && this.selected === undefined) {
-                    return;
-                }
-                if (event === undefined) {
+                if (event === undefined && this.selected !== undefined) {
                     this.selected = undefined;
-                } else {
+                } else if (event !== undefined) {
                     this.selected = event.provider;
                 }
-                // this.detectChanges();
+                this.detectChanges();
             }),
         );
         this.env().subscriber.register(
