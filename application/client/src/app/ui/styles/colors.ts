@@ -4,6 +4,7 @@ export const scheme_color_2 = '#c0c0c0';
 export const scheme_color_3 = '#979797';
 export const scheme_color_4 = '#555555';
 export const scheme_color_5 = '#333333';
+export const scheme_color_5_75 = '#33333375';
 export const scheme_color_6 = '#111111';
 export const scheme_color_error = 'rgb(253, 21, 21)';
 export const scheme_color_accent = '#74b9ff';
