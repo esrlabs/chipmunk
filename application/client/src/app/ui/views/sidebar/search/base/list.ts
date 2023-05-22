@@ -95,6 +95,9 @@ export abstract class EntitiesList<P, T>
                 this.entries = this.provider.entities();
                 this.detectChanges();
             }),
+            this.provider.subjects.get().selection.subscribe(() => {
+                this.markChangesForCheck();
+            }),
         );
     }
 

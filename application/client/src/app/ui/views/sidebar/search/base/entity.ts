@@ -70,7 +70,7 @@ export abstract class EntityItem<P, T> extends ChangesDetector implements OnInit
                 if (!this.selected) {
                     this.edit = false;
                 }
-                this.detectChanges();
+                this.markChangesForCheck();
             }),
         );
         this.selected = this.provider.select().get().indexOf(this.entity.uuid()) !== -1;

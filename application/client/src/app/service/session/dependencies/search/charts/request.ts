@@ -254,7 +254,7 @@ export class ChartRequest
                 return Key.charts;
             },
             icon: (): string => {
-                return 'chart';
+                return 'bar_chart';
             },
         };
     }
