@@ -24,7 +24,6 @@
     "@angular/platform-browser": "^15.2.0",
     "@angular/platform-browser-dynamic": "^15.2.0",
     "@angular/router": "^15.2.0",
-    "chart.js": "~3.9.1",
     "moment": "^2.29.1",
     "moment-timezone": "^0.5.43",
     "rxjs": "^7.8.0",
@@ -45,7 +44,6 @@
     "@types/uuid": "^9.0.1",
     "@typescript-eslint/eslint-plugin": "^5.58.0",
     "@typescript-eslint/parser": "^5.58.0",
-    "chart.js": "~3.9.1",
     "eslint": "^8.38.0",
     "typescript": "~4.9.4"
   },
