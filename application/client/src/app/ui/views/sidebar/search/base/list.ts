@@ -93,7 +93,7 @@ export abstract class EntitiesList<P, T>
         this.env().subscriber.register(
             this.provider.subjects.get().change.subscribe(() => {
                 this.entries = this.provider.entities();
-                this.detectChanges();
+                this.markChangesForCheck();
             }),
             this.provider.subjects.get().selection.subscribe(() => {
                 this.markChangesForCheck();
