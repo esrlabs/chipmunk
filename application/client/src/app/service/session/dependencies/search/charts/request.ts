@@ -83,7 +83,7 @@ export class ChartRequest
         return filter === undefined
             ? false
             : getFilterError(filter, false, false, true) === undefined
-            ? filter.replace('\\(', '') === ''
+            ? regexFilters.hasGroups(filter)
             : false;
     }
 
@@ -94,6 +94,8 @@ export class ChartRequest
             if (match !== null && match[0] !== undefined) {
                 error = match[0].trim();
             }
+        } else if (!regexFilters.hasGroups(filter)) {
+            error = `No groups`;
         }
         return error;
     }
