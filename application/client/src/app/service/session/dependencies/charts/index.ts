@@ -23,6 +23,8 @@ export interface Output {
     frame: IRange;
     filters: FilterRequest[];
     charts: ChartRequest[];
+    // Selected chart
+    selected: number | undefined;
 }
 
 @SetupLogger()
@@ -63,6 +65,7 @@ export class Charts extends Subscriber {
         output: undefined,
         summary: undefined,
     };
+    protected selected: string | undefined;
 
     protected reload(): {
         output(): void;
@@ -71,6 +74,7 @@ export class Charts extends Subscriber {
         cached(): void;
         load(frame: IRange): Promise<Output>;
         defs(output: Output): Output;
+        requests(): { filters: FilterRequest[]; charts: ChartRequest[] };
     } {
         return {
             output: (): void => {
@@ -172,6 +176,7 @@ export class Charts extends Subscriber {
                                     frame,
                                     filters: [],
                                     charts: [],
+                                    selected: undefined,
                                 }),
                             );
                         })
@@ -179,17 +184,29 @@ export class Charts extends Subscriber {
                 });
             },
             defs: (output: Output): Output => {
-                const active = this.search.state().getActive();
-                output.filters =
-                    active === undefined
-                        ? this.search
-                              .store()
-                              .filters()
-                              .get()
-                              .filter((f) => f.definition.active)
-                        : [FilterRequest.fromDefinition(active)];
-                output.charts = this.search.store().charts().get();
+                const requests = this.reload().requests();
+                output.filters = requests.filters;
+                output.charts = requests.charts;
+                output.selected = this.selecting().get();
                 return output;
+            },
+            requests: (): { filters: FilterRequest[]; charts: ChartRequest[] } => {
+                const active = this.search.state().getActive();
+                return {
+                    filters:
+                        active === undefined
+                            ? this.search
+                                  .store()
+                                  .filters()
+                                  .get()
+                                  .filter((f) => f.definition.active)
+                            : [FilterRequest.fromDefinition(active)],
+                    charts: this.search
+                        .store()
+                        .charts()
+                        .get()
+                        .filter((f) => f.definition.active),
+                };
             },
         };
     }
@@ -296,6 +313,26 @@ export class Charts extends Subscriber {
 
     public refresh(): void {
         this.reload().cached();
+    }
+
+    public selecting(): {
+        set(uuid: string | undefined): void;
+        get(): number | undefined;
+    } {
+        return {
+            set: (uuid: string | undefined): void => {
+                this.selected = uuid;
+                this.reload().cached();
+            },
+            get: (): number | undefined => {
+                if (this.selected === undefined) {
+                    return undefined;
+                }
+                const requests = this.reload().requests();
+                const index = requests.charts.findIndex((f) => f.uuid() === this.selected);
+                return index === -1 ? undefined : index;
+            },
+        };
     }
 }
 export interface Charts extends LoggerInterface {}

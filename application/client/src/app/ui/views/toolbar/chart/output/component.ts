@@ -75,16 +75,17 @@ export class ViewChartOutput extends OutputBase implements AfterViewInit {
         };
         this.env().subscriber.register(
             this.session.charts.subjects.get().output.subscribe((event) => {
-                this.renders.charts
-                    .setValues(event.values)
-                    .setPeaks(event.peaks)
-                    .setCharts(event.charts)
-                    .setFrame(event.frame)
-                    .clear()
-                    .refresh();
                 this.renders.filters
                     .setMap(event.map)
                     .setFilters(event.filters)
+                    .setFrame(event.frame)
+                    .clear()
+                    .refresh();
+                this.renders.charts
+                    .setSelected(event.selected)
+                    .setValues(event.values)
+                    .setPeaks(event.peaks)
+                    .setCharts(event.charts)
                     .setFrame(event.frame)
                     .refresh();
             }),
