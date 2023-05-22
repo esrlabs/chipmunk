@@ -63,7 +63,7 @@ export abstract class EntityItem<P, T> extends ChangesDetector implements OnInit
         this.env().subscriber.register(
             this.provider.subjects.get().edit.subscribe((guid: string | undefined) => {
                 this.edit = this.entity.uuid() === guid;
-                this.detectChanges();
+                this.markChangesForCheck();
             }),
             this.provider.subjects.get().selection.subscribe((event: ISelectEvent) => {
                 this.selected = event.guids.indexOf(this.entity.uuid()) !== -1;

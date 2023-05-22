@@ -19,15 +19,7 @@ import { EntityItem } from '../../base/entity';
 @Ilc()
 export class Chart extends EntityItem<ProviderCharts, ChartRequest> implements AfterContentInit {
     @HostBinding('class.notvalid') get cssClassNotValid() {
-        return true;
-        // return !ChartRequest.isValid({
-        //     filter: this.state.filter.filter,
-        //     flags: {
-        //         cases: this.state.filter.flags.cases,
-        //         word: this.state.filter.flags.word,
-        //         reg: this.state.filter.flags.reg,
-        //     },
-        // });
+        return !ChartRequest.isValid(this.state.filter);
     }
 
     @ViewChild(MatInput) _inputRefCom!: MatInput;
