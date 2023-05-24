@@ -60,7 +60,9 @@ impl DltParserSettings {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SomeIpParserSettings {}
+pub struct SomeIpParserSettings {
+    pub fibex_file_paths: Option<Vec<String>>,
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Transport {

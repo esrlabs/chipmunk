@@ -20,8 +20,8 @@ rand = "0.8.5"
 rustc-hash = "1.1"
 # someip-messages = { path = "../../../../../someip"}
 someip-messages = { git = "https://github.com/esrlabs/someip" }
-# someip-payload = { path = "../../../../../someip-payload"}
-someip-payload = { git = "https://github.com/esrlabs/someip-payload" }
+# someip-payload = { path = "../../../../../someip-payload" }
+someip-payload = { git = "https://github.com/esrlabs/someip-payload", rev = "f6b56ac" }
 
 [dev-dependencies]
 stringreader = "0.1.1"
