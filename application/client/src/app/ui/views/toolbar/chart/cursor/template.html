@@ -1,8 +1,9 @@
 <div *ngIf="state.cursor.visible" 
     [attr.class]="'cursor ' + movement.target" 
-    (wheel)="zoom($event)" 
-    (mousedown)="mousedown($event, Target.Move)"
+    (wheel)="wheelOnFrame($event)" 
+    (mousedown)="mousedownOnFrame($event, Target.Move)"
     [ngStyle]="{'left': state.cursor.leftPx, 'right': state.cursor.rightPx}">
-    <div class="left" [attr.row]="state.cursor.from" (mousedown)="mousedown($event, Target.Left)"></div>
-    <div class="right" [attr.row]="state.cursor.to" (mousedown)="mousedown($event, Target.Right)"></div>
+    <div class="left" [attr.row]="state.cursor.from" (mousedown)="mousedownOnFrame($event, Target.Left)"></div>
+    <div class="right" [attr.row]="state.cursor.to" (mousedown)="mousedownOnFrame($event, Target.Right)"></div>
 </div>
+<div *ngIf="state.cursor.visible && selecting.x !== -1" class="selection" [ngStyle]="{'left': selecting.leftPx, 'width': selecting.widthPx}"></div>
