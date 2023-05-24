@@ -8,6 +8,12 @@
     right: 0;
     bottom: 0;
     overflow: hidden;
+    & div.selection {
+        position: absolute;
+        height: 100%;
+        top: 0;
+        background: @scheme-color-3-75;
+    }
     & div.cursor {
         position: absolute;
         height: 100%;
@@ -33,6 +39,15 @@
                 padding: 2px 4px;
                 border-radius: 2px;
                 top: 0;
+            }
+            &::before{
+                position: absolute;
+                height: 16px;
+                width: 3px;
+                content: '';
+                background: @scheme-color-0;
+                top: 0;
+                right: 0;
             }
         }
         & div.left {

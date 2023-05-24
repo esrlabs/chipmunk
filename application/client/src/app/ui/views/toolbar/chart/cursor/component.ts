@@ -27,27 +27,65 @@ export class ViewChartCursor extends ChangesDetector implements AfterViewInit {
     @Input() public state!: State;
 
     @HostListener('window:mousemove', ['$event']) mousemove(event: MouseEvent): void {
-        if (this.movement.target === Target.None) {
-            return;
+        if (this.selecting.x !== -1) {
+            const diff = event.x - this.selecting.x;
+            this.selecting.x = event.x;
+            this.selecting.w += diff;
+            if (this.selecting.w < 0) {
+                this.selecting.leftPx = `${this.selecting.l + this.selecting.w}px`;
+            } else {
+                this.selecting.leftPx = `${this.selecting.l}px`;
+            }
+            this.selecting.widthPx = `${Math.abs(this.selecting.w)}px`;
+        } else {
+            if (this.movement.target === Target.None) {
+                return;
+            }
+            const diff = event.x - this.movement.x;
+            if (this.movement.target === Target.Left) {
+                this.state.cursor.change(diff).left();
+            } else if (this.movement.target === Target.Right) {
+                this.state.cursor.change(diff).right();
+            } else if (this.movement.target === Target.Move) {
+                this.state.cursor.change(diff).move();
+            }
+            this.movement.x = event.x;
         }
-        const diff = event.x - this.movement.x;
-        if (this.movement.target === Target.Left) {
-            this.state.cursor.change(diff).left();
-        } else if (this.movement.target === Target.Right) {
-            this.state.cursor.change(diff).right();
-        } else if (this.movement.target === Target.Move) {
-            this.state.cursor.change(diff).move();
-        }
-        this.movement.x = event.x;
     }
 
     @HostListener('window:mouseup', ['$event']) mouseup(_event: MouseEvent): void {
+        if (this.selecting.x !== -1) {
+            const left = (() => {
+                if (this.selecting.w < 0) {
+                    return this.selecting.l + this.selecting.w;
+                } else {
+                    return this.selecting.l;
+                }
+            })();
+            this.state.cursor.fromPx(left, Math.abs(this.selecting.w));
+        }
         this.movement.target = Target.None;
         this.movement.x = 0;
+        this.selecting.x = -1;
     }
 
     @HostListener('wheel', ['$event']) wheel(event: WheelEvent): void {
-        this.state.cursor.change(Math.round(event.deltaY / State.REDUCE_MOVE_ON_WHEEL)).move();
+        if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+            this.state.cursor
+                .change(Math.round(event.deltaY / State.REDUCE_ZOOM_ON_WHEEL))
+                .resize();
+        } else {
+            this.state.cursor.change(Math.round(event.deltaX / State.REDUCE_MOVE_ON_WHEEL)).move();
+        }
+        stop(event);
+    }
+
+    @HostListener('mousedown', ['$event']) mousedown(event: MouseEvent): void {
+        this.selecting.x = event.x;
+        this.selecting.w = 0;
+        this.selecting.l = event.x;
+        this.selecting.leftPx = `${event.x}px`;
+        this.selecting.widthPx = `0px`;
         stop(event);
     }
 
@@ -57,6 +95,20 @@ export class ViewChartCursor extends ChangesDetector implements AfterViewInit {
     } = {
         target: Target.None,
         x: 0,
+    };
+
+    protected selecting: {
+        x: number;
+        w: number;
+        l: number;
+        leftPx: string;
+        widthPx: string;
+    } = {
+        w: 0,
+        x: -1,
+        l: 0,
+        leftPx: '',
+        widthPx: '',
     };
 
     constructor(chRef: ChangeDetectorRef) {
@@ -71,14 +123,20 @@ export class ViewChartCursor extends ChangesDetector implements AfterViewInit {
         );
     }
 
-    public mousedown(event: MouseEvent, target: Target): void {
+    public mousedownOnFrame(event: MouseEvent, target: Target): void {
         this.movement.target = target;
         this.movement.x = event.x;
         stop(event);
     }
 
-    public zoom(event: WheelEvent): void {
-        this.state.cursor.change(Math.round(event.deltaY / State.REDUCE_ZOOM_ON_WHEEL)).resize();
+    public wheelOnFrame(event: WheelEvent): void {
+        if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+            this.state.cursor
+                .change(Math.round(event.deltaY / State.REDUCE_ZOOM_ON_WHEEL))
+                .resize();
+        } else {
+            this.state.cursor.change(Math.round(event.deltaX / State.REDUCE_MOVE_ON_WHEEL)).move();
+        }
         stop(event);
     }
 }
