@@ -1,12 +1,8 @@
 use crate::{
     events::NativeError,
     state::{
-        indexes::controller::Mode as IndexesMode,
-        observed::Observed,
-        session_file::GrabbedElement,
-        source_ids::SourceDefinition,
-        values::{Point, ValuesError},
-        AttachmentInfo,
+        indexes::controller::Mode as IndexesMode, observed::Observed, session_file::GrabbedElement,
+        source_ids::SourceDefinition, values::ValuesError, AttachmentInfo,
     },
     tracker::OperationTrackerAPI,
 };
@@ -24,6 +20,8 @@ use tokio::sync::{
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
+
+use super::values::CandlePoint;
 
 pub enum Api {
     SetSessionFile((Option<PathBuf>, oneshot::Sender<Result<(), NativeError>>)),
@@ -132,7 +130,7 @@ pub enum Api {
         (
             Option<RangeInclusive<u64>>,
             u16,
-            oneshot::Sender<Result<HashMap<u8, Vec<Point>>, ValuesError>>,
+            oneshot::Sender<Result<HashMap<u8, Vec<CandlePoint>>, ValuesError>>,
         ),
     ),
     DropSearchValues(oneshot::Sender<bool>),
@@ -520,7 +518,7 @@ impl SessionStateAPI {
         &self,
         frame: Option<RangeInclusive<u64>>,
         width: u16,
-    ) -> Result<HashMap<u8, Vec<Point>>, NativeError> {
+    ) -> Result<HashMap<u8, Vec<CandlePoint>>, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetSearchValues((frame, width, tx)), rx)
             .await?

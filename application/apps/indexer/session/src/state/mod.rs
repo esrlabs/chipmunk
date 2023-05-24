@@ -643,9 +643,8 @@ pub async fn run(
                 })?;
             }
             Api::GetSearchValues((frame, width, tx_response)) => {
-                let frame = frame.unwrap_or(RangeInclusive::new(0, state.session_file.len()));
                 tx_response
-                    .send(state.values.get(&frame, width))
+                    .send(state.values.get(frame, width))
                     .map_err(|_| {
                         NativeError::channel("Failed to respond to Api::SetSearchValuesHolder")
                     })?;
