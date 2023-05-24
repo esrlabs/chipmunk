@@ -52,6 +52,21 @@ export class Cursor {
         this.update().frame();
     }
 
+    public fromPx(left: number, width: number): void {
+        if (width < MIN_CURSOR_WIDTH) {
+            width = MIN_CURSOR_WIDTH;
+        }
+        if (left < 0) {
+            left = 0;
+        }
+        if (left + width > this.width) {
+            left = this.width - width;
+        }
+        this.left = left;
+        this.right = this.width - left - width;
+        this.update().coors();
+    }
+
     public change(diff: number): {
         left(): void;
         right(): void;
