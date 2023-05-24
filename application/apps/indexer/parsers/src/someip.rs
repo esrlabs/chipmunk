@@ -2,38 +2,57 @@ use crate::{Error, LogMessage, ParseYield, Parser};
 use std::{borrow::Cow, fmt, fmt::Display, io::Write};
 
 use someip_messages::*;
-use someip_payload::{fibex::FibexModel, fibex2som::FibexTypes, som::SOMParser};
+use someip_payload::{
+    fibex::{FibexModel, FibexParser, FibexReader},
+    fibex2som::FibexTypes,
+    som::SOMParser,
+};
 
 use log::debug;
 use serde::Serialize;
 
 /// A parser for SOME/IP log messages.
-pub struct SomeipParser<'m> {
-    model: Option<&'m FibexModel>,
+pub struct SomeipParser {
+    model: Option<FibexModel>,
 }
 
-impl<'m> Default for SomeipParser<'m> {
+impl Default for SomeipParser {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'m> SomeipParser<'m> {
+impl SomeipParser {
     /// Creates a new parser.
     pub fn new() -> Self {
         SomeipParser { model: None }
     }
 
     // Creates a new parser for the given model.
-    pub fn from_fibex(model: &'m FibexModel) -> Self {
+    pub fn from_fibex(model: FibexModel) -> Self {
         SomeipParser { model: Some(model) }
+    }
+
+    /// Creates a new parser with the given files.
+    pub fn from_fibex_files(paths: Vec<String>) -> Self {
+        let mut model: Option<FibexModel> = None;
+        if !paths.is_empty() {
+            let path = &paths[0]; // TODO use all paths
+            if let Ok(reader) = FibexReader::from_file(path) {
+                if let Ok(result) = FibexParser::try_parse(reader) {
+                    model = Some(result);
+                }
+            }
+        }
+
+        SomeipParser { model }
     }
 }
 
-unsafe impl<'m> Send for SomeipParser<'m> {}
-unsafe impl<'m> Sync for SomeipParser<'m> {}
+unsafe impl Send for SomeipParser {}
+unsafe impl Sync for SomeipParser {}
 
-impl<'m> Parser<SomeipLogMessage> for SomeipParser<'m> {
+impl Parser<SomeipLogMessage> for SomeipParser {
     fn parse<'a>(
         &mut self,
         input: &'a [u8],
@@ -59,7 +78,7 @@ impl<'m> Parser<SomeipLogMessage> for SomeipParser<'m> {
                 Ok((
                     &input[len..],
                     Some(ParseYield::from(SomeipLogMessage::from(
-                        rpc_message_string(&header, &payload, self.model),
+                        rpc_message_string(&header, &payload, &self.model),
                         input[..len].to_vec(),
                     ))),
                 ))
@@ -215,7 +234,7 @@ fn option_string(option: &SdEndpointOption) -> String {
     )
 }
 
-fn rpc_message_string(header: &Header, payload: &RpcPayload, model: Option<&FibexModel>) -> String {
+fn rpc_message_string(header: &Header, payload: &RpcPayload, model: &Option<FibexModel>) -> String {
     format!(
         "RPC{COLUMN_SEP}{}{COLUMN_SEP}{}",
         header_string(header),
@@ -305,7 +324,6 @@ impl Display for SomeipLogMessage {
 #[cfg(test)]
 mod test {
     use super::*;
-    use someip_payload::fibex::{FibexParser, FibexReader};
     use std::io::BufReader;
     use stringreader::StringReader;
 
@@ -439,7 +457,7 @@ mod test {
 
         let model = test_model();
 
-        let mut parser = SomeipParser::from_fibex(&model);
+        let mut parser = SomeipParser::from_fibex(model);
         let (output, message) = parser.parse(input, None).unwrap();
 
         assert!(output.is_empty());
@@ -489,7 +507,7 @@ mod test {
 
         let model = test_model();
 
-        let mut parser = SomeipParser::from_fibex(&model);
+        let mut parser = SomeipParser::from_fibex(model);
         let (output, message) = parser.parse(input, None).unwrap();
 
         assert!(output.is_empty());
