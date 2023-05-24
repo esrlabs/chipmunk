@@ -1539,7 +1539,7 @@ pub async fn main() -> Result<()> {
             println!("read fibex file {}", model_path.to_str().unwrap());
             let fibex_reader = FibexReader::from_file(model_path).unwrap();
             let fibex_model = FibexParser::try_parse(fibex_reader).expect("cannot parse fibex");
-            let someip_parser = SomeipParser::from_fibex(&fibex_model);
+            let someip_parser = SomeipParser::from_fibex(fibex_model);
 
             println!("parse input file {}", input_path.to_str().unwrap());
             let input_file_size = fs::metadata(input_path).expect("file size error").len();

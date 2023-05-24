@@ -41,8 +41,11 @@ pub async fn run_source<S: ByteSource>(
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
     match parser {
-        ParserType::SomeIp(_) => {
-            let someip_parser = SomeipParser::new();
+        ParserType::SomeIp(settings) => {
+            let someip_parser = match &settings.fibex_file_paths {
+                Some(paths) => SomeipParser::from_fibex_files(paths.clone()),
+                None => SomeipParser::new()
+            };
             let producer = MessageProducer::new(someip_parser, source, rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         },
