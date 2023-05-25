@@ -58,7 +58,13 @@ export class ViewChartOutput extends OutputBase implements AfterViewInit {
     }
 
     @HostListener('wheel', ['$event']) wheel(event: WheelEvent): void {
-        this.state.cursor.change(Math.round(event.deltaY / State.REDUCE_MOVE_ON_WHEEL)).resize();
+        if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+            this.state.cursor
+                .change(Math.round(event.deltaY / State.REDUCE_ZOOM_ON_WHEEL))
+                .resize();
+        } else {
+            this.state.cursor.change(Math.round(event.deltaX / State.REDUCE_MOVE_ON_WHEEL)).move();
+        }
         stop(event);
     }
 

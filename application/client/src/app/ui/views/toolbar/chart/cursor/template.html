@@ -1,8 +1,9 @@
 <div *ngIf="state.cursor.visible" 
     [attr.class]="'cursor ' + movement.target" 
     (wheel)="wheelOnFrame($event)" 
-    (mousedown)="mousedownOnFrame($event, Target.Move)"
+    (mousedown)="mousedownOnFrame($event, Target.Select)"
     [ngStyle]="{'left': state.cursor.leftPx, 'right': state.cursor.rightPx}">
+    <div class="move-trigger" (mousedown)="mousedownOnFrame($event, Target.Move)"></div>
     <div class="left" [attr.row]="state.cursor.from" (mousedown)="mousedownOnFrame($event, Target.Left)"></div>
     <div class="right" [attr.row]="state.cursor.to" (mousedown)="mousedownOnFrame($event, Target.Right)"></div>
 </div>

@@ -10,6 +10,7 @@ enum Target {
     Left = 'left',
     Right = 'right',
     Move = 'move',
+    Select = 'select',
     None = 'none',
 }
 
@@ -124,8 +125,12 @@ export class ViewChartCursor extends ChangesDetector implements AfterViewInit {
     }
 
     public mousedownOnFrame(event: MouseEvent, target: Target): void {
-        this.movement.target = target;
-        this.movement.x = event.x;
+        if (target === Target.Select) {
+            this.mousedown(event);
+        } else {
+            this.movement.target = target;
+            this.movement.x = event.x;
+        }
         stop(event);
     }
 
