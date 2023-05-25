@@ -1,3 +1,5 @@
+@import '../../../../styles/variables.less';
+
 :host {
     display: block;
     position: absolute;
@@ -6,6 +8,7 @@
     right: 0;
     bottom: 0;
     overflow: hidden;
+    border-top: thin dotted @scheme-color-1;
     & canvas {
         position: absolute;
         display: block;

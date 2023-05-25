@@ -1,3 +1,5 @@
+@import '../../../styles/variables.less';
+
 :host {
     position: absolute;
     display: block;
@@ -9,4 +11,22 @@
     top: 0.5rem;
     overflow: hidden;
     outline: none;
+    & div.placeholder {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        margin: 0;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        top: 0;
+        overflow: hidden;
+        & p {
+            position: relative;
+            color: @scheme-color-2;
+            max-width: 300px;
+        }
+    }
 }

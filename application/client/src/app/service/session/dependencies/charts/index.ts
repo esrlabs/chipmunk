@@ -334,5 +334,10 @@ export class Charts extends Subscriber {
             },
         };
     }
+
+    public hasData(): boolean {
+        const requests = this.reload().requests();
+        return requests.charts.length + requests.filters.length > 0;
+    }
 }
 export interface Charts extends LoggerInterface {}
