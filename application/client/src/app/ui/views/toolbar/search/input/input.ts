@@ -106,7 +106,10 @@ export class SearchInput {
             }
         } else if (event.key === 'Backspace' && this.control.value === '' && this._prev === '') {
             this.actions.edit.emit();
-        } else if (this.control.value !== '' && !this.recent) {
+        } else if (
+            (this.control.value !== '' || event.key === 'ArrowUp' || event.key === 'ArrowDown') &&
+            !this.recent
+        ) {
             this.recent = true;
             this._panel.openPanel();
             this.actions.recent.emit();
