@@ -7,16 +7,19 @@ use crate::{
 use indexer_base::progress::Severity;
 use log::error;
 use sources::{
-    factory::{ObserveOptions, ObserveOrigin},
+    factory::{ObserveOptions, ObserveOrigin, ParserType},
     producer::SdeReceiver,
 };
 
 pub async fn start_observing(
     operation_api: OperationAPI,
     state: SessionStateAPI,
-    options: ObserveOptions,
+    mut options: ObserveOptions,
     rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
+    if let ParserType::Dlt(ref mut settings) = options.parser {
+        settings.load_fibex_metadata();
+    };
     if let Err(err) = state.add_executed_observe(options.clone()).await {
         error!("Fail to store observe options: {:?}", err);
     }
