@@ -4,10 +4,10 @@
         <p class="no-content t-medium color-scheme-2" *ngIf="group.caption !== undefined">{{group.caption}}</p>
         <div class="group">
             <div class="collection" *ngFor="let collection of group.collections">
-                <app-sidebar-history-preset 
+                <app-toolbar-history-preset 
                     (contextmenu)="onCollectionContextmenu(collection, $event)" 
                     [collections]="collection"
-                    (click)="use(collection)"></app-sidebar-history-preset>
+                    (click)="use(collection)"></app-toolbar-history-preset>
                 <div *ngIf="state.selection().has()" class="selection">
                     <mat-checkbox class="material-mofication-mini" [disableRipple]="true" [(ngModel)]="state.selected[collection.uuid]"></mat-checkbox>
                 </div>

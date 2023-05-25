@@ -1,19 +1,19 @@
 import { Component, Input, ChangeDetectorRef } from '@angular/core';
-import { FilterRequest } from '@service/session/dependencies/search/filters/request';
+import { ChartRequest } from '@service/session/dependencies/search/charts/request';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 
 @Component({
-    selector: 'app-toolbar-history-filter-preview',
+    selector: 'app-toolbar-history-chart-preview',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
 @Ilc()
-export class FilterPreview extends ChangesDetector {
-    @Input() filter!: FilterRequest;
+export class ChartPreview extends ChangesDetector {
+    @Input() chart!: ChartRequest;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
 }
-export interface FilterPreview extends IlcInterface {}
+export interface ChartPreview extends IlcInterface {}
