@@ -152,6 +152,7 @@ export class ViewSearchInput
             this.markChangesForCheck();
         });
         this._restore();
+        this.input.focus();
     }
 
     public drop() {

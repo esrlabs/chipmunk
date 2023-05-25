@@ -55,6 +55,10 @@ export class SearchInput {
         this.ref.focus();
     }
 
+    public blur() {
+        this.ref.blur();
+    }
+
     public isEmpty(): boolean {
         return this.value.trim() === '';
     }
@@ -86,6 +90,7 @@ export class SearchInput {
             } else {
                 this.actions.drop.emit();
             }
+            this.blur();
         } else if (event.key === 'Enter') {
             if (this.recent) {
                 this.recent = false;
