@@ -23,6 +23,7 @@ export class Settings extends ChangesDetector implements AfterContentInit {
             .services.system.settings.get()
             .then((entries) => {
                 this.state.build(entries);
+                this.detectChanges();
             })
             .catch((err: Error) => {
                 this.log().error(`Fail to get settings list: ${err}`);
