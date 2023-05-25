@@ -241,18 +241,14 @@ impl FtScanner {
     ///
     /// # Arguments
     ///
-    /// * `offset` - The offset of the message in the original DLT trace.
     /// * `message` - The message to be processed.
     pub fn process(&mut self, message: &Message) -> Option<Attachment> {
-        self.index += 1;
-        if let Some(ft_message) = FtMessageParser::parse(message) {
+        let result = if let Some(ft_message) = FtMessageParser::parse(message) {
             match ft_message {
                 FtMessage::Start(ft_start) => {
                     self.files.insert(
                         ft_start.id,
                         Attachment {
-                            // timestamp: ft_start.timestamp,
-                            // id: ft_start.id,
                             name: ft_start.name.clone(),
                             size: ft_start.size as usize,
                             created_date: Some(ft_start.created),
@@ -282,7 +278,9 @@ impl FtScanner {
             }
         } else {
             None
-        }
+        };
+        self.index += 1;
+        result
     }
 }
 
@@ -603,7 +601,7 @@ pub mod tests {
         assert!(file.created_date.is_some());
         assert_eq!(file.name, String::from("test.txt"));
         assert_eq!(file.size, 4);
-        assert_eq!(file.messages, vec![1, 2, 3]);
+        assert_eq!(file.messages, vec![0, 1, 2]);
         assert_eq!(file.data, vec![0x74, 0x65, 0x73, 0x74]);
     }
 
@@ -623,7 +621,7 @@ pub mod tests {
         let file = index.get(0).unwrap();
         assert_eq!(file.name, String::from("test.txt"));
         assert_eq!(file.size, 26);
-        assert_eq!(file.messages, vec![1, 2, 3, 4, 5]);
+        assert_eq!(file.messages, vec![0, 1, 2, 3, 4]);
         assert_eq!(
             file.data,
             vec![
@@ -645,21 +643,21 @@ pub mod tests {
         assert!(file.created_date.is_some());
         assert_eq!(file.name, String::from("test1.txt"));
         assert_eq!(file.size, 5);
-        assert_eq!(file.messages, vec![1, 3, 7]);
+        assert_eq!(file.messages, vec![0, 2, 6]);
         assert_eq!(file.data, vec![0x74, 0x65, 0x73, 0x74, 0x31]);
 
         let file = index.get(1).unwrap();
         assert!(file.created_date.is_some());
         assert_eq!(file.name, String::from("test2.txt"));
         assert_eq!(file.size, 6);
-        assert_eq!(file.messages, vec![2, 4, 8]);
+        assert_eq!(file.messages, vec![1, 3, 7]);
         assert_eq!(file.data, vec![0x74, 0x65, 0x73, 0x74, 0x32, 0x32]);
 
         let file = index.get(2).unwrap();
         assert!(file.created_date.is_some());
         assert_eq!(file.name, String::from("test3.txt"));
         assert_eq!(file.size, 7);
-        assert_eq!(file.messages, vec![5, 6, 9]);
+        assert_eq!(file.messages, vec![4, 5, 8]);
         assert_eq!(file.data, vec![0x74, 0x65, 0x73, 0x74, 0x33, 0x33, 0x33]);
     }
 
@@ -678,7 +676,7 @@ pub mod tests {
             size: 4,
             created_date: Some("date".to_string()),
             modified_date: None,
-            messages: vec![1, 2, 3],
+            messages: vec![0, 1, 2],
             data: vec![0x74, 0x65, 0x73, 0x74],
         };
 
@@ -706,7 +704,7 @@ pub mod tests {
             size: 26,
             created_date: Some("date".to_string()),
             modified_date: None,
-            messages: vec![1, 2, 3, 4, 5],
+            messages: vec![0, 1, 2, 3, 4],
             data: vec![
                 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e,
                 0x6f, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a,

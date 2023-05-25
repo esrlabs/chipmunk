@@ -52,7 +52,7 @@ pub struct Attachment {
     pub size: usize,
     pub created_date: Option<String>,
     pub modified_date: Option<String>,
-    /// The message indexes (1-based) within the original trace.
+    /// The indexes of the message within the original trace (0-based).
     pub messages: Vec<usize>,
     pub data: Vec<u8>,
 }
