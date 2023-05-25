@@ -14,11 +14,15 @@
         cursor: default;
     }
     & input {
-        margin: 0;
+        width: ~"calc(100% - 16px)";
+        margin: 0 8px;
         padding: 0;
-        border: solid thin @scheme-color-active;
+        border: none;
+        border-bottom: dashed 1px @scheme-color-1;
         flex: auto;
         white-space: nowrap;
         color: @scheme-color-0;
+        background: none;
+        outline: none;
     }
 }

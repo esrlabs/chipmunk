@@ -13,8 +13,9 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Preset } from './preset/component';
 import { History } from './component';
 import { FilterPreview } from './preview/filter/component';
+import { ChartPreview } from './preview/chart/component';
 
-const entryComponents = [Preset, History, FilterPreview];
+const entryComponents = [Preset, History, FilterPreview, ChartPreview];
 const components = [...entryComponents];
 
 @NgModule({
