@@ -9,11 +9,15 @@
     <mat-card-content>
         <div class="section" *ngIf="filters.length > 0">
             <p class="t-small color-scheme-2">Filters</p>
-            <app-sidebar-filters-filter-preview *ngFor="let filter of filters" [filter]="filter"></app-sidebar-filters-filter-preview>    
+            <app-toolbar-history-filter-preview *ngFor="let filter of filters" [filter]="filter"></app-toolbar-history-filter-preview>    
+        </div>
+        <div class="section" *ngIf="charts.length > 0">
+            <p class="t-small color-scheme-2">Charts</p>
+            <app-toolbar-history-chart-preview *ngFor="let chart of charts" [chart]="chart"></app-toolbar-history-chart-preview>    
         </div>
         <div class="section" *ngIf="disabled.filters.length > 0">
             <p class="t-small color-scheme-2">Disabled filters</p>
-            <app-sidebar-filters-filter-preview *ngFor="let filter of disabled.filters" [filter]="filter"></app-sidebar-filters-filter-preview>
+            <app-toolbar-history-filter-preview *ngFor="let filter of disabled.filters" [filter]="filter"></app-toolbar-history-filter-preview>
         </div>
     </mat-card-content>
 </mat-card>

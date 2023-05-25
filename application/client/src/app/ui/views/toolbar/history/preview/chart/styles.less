@@ -1,0 +1,68 @@
+@import '../../../../../styles/variables.less';
+
+
+:host {
+    display: flex;
+    position: relative;
+    flex-flow: row;
+    padding: 3px 0px 5px 0;
+    overflow: hidden;
+    height: 20px;
+    cursor: default;
+    align-items: center;
+    div.doubleclick {
+        display: flex;
+        flex: auto;
+        align-items: center;
+        font-size: 13px;
+    }
+    span.color {
+        flex: 0;
+        width: 8px;
+        max-width: 8px;
+        min-width: 8px;
+        min-height: 16px;
+        display: block;
+        position: relative;
+        margin: 2px 0 2px 0;
+        transition: all 150ms ease-in-out;
+    }
+    span.background {
+        flex: 0;
+        width: 8px;
+        max-width: 8px;
+        min-width: 8px;
+        min-height: 16px;
+        display: block;
+        position: relative;
+        margin: 2px 0 2px 0;
+        transition: all 150ms ease-in-out;
+    }
+    span.request{
+        flex: auto;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding-left: 6px;
+        color: @scheme-color-0;
+        cursor: default;
+    }
+    span.flags {
+        flex: 0;
+        white-space: nowrap;
+        width: auto;
+        transition: all 150ms ease-in-out;
+        & span {
+            font-size: 14px;
+            line-height: 14px;
+            vertical-align: bottom;
+            cursor: default;
+            &.active{
+                color: @scheme-color-0;
+            }
+            &.inactive{
+                color: @scheme-color-3;
+            }
+        }
+    }
+}
