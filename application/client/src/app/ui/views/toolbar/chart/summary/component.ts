@@ -26,17 +26,18 @@ export class ViewChartSummary extends OutputBase implements AfterViewInit {
         };
         this.env().subscriber.register(
             this.session.charts.subjects.get().summary.subscribe((event) => {
+                this.renders.filters
+                    .setMap(event.map)
+                    .setFilters(event.filters)
+                    .setActive(event.active)
+                    .setFrame(event.frame)
+                    .clear()
+                    .refresh();
                 this.renders.charts
                     .setSelected(undefined)
                     .setValues(event.values)
                     .setPeaks(event.peaks)
                     .setCharts(event.charts)
-                    .setFrame(event.frame)
-                    .clear()
-                    .refresh();
-                this.renders.filters
-                    .setMap(event.map)
-                    .setFilters(event.filters)
                     .setFrame(event.frame)
                     .refresh();
             }),

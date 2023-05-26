@@ -23,6 +23,8 @@ export interface Output {
     frame: IRange;
     filters: FilterRequest[];
     charts: ChartRequest[];
+    // true - if has active search; false - if no active search, but filters
+    active: boolean;
     // Selected chart
     selected: number | undefined;
 }
@@ -74,7 +76,7 @@ export class Charts extends Subscriber {
         cached(): void;
         load(frame: IRange): Promise<Output>;
         defs(output: Output): Output;
-        requests(): { filters: FilterRequest[]; charts: ChartRequest[] };
+        requests(): { filters: FilterRequest[]; charts: ChartRequest[]; active: boolean };
     } {
         return {
             output: (): void => {
@@ -176,6 +178,7 @@ export class Charts extends Subscriber {
                                     frame,
                                     filters: [],
                                     charts: [],
+                                    active: false,
                                     selected: undefined,
                                 }),
                             );
@@ -188,11 +191,13 @@ export class Charts extends Subscriber {
                 output.filters = requests.filters;
                 output.charts = requests.charts;
                 output.selected = this.selecting().get();
+                output.active = requests.active;
                 return output;
             },
-            requests: (): { filters: FilterRequest[]; charts: ChartRequest[] } => {
+            requests: (): { filters: FilterRequest[]; charts: ChartRequest[]; active: boolean } => {
                 const active = this.search.state().getActive();
                 return {
+                    active: active !== undefined,
                     filters:
                         active === undefined
                             ? this.search
