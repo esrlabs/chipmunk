@@ -84,6 +84,7 @@ export class ViewChartOutput extends OutputBase implements AfterViewInit {
                 this.renders.filters
                     .setMap(event.map)
                     .setFilters(event.filters)
+                    .setActive(event.active)
                     .setFrame(event.frame)
                     .clear()
                     .refresh();
