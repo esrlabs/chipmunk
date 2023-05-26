@@ -53,6 +53,7 @@ export class Favorites
         this.env().subscriber.register(
             this.state.update.subscribe(() => {
                 this.bindFilterInput();
+                this.markChangesForCheck();
             }),
         );
     }
