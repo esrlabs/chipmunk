@@ -56,8 +56,8 @@ pub enum ValuesError {
 #[derive(Debug)]
 pub struct Values {
     #[allow(clippy::type_complexity)]
-    /// maps the dataset id to (max_x, min_y, max_y, list of data-points)
-    values: HashMap<u8, (u64, f64, f64, Vec<CandlePoint>)>,
+    /// maps the dataset id to (min_y, max_y, list of data-points)
+    values: HashMap<u8, (f64, f64, Vec<CandlePoint>)>,
     errors: HashMap<u64, Vec<(u8, String)>>,
     tx_callback_events: Option<UnboundedSender<CallbackEvent>>,
 }
@@ -89,8 +89,7 @@ impl Values {
                 acc.push((*p).into());
                 acc
             });
-            self.values
-                .insert(value_set_id, (max_row, min, max, candle_points));
+            self.values.insert(value_set_id, (min, max, candle_points));
         }
         self.notify(false);
     }
@@ -101,7 +100,7 @@ impl Values {
             let max_row = Values::max_row(&vs);
             let upd_min = Values::min(&vs);
             let upd_max = Values::max(&vs);
-            if let Some((max_row, min, max, values)) = self.values.get_mut(&value_set_id) {
+            if let Some((min, max, values)) = self.values.get_mut(&value_set_id) {
                 for v in vs {
                     values.push(v.into())
                 }
@@ -110,12 +109,7 @@ impl Values {
             } else {
                 self.values.insert(
                     value_set_id,
-                    (
-                        max_row,
-                        upd_min,
-                        upd_max,
-                        vs.into_iter().map(|v| v.into()).collect(),
-                    ),
+                    (upd_min, upd_max, vs.into_iter().map(|v| v.into()).collect()),
                 );
             }
         }
@@ -138,11 +132,7 @@ impl Values {
             &self.values
         };
         let mut datasets: HashMap<u8, Vec<CandlePoint>> = HashMap::new();
-        excerpt.iter().for_each(|(k, (max_row, min, max, fragment))| {
-            // let points = fragment
-            //     .iter()
-            //     .map(|p| (p.row as f64, p.y_value))
-            //     .collect::<Vec<Point2D>>();
+        excerpt.iter().for_each(|(k, (min, max, fragment))| {
             let delta_y = max - min;
             let epsilon = delta_y / 10.0;
             let now_reduce = Instant::now();
@@ -150,13 +140,9 @@ impl Values {
             let fragment = Clone::clone(fragment);// TODO oliver maybe we don't need that clone
             let fragment_len = fragment.len();
             let reduced = if width as usize <= fragment.len() {
-                candled_graph(fragment, width, *max_row)
+                candled_graph(fragment, width)
             } else {
                 fragment
-                // points
-                //     .iter()
-                //     .map(|(r, v)| CandlePoint::new(*r as u64, *v))
-                //     .collect::<Vec<CandlePoint>>()
             };
             debug!("last candle: {:?}", reduced.last());
 
@@ -168,9 +154,6 @@ impl Values {
                 now_reduce.elapsed()
             );
             let fragment_set = reduced;
-            // .iter()
-            // .map(|(r, v)| CandlePoint::new(*r as u64, *v))
-            // .collect::<Vec<CandlePoint>>();
             datasets.insert(*k, fragment_set);
         });
         for (key, value) in &datasets {
@@ -184,15 +167,15 @@ impl Values {
     fn get_fragment(
         &self,
         frame: Option<RangeInclusive<u64>>,
-    ) -> Result<Option<HashMap<u8, (u64, f64, f64, Vec<CandlePoint>)>>, ValuesError> {
+    ) -> Result<Option<HashMap<u8, (f64, f64, Vec<CandlePoint>)>>, ValuesError> {
         match frame {
             None => Ok(None),
             Some(frame) => {
                 if frame.end() - frame.start() == 0 {
                     return Err(ValuesError::InvalidFrame);
                 }
-                let mut excerpt: HashMap<u8, (u64, f64, f64, Vec<CandlePoint>)> = HashMap::new();
-                self.values.iter().for_each(|(k, (max_row, min, max, v))| {
+                let mut excerpt: HashMap<u8, (f64, f64, Vec<CandlePoint>)> = HashMap::new();
+                self.values.iter().for_each(|(k, (min, max, v))| {
                     let mut included: Vec<CandlePoint> = vec![];
                     let mut borders: (Option<&CandlePoint>, Option<&CandlePoint>) = (None, None);
                     for pair in v {
@@ -222,7 +205,7 @@ impl Values {
                             included.push(Values::between(left, right, frame.end()));
                         }
                     }
-                    excerpt.insert(*k, (*max_row, *min, *max, included));
+                    excerpt.insert(*k, (*min, *max, included));
                 });
                 Ok(Some(excerpt))
             }
@@ -262,7 +245,7 @@ impl Values {
                 None
             } else {
                 let mut map: HashMap<u8, Point2D> = HashMap::new();
-                self.values.iter().for_each(|(k, (max_row, min, max, _v))| {
+                self.values.iter().for_each(|(k, (min, max, _v))| {
                     map.insert(*k, (*min, *max));
                 });
                 Some(map)
@@ -314,8 +297,9 @@ fn median(points: &mut [Point2D]) -> f64 {
     points[mid].1
 }
 
-fn candled_graph(points: Vec<CandlePoint>, width: u16, max_row: u64) -> Vec<CandlePoint> {
-    let per_slot: f64 = max_row as f64 / width as f64;
+fn candled_graph(points: Vec<CandlePoint>, width: u16) -> Vec<CandlePoint> {
+    let delta_rows = points.last().unwrap().row - points.first().unwrap().row;
+    let per_slot: f64 = delta_rows as f64 / width as f64;
     let mut slots: Vec<Vec<CandlePoint>> = vec![];
     let mut slot_nr = 1usize;
     let mut slot_vec: Vec<CandlePoint> = vec![];
