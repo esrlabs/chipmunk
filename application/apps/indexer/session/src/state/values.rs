@@ -1,7 +1,7 @@
 use crate::events::CallbackEvent;
 use log::{debug, error};
 use serde::{ser::SerializeTuple, Serialize, Serializer};
-use std::{collections::HashMap, ops::RangeInclusive};
+use std::{cmp::Ordering, collections::HashMap, ops::RangeInclusive};
 use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -51,14 +51,13 @@ type Point2D = (f64, f64);
 pub enum ValuesError {
     #[error("Invalid frame")]
     InvalidFrame,
-    // #[error("IO error: {0:?}")]
-    // Io(#[from] std::io::Error),
 }
 
 #[derive(Debug)]
 pub struct Values {
     #[allow(clippy::type_complexity)]
-    values: HashMap<u8, (f64, f64, Vec<CandlePoint>)>,
+    /// maps the dataset id to (max_x, min_y, max_y, list of data-points)
+    values: HashMap<u8, (u64, f64, f64, Vec<CandlePoint>)>,
     errors: HashMap<u64, Vec<(u8, String)>>,
     tx_callback_events: Option<UnboundedSender<CallbackEvent>>,
 }
@@ -84,12 +83,14 @@ impl Values {
         for (value_set_id, vs) in values {
             let min = Values::min(&vs);
             let max = Values::max(&vs);
+            let max_row = Values::max_row(&vs);
             let v: Vec<CandlePoint> = vec![];
             let candle_points = vs.iter().fold(v, |mut acc, p| {
                 acc.push((*p).into());
                 acc
             });
-            self.values.insert(value_set_id, (min, max, candle_points));
+            self.values
+                .insert(value_set_id, (max_row, min, max, candle_points));
         }
         self.notify(false);
     }
@@ -97,9 +98,10 @@ impl Values {
     /// Append new chunk of data to existed
     pub(crate) fn append_values(&mut self, values: HashMap<u8, Vec<(u64, f64)>>) {
         for (value_set_id, vs) in values {
+            let max_row = Values::max_row(&vs);
             let upd_min = Values::min(&vs);
             let upd_max = Values::max(&vs);
-            if let Some((min, max, values)) = self.values.get_mut(&value_set_id) {
+            if let Some((max_row, min, max, values)) = self.values.get_mut(&value_set_id) {
                 for v in vs {
                     values.push(v.into())
                 }
@@ -108,7 +110,12 @@ impl Values {
             } else {
                 self.values.insert(
                     value_set_id,
-                    (upd_min, upd_max, vs.into_iter().map(|v| v.into()).collect()),
+                    (
+                        max_row,
+                        upd_min,
+                        upd_max,
+                        vs.into_iter().map(|v| v.into()).collect(),
+                    ),
                 );
             }
         }
@@ -118,10 +125,12 @@ impl Values {
     pub(crate) fn get(
         &self,
         frame: Option<RangeInclusive<u64>>,
-        _width: u16,
+        width: u16,
     ) -> Result<HashMap<u8, Vec<CandlePoint>>, ValuesError> {
-        debug!("get frame: {:?}", frame);
+        use std::time::Instant;
+        let now = Instant::now();
         let maybe_fragment = self.get_fragment(frame)?;
+        debug!("get_fragment took  {:.2?}", now.elapsed());
         let maybe_fragment_ref = maybe_fragment.as_ref();
         let excerpt = if let Some(fragment) = maybe_fragment_ref {
             fragment
@@ -129,25 +138,45 @@ impl Values {
             &self.values
         };
         let mut datasets: HashMap<u8, Vec<CandlePoint>> = HashMap::new();
-        excerpt.iter().for_each(|(k, (min, max, fragment))| {
-            let points = fragment
-                .iter()
-                .map(|p| (p.row as f64, p.y_value))
-                .collect::<Vec<Point2D>>();
-            debug!("fragment size: {}", fragment.len());
+        excerpt.iter().for_each(|(k, (max_row, min, max, fragment))| {
+            // let points = fragment
+            //     .iter()
+            //     .map(|p| (p.row as f64, p.y_value))
+            //     .collect::<Vec<Point2D>>();
             let delta_y = max - min;
             let epsilon = delta_y / 10.0;
-            let reduced = douglas_peucker(&points, epsilon);
-            debug!("reduced size: {}", reduced.len());
-            let fragment_set = reduced
-                .iter()
-                .map(|(r, v)| CandlePoint::new(*r as u64, *v))
-                .collect::<Vec<CandlePoint>>();
+            let now_reduce = Instant::now();
+            // let reduced = douglas_peucker(points, epsilon);
+            let fragment = Clone::clone(fragment);// TODO oliver maybe we don't need that clone
+            let fragment_len = fragment.len();
+            let reduced = if width as usize <= fragment.len() {
+                candled_graph(fragment, width, *max_row)
+            } else {
+                fragment
+                // points
+                //     .iter()
+                //     .map(|(r, v)| CandlePoint::new(*r as u64, *v))
+                //     .collect::<Vec<CandlePoint>>()
+            };
+            debug!("last candle: {:?}", reduced.last());
+
+            debug!(
+                "width: {width}, {} points reduced to: {} (epsilon {}, min: {min}, max: {max}, took {:.2?})",
+                fragment_len,
+                reduced.len(),
+                epsilon,
+                now_reduce.elapsed()
+            );
+            let fragment_set = reduced;
+            // .iter()
+            // .map(|(r, v)| CandlePoint::new(*r as u64, *v))
+            // .collect::<Vec<CandlePoint>>();
             datasets.insert(*k, fragment_set);
         });
         for (key, value) in &datasets {
             debug!("dataset size for key {}: {}", key, value.len());
         }
+        debug!("get alltogether took  {:.2?}", now.elapsed());
         Ok(datasets)
     }
 
@@ -155,15 +184,15 @@ impl Values {
     fn get_fragment(
         &self,
         frame: Option<RangeInclusive<u64>>,
-    ) -> Result<Option<HashMap<u8, (f64, f64, Vec<CandlePoint>)>>, ValuesError> {
+    ) -> Result<Option<HashMap<u8, (u64, f64, f64, Vec<CandlePoint>)>>, ValuesError> {
         match frame {
             None => Ok(None),
             Some(frame) => {
                 if frame.end() - frame.start() == 0 {
                     return Err(ValuesError::InvalidFrame);
                 }
-                let mut excerpt: HashMap<u8, (f64, f64, Vec<CandlePoint>)> = HashMap::new();
-                self.values.iter().for_each(|(k, (min, max, v))| {
+                let mut excerpt: HashMap<u8, (u64, f64, f64, Vec<CandlePoint>)> = HashMap::new();
+                self.values.iter().for_each(|(k, (max_row, min, max, v))| {
                     let mut included: Vec<CandlePoint> = vec![];
                     let mut borders: (Option<&CandlePoint>, Option<&CandlePoint>) = (None, None);
                     for pair in v {
@@ -193,7 +222,7 @@ impl Values {
                             included.push(Values::between(left, right, frame.end()));
                         }
                     }
-                    excerpt.insert(*k, (*min, *max, included));
+                    excerpt.insert(*k, (*max_row, *min, *max, included));
                 });
                 Ok(Some(excerpt))
             }
@@ -207,18 +236,23 @@ impl Values {
         CandlePoint::new(*pos, (pos - left.row) as f64 * step + left.y_value)
     }
 
-    fn min(values: &[(u64, f64)]) -> f64 {
+    fn min<T>(values: &[(T, f64)]) -> f64 {
         let iter = values.iter().map(|p| &p.1);
         *iter
             .min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
             .unwrap_or(&0f64)
     }
 
-    fn max(values: &[(u64, f64)]) -> f64 {
+    fn max<T>(values: &[(T, f64)]) -> f64 {
         let iter = values.iter().map(|p| &p.1);
         *iter
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
             .unwrap_or(&0f64)
+    }
+
+    fn max_row<T>(values: &[(u64, T)]) -> u64 {
+        let iter = values.iter().map(|p| &p.0);
+        *iter.max().unwrap_or(&0)
     }
 
     /// Send notification to client about updated state
@@ -228,7 +262,7 @@ impl Values {
                 None
             } else {
                 let mut map: HashMap<u8, Point2D> = HashMap::new();
-                self.values.iter().for_each(|(k, (min, max, _v))| {
+                self.values.iter().for_each(|(k, (max_row, min, max, _v))| {
                     map.insert(*k, (*min, *max));
                 });
                 Some(map)
@@ -267,7 +301,54 @@ fn _debug_points(points: &[Point2D], indexes: &RangeInclusive<usize>) {
     });
 }
 
-fn douglas_peucker(points: &[Point2D], epsilon: f64) -> Vec<Point2D> {
+fn average(points: &[CandlePoint]) -> f64 {
+    points.iter().fold(0f64, |mut acc, p| {
+        acc += p.y_value;
+        acc
+    }) / points.len() as f64
+}
+
+fn median(points: &mut [Point2D]) -> f64 {
+    points.sort_by(|p1, p2| p1.0.partial_cmp(&p2.0).unwrap_or(std::cmp::Ordering::Equal));
+    let mid = points.len() / 2;
+    points[mid].1
+}
+
+fn candled_graph(points: Vec<CandlePoint>, width: u16, max_row: u64) -> Vec<CandlePoint> {
+    let per_slot: f64 = max_row as f64 / width as f64;
+    let mut slots: Vec<Vec<CandlePoint>> = vec![];
+    let mut slot_nr = 1usize;
+    let mut slot_vec: Vec<CandlePoint> = vec![];
+    for point in points {
+        loop {
+            let slot_end = slot_nr as f64 * per_slot;
+            if (point.row as f64).total_cmp(&slot_end) == Ordering::Less {
+                slot_vec.push(point.clone());
+                break;
+            } else {
+                slots.push(slot_vec);
+                slot_vec = vec![];
+                slot_nr += 1;
+            }
+        }
+    }
+    slots.iter().fold(vec![], |mut acc, points_in_slot| {
+        let med = average(points_in_slot);
+        let min = 0f64; // TODO calculate minimum value of points_in_slot
+        let max = 0f64;
+        let real_row = acc.len() as f64 * per_slot;
+        acc.push(CandlePoint {
+            row: real_row as u64,
+            min_max_y: Some((min, max)),
+            y_value: med,
+        });
+        acc
+    })
+}
+
+fn douglas_peucker(points: Vec<Point2D>, epsilon: f64) -> Vec<Point2D> {
+    use std::time::Instant;
+    let now = Instant::now();
     if points.len() <= 2 {
         return points.iter().enumerate().fold(vec![], |mut acc, (i, _)| {
             acc.push(points[i]);
@@ -281,6 +362,7 @@ fn douglas_peucker(points: &[Point2D], epsilon: f64) -> Vec<Point2D> {
 
     // Set of ranges to work through
     ranges.push(0..=points.len() - 1);
+    let mut range_nr = 1usize;
 
     while let Some(range) = ranges.pop() {
         let range_start = *range.start();
@@ -307,9 +389,11 @@ fn douglas_peucker(points: &[Point2D], epsilon: f64) -> Vec<Point2D> {
             let keep_second_section = range_end - division_point >= 2;
             if keep_second_section {
                 ranges.push(second_section);
+                range_nr += 1;
             }
             if keep_first_section {
                 ranges.push(first_section);
+                range_nr += 1;
             } else {
                 results.push(points[division_point]);
             }
@@ -320,7 +404,14 @@ fn douglas_peucker(points: &[Point2D], epsilon: f64) -> Vec<Point2D> {
             results.push(points[range_end]);
         }
     }
+    debug!(
+        "smoothing with {} ranges took  {:.2?}",
+        range_nr,
+        now.elapsed(),
+    );
+    let now_sort = Instant::now();
     results.sort_by(|p1, p2| p1.0.partial_cmp(&p2.0).unwrap());
+    debug!("sorting took  {:.2?}", now_sort.elapsed());
     results
 }
 
@@ -351,8 +442,8 @@ mod test {
             (0.0, 0.0), //
             (4.0, 0.0), //
         ];
-        let actual = douglas_peucker(&points, 1.0);
         let expected = _indexes_to_points(&[0, 1], &points);
+        let actual = douglas_peucker(points, 1.0);
         assert_eq!(expected, actual);
 
         let points = vec![
@@ -362,8 +453,8 @@ mod test {
             (17.3, 3.2),
             (27.8, 0.1),
         ];
-        let actual = douglas_peucker(&points, 1.0);
         let expected = _indexes_to_points(&[0, 1, 2, 4], &points);
+        let actual = douglas_peucker(points, 1.0);
         assert_eq!(expected, actual);
     }
     #[test]
@@ -376,8 +467,8 @@ mod test {
             (4.0, 0.0),  //
         ];
 
-        let actual = douglas_peucker(&points, 1.0);
         let expected = _indexes_to_points(&[0, 4], &points);
+        let actual = douglas_peucker(points, 1.0);
         assert_eq!(expected, actual);
 
         let points = vec![
@@ -394,8 +485,8 @@ mod test {
             (17.3, 3.2),  // 10
             (27.8, 0.1),  // 11
         ];
-        let actual = douglas_peucker(&points, 1.5);
         let expected = _indexes_to_points(&[0, 1, 2, 6, 9, 11], &points);
+        let actual = douglas_peucker(points, 1.5);
         assert_eq!(expected, actual);
     }
 
@@ -404,7 +495,7 @@ mod test {
         // Point sequence with only two elements.
         let points: Vec<(f64, f64)> = vec![(0.0, 0.0), (4.0, 4.0)];
         let expected = _indexes_to_points(&[0, 1], &points);
-        let actual = douglas_peucker(&points, 1.0);
+        let actual = douglas_peucker(points, 1.0);
         assert_eq!(expected, actual);
     }
 }
