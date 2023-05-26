@@ -1,5 +1,5 @@
 import { Modifier, EType, IHTMLInjection, EHTMLInjectionType, IModifierRange } from '../modifier';
-import { FilterRequest } from '../../filters/request';
+import { ChartRequest } from '../../charts/request';
 
 import * as Colors from '@styles/colors';
 import * as ModifiersTools from '../tools';
@@ -8,11 +8,11 @@ export interface IRange extends IModifierRange {
     bgcl: string;
 }
 
-export class HighlightsModifier extends Modifier {
+export class ChartsModifier extends Modifier {
     private _ranges: IRange[] = [];
-    private _matched: FilterRequest | undefined;
+    private _matched: ChartRequest | undefined;
 
-    constructor(highlights: FilterRequest[], row: string) {
+    constructor(highlights: ChartRequest[], row: string) {
         super();
         this._map(row, highlights);
     }
@@ -60,15 +60,15 @@ export class HighlightsModifier extends Modifier {
     }
 
     public getName(): string {
-        return 'HighlightsModifier';
+        return 'ChartsModifier';
     }
 
-    public matched(): FilterRequest | undefined {
+    public matched(): ChartRequest | undefined {
         return this._matched;
     }
 
-    private _map(row: string, highlights: FilterRequest[]) {
-        highlights.forEach((request: FilterRequest) => {
+    private _map(row: string, highlights: ChartRequest[]) {
+        highlights.forEach((request: ChartRequest) => {
             row.replace(request.as().regExp(), (match: string, ...args: any[]) => {
                 const offset: number =
                     typeof args[args.length - 2] === 'number'
@@ -78,11 +78,11 @@ export class HighlightsModifier extends Modifier {
                     start: offset,
                     end: offset + match.length,
                     bgcl:
-                        request.definition.colors.background === Colors.CColors[0]
+                        request.definition.color === Colors.CColors[0]
                             ? Colors.scheme_color_4
-                            : request.definition.colors.background === undefined
+                            : request.definition.color === undefined
                             ? Colors.scheme_color_4
-                            : Colors.shadeColor(request.definition.colors.background, 30),
+                            : Colors.shadeColor(request.definition.color, 30),
                 });
                 this._matched = request;
                 return '';

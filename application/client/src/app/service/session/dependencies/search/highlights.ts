@@ -73,17 +73,17 @@ export class Highlights extends Subscriber {
         color: string | undefined;
         background: string | undefined;
     } {
-        const highlights = new Modifiers.HighlightsModifier(
-            this._session.store().filters().get(),
-            row,
-        );
+        const filtres = new Modifiers.FiltersModifier(this._session.store().filters().get(), row);
+        const charts = new Modifiers.ChartsModifier(this._session.store().charts().get(), row);
         const active = this._session.state().getActive();
-        const filters =
-            active !== undefined
+        const processor = new ModifierProcessor([
+            filtres,
+            charts,
+            ...(active !== undefined
                 ? [new Modifiers.ActiveFilterModifier([new FilterRequest({ filter: active })], row)]
-                : [];
-        const processor = new ModifierProcessor([highlights, ...filters]);
-        const matched = highlights.matched();
+                : []),
+        ]);
+        const matched = filtres.matched();
         return {
             html: processor.parse(row, parent, hasOwnStyles),
             color: matched === undefined ? undefined : matched.definition.colors.color,
