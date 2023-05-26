@@ -284,11 +284,14 @@ fn _debug_points(points: &[Point2D], indexes: &RangeInclusive<usize>) {
     });
 }
 
-fn average(points: &[CandlePoint]) -> f64 {
-    points.iter().fold(0f64, |mut acc, p| {
-        acc += p.y_value;
+fn average_min_max(points: &[CandlePoint]) -> (f64, f64, f64) {
+    let (sum, min, max) = points.iter().fold((0f64, f64::MAX, 0f64), |mut acc, p| {
+        acc.0 += p.y_value;
+        acc.1 = acc.1.min(p.y_value);
+        acc.2 = acc.2.max(p.y_value);
         acc
-    }) / points.len() as f64
+    });
+    (sum / points.len() as f64, min, max)
 }
 
 fn median(points: &mut [Point2D]) -> f64 {
@@ -298,7 +301,14 @@ fn median(points: &mut [Point2D]) -> f64 {
 }
 
 fn candled_graph(points: Vec<CandlePoint>, width: u16) -> Vec<CandlePoint> {
-    let delta_rows = points.last().unwrap().row - points.first().unwrap().row;
+    let delta_rows = if let (Some(first), Some(last)) = (points.first(), points.last()) {
+        last.row - first.row
+    } else {
+        0
+    };
+    if delta_rows == 0 {
+        return vec![];
+    }
     let per_slot: f64 = delta_rows as f64 / width as f64;
     let mut slots: Vec<Vec<CandlePoint>> = vec![];
     let mut slot_nr = 1usize;
@@ -317,9 +327,7 @@ fn candled_graph(points: Vec<CandlePoint>, width: u16) -> Vec<CandlePoint> {
         }
     }
     slots.iter().fold(vec![], |mut acc, points_in_slot| {
-        let med = average(points_in_slot);
-        let min = 0f64; // TODO calculate minimum value of points_in_slot
-        let max = 0f64;
+        let (med, min, max) = average_min_max(points_in_slot);
         let real_row = acc.len() as f64 * per_slot;
         acc.push(CandlePoint {
             row: real_row as u64,
