@@ -1,4 +1,4 @@
-import { Modifier, EType, IHTMLInjection, EHTMLInjectionType, IModifierRange } from '../modifier';
+import { Modifier, EType, IHTMLInjection, EHTMLInjectionType, IModifierRange, EAlias } from '../modifier';
 import { ChartRequest } from '../../charts/request';
 
 import * as Colors from '@styles/colors';
@@ -15,6 +15,10 @@ export class ChartsModifier extends Modifier {
     constructor(highlights: ChartRequest[], row: string) {
         super();
         this._map(row, highlights);
+    }
+
+    public alias(): EAlias {
+        return EAlias.Charts;
     }
 
     public getInjections(): IHTMLInjection[] {

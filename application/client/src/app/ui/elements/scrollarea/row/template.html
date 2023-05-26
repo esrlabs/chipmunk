@@ -3,7 +3,8 @@
     <span class="number" [attr.data-bookmarked]="bookmarked" (click)="onNumberClick()">
         <span class="filler">{{ngGetRankFiller(row.position)}}</span>{{row.position}}
     </span>
-    <span class="attachment small-icon-button codicon codicon-file" *ngIf="attachment !== undefined" [ngStyle]="{'color': attachment.color}" [attr.title]="attachment" (click)="showAttachment()"></span>
+    <span class="icon small-icon-button codicon codicon-file" *ngIf="attachment !== undefined" [ngStyle]="{'color': attachment.color}" [attr.title]="attachment" (click)="showAttachment()"></span>
+    <span class="icon small-icon-button codicon codicon-circle-small-filled" *ngIf="attachment === undefined && row.matches.chart"></span>
 </div>
 <app-scrollarea-rows-separator *ngIf="row.seporator" [row]="row"></app-scrollarea-rows-separator>
 <app-scrollarea-row-standard *ngIf="render === 1 && !row.seporator" [row]="row"></app-scrollarea-row-standard>
