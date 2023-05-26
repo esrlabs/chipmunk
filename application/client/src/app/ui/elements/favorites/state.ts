@@ -29,6 +29,14 @@ export class State extends Holder {
     protected close: CloseHandler | undefined;
     protected ilc: IlcInterface;
 
+    protected defaultSelection() {
+        if (this.items.length > 0) {
+            this.selected = this.items[0].hash();
+        } else {
+            this.selected = '';
+        }
+    }
+
     constructor(ilc: IlcInterface & ChangesDetector) {
         super();
         this.roots = [];
@@ -63,7 +71,7 @@ export class State extends Holder {
                 ),
         );
         this.load().then(() => {
-            this.items.length > 0 && (this.selected = this.items[0].hash());
+            this.defaultSelection();
         });
     }
 
@@ -90,6 +98,7 @@ export class State extends Holder {
     public filtering(value: string) {
         this.matcher.search(value, 'span');
         this.items.sort((a: Item, b: Item) => b.getScore() - a.getScore());
+        this.defaultSelection();
         this.move().update();
         this.update.emit();
     }
@@ -235,14 +244,12 @@ export class State extends Holder {
         }
         this.scanning = allScanning;
         this.update.emit();
-        const data = await bridge
-            .files()
-            .ls({
-                paths,
-                depth: DEFAULT_DEEP,
-                max: DEFAULT_LEN,
-                include: { files: true, folders: false },
-            });
+        const data = await bridge.files().ls({
+            paths,
+            depth: DEFAULT_DEEP,
+            max: DEFAULT_LEN,
+            include: { files: true, folders: false },
+        });
         let items: Item[] = [];
         data.entities.forEach((entity) => {
             if (this.abort.signal.aborted) {
