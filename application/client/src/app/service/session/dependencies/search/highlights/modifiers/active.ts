@@ -1,4 +1,4 @@
-import { Modifier, EType, IHTMLInjection, EHTMLInjectionType, IModifierRange } from '../modifier';
+import { Modifier, EType, IHTMLInjection, EHTMLInjectionType, IModifierRange, EAlias } from '../modifier';
 import { FilterRequest } from '../../filters/request';
 
 import * as ModifiersTools from '../tools';
@@ -10,6 +10,10 @@ export class ActiveFilterModifier extends Modifier {
     constructor(filters: FilterRequest[], row: string) {
         super();
         this._map(row, filters);
+    }
+
+    public alias(): EAlias {
+        return EAlias.Active;
     }
 
     public getInjections(): IHTMLInjection[] {

@@ -1,6 +1,7 @@
 import { Session } from '@service/session/session';
 import { Subject, Subscriber } from '@platform/env/subscription';
 import { IGrabbedElement, Nature } from '@platform/types/content';
+import { EAlias } from '@service/session/dependencies/search/highlights/modifier';
 import { ansiToHtml } from '@module/ansi';
 
 export enum Owner {
@@ -36,6 +37,15 @@ export class Row extends Subscriber {
     public columns: string[] = [];
     public nature: Nature;
     public seporator: boolean = false;
+    public matches: {
+        active: boolean;
+        filter: boolean;
+        chart: boolean;
+    } = {
+        active: false,
+        filter: false,
+        chart: false,
+    };
 
     protected readonly delimiter: string | undefined;
 
@@ -157,8 +167,14 @@ export class Row extends Subscriber {
     }
 
     protected update() {
+        const matches = (injected: { [key: string]: boolean }) => {
+            this.matches.active = injected[EAlias.Active];
+            this.matches.filter = injected[EAlias.Filters];
+            this.matches.chart = injected[EAlias.Charts];
+        };
         if (this.delimiter === undefined) {
             const parsed = this.session.search.highlights().parse(this.content, this.owner, false);
+            matches(parsed.injected);
             const ansi = ansiToHtml(parsed.html);
             this.html = ansi instanceof Error ? parsed.html : ansi;
             this.color = parsed.color;
@@ -177,6 +193,7 @@ export class Row extends Subscriber {
             }
             this.columns = this.columns.map((col) => {
                 const parsed = this.session.search.highlights().parse(col, this.owner, false);
+                matches(parsed.injected);
                 if (this.color === undefined && this.background === undefined) {
                     this.color = parsed.color;
                     this.background = parsed.background;
@@ -185,8 +202,5 @@ export class Row extends Subscriber {
             });
         }
         this.seporator = this.isSeporator();
-        // if (this.owner === Owner.Search && this.session.search.map.modes().breadcrumbs()) {
-        //     this.separator = this.session.search.map.breadcrumbs.isSeparator(this.position);
-        // }
     }
 }

@@ -19,7 +19,11 @@ export class ModifierProcessor {
         this._modifiers = modifiers;
     }
 
-    public parse(row: string, parent: Owner, hasOwnStyles: boolean): string {
+    public parse(
+        row: string,
+        parent: Owner,
+        hasOwnStyles: boolean,
+    ): { row: string; injected: { [key: string]: boolean } } {
         const cleanup = (str: string): string => {
             // For finalization procedure we are applying
             // all modifiers. For example, to cleanup from
@@ -68,6 +72,7 @@ export class ModifierProcessor {
                 });
             }
         });
+        const injected: { [key: string]: boolean } = {};
         modifiers.forEach((modifier: Modifier) => {
             let ignore: boolean = false;
             // Check injections of modifier
@@ -83,7 +88,13 @@ export class ModifierProcessor {
                 }
             });
             if (!ignore) {
-                this._injections.push(...modifier.getInjections());
+                const injections = modifier.getInjections();
+                if (injections.length > 0) {
+                    injected[modifier.alias()] = true;
+                    this._injections.push(...modifier.getInjections());
+                } else {
+                    injected[modifier.alias()] = false;
+                }
             } else {
                 this._logger.warn(
                     `All injections of modifier "${modifier.getName()}" will be ignored`,
@@ -130,7 +141,7 @@ export class ModifierProcessor {
         } else {
             row = cleanup(row);
         }
-        return row;
+        return { row, injected };
     }
 
     public wasChanged(): boolean {

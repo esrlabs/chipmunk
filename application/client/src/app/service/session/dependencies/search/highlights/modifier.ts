@@ -23,6 +23,12 @@ export enum EApplyTo {
     search = 'search',
 }
 
+export enum EAlias {
+    Active = 'active',
+    Filters = 'filtres',
+    Charts = 'charts',
+}
+
 export interface IHTMLInjection {
     offset: number;
     injection: string;
@@ -45,6 +51,8 @@ export abstract class Modifier {
     public abstract finalize(str: string): string;
 
     public abstract getName(): string;
+
+    public abstract alias(): EAlias;
 
     public applyTo(): EApplyTo {
         return EApplyTo.all;

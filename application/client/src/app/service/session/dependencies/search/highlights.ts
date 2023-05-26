@@ -72,6 +72,7 @@ export class Highlights extends Subscriber {
         html: string;
         color: string | undefined;
         background: string | undefined;
+        injected: { [key: string]: boolean };
     } {
         const filtres = new Modifiers.FiltersModifier(this._session.store().filters().get(), row);
         const charts = new Modifiers.ChartsModifier(this._session.store().charts().get(), row);
@@ -84,10 +85,12 @@ export class Highlights extends Subscriber {
                 : []),
         ]);
         const matched = filtres.matched();
+        const processed = processor.parse(row, parent, hasOwnStyles);
         return {
-            html: processor.parse(row, parent, hasOwnStyles),
+            html: processed.row,
             color: matched === undefined ? undefined : matched.definition.colors.color,
             background: matched === undefined ? undefined : matched.definition.colors.background,
+            injected: processed.injected,
         };
     }
 }

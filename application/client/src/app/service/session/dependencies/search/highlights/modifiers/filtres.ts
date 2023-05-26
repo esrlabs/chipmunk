@@ -1,4 +1,11 @@
-import { Modifier, EType, IHTMLInjection, EHTMLInjectionType, IModifierRange } from '../modifier';
+import {
+    Modifier,
+    EType,
+    IHTMLInjection,
+    EHTMLInjectionType,
+    IModifierRange,
+    EAlias,
+} from '../modifier';
 import { FilterRequest } from '../../filters/request';
 
 import * as Colors from '@styles/colors';
@@ -15,6 +22,10 @@ export class FiltersModifier extends Modifier {
     constructor(highlights: FilterRequest[], row: string) {
         super();
         this._map(row, highlights);
+    }
+
+    public alias(): EAlias {
+        return EAlias.Filters;
     }
 
     public getInjections(): IHTMLInjection[] {
