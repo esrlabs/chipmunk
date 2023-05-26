@@ -1,2 +1,3 @@
 export { ActiveFilterModifier } from './active';
-export { HighlightsModifier } from './highlights';
+export { FiltersModifier } from './filtres';
+export { ChartsModifier } from './charts';
