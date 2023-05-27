@@ -159,6 +159,10 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
                         .store()
                         .filters()
                         .delete(entities.map((en) => en.uuid()));
+                    this.session.search
+                        .store()
+                        .charts()
+                        .delete(entities.map((en) => en.uuid()));
                 },
             });
         }
