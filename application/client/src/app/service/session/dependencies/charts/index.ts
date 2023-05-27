@@ -1,5 +1,6 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subject, Subjects, Subscriber } from '@platform/env/subscription';
+import { isDevMode } from '@angular/core';
 import {
     IValuesMap,
     IValuesMinMaxMap,
@@ -76,6 +77,7 @@ export class Charts extends Subscriber {
         cached(): void;
         load(frame: IRange): Promise<Output>;
         defs(output: Output): Output;
+        validation(output: Output): Output;
         requests(): { filters: FilterRequest[]; charts: ChartRequest[]; active: boolean };
     } {
         return {
@@ -192,6 +194,22 @@ export class Charts extends Subscriber {
                 output.charts = requests.charts;
                 output.selected = this.selecting().get();
                 output.active = requests.active;
+                return isDevMode() ? this.reload().validation(output) : output;
+            },
+            validation: (output: Output): Output => {
+                let invalid: [number, number, number, number][] = [];
+                Object.keys(output.values).forEach((k: string) => {
+                    invalid = invalid.concat(
+                        output.values[parseInt(k, 10)].filter((d) => typeof d[3] !== 'number'),
+                    );
+                });
+                if (invalid.length !== 0) {
+                    this.log().error(
+                        `Invalid data for charts; found NONE number values on (rows): ${invalid
+                            .map((d) => d[0])
+                            .join(', ')}`,
+                    );
+                }
                 return output;
             },
             requests: (): { filters: FilterRequest[]; charts: ChartRequest[]; active: boolean } => {
