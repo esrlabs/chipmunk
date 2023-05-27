@@ -122,7 +122,7 @@ export class Render extends Base {
                     this.context.lineTo(x, y);
                 }
                 coors.push([x, y]);
-                this.coors.add(x, value, position, this.charts[k]);
+                this.coors.add(x, value, position, pair[1], pair[2], this.charts[k]);
             });
             const color =
                 this.charts[k] === undefined ? scheme_color_0 : this.charts[k].definition.color;
@@ -141,9 +141,9 @@ export class Render extends Base {
             if (!this.points || pointRadius === 0) {
                 return;
             }
-            coors.forEach((pair: [number, number]) => {
+            coors.forEach((coors: [number, number]) => {
                 this.context.beginPath();
-                this.context.arc(pair[0], pair[1], pointRadius, 0, Math.PI * 2, true);
+                this.context.arc(coors[0], coors[1], pointRadius, 0, Math.PI * 2, true);
                 this.context.fillStyle = color;
                 this.context.fill();
                 this.context.closePath();
