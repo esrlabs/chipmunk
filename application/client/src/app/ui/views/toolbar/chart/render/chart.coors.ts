@@ -1,6 +1,7 @@
 import { ChartRequest } from '@service/session/dependencies/search/charts/request';
+import { Label } from './chart.label';
 
-export type TChartValues = [string, number, number][];
+export type TChartValues = [string, number, number, number, number][];
 
 export class ChartCoors {
     static DEFAULT_OFFSET_AROUND = 3;
@@ -11,7 +12,14 @@ export class ChartCoors {
         this.coors.clear();
     }
 
-    public add(x: number, value: number, row: number, request: ChartRequest | undefined): void {
+    public add(
+        x: number,
+        value: number,
+        row: number,
+        min: number,
+        max: number,
+        request: ChartRequest | undefined,
+    ): void {
         if (request === undefined) {
             return;
         }
@@ -19,11 +27,11 @@ export class ChartCoors {
         if (values === undefined) {
             values = [];
         }
-        values.push([request.definition.color, value, row]);
+        values.push([request.definition.color, value, row, min, max]);
         this.coors.set(x, values);
     }
 
-    public get(x: number, offset = ChartCoors.DEFAULT_OFFSET_AROUND): TChartValues {
+    public get(x: number, offset = ChartCoors.DEFAULT_OFFSET_AROUND): Label[] {
         const left = x - offset;
         const right = x + offset;
         let closed: number | undefined = undefined;
@@ -41,6 +49,8 @@ export class ChartCoors {
             return [];
         }
         const values = this.coors.get(closed);
-        return values === undefined ? [] : values;
+        return values === undefined
+            ? []
+            : values.map((v) => new Label(v[0], v[1], v[2], v[3], v[4]));
     }
 }

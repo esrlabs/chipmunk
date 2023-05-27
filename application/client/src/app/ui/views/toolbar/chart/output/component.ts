@@ -6,7 +6,7 @@ import { Render as ChartsRender } from '../render/chart';
 import { Render as FiltersRender } from '../render/filters';
 import { State } from '../state';
 import { stop } from '@ui/env/dom';
-import { TChartValues } from '../render/chart.coors';
+import { Label } from '../render/chart.label';
 import { getContrastColor } from '@styles/colors';
 import { Owner } from '@schema/content/row';
 import { IRange } from '@platform/types/range';
@@ -44,7 +44,7 @@ export class ViewChartOutput extends OutputBase implements AfterViewInit {
     }
 
     @HostListener('click', ['$event']) click(event: MouseEvent): void {
-        const labels = this.renders.charts.coors.get(event.offsetX);
+        const labels: Label[] = this.renders.charts.coors.get(event.offsetX);
         if (labels.length === 0) {
             this.session.cursor.select(
                 this.state.cursor.rowsRangeByX(event.offsetX).from,
@@ -53,7 +53,7 @@ export class ViewChartOutput extends OutputBase implements AfterViewInit {
                 undefined,
             );
         } else {
-            this.session.cursor.select(labels[0][2], Owner.Chart, undefined, undefined);
+            this.session.cursor.select(labels[0].position, Owner.Chart, undefined, undefined);
         }
     }
 
@@ -69,7 +69,7 @@ export class ViewChartOutput extends OutputBase implements AfterViewInit {
     }
 
     public x: string | undefined;
-    public labels: TChartValues = [];
+    public labels: Label[] = [];
     public range: IRange | undefined;
     public cutted: number = 0;
 
