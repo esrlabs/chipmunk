@@ -21,7 +21,7 @@ use tokio::sync::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-use super::values::CandlePoint;
+use super::graph::CandlePoint;
 
 pub enum Api {
     SetSessionFile((Option<PathBuf>, oneshot::Sender<Result<(), NativeError>>)),
