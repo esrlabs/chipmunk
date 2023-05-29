@@ -10,6 +10,7 @@ import { finish, createSampleFile, appendToSampleFile, runner } from './common';
 import { readConfigurationFile } from './config';
 
 const config = readConfigurationFile().get().tests.values;
+const MAX_DATASET_LEN = 65000;
 
 describe('Values', function () {
     it(config.regular.list[1], function () {
@@ -54,7 +55,7 @@ describe('Values', function () {
                             return;
                         }
                         search
-                            .getValues(1)
+                            .getValues(MAX_DATASET_LEN)
                             .then((data) => {
                                 let control = 0;
                                 data[0].forEach((pair) => {
@@ -123,7 +124,7 @@ describe('Values', function () {
                         }
                         if (iteration === 0) {
                             search
-                                .getValues(1)
+                                .getValues(MAX_DATASET_LEN)
                                 .then((data) => {
                                     let control = 0;
                                     data[0].forEach((pair) => {
@@ -146,7 +147,7 @@ describe('Values', function () {
                             iteration += 1;
                         } else if (iteration === 1) {
                             search
-                                .getValues(1)
+                                .getValues(MAX_DATASET_LEN)
                                 .then((data) => {
                                     let control = 0;
                                     data[0].forEach((pair) => {
