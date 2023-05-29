@@ -129,6 +129,8 @@ pub enum Api {
     NotifyCanceledOperation(Uuid),
     AddAttachment(parsers::Attachment),
     GetAttachments(oneshot::Sender<Vec<AttachmentInfo>>),
+    // Used for tests of error handeling
+    ShutdownWithError,
     Shutdown,
 }
 
@@ -180,6 +182,7 @@ impl Display for Api {
                 Self::AddAttachment(_) => "AddAttachment",
                 Self::GetAttachments(_) => "GetAttachments",
                 Self::Shutdown => "Shutdown",
+                Self::ShutdownWithError => "ShutdownWithError",
             }
         )
     }
@@ -513,6 +516,12 @@ impl SessionStateAPI {
     pub fn shutdown(&self) -> Result<(), NativeError> {
         self.tx_api.send(Api::Shutdown).map_err(|e| {
             NativeError::channel(&format!("fail to send to Api::Shutdown; error: {e}",))
+        })
+    }
+
+    pub fn shutdown_with_error(&self) -> Result<(), NativeError> {
+        self.tx_api.send(Api::ShutdownWithError).map_err(|e| {
+            NativeError::channel(&format!("fail to send to Api::ShutdownWithError; error: {e}",))
         })
     }
 

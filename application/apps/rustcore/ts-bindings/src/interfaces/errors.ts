@@ -39,6 +39,8 @@ export enum Source {
     Detect = 'Detect',
     Abort = 'Abort',
     Sleep = 'Sleep',
+    TriggerStateError = 'TriggerStateError',
+    TriggerTrackerError = 'TriggerTrackerError',
     AddBookmark = 'AddBookmark',
     SetBookmarks = 'SetBookmarks',
     RemoveSelection = 'RemoveSelection',

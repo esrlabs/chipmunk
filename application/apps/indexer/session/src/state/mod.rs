@@ -695,6 +695,15 @@ pub async fn run(
                 debug!("shutdown has been requested");
                 break;
             }
+            Api::ShutdownWithError => {
+                debug!("shutdown state loop with error for testing");
+                state.session_file.cleanup()?;
+                return Err(NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Io,
+                    message: Some(String::from("Shutdown state loop with error for testing")),
+                });
+            }
         }
     }
     state.session_file.cleanup()?;

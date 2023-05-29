@@ -179,9 +179,14 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract getOperationsStat(): Promise<string>;
 
+    // Used only for testing and debug
     public abstract sleep(operationUuid: string, duration: number): Promise<void>;
 
-    // public abstract sleepUnblock(duration: number): Promise<void>;
+    // Used only for testing and debug
+    public abstract triggerStateError(): Promise<void>;
+
+    // Used only for testing and debug
+    public abstract triggerTrackerError(): Promise<void>;
 }
 
 export abstract class RustSessionNative {
@@ -286,9 +291,14 @@ export abstract class RustSessionNative {
 
     public abstract getOperationsStat(): Promise<string>;
 
+    // Used only for testing and debug
     public abstract sleep(operationUuid: string, duration: number): Promise<void>;
 
-    // public abstract sleepUnblock(duration: number): Promise<void>;
+    // Used only for testing and debug
+    public abstract triggerStateError(): Promise<void>;
+
+    // Used only for testing and debug
+    public abstract triggerTrackerError(): Promise<void>;
 }
 
 export function rustSessionFactory(
@@ -1099,6 +1109,7 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
+    // Used only for testing and debug
     public sleep(operationUuid: string, duration: number): Promise<void> {
         return new Promise((resolve, reject) => {
             this._provider.debug().emit.operation('sleep', operationUuid);
@@ -1111,22 +1122,43 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
-    // public sleep(duration: number): undefined | NativeError {
-    //     try {
-    //         this._native.sleep(duration);
-    //         return undefined;
-    //     } catch (err) {
-    //         return new NativeError(NativeError.from(err), Type.CancelationError, Source.Abort);
-    //     }
-    // }
+    // Used only for testing and debug
+    public triggerStateError(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('triggerStateError');
+            this._native
+                .triggerStateError()
+                .then(resolve)
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            NativeError.from(err),
+                            Type.Other,
+                            Source.TriggerStateError,
+                        ),
+                    );
+                });
+        });
+    }
 
-    // public sleepUnblock(duration: number): Promise<void> {
-    //     try {
-    //         return this._native.sleepUnblock(duration);
-    //     } catch (err) {
-    //         return Promise.reject(new NativeError(NativeError.from(err), Type.CancelationError, Source.Abort));
-    //     }
-    // }
+    // Used only for testing and debug
+    public triggerTrackerError(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('triggerTrackerError');
+            this._native
+                .triggerTrackerError()
+                .then(resolve)
+                .catch((err) => {
+                    reject(
+                        new NativeError(
+                            NativeError.from(err),
+                            Type.Other,
+                            Source.TriggerTrackerError,
+                        ),
+                    );
+                });
+        });
+    }
 }
 
 export const RustSessionWrapperConstructor: RustSessionConstructorImpl<RustSessionWrapper> =
