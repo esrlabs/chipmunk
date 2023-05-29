@@ -434,7 +434,7 @@ pub async fn run(
     state_api: SessionStateAPI,
     tracker_api: OperationTrackerAPI,
     tx_callback_events: UnboundedSender<CallbackEvent>,
-) -> Result<(), NativeError> {
+) {
     debug!("task is started");
     while let Some(operation) = rx_operations.recv().await {
         if !matches!(operation.kind, OperationKind::End) {
@@ -463,10 +463,11 @@ pub async fn run(
             break;
         }
     }
-    state_api.close_session().await?;
+    if let Err(err) = state_api.close_session().await {
+        error!("Failed to close session: {:?}", err);
+    }
     if let Err(err) = tracker_api.shutdown() {
         error!("Failed to shutdown tracker: {:?}", err);
     }
     debug!("operations task finished");
-    Ok(())
 }

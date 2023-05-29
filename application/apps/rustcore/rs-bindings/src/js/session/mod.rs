@@ -734,4 +734,32 @@ impl RustSession {
             ))
         }
     }
+
+    #[node_bindgen]
+    async fn trigger_state_error(&self) -> Result<(), ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            session
+                .trigger_state_error()
+                .await
+                .map_err(ComputationErrorWrapper)
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
+    async fn trigger_tracker_error(&self) -> Result<(), ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            session
+                .trigger_tracker_error()
+                .await
+                .map_err(ComputationErrorWrapper)
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
 }

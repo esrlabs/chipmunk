@@ -33,6 +33,8 @@ pub enum TrackerCommand {
     GetSdeSender((Uuid, oneshot::Sender<Option<SdeSender>>)),
     CancelAll(oneshot::Sender<()>),
     Shutdown,
+    // Used for tests of error handeling
+    ShutdownWithError,
 }
 
 impl std::fmt::Display for TrackerCommand {
@@ -49,6 +51,7 @@ impl std::fmt::Display for TrackerCommand {
                 Self::GetSdeSender(_) => "GetSdeSender",
                 Self::CancelAll(_) => "CancelAll",
                 Self::Shutdown => "Shutdown",
+                Self::ShutdownWithError => "ShutdownWithError",
             }
         )
     }
@@ -142,6 +145,16 @@ impl OperationTrackerAPI {
         self.tx_api.send(TrackerCommand::Shutdown).map_err(|e| {
             NativeError::channel(&format!("fail to send to Api::Shutdown; error: {e}",))
         })
+    }
+
+    pub fn shutdown_with_error(&self) -> Result<(), NativeError> {
+        self.tx_api
+            .send(TrackerCommand::ShutdownWithError)
+            .map_err(|e| {
+                NativeError::channel(&format!(
+                    "fail to send to Api::ShutdownWithError; error: {e}",
+                ))
+            })
     }
 }
 
@@ -309,6 +322,14 @@ pub async fn run(
             TrackerCommand::Shutdown => {
                 debug!("shutdown has been requested");
                 break;
+            }
+            TrackerCommand::ShutdownWithError => {
+                debug!("shutdown tracker loop with error for testing");
+                return Err(NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Io,
+                    message: Some(String::from("Shutdown tracker loop with error for testing")),
+                });
             }
         }
     }

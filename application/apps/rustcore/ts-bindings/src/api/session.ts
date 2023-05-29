@@ -38,6 +38,7 @@ export class Session {
     private readonly _logger: Logger;
     private readonly _subs: Map<string, Subscription> = new Map();
     private _state: ESessionState = ESessionState.available;
+    private _destroying: boolean = false;
     private _debug: {
         native: OperationStat[];
     } = {
@@ -84,7 +85,8 @@ export class Session {
                             this._logger.warn(
                                 `Destroy event has been gotten unexpectedly. Force destroy of session.`,
                             );
-                            this.destroy(true);
+                            this._state = ESessionState.destroyed;
+                            this.destroy();
                         }),
                     );
                     cb(this);
@@ -93,7 +95,7 @@ export class Session {
         );
     }
 
-    public destroy(unexpectedly: boolean = false): Promise<void> {
+    public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
             this.requestNativeDebugStat()
                 .catch((err: Error) => {
@@ -103,10 +105,10 @@ export class Session {
                     this._subs.forEach((subscription: Subscription) => {
                         subscription.destroy();
                     });
-                    if (this._state === ESessionState.destroyed) {
+                    if (this._destroying) {
                         return reject(new Error(`Session is already destroyed or destroing`));
                     }
-                    this._state = ESessionState.destroyed;
+                    this._destroying = true;
                     Promise.all([
                         // Destroy stream controller
                         (this._stream as SessionStream).destroy().catch((err: Error) => {
@@ -133,7 +135,7 @@ export class Session {
                             );
                         })
                         .finally(() => {
-                            if (!unexpectedly) {
+                            if (this._state !== ESessionState.destroyed) {
                                 this._provider.getEvents().SessionDestroyed.subscribe(() => {
                                     this._logger.debug(
                                         `Confirmation of session destroying has been received`,
@@ -251,6 +253,9 @@ export class Session {
     }
 
     public requestNativeDebugStat(): Promise<void> {
+        if (this._state !== ESessionState.available) {
+            return Promise.resolve();
+        }
         return new Promise((resolve, reject) => {
             if (this._provider.debug().isTracking()) {
                 this.getNativeSession()

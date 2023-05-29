@@ -1,14 +1,11 @@
 // tslint:disable
-
-// We need to provide path to TypeScript types definitions
-/// <reference path="../node_modules/@types/jasmine/index.d.ts" />
-/// <reference path="../node_modules/@types/node/index.d.ts" />
 import { initLogger } from './logger';
 initLogger();
 import { Session, SessionStream, Observe } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
 import { finish, createSampleFile, runner } from './common';
 import { readConfigurationFile } from './config';
+import { error } from 'platform/log/utils';
 
 const config = readConfigurationFile().get().tests.errors;
 
@@ -17,7 +14,7 @@ describe('Errors', () => {
         return runner(config.regular, 1, async (logger, done, collector) => {
             Session.create()
                 .then((session: Session) => {
-                    session.debug(true, 'Test 1. Error: search before observe');
+                    session.debug(true, config.regular.list[1]);
                     const search = session.getSearch();
                     if (search instanceof Error) {
                         return finish(session, done, search);
@@ -41,11 +38,7 @@ describe('Errors', () => {
                     finish(
                         undefined,
                         done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
+                        new Error(`Fail to create session due error: ${error(err)}`),
                     );
                 });
         });
@@ -54,7 +47,7 @@ describe('Errors', () => {
         return runner(config.regular, 2, async (logger, done, collector) => {
             Session.create()
                 .then((session: Session) => {
-                    session.debug(true, 'Test 2. Error: Assign fake file');
+                    session.debug(true, config.regular.list[2]);
                     const stream = session.getStream();
                     if (stream instanceof Error) {
                         return finish(session, done, stream);
@@ -78,11 +71,7 @@ describe('Errors', () => {
                     finish(
                         undefined,
                         done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
+                        new Error(`Fail to create session due error: ${error(err)}`),
                     );
                 });
         });
@@ -92,7 +81,7 @@ describe('Errors', () => {
         return runner(config.regular, 3, async (logger, done, collector) => {
             Session.create()
                 .then((session: Session) => {
-                    session.debug(true, 'Test 3. Assign and grab invalid range');
+                    session.debug(true, config.regular.list[3]);
                     const stream = session.getStream();
                     if (stream instanceof Error) {
                         return finish(session, done, stream);
@@ -135,11 +124,7 @@ describe('Errors', () => {
                     finish(
                         undefined,
                         done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
+                        new Error(`Fail to create session due error: ${error(err)}`),
                     );
                 });
         });
@@ -149,7 +134,7 @@ describe('Errors', () => {
         return runner(config.regular, 4, async (logger, done, collector) => {
             Session.create()
                 .then((session: Session) => {
-                    session.debug(true, 'Test 4. Assign & single and grab invalid range');
+                    session.debug(true, config.regular.list[4]);
                     const stream: SessionStream = session.getStream();
                     if (stream instanceof Error) {
                         return finish(session, done, stream);
@@ -215,11 +200,7 @@ describe('Errors', () => {
                     finish(
                         undefined,
                         done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
+                        new Error(`Fail to create session due error: ${error(err)}`),
                     );
                 });
         });
@@ -228,7 +209,7 @@ describe('Errors', () => {
         return runner(config.regular, 5, async (logger, done, collector) => {
             Session.create()
                 .then((session: Session) => {
-                    session.debug(true, 'Test 5. Grab lines with negative length');
+                    session.debug(true, config.regular.list[5]);
                     const stream: SessionStream = session.getStream();
                     if (stream instanceof Error) {
                         return finish(session, done, stream);
@@ -276,11 +257,7 @@ describe('Errors', () => {
                     finish(
                         undefined,
                         done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
+                        new Error(`Fail to create session due error: ${error(err)}`),
                     );
                 });
         });
@@ -289,6 +266,7 @@ describe('Errors', () => {
         return runner(config.regular, 6, async (logger, done, collector) => {
             Session.create()
                 .then((session: Session) => {
+                    session.debug(true, config.regular.list[6]);
                     const stream: SessionStream = session.getStream();
                     if (stream instanceof Error) {
                         finish(session, done, stream);
@@ -334,11 +312,65 @@ describe('Errors', () => {
                     finish(
                         undefined,
                         done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
+                        new Error(`Fail to create session due error: ${error(err)}`),
+                    );
+                });
+        });
+    });
+
+    it(config.regular.list[7], function () {
+        return runner(config.regular, 7, async (logger, done, collector) => {
+            Session.create()
+                .then((session: Session) => {
+                    session.debug(true, config.regular.list[7]);
+                    session.getEvents().SessionDestroyed.subscribe(() => {
+                        finish(undefined, done);
+                    });
+                    session
+                        .getNativeSession()
+                        .triggerStateError()
+                        .catch((err: Error) => {
+                            finish(
+                                session,
+                                done,
+                                new Error(`Fail to trigger state error due error: ${error(err)}`),
+                            );
+                        });
+                })
+                .catch((err: Error) => {
+                    finish(
+                        undefined,
+                        done,
+                        new Error(`Fail to create session due error: ${error(err)}`),
+                    );
+                });
+        });
+    });
+
+    it(config.regular.list[8], function () {
+        return runner(config.regular, 8, async (logger, done, collector) => {
+            Session.create()
+                .then((session: Session) => {
+                    session.debug(true, config.regular.list[8]);
+                    session.getEvents().SessionDestroyed.subscribe(() => {
+                        finish(undefined, done);
+                    });
+                    session
+                        .getNativeSession()
+                        .triggerTrackerError()
+                        .catch((err: Error) => {
+                            finish(
+                                session,
+                                done,
+                                new Error(`Fail to trigger tracker error due error: ${error(err)}`),
+                            );
+                        });
+                })
+                .catch((err: Error) => {
+                    finish(
+                        undefined,
+                        done,
+                        new Error(`Fail to create session due error: ${error(err)}`),
                     );
                 });
         });

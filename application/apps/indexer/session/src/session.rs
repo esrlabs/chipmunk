@@ -55,7 +55,7 @@ impl Session {
         ) = unbounded_channel();
         let session = Self {
             uuid,
-            tx_operations,
+            tx_operations: tx_operations.clone(),
             destroyed: CancellationToken::new(),
             state: state_api.clone(),
             tracker: tracker_api.clone(),
@@ -64,9 +64,9 @@ impl Session {
         task::spawn(async move {
             debug!("Session is started");
             let tx_callback_events_state = tx_callback_events.clone();
-            let (_, _, _) = join!(
+            join!(
                 async {
-                    let result = operations::run(
+                    operations::run(
                         rx_operations,
                         state_api.clone(),
                         tracker_api.clone(),
@@ -76,10 +76,27 @@ impl Session {
                     if let Err(err) = state_api.shutdown() {
                         error!("Fail to shutdown state; error: {:?}", err);
                     }
-                    result
                 },
-                state::run(rx_state_api, tx_callback_events_state),
-                tracker::run(state_api.clone(), rx_tracker_api),
+                async {
+                    if let Err(err) = state::run(rx_state_api, tx_callback_events_state).await {
+                        error!("State loop exits with error:: {:?}", err);
+                        if let Err(err) =
+                            Session::send_stop_signal(Uuid::new_v4(), &tx_operations, None).await
+                        {
+                            error!("Fail to send stop signal (on state fail):: {:?}", err);
+                        }
+                    }
+                },
+                async {
+                    if let Err(err) = tracker::run(state_api.clone(), rx_tracker_api).await {
+                        error!("Tracker loop exits with error:: {:?}", err);
+                        if let Err(err) =
+                            Session::send_stop_signal(Uuid::new_v4(), &tx_operations, None).await
+                        {
+                            error!("Fail to send stop signal (on tracker fail):: {:?}", err);
+                        }
+                    }
+                },
             );
             destroyed.cancel();
             debug!("Session is finished");
@@ -233,12 +250,22 @@ impl Session {
         }
     }
 
-    pub async fn stop(&self, operation_id: Uuid) -> Result<(), ComputationError> {
-        self.tx_operations
+    pub(crate) async fn send_stop_signal(
+        operation_id: Uuid,
+        tx_operations: &UnboundedSender<Operation>,
+        destroyed: Option<&CancellationToken>,
+    ) -> Result<(), ComputationError> {
+        tx_operations
             .send(Operation::new(operation_id, operations::OperationKind::End))
             .map_err(|e| ComputationError::Communication(e.to_string()))?;
-        self.destroyed.cancelled().await;
+        if let Some(destroyed) = destroyed {
+            destroyed.cancelled().await;
+        }
         Ok(())
+    }
+
+    pub async fn stop(&self, operation_id: Uuid) -> Result<(), ComputationError> {
+        Session::send_stop_signal(operation_id, &self.tx_operations, Some(&self.destroyed)).await
     }
 
     pub async fn get_stream_len(&self) -> Result<usize, ComputationError> {
@@ -399,6 +426,20 @@ impl Session {
                 operations::OperationKind::Sleep(ms),
             ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
+    }
+
+    /// Used for debug goals
+    pub async fn trigger_state_error(&self) -> Result<(), ComputationError> {
+        self.state
+            .shutdown_with_error()
+            .map_err(ComputationError::NativeError)
+    }
+
+    /// Used for debug goals
+    pub async fn trigger_tracker_error(&self) -> Result<(), ComputationError> {
+        self.tracker
+            .shutdown_with_error()
+            .map_err(ComputationError::NativeError)
     }
 }
 
