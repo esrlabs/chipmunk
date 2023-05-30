@@ -97,9 +97,7 @@ impl Values {
             let fragment = Clone::clone(fragment);// TODO oliver maybe we don't need that clone
             let fragment_len = fragment.len();
             let reduced = if width as usize <= fragment.len() {
-                let x = candled_graph(fragment, width);
-                println!("{:?}", x);
-                x
+                candled_graph(fragment, width)
             } else {
                 fragment
             };
