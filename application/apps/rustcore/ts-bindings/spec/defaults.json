@@ -16,7 +16,7 @@
                 "files": {
                     "pcapng": "/storage/projects/esrlabs/logs-examples/test.pcapng",
                     "dlt": "/storage/projects/esrlabs/logs-examples/dlt_receive_2.dlt",
-                    "attachments": "../../../../application/apps/indexer/addon/tests/ft-sample.dlt"
+                    "attachments": "../../../../application/developing/resources/attachments.dlt"
                 }
             },
             "performance": {
