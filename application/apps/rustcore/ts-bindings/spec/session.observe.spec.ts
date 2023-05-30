@@ -7,8 +7,11 @@ import { initLogger } from './logger';
 initLogger();
 import { Session, Observe } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
+import { IAttachmentsUpdatedUpdated } from '../src/api/session.provider';
+import { IAttachment } from 'platform/types/content';
 import { createSampleFile, finish, performanceReport, setMeasurement, runner } from './common';
 import { readConfigurationFile } from './config';
+import * as fs from 'fs';
 
 const config = readConfigurationFile().get().tests.observe;
 
@@ -225,6 +228,93 @@ describe('Observe', function () {
                                     ),
                                 );
                             });
+                    });
+                })
+                .catch((err: Error) => {
+                    finish(
+                        undefined,
+                        done,
+                        new Error(
+                            `Fail to create session due error: ${
+                                err instanceof Error ? err.message : err
+                            }`,
+                        ),
+                    );
+                });
+        });
+    });
+
+    it(config.regular.list[4], function () {
+        return runner(config.regular, 4, async (logger, done, collector) => {
+            Session.create()
+                .then((session: Session) => {
+                    // Set provider into debug mode
+                    session.debug(true);
+                    const stream = session.getStream();
+                    if (stream instanceof Error) {
+                        finish(session, done, stream);
+                        return;
+                    }
+                    const events = session.getEvents();
+                    if (events instanceof Error) {
+                        finish(session, done, events);
+                        return;
+                    }
+                    stream
+                        .observe(
+                            Observe.DataSource.file(config.regular.files['attachments']).dlt({
+                                filter_config: undefined,
+                                fibex_file_paths: undefined,
+                                with_storage_header: true,
+                            }),
+                        )
+                        .catch(finish.bind(null, session, done));
+                    let updates: IAttachmentsUpdatedUpdated[] = [];
+                    const timeout = setTimeout(() => {
+                        finish(
+                            session,
+                            done,
+                            new Error(
+                                `Failed because timeout. Waited for at least 3 attachments. Has been gotten: ${updates.length}`,
+                            ),
+                        );
+                    }, 20000);
+                    events.AttachmentsUpdated.subscribe((update: IAttachmentsUpdatedUpdated) => {
+                        updates.push(update);
+                        if (updates.length >= 3) {
+                            clearTimeout(timeout);
+                            expect(updates[0].len).toEqual(1);
+                            expect(updates[1].len).toEqual(2);
+                            expect(updates[2].len).toEqual(3);
+                            {
+                                let attachment: IAttachment = updates[0].attachment;
+                                expect(attachment.name).toEqual("test1.txt");
+                                expect(attachment.size).toEqual(5);
+                                expect(attachment.ext).toEqual("txt");
+                                expect(attachment.mime).toEqual("text/plain");
+                                expect(attachment.messages).toEqual([0,2,6]);
+                                expect(fs.readFileSync(attachment.filepath,'utf8')).toEqual("test1");
+                            }
+                            {
+                                let attachment: IAttachment = updates[1].attachment;
+                                expect(attachment.name).toEqual("test2.txt");
+                                expect(attachment.size).toEqual(6);
+                                expect(attachment.ext).toEqual("txt");
+                                expect(attachment.mime).toEqual("text/plain");
+                                expect(attachment.messages).toEqual([1,3,7]);
+                                expect(fs.readFileSync(attachment.filepath,'utf8')).toEqual("test22");
+                            }
+                            {
+                                let attachment: IAttachment = updates[2].attachment;
+                                expect(attachment.name).toEqual("test3.txt");
+                                expect(attachment.size).toEqual(7);
+                                expect(attachment.ext).toEqual("txt");
+                                expect(attachment.mime).toEqual("text/plain");
+                                expect(attachment.messages).toEqual([4,5,8]);
+                                expect(fs.readFileSync(attachment.filepath,'utf8')).toEqual("test333");
+                            }
+                            finish(session, done);
+                        }
                     });
                 })
                 .catch((err: Error) => {
