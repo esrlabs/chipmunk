@@ -18,7 +18,7 @@ impl Serialize for CandlePoint {
     where
         S: Serializer,
     {
-        let (min, max) = self.min_max_y.unwrap_or((0.0, 0.0));
+        let (min, max) = self.min_max_y.unwrap_or((self.y_value, self.y_value));
         let mut tup = serializer.serialize_tuple(3)?;
         tup.serialize_element(&self.row)?;
         tup.serialize_element(&min)?;
