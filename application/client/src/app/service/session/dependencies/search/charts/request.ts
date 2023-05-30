@@ -14,6 +14,12 @@ import { getFilterError } from '@module/util';
 import * as regexFilters from '@platform/env/filters';
 import * as obj from '@platform/env/obj';
 
+export enum ChartType {
+    Linear = 'Linear',
+    Stepper = 'Stepper',
+    Temperature = 'Temperature',
+}
+
 export interface Definition {
     filter: string;
     color: string;
@@ -22,6 +28,7 @@ export interface Definition {
         point: number;
     };
     active: boolean;
+    type: ChartType;
     uuid: string;
 }
 
@@ -33,6 +40,7 @@ export interface OptionalDefinition {
         point: number;
     };
     active?: boolean;
+    type?: ChartType;
     uuid?: string;
 }
 
@@ -47,6 +55,7 @@ export interface UpdateRequest {
     line?: number;
     point?: number;
     active?: boolean;
+    type?: ChartType;
 }
 
 export class ChartRequest
@@ -67,6 +76,8 @@ export class ChartRequest
             def.widths.line = obj.getAsValidNumber(def.widths, 'line');
             def.widths.point = obj.getAsValidNumber(def.widths, 'point');
             def.active = obj.getAsBool(def, 'active');
+            const type = obj.getAsNotEmptyStringOrAsUndefined(def, 'type');
+            def.type = type === undefined ? ChartType.Linear : (type as ChartType);
             return new ChartRequest(def);
         } catch (e) {
             return new Error(error(e));
@@ -109,6 +120,7 @@ export class ChartRequest
                 line: ChartRequest.DEFAULT_LINE_WIDTH,
                 point: ChartRequest.DEFAULT_POINT_RADIUS,
             },
+            type: ChartType.Linear,
         });
     }
 
@@ -119,6 +131,7 @@ export class ChartRequest
             uuid: def.uuid === undefined ? unique() : def.uuid,
             active: def.active === undefined ? true : def.active,
             color: def.color === undefined ? scheme_color_match : def.color,
+            type: def.type === undefined ? ChartType.Linear : def.type,
             widths:
                 def.widths === undefined
                     ? {
@@ -181,6 +194,7 @@ export class ChartRequest
         point(width: number): boolean;
         state(active: boolean): boolean;
         filter(filter: string): boolean;
+        type(type: ChartType): boolean;
     } {
         return {
             from: (desc: UpdateRequest): boolean => {
@@ -198,6 +212,9 @@ export class ChartRequest
                     event.on().line();
                 }
                 if (typeof desc.point === 'number' && this.set(true).point(desc.point)) {
+                    event.on().point();
+                }
+                if (desc.type !== undefined && this.set(true).type(desc.type)) {
                     event.on().point();
                 }
                 if (event.changed() && this.update()) {
@@ -240,6 +257,13 @@ export class ChartRequest
                 }
                 return true;
             },
+            type: (type: ChartType): boolean => {
+                this.definition.type = type;
+                if (!silence && this.update()) {
+                    this.updated.emit(new UpdateEvent(this).on().type());
+                }
+                return true;
+            },
         };
     }
 
@@ -278,7 +302,9 @@ export class ChartRequest
         });
         this._hash = `${this.definition.filter}${this.definition.color}${
             this.definition.widths.line
-        }${this.definition.widths.point}${this.definition.active ? '1' : '0'}`;
+        }${this.definition.widths.point}${this.definition.type}${
+            this.definition.active ? '1' : '0'
+        }`;
         return prev !== this._hash;
     }
 }
