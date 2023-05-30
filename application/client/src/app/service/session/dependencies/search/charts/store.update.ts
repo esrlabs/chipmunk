@@ -8,6 +8,7 @@ export interface UpdateEventInner {
     line: boolean;
     point: boolean;
     stat: boolean;
+    type: boolean;
 }
 
 export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartRequest> {
@@ -19,6 +20,7 @@ export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartReques
         line: false,
         point: false,
         stat: false,
+        type: false,
     };
 
     constructor(request: ChartRequest) {
@@ -33,6 +35,7 @@ export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartReques
         line(): UpdateEvent;
         point(): UpdateEvent;
         stat(): UpdateEvent;
+        type(): UpdateEvent;
     } {
         return {
             filter: (): UpdateEvent => {
@@ -59,6 +62,10 @@ export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartReques
                 this.event.stat = true;
                 return this;
             },
+            type: (): UpdateEvent => {
+                this.event.type = true;
+                return this;
+            },
         };
     }
 
@@ -79,7 +86,7 @@ export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartReques
         inner: boolean;
     } {
         return {
-            highlights: this.event.line || this.event.point || this.event.color,
+            highlights: this.event.line || this.event.point || this.event.color || this.event.type,
             value: this.event.state || this.event.filter,
             inner:
                 this.event.line ||
@@ -87,7 +94,8 @@ export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartReques
                 this.event.color ||
                 this.event.filter ||
                 this.event.stat ||
-                this.event.state,
+                this.event.state ||
+                this.event.type,
         };
     }
     public inner(): UpdateEventInner {

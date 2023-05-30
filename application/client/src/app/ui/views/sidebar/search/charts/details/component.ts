@@ -5,7 +5,7 @@ import {
     Input,
     ChangeDetectionStrategy,
 } from '@angular/core';
-import { ChartRequest } from '@service/session/dependencies/search/charts/request';
+import { ChartRequest, ChartType } from '@service/session/dependencies/search/charts/request';
 import { ProviderCharts } from '../provider';
 import { Entity } from '../../providers/definitions/entity';
 import { CColors, scheme_color_accent } from '@styles/colors';
@@ -29,6 +29,8 @@ export class ChartrDetails extends ChangesDetector implements AfterContentInit {
     public line: number = ChartRequest.DEFAULT_LINE_WIDTH;
     public point: number = ChartRequest.DEFAULT_POINT_RADIUS;
     public colors: string[] = [];
+    public type: ChartType = ChartType.Linear;
+    public types: ChartType[] = [ChartType.Linear, ChartType.Stepper, ChartType.Temperature];
 
     private _entity: Entity<ChartRequest> | undefined;
 
@@ -52,6 +54,14 @@ export class ChartrDetails extends ChangesDetector implements AfterContentInit {
         }
         this.color = color;
         this._entity.extract().set().color(this.color);
+        this.detectChanges();
+    }
+
+    public onChartTypeChange() {
+        if (this._entity === undefined) {
+            return;
+        }
+        this._entity.extract().set().type(this.type);
         this.detectChanges();
     }
 
@@ -85,10 +95,12 @@ export class ChartrDetails extends ChangesDetector implements AfterContentInit {
         if (this._entity === undefined) {
             this.request = undefined;
             this.color = scheme_color_accent;
+            this.type = ChartType.Linear;
         } else {
             const def = this._entity.extract().definition;
             this.request = def.filter;
             this.color = def.color;
+            this.type = def.type;
             this._setColors();
         }
         this._onChange();
