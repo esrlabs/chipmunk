@@ -14,6 +14,6 @@ class Compressor
     Shell.chdir(@location) do
       Shell.sh "tar -czf ../#{@archname} #{target}"
     end
-    Reporter.add(Jobs::Release, Owner::Compressor, "compressed: #{@archname}", '')
+    Reporter.done(self, "compressed: #{@archname}", '')
   end
 end
