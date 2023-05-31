@@ -9,9 +9,9 @@ class Updater
     @targets.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.add(Jobs::Clearing, Owner::Updater, "removed: #{path}", '')
+        Reporter.removed(self, "removed: #{path}", '')
       else
-        Reporter.add(Jobs::Clearing, Owner::Updater, "doesn't exist: #{path}", '')
+        Reporter.other(self, "doesn't exist: #{path}", '')
       end
     end
   end
@@ -20,11 +20,11 @@ class Updater
     Environment.check
     Shell.chdir(Paths::UPDATER) do
       Shell.sh 'cargo build --release'
-      Reporter.add(Jobs::Building, Owner::Updater, 'built', '')
+      Reporter.done(self, "built", '')
     end
   end
 
   def check(replace)
-    build if replace || !File.exist?(@target)
+    replace || !File.exist?(@target) ? build : Reporter.skipped(self, "build", '')
   end
 end
