@@ -35,17 +35,18 @@ impl SomeipParser {
 
     /// Creates a new parser with the given files.
     pub fn from_fibex_files(paths: Vec<String>) -> Self {
-        let mut model: Option<FibexModel> = None;
-        if !paths.is_empty() {
-            let path = &paths[0]; // TODO use all paths
-            if let Ok(reader) = FibexReader::from_file(path) {
-                if let Ok(result) = FibexParser::try_parse(reader) {
-                    model = Some(result);
-                }
+        let readers: Vec<_> = paths
+            .iter()
+            .filter_map(|path| FibexReader::from_file(path).ok())
+            .collect();
+
+        if !readers.is_empty() {
+            if let Ok(model) = FibexParser::try_parse(readers) {
+                return SomeipParser { model: Some(model) };
             }
         }
 
-        SomeipParser { model }
+        SomeipParser { model: None }
     }
 }
 
@@ -378,7 +379,7 @@ mod test {
         "#;
 
         let reader = FibexReader::from_reader(BufReader::new(StringReader::new(xml))).unwrap();
-        FibexParser::parse(reader).expect("parse failed")
+        FibexParser::parse(vec![reader]).expect("parse failed")
     }
 
     #[test]

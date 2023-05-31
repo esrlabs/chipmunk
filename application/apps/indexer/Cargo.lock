@@ -2702,8 +2702,8 @@ dependencies = [
 
 [[package]]
 name = "someip-payload"
-version = "0.1.0"
-source = "git+https://github.com/esrlabs/someip-payload?rev=f6b56ac#f6b56aca600f44827774c2d6a17b23a6f40ec683"
+version = "0.1.1"
+source = "git+https://github.com/esrlabs/someip-payload#9a58a561a3d284e37a25ea2dc52188c70694682d"
 dependencies = [
  "byteorder",
  "log",
