@@ -16,7 +16,7 @@
                 "files": {
                     "pcapng": "/storage/projects/esrlabs/logs-examples/test.pcapng",
                     "dlt": "/storage/projects/esrlabs/logs-examples/dlt_receive_2.dlt",
-                    "someip": "../../../../developing/resources/someip/example.pcapng"
+                    "someip": "../../../../application/developing/resources/someip.pcapng"
                 }
             },
             "performance": {
