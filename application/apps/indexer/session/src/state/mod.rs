@@ -20,7 +20,6 @@ use uuid::Uuid;
 
 mod api;
 pub(crate) mod attachments;
-mod graph;
 mod indexes;
 mod observed;
 mod searchers;
