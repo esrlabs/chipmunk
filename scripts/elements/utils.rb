@@ -15,9 +15,9 @@ class Utils
     @targets.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.add(Jobs::Clearing, Owner::Utils, "removed: #{path}", '')
+        Reporter.removed(self, "removed: #{path}", '')
       else
-        Reporter.add(Jobs::Clearing, Owner::Utils, "doesn't exist: #{path}", '')
+        Reporter.other(self, "doesn't exist: #{path}", '')
       end
     end
   end
@@ -27,26 +27,26 @@ class Utils
     if !@installed || @reinstall
       Shell.chdir(Paths::UTILS) do
         Shell.sh 'yarn install'
-        Reporter.add(Jobs::Install, Owner::Utils, 'installing', '')
+        Reporter.done(self, 'installing', '')
       end
     else
-      Reporter.add(Jobs::Skipped, Owner::Utils, 'installing', '')
+      Reporter.skipped(self, 'installing', '')
     end
   end
   
   def build
     if !@changes_to_files && !@rebuild
-      Reporter.add(Jobs::Skipped, Owner::Utils, 'already built', '')
+      Reporter.skipped(self, 'already built', '')
     else
       Environment.check
       [@pkg, @target].each do |path|
         Shell.rm_rf(path)
-        Reporter.add(Jobs::Clearing, Owner::Utils, path, '')
+        Reporter.removed(self, path, '')
       end
       Shell.chdir(Paths::UTILS) do
         Shell.sh 'wasm-pack build --target bundler'
       end
-      Reporter.add(Jobs::Building, Owner::Utils, @target, '')
+      Reporter.done(self, "build #{@target}", '')
     end
   end
 end
