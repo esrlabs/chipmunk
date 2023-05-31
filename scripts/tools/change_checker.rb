@@ -5,7 +5,7 @@ module ChangeChecker
   def self.changelist(path, omissions=[], recheck=nil)
     FileUtils.mkdir_p Paths::CHECKLISTS
     ChangeChecker.locations_to_check(path, omissions).each do |loc|
-      File.open(ChangeChecker.checklist_file(path, recheck), 'a+'){|f| f.write("#{loc}=>" + File.mtime(Dir.glob(loc + (loc==path ? '/*' : '/**/*')).select {|f| f if File.file?(f)}.sort_by {|f| File.mtime(f)}.last).to_s + "\n")}
+      File.open(ChangeChecker.checklist_file(path, recheck), 'a+'){|f| f.write("#{loc}=>" + File.mtime(Dir.glob(loc + (loc==path ? '/*' : '/**/*')).select {|f| f if File.file?(f) && f!="#{Paths::TS_BINDINGS}/src/native/index.node"}.sort_by {|f| File.mtime(f)}.last).to_s + "\n")}
     end
   end
 
@@ -17,9 +17,9 @@ module ChangeChecker
     @first_run = !File.file?(old_checklist_file)
   	ChangeChecker.changelist(path, omissions) if @first_run
   	ChangeChecker.changelist(path, omissions, true)
-    has_changed = (File.open(old_checklist_file).to_a - File.open(new_checklist_file).to_a).size!=0 || @first_run
-  	Shell.rm(old_checklist_file)
-  	FileUtils.mv(new_checklist_file, old_checklist_file)
+    has_changed = (File.open(new_checklist_file).to_a - File.open(old_checklist_file).to_a).size!=0 || (File.open(old_checklist_file).to_a - File.open(new_checklist_file).to_a).size!=0 || @first_run
+    FileUtils.mv(new_checklist_file, old_checklist_file) if has_changed
+    Shell.rm(new_checklist_file)
   	return has_changed
   end
 
