@@ -21,7 +21,7 @@ use tokio::sync::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-use super::graph::CandlePoint;
+use super::values::graph::CandlePoint;
 
 pub enum Api {
     SetSessionFile((Option<PathBuf>, oneshot::Sender<Result<(), NativeError>>)),
@@ -554,7 +554,9 @@ impl SessionStateAPI {
 
     pub fn shutdown_with_error(&self) -> Result<(), NativeError> {
         self.tx_api.send(Api::ShutdownWithError).map_err(|e| {
-            NativeError::channel(&format!("fail to send to Api::ShutdownWithError; error: {e}",))
+            NativeError::channel(&format!(
+                "fail to send to Api::ShutdownWithError; error: {e}",
+            ))
         })
     }
 

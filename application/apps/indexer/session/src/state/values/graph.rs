@@ -84,10 +84,10 @@ fn median(points: &mut [Point2D]) -> f64 {
 }
 
 pub fn candled_graph(points: Vec<CandlePoint>, width: u16) -> Vec<CandlePoint> {
-    let delta_rows = if let (Some(first), Some(last)) = (points.first(), points.last()) {
-        last.row - first.row
+    let (first, delta_rows) = if let (Some(first), Some(last)) = (points.first(), points.last()) {
+        (first.row, last.row - first.row)
     } else {
-        0
+        (0, 0)
     };
     if delta_rows == 0 {
         return vec![];
@@ -96,10 +96,10 @@ pub fn candled_graph(points: Vec<CandlePoint>, width: u16) -> Vec<CandlePoint> {
     let mut slots: Vec<Vec<CandlePoint>> = vec![];
     let mut slot_nr = 1usize;
     let mut slot_vec: Vec<CandlePoint> = vec![];
-    let mut last_point = CandlePoint::new(0, 0.0);
+    let mut last_point = CandlePoint::new(first, 0.0);
     for point in points {
         loop {
-            let slot_end = slot_nr as f64 * per_slot;
+            let slot_end = (slot_nr as f64 * per_slot) + first as f64;
             if (point.row as f64).total_cmp(&slot_end) == Ordering::Less {
                 last_point = point.clone(); // remember last real point in case
                 slot_vec.push(point);
@@ -118,9 +118,13 @@ pub fn candled_graph(points: Vec<CandlePoint>, width: u16) -> Vec<CandlePoint> {
     }
     slots.iter().fold(vec![], |mut acc, points_in_slot| {
         let (med, min, max) = average_min_max(points_in_slot);
-        let real_row = acc.len() as f64 * per_slot;
+        let row = if let Some(point) = points_in_slot.first() {
+            point.row
+        } else {
+            (acc.len() as f64 * per_slot + first as f64) as u64
+        };
         acc.push(CandlePoint {
-            row: real_row as u64,
+            row,
             min_max_y: Some((min, max)),
             y_value: med,
         });

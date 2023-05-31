@@ -4,7 +4,9 @@ use std::{collections::HashMap, ops::RangeInclusive};
 use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
 
-use super::graph::{candled_graph, CandlePoint, Point2D};
+pub mod graph;
+
+use graph::{candled_graph, CandlePoint, Point2D};
 
 #[derive(Error, Debug)]
 pub enum ValuesError {
