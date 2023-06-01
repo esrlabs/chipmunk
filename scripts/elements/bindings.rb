@@ -46,9 +46,16 @@ class Bindings
         Shell.sh "./#{@build_env} #{@nj_cli} build --release"
         Reporter.done(self, 'build rs bindings', '')
       end
-      Shell.chdir(Paths::TS_BINDINGS) do
-        Shell.sh 'yarn run build'
-        Reporter.done(self, 'build ts bindings', '')
+      begin
+        Shell.chdir(Paths::TS_BINDINGS) do
+          Shell.sh 'yarn run build'
+          Reporter.done(self, 'build ts bindings', '')
+        end
+      rescue
+        Reporter.failed(self, 'build ts bindings', '')
+        @changes_to_ts = true
+        clean
+        build
       end
       Shell.sh "cp #{Paths::RS_BINDINGS}/dist/index.node #{@dist}/native/index.node"
       dir_tests = "#{Paths::TS_BINDINGS}/src/native"
@@ -56,6 +63,8 @@ class Bindings
       Shell.rm(mod_file)
       Shell.sh "cp #{Paths::RS_BINDINGS}/dist/index.node #{Paths::TS_BINDINGS}/src/native/index.node"
       Reporter.done(self, 'delivery', '')
+    else
+      Reporter.skipped(self, 'build', '')
     end
   end
 
@@ -84,8 +93,8 @@ class Bindings
         Shell.sh 'yarn install --production'
       end
       Platform.check(dest_module, false)
-      Reporter.done(self, 'reinstalled in production', '')
-      Reporter.done(self, "delivery to #{consumer}", '')
+      Reporter.done('Bindings', 'reinstalled in production', '')
+      Reporter.done('Bindings', "delivery to #{consumer}", '')
     end
   end
 
