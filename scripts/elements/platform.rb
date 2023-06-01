@@ -37,9 +37,15 @@ class Platform
     install
     Shell.rm_rf(@dist)
     Reporter.removed(self, @dist, '')
-    Shell.chdir(Paths::PLATFORM) do
-      Shell.sh 'yarn run build'
-      Reporter.done(self, 'built', '')
+    begin
+      Shell.chdir(Paths::PLATFORM) do
+        Shell.sh 'yarn run build'
+        Reporter.done(self, 'build', '')
+      end
+    rescue
+      Reporter.failed(self, 'build', '')
+      clean
+      build
     end
     Shell.rm_rf(@node_modules)
   end
@@ -47,14 +53,14 @@ class Platform
   def self.check(consumer, replace)
     node_modules = "#{consumer}/node_modules"
     platform_dest = "#{node_modules}/platform"
+    platform = Platform.new(false, false)
     Dir.mkdir(node_modules) unless File.exist?(node_modules)
-    Shell.rm_rf(platform_dest) if replace || !File.exist?("#{platform_dest}/dist") || File.symlink?(platform_dest)
+    Shell.rm_rf(platform_dest) if replace || !File.exist?("#{platform_dest}/dist") || File.symlink?(platform_dest) || platform.instance_variable_get(("@changes_to_files").intern)
     unless File.exist?(platform_dest)
-      Reporter.other(self, "#{consumer} doesn't have platform", '')
-      platform = Platform.new(false, false)
+      Reporter.other('Platform', "#{consumer} doesn't have platform", '')
       platform.build
       Shell.sh "cp -r #{Paths::PLATFORM} #{node_modules}"
-      Reporter.done(self, "delivery to #{consumer}", '')
+      Reporter.done('Platform', "delivery to #{consumer}", '')
     end
   end
 
