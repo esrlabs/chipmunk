@@ -257,8 +257,8 @@ describe('Observe', function () {
                     }
                     stream
                         .observe(
-                            Observe.DataSource.file(config.regular.files['someip']).pcapng().someip({
-                                dummy: "todo",
+                            Observe.DataSource.file(config.regular.files['someip-pcapng']).pcapng().someip({
+                                fibex_file_paths: undefined,
                             }),
                         )
                         .catch(finish.bind(null, session, done));
@@ -269,7 +269,7 @@ describe('Observe', function () {
                             session,
                             done,
                             new Error(
-                                `Failed because timeout. Waited for at least 100 rows. Has been gotten: ${received}`,
+                                `Failed because timeout. Waited for at least 10 rows. Has been gotten: ${received}`,
                             ),
                         );
                     }, 20000);
@@ -281,9 +281,140 @@ describe('Observe', function () {
                         clearTimeout(timeout);
                         grabbing = true;
                         stream
-                            .grab(1, 10)
+                            .grab(0, 2)
                             .then((result: IGrabbedElement[]) => {
-                                expect(result.length).toEqual(10);
+                                expect(result.length).toEqual(2);
+                                expect(result[0].content.split("\u0004")).toEqual([
+                                    "SD",
+                                    /* Header */
+                                    "65535", // Service-ID
+                                    "33024", // Method-ID
+                                    "60",    // Length-Field
+                                    "0",     // Client-ID
+                                    "0",     // Session-ID
+                                    "1",     // Interface-Version
+                                    "2",     // Message-Type
+                                    "0",     // Return-Type
+                                    /* Payload */ 
+                                    "Flags: [C0], Offer 123 v1.0 Inst 1 Ttl 3 UDP 192.168.178.58:30000 TCP 192.168.178.58:30000"
+                                ]);
+                                expect(result[1].content.split("\u0004")).toEqual([
+                                    "RPC",
+                                    /* Header */
+                                    "123",   // Service-ID
+                                    "32773", // Method-ID
+                                    "16",    // Length-Field
+                                    "1",     // Client-ID
+                                    "0",     // Session-ID
+                                    "1",     // Interface-Version
+                                    "2",     // Message-Type
+                                    "0",     // Return-Type
+                                    /* Payload */ 
+                                    "Bytes: [00, 00, 01, 88, 01, C3, C4, 1D]"
+                                ]);
+                                logger.debug('result of grab was: ' + JSON.stringify(result));
+                                finish(session, done);
+                            })
+                            .catch((err: Error) => {
+                                finish(
+                                    session,
+                                    done,
+                                    new Error(
+                                        `Fail to grab data due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                );
+                            });
+                    });
+                })
+                .catch((err: Error) => {
+                    finish(
+                        undefined,
+                        done,
+                        new Error(
+                            `Fail to create session due error: ${
+                                err instanceof Error ? err.message : err
+                            }`,
+                        ),
+                    );
+                });
+        });
+    });
+
+    it(config.regular.list[5], function () {
+        return runner(config.regular, 5, async (logger, done, collector) => {
+            Session.create()
+                .then((session: Session) => {
+                    // Set provider into debug mode
+                    session.debug(true);
+                    const stream = session.getStream();
+                    if (stream instanceof Error) {
+                        finish(session, done, stream);
+                        return;
+                    }
+                    const events = session.getEvents();
+                    if (events instanceof Error) {
+                        finish(session, done, events);
+                        return;
+                    }
+                    stream
+                        .observe(
+                            Observe.DataSource.file(config.regular.files['someip-pcapng']).pcapng().someip({
+                                fibex_file_paths: [config.regular.files['someip-fibex']],
+                            }),
+                        )
+                        .catch(finish.bind(null, session, done));
+                    let grabbing: boolean = false;
+                    let received: number = 0;
+                    const timeout = setTimeout(() => {
+                        finish(
+                            session,
+                            done,
+                            new Error(
+                                `Failed because timeout. Waited for at least 10 rows. Has been gotten: ${received}`,
+                            ),
+                        );
+                    }, 20000);
+                    events.StreamUpdated.subscribe((rows: number) => {
+                        received = rows;
+                        if (rows < 10 || grabbing) {
+                            return;
+                        }
+                        clearTimeout(timeout);
+                        grabbing = true;
+                        stream
+                            .grab(0, 2)
+                            .then((result: IGrabbedElement[]) => {
+                                expect(result.length).toEqual(2);
+                                expect(result[0].content.split("\u0004")).toEqual([
+                                    "SD",
+                                    /* Header */
+                                    "65535", // Service-ID
+                                    "33024", // Method-ID
+                                    "60",    // Length-Field
+                                    "0",     // Client-ID
+                                    "0",     // Session-ID
+                                    "1",     // Interface-Version
+                                    "2",     // Message-Type
+                                    "0",     // Return-Type
+                                    /* Payload */ 
+                                    "Flags: [C0], Offer 123 v1.0 Inst 1 Ttl 3 UDP 192.168.178.58:30000 TCP 192.168.178.58:30000"
+                                ]);
+                                expect(result[1].content.split("\u0004")).toEqual([
+                                    "RPC",
+                                    /* Header */
+                                    "123",   // Service-ID
+                                    "32773", // Method-ID
+                                    "16",    // Length-Field
+                                    "1",     // Client-ID
+                                    "0",     // Session-ID
+                                    "1",     // Interface-Version
+                                    "2",     // Message-Type
+                                    "0",     // Return-Type
+                                    /* Payload */ 
+                                    "TestService::timeEvent {timestamp(INT64):1683656786973,}"
+                                ]);
                                 logger.debug('result of grab was: ' + JSON.stringify(result));
                                 finish(session, done);
                             })

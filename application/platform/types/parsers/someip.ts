@@ -1,17 +1,17 @@
 export interface ISomeIpOptions {
-    dummy: string;
+    fibex: string[];
 }
 export interface SomeIpParserSettings {
-    dummy: string;
+    fibex_file_paths: Array<string> | undefined;
 }
 
 export function optionsToParserSettings(options: ISomeIpOptions): SomeIpParserSettings {
     return {
-        dummy: options.dummy,
+        fibex_file_paths: options.fibex.length > 0 ? options.fibex : undefined,
     };
 }
 export function parserSettingsToOptions(options: SomeIpParserSettings): ISomeIpOptions {
     return {
-        dummy: options.dummy,
+        fibex: options.fibex_file_paths === undefined ? [] : options.fibex_file_paths,
     };
 }
