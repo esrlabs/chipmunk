@@ -6,6 +6,7 @@ class Client
     @prod = prod
     @installed = File.exist?(@node_modules)
     @targets = [@dist, @node_modules]
+    @changes_to_files = ChangeChecker.has_changes?(Paths::CLIENT, @targets)
   end
 
   def install
@@ -35,34 +36,64 @@ class Client
     Environment.check
     install
     if @prod
-      Matcher.new(true, true).build
-      Ansi.new(true, true).build
-      Utils.new(true, true).build
-      Shell.chdir(Paths::CLIENT) do
-        Shell.sh 'yarn run prod'
-        Reporter.done(self, 'build in production mode', '')
+      matcher = Matcher.new(true, true)
+      ansi = Ansi.new(true, true)
+      utils = Utils.new(true, true)
+      client_build_needed = @changes_to_files || matcher.instance_variable_get(("@changes_to_files").intern) || ansi.instance_variable_get(("@changes_to_files").intern) || utils.instance_variable_get(("@changes_to_files").intern)
+      matcher.build
+      ansi.build
+      utils.build
+      if client_build_needed
+        begin
+          Shell.chdir(Paths::CLIENT) do
+            Shell.sh 'yarn run prod'
+            Reporter.done(self, 'build in production mode', '')
+          end
+        rescue
+          Reporter.failed(self, 'build in production mode', '')
+          @changes_to_files = true
+          clean
+          build
+        end
+      else
+        Reporter.skipped(self, 'build in production mode', '')
       end
     else
-      Matcher.new(false, false).build
-      Ansi.new(false, false).build
-      Utils.new(false, false).build
-      Shell.chdir(Paths::CLIENT) do
-        Shell.sh 'yarn run build'
-        Reporter.done(self, 'build in developing mode', '')
+      matcher = Matcher.new(false, false)
+      ansi = Ansi.new(false, false)
+      utils = Utils.new(false, false)
+      client_build_needed = @changes_to_files || matcher.instance_variable_get(("@changes_to_files").intern) || ansi.instance_variable_get(("@changes_to_files").intern) || utils.instance_variable_get(("@changes_to_files").intern)
+      matcher.build
+      ansi.build
+      utils.build
+      if client_build_needed
+        begin
+          Shell.chdir(Paths::CLIENT) do
+            Shell.sh 'yarn run build'
+            Reporter.done(self, 'build in developing mode', '')
+          end
+        rescue
+          Reporter.failed(self, 'build in developing mode', '')
+          @changes_to_files = true
+          clean
+          build
+        end
+      else
+        Reporter.skipped(self, 'build in developing mode', '')
       end
     end
   end
 
   def self.delivery(dest, prod, replace)
     if !replace && File.exist?("#{Paths::CLIENT}/dist/client")
-      Reporter.skipped(Jobs::Skipped, Owner::Client, 'client already exist', '')
+      Reporter.skipped('Client', 'client already exist', '')
       return
     end
     Dir.mkdir(dest) unless File.exist?(dest)
     client = Client.new(false, prod)
     client.build
     Shell.sh "cp -r #{Paths::CLIENT}/dist/client #{dest}"
-    Reporter.done(self, "delivery to #{dest}", '')
+    Reporter.done('Client', "delivery to #{dest}", '')
   end
 
   def lint
