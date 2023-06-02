@@ -6,11 +6,12 @@ import {
     DependOn,
 } from 'platform/entity/service';
 import { services } from '@register/services';
-import { KeysMap, KeyDescription } from 'platform/types/hotkeys/map';
+import { KeysMap, KeyDescription, Requirement } from 'platform/types/hotkeys/map';
 import { app, globalShortcut, powerMonitor, BrowserWindow } from 'electron';
 import { electron } from '@service/electron';
 import { CancelablePromise } from 'platform/env/promise';
 import { ChipmunkGlobal } from '@register/global';
+import { Listeners } from 'platform/env/subscription';
 
 declare const global: ChipmunkGlobal;
 
@@ -21,9 +22,9 @@ import * as Requests from 'platform/ipc/request';
 @SetupService(services['hotkeys'])
 export class Service extends Implementation {
     protected window!: BrowserWindow;
+    protected listeners: Listeners = new Listeners();
 
     public override ready(): Promise<void> {
-        this.listener().bind();
         this.register(
             electron
                 .ipc()
@@ -34,7 +35,7 @@ export class Service extends Implementation {
                         _request: Requests.Hotkey.On.Request,
                     ): CancelablePromise<Requests.Hotkey.On.Response> => {
                         return new CancelablePromise((resolve, _reject) => {
-                            this.bind();
+                            this.bind([Requirement.NoInput]);
                             resolve(new Requests.Hotkey.On.Response({ error: undefined }));
                         });
                     },
@@ -50,7 +51,7 @@ export class Service extends Implementation {
                         _request: Requests.Hotkey.Off.Request,
                     ): CancelablePromise<Requests.Hotkey.Off.Response> => {
                         return new CancelablePromise((resolve, _reject) => {
-                            this.unbind();
+                            this.unbind([Requirement.NoInput]);
                             resolve(new Requests.Hotkey.Off.Response({ error: undefined }));
                         });
                     },
@@ -77,50 +78,30 @@ export class Service extends Implementation {
                     },
                 ),
         );
+        this.window = electron.window().instance().get();
+        this.listeners.add('blur', this.window, this.unbind.bind(this));
+        this.listeners.add('focus', this.window, this.resume.bind(this));
+        this.listeners.add('resume', powerMonitor, this.resume.bind(this));
+        this.listeners.add('shutdown', powerMonitor, this.unbind.bind(this));
+        this.listeners.add('browser-window-created', app, this.bind.bind(this));
+        this.listeners.add('browser-window-focus', app, this.bind.bind(this));
+        this.listeners.add('browser-window-blur', app, this.unbind.bind(this));
+        this.listeners.add('before-quit', app, () => {
+            this.listeners.unsubscribe();
+            this.unbind();
+        });
+        this.listeners.subscribe();
+        this.bind();
         return Promise.resolve();
     }
 
     public override destroy(): Promise<void> {
-        this.listener().unbind();
+        this.listeners.unsubscribe();
         this.unbind();
         return Promise.resolve();
     }
 
-    protected listener(): {
-        bind(): void;
-        unbind(): void;
-    } {
-        return {
-            bind: (): void => {
-                this.bind = this.bind.bind(this);
-                this.resume = this.resume.bind(this);
-                this.unbind = this.unbind.bind(this);
-                powerMonitor.addListener('resume', this.resume);
-                powerMonitor.addListener('shutdown', this.unbind);
-                app.addListener('browser-window-created', this.bind);
-                app.addListener('browser-window-blur', this.unbind);
-                app.addListener('browser-window-focus', this.bind);
-                app.addListener('before-quit', () => {
-                    this.listener().unbind();
-                    this.unbind();
-                });
-                this.window = electron.window().instance().get();
-                this.window.addListener('blur', this.unbind);
-                this.window.addListener('focus', this.resume);
-            },
-            unbind: (): void => {
-                app.removeListener('browser-window-created', this.bind);
-                app.removeListener('browser-window-blur', this.unbind);
-                app.removeListener('browser-window-focus', this.bind);
-                powerMonitor.removeListener('shutdown', this.unbind);
-                powerMonitor.removeListener('resume', this.resume);
-                this.window.removeListener('blur', this.unbind);
-                this.window.removeListener('focus', this.resume);
-            },
-        };
-    }
-
-    protected bind(): void {
+    protected bind(filter?: Requirement[]): void {
         if (this.window === undefined) {
             this.log().debug(`Cannot activete hotkeys because no window available`);
             return;
@@ -132,6 +113,15 @@ export class Service extends Implementation {
         let listeners = 0;
         KeysMap.forEach((key) => {
             if (key.client) {
+                return;
+            }
+            if (
+                filter !== undefined &&
+                filter.length > 0 &&
+                key.required.find((requirement) => {
+                    return filter.indexOf(requirement) !== -1;
+                }) === undefined
+            ) {
                 return;
             }
             const shortcuts = key.shortkeys as { [key: string]: string[] };
@@ -155,10 +145,19 @@ export class Service extends Implementation {
         listeners > 0 && this.log().verbose(`Activated ${listeners} hotkeys listeners`);
     }
 
-    protected unbind(): void {
+    protected unbind(filter?: Requirement[]): void {
         let listeners = 0;
         KeysMap.forEach((key) => {
             if (key.client) {
+                return;
+            }
+            if (
+                filter !== undefined &&
+                filter.length > 0 &&
+                key.required.find((requirement) => {
+                    return filter.indexOf(requirement) !== -1;
+                }) === undefined
+            ) {
                 return;
             }
             const shortcuts = key.shortkeys as { [key: string]: string[] };

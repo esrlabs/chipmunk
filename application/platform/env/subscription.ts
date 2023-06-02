@@ -282,6 +282,56 @@ export class Subscriber {
     }
 }
 
+export interface ListenerTarget {
+    addListener(event: string, handler: THandler): void;
+    removeListener(event: string, handler: THandler): void;
+}
+
+export class Listener {
+    protected listening: boolean = false;
+    constructor(
+        protected readonly event: string,
+        protected readonly target: ListenerTarget,
+        protected readonly handle: THandler,
+    ) {}
+
+    public subscribe() {
+        if (this.listening) {
+            return;
+        }
+        this.target.addListener(this.event, this.handle);
+        this.listening = true;
+    }
+
+    public unsubscribe(): void {
+        if (!this.listening) {
+            return;
+        }
+        this.target.removeListener(this.event, this.handle);
+        this.listening = false;
+    }
+}
+
+export class Listeners {
+    protected listeners: Listener[] = [];
+
+    public add(event: string, target: ListenerTarget, handle: THandler): void {
+        this.listeners.push(new Listener(event, target, handle));
+    }
+
+    public push(listener: Listener): void {
+        this.listeners.push(listener);
+    }
+
+    public subscribe() {
+        this.listeners.forEach((l) => l.subscribe());
+    }
+
+    public unsubscribe(): void {
+        this.listeners.forEach((l) => l.unsubscribe());
+    }
+}
+
 export function unsubscribeAllInHolder(subjects: unknown): void {
     if (typeof subjects !== 'object' || subjects === null) {
         return;
