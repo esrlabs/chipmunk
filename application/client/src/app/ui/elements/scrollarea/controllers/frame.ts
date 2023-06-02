@@ -25,6 +25,7 @@ export class Frame extends Subscriber {
     private _holder!: Holder;
     private _frame: Range = new Range();
     private _rows: Row[] = [];
+    private _prev: IRange | undefined;
     private readonly _subjects: {
         change: Subject<Row[]>;
         position: Subject<PositionEvent>;
@@ -39,7 +40,17 @@ export class Frame extends Subscriber {
         this.register(
             this._frame.onChange((initiator: ChangesInitiator) => {
                 this._subjects.position.emit({ range: this._frame.get(), initiator });
-                this._service.setFrame(this._frame.get());
+                const prev = this._prev;
+                this._prev = this._frame.get();
+                if (
+                    prev === undefined ||
+                    prev.from !== this._prev.from ||
+                    prev.to !== this._prev.to
+                ) {
+                    this._service.setFrame(this._frame.get());
+                } else {
+                    this._service.setLen(this._frame.getTotal());
+                }
             }),
         );
         this.register(

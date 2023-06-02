@@ -66,10 +66,10 @@ export function getScrollAreaService(session: Session): Service {
                 return getRows(session, range);
             },
             setFrame: (range: Range) => {
+                service.setLen(session.indexed.len());
                 getRows(session, range)
                     .then((packet) => {
                         service.setRows(packet);
-                        service.setLen(session.indexed.len());
                     })
                     .catch((err: Error) => {
                         throw new Error(`Fail get indexed chunk: ${err.message}`);

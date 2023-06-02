@@ -4,8 +4,16 @@ export class LimittedRange {
     public len: number;
     public max: number;
     private _alias: string;
+    private _sticky: boolean;
 
-    constructor(alias: string, from: number, to: number, len: number, max: number) {
+    constructor(
+        alias: string,
+        from: number,
+        to: number,
+        len: number,
+        max: number,
+        sticky: boolean,
+    ) {
         if (isNaN(from) || !isFinite(from)) {
             throw new Error(`[${alias}]: Invalid number from. Fail to change it.`);
         }
@@ -19,6 +27,7 @@ export class LimittedRange {
             throw new Error(`[${alias}]: Invalid number value for "max". Fail to change it.`);
         }
         this._alias = alias;
+        this._sticky = sticky;
         this.max = max;
         this.from = from;
         this.to = to;
@@ -51,8 +60,15 @@ export class LimittedRange {
                 return this._normalize();
             },
             max: (): LimittedRange => {
+                const sticky = this._sticky ? this.to === this.max - 1 : false;
                 this.max = value < 0 ? 0 : value;
-                this.to = this.from + this.len;
+                if (sticky) {
+                    this.to = this.max === 0 ? 0 : this.max - 1;
+                    const from = this.to - this.len;
+                    this.from = from < 0 ? 0 : from;
+                } else {
+                    this.to = this.from + this.len;
+                }
                 return this._normalize();
             },
         };

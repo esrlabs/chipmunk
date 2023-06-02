@@ -4,7 +4,7 @@ import { ChangesInitiator } from './frame';
 import { LimittedRange } from '@ui/env/entities/range.limited';
 
 export class Range {
-    private range: LimittedRange = new LimittedRange('scroll_area_range', 0, 0, 0, 0);
+    private range: LimittedRange = new LimittedRange('scroll_area_range', 0, 0, 0, 0, true);
     private readonly _subjects: {
         change: Subject<ChangesInitiator>;
     } = {
@@ -38,6 +38,10 @@ export class Range {
 
     public getLength(): number {
         return this.range.len;
+    }
+
+    public getTotal(): number {
+        return this.range.max;
     }
 
     public setTotal(total: number, initiator: ChangesInitiator) {
