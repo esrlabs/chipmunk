@@ -18,6 +18,22 @@ export class Cursor {
         visibility: new Subject<void>(),
     });
 
+    protected visibility(): {
+        update(): void;
+    } {
+        return {
+            update: (): void => {
+                const prev = this.visible;
+                this.visible = this.width !== 1 && this.width < this.stream;
+                if (!this.visible) {
+                    this.from = 0;
+                    this.to = this.stream - 1;
+                }
+                this.visible !== prev && this.subjects.get().visibility.emit();
+            },
+        };
+    }
+
     public destroy() {
         this.subjects.destroy();
     }
@@ -33,13 +49,7 @@ export class Cursor {
 
     public setStream(len: number) {
         this.stream = len;
-        const prev = this.visible;
-        this.visible = this.width < this.stream;
-        if (!this.visible) {
-            this.from = 0;
-            this.to = len - 1;
-        }
-        this.visible !== prev && this.subjects.get().visibility.emit();
+        this.visibility().update();
     }
 
     public setWidth(width: number) {
@@ -47,6 +57,7 @@ export class Cursor {
             throw new Error(`Invalid width`);
         }
         this.width = width;
+        this.visibility().update();
         this.subjects.get().width.emit();
     }
 
