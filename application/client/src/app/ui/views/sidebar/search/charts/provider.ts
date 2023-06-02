@@ -262,6 +262,7 @@ export class ProviderCharts extends Provider<ChartRequest> {
     }
 
     public search(entity: Entity<any>) {
+        this.session.switch().toolbar.search();
         this.session.search
             .state()
             .setActive({

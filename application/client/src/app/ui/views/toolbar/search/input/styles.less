@@ -71,16 +71,17 @@ app-views-search-input {
             }
         }
     }
-    span.active {
+    & span.active-filter {
         position: relative;
         display: flex;
         flex-direction: row;
-        border-radius: 4px;
+        border-radius: 2px;
         background: @scheme-color-active;
-        height: 23px;
+        height: 20px;
         overflow: hidden;
         flex: none;
-        box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+        margin-right: 8px;
+        margin-left: -8px;
         & span.filter {
             position: relative;
             display: inline-block;
@@ -89,8 +90,8 @@ app-views-search-input {
             font-weight: 500;
         }
         & button {
-            height: 23px;
-            width: 23px;
+            height: 20px;
+            width: 20px;
             padding: 0;
             background: none;
             border:none;
@@ -100,12 +101,12 @@ app-views-search-input {
                 }
             }
             & mat-icon{
-                height: 23px;
-                width: 23px;
-                font-size: 17px;
+                height: 20px;
+                width: 20px;
+                font-size: 16px;
                 text-align: center;
                 color: @scheme-color-0;
-                padding-top: 3px;
+                padding-top: 2px;
                 &.disabled {
                     color: @scheme-color-2;
                 }

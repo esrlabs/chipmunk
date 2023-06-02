@@ -91,22 +91,29 @@ export class Indexed extends Subscriber {
             // TODO: Grabber is crash session in this case... should be prevented on grabber level
             return Promise.resolve([]);
         }
-        return new Promise((resolve) => {
-            Requests.IpcRequest.send(
-                Requests.Stream.Indexed.Response,
-                new Requests.Stream.Indexed.Request({
-                    session: this._uuid,
-                    from: range.from,
-                    to: range.to,
-                }),
-            )
-                .then((response: Requests.Stream.Indexed.Response) => {
-                    resolve(response.rows);
-                })
-                .catch((error: Error) => {
+        return Requests.IpcRequest.send(
+            Requests.Stream.Indexed.Response,
+            new Requests.Stream.Indexed.Request({
+                session: this._uuid,
+                from: range.from,
+                to: range.to,
+            }),
+        )
+            .then((response: Requests.Stream.Indexed.Response) => {
+                return response.rows;
+            })
+            .catch((error: Error) => {
+                if (range.to >= this.len()) {
+                    // It might be, during request search map has been changed already
+                    // For example we reaqusted range, but right after it a new search
+                    // was created and length of stream became 0
+                    // In this case we don't need to log any errors, but on backend error
+                    // will be logged in any way.
+                } else {
                     this.log().error(`Fail to grab indexed content: ${error.message}`);
-                });
-        });
+                }
+                return [];
+            });
     }
 
     public getIndexesAround(
