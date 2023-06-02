@@ -33,6 +33,10 @@ export class Filter {
         this.options = options;
     }
 
+    public destroy() {
+        this.subjects.destroy();
+    }
+
     public bind(element: HTMLInputElement | undefined): Filter {
         element !== undefined && (this._element = element);
         return this;

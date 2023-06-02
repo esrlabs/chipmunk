@@ -6,6 +6,7 @@ import {
     ViewChild,
     ElementRef,
     AfterViewInit,
+    OnDestroy,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
@@ -20,7 +21,10 @@ import { FilterInput } from './input';
 })
 @Initial()
 @Ilc()
-export class InputFilter extends ChangesDetector implements AfterContentInit, AfterViewInit {
+export class InputFilter
+    extends ChangesDetector
+    implements AfterContentInit, AfterViewInit, OnDestroy
+{
     @Input() public filter!: Filter;
     @ViewChild('filterinput') filterInputRef!: ElementRef<HTMLInputElement>;
 
@@ -28,6 +32,10 @@ export class InputFilter extends ChangesDetector implements AfterContentInit, Af
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
+    }
+
+    public ngOnDestroy(): void {
+        this.filter.destroy();
     }
 
     public ngAfterContentInit(): void {

@@ -1,6 +1,6 @@
 <div class="wrapper" *ngIf="!state.isEmpty()">
     <app-filter-input #filter [filter]="state.filter"></app-filter-input>
-    <div class="actions">
+    <div [attr.id]="state.uuid" class="actions">
         <div [attr.class]="'action ' + (state.selected === item.hash() ? 'selected' : '')" 
             *ngFor="let item of state.filtered();"
             (click)="ngOpen(item)"
