@@ -124,7 +124,7 @@ export class Charts extends Subscriber {
                 if (this.progress.summary !== undefined) {
                     return;
                 }
-                const frame = { from: 0, to: this.lengths.stream };
+                const frame = { from: 0, to: this.lengths.stream - 1 };
                 this.progress.summary = hash();
                 this.reload()
                     .load(frame)
@@ -243,37 +243,29 @@ export class Charts extends Subscriber {
     } {
         return {
             values: (): Promise<IValuesMap> => {
-                return new Promise((resolve, reject) => {
-                    Requests.IpcRequest.send(
-                        Requests.Values.Frame.Response,
-                        new Requests.Values.Frame.Request({
-                            session: this.uuid,
-                            width: datasetLength,
-                            from: range !== undefined ? range.from : undefined,
-                            to: range !== undefined ? range.to : undefined,
-                        }),
-                    )
-                        .then((response) => {
-                            resolve(response.values);
-                        })
-                        .catch(reject);
+                return Requests.IpcRequest.send(
+                    Requests.Values.Frame.Response,
+                    new Requests.Values.Frame.Request({
+                        session: this.uuid,
+                        width: datasetLength,
+                        from: range !== undefined ? range.from : undefined,
+                        to: range !== undefined ? range.to : undefined,
+                    }),
+                ).then((response) => {
+                    return response.values;
                 });
             },
             matches: (): Promise<ISearchMap> => {
-                return new Promise((resolve, reject) => {
-                    Requests.IpcRequest.send(
-                        Requests.Search.Map.Response,
-                        new Requests.Search.Map.Request({
-                            session: this.uuid,
-                            len: datasetLength,
-                            from: range ? range.from : undefined,
-                            to: range ? range.to : undefined,
-                        }),
-                    )
-                        .then((response) => {
-                            resolve(response.map);
-                        })
-                        .catch(reject);
+                return Requests.IpcRequest.send(
+                    Requests.Search.Map.Response,
+                    new Requests.Search.Map.Request({
+                        session: this.uuid,
+                        len: datasetLength,
+                        from: range ? range.from : undefined,
+                        to: range ? range.to : undefined,
+                    }),
+                ).then((response) => {
+                    return response.map;
                 });
             },
         };
@@ -295,7 +287,12 @@ export class Charts extends Subscriber {
             }),
             this.stream.subjects.get().updated.subscribe((len) => {
                 this.lengths.stream = len;
-                this.reload().summary();
+                this.cursor.setStream(len);
+                if (this.cursor.visible) {
+                    this.reload().summary();
+                } else {
+                    this.reload().both();
+                }
             }),
             this.search.subjects.get().updated.subscribe((event) => {
                 this.lengths.search = event.found;
