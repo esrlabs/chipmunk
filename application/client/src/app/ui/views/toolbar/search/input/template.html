@@ -1,6 +1,6 @@
 <div class="input">
     <mat-form-field class="material-mofication-outline" appearance="outline" [attr.error]="input.error.hasError()">
-        <span class="active" *ngIf="active !== undefined">
+        <span class="active-filter" *ngIf="active !== undefined">
             <span class="t-console t-small filter">{{active.filter.filter}}</span>
             <button
                 [class]="active.isPossibleToSaveAsFilter() ? 'enabled' : ''"

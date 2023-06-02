@@ -195,6 +195,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
     }
 
     public search(entity: Entity<FilterRequest>) {
+        this.session.switch().toolbar.search();
         this.session.search
             .state()
             .setActive(entity.extract().definition.filter)
