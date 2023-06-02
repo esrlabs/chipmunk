@@ -31,13 +31,13 @@ export class Favorites
     implements AfterViewInit, AfterContentInit, OnDestroy
 {
     @ViewChild('filter') public filterInputRef!: InputFilter;
+
     @Input() close: CloseHandler | undefined;
 
-    public readonly state: State;
+    public state!: State;
 
-    constructor(cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
+    constructor(cdRef: ChangeDetectorRef, private readonly _sanitizer: DomSanitizer) {
         super(cdRef);
-        this.state = new State(this);
     }
 
     public ngOnDestroy(): void {
@@ -45,6 +45,7 @@ export class Favorites
     }
 
     public ngAfterContentInit(): void {
+        this.state = new State(this);
         this.close !== undefined && this.state.bind(this.close);
     }
 

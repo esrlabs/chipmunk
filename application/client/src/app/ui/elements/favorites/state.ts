@@ -9,12 +9,14 @@ import { bridge } from '@service/bridge';
 import { EntityType, getFileName } from '@platform/types/files';
 import { notifications, Notification } from '@ui/service/notifications';
 import { createPassiveMatcheeList } from '@module/matcher';
+import { unique } from '@platform/env/sequence';
 
 export type CloseHandler = () => void;
 
 const MAX_VISIBLE_ITEMS = 50;
 const DEFAULT_DEEP = 5;
 const DEFAULT_LEN = 20000;
+const ELEMENT_HEIGHT = 28;
 
 export class State extends Holder {
     public filter: Filter;
@@ -22,12 +24,13 @@ export class State extends Holder {
     public update: Subject<void> = new Subject<void>();
     public selected: string = '';
     public roots: string[];
+    public uuid: string = unique();
 
     protected scanning: string | undefined;
     protected folders: string[] = [];
     protected readonly abort: AbortController = new AbortController();
     protected close: CloseHandler | undefined;
-    protected ilc: IlcInterface;
+    protected ilc: IlcInterface & ChangesDetector;
 
     protected defaultSelection() {
         if (this.items.length > 0) {
@@ -42,11 +45,11 @@ export class State extends Holder {
         this.roots = [];
         this.ilc = ilc;
         this.filter = new Filter(ilc, { placeholder: 'Files form favorites' });
-        this.filter.subjects.get().change.subscribe((value: string) => {
-            this.filtering(value);
-            ilc.detectChanges();
-        });
         ilc.env().subscriber.register(
+            this.filter.subjects.get().change.subscribe((value: string) => {
+                this.filtering(value);
+                ilc.markChangesForCheck();
+            }),
             ilc
                 .ilc()
                 .services.ui.listener.listen<KeyboardEvent>(
@@ -65,7 +68,7 @@ export class State extends Holder {
                             this.open(target).auto();
                             return true;
                         }
-                        ilc.detectChanges();
+                        ilc.markChangesForCheck();
                         return true;
                     },
                 ),
@@ -162,6 +165,7 @@ export class State extends Holder {
         up(): void;
         down(): void;
         update(): void;
+        scrollIntoView(index: number): void;
     } {
         const items = this.filtered();
         return {
@@ -174,11 +178,17 @@ export class State extends Holder {
                     return;
                 }
                 const index = items.findIndex((a) => a.hash() === this.selected);
-                if (index === -1 || index === 0) {
-                    this.selected = items[items.length - 1].hash();
-                    return;
-                }
-                this.selected = items[index - 1].hash();
+                this.move().scrollIntoView(
+                    (() => {
+                        if (index === -1 || index === 0) {
+                            this.selected = items[items.length - 1].hash();
+                            return items.length - 1;
+                        } else {
+                            this.selected = items[index - 1].hash();
+                            return index - 1;
+                        }
+                    })(),
+                );
             },
             down: (): void => {
                 if (items.length === 0) {
@@ -189,11 +199,17 @@ export class State extends Holder {
                     return;
                 }
                 const index = items.findIndex((a) => a.hash() === this.selected);
-                if (index === -1 || index === items.length - 1) {
-                    this.selected = items[0].hash();
-                    return;
-                }
-                this.selected = items[index + 1].hash();
+                this.move().scrollIntoView(
+                    (() => {
+                        if (index === -1 || index === items.length - 1) {
+                            this.selected = items[0].hash();
+                            return 0;
+                        } else {
+                            this.selected = items[index + 1].hash();
+                            return index + 1;
+                        }
+                    })(),
+                );
             },
             update: (): void => {
                 if (items.length === 0) {
@@ -207,6 +223,21 @@ export class State extends Holder {
                 if (index === -1) {
                     this.selected = items[0].hash();
                 }
+            },
+            scrollIntoView: (index: number): void => {
+                const container = document.querySelector(`div[id="${this.uuid}"]`);
+                if (container === undefined || container === null) {
+                    return;
+                }
+                const size = container.getBoundingClientRect();
+                const offset = index * ELEMENT_HEIGHT;
+                if (
+                    offset >= container.scrollTop &&
+                    offset + ELEMENT_HEIGHT <= size.height + container.scrollTop
+                ) {
+                    return;
+                }
+                container.scrollTo(0, offset + ELEMENT_HEIGHT - size.height);
             },
         };
     }
