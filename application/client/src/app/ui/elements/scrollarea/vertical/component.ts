@@ -8,6 +8,7 @@ import {
     Output,
     EventEmitter,
     ElementRef,
+    ChangeDetectorRef,
 } from '@angular/core';
 import { Subscription } from '@platform/env/subscription';
 import { Service } from '../controllers/service';
@@ -15,6 +16,7 @@ import { Holder } from '../controllers/holder';
 import { ChangesInitiator, Frame, PositionEvent } from '../controllers/frame';
 import { LockToken } from '@ui/env/lock.token';
 import { stop } from '@ui/env/dom';
+import { ChangesDetector } from '@ui/env/extentions/changes';
 
 const MAX_SCROLL_THUMB_HEIGHT: number = 20;
 
@@ -23,7 +25,10 @@ const MAX_SCROLL_THUMB_HEIGHT: number = 20;
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
-export class ScrollAreaVerticalComponent implements AfterContentInit, AfterViewInit, OnDestroy {
+export class ScrollAreaVerticalComponent
+    extends ChangesDetector
+    implements AfterContentInit, AfterViewInit, OnDestroy
+{
     @Input() public service!: Service;
     @Input() public holder!: Holder;
     @Input() public frame!: Frame;
@@ -65,7 +70,9 @@ export class ScrollAreaVerticalComponent implements AfterContentInit, AfterViewI
         return false;
     }
 
-    constructor(private elRef: ElementRef<HTMLElement>) {}
+    constructor(changeDetectorRef: ChangeDetectorRef, private elRef: ElementRef<HTMLElement>) {
+        super(changeDetectorRef);
+    }
 
     public ngOnDestroy() {
         this._subscriptions.forEach((subscription: Subscription) => {
@@ -130,5 +137,6 @@ export class ScrollAreaVerticalComponent implements AfterContentInit, AfterViewI
                 this._fillerHeight = fillerHeight;
             }
         }
+        this.markChangesForCheck();
     }
 }
