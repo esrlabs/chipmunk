@@ -5,12 +5,17 @@ export class Cursor {
     public from: number = 0;
     public to: number = 0;
     public width: number = 1;
+    public visible: boolean = false;
+    // Length of stream
+    public stream: number = 0;
     public subjects: Subjects<{
         position: Subject<void>;
         width: Subject<void>;
+        visibility: Subject<void>;
     }> = new Subjects({
         position: new Subject(),
         width: new Subject(),
+        visibility: new Subject<void>(),
     });
 
     public destroy() {
@@ -24,6 +29,17 @@ export class Cursor {
         this.from = frame.from;
         this.to = frame.to;
         this.subjects.get().position.emit();
+    }
+
+    public setStream(len: number) {
+        this.stream = len;
+        const prev = this.visible;
+        this.visible = this.width < this.stream;
+        if (!this.visible) {
+            this.from = 0;
+            this.to = len - 1;
+        }
+        this.visible !== prev && this.subjects.get().visibility.emit();
     }
 
     public setWidth(width: number) {
