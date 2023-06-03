@@ -105,7 +105,7 @@ export class Indexed extends Subscriber {
             .catch((error: Error) => {
                 if (range.to >= this.len()) {
                     // It might be, during request search map has been changed already
-                    // For example we reaqusted range, but right after it a new search
+                    // For example we requested range, but right after it, a new search
                     // was created and length of stream became 0
                     // In this case we don't need to log any errors, but on backend error
                     // will be logged in any way.
