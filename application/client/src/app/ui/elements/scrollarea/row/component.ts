@@ -28,6 +28,8 @@ import { scheme_color_1 } from '@ui/styles/colors';
 })
 @Ilc()
 export class RowComponent extends ChangesDetector implements AfterContentInit, AfterViewInit {
+    protected hash!: string;
+
     @Input() public row!: Row;
     @Input() public selecting!: Selecting;
 
@@ -226,24 +228,16 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
             this.row.session.stream.subjects.get().rank.subscribe(() => {
                 this.update();
             }),
-        );
-        this.env().subscriber.register(
             this.row.session.stream.subjects.get().sources.subscribe(() => {
                 this.update();
             }),
-        );
-        this.env().subscriber.register(this.row.change.subscribe(this.update.bind(this)));
-        this.env().subscriber.register(
+            this.row.change.subscribe(this.update.bind(this)),
             this.row.session.bookmarks.subjects
                 .get()
                 .updated.subscribe(this.update.bind(this, false)),
-        );
-        this.env().subscriber.register(
             this.row.session.cursor.subjects.get().updated.subscribe(this.update.bind(this)),
-        );
-        this.env().subscriber.register(
             this.row.change.subscribe(() => {
-                this.detectChanges();
+                this.markChangesForCheck();
             }),
         );
         this.update();
@@ -298,12 +292,14 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         });
     }
 
-    protected hash(): string {
-        return `${this.bookmarked}.${this.selected}.${this.attachment}.${this.source.color}`;
-    }
-
     protected update() {
-        const prev = this.hash();
+        const hash = (): string => {
+            return `${this.row.session.stream.rank.width()}.${this.bookmarked}.${this.selected}.${
+                this.attachment
+            }.${this.source.color}`;
+        };
+        const prev = this.hash;
+        this.hash = hash();
         this.bookmarked = this.row.bookmark().is();
         if (this.row.session.stream.observe().descriptions.count() > 1) {
             this.source.color = getSourceColor(this.row.source);
@@ -325,8 +321,8 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         } else {
             this.attachment = undefined;
         }
-        if (prev !== this.hash()) {
-            this.detectChanges();
+        if (prev !== this.hash) {
+            this.markChangesForCheck();
         }
     }
 }

@@ -1,7 +1,6 @@
 import {
     Component,
     Input,
-    OnDestroy,
     AfterContentInit,
     AfterViewInit,
     HostListener,
@@ -10,13 +9,13 @@ import {
     ElementRef,
     ChangeDetectorRef,
 } from '@angular/core';
-import { Subscription } from '@platform/env/subscription';
 import { Service } from '../controllers/service';
 import { Holder } from '../controllers/holder';
 import { ChangesInitiator, Frame, PositionEvent } from '../controllers/frame';
 import { LockToken } from '@ui/env/lock.token';
 import { stop } from '@ui/env/dom';
 import { ChangesDetector } from '@ui/env/extentions/changes';
+import { Ilc, IlcInterface } from '@env/decorators/component';
 
 const MAX_SCROLL_THUMB_HEIGHT: number = 20;
 
@@ -25,9 +24,10 @@ const MAX_SCROLL_THUMB_HEIGHT: number = 20;
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
+@Ilc()
 export class ScrollAreaVerticalComponent
     extends ChangesDetector
-    implements AfterContentInit, AfterViewInit, OnDestroy
+    implements AfterContentInit, AfterViewInit
 {
     @Input() public service!: Service;
     @Input() public holder!: Holder;
@@ -35,7 +35,6 @@ export class ScrollAreaVerticalComponent
 
     @Output() public scrolling = new EventEmitter<number>();
 
-    private _subscriptions: Map<string, Subscription> = new Map();
     private _height: number = 0;
     private _fillerHeight: number = 0;
     private _count: number = 0;
@@ -70,35 +69,22 @@ export class ScrollAreaVerticalComponent
         return false;
     }
 
-    constructor(changeDetectorRef: ChangeDetectorRef, private elRef: ElementRef<HTMLElement>) {
-        super(changeDetectorRef);
-    }
-
-    public ngOnDestroy() {
-        this._subscriptions.forEach((subscription: Subscription) => {
-            subscription.unsubscribe();
-        });
+    constructor(cdRef: ChangeDetectorRef, private elRef: ElementRef<HTMLElement>) {
+        super(cdRef);
     }
 
     public ngAfterContentInit() {
         this._scrollEventLockToken.lock();
         this._count = this.service.getLen();
-        this._subscriptions.set(
-            'onStorageUpdated',
+        this.env().subscriber.register(
             this.service.onLen((len: number) => {
                 this._count = len;
                 this._calculate();
             }),
-        );
-        this._subscriptions.set(
-            'onHeightChange',
             this.holder.onHeightChange((height: number) => {
                 this._height = height;
                 this._calculate();
             }),
-        );
-        this._subscriptions.set(
-            'onPositionChange',
             this.frame.onPositionChange((event: PositionEvent) => {
                 if (
                     event.initiator === ChangesInitiator.Scrolling ||
@@ -140,3 +126,4 @@ export class ScrollAreaVerticalComponent
         this.markChangesForCheck();
     }
 }
+export interface ScrollAreaVerticalComponent extends IlcInterface {}

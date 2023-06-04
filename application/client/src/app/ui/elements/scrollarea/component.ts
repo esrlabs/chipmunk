@@ -123,7 +123,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
                         row.destroy();
                     });
                 }
-                this.detectChanges();
+                this.markChangesForCheck();
                 this.selecting.restore();
             }),
         );
@@ -133,7 +133,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
                     .add(`:not(*[id="${this._id}"] *) {
                 	user-select: none;
                 }`);
-                this.detectChanges();
+                this.markChangesForCheck();
             }),
         );
         this._subscriber.register(
@@ -142,7 +142,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
                     this._removeGlobalStyleHandler();
                     this._removeGlobalStyleHandler = undefined;
                 }
-                this.detectChanges();
+                this.markChangesForCheck();
             }),
         );
         this._subscriber.register(
