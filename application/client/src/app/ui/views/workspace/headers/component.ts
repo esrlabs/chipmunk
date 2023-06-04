@@ -61,7 +61,7 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
     public ngAfterContentInit(): void {
         this.env().subscriber.register(
             this.session.stream.subjects.get().rank.subscribe(() => {
-                this.detectChanges();
+                this.markChangesForCheck();
             }),
         );
         this.headers = this.controller.headers
@@ -86,7 +86,7 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
 
     public setOffset(left: number): void {
         this.offset = left;
-        this.detectChanges();
+        this.markChangesForCheck();
     }
 }
 export interface ColumnsHeaders extends IlcInterface {}

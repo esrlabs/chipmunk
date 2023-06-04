@@ -12,7 +12,7 @@ export enum ChangesInitiator {
     RowsDelivered = 4,
     Selecting = 5,
     Keyboard = 6,
-    Other = 7,
+    Refresh = 7,
 }
 
 export interface PositionEvent {
@@ -43,6 +43,7 @@ export class Frame extends Subscriber {
                 const prev = this._prev;
                 this._prev = this._frame.get();
                 if (
+                    initiator === ChangesInitiator.Refresh ||
                     prev === undefined ||
                     prev.from !== this._prev.from ||
                     prev.to !== this._prev.to
@@ -52,8 +53,6 @@ export class Frame extends Subscriber {
                     this._service.setLen(this._frame.getTotal());
                 }
             }),
-        );
-        this.register(
             this._holder.onHeightChange((height: number) => {
                 this._frame.setLength(
                     Math.floor(height / this._service.getItemHeight()),
@@ -61,8 +60,6 @@ export class Frame extends Subscriber {
                 );
                 this._service.setFrame(this._frame.get());
             }),
-        );
-        this.register(
             this._service.onRows((packet: IRowsPacket) => {
                 if (!this._frame.equal(packet.range)) {
                     return;
@@ -70,13 +67,9 @@ export class Frame extends Subscriber {
                 this._rows = packet.rows;
                 this._subjects.change.emit(this._rows);
             }),
-        );
-        this.register(
             this._service.onRefresh(() => {
-                this._frame.refresh(ChangesInitiator.Other);
+                this._frame.refresh(ChangesInitiator.Refresh);
             }),
-        );
-        this.register(
             this._service.onLen((len: number) => {
                 this._frame.setTotal(len, ChangesInitiator.StorageUpdated);
             }),

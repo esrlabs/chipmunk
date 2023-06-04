@@ -54,14 +54,10 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                         });
                 }
             }),
-        );
-        this.env().subscriber.register(
             this.session.indexed.subjects.get().updated.subscribe((len: number) => {
                 this.service.setLen(len);
                 this.service.refresh();
             }),
-        );
-        this.env().subscriber.register(
             this.service.onBound(() => {
                 this.env().subscriber.register(
                     this.service.getFrame().onFrameChange(() => {
