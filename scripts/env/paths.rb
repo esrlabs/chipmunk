@@ -28,29 +28,29 @@ module Paths
       'mac/chipmunk.app/Contents/Resources'
     end
   end
-  TS_BINDINGS = 'application/apps/rustcore/ts-bindings'
-  RS_BINDINGS = 'application/apps/rustcore/rs-bindings'
+
+  ANSI = 'application/apps/webassembly/ansi'
+  CHECKLISTS = 'scripts/tools/file_checklists'
   CLIENT = 'application/client'
   CLIENT_DIST = 'application/client/dist'
+  CLIPPY = 'cargo +nightly clippy --all --all-features -- -D warnings -A clippy::uninlined_format_args'
+  CONFIG = 'scripts/config.json'
   ELECTRON = 'application/holder'
-  ELECTRON_DIST = 'application/holder/dist'
   ELECTRON_CLIENT_DEST = 'application/holder/dist/client'
-  TSBINDINGS = 'application/apps/rustcore/ts-bindings'
-  RUSTCORE = 'application/apps/rustcore'
+  ELECTRON_DIST = 'application/holder/dist'
   INDEXER = 'application/apps/indexer'
+  JASMINE = './node_modules/.bin/electron ./node_modules/jasmine/bin/jasmine.js'
+  MATCHER = 'application/apps/webassembly/matcher'
   PLATFORM = 'application/platform'
   PLATFORM_DIST = 'application/platform/dist'
-  CLIPPY_NIGHTLY = 'cargo +nightly clippy --all --all-features -- -D warnings -A clippy::uninlined_format_args'
-  TSC = "#{ELECTRON}/node_modules/.bin/tsc"
-  CONFIG = 'scripts/config.json'
-  MATCHER = 'application/apps/webassembly/matcher'
-  ANSI = 'application/apps/webassembly/ansi'
-  UTILS = 'application/apps/webassembly/utils'
-  UPDATER = 'application/apps/precompiled/updater'
   RELEASE = 'application/holder/release'
   RELEASE_BIN = "#{RELEASE}/#{Paths.get_release_bin_folder}"
-  RELEASE_RESOURCES = "#{RELEASE}/#{Paths.get_release_resources_folder}"
   RELEASE_BUILD = "#{RELEASE}/#{Paths.get_release_build_folder}"
-  JASMINE = './node_modules/.bin/electron ./node_modules/jasmine/bin/jasmine.js'
-  CHECKLISTS = 'scripts/tools/file_checklists'
+  RELEASE_RESOURCES = "#{RELEASE}/#{Paths.get_release_resources_folder}"
+  RS_BINDINGS = 'application/apps/rustcore/rs-bindings'
+  RUSTCORE = 'application/apps/rustcore'
+  TSC = "#{ELECTRON}/node_modules/.bin/tsc"
+  TS_BINDINGS = 'application/apps/rustcore/ts-bindings'
+  UPDATER = 'application/apps/precompiled/updater'
+  UTILS = 'application/apps/webassembly/utils'
 end
