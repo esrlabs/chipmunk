@@ -11,6 +11,10 @@ class Matcher
     @changes_to_files = ChangeChecker.has_changes?(Paths::MATCHER, @targets)
   end
 
+  def changes_to_files
+    @changes_to_files
+  end
+
   def clean
     @targets.each do |path|
       if File.exist?(path)
