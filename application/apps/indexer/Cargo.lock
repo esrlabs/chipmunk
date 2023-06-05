@@ -1931,10 +1931,13 @@ dependencies = [
  "chrono-tz",
  "crossbeam-channel",
  "dlt-core",
+ "env_logger",
+ "etherparse",
  "humantime",
  "lazy_static",
  "log",
  "memchr",
+ "pcap-parser",
  "rand 0.8.5",
  "rustc-hash",
  "serde",
@@ -1942,6 +1945,7 @@ dependencies = [
  "someip-payload",
  "stringreader",
  "thiserror",
+ "tokio-util",
 ]
 
 [[package]]

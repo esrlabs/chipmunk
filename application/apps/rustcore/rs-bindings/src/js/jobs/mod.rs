@@ -182,6 +182,21 @@ impl UnboundJobs {
     }
 
     #[node_bindgen]
+    async fn get_someip_statistic(
+        &self,
+        id: i64,
+        files: Vec<String>,
+    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
+        self.api
+            .as_ref()
+            .ok_or(ComputationError::SessionUnavailable)?
+            .get_someip_statistic(id_from_i64(id)?, files)
+            .await
+            .map_err(ComputationErrorWrapper)
+            .map(CommandOutcomeWrapper)
+    }
+
+    #[node_bindgen]
     async fn get_shell_profiles(
         &self,
         id: i64,

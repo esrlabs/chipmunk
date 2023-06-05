@@ -1952,16 +1952,19 @@ dependencies = [
  "chrono-tz",
  "crossbeam-channel",
  "dlt-core",
+ "etherparse",
  "humantime",
  "lazy_static",
  "log",
  "memchr",
+ "pcap-parser",
  "rand",
  "rustc-hash",
  "serde",
  "someip-messages",
  "someip-payload",
  "thiserror",
+ "tokio-util",
 ]
 
 [[package]]

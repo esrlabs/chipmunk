@@ -25,6 +25,7 @@ export abstract class JobsNative {
     public abstract spawnProcess(sequence: number, path: string, args: string[]): Promise<void>;
     public abstract getFileChecksum(sequence: number, path: string): Promise<string>;
     public abstract getDltStats(sequence: number, files: string[]): Promise<string>;
+    public abstract getSomeipStatistic(sequence: number, files: string[]): Promise<string>;
     public abstract getShellProfiles(sequence: number): Promise<string>;
     public abstract getContextEnvvars(sequence: number): Promise<string>;
     public abstract getSerialPortsList(sequence: number): Promise<string[]>;
