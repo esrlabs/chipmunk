@@ -6,8 +6,9 @@ mod process;
 mod regex;
 mod serial;
 mod shells;
+mod someip;
 
-use crate::events::ComputationError;
+use crate::{events::ComputationError, unbound::commands::someip::get_someip_statistic};
 
 use log::{error, trace};
 use processor::search::filter::SearchFilter;
@@ -65,6 +66,10 @@ pub enum Command {
         Vec<String>,
         oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>,
     ),
+    GetSomeipStatistic(
+        Vec<String>,
+        oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>,
+    ),
     GetShellProfiles(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
     GetContextEnvvars(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
     SerialPortsList(oneshot::Sender<Result<CommandOutcome<Vec<String>>, ComputationError>>),
@@ -89,6 +94,7 @@ impl std::fmt::Display for Command {
                 Command::SerialPortsList(_) => "Getting serial ports list",
                 Command::Checksum(_, _) => "Calculating file's checksum",
                 Command::GetDltStats(_, _) => "Getting dlt stats",
+                Command::GetSomeipStatistic(_, _) => "Getting someip statistic",
                 Command::GetRegexError(_, _) => "Checking regex",
             }
         )
@@ -117,6 +123,9 @@ pub async fn process(command: Command, signal: Signal) {
         }
         Command::Checksum(file, tx) => tx.send(checksum::checksum(&file, signal)).is_err(),
         Command::GetDltStats(files, tx) => tx.send(dlt::stats(files, signal)).is_err(),
+        Command::GetSomeipStatistic(files, tx) => {
+            tx.send(get_someip_statistic(files, signal)).is_err()
+        }
         Command::GetShellProfiles(tx) => tx.send(shells::get_valid_profiles(signal)).is_err(),
         Command::GetContextEnvvars(tx) => tx.send(shells::get_context_envvars(signal)).is_err(),
         Command::SerialPortsList(tx) => tx.send(serial::available_ports(signal)).is_err(),
@@ -136,6 +145,7 @@ pub async fn err(command: Command, err: ComputationError) {
         Command::GetRegexError(_filter, tx) => tx.send(Err(err)).is_err(),
         Command::Checksum(_file, tx) => tx.send(Err(err)).is_err(),
         Command::GetDltStats(_files, tx) => tx.send(Err(err)).is_err(),
+        Command::GetSomeipStatistic(_files, tx) => tx.send(Err(err)).is_err(),
         Command::GetShellProfiles(tx) => tx.send(Err(err)).is_err(),
         Command::GetContextEnvvars(tx) => tx.send(Err(err)).is_err(),
         Command::SerialPortsList(tx) => tx.send(Err(err)).is_err(),

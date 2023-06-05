@@ -5,7 +5,8 @@ use crate::{
 };
 use log::trace;
 use parsers::{
-    dlt::DltParser, someip::SomeipParser, text::StringTokenizer, LogMessage, MessageStreamItem, ParseYield, Parser,
+    dlt::DltParser, someip::SomeipParser, text::StringTokenizer, LogMessage, MessageStreamItem,
+    ParseYield, Parser,
 };
 use sources::{
     factory::ParserType,
@@ -44,11 +45,11 @@ pub async fn run_source<S: ByteSource>(
         ParserType::SomeIp(settings) => {
             let someip_parser = match &settings.fibex_file_paths {
                 Some(paths) => SomeipParser::from_fibex_files(paths.clone()),
-                None => SomeipParser::new()
+                None => SomeipParser::new(),
             };
             let producer = MessageProducer::new(someip_parser, source, rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
-        },
+        }
         ParserType::Text => {
             let producer = MessageProducer::new(StringTokenizer {}, source, rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await

@@ -5,6 +5,7 @@ import { IFilter } from '../interfaces/index';
 import { ShellProfile } from 'platform/types/shells';
 
 import { StatisticInfo } from 'platform/types/parsers/dlt';
+import { SomeipStatistic } from 'platform/types/parsers/someip';
 
 export class Jobs extends Base {
     public static async create(): Promise<Jobs> {
@@ -104,6 +105,23 @@ export class Jobs extends Base {
             this.native.getDltStats(sequence, paths),
             sequence,
             'getDltStats',
+        );
+        return job;
+    }
+
+    public getSomeipStatistic(paths: string[]): CancelablePromise<SomeipStatistic> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<SomeipStatistic> = this.execute(
+            (res: string): SomeipStatistic | Error => {
+                try {
+                    return JSON.parse(res) as SomeipStatistic;
+                } catch (e) {
+                    return new Error(error(e));
+                }
+            },
+            this.native.getSomeipStatistic(sequence, paths),
+            sequence,
+            'getSomeipStatistic',
         );
         return job;
     }
