@@ -14,6 +14,14 @@ class Bindings
     @changes_to_ts = ChangeChecker.has_changes?(Paths::TS_BINDINGS, [@dist, @spec, @node_modules])
   end
 
+  def changes_to_rs
+    @changes_to_rs
+  end
+
+  def changes_to_ts
+    @changes_to_ts
+  end
+
   def clean
     @targets.each do |path|
       if File.exist?(path)

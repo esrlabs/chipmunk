@@ -1,3 +1,4 @@
+require 'set'
 module ChangeChecker
 
   # Creates a file with the last modified time of the latest changed file in the list of underlying folders, except the omitted folder locations.
@@ -15,11 +16,13 @@ module ChangeChecker
     old_checklist_file = ChangeChecker.checklist_file(path)
     new_checklist_file = ChangeChecker.checklist_file(path, true)
     @first_run = !File.file?(old_checklist_file)
-  	ChangeChecker.changelist(path, omissions) if @first_run
+    if @first_run
+  	  ChangeChecker.changelist(path, omissions)
+      return true
+    end
   	ChangeChecker.changelist(path, omissions, true)
-    has_changed = (File.open(new_checklist_file).to_a - File.open(old_checklist_file).to_a).size!=0 || (File.open(old_checklist_file).to_a - File.open(new_checklist_file).to_a).size!=0 || @first_run
-    FileUtils.mv(new_checklist_file, old_checklist_file) if has_changed
-    Shell.rm(new_checklist_file)
+    has_changed = File.open(new_checklist_file).to_set != File.open(old_checklist_file).to_set
+    ChangeChecker.update_changelist(has_changed, new_checklist_file, old_checklist_file)
   	return has_changed
   end
 
@@ -31,12 +34,12 @@ module ChangeChecker
   	path.split('/')[-1]
   end
 
-  def self.prune_paths(path)
-    '-path ' + path + '/node_modules -prune -o -path ' + path + '/test_output -prune -o -path ' + path + '/target -prune -o -path ' + path + '/dist -prune -o'
-  end
-
   def self.locations_to_check(path, omissions=[])
     Dir.glob(path+'/*').map{|f| f if File.directory?(f) && !omissions.include?(f)}.compact << path
   end
 
+  def self.update_changelist(has_changed, new_checklist_file, old_checklist_file)
+    FileUtils.mv(new_checklist_file, old_checklist_file) if has_changed
+    Shell.rm(new_checklist_file)
+  end
 end
