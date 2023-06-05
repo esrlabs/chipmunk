@@ -16,6 +16,10 @@ impl Signal {
         }
     }
 
+    pub fn token(&self) -> CancellationToken {
+        self.signal.clone()
+    }
+
     pub fn invoke(&self) {
         if self.confirmation.is_cancelled() {
             return;

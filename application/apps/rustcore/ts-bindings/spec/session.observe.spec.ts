@@ -269,21 +269,21 @@ describe('Observe', function () {
                             session,
                             done,
                             new Error(
-                                `Failed because timeout. Waited for at least 10 rows. Has been gotten: ${received}`,
+                                `Failed because timeout. Waited for at least 55 rows. Has been gotten: ${received}`,
                             ),
                         );
                     }, 20000);
                     events.StreamUpdated.subscribe((rows: number) => {
                         received = rows;
-                        if (rows < 10 || grabbing) {
+                        if (rows < 55 || grabbing) {
                             return;
                         }
                         clearTimeout(timeout);
                         grabbing = true;
                         stream
-                            .grab(0, 2)
+                            .grab(0, 4)
                             .then((result: IGrabbedElement[]) => {
-                                expect(result.length).toEqual(2);
+                                expect(result.length).toEqual(4);
                                 expect(result[0].content.split("\u0004")).toEqual([
                                     "SD",
                                     /* Header */
@@ -298,7 +298,7 @@ describe('Observe', function () {
                                     /* Payload */ 
                                     "Flags: [C0], Offer 123 v1.0 Inst 1 Ttl 3 UDP 192.168.178.58:30000 TCP 192.168.178.58:30000"
                                 ]);
-                                expect(result[1].content.split("\u0004")).toEqual([
+                                expect(result[3].content.split("\u0004")).toEqual([
                                     "RPC",
                                     /* Header */
                                     "123",   // Service-ID
@@ -372,21 +372,21 @@ describe('Observe', function () {
                             session,
                             done,
                             new Error(
-                                `Failed because timeout. Waited for at least 10 rows. Has been gotten: ${received}`,
+                                `Failed because timeout. Waited for at least 55 rows. Has been gotten: ${received}`,
                             ),
                         );
                     }, 20000);
                     events.StreamUpdated.subscribe((rows: number) => {
                         received = rows;
-                        if (rows < 10 || grabbing) {
+                        if (rows < 55 || grabbing) {
                             return;
                         }
                         clearTimeout(timeout);
                         grabbing = true;
                         stream
-                            .grab(0, 2)
+                            .grab(0, 4)
                             .then((result: IGrabbedElement[]) => {
-                                expect(result.length).toEqual(2);
+                                expect(result.length).toEqual(4);
                                 expect(result[0].content.split("\u0004")).toEqual([
                                     "SD",
                                     /* Header */
@@ -401,7 +401,7 @@ describe('Observe', function () {
                                     /* Payload */ 
                                     "Flags: [C0], Offer 123 v1.0 Inst 1 Ttl 3 UDP 192.168.178.58:30000 TCP 192.168.178.58:30000"
                                 ]);
-                                expect(result[1].content.split("\u0004")).toEqual([
+                                expect(result[3].content.split("\u0004")).toEqual([
                                     "RPC",
                                     /* Header */
                                     "123",   // Service-ID

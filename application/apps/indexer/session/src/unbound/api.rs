@@ -138,6 +138,20 @@ impl UnboundSessionAPI {
             .await
     }
 
+    pub async fn get_someip_statistic(
+        &self,
+        id: u64,
+        files: Vec<String>,
+    ) -> Result<CommandOutcome<String>, ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(
+            id,
+            rx_results,
+            Command::GetSomeipStatistic(files, tx_results),
+        )
+        .await
+    }
+
     pub async fn get_shell_profiles(
         &self,
         id: u64,
