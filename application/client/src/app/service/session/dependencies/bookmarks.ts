@@ -6,6 +6,7 @@ import { Bookmark } from './bookmark/bookmark';
 import { Range } from '@platform/types/range';
 import { Cursor } from './cursor';
 import { hotkeys } from '@service/hotkeys';
+import { Stream } from './stream';
 
 import * as Requests from '@platform/ipc/request';
 
@@ -18,20 +19,24 @@ export class Bookmarks extends Subscriber {
     });
     private _uuid!: string;
     protected bookmarks: Bookmark[] = [];
+    protected pendings: Bookmark[] = [];
     protected cursor!: Cursor;
+    protected stream!: Stream;
 
-    public init(uuid: string, cursor: Cursor) {
+    public init(uuid: string, stream: Stream, cursor: Cursor) {
         this.setLoggerName(`Bookmarks: ${cutUuid(uuid)}`);
         this._uuid = uuid;
         this.cursor = cursor;
+        this.stream = stream;
         this.register(
             hotkeys.listen('j', () => {
                 this.move().prev();
             }),
-        );
-        this.register(
             hotkeys.listen('k', () => {
                 this.move().next();
+            }),
+            stream.subjects.get().updated.subscribe(() => {
+                this.recheck();
             }),
         );
     }
@@ -42,10 +47,13 @@ export class Bookmarks extends Subscriber {
     }
 
     public overwrite(bookmarks: Bookmark[]): Promise<void> {
+        const len = this.stream.len();
+        this.pendings.push(...bookmarks.filter((b) => b.position >= len));
+        const available = bookmarks.filter((b) => b.position < len);
         return this.api()
-            .set(bookmarks.map((b) => b.position))
+            .set(available.map((b) => b.position))
             .then(() => {
-                this.bookmarks = bookmarks;
+                this.bookmarks = available;
                 this.bookmarks.sort((a, b) => {
                     return a.position < b.position ? -1 : 1;
                 });
@@ -105,6 +113,24 @@ export class Bookmarks extends Subscriber {
 
     public update(): void {
         this.subjects.get().updated.emit();
+    }
+
+    protected recheck() {
+        if (this.pendings.length === 0) {
+            return;
+        }
+        if (this.pendings.find((b) => b.position < this.stream.len()) === undefined) {
+            return;
+        }
+        const all = [...this.bookmarks, ...this.pendings];
+        this.pendings = [];
+        this.overwrite(all)
+            .then(() => {
+                this.update();
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail reset bookmarks: ${err.message}`);
+            });
     }
 
     protected move(): {

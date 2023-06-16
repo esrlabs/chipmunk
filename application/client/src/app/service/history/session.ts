@@ -9,6 +9,7 @@ import { DataSource } from '@platform/types/observe';
 import { Subscriber } from '@platform/env/subscription';
 import { Subjects, Subject } from '@platform/env/subscription';
 import { Suitable, SuitableGroup } from './suitable';
+import { LockToken } from '@platform/env/lock.token';
 
 export { Suitable, SuitableGroup };
 
@@ -21,6 +22,8 @@ export class HistorySession extends Subscriber {
     protected readonly session: Session;
     protected readonly sources: string[] = [];
     protected readonly globals: Subscriber = new Subscriber();
+    protected readonly locker: LockToken = new LockToken(true);
+    protected readonly pendings: DataSource[] = [];
 
     public readonly definitions: Definitions;
     public collections: Collections;
@@ -45,10 +48,20 @@ export class HistorySession extends Subscriber {
         this.collections = this.setCollection(Collections.from(session, storage.collections));
         this.globals.register(
             this.session.stream.subjects.get().started.subscribe(this.handleNewSource.bind(this)),
+            this.session.stream.subjects.get().readable.subscribe(() => {
+                this.locker.unlock();
+                this.pendings
+                    .splice(0, this.pendings.length)
+                    .forEach(this.handleNewSource.bind(this));
+            }),
         );
     }
 
     protected handleNewSource(source: DataSource) {
+        if (this.locker.isLocked()) {
+            this.pendings.push(source);
+            return;
+        }
         Definition.fromDataSource(source)
             .then((definition) => {
                 definition = this.storage.definitions.update(definition);

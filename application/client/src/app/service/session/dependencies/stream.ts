@@ -31,12 +31,15 @@ export class Stream extends Subscriber {
         sources: Subject<void>;
         // Session rank is changed
         rank: Subject<number>;
+        // Grabber is inited
+        readable: Subject<void>;
     }> = new Subjects({
         updated: new Subject<number>(),
         started: new Subject<DataSource>(),
         finished: new Subject<DataSource>(),
         sources: new Subject<void>(),
         rank: new Subject<number>(),
+        readable: new Subject<void>(),
     });
     private _len: number = 0;
     private _uuid!: string;
@@ -64,6 +67,7 @@ export class Stream extends Subscriber {
                 }
                 this._len = event.rows;
                 this.subjects.get().updated.emit(this._len);
+                !this.subjects.get().readable.emitted() && this.subjects.get().readable.emit();
                 if (this.rank.set(this._len.toString().length)) {
                     this.subjects.get().rank.emit(this.rank.len);
                 }
