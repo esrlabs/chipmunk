@@ -104,7 +104,7 @@ impl<'a> fmt::Display for DltValue<'a> {
             Value::F64(value) => value.fmt(f),
             Value::StringVal(s) => {
                 for line in s.lines() {
-                    write!(f, "{line}~")?;
+                    write!(f, "{line}")?;
                 }
                 Ok(())
             }
@@ -118,15 +118,15 @@ struct DltArgument<'a>(&'a Argument);
 impl<'a> fmt::Display for DltArgument<'a> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         if let Some(n) = &self.0.name {
-            write!(f, "name: {n} ")?;
+            write!(f, "{n}")?;
         }
         if let Some(u) = &self.0.unit {
-            write!(f, "unit: {u} ")?;
+            write!(f, "{u}")?;
         }
         if let Some(v) = self.0.to_real_value() {
-            write!(f, "value: {v} ")?;
+            write!(f, "{v}")?;
         } else {
-            write!(f, "value: {} ", DltValue(&self.0.value))?;
+            write!(f, "{}", DltValue(&self.0.value))?;
         }
 
         Ok(())
@@ -255,9 +255,7 @@ impl<'a> Serialize for FormattableMessage<'a> {
                     match get_message_type_string(&self.message.extended_header) {
                         Some(v) => state.serialize_field(
                             "payload",
-                            &format!(
-                                "{DLT_ARGUMENT_SENTINAL}[{id}]{DLT_ARGUMENT_SENTINAL} {v}"
-                            ),
+                            &format!("{DLT_ARGUMENT_SENTINAL}[{id}]{DLT_ARGUMENT_SENTINAL} {v}"),
                         )?,
                         None => state.serialize_field(
                             "payload",
@@ -355,9 +353,9 @@ impl<'a> FormattableMessage<'a> {
                 } else {
                     let payload_string =
                         match get_message_type_string(&self.message.extended_header) {
-                            Some(v) => format!(
-                                "{DLT_ARGUMENT_SENTINAL}[{id}]{DLT_ARGUMENT_SENTINAL} {v}"
-                            ),
+                            Some(v) => {
+                                format!("{DLT_ARGUMENT_SENTINAL}[{id}]{DLT_ARGUMENT_SENTINAL} {v}")
+                            }
                             None => format!(
                                 "{DLT_ARGUMENT_SENTINAL}[{id}]{DLT_ARGUMENT_SENTINAL} {data:02X?}"
                             ),
@@ -442,18 +440,17 @@ impl<'a> FormattableMessage<'a> {
             self.write_app_id_context_id_and_message_type(f)?;
         }
         if !fibex_info_added {
-            let _ = match get_message_type_string(&self.message.extended_header) {
-                Some(v) => f.write_str(
-                    &format!(
-                        "{DLT_ARGUMENT_SENTINAL}[{id}]{DLT_ARGUMENT_SENTINAL} {v}"
-                    )[..],
-                ),
-                None => f.write_str(
-                    &format!(
-                        "{DLT_ARGUMENT_SENTINAL}[{id}]{DLT_ARGUMENT_SENTINAL} {data:02X?}"
-                    )[..],
-                ),
-            };
+            let _ =
+                match get_message_type_string(&self.message.extended_header) {
+                    Some(v) => f.write_str(
+                        &format!("{DLT_ARGUMENT_SENTINAL}[{id}]{DLT_ARGUMENT_SENTINAL} {v}")[..],
+                    ),
+                    None => f.write_str(
+                        &format!(
+                            "{DLT_ARGUMENT_SENTINAL}[{id}]{DLT_ARGUMENT_SENTINAL} {data:02X?}"
+                        )[..],
+                    ),
+                };
         }
         Ok(())
     }
