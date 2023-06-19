@@ -1,7 +1,8 @@
 import { TExecutor, Logger, CancelablePromise, AsyncVoidConfirmedExecutor } from './executor';
 import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../../api/session.provider';
-import { Observe } from '../../interfaces/index';
+import { IObserve } from 'platform/types/observe';
+
 export interface IFileOptionsDLT {}
 
 export enum EFileOptionsRequirements {
@@ -11,22 +12,18 @@ export enum EFileOptionsRequirements {
 
 export type TFileOptions = IFileOptionsDLT | undefined;
 
-export const executor: TExecutor<void, Observe.DataSource> = (
+export const executor: TExecutor<void, IObserve> = (
     session: RustSession,
     provider: EventProvider,
     logger: Logger,
-    options: Observe.DataSource,
+    options: IObserve,
 ): CancelablePromise<void> => {
-    return AsyncVoidConfirmedExecutor<Observe.DataSource>(
+    return AsyncVoidConfirmedExecutor<IObserve>(
         session,
         provider,
         logger,
         options,
-        function (
-            session: RustSession,
-            options: Observe.DataSource,
-            operationUuid: string,
-        ): Promise<void> {
+        function (session: RustSession, options: IObserve, operationUuid: string): Promise<void> {
             return session.observe(options, operationUuid);
         },
         'observe',

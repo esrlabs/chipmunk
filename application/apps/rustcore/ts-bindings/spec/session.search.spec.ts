@@ -5,7 +5,7 @@
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 import { initLogger } from './logger';
 initLogger();
-import { Session, Observe } from '../src/api/session';
+import { Session, Factory } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
 import { finish, createSampleFile, runner } from './common';
 import { readConfigurationFile } from './config';
@@ -43,7 +43,12 @@ describe('Search', function () {
                             }`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -198,7 +203,12 @@ describe('Search', function () {
                             }`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -338,7 +348,12 @@ describe('Search', function () {
                         (i: number) => `[${i}]:: some line data\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -397,7 +412,12 @@ describe('Search', function () {
                             }`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -541,7 +561,12 @@ describe('Search', function () {
                             }`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -688,7 +713,12 @@ describe('Search', function () {
                             }`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -829,7 +859,12 @@ describe('Search', function () {
                             }`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .on('confirmed', () => {
                             const calls = ['match A', 'match D', 'match C', 'match B'];
                             let canceled = 0;
