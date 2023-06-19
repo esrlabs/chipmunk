@@ -19,3 +19,10 @@ export interface Extractor<T> {
     from(str: string): T | Error;
     key(): string;
 }
+
+export interface JsonConvertor<T> {
+    json(): {
+        to(): string;
+        from(str: string): T | Error;
+    };
+}
