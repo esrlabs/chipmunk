@@ -6,25 +6,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { HiddenFilterModule } from '@elements/filter.hidden/module';
 
-import { RecentFile } from './file/component';
-import { RecentFileBase } from './file/base/component';
-import { RecentFileDlt } from './file/dlt/component';
 import { RecentActions } from './component';
-import { RecentStream } from './stream/component';
-import { DLTStream } from './stream/parsers/dlt/component';
-import { SourceUdp } from './stream/sources/udp/component';
-import { SourceProcess } from './stream/sources/process/component';
+import { RecentNatureModule } from './nature/module';
 
-const components = [
-    RecentStream,
-    DLTStream,
-    SourceUdp,
-    SourceProcess,
-    RecentFile,
-    RecentActions,
-    RecentFileDlt,
-    RecentFileBase,
-];
+const components = [RecentActions];
 @NgModule({
     imports: [
         CommonModule,
@@ -33,8 +18,9 @@ const components = [
         MatIconModule,
         MatMenuModule,
         HiddenFilterModule,
+        RecentNatureModule,
     ],
     declarations: [...components],
-    exports: [...components]
+    exports: [...components],
 })
 export class RecentActionsModule {}

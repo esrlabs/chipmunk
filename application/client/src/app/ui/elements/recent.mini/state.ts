@@ -7,7 +7,8 @@ import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Holder } from '@module/matcher/holder';
 import { Logger } from '@platform/log';
-import { ParserName, Origin } from '@platform/types/observe';
+
+import * as $ from '@platform/types/observe';
 
 export type CloseHandler = () => void;
 
@@ -16,8 +17,7 @@ export class State extends Holder {
     public actions: WrappedAction[] = [];
     public update: Subject<void> = new Subject<void>();
     public selected: string = '';
-    public readonly origin?: Origin;
-    public readonly parser?: ParserName;
+    public readonly observe?: $.Observe;
 
     protected close: CloseHandler | undefined;
 
@@ -25,12 +25,10 @@ export class State extends Holder {
 
     constructor(
         ilc: IlcInterface & ChangesDetector,
-        origin: Origin | undefined,
-        parser: ParserName | undefined,
+        observe?: $.Observe,
     ) {
         super();
-        this.origin = origin;
-        this.parser = parser;
+        this.observe = observe;
         this.filter = new Filter(ilc, { placeholder: 'Recent files / sources' });
         this.filter.subjects.get().change.subscribe((value: string) => {
             this.filtering(value);
@@ -53,7 +51,7 @@ export class State extends Holder {
                             if (action === undefined) {
                                 return true;
                             }
-                            action.action.apply(this.remove.bind(this));
+                            action.action.apply();
                             this.close !== undefined && this.close();
                             return true;
                         }
@@ -168,7 +166,7 @@ export class State extends Holder {
             .get()
             .then((actions: Action[]) => {
                 this.actions = actions
-                    .filter((action) => action.isSuitable(this.origin, this.parser))
+                    .filter((action) => action.isSuitable(this.observe))
                     .map((action) => new WrappedAction(action, this.matcher));
                 this.actions.sort((a: WrappedAction, b: WrappedAction) => {
                     return b.action.stat.score().recent() >= a.action.stat.score().recent()

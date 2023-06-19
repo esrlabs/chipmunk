@@ -3,8 +3,10 @@ import { ObserveSource } from '@service/session/dependencies/observing/source';
 import { IComponentDesc } from '@elements/containers/dynamic/component';
 import { List } from '@ui/views/sidebar/observe/lists/process/component';
 import { IMenuItem } from '@ui/service/contextmenu';
-import { opener } from '@service/opener';
-import { Source } from '@platform/types/transport';
+import { session } from '@service/session';
+
+import * as $ from '@platform/types/observe';
+import * as Factory from '@platform/types/observe/factory';
 
 export class Provider extends Base {
     private _sources: ObserveSource[] = [];
@@ -25,7 +27,7 @@ export class Provider extends Base {
             items.push({
                 caption: 'Repeat Command',
                 handler: () => {
-                    this.repeat(source.source).catch((err: Error) => {
+                    this.clone(source.observe).catch((err: Error) => {
                         this.logger.error(`Fail to repeat: ${err.message}`);
                     });
                 },
@@ -35,17 +37,16 @@ export class Provider extends Base {
     }
 
     public update(sources: ObserveSource[]): Provider {
-        this._sources = sources.filter((source) => source.source.is().process);
+        this._sources = sources.filter(
+            (source) =>
+                source.observe.origin.nature() instanceof
+                $.Origin.Stream.Stream.Process.Configuration,
+        );
         return this;
     }
 
     public openNewSessionOptions() {
-        opener
-            .stream(undefined, true, Source.Process)
-            .text()
-            .catch((err: Error) => {
-                this.logger.error(`Fail to open options: ${err.message}`);
-            });
+        session.initialize().configure(new Factory.Stream().process().observe);
     }
 
     public sources(): ObserveSource[] {

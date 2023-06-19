@@ -1,5 +1,6 @@
 import { Render } from './index';
 import { Columns } from './columns';
+import { Protocol } from '@platform/types/observe/parser/index';
 
 const MIN_COLUMN_WIDTH = 30;
 const MAX_COLUMN_WIDTH = 600;
@@ -64,6 +65,10 @@ export class Implementation extends Render<Columns> {
                 MAX_COLUMN_WIDTH,
             ),
         );
+    }
+
+    public override protocol(): Protocol {
+        return Protocol.Dlt;
     }
 
     public override columns(): number {

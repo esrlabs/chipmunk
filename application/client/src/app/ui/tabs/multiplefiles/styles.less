@@ -1,0 +1,139 @@
+@import '../../styles/variables.less';
+
+:host {
+  position: absolute;
+  display: block;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  & mat-card.top {
+    overflow-y: scroll;
+    height: fit-content;
+    padding-top: 0px;
+  }
+  & div.controls {
+      text-align: right;
+  }
+  & h1 {
+      font-size: 14px;
+  }
+  & button {
+      position: relative;
+      display: inline-block;
+      margin: 6px 0 6px 6px;
+  }
+  & div.left {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 330px;
+      overflow: hidden;
+      justify-content: stretch;
+      justify-items: stretch;
+  }
+  & div.right {
+      position: absolute;
+      width: 320px;
+      right: 6px;
+      bottom: 0;
+      top: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      & .mat-form-field{
+          width: 100%;
+      }
+      & mat-divider.fibex-divider {
+          margin-top: 12px;
+      }
+      & div.spacer{
+          flex: auto;
+      }
+  }
+  & div.filter {
+      position: absolute;
+      z-index: 1000;
+      padding: 6px 12px;
+      background: @scheme-color-warning-light;
+      top: 6px;
+      right: 6px;
+      box-shadow: 3px 3px 3px rgb(0 0 0 / 40%);
+      border-radius: 3px;
+  }
+  & .hidden {
+    display: none;
+  }
+  & .table-fill {
+      width: 100%;
+  }
+	& div.overview {
+        display: flex;
+        height: 30px;
+            margin-bottom: 10px;
+        & div.color {
+            height: 100%;
+            flex-direction: column;
+        }
+	}
+    & div.overview-summary {
+        top: 60%;
+        left: 50%;
+        padding: 2px 5px;
+        font-weight: 700;
+        position: absolute;
+        transform: translate(-50%, -50%);
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+	& div.component {
+			display: flex;
+            margin-top: 7px;
+			& span.color {
+					height: 15px;
+					min-width: 15px;
+					margin-top: 2px;
+					margin-right: 1px;
+			}
+			& span.filename {
+				margin-left: 7px;
+				white-space: nowrap;    
+				text-overflow: ellipsis;
+				overflow: hidden;
+			}
+	}
+    & p.none {
+        color: @scheme-color-3;
+        position: absolute;
+        top: 65%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    & td {
+        width: 33%;
+    }
+    & td:nth-child(n+2) {
+        text-align: center;
+    }
+    & td.select-button {
+        text-decoration: underline;
+        cursor: pointer;
+    }
+    & td.yellow {
+        color: yellow;
+        font-weight: 650;
+    }
+    & tr.empty-row {
+        height: 20px;
+    }
+    & div.dividing-line {
+        position: absolute;
+        width: ~"calc(100% - 38px)";
+        left: 19px;
+        border-top: dashed thin grey;
+    }
+}

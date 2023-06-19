@@ -1,0 +1,22 @@
+<mat-form-field class="material-mofication-normal row">
+    <mat-label>Address</mat-label>
+    <input matInput [(ngModel)]="multicast.multiaddr" (ngModelChange)="onChanges()" [errorStateMatcher]="errors.multiaddr">
+    <mat-error *ngIf="errors.multiaddr.getErrorCode() === 'INVALID'">
+        Please enter a valid IPv4/IPv6 address
+    </mat-error>
+    <mat-error *ngIf="errors.multiaddr.getErrorCode() === 'REQUIRED'">
+        <strong>required</strong>
+    </mat-error>
+</mat-form-field>
+<mat-form-field class="material-mofication-normal row">
+    <mat-label>Interface Address</mat-label>
+    <input matInput [(ngModel)]="multicast.interface" (ngModelChange)="onChanges()" [errorStateMatcher]="errors.interface">
+    <mat-error *ngIf="errors.interface.getErrorCode() === 'INVALID'">
+        Please define valid interface
+    </mat-error>
+    <mat-error *ngIf="errors.interface.getErrorCode() === 'REQUIRED'">
+        <strong>required</strong>
+    </mat-error>
+</mat-form-field>
+<span class="filler"></span>
+<mat-icon (click)="onRemove()">close</mat-icon>

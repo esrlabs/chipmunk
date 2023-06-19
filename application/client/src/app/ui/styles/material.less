@@ -5,6 +5,11 @@ mat-form-field.material-mofication-normal {
         display: flex;
         flex: auto;
     }
+    &.black {
+        & div.mat-mdc-text-field-wrapper {
+            background: @scheme-color-5;
+        }
+    }
     &.row {
         margin-right: 12px;
         &:last-child {
@@ -359,6 +364,9 @@ mat-card {
     }
     &.sticky {
         padding-top: 0;
+    }
+    &.fill {
+        overflow: auto;
     }
 }
 button[mat-menu-item] {

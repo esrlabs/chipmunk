@@ -1,47 +1,25 @@
-import { Source } from '@platform/types/transport/index';
-import { DataSource } from '@platform/types/observe';
-
+import * as $ from '@platform/types/observe';
 import * as obj from '@platform/env/obj';
 
 export interface IStreamDesc {
-    source: Source;
+    source: $.Origin.Stream.Stream.Source;
     major: string;
     minor: string;
 }
 
 export class StreamDesc implements IStreamDesc {
-    static async fromDataSource(source: DataSource): Promise<IStreamDesc | undefined> {
-        const stream = source.asStream();
+    static async fromDataSource(source: $.Observe): Promise<IStreamDesc | undefined> {
+        const stream = source.origin.as<$.Origin.Stream.Configuration>(
+            $.Origin.Stream.Configuration,
+        );
         if (stream === undefined) {
             return undefined;
         }
-        const def = stream.all();
-        let sourceRef: Source;
-        let major: string = '';
-        let minor: string = '';
-        if (def.Serial !== undefined) {
-            major = def.Serial.path;
-            minor = `${def.Serial.baud_rate}.${def.Serial.data_bits}.${def.Serial.stop_bits}`;
-            sourceRef = Source.Serial;
-        } else if (def.Process !== undefined) {
-            major = `${def.Process.command}`;
-            minor = '';
-            sourceRef = Source.Process;
-        } else if (def.TCP !== undefined) {
-            major = def.TCP.bind_addr;
-            minor = '';
-            sourceRef = Source.Tcp;
-        } else if (def.UDP !== undefined) {
-            major = def.UDP.bind_addr;
-            minor = def.UDP.multicast.map((m) => `${m.multiaddr}-${m.interface}`).join(',');
-            sourceRef = Source.Udp;
-        } else {
-            throw new Error(`Unknown source`);
-        }
+        const def = stream.desc();
         return {
-            source: sourceRef,
-            major,
-            minor,
+            major: def.major,
+            minor: def.minor,
+            source: stream.instance.instance.alias(),
         };
     }
 
@@ -51,13 +29,13 @@ export class StreamDesc implements IStreamDesc {
         return src === undefined
             ? undefined
             : new StreamDesc({
-                  source: obj.getAsNotEmptyString(src, 's') as Source,
+                  source: obj.getAsNotEmptyString(src, 's') as $.Origin.Stream.Stream.Source,
                   major: obj.getAsString(src, 'ma'),
                   minor: obj.getAsString(src, 'mi'),
               });
     }
 
-    public source: Source;
+    public source: $.Origin.Stream.Stream.Source;
     public major: string;
     public minor: string;
 
