@@ -4,6 +4,7 @@ import { Service } from '@service/cli';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as Requests from 'platform/ipc/request';
+import * as Factory from 'platform/types/observe/factory';
 
 export class Action extends CLIAction {
     protected files: string[] = [];
@@ -61,14 +62,19 @@ export class Action extends CLIAction {
         }
         return new Promise((resolve, _reject) => {
             Requests.IpcRequest.send(
-                Requests.Cli.Open.Response,
-                new Requests.Cli.Open.Request({ files: this.files }),
+                Requests.Cli.Observe.Response,
+                new Requests.Cli.Observe.Request({
+                    observe:
+                        this.files.length === 1
+                            ? new Factory.File().file(this.files[0]).observe.configuration
+                            : new Factory.Concat().files(this.files).observe.configuration,
+                }),
             )
                 .then((response) => {
-                    if (response.sessions === undefined) {
+                    if (response.session === undefined) {
                         return;
                     }
-                    cli.state().sessions(response.sessions);
+                    cli.state().sessions([response.session]);
                 })
                 .catch((err: Error) => {
                     cli.log().error(`Fail apply ${this.name()}: ${err.message}`);
