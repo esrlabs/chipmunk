@@ -25,5 +25,28 @@ div.preset-container{
         &.w-1600 {
             max-width: 1600px;
         }
+        & div.preset-container-left {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 330px;
+            overflow: hidden;
+            justify-content: stretch;
+            justify-items: stretch;
+        }
+        & div.preset-container-right {
+            position: absolute;
+            width: 320px;
+            right: 6px;
+            bottom: 0;
+            top: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
     }  
 }

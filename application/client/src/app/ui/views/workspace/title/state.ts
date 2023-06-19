@@ -67,20 +67,8 @@ export class State implements Destroyable<void> {
         } else if (sources.length === 1) {
             this.states.sde = !this.session.stream.sde.visibility().hidden();
             this.title = ((): string => {
-                const source = sources[0].source;
-                const file = source.asFile();
-                if (file !== undefined) {
-                    return file;
-                }
-                const concat = source.asConcatedFiles();
-                if (concat !== undefined) {
-                    return `concated ${concat.length} files`;
-                }
-                const desc = source.desc();
-                if (desc instanceof Error) {
-                    this.safe().error(`Cannot get description of source: ${desc.message}`);
-                    return `no data`;
-                }
+                const observe = sources[0].observe;
+                const desc = observe.origin.desc();
                 return `${desc.major}: ${desc.minor}`;
             })();
         } else {

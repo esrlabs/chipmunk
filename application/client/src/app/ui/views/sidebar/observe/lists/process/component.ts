@@ -1,15 +1,14 @@
 import { Component, ChangeDetectorRef, AfterContentInit, ViewChild } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Element } from '../../element/element';
-import { Action } from '@ui/tabs/sources/common/actions/action';
-import { QuickSetup } from '../../../../../elements/transport/setup/quick/process/component';
-import { DataSource } from '@platform/types/observe';
+import { Action } from '@ui/tabs/observe/action';
+import { QuickSetup } from '@tabs/observe/stream/transport/setup/quick/process/component';
 import { IButton } from '../../common/title/component';
-import { components } from '@env/decorators/initial';
-import { Vertical, Horizontal } from '@ui/service/popup';
 import { State } from '../../states/process';
 import { ListBase } from '../component';
 import { Provider } from '@service/session/dependencies/observing/implementations/processes';
+
+import * as Factroy from '@platform/types/observe/factory';
 
 @Component({
     selector: 'app-views-observed-list-process',
@@ -27,27 +26,7 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
         {
             icon: 'codicon-tasklist',
             handler: () => {
-                const parser = this.provider.get().parser();
-                const origin = this.provider.get().origin();
-                if (parser instanceof Error || origin instanceof Error) {
-                    return;
-                }
-                this.ilc().services.ui.popup.open({
-                    component: {
-                        factory: components.get('app-recent-actions-mini'),
-                        inputs: {
-                            parser,
-                            origin,
-                        },
-                    },
-                    position: {
-                        vertical: Vertical.top,
-                        horizontal: Horizontal.center,
-                    },
-                    closeOnKey: 'Escape',
-                    width: 450,
-                    uuid: 'app-recent-actions-popup-observed',
-                });
+                this.provider.recent();
             },
         },
         {
@@ -74,7 +53,9 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
             this.action.subjects.get().apply.subscribe(() => {
                 this.provider
                     .clone(
-                        DataSource.stream().process(this.quickSetupRef.state.asSourceDefinition()),
+                        new Factroy.Stream()
+                            .asText()
+                            .process(this.quickSetupRef.state.configuration).observe,
                     )
                     .then(() => {
                         this.action.subjects.get().applied.emit();

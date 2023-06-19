@@ -1,39 +1,33 @@
-import { DataSource } from '@platform/types/observe';
+import { Observe } from '@platform/types/observe';
 import { SdeRequest, SdeResponse } from '@platform/types/sde';
 
-export class ObserveOperation {
-    public readonly uuid: string;
-    protected readonly source: DataSource;
-    protected readonly cancel: () => Promise<void>;
-    protected readonly restarting: (source: DataSource) => Promise<void>;
-    protected readonly sde: (msg: SdeRequest) => Promise<SdeResponse>;
+import * as $ from '@platform/types/observe';
 
+export class ObserveOperation {
     private _sdeTasksCount: number = 0;
 
     constructor(
-        uuid: string,
-        source: DataSource,
-        sde: (msg: SdeRequest) => Promise<SdeResponse>,
-        restart: (source: DataSource) => Promise<void>,
-        cancel: () => Promise<void>,
-    ) {
-        this.uuid = uuid;
-        this.source = source;
-        this.cancel = cancel;
-        this.restarting = restart;
-        this.sde = sde;
-    }
+        public readonly uuid: string,
+        protected readonly observe: Observe,
+        protected readonly sde: (msg: SdeRequest) => Promise<SdeResponse>,
+        protected readonly restarting: (observe: Observe) => Promise<string>,
+        protected readonly cancel: () => Promise<void>,
+    ) {}
 
     public abort(): Promise<void> {
         return this.cancel();
     }
 
-    public restart(): Promise<void> {
-        return this.restarting(this.source);
+    public restart(): Promise<string> {
+        return this.restarting(this.observe);
     }
 
-    public asSource(): DataSource {
-        return this.source;
+    public asObserve(): Observe {
+        return this.observe;
+    }
+
+    public asOrigin(): $.Origin.Configuration {
+        return this.observe.origin;
     }
 
     public send(): {
@@ -46,24 +40,22 @@ export class ObserveOperation {
                 this._sdeTasksCount -= 1;
             });
         };
-        const isSupported = (): boolean => {
-            if (this.source.is().process || this.source.is().serial) {
-                return true;
-            }
-            return false;
-        };
         return {
             text: (data: string): Promise<SdeResponse> => {
-                if (!isSupported()) {
-                    return Promise.reject(new Error(`Data source doesn't support SDE protocol`));
+                if (!this.observe.origin.isSdeSupported()) {
+                    return Promise.reject(
+                        new Error(`Observed origin doesn't support SDE protocol`),
+                    );
                 }
                 return send({
                     WriteText: `${data}\n`,
                 });
             },
             bytes: (data: number[]): Promise<SdeResponse> => {
-                if (!isSupported()) {
-                    return Promise.reject(new Error(`Data source doesn't support SDE protocol`));
+                if (!this.observe.origin.isSdeSupported()) {
+                    return Promise.reject(
+                        new Error(`Observed origin doesn't support SDE protocol`),
+                    );
                 }
                 return send({
                     WriteBytes: data,

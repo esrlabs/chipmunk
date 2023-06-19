@@ -2,7 +2,7 @@ import { Session } from '@service/session';
 import { IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { ObserveOperation } from '@service/session/dependencies/stream';
-import { SourceDescription } from '@platform/types/observe';
+import { IOriginDetails } from '@platform/types/observe';
 import { Destroyable } from '@platform/types/life/destroyable';
 import { Notification } from '@ui/service/notifications';
 import { getSourceColor } from '@ui/styles/colors';
@@ -50,26 +50,12 @@ export class State implements Destroyable<void> {
     }
 
     public getSourceColor(source: ObserveOperation): string {
-        const id = this.session.stream.observe().descriptions.id(source.asSource().alias());
+        const id = this.session.stream.observe().descriptions.id(source.uuid);
         return id === undefined ? '' : getSourceColor(id);
     }
 
-    public desc(source: ObserveOperation): SourceDescription {
-        const desc = source.asSource().desc();
-        if (desc instanceof Error) {
-            this.safe().error(`Fail to get DataSource description: ${desc.message}`);
-            return {
-                major: 'unknown',
-                minor: '',
-                icon: '',
-                type: '',
-                state: {
-                    stopped: '',
-                    running: '',
-                },
-            };
-        }
-        return desc;
+    public desc(source: ObserveOperation): IOriginDetails {
+        return source.asOrigin().desc();
     }
 
     public send(data: string): Promise<void> {

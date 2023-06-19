@@ -11,6 +11,8 @@ import { notifications, Notification } from '@ui/service/notifications';
 import { createPassiveMatcheeList } from '@module/matcher';
 import { unique } from '@platform/env/sequence';
 
+import * as Factory from '@platform/types/observe/factory';
+
 export type CloseHandler = () => void;
 
 const MAX_VISIBLE_ITEMS = 50;
@@ -125,8 +127,11 @@ export class State extends Holder {
             dlt: (): void => {
                 this.ilc
                     .ilc()
-                    .services.system.opener.binary(item.filename)
-                    .dlt()
+                    .services.system.session.initialize()
+                    .configure(
+                        new Factory.File().asDlt().type(Factory.FileType.Binary).file(item.filename)
+                            .observe,
+                    )
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
                     });
@@ -134,8 +139,11 @@ export class State extends Holder {
             pcapng: (): void => {
                 this.ilc
                     .ilc()
-                    .services.system.opener.pcapng(item.filename)
-                    .dlt()
+                    .services.system.session.initialize()
+                    .configure(
+                        new Factory.File().asDlt().type(Factory.FileType.PcapNG).file(item.filename)
+                            .observe,
+                    )
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
                     });
@@ -143,14 +151,17 @@ export class State extends Holder {
             text: (): void => {
                 this.ilc
                     .ilc()
-                    .services.system.opener.text(item.filename)
-                    .text()
+                    .services.system.session.initialize()
+                    .configure(
+                        new Factory.File().asText().type(Factory.FileType.Text).file(item.filename)
+                            .observe,
+                    )
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
                     });
             },
             auto: (): void => {
-                // TODO: needs implementation >>>>>>>>>>>>>>>>>>>>
+                // TODO: needs implementation
                 // this.ilc
                 //     .ilc()
                 //     .services.system.opener.text(item.filename)

@@ -3,6 +3,10 @@ import { ObserveSource } from '@service/session/dependencies/observing/source';
 import { IComponentDesc } from '@elements/containers/dynamic/component';
 import { List } from '@ui/views/sidebar/observe/lists/serial/component';
 import { IMenuItem } from '@ui/service/contextmenu';
+import { session } from '@service/session';
+
+import * as $ from '@platform/types/observe';
+import * as Factory from '@platform/types/observe/factory';
 
 export class Provider extends Base {
     private _sources: ObserveSource[] = [];
@@ -25,7 +29,7 @@ export class Provider extends Base {
             items.push({
                 caption: 'Connect',
                 handler: () => {
-                    this.repeat(source.source).catch((err: Error) => {
+                    this.clone(source.observe).catch((err: Error) => {
                         this.logger.error(`Fail to repeat: ${err.message}`);
                     });
                 },
@@ -34,8 +38,16 @@ export class Provider extends Base {
         return items;
     }
 
+    public openNewSessionOptions() {
+        session.initialize().configure(new Factory.Stream().serial().observe);
+    }
+
     public update(sources: ObserveSource[]): Provider {
-        this._sources = sources.filter((source) => source.source.is().serial);
+        this._sources = sources.filter(
+            (source) =>
+                source.observe.origin.nature() instanceof
+                $.Origin.Stream.Stream.Serial.Configuration,
+        );
         return this;
     }
 

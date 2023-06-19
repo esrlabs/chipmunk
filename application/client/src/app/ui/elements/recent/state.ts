@@ -5,26 +5,21 @@ import { Subject } from '@platform/env/subscription';
 import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Holder } from '@module/matcher';
-import { ParserName, Origin } from '@platform/types/observe';
 import { Logger } from '@platform/log';
+
+import * as $ from '@platform/types/observe';
 
 export class State extends Holder {
     public actions: WrappedAction[] = [];
 
     public readonly update: Subject<void> = new Subject<void>();
-    public readonly origin?: Origin;
-    public readonly parser?: ParserName;
+    public readonly observe: $.Observe | undefined;
 
     private _logger: Logger;
 
-    constructor(
-        ilc: IlcInterface & ChangesDetector,
-        origin: Origin | undefined,
-        parser: ParserName | undefined,
-    ) {
+    constructor(ilc: IlcInterface & ChangesDetector, observe?: $.Observe) {
         super();
-        this.origin = origin;
-        this.parser = parser;
+        this.observe = observe;
         this._logger = ilc.log();
         ilc.env().subscriber.register(recent.updated.subscribe(this.reload.bind(this)));
         this.reload();
@@ -73,7 +68,7 @@ export class State extends Holder {
             .get()
             .then((actions: Action[]) => {
                 this.actions = actions
-                    .filter((action) => action.isSuitable(this.origin, this.parser))
+                    .filter((action) => action.isSuitable(this.observe))
                     .map((action) => new WrappedAction(action, this.matcher));
                 this.actions.sort((a: WrappedAction, b: WrappedAction) => {
                     return b.action.stat.score().recent() >= a.action.stat.score().recent()

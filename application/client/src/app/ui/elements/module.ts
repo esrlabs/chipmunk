@@ -8,7 +8,6 @@ import { RecentActionsModule } from '@elements/recent/module';
 import { RecentActionsMiniModule } from '@elements/recent.mini/module';
 import { TreeModule } from '@elements/tree/module';
 import { LocksHistoryModule } from '@elements/locks.history/module';
-import { TransportReviewModule } from '@elements/transport/listed/module';
 import { AutocompleteModule } from '@elements/autocomplete/module';
 import { ComTooltipComponent } from '@elements/tooltip/component';
 import { FolderInputModule } from '@elements/folderinput/module';
@@ -24,7 +23,6 @@ import { FavoritesModule } from '@elements/favorites/module';
         RecentActionsMiniModule,
         TreeModule,
         LocksHistoryModule,
-        TransportReviewModule,
         AutocompleteModule,
         FolderInputModule,
         FavoritesModule,
@@ -38,7 +36,6 @@ import { FavoritesModule } from '@elements/favorites/module';
         RecentActionsMiniModule,
         TreeModule,
         LocksHistoryModule,
-        TransportReviewModule,
         AutocompleteModule,
         FolderInputModule,
         FavoritesModule,
@@ -51,10 +48,9 @@ import { FavoritesModule } from '@elements/favorites/module';
         RecentActionsMiniModule,
         TreeModule,
         LocksHistoryModule,
-        TransportReviewModule,
         AutocompleteModule,
         FolderInputModule,
         FavoritesModule,
-    ]
+    ],
 })
 export class ElementsModule {}

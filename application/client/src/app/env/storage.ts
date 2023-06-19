@@ -1,4 +1,4 @@
-import { Destroy } from '@env/declarations';
+import { Destroy } from '@platform/types/env/types';
 
 export class Storage {
     private _entities: Map<string, Destroy> = new Map();

@@ -12,13 +12,13 @@ import {
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
-import { Action, AfterHandler } from '@service/recent/action';
+import { Action } from '@service/recent/action';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { ParserName, Origin } from '@platform/types/observe';
-import { SourceDefinition } from '@platform/types/transport';
 import { HiddenFilter } from '@elements/filter.hidden/component';
+
+import * as $ from '@platform/types/observe';
 
 @Component({
     selector: 'app-recent-actions',
@@ -30,10 +30,7 @@ import { HiddenFilter } from '@elements/filter.hidden/component';
 @Initial()
 @Ilc()
 export class RecentActions extends ChangesDetector implements AfterContentInit, AfterViewInit {
-    @Input() public parser?: ParserName;
-    @Input() public origin?: Origin;
-    @Input() public after?: AfterHandler;
-    @Input() public before?: (source: SourceDefinition) => boolean;
+    @Input() public observe?: $.Observe;
 
     @Output() public applied: EventEmitter<void> = new EventEmitter();
 
@@ -47,7 +44,7 @@ export class RecentActions extends ChangesDetector implements AfterContentInit, 
 
     public ngAfterContentInit(): void {
         this.markChangesForCheck();
-        this.state = new State(this, this.origin, this.parser);
+        this.state = new State(this, this.observe);
         this.env().subscriber.register(
             this.state.update.subscribe(() => {
                 this.detectChanges();
@@ -69,19 +66,14 @@ export class RecentActions extends ChangesDetector implements AfterContentInit, 
     }
 
     public onDefaultAction(action: Action) {
-        const source = action.as().source();
-        if (source !== undefined && this.before !== undefined) {
-            if (!this.before(source)) {
-                return;
-            }
-        }
-        action.after(this.after).apply(this.state.remove.bind(this.state));
+        action.apply().catch((err: Error) => {
+            this.log().error(`Fail to apply action: ${err.message}`);
+        });
     }
 
     public onAllActions(event: MouseEvent, action: Action) {
-        action.after(this.after);
         const items = [
-            ...action.getActions(this.state.remove.bind(this.state)),
+            ...action.getActions(),
             {},
             {
                 caption: 'Remove recent',
