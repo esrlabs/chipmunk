@@ -1,10 +1,10 @@
 import { Base } from './action';
 import { bridge } from '@service/bridge';
-import { opener } from '@service/opener';
 import { session } from '@service/session';
-import { TabSourceMultipleFiles } from '@tabs/sources/multiplefiles/component';
-
+import { TabSourceMultipleFiles } from '@ui/tabs/multiplefiles/component';
 import { notifications, Notification } from '@ui/service/notifications';
+
+import * as Factory from '@platform/types/observe/factory';
 
 export const ACTION_UUID = 'open_text_folder';
 
@@ -41,13 +41,11 @@ export class Action extends Base {
                     inputs: { files: files },
                 },
             });
-            return Promise.resolve();
+        } else {
+            session
+                .initialize()
+                .observe(new Factory.File().file(files[0].filename).asText().observe);
         }
-        return opener
-            .text(files[0])
-            .text()
-            .then(() => {
-                return Promise.resolve();
-            });
+        return Promise.resolve();
     }
 }

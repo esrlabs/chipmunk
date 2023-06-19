@@ -2,7 +2,7 @@ import { Row } from '@schema/content/row';
 import { Range } from './range';
 import { Subject, Subscription } from '@platform/env/subscription';
 import { IRange, Range as SafeRange } from '@platform/types/range';
-import { Destroy } from '@env/declarations';
+import { Destroy } from '@platform/types/env/types';
 import { ChangesInitiator, Frame } from './frame';
 
 export { Range };

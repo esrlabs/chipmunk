@@ -1,13 +1,13 @@
-<ng-container *ngIf="process === undefined">
+<ng-container *ngIf="connection === undefined">
     <span>No data about process</span>
 </ng-container>
-<ng-container *ngIf="process !== undefined">
+<ng-container *ngIf="connection !== undefined">
     <span class="ext">
         <span [attr.class]="('codicon codicon-terminal ' + (isActive() ? 'active' : ''))"></span>
     </span>
     <div class="info">
-        <span class="name t-normal">{{process.command}}</span>
-        <span class="path t-normal">{{process.cwd}}</span>
+        <span class="name t-normal">{{connection.command}}</span>
+        <span class="path t-normal">{{connection.cwd}}</span>
     </div>
     <div class="controlls" >
         <span class="small-icon-button codicon codicon-play-circle" *ngIf="element.source.observer === undefined" (click)="restart($event)"></span>

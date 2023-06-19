@@ -3,6 +3,8 @@ import { File } from '@platform/types/files';
 import { Mutable } from '@platform/types/unity/mutable';
 import { Provider } from '@service/session/dependencies/observing/provider';
 
+import * as $ from '@platform/types/observe';
+
 export class Element {
     public readonly source: ObserveSource;
     public readonly provider: Provider;
@@ -14,13 +16,13 @@ export class Element {
         this.source = source;
         this.provider = provider;
         const session = this.provider.session;
-        this.id = session.stream.observe().descriptions.id(this.source.source.alias());
-        this.selected = session.stream.sde.selecting().is(this.source.source.uuid);
+        this.id = session.stream.observe().descriptions.id(this.source.observe.uuid);
+        this.selected = session.stream.sde.selecting().is(this.source.observe.uuid);
     }
 
     public select(): void {
         const sde = this.provider.session.stream.sde;
-        this.selected = sde.selecting().select(this.source.source.uuid);
+        this.selected = sde.selecting().select(this.source.observe.uuid);
     }
 
     public set(): { file(file: File): Element } {
@@ -32,29 +34,7 @@ export class Element {
         };
     }
 
-    public is(): {
-        file(): boolean;
-        process(): boolean;
-        serial(): boolean;
-        udp(): boolean;
-        tcp(): boolean;
-    } {
-        return {
-            file: (): boolean => {
-                return this.file !== undefined;
-            },
-            process: (): boolean => {
-                return this.source.source.is().process;
-            },
-            serial: (): boolean => {
-                return this.source.source.is().serial;
-            },
-            udp: (): boolean => {
-                return this.source.source.is().udp;
-            },
-            tcp: (): boolean => {
-                return this.source.source.is().tcp;
-            },
-        };
+    public nature(): $.Origin.Context | $.Origin.Stream.Stream.Source {
+        return this.source.observe.origin.getNatureAlias();
     }
 }

@@ -5,8 +5,12 @@ import { ObserveSource } from '@service/session/dependencies/observing/source';
 import { unique } from '@platform/env/sequence';
 import { Subject, Subjects } from '@platform/env/subscription';
 import { IMenuItem } from '@ui/service/contextmenu';
-import { opener } from '@service/opener';
-import { DataSource, SourcesFactory, ParserName, Origin } from '@platform/types/observe';
+import { Observe } from '@platform/types/observe';
+import { session } from '@service/session';
+import { components } from '@env/decorators/initial';
+import { popup, Vertical, Horizontal } from '@ui/service/popup';
+
+import * as $ from '@platform/types/observe';
 
 export interface ProviderConstructor {
     new (session: Session, logger: Logger): Provider;
@@ -48,80 +52,52 @@ export abstract class Provider {
         this.subjects.destroy();
     }
 
-    public get(): {
-        parser(): ParserName | Error;
-        origin(): Origin | Error;
-    } {
-        const sources = this.sources();
-        const last = sources.length > 0 ? sources[sources.length - 1] : undefined;
-        return {
-            parser: (): ParserName | Error => {
-                if (last === undefined) {
-                    return new Error(`Provider doesn't have previous sources. Fail to repeat.`);
-                }
-                return last.source.getParserName();
-            },
-            origin: (): Origin | Error => {
-                if (last === undefined) {
-                    return new Error(`Provider doesn't have previous sources. Fail to repeat.`);
-                }
-                return last.source.getOrigin();
-            },
-        };
-    }
-
-    public repeat(source: DataSource): Promise<void> {
-        const sourceDef = source.asSourceDefinition();
-        if (sourceDef instanceof Error) {
-            return Promise.reject(
-                new Error(
-                    this.logger.error(`Fail to get process definition: ${sourceDef.message}`),
-                ),
-            );
-        }
-        return this.session.stream
-            .connect(sourceDef)
-            .source(source)
-            .catch((err: Error) => {
-                this.logger.error(`Fail to restart process: ${err.message}`);
-            });
-    }
-
-    public clone(factory: SourcesFactory): Promise<void> {
+    public last(): Observe | undefined {
         const sources = this.sources();
         if (sources.length === 0) {
-            return Promise.reject(
-                new Error(`Provider doesn't have previous sources. Fail to repeat.`),
-            );
+            return undefined;
         }
-        const previous = sources[sources.length - 1];
-        const source = (() => {
-            if (previous.source.parser.Dlt !== undefined) {
-                return factory.dlt(previous.source.parser.Dlt);
-            } else if (previous.source.parser.SomeIp !== undefined) {
-                throw new Error(`Ins't supported yet`);
-            } else {
-                return factory.text();
-            }
-        })();
-        const sourceDef = source.asSourceDefinition();
-        if (sourceDef instanceof Error) {
-            return Promise.reject(
-                new Error(
-                    this.logger.error(`Fail to get process definition: ${sourceDef.message}`),
-                ),
-            );
-        }
-        return this.session.stream
-            .connect(sourceDef)
-            .source(source)
-            .catch((err: Error) => {
-                this.logger.error(`Fail to restart process: ${err.message}`);
-            });
+        const observe = sources[sources.length - 1];
+        return observe.observe;
     }
 
-    public openAsNew(source: ObserveSource | DataSource): Promise<string> {
-        return opener.from(source instanceof ObserveSource ? source.source : source);
+    public recent() {
+        const observe = this.last();
+        if (observe === undefined) {
+            return;
+        }
+        popup.open({
+            component: {
+                factory: components.get('app-recent-actions-mini'),
+                inputs: {
+                    observe,
+                },
+            },
+            position: {
+                vertical: Vertical.top,
+                horizontal: Horizontal.center,
+            },
+            closeOnKey: 'Escape',
+            width: 450,
+            uuid: 'app-recent-actions-popup-observed',
+        });
+    }
+
+    public clone(observe: Observe): Promise<string> {
+        if (!(observe.origin.instance instanceof $.Origin.Stream.Configuration)) {
+            return Promise.reject(new Error(`Only Origin.Stream can be repeated`));
+        }
+        const last = this.last();
+        if (last !== undefined) {
+            observe.parser.change(last.parser.instance);
+        }
+        return this.session.stream.observe().start(observe.clone());
+    }
+
+    public openAsNew(source: ObserveSource | Observe): Promise<string | undefined> {
+        return session
+            .initialize()
+            .configure(source instanceof ObserveSource ? source.observe : source);
     }
 
     public setPanels(): Provider {

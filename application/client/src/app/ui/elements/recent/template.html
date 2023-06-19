@@ -4,5 +4,5 @@
         <span class="major" [innerHTML]="safeHtml(action.description().major)"></span>
         <span class="color-scheme-2 minor" [innerHTML]="safeHtml(action.description().minor)"></span>
     </p>
-    <lib-containers-dynamic [component]="action.action.as().component()"></lib-containers-dynamic>
+    <app-recent-nature [observe]="action.action.observe"></app-recent-nature>
 </div>

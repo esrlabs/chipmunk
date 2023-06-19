@@ -9,8 +9,8 @@ import {
 import { Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { SourceRef } from '@service/opener';
-import { File } from '@platform/types/files';
+
+import * as Factory from '@platform/types/observe/factory';
 
 @Component({
     selector: 'app-attach-new-source-menu',
@@ -28,7 +28,7 @@ export class AttachSourceMenu extends ChangesDetector {
             icon: 'note_add',
             title: 'Attach Files',
             handler: () => {
-                this.open().files();
+                throw new Error(`Not implemented!`);
             },
         },
         null,
@@ -36,21 +36,27 @@ export class AttachSourceMenu extends ChangesDetector {
             icon: 'input',
             title: 'Connect TCP',
             handler: () => {
-                this.open().stream(SourceRef.Tcp);
+                this.ilc()
+                    .services.system.session.initialize()
+                    .configure(new Factory.Stream().tcp().observe, this.session);
             },
         },
         {
             icon: 'input',
             title: 'Connect UDP',
             handler: () => {
-                this.open().stream(SourceRef.Udp);
+                this.ilc()
+                    .services.system.session.initialize()
+                    .configure(new Factory.Stream().udp().observe, this.session);
             },
         },
         {
             icon: 'settings_input_composite',
             title: 'Connect Serial',
             handler: () => {
-                this.open().stream(SourceRef.Serial);
+                this.ilc()
+                    .services.system.session.initialize()
+                    .configure(new Factory.Stream().serial().observe, this.session);
             },
         },
         null,
@@ -58,7 +64,9 @@ export class AttachSourceMenu extends ChangesDetector {
             icon: 'minimize',
             title: 'Command',
             handler: () => {
-                this.open().stream(SourceRef.Process);
+                this.ilc()
+                    .services.system.session.initialize()
+                    .configure(new Factory.Stream().process().observe, this.session);
             },
         },
     ];
@@ -78,54 +86,6 @@ export class AttachSourceMenu extends ChangesDetector {
             error: (): string | undefined => {
                 const error = this.session.observed.getNewSourceError();
                 return error instanceof Error ? error.message : undefined;
-            },
-        };
-    }
-
-    protected open(): {
-        files(): void;
-        stream(sourceRef: SourceRef): void;
-    } {
-        const parser = this.session.observed.get().parser();
-        if (parser instanceof Error) {
-            this.log().error(`Fail to attach new source: ${parser.message}`);
-        }
-        return {
-            files: (): void => {
-                if (parser instanceof Error) {
-                    return;
-                }
-                this.ilc()
-                    .services.system.bridge.files()
-                    .select.any()
-                    .then((files: File[]) => {
-                        if (files.length < 1) {
-                            return;
-                        } else {
-                            this.ilc()
-                                .services.system.opener.concat(files)
-                                .assign(this.session)
-                                .byParser(parser)
-                                .catch((err: Error) => {
-                                    this.log().error(`Fail to open new stream: ${err.message}`);
-                                });
-                        }
-                    })
-                    .catch((err: Error) => {
-                        this.log().error(`Fail to select file(s): ${err.message}`);
-                    });
-            },
-            stream: (sourceRef: SourceRef): void => {
-                if (parser instanceof Error) {
-                    return;
-                }
-                this.ilc()
-                    .services.system.opener.stream(undefined, true, sourceRef)
-                    .assign(this.session)
-                    .byParser(parser)
-                    .catch((err: Error) => {
-                        this.log().error(`Fail to open new stream: ${err.message}`);
-                    });
             },
         };
     }

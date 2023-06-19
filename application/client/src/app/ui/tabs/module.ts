@@ -1,12 +1,9 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TabSourceDltFileModule } from '@tabs/sources/dltfile/module';
-import { TabSourcePcapFileModule } from '@tabs/sources/pcapfile/module';
-import { TabSourceDltStreamModule } from '@tabs/sources/dltstream/module';
-import { TabSourceTextStreamModule } from '@tabs/sources/textstream/module';
+import { ObserveModule } from '@ui/tabs/observe/module';
 import { TimezoneSelectorModule } from '@elements/timezones/module';
 import { PairsModule } from '@elements/pairs/module';
-import { TabSourceMultipleFilesModule } from '@ui/tabs/sources/multiplefiles/module';
+import { MultipleFilesModule } from '@ui/tabs/multiplefiles/module';
 import { DialogsModule } from '@ui/views/dialogs/module';
 import { SettingsModule } from '@ui/tabs/settings/module';
 
@@ -14,25 +11,19 @@ import { SettingsModule } from '@ui/tabs/settings/module';
     imports: [CommonModule, TimezoneSelectorModule],
     declarations: [],
     exports: [
-        TabSourceDltFileModule,
-        TabSourcePcapFileModule,
-        TabSourceDltStreamModule,
+        ObserveModule,
         TimezoneSelectorModule,
         PairsModule,
-        TabSourceTextStreamModule,
-        TabSourceMultipleFilesModule,
+        MultipleFilesModule,
         SettingsModule,
     ],
     bootstrap: [
-        TabSourceDltFileModule,
-        TabSourcePcapFileModule,
-        TabSourceDltStreamModule,
         TimezoneSelectorModule,
+        ObserveModule,
         PairsModule,
-        TabSourceTextStreamModule,
-        TabSourceMultipleFilesModule,
+        MultipleFilesModule,
         DialogsModule,
         SettingsModule,
-    ]
+    ],
 })
 export class TabsModule {}

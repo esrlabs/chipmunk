@@ -1,7 +1,6 @@
 import { Component, Input, ChangeDetectorRef, ElementRef, AfterContentInit } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { DataSource } from '@platform/types/observe';
 import { getSourceColor } from '@ui/styles/colors';
 import { Element } from '../element';
 
@@ -15,7 +14,6 @@ export class Signature extends ChangesDetector implements AfterContentInit {
     @Input() element!: Element;
     @Input() id!: number | undefined;
 
-    public source!: DataSource;
     public selected!: boolean;
 
     constructor(cdRef: ChangeDetectorRef, private _self: ElementRef) {
@@ -23,7 +21,6 @@ export class Signature extends ChangesDetector implements AfterContentInit {
     }
 
     public ngAfterContentInit(): void {
-        this.source = this.element.source.source;
         this.selected = this.element.selected;
     }
 

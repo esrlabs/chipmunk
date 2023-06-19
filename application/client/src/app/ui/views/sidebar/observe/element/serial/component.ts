@@ -1,10 +1,11 @@
 import { Component, Input, ChangeDetectorRef, ElementRef, AfterContentInit } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { SerialTransportSettings } from '@platform/types/observe';
 import { Element } from '../element';
 import { Mutable } from '@platform/types/unity/mutable';
 import { stop } from '@ui/env/dom';
+
+import * as $ from '@platform/types/observe';
 
 @Component({
     selector: 'app-views-observed-serial',
@@ -15,23 +16,22 @@ import { stop } from '@ui/env/dom';
 export class Item extends ChangesDetector implements AfterContentInit {
     @Input() element!: Element;
 
-    public readonly serial: SerialTransportSettings | undefined;
+    public readonly connection: $.Origin.Stream.Stream.Serial.IConfiguration | undefined;
 
     constructor(cdRef: ChangeDetectorRef, private _self: ElementRef) {
         super(cdRef);
     }
 
     public ngAfterContentInit(): void {
-        const origin = this.element.source.source.origin;
-        if (origin.Stream === undefined) {
-            this.log().error(`Expected origin Source`);
+        const conf =
+            this.element.source.observe.origin.as<$.Origin.Stream.Stream.Serial.Configuration>(
+                $.Origin.Stream.Stream.Serial.Configuration,
+            );
+        if (conf === undefined) {
+            this.log().error(`Expected origin Source would be TCP`);
             return;
         }
-        if (origin.Stream[1].Serial === undefined) {
-            this.log().error(`Expected origin Source would be Serial`);
-            return;
-        }
-        (this as Mutable<Item>).serial = origin.Stream[1].Serial;
+        (this as Mutable<Item>).connection = conf.configuration;
     }
 
     public isActive(): boolean {
@@ -40,7 +40,7 @@ export class Item extends ChangesDetector implements AfterContentInit {
 
     public restart(event: MouseEvent): void {
         stop(event);
-        this.element.provider.repeat(this.element.source.source).catch((err: Error) => {
+        this.element.provider.clone(this.element.source.observe).catch((err: Error) => {
             this.log().error(`Fail to restart Serial connection: ${err.message}`);
         });
     }

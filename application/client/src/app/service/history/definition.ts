@@ -1,7 +1,6 @@
 import { FileDesc, IFileDesc } from './definition.file';
 import { StreamDesc, IStreamDesc } from './definition.stream';
 import { ConcatDesc } from './definition.concat';
-import { DataSource, ParserName } from '@platform/types/observe';
 import { unique } from '@platform/env/sequence';
 import { EntryConvertable, Entry } from '@platform/types/storage/entry';
 import { error } from '@platform/log/utils';
@@ -10,12 +9,13 @@ import { Equal } from '@platform/types/env/types';
 import { Collections } from './collections';
 
 import * as obj from '@platform/env/obj';
+import * as $ from '@platform/types/observe';
 
 export interface IDefinition {
     stream?: IStreamDesc;
     file?: IFileDesc;
     concat?: IFileDesc[];
-    parser: ParserName;
+    parser: $.Parser.Protocol;
     uuid: string;
 }
 
@@ -27,11 +27,8 @@ export class Definition implements EntryConvertable, Equal<Definition> {
     static from(entry: Entry): Definition {
         return Definition.fromMinifiedStr(JSON.parse(entry.content));
     }
-    static async fromDataSource(source: DataSource): Promise<Definition> {
-        const parser = source.getParserName();
-        if (parser instanceof Error) {
-            throw parser;
-        }
+    static async fromDataSource(source: $.Observe): Promise<Definition> {
+        const parser = source.parser.instance.alias();
         const file = await FileDesc.fromDataSource(source);
         const concat = await ConcatDesc.fromDataSource(source);
         const stream = await StreamDesc.fromDataSource(source);
@@ -68,7 +65,7 @@ export class Definition implements EntryConvertable, Equal<Definition> {
             file: FileDesc.fromMinifiedStr(obj.getAsObjOrUndefined(src, 'f')),
             stream: StreamDesc.fromMinifiedStr(obj.getAsObjOrUndefined(src, 's')),
             concat: ConcatDesc.fromMinifiedStr(obj.getAsObjOrUndefined(src, 'c'))?.files,
-            parser: obj.getAsNotEmptyString(src, 'p') as ParserName,
+            parser: obj.getAsNotEmptyString(src, 'p') as $.Parser.Protocol,
             uuid: obj.getAsNotEmptyString(src, 'u'),
         });
         if (def.file === undefined && def.stream === undefined && def.concat === undefined) {
@@ -80,7 +77,7 @@ export class Definition implements EntryConvertable, Equal<Definition> {
     public stream?: StreamDesc;
     public file?: FileDesc;
     public concat?: ConcatDesc;
-    public parser: ParserName;
+    public parser: $.Parser.Protocol;
     public uuid: string;
 
     constructor(definition: IDefinition) {

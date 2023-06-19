@@ -1,6 +1,7 @@
 import { Base } from './action';
-import { opener } from '@service/opener';
-import { Source } from '@platform/types/transport';
+import { session } from '@service/session';
+
+import * as Factory from '@platform/types/observe/factory';
 
 export const ACTION_UUID = 'stream_text_on_stdout';
 
@@ -17,11 +18,7 @@ export class Action extends Base {
     }
 
     public async apply(): Promise<void> {
-        return opener
-            .stream(undefined, undefined, Source.Process)
-            .text()
-            .then(() => {
-                return Promise.resolve();
-            });
+        session.initialize().configure(new Factory.Stream().asDlt().process().observe);
+        return Promise.resolve();
     }
 }
