@@ -5,7 +5,7 @@
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 import { initLogger } from './logger';
 initLogger();
-import { Session, Observe } from '../src/api/session';
+import { Session, Factory } from '../src/api/session';
 import { ISearchMap } from '../src/interfaces/index';
 import { finish, createSampleFile, runner } from './common';
 import { readConfigurationFile } from './config';
@@ -47,7 +47,12 @@ describe('Map', function () {
                             `[${i}]:: some ${i % 100 === 0 || i < 5 ? 'match' : ''} line data }\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -128,7 +133,12 @@ describe('Map', function () {
                             `[${i}]:: some ${i % 100 === 0 || i < 5 ? 'match' : ''} line data }\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -213,7 +223,12 @@ describe('Map', function () {
                             }\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -348,7 +363,12 @@ describe('Map', function () {
                             }\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -433,7 +453,12 @@ describe('Map', function () {
                             } as expected\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -518,7 +543,12 @@ describe('Map', function () {
                             } right now.\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .on('confirmed', () => {
                             search
                                 .search([
@@ -603,7 +633,12 @@ describe('Map', function () {
                             })\n`,
                     );
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .on('confirmed', () => {
                             search
                                 .search([
