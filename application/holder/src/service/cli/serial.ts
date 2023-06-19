@@ -1,8 +1,9 @@
 import { CLIAction, Type } from './action';
 import { Service } from '@service/cli';
-import { SerialTransportSettings } from 'platform/types/transport/serial';
 
 import * as Requests from 'platform/ipc/request';
+import * as Factory from 'platform/types/observe/factory';
+import * as $ from 'platform/types/observe';
 
 export class Action extends CLIAction {
     // static help(): {
@@ -21,7 +22,7 @@ export class Action extends CLIAction {
     //     };
     // }
 
-    protected settings: SerialTransportSettings | undefined;
+    protected settings: $.Origin.Stream.Stream.Serial.IConfiguration | undefined;
     protected error: Error[] = [];
 
     public name(): string {
@@ -57,17 +58,18 @@ export class Action extends CLIAction {
                 return resolve();
             }
             Requests.IpcRequest.send(
-                Requests.Cli.Serial.Response,
-                new Requests.Cli.Serial.Request({
-                    source: this.settings,
-                    parser: cli.state().parser(),
+                Requests.Cli.Observe.Response,
+                new Requests.Cli.Observe.Request({
+                    observe: new Factory.Stream()
+                        .serial(this.settings)
+                        .protocol(cli.state().parser()).observe.configuration,
                 }),
             )
                 .then((response) => {
-                    if (response.sessions === undefined) {
+                    if (response.session === undefined) {
                         return;
                     }
-                    cli.state().sessions(response.sessions);
+                    cli.state().sessions([response.session]);
                 })
                 .catch((err: Error) => {
                     cli.log().error(`Fail apply CLI.Serial: ${err.message}`);
@@ -84,7 +86,7 @@ export class Action extends CLIAction {
         return this.settings !== undefined;
     }
 
-    protected extract(settings: string): SerialTransportSettings | Error {
+    protected extract(settings: string): $.Origin.Stream.Stream.Serial.IConfiguration | Error {
         settings = settings.replace(/\s/gi, '');
         const parts = settings.split(';');
         if (parts.length !== 6) {
@@ -93,7 +95,7 @@ export class Action extends CLIAction {
             );
         }
         let error: Error | undefined;
-        const parameters: SerialTransportSettings = {
+        const parameters: $.Origin.Stream.Stream.Serial.IConfiguration = {
             path: '',
             baud_rate: -1,
             data_bits: -1,

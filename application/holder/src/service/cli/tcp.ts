@@ -1,8 +1,9 @@
 import { CLIAction, Type } from './action';
 import { Service } from '@service/cli';
-import { TCPTransportSettings } from 'platform/types/transport/tcp';
 
 import * as Requests from 'platform/ipc/request';
+import * as Factory from 'platform/types/observe/factory';
+import * as $ from 'platform/types/observe';
 
 export class Action extends CLIAction {
     // static help(): {
@@ -21,7 +22,7 @@ export class Action extends CLIAction {
     //     };
     // }
 
-    protected settings: TCPTransportSettings | undefined;
+    protected settings: $.Origin.Stream.Stream.TCP.IConfiguration | undefined;
     protected error: Error[] = [];
 
     public name(): string {
@@ -56,17 +57,17 @@ export class Action extends CLIAction {
                 return resolve();
             }
             Requests.IpcRequest.send(
-                Requests.Cli.Tcp.Response,
-                new Requests.Cli.Tcp.Request({
-                    source: this.settings,
-                    parser: cli.state().parser(),
+                Requests.Cli.Observe.Response,
+                new Requests.Cli.Observe.Request({
+                    observe: new Factory.Stream().tcp(this.settings).protocol(cli.state().parser())
+                        .observe.configuration,
                 }),
             )
                 .then((response) => {
-                    if (response.sessions === undefined) {
+                    if (response.session === undefined) {
                         return;
                     }
-                    cli.state().sessions(response.sessions);
+                    cli.state().sessions([response.session]);
                 })
                 .catch((err: Error) => {
                     cli.log().error(`Fail apply CLI.Tcp: ${err.message}`);

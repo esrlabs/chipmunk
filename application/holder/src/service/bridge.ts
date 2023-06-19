@@ -42,53 +42,8 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
-                    Requests.File.Open.Request,
-                    RequestHandlers.File.Open.handler,
-                ),
-        );
-        this.register(
-            electron
-                .ipc()
-                .respondent(
-                    this.getName(),
-                    Requests.File.Concat.Request,
-                    RequestHandlers.File.Concat.handler,
-                ),
-        );
-        this.register(
-            electron
-                .ipc()
-                .respondent(
-                    this.getName(),
                     Requests.File.Save.Request,
                     RequestHandlers.File.Save.handler,
-                ),
-        );
-        this.register(
-            electron
-                .ipc()
-                .respondent(
-                    this.getName(),
-                    Requests.Connect.Dlt.Request,
-                    RequestHandlers.Connect.Dlt.handler,
-                ),
-        );
-        this.register(
-            electron
-                .ipc()
-                .respondent(
-                    this.getName(),
-                    Requests.Connect.SomeIp.Request,
-                    RequestHandlers.Connect.SomeIp.handler,
-                ),
-        );
-        this.register(
-            electron
-                .ipc()
-                .respondent(
-                    this.getName(),
-                    Requests.Connect.Text.Request,
-                    RequestHandlers.Connect.Text.handler,
                 ),
         );
         this.register(

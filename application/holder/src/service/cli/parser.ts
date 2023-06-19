@@ -1,11 +1,9 @@
 import { CLIAction, Type } from './action';
 import { Service } from '@service/cli';
-import { ParserName } from 'platform/types/observe';
+import { Protocol } from 'platform/types/observe/parser/index';
 
 export class Action extends CLIAction {
-    static parsers = ['dlt', 'pcapng', 'text'];
-
-    protected parser: ParserName | undefined;
+    protected parser: Protocol | undefined;
     protected error: Error[] = [];
 
     // static help(): {
@@ -29,19 +27,25 @@ export class Action extends CLIAction {
     }
 
     public argument(_cwd: string, arg: string): string {
-        switch (arg) {
-            case 'dlt':
-                this.parser = ParserName.Dlt;
+        switch (arg.toLowerCase()) {
+            case Protocol.Dlt.toLowerCase():
+                this.parser = Protocol.Dlt;
                 return arg;
-            case 'someip':
-                this.parser = ParserName.SomeIp;
+            case Protocol.SomeIp.toLowerCase():
+                this.parser = Protocol.SomeIp;
                 return arg;
-            case 'text':
-                this.parser = ParserName.Text;
+            case Protocol.Text.toLowerCase():
+                this.parser = Protocol.Text;
                 return arg;
         }
         this.error.push(
-            new Error(`Invalid value of parser: ${arg}. Available: ${Action.parsers.join(', ')}.`),
+            new Error(
+                `Invalid value of parser: ${arg}. Available: ${[
+                    Protocol.Dlt,
+                    Protocol.SomeIp,
+                    Protocol.Text,
+                ].join(', ')}.`,
+            ),
         );
         return '';
     }

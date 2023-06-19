@@ -2,6 +2,7 @@ import { CLIAction, Type } from './action';
 import { Service } from '@service/cli';
 
 import * as Requests from 'platform/ipc/request';
+import * as Factory from 'platform/types/observe/factory';
 
 export class Action extends CLIAction {
     protected commands: string[] = [];
@@ -42,19 +43,24 @@ export class Action extends CLIAction {
             return Promise.resolve();
         }
         return new Promise((resolve, _reject) => {
+            // TODO: Add support of multiple commands at once
             Requests.IpcRequest.send(
-                Requests.Cli.Stdout.Response,
-                new Requests.Cli.Stdout.Request({
-                    commands: this.commands,
-                    cwd: this.cwd,
-                    parser: cli.state().parser(),
+                Requests.Cli.Observe.Response,
+                new Requests.Cli.Observe.Request({
+                    observe: new Factory.Stream()
+                        .process({
+                            command: this.commands[0],
+                            cwd: this.cwd,
+                            envs: {},
+                        })
+                        .protocol(cli.state().parser()).observe.configuration,
                 }),
             )
                 .then((response) => {
-                    if (response.sessions === undefined) {
+                    if (response.session === undefined) {
                         return;
                     }
-                    cli.state().sessions(response.sessions);
+                    cli.state().sessions([response.session]);
                 })
                 .catch((err: Error) => {
                     cli.log().error(`Fail apply CLI.Command: ${err.message}`);

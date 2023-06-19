@@ -1,11 +1,12 @@
 import { CLIAction, Type } from './action';
 import { Service } from '@service/cli';
-import { UDPTransportSettings } from 'platform/types/transport/udp';
 
 import * as Requests from 'platform/ipc/request';
+import * as Factory from 'platform/types/observe/factory';
+import * as $ from 'platform/types/observe';
 
 export class Action extends CLIAction {
-    protected settings: UDPTransportSettings | undefined;
+    protected settings: $.Origin.Stream.Stream.UDP.IConfiguration | undefined;
     protected error: Error[] = [];
 
     public name(): string {
@@ -41,17 +42,17 @@ export class Action extends CLIAction {
                 return resolve();
             }
             Requests.IpcRequest.send(
-                Requests.Cli.Udp.Response,
-                new Requests.Cli.Udp.Request({
-                    source: this.settings,
-                    parser: cli.state().parser(),
+                Requests.Cli.Observe.Response,
+                new Requests.Cli.Observe.Request({
+                    observe: new Factory.Stream().udp(this.settings).protocol(cli.state().parser())
+                        .observe.configuration,
                 }),
             )
                 .then((response) => {
-                    if (response.sessions === undefined) {
+                    if (response.session === undefined) {
                         return;
                     }
-                    cli.state().sessions(response.sessions);
+                    cli.state().sessions([response.session]);
                 })
                 .catch((err: Error) => {
                     cli.log().error(`Fail apply CLI.Udp: ${err.message}`);
@@ -68,7 +69,7 @@ export class Action extends CLIAction {
         return this.settings !== undefined;
     }
 
-    protected extract(settings: string): UDPTransportSettings | Error {
+    protected extract(settings: string): $.Origin.Stream.Stream.UDP.IConfiguration | Error {
         settings = settings.replace(/\s/gi, '');
         const parts = settings.split('|');
         if (parts.length !== 2) {
