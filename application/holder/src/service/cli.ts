@@ -11,12 +11,12 @@ import { paths } from '@service/paths';
 import { envvars } from '@loader/envvars';
 import { isDevelopingExecuting } from '@loader/cli';
 import { exec } from 'sudo-prompt';
-import { ParserName } from 'platform/types/observe';
 import { getActions } from '@loader/cli';
 
 import * as Actions from './cli/index';
 import * as Events from 'platform/ipc/event';
 import * as fs from 'fs';
+import * as $ from 'platform/types/observe';
 
 const UNIX_LOCAL_BIN = '/usr/local/bin';
 const UNIX_SYMLINK_PATH = `${UNIX_LOCAL_BIN}/cm`;
@@ -32,10 +32,10 @@ export class Service extends Implementation {
     private _available: boolean | undefined;
     private readonly _state: {
         sessions: string[];
-        parser: ParserName;
+        parser: $.Parser.Protocol;
     } = {
         sessions: [],
-        parser: ParserName.Text,
+        parser: $.Parser.Protocol.Text,
     };
 
     public override ready(): Promise<void> {
@@ -89,7 +89,7 @@ export class Service extends Implementation {
 
     public state(): {
         sessions(sessions?: string[]): string[];
-        parser(parser?: ParserName): ParserName;
+        parser(parser?: $.Parser.Protocol): $.Parser.Protocol;
     } {
         return {
             sessions: (sessions?: string[]): string[] => {
@@ -98,7 +98,7 @@ export class Service extends Implementation {
                 }
                 return this._state.sessions;
             },
-            parser: (parser?: ParserName): ParserName => {
+            parser: (parser?: $.Parser.Protocol): $.Parser.Protocol => {
                 if (parser !== undefined) {
                     this._state.parser = parser;
                 }
