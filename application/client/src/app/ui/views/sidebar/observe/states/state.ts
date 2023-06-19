@@ -1,4 +1,4 @@
-import { Destroy } from '@env/declarations';
+import { Destroy } from '@platform/types/env/types';
 
 export abstract class Base implements Destroy {
     public quicksetup: boolean = false;

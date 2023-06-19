@@ -4,6 +4,8 @@ import { IComponentDesc } from '@elements/containers/dynamic/component';
 import { List } from '@ui/views/sidebar/observe/lists/file/component';
 import { IMenuItem } from '@ui/service/contextmenu';
 
+import * as $ from '@platform/types/observe';
+
 export class Provider extends Base {
     private _sources: ObserveSource[] = [];
 
@@ -24,7 +26,9 @@ export class Provider extends Base {
     }
 
     public update(sources: ObserveSource[]): Provider {
-        this._sources = sources.filter((source) => source.source.asFile() !== undefined);
+        this._sources = sources.filter(
+            (source) => source.observe.origin.nature() instanceof $.Origin.File.Configuration,
+        );
         return this;
     }
 
@@ -115,7 +119,9 @@ export class Provider extends Base {
             return new Error(`Cannot attach new source while file is tailing`);
         }
         const single = this._sources.find(
-            (s) => s.source.is().file && s.source.parent === undefined,
+            (s) =>
+                s.observe.origin.nature() instanceof $.Origin.File.Configuration &&
+                s.observe.parent === undefined,
         );
         if (single !== undefined) {
             return new Error(

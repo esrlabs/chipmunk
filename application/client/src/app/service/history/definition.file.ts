@@ -1,8 +1,8 @@
-import { DataSource } from '@platform/types/observe';
 import { getParentFolder } from '@platform/types/files';
 import { bridge } from '@service/bridge';
 
 import * as obj from '@platform/env/obj';
+import * as $ from '@platform/types/observe';
 
 export interface IFileDesc {
     extention: string;
@@ -14,12 +14,12 @@ export interface IFileDesc {
 }
 
 export class FileDesc implements IFileDesc {
-    static async fromDataSource(source: DataSource): Promise<IFileDesc | undefined> {
-        const filename = source.asFile();
-        if (filename === undefined) {
+    static async fromDataSource(source: $.Observe): Promise<IFileDesc | undefined> {
+        const file = source.origin.as<$.Origin.File.Configuration>($.Origin.File.Configuration);
+        if (file === undefined) {
             return undefined;
         }
-        return FileDesc.fromFilename(filename);
+        return FileDesc.fromFilename(file.filename());
     }
     static async fromFilename(filename: string): Promise<IFileDesc | undefined> {
         const file = (await bridge.files().getByPathWithCache([filename]))[0];

@@ -9,11 +9,9 @@ import { services } from '@register/services';
 import { bridge } from '@service/bridge';
 import { Action } from './recent/action';
 import { error } from '@platform/log/utils';
-import { TargetFileOptions, File } from '@platform/types/files';
-import { SourceDefinition } from '@platform/types/transport';
-import { IDLTOptions } from '@platform/types/parsers/dlt';
 import { Subject } from '@platform/env/subscription';
-import { ISomeIpOptions } from '@platform/types/parsers/someip';
+
+import * as $ from '@platform/types/observe';
 
 const STORAGE_KEY = 'user_recent_actions';
 
@@ -28,27 +26,21 @@ export class Service extends Implementation {
     }
 
     public async get(): Promise<Action[]> {
-        const dropped: Action[] = [];
         const actions = await bridge
             .entries({ key: STORAGE_KEY })
             .get()
             .then((entries) => {
                 return entries
                     .map((entry) => {
-                        try {
-                            const action = new Action();
-                            action.from().entry(entry) && dropped.push(action);
-                            return action;
-                        } catch (err) {
-                            this.log().error(`Fail to read action: ${error(err)}`);
+                        const action = Action.from(entry);
+                        if (action instanceof Error) {
+                            this.log().error(`Fail to read action: ${error(action)}`);
                             return undefined;
+                        } else {
+                            return action;
                         }
                     })
                     .filter((a) => a !== undefined) as Action[];
-            });
-        dropped.length > 0 &&
-            this.update(dropped).catch((err: Error) => {
-                this.log().error(`Fail to update recent storage: ${err.message}`);
             });
         return actions;
     }
@@ -64,7 +56,7 @@ export class Service extends Implementation {
         });
         return bridge
             .entries({ key: STORAGE_KEY })
-            .update(actions.map((a) => a.as().entry()))
+            .update(actions.map((a) => a.entry().to()))
             .then(() => {
                 this.updated.emit();
             })
@@ -88,52 +80,9 @@ export class Service extends Implementation {
         });
     }
 
-    public add(): {
-        file(file: File, options: TargetFileOptions): Promise<void>;
-        stream(source: SourceDefinition): {
-            dlt(options: IDLTOptions): Promise<void>;
-            someip(options: ISomeIpOptions): Promise<void>;
-            text(): Promise<void>;
-        };
-    } {
-        return {
-            file: async (file: File, options: TargetFileOptions): Promise<void> => {
-                try {
-                    const action = new Action().from().file(file, options);
-                    return this.update([action]);
-                } catch (err) {
-                    return Promise.reject(new Error(error(err)));
-                }
-            },
-            stream: (source: SourceDefinition) => {
-                return {
-                    dlt: async (options: IDLTOptions): Promise<void> => {
-                        try {
-                            const action = new Action().from().stream(source).dlt(options);
-                            return this.update([action]);
-                        } catch (err) {
-                            return Promise.reject(new Error(error(err)));
-                        }
-                    },
-                    someip: async (options: ISomeIpOptions): Promise<void> => {
-                        try {
-                            const action = new Action().from().stream(source).someip(options);
-                            return this.update([action]);
-                        } catch (err) {
-                            return Promise.reject(new Error(error(err)));
-                        }
-                    },
-                    text: async (): Promise<void> => {
-                        try {
-                            const action = new Action().from().stream(source).text();
-                            return this.update([action]);
-                        } catch (err) {
-                            return Promise.reject(new Error(error(err)));
-                        }
-                    },
-                };
-            },
-        };
+    public add(observe: $.Observe): Promise<void> {
+        const action = new Action(observe);
+        return this.update([action]);
     }
 }
 export interface Service extends Interface {}

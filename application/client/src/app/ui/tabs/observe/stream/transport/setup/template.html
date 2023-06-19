@@ -1,0 +1,4 @@
+<app-transport-udp *ngIf="state.configuration.UDP; let configuration" [configuration]="configuration"></app-transport-udp>
+<app-transport-tcp *ngIf="state.configuration.TCP; let configuration" [configuration]="configuration"></app-transport-tcp>
+<app-transport-serial *ngIf="state.configuration.Serial; let configuration" [configuration]="configuration"></app-transport-serial>
+<app-transport-process *ngIf="state.configuration.Process; let configuration" [configuration]="configuration"></app-transport-process>

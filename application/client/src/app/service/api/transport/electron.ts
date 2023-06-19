@@ -11,7 +11,6 @@ import { error } from '@platform/log/utils';
 import { Subject, Subscription } from '@platform/env/subscription';
 import { IPC, isAvailable } from '@module/ipc';
 import { Logger } from '@log/index';
-import { emulation } from './emulation';
 import { getNgZoneSafly } from '@ui/env/globals';
 
 import * as events from '@platform/ipc/setup/channels';
@@ -20,7 +19,7 @@ function ipc(): IPC {
     if (isAvailable()) {
         return window.electron.ipc;
     } else {
-        return emulation;
+        throw new Error(`No IPC transport has been found`);
     }
 }
 

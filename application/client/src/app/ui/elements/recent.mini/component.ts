@@ -15,7 +15,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State, CloseHandler } from './state';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { InputFilter } from '@elements/filter/component';
-import { ParserName, Origin } from '@platform/types/observe';
+import { Observe } from '@platform/types/observe';
 
 @Component({
     selector: 'app-recent-actions-mini',
@@ -29,8 +29,7 @@ import { ParserName, Origin } from '@platform/types/observe';
 export class RecentActionsMini extends ChangesDetector implements AfterViewInit, AfterContentInit {
     @ViewChild('filter') public filterInputRef!: InputFilter;
     @Input() close: CloseHandler | undefined;
-    @Input() public parser?: ParserName;
-    @Input() public origin?: Origin;
+    @Input() public observe?: Observe;
 
     public state!: State;
 
@@ -39,7 +38,7 @@ export class RecentActionsMini extends ChangesDetector implements AfterViewInit,
     }
 
     public ngAfterContentInit(): void {
-        this.state = new State(this, this.origin, this.parser);
+        this.state = new State(this, this.observe);
         this.env().subscriber.register(
             this.state.update.subscribe(() => {
                 this.detectChanges();
@@ -55,13 +54,13 @@ export class RecentActionsMini extends ChangesDetector implements AfterViewInit,
     }
 
     public onDefaultAction(action: Action) {
-        action.apply(this.state.remove.bind(this.state));
+        action.apply();
         this.close !== undefined && this.close();
     }
 
     public onAllActions(event: MouseEvent, action: Action) {
         const items = [
-            ...action.getActions(this.state.remove.bind(this.state)),
+            ...action.getActions(),
             {},
             {
                 caption: 'Remove recent',

@@ -1,10 +1,10 @@
 import { Base } from './action';
 import { bridge } from '@service/bridge';
-import { opener } from '@service/opener';
 import { session } from '@service/session';
-import { TabSourceMultipleFiles } from '@tabs/sources/multiplefiles/component';
-
+import { TabSourceMultipleFiles } from '@ui/tabs/multiplefiles/component';
 import { notifications, Notification } from '@ui/service/notifications';
+
+import * as Factory from '@platform/types/observe/factory';
 
 export const ACTION_UUID = 'open_dlt_folder';
 
@@ -42,12 +42,11 @@ export class Action extends Base {
                 },
             });
             return Promise.resolve();
+        } else {
+            session
+                .initialize()
+                .configure(new Factory.File().file(files[0].filename).asDlt().observe);
         }
-        return opener
-            .binary(files[0])
-            .dlt()
-            .then(() => {
-                return Promise.resolve();
-            });
+        return Promise.resolve();
     }
 }

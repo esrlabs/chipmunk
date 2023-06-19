@@ -1,9 +1,10 @@
 import { Base } from './action';
 import { bridge } from '@service/bridge';
-import { opener } from '@service/opener';
 import { session } from '@service/session';
-import { TabSourceMultipleFiles } from '@tabs/sources/multiplefiles/component';
+import { TabSourceMultipleFiles } from '@ui/tabs/multiplefiles/component';
 import { FileType, File } from '@platform/types/files';
+
+import * as Factory from '@platform/types/observe/factory';
 
 export const ACTION_UUID = 'open_any_file';
 
@@ -32,18 +33,22 @@ export class Action extends Base {
         }
     }
 
-    public from(file: File): Promise<void> {
-        return (() => {
-            switch (file.type) {
-                case FileType.Dlt:
-                    return opener.binary(file).dlt();
-                case FileType.PcapNG:
-                    return opener.pcapng(file).dlt();
-                // TODO: Ask about parser >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-                default:
-                    return opener.text(file).text();
-            }
-        })().then((_) => Promise.resolve());
+    public from(file: File): void {
+        switch (file.type) {
+            case FileType.Dlt:
+                session
+                    .initialize()
+                    .configure(new Factory.File().file(file.filename).asDlt().observe);
+                break;
+            case FileType.PcapNG:
+                session.initialize().suggest(new Factory.File().file(file.filename).observe);
+                break;
+            default:
+                session
+                    .initialize()
+                    .observe(new Factory.File().file(file.filename).asText().observe);
+                break;
+        }
     }
 
     public multiple(files: File[]) {

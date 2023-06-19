@@ -1,5 +1,7 @@
 import { Base } from './action';
-import { opener } from '@service/opener';
+import { session } from '@service/session';
+
+import * as Factory from '@platform/types/observe/factory';
 
 export const ACTION_UUID = 'stream_dlt_on_custom';
 
@@ -16,11 +18,7 @@ export class Action extends Base {
     }
 
     public async apply(): Promise<void> {
-        return opener
-            .stream(undefined, undefined, undefined)
-            .dlt()
-            .then(() => {
-                return Promise.resolve();
-            });
+        session.initialize().configure(new Factory.Stream().asDlt().observe);
+        return Promise.resolve();
     }
 }

@@ -10,7 +10,6 @@ import { jobs, Service as JobsService } from '@service/jobs';
 import { state, Service as StateService } from '@service/state';
 import { bridge, Service as BridgeService } from '@service/bridge';
 import { recent, Service as RecentService } from '@service/recent';
-import { opener, Service as OpenerService } from '@service/opener';
 import { hotkeys, Service as HotkeysService } from '@service/hotkeys';
 import { history, Service as HistoryService } from '@service/history';
 import { listener, Service as ListenerService } from '@ui/service/listener';
@@ -30,7 +29,6 @@ export class Services {
         jobs: JobsService;
         bridge: BridgeService;
         recent: RecentService;
-        opener: OpenerService;
         hotkeys: HotkeysService;
         history: HistoryService;
         env: EnvService;
@@ -63,7 +61,6 @@ export class Services {
             jobs,
             bridge,
             recent,
-            opener,
             hotkeys,
             history,
             env,

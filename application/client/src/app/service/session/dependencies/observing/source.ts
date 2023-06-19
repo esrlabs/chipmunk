@@ -1,17 +1,17 @@
 import { ObserveOperation } from './operation';
-import { DataSource } from '@platform/types/observe';
+import { Observe } from '@platform/types/observe';
 
 export class ObserveSource {
-    public readonly source: DataSource;
+    public readonly observe: Observe;
     public readonly observer: ObserveOperation | undefined;
 
-    constructor(source: DataSource, observer?: ObserveOperation) {
-        this.source = source;
+    constructor(observe: Observe, observer?: ObserveOperation) {
+        this.observe = observe;
         this.observer = observer;
     }
 
     public uuid(): string {
-        return this.source.uuid;
+        return this.observe.uuid;
     }
 
     public isSame(source: ObserveSource): boolean {
