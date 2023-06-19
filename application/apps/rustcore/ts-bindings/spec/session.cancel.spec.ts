@@ -5,7 +5,7 @@
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 import { initLogger } from './logger';
 initLogger();
-import { Session, Observe } from '../src/api/session';
+import { Session, Factory } from '../src/api/session';
 import { finish, runner } from './common';
 import { readConfigurationFile } from './config';
 
@@ -120,7 +120,10 @@ describe('Cancel', function () {
                     }
                     stream
                         .observe(
-                            Observe.DataSource.file(config.regular.files['text']).text().text(),
+                            new Factory.File()
+                                .file(config.regular.files['text'])
+                                .type(Factory.FileType.Text)
+                                .asText().observe.configuration,
                         )
                         .catch(finish.bind(null, session, done));
                     let canceled: number = 0;

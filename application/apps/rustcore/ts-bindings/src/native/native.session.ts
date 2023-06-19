@@ -7,7 +7,6 @@ import {
     IGrabbedElement,
     IExtractDTFormatResult,
     IExtractDTFormatOptions,
-    Observe,
 } from '../interfaces/index';
 import { getNativeModule } from '../native/native';
 import { EFileOptionsRequirements } from '../api/executors/session.stream.observe.executor';
@@ -15,10 +14,11 @@ import { Type, Source, NativeError } from '../interfaces/errors';
 import { v4 as uuidv4 } from 'uuid';
 import { getValidNum } from '../util/numbers';
 import { IRange } from 'platform/types/range';
-import { ObservedSourceLink } from 'platform/types/observe';
+import { ISourceLink } from 'platform/types/observe/types';
 import { IndexingMode, Attachment } from 'platform/types/content';
 import { Logger, utils } from 'platform/log';
 import { scope } from 'platform/env/scope';
+import { IObserve, Observe } from 'platform/types/observe';
 
 export type RustSessionConstructorImpl<T> = new (
     uuid: string,
@@ -87,7 +87,7 @@ export abstract class RustSession extends RustSessionRequiered {
      * Returns list of observed sources.
      * @returns { string }
      */
-    public abstract getSourcesDefinitions(): Promise<ObservedSourceLink[]>;
+    public abstract getSourcesDefinitions(): Promise<ISourceLink[]>;
 
     public abstract getUuid(): string;
 
@@ -133,7 +133,7 @@ export abstract class RustSession extends RustSessionRequiered {
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract observe(source: Observe.DataSource, operationUuid: string): Promise<void>;
+    public abstract observe(source: IObserve, operationUuid: string): Promise<void>;
 
     public abstract export(dest: string, ranges: IRange[], operationUuid: string): Promise<void>;
 
@@ -207,7 +207,7 @@ export abstract class RustSessionNative {
 
     public abstract getStreamLen(): Promise<number>;
 
-    public abstract getSourcesDefinitions(): Promise<ObservedSourceLink[]>;
+    public abstract getSourcesDefinitions(): Promise<ISourceLink[]>;
 
     public abstract grab(start: number, len: number): Promise<string>;
 
@@ -394,12 +394,12 @@ export class RustSessionWrapper extends RustSession {
         return this._native.getUuid();
     }
 
-    public getSourcesDefinitions(): Promise<ObservedSourceLink[]> {
+    public getSourcesDefinitions(): Promise<ISourceLink[]> {
         return new Promise((resolve, reject) => {
             this._provider.debug().emit.operation('getSourcesDefinitions');
             this._native
                 .getSourcesDefinitions()
-                .then((sources: ObservedSourceLink[]) => {
+                .then((sources: ISourceLink[]) => {
                     resolve(sources);
                 })
                 .catch((err) => {
@@ -838,12 +838,12 @@ export class RustSessionWrapper extends RustSession {
         return '';
     }
 
-    public observe(source: Observe.DataSource, operationUuid: string): Promise<void> {
+    public observe(source: IObserve, operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
                 this._provider.debug().emit.operation('observe', operationUuid);
                 this._native
-                    .observe(source.toJSON(), operationUuid)
+                    .observe(new Observe(source).json().to(), operationUuid)
                     .then(resolve)
                     .catch((err: Error) => {
                         reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));

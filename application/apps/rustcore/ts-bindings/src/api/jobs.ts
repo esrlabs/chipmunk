@@ -3,9 +3,8 @@ import { Base } from '../native/native.jobs';
 import { error } from 'platform/log/utils';
 import { IFilter } from '../interfaces/index';
 import { ShellProfile } from 'platform/types/shells';
-
-import { StatisticInfo } from 'platform/types/parsers/dlt';
-import { SomeipStatistic } from 'platform/types/parsers/someip';
+import { SomeipStatistic } from 'platform/types/observe/parser/someip';
+import { StatisticInfo } from 'platform/types/observe/parser/dlt';
 
 export class Jobs extends Base {
     public static async create(): Promise<Jobs> {
