@@ -14,3 +14,10 @@ export function basefolder(filename: string): string {
 export function serializeSpaces(str: string): string {
     return str.replace(/\s/gi, '%20');
 }
+
+export function asNotEmptyString(str: unknown, msg?: string): string {
+    if (typeof str !== 'string' || str.trim() === '') {
+        throw new Error(msg !== undefined ? msg : `Value ${str} isn't a string`);
+    }
+    return str;
+}
