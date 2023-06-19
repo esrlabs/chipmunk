@@ -73,12 +73,12 @@ impl<R: Read + Send + Sync + Seek> ByteSource for PcapngByteSource<R> {
                             trace!("Enhanced package");
                             let ts_us: u64 = (epb.ts_high as u64) << 32 | epb.ts_low as u64;
                             self.last_know_timestamp = Some(ts_us / 1000);
-                            raw_data = epb.data;
+                            raw_data = &epb.data[..epb.caplen as usize];
                             break;
                         }
                         PcapBlockOwned::NG(pcap_parser::Block::SimplePacket(ref spb)) => {
                             trace!("SimplePacket");
-                            raw_data = spb.data;
+                            raw_data = &spb.data[..spb.origlen as usize];
                             break;
                         }
                         other_type => {
