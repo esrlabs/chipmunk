@@ -5,7 +5,7 @@
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 import { initLogger } from './logger';
 initLogger();
-import { Session, Observe } from '../src/api/session';
+import { Session, Factory } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
 import { createSampleFile, finish, runner } from './common';
 import { readConfigurationFile } from './config';
@@ -41,10 +41,10 @@ describe('Concat', function () {
                     );
                     stream
                         .observe(
-                            Observe.DataSource.concat([
-                                [Observe.FileType.Text, tmpobj_a.name],
-                                [Observe.FileType.Text, tmpobj_b.name],
-                            ]).text(),
+                            new Factory.Concat()
+                                .type(Factory.FileType.Text)
+                                .files([tmpobj_a.name, tmpobj_b.name])
+                                .asText().observe.configuration,
                         )
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;

@@ -5,7 +5,7 @@
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 import { initLogger } from './logger';
 initLogger();
-import { Session, Observe } from '../src/api/session';
+import { Session, Factory } from '../src/api/session';
 import { IGrabbedElement } from '../src/interfaces/index';
 import { IAttachmentsUpdatedUpdated } from '../src/api/session.provider';
 import { IAttachment } from 'platform/types/content';
@@ -37,8 +37,17 @@ describe('Observe', function () {
                         logger,
                         (i: number) => `some line data: ${i}\n`,
                     );
+                    const config = new Factory.File()
+                        .asText()
+                        .type(Factory.FileType.Text)
+                        .file(tmpobj.name).observe.configuration;
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;
                     events.StreamUpdated.subscribe((rows: number) => {
@@ -104,13 +113,17 @@ describe('Observe', function () {
                         finish(session, done, events);
                         return;
                     }
+
                     stream
                         .observe(
-                            Observe.DataSource.file(config.regular.files['pcapng']).binary().dlt({
-                                filter_config: undefined,
-                                fibex_file_paths: undefined,
-                                with_storage_header: false,
-                            }),
+                            new Factory.File()
+                                .type(Factory.FileType.PcapNG)
+                                .file(config.regular.files['pcapng'])
+                                .asDlt({
+                                    filter_config: undefined,
+                                    fibex_file_paths: [],
+                                    with_storage_header: false,
+                                }).observe.configuration,
                         )
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;
@@ -181,13 +194,17 @@ describe('Observe', function () {
                         finish(session, done, events);
                         return;
                     }
+
                     stream
                         .observe(
-                            Observe.DataSource.file(config.regular.files['dlt']).binary().dlt({
-                                filter_config: undefined,
-                                fibex_file_paths: undefined,
-                                with_storage_header: true,
-                            }),
+                            new Factory.File()
+                                .type(Factory.FileType.Binary)
+                                .file(config.regular.files['dlt'])
+                                .asDlt({
+                                    filter_config: undefined,
+                                    fibex_file_paths: [],
+                                    with_storage_header: true,
+                                }).observe.configuration,
                         )
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;
@@ -355,11 +372,12 @@ describe('Observe', function () {
                     }
                     stream
                         .observe(
-                            Observe.DataSource.file(config.regular.files['someip-pcapng'])
-                                .pcapng()
-                                .someip({
-                                    fibex_file_paths: undefined,
-                                }),
+                            new Factory.File()
+                                .type(Factory.FileType.PcapNG)
+                                .file(config.regular.files['someip-pcapng'])
+                                .asSomeip({
+                                    fibex_file_paths: [],
+                                }).observe.configuration,
                         )
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;
@@ -460,11 +478,12 @@ describe('Observe', function () {
                     }
                     stream
                         .observe(
-                            Observe.DataSource.file(config.regular.files['someip-pcapng'])
-                                .pcapng()
-                                .someip({
+                            new Factory.File()
+                                .type(Factory.FileType.PcapNG)
+                                .file(config.regular.files['someip-pcapng'])
+                                .asSomeip({
                                     fibex_file_paths: [config.regular.files['someip-fibex']],
-                                }),
+                                }).observe.configuration,
                         )
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;
@@ -584,29 +603,38 @@ describe('Observe', function () {
                                     case 'text':
                                         stream
                                             .observe(
-                                                Observe.DataSource.file(test.file).text().text(),
+                                                new Factory.File()
+                                                    .asText()
+                                                    .type(Factory.FileType.Text)
+                                                    .file(test.file).observe.configuration,
                                             )
                                             .catch(finish.bind(null, session, done));
                                         break;
                                     case 'dlt':
                                         stream
                                             .observe(
-                                                Observe.DataSource.file(test.file).binary().dlt({
-                                                    filter_config: undefined,
-                                                    fibex_file_paths: undefined,
-                                                    with_storage_header: true,
-                                                }),
+                                                new Factory.File()
+                                                    .type(Factory.FileType.Binary)
+                                                    .file(test.file)
+                                                    .asDlt({
+                                                        filter_config: undefined,
+                                                        fibex_file_paths: [],
+                                                        with_storage_header: true,
+                                                    }).observe.configuration,
                                             )
                                             .catch(finish.bind(null, session, done));
                                         break;
                                     case 'pcapng':
                                         stream
                                             .observe(
-                                                Observe.DataSource.file(test.file).binary().dlt({
-                                                    filter_config: undefined,
-                                                    fibex_file_paths: undefined,
-                                                    with_storage_header: false,
-                                                }),
+                                                new Factory.File()
+                                                    .type(Factory.FileType.PcapNG)
+                                                    .file(test.file)
+                                                    .asDlt({
+                                                        filter_config: undefined,
+                                                        fibex_file_paths: [],
+                                                        with_storage_header: false,
+                                                    }).observe.configuration,
                                             )
                                             .catch(finish.bind(null, session, done));
                                         break;
