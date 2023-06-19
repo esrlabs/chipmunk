@@ -260,11 +260,13 @@ describe('Observe', function () {
                     }
                     stream
                         .observe(
-                            Observe.DataSource.file(config.regular.files['attachments']).dlt({
-                                filter_config: undefined,
-                                fibex_file_paths: undefined,
-                                with_storage_header: true,
-                            }),
+                            Observe.DataSource.file(config.regular.files['attachments'])
+                                .binary()
+                                .dlt({
+                                    filter_config: undefined,
+                                    fibex_file_paths: undefined,
+                                    with_storage_header: true,
+                                }),
                         )
                         .catch(finish.bind(null, session, done));
                     let updates: IAttachmentsUpdatedUpdated[] = [];
