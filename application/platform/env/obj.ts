@@ -187,6 +187,21 @@ export function getAsObj(src: any, key: string, defaults?: unknown): any {
     return src[key];
 }
 
+export function getAsObjWithPrimitives(src: any, key: string): any {
+    if (typeof src[key] !== 'object') {
+        throw new Error(`Parameter "${key}" should be a object`);
+    }
+    Object.keys(src[key]).forEach((k: string) => {
+        const type = typeof src[key][k];
+        if (type === 'function' || type === 'object' || type === 'symbol') {
+            throw new Error(
+                `Key "${k}" (of property "${key}") should be a primitive type; actual type: ${type}`,
+            );
+        }
+    });
+    return src[key];
+}
+
 export function getAsObjOrUndefined(src: any, key: string, defaults?: unknown): any {
     if (typeof src[key] !== 'object' || isUndefinedOrNull(src, key)) {
         if (defaults !== undefined) {
@@ -246,6 +261,38 @@ export function getAsArrayOrUndefined<T>(src: any, key: string): Array<T> | unde
         return undefined;
     }
     return src[key];
+}
+
+export function getAsStringsArrayOrUndefined<T>(src: any, key: string): Array<T> | undefined {
+    const target = src[key];
+    if (!(target instanceof Array)) {
+        return undefined;
+    }
+    target.forEach((el: string) => {
+        if (typeof el !== 'string') {
+            throw new Error(`Expected type: string[]; found not string elements`);
+        }
+    });
+    return target;
+}
+
+export function getAsNotEmptyStringsArrayOrUndefined<T>(
+    src: any,
+    key: string,
+): Array<T> | undefined {
+    const target = src[key];
+    if (!(target instanceof Array)) {
+        return undefined;
+    }
+    target.forEach((el: string) => {
+        if (typeof el !== 'string') {
+            throw new Error(`Expected type: string[]; found not string elements`);
+        }
+        if (el.trim() === '') {
+            throw new Error(`Expected type: string[] without empty strings; found empty strings`);
+        }
+    });
+    return target;
 }
 
 export function from<T>(src: any, props: string[]): T {

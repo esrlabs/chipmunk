@@ -1,5 +1,3 @@
-import { IDLTOptions } from './parsers/dlt';
-
 import * as obj from '../env/obj';
 
 export enum EntityType {
@@ -76,19 +74,6 @@ export enum FileType {
     SomeIp = 'SomeIp',
     PcapNG = 'PcapNG',
     Any = 'Any',
-}
-
-export interface TargetFileOptions {
-    dlt?: IDLTOptions;
-    someip?: Record<string, unknown>;
-    pcapng?: Record<string, unknown>;
-}
-
-export interface TargetFile {
-    filename: string;
-    name: string;
-    type: FileType;
-    options: TargetFileOptions;
 }
 
 export interface Stat {
