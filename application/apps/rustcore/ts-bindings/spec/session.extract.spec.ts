@@ -5,7 +5,7 @@
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 import { initLogger } from './logger';
 initLogger();
-import { Session, Observe } from '../src/api/session';
+import { Session, Factory } from '../src/api/session';
 import { createSampleFile, finish, runner } from './common';
 import { readConfigurationFile } from './config';
 
@@ -40,8 +40,14 @@ describe('Extracting', function () {
                             value !== -1 ? `some CPU=${value}% line data\n` : `some line data\n`
                         }`;
                     });
+
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .on('confirmed', () => {
                             const filter = 'cpu=(\\d{1,})';
                             search
@@ -130,7 +136,12 @@ describe('Extracting', function () {
                         }`;
                     });
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .on('confirmed', () => {
                             const filterA = 'cpu=(\\d{1,})';
                             const filterB = 'temp=(\\d{1,})';

@@ -5,7 +5,7 @@
 /// <reference path="../node_modules/@types/node/index.d.ts" />
 import { initLogger } from './logger';
 initLogger();
-import { Session, Observe } from '../src/api/session';
+import { Session, Factory } from '../src/api/session';
 import { createSampleFile, finish, runner } from './common';
 import { readConfigurationFile } from './config';
 import { Nature, IndexingMode, NatureTypes } from 'platform/types/content';
@@ -44,7 +44,12 @@ describe('Indexes', function () {
                     });
                     let read: boolean = false;
                     stream
-                        .observe(Observe.DataSource.file(tmpobj.name).text().text())
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name).observe.configuration,
+                        )
                         .catch(finish.bind(null, session, done));
                     const updates: number[] = [];
                     events.IndexedMapUpdated.subscribe((event) => {

@@ -3,7 +3,7 @@
 ///    we should show IDs
 /// 3. Add performance test (grabbing)
 
-import { Subject } from 'platform/env/subscription';
+import { Subject, validateEventDesc } from 'platform/env/subscription';
 import { error } from 'platform/log/utils';
 import { Logger } from 'platform/log';
 import { scope } from 'platform/env/scope';
@@ -308,7 +308,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                 } else {
                     this.debug().emit.event(event);
                 }
-                const err: Error | undefined = Subject.validate(
+                const err: Error | undefined = validateEventDesc(
                     (this.getEventsInterfaces() as any)[event],
                     data,
                 );

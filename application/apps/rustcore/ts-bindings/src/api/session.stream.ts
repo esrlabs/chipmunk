@@ -10,13 +10,13 @@ import {
     IGrabbedElement,
     IExtractDTFormatOptions,
     IExtractDTFormatResult,
-    Observe,
 } from '../interfaces/index';
 import { IRange } from 'platform/types/range';
-import { ObservedSourceLink } from 'platform/types/observe';
+import { ISourceLink } from 'platform/types/observe/types';
 import { Attachment, IndexingMode } from 'platform/types/content';
+import { IObserve } from 'platform/types/observe';
 
-export { IExtractDTFormatOptions, IExtractDTFormatResult, Observe };
+export { IExtractDTFormatOptions, IExtractDTFormatResult };
 
 export class SessionStream {
     private readonly _provider: EventProvider;
@@ -82,11 +82,11 @@ export class SessionStream {
         return this._session.getFileOptionsRequirements(filename);
     }
 
-    public getSourcesDefinitions(): Promise<ObservedSourceLink[]> {
+    public getSourcesDefinitions(): Promise<ISourceLink[]> {
         return this._session.getSourcesDefinitions();
     }
 
-    public observe(source: Observe.DataSource): ICancelablePromise<void> {
+    public observe(source: IObserve): ICancelablePromise<void> {
         return Executors.observe(this._session, this._provider, this._logger, source);
     }
 
