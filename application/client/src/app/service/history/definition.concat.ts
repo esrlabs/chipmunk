@@ -1,14 +1,16 @@
-import { DataSource } from '@platform/types/observe';
 import { IFileDesc, FileDesc } from './definition.file';
+import * as $ from '@platform/types/observe';
 
 export class ConcatDesc {
-    static async fromDataSource(source: DataSource): Promise<IFileDesc[] | undefined> {
-        const filenames = source.asConcatedFiles();
-        if (filenames === undefined) {
+    static async fromDataSource(source: $.Observe): Promise<IFileDesc[] | undefined> {
+        const concat = source.origin.as<$.Origin.Concat.Configuration>(
+            $.Origin.Concat.Configuration,
+        );
+        if (concat === undefined) {
             return undefined;
         }
         const list: IFileDesc[] = [];
-        for (const filename of filenames) {
+        for (const filename of concat.files()) {
             const desc = await FileDesc.fromFilename(filename);
             if (desc !== undefined) {
                 list.push(desc);

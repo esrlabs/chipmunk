@@ -10,19 +10,16 @@ export interface IStat {
 }
 
 export class Stat {
-    public static from(inputs: { [key: string]: unknown }): { stat: Stat; dropped: boolean } {
+    public static from(inputs: IStat): Stat {
         try {
-            return {
-                stat: new Stat({
-                    size: obj.getAsValidNumberOrUndefined(inputs, 'size'),
-                    last: obj.getAsValidNumber(inputs, 'last'),
-                    used: obj.getAsValidNumber(inputs, 'used'),
-                }),
-                dropped: false,
-            };
+            return new Stat({
+                size: obj.getAsValidNumberOrUndefined(inputs, 'size'),
+                last: obj.getAsValidNumber(inputs, 'last'),
+                used: obj.getAsValidNumber(inputs, 'used'),
+            });
         } catch (e) {
             scope.getLogger(`RecentStat`).warn(`Stat of recent action parsing error: ${error(e)}`);
-            return { stat: Stat.defaults(), dropped: true };
+            return Stat.defaults();
         }
     }
 
@@ -50,7 +47,7 @@ export class Stat {
         return this;
     }
 
-    public asObj(): { [key: string]: unknown } {
+    public asObj(): IStat {
         return {
             used: this.used,
             last: this.last,

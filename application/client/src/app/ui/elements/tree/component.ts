@@ -15,6 +15,7 @@ import { Initial } from '@env/decorators/initial';
 import { stop } from '@ui/env/dom';
 
 import * as Scheme from './scheme';
+import * as Factory from '@platform/types/observe/factory';
 
 @Component({
     selector: 'app-elements-tree',
@@ -107,8 +108,13 @@ export class ElementsTreeSelector
                     caption: 'Open as text',
                     handler: () => {
                         this.ilc()
-                            .services.system.opener.text(entity.getPath())
-                            .text()
+                            .services.system.session.initialize()
+                            .observe(
+                                new Factory.File()
+                                    .type(Factory.FileType.Text)
+                                    .asText()
+                                    .file(entity.getPath()).observe,
+                            )
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open text file; error: ${err.message}`);
                             });
@@ -118,8 +124,13 @@ export class ElementsTreeSelector
                     caption: 'Open as DLT',
                     handler: () => {
                         this.ilc()
-                            .services.system.opener.binary(entity.getPath())
-                            .dlt()
+                            .services.system.session.initialize()
+                            .observe(
+                                new Factory.File()
+                                    .asDlt()
+                                    .type(Factory.FileType.Binary)
+                                    .file(entity.getPath()).observe,
+                            )
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open dlt file; error: ${err.message}`);
                             });
@@ -129,8 +140,13 @@ export class ElementsTreeSelector
                     caption: 'Open as PcapNG',
                     handler: () => {
                         this.ilc()
-                            .services.system.opener.pcapng(entity.getPath())
-                            .dlt()
+                            .services.system.session.initialize()
+                            .observe(
+                                new Factory.File()
+                                    .type(Factory.FileType.PcapNG)
+                                    .asDlt()
+                                    .file(entity.getPath()).observe,
+                            )
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open pcapng file; error: ${err.message}`);
                             });

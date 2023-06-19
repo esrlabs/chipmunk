@@ -2,7 +2,6 @@ import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Provider, ProviderConstructor } from './provider';
 import { Session } from '@service/session/session';
 import { Subscriber } from '@platform/env/subscription';
-import { ParserName, Origin } from '@platform/types/observe';
 import { Mutable } from '@platform/types/unity/mutable';
 import { PROVIDERS } from './implementations';
 import { cutUuid } from '@log/index';
@@ -39,42 +38,6 @@ export class Providers extends Subscriber {
         this.list.forEach((provider: Provider) => {
             provider.destroy();
         });
-    }
-
-    public get(): {
-        parser(): ParserName | Error;
-        origin(): Origin | Error;
-    } {
-        let parser: ParserName | Error = new Error(``);
-        let origin: Origin | Error = new Error(``);
-        this.list.forEach((provider) => {
-            if (parser instanceof Error) {
-                parser = provider.get().parser();
-            }
-            if (origin instanceof Error) {
-                origin = provider.get().origin();
-            }
-        });
-        return {
-            parser: (): ParserName | Error => {
-                let parser: ParserName | Error = new Error(``);
-                this.list.forEach((provider) => {
-                    if (parser instanceof Error) {
-                        parser = provider.get().parser();
-                    }
-                });
-                return parser;
-            },
-            origin: (): Origin | Error => {
-                let origin: Origin | Error = new Error(``);
-                this.list.forEach((provider) => {
-                    if (origin instanceof Error) {
-                        origin = provider.get().origin();
-                    }
-                });
-                return origin;
-            },
-        };
     }
 
     public getNewSourceError(): Error | undefined {

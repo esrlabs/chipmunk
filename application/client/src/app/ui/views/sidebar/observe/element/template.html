@@ -1,6 +1,6 @@
 <app-views-observed-list-item-signature [element]="element" [id]="element.id"></app-views-observed-list-item-signature>
-<app-views-observed-file *ngIf="element.is().file()" [element]="element"></app-views-observed-file>
-<app-views-observed-process *ngIf="element.is().process()" [element]="element"></app-views-observed-process>
-<app-views-observed-serial *ngIf="element.is().serial()" [element]="element"></app-views-observed-serial>
-<app-views-observed-tcp *ngIf="element.is().tcp()" [element]="element"></app-views-observed-tcp>
-<app-views-observed-udp *ngIf="element.is().udp()" [element]="element"></app-views-observed-udp>
+<app-views-observed-file *ngIf="element.nature() === Context.File" [element]="element"></app-views-observed-file>
+<app-views-observed-process *ngIf="element.nature() === Source.Process" [element]="element"></app-views-observed-process>
+<app-views-observed-serial *ngIf="element.nature() === Source.Serial" [element]="element"></app-views-observed-serial>
+<app-views-observed-tcp *ngIf="element.nature() === Source.TCP" [element]="element"></app-views-observed-tcp>
+<app-views-observed-udp *ngIf="element.nature() === Source.UDP" [element]="element"></app-views-observed-udp>

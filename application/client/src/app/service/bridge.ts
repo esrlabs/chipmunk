@@ -2,7 +2,7 @@ import { SetupService, Interface, Implementation, register } from '@platform/ent
 import { services } from '@register/services';
 import { File, FileType, Entity } from '@platform/types/files';
 import { ShellProfile } from '@platform/types/shells';
-import { StatisticInfo } from '@platform/types/parsers/dlt';
+import { StatisticInfo } from '@platform/types/observe/parser/dlt';
 import { Entry } from '@platform/types/storage/entry';
 
 import * as Requests from '@platform/ipc/request/index';

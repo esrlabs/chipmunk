@@ -5,11 +5,12 @@ import { Session } from '../session/session';
 import { StorageCollections } from './storage.collections';
 import { StorageDefinitions } from './storage.definitions';
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
-import { DataSource } from '@platform/types/observe';
 import { Subscriber } from '@platform/env/subscription';
 import { Subjects, Subject } from '@platform/env/subscription';
 import { Suitable, SuitableGroup } from './suitable';
 import { LockToken } from '@platform/env/lock.token';
+
+import * as $ from '@platform/types/observe';
 
 export { Suitable, SuitableGroup };
 
@@ -57,11 +58,7 @@ export class HistorySession extends Subscriber {
         );
     }
 
-    protected handleNewSource(source: DataSource) {
-        if (this.locker.isLocked()) {
-            this.pendings.push(source);
-            return;
-        }
+    protected handleNewSource(source: $.Observe) {
         Definition.fromDataSource(source)
             .then((definition) => {
                 definition = this.storage.definitions.update(definition);

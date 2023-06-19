@@ -60,7 +60,7 @@ export class Sde {
     }
 
     public overwrite(running: Map<string, ObserveOperation>): void {
-        this.operations = Array.from(running.values()).filter((s) => s.asSource().isSDEAvaliable());
+        this.operations = Array.from(running.values()).filter((s) => s.asOrigin().isSdeSupported());
         this.subjects.get().updated.emit();
         if (this.selected !== undefined) {
             const target = this.selected.uuid;
@@ -110,7 +110,7 @@ export class Sde {
             is: (uuid: string): boolean => {
                 return this.selected === undefined
                     ? false
-                    : this.selected.uuid === uuid || this.selected.asSource().uuid === uuid;
+                    : this.selected.uuid === uuid || this.selected.asObserve().uuid === uuid;
             },
             first: (): void => {
                 if (this.operations.length === 0) {
@@ -135,7 +135,7 @@ export class Sde {
                     return false;
                 }
                 const candidate = this.operations.find(
-                    (o) => o.uuid === uuid || o.asSource().uuid === uuid,
+                    (o) => o.uuid === uuid || o.asObserve().uuid === uuid,
                 );
                 if (candidate === undefined) {
                     return false;

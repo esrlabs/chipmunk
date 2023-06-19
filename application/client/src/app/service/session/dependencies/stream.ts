@@ -4,27 +4,18 @@ import { Range, IRange } from '@platform/types/range';
 import { cutUuid } from '@log/index';
 import { Rank } from './rank';
 import { IGrabbedElement } from '@platform/types/content';
-import { DataSource, ObservedSourceLink } from '@platform/types/observe';
+import { Observe } from '@platform/types/observe';
 import { ObserveOperation } from './observing/operation';
 import { ObserveSource } from './observing/source';
-import { SourceDefinition } from '@platform/types/transport';
-import {
-    IDLTOptions,
-    parserSettingsToOptions as parserDLTSettingsToOptions,
-} from '@platform/types/parsers/dlt';
-import {
-    ISomeIpOptions,
-    parserSettingsToOptions as parserSomeIpSettingsToOptions,
-} from '@platform/types/parsers/someip';
 
-import { TargetFile } from '@platform/types/files';
 import { lockers } from '@ui/service/lockers';
 import { Sde } from './observing/sde';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
+import * as $ from '@platform/types/observe';
 
-export { ObserveOperation, DataSource };
+export { ObserveOperation };
 
 @SetupLogger()
 export class Stream extends Subscriber {
@@ -32,9 +23,9 @@ export class Stream extends Subscriber {
         // Stream is updated (new rows came)
         updated: Subject<number>;
         // New observe operation is started
-        started: Subject<DataSource>;
+        started: Subject<Observe>;
         // Observe operation for source is finished
-        finished: Subject<DataSource>;
+        finished: Subject<Observe>;
         // List of sources (observed operations has been changed)
         sources: Subject<void>;
         // Session rank is changed
@@ -43,8 +34,8 @@ export class Stream extends Subscriber {
         readable: Subject<void>;
     }> = new Subjects({
         updated: new Subject<number>(),
-        started: new Subject<DataSource>(),
-        finished: new Subject<DataSource>(),
+        started: new Subject<Observe>(),
+        finished: new Subject<Observe>(),
         sources: new Subject<void>(),
         rank: new Subject<number>(),
         readable: new Subject<void>(),
@@ -54,8 +45,8 @@ export class Stream extends Subscriber {
 
     public readonly observed: {
         running: Map<string, ObserveOperation>;
-        done: Map<string, DataSource>;
-        map: Map<number, ObservedSourceLink>;
+        done: Map<string, Observe>;
+        map: Map<number, $.Types.ISourceLink>;
     } = {
         running: new Map(),
         done: new Map(),
@@ -86,16 +77,16 @@ export class Stream extends Subscriber {
                 if (event.session !== this._uuid) {
                     return;
                 }
-                const source = DataSource.from(event.source);
-                if (source instanceof Error) {
-                    this.log().error(`Fail to parse DataSource: ${source.message}`);
+                const observe = Observe.from(event.source);
+                if (observe instanceof Error) {
+                    this.log().error(`Fail to parse Observe: ${observe.message}`);
                     return;
                 }
                 this.observed.running.set(
                     event.operation,
                     new ObserveOperation(
                         event.operation,
-                        source,
+                        observe,
                         this.sde.send.bind(this.sde, event.operation),
                         this.observe().restart.bind(this, event.operation),
                         this.observe().abort.bind(this, event.operation),
@@ -115,7 +106,7 @@ export class Stream extends Subscriber {
                         this.log().error(`Fail get sources description: ${err.message}`);
                     });
                 this.sde.overwrite(this.observed.running);
-                this.subjects.get().started.emit(source);
+                this.subjects.get().started.emit(observe);
             }),
         );
         this.register(
@@ -127,10 +118,10 @@ export class Stream extends Subscriber {
                 if (stored === undefined) {
                     return;
                 }
-                this.observed.done.set(event.operation, stored.asSource());
+                this.observed.done.set(event.operation, stored.asObserve());
                 this.observed.running.delete(event.operation);
                 this.sde.overwrite(this.observed.running);
-                this.subjects.get().finished.emit(stored.asSource());
+                this.subjects.get().finished.emit(stored.asObserve());
             }),
         );
     }
@@ -141,140 +132,40 @@ export class Stream extends Subscriber {
         this.sde.destroy();
     }
 
-    public file(file: TargetFile): Promise<void> {
-        return new Promise((resolve, reject) => {
-            Requests.IpcRequest.send<Requests.File.Open.Response>(
-                Requests.File.Open.Response,
-                new Requests.File.Open.Request({ session: this._uuid, file }),
-            )
-                .then((response) => {
-                    if (typeof response.error === 'string' && response.error !== '') {
-                        reject(new Error(response.error));
-                    } else {
-                        resolve(undefined);
-                    }
-                })
-                .catch(reject)
-                .finally(lockers.progress(`Opening file...`));
-        });
-    }
-
-    public concat(files: TargetFile[]): Promise<void> {
-        return new Promise((resolve, reject) => {
-            Requests.IpcRequest.send<Requests.File.Concat.Response>(
-                Requests.File.Concat.Response,
-                new Requests.File.Concat.Request({ session: this._uuid, files }),
-            )
-                .then((response) => {
-                    if (typeof response.error === 'string' && response.error !== '') {
-                        reject(new Error(response.error));
-                    } else {
-                        resolve(undefined);
-                    }
-                })
-                .catch(reject)
-                .finally(lockers.progress(`Concating files...`));
-        });
-    }
-
-    public connect(source: SourceDefinition): {
-        dlt(options: IDLTOptions): Promise<void>;
-        someip(options: ISomeIpOptions): Promise<void>;
-        text(): Promise<void>;
-        source(source: DataSource): Promise<void>;
-    } {
-        return {
-            dlt: (options: IDLTOptions): Promise<void> => {
-                return new Promise((resolve, reject) => {
-                    Requests.IpcRequest.send<Requests.Connect.Dlt.Response>(
-                        Requests.Connect.Dlt.Response,
-                        new Requests.Connect.Dlt.Request({ session: this._uuid, source, options }),
-                    )
-                        .then((response) => {
-                            if (typeof response.error === 'string' && response.error !== '') {
-                                reject(new Error(response.error));
-                            } else {
-                                resolve(undefined);
-                            }
-                        })
-                        .catch(reject)
-                        .finally(lockers.progress(`Creating stream`));
-                });
-            },
-            someip: (options: ISomeIpOptions): Promise<void> => {
-                return new Promise((resolve, reject) => {
-                    Requests.IpcRequest.send<Requests.Connect.Dlt.Response>(
-                        Requests.Connect.SomeIp.Response,
-                        new Requests.Connect.SomeIp.Request({
-                            session: this._uuid,
-                            source,
-                            options,
-                        }),
-                    )
-                        .then((response) => {
-                            if (typeof response.error === 'string' && response.error !== '') {
-                                reject(new Error(response.error));
-                            } else {
-                                resolve(undefined);
-                            }
-                        })
-                        .catch(reject)
-                        .finally(lockers.progress(`Creating stream`));
-                });
-            },
-            text: (): Promise<void> => {
-                return new Promise((resolve, reject) => {
-                    Requests.IpcRequest.send<Requests.Connect.Text.Response>(
-                        Requests.Connect.Text.Response,
-                        new Requests.Connect.Text.Request({ session: this._uuid, source }),
-                    )
-                        .then((response) => {
-                            if (typeof response.error === 'string' && response.error !== '') {
-                                reject(new Error(response.error));
-                            } else {
-                                resolve(undefined);
-                            }
-                        })
-                        .catch(reject)
-                        .finally(lockers.progress(`Creating stream`));
-                });
-            },
-            source: (src: DataSource): Promise<void> => {
-                const stream = src.asStream();
-                if (stream === undefined) {
-                    return Promise.reject(new Error(`Operation is available only for streams`));
-                }
-                if (src.parser.Dlt !== undefined) {
-                    return this.connect(source).dlt(parserDLTSettingsToOptions(src.parser.Dlt));
-                } else if (src.parser.SomeIp !== undefined) {
-                    return this.connect(source).someip(
-                        parserSomeIpSettingsToOptions(src.parser.SomeIp),
-                    );
-                } else if (src.parser.Text !== undefined) {
-                    return this.connect(source).text();
-                }
-                return Promise.reject(new Error(`Unsupported type of source`));
-            },
-        };
-    }
-
     public len(): number {
         return this._len;
     }
 
     public observe(): {
+        start(observe: Observe): Promise<string>;
         abort(uuid: string): Promise<void>;
-        restart(uuid: string, source: DataSource): Promise<void>;
-        list(): Promise<Map<string, DataSource>>;
+        restart(uuid: string, source: Observe): Promise<string>;
+        list(): Promise<Map<string, Observe>>;
         sources(): ObserveSource[];
         descriptions: {
-            get(id: number): ObservedSourceLink | undefined;
+            get(id: number): $.Types.ISourceLink | undefined;
             id(alias: string): number | undefined;
-            request(): Promise<ObservedSourceLink[]>;
+            request(): Promise<$.Types.ISourceLink[]>;
             count(): number;
         };
     } {
         return {
+            start: (observe: Observe): Promise<string> => {
+                return Requests.IpcRequest.send<Requests.Observe.Start.Response>(
+                    Requests.Observe.Start.Response,
+                    new Requests.Observe.Start.Request({
+                        session: this._uuid,
+                        observe: observe.configuration,
+                    }),
+                )
+                    .then((response) => {
+                        if (typeof response.error === 'string' && response.error !== '') {
+                            return Promise.reject(new Error(response.error));
+                        }
+                        return response.session;
+                    })
+                    .finally(lockers.progress(`Creating session...`));
+            },
             abort: (uuid: string): Promise<void> => {
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(
@@ -297,24 +188,14 @@ export class Stream extends Subscriber {
                         });
                 });
             },
-            restart: (uuid: string, source: DataSource): Promise<void> => {
+            restart: (uuid: string, observe: Observe): Promise<string> => {
                 return this.observe()
                     .abort(uuid)
                     .then(() => {
-                        const sourceDef = source.asSourceDefinition();
-                        if (sourceDef instanceof Error) {
-                            this.log().error(sourceDef.message);
-                            return;
-                        }
-                        return this.connect(sourceDef).source(source);
-                    })
-                    .catch((error: Error) => {
-                        this.log().error(
-                            `Fail to restart observe operation sources: ${error.message}`,
-                        );
+                        return this.observe().start(observe);
                     });
             },
-            list: (): Promise<Map<string, DataSource>> => {
+            list: (): Promise<Map<string, Observe>> => {
                 return new Promise((resolve) => {
                     Requests.IpcRequest.send(
                         Requests.Observe.List.Response,
@@ -323,11 +204,11 @@ export class Stream extends Subscriber {
                         }),
                     )
                         .then((response: Requests.Observe.List.Response) => {
-                            const sources: Map<string, DataSource> = new Map();
+                            const sources: Map<string, Observe> = new Map();
                             Object.keys(response.sources).forEach((uuid: string) => {
-                                const source = DataSource.from(response.sources[uuid]);
+                                const source = Observe.from(response.sources[uuid]);
                                 if (source instanceof Error) {
-                                    this.log().error(`Fail to parse DataSource: ${source.message}`);
+                                    this.log().error(`Fail to parse Observe: ${source.message}`);
                                     return;
                                 }
                                 sources.set(uuid, source);
@@ -344,14 +225,14 @@ export class Stream extends Subscriber {
             sources: (): ObserveSource[] => {
                 const sources: ObserveSource[] = [];
                 Array.from(this.observed.running.values()).forEach((observed: ObserveOperation) => {
-                    const source = observed.asSource();
+                    const source = observed.asObserve();
                     if (source.childs.length !== 0) {
                         sources.push(...source.childs.map((s) => new ObserveSource(s, observed)));
                     } else {
                         sources.push(new ObserveSource(source, observed));
                     }
                 });
-                Array.from(this.observed.done.values()).forEach((source: DataSource) => {
+                Array.from(this.observed.done.values()).forEach((source: Observe) => {
                     if (source.childs.length !== 0) {
                         sources.push(...source.childs.map((s) => new ObserveSource(s)));
                     } else {
@@ -361,7 +242,7 @@ export class Stream extends Subscriber {
                 return sources;
             },
             descriptions: {
-                get: (id: number): ObservedSourceLink | undefined => {
+                get: (id: number): $.Types.ISourceLink | undefined => {
                     return this.observed.map.get(id);
                 },
                 id: (alias: string): number | undefined => {
@@ -370,7 +251,7 @@ export class Stream extends Subscriber {
                     );
                     return link !== undefined ? link.id : undefined;
                 },
-                request: (): Promise<ObservedSourceLink[]> => {
+                request: (): Promise<$.Types.ISourceLink[]> => {
                     return new Promise((resolve, reject) => {
                         Requests.IpcRequest.send(
                             Requests.Observe.SourcesDefinitionsList.Response,
