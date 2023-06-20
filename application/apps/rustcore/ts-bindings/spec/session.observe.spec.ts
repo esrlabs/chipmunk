@@ -277,13 +277,14 @@ describe('Observe', function () {
                     }
                     stream
                         .observe(
-                            Observe.DataSource.file(config.regular.files['attachments'])
-                                .binary()
-                                .dlt({
+                            new Factory.File()
+                                .type(Factory.FileType.Binary)
+                                .file(config.regular.files['attachments'])
+                                .asDlt({
                                     filter_config: undefined,
                                     fibex_file_paths: undefined,
                                     with_storage_header: true,
-                                }),
+                                }).observe.configuration,
                         )
                         .catch(finish.bind(null, session, done));
                     let updates: IAttachmentsUpdatedUpdated[] = [];

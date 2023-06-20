@@ -1,5 +1,6 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { SomeipStatistic } from '../../../types/parsers/someip';
+import { SomeipStatistic } from '../../../types/observe/parser/someip';
+
 import * as validator from '../../../env/obj';
 
 @Define({ name: 'SomeipStatisticRequest' })
