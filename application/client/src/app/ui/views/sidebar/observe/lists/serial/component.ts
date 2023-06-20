@@ -53,8 +53,10 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
             this.action.subjects.get().apply.subscribe(() => {
                 this.provider
                     .clone(
-                        new Factroy.Stream().asText().serial(this.quickSetupRef.state.configuration)
-                            .observe,
+                        new Factroy.Stream()
+                            .asText()
+                            .serial(this.quickSetupRef.state.configuration)
+                            .clone(),
                     )
                     .then(() => {
                         this.action.subjects.get().applied.emit();

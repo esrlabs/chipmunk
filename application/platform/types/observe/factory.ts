@@ -23,28 +23,20 @@ class Factory<T> {
                 }
                 this.protocol(parsers[0].alias());
             } else if (this.changes.parser) {
-                const streams = this.observe.parser.getSupportedStream();
-                if (streams.length > 0) {
-                    this.observe.origin.change(
-                        new $.Origin.Stream.Configuration($.Origin.Stream.Configuration.initial()),
-                    );
-                    (this.observe.origin.instance as $.Origin.Stream.Configuration).instance
-                        .change()
-                        .byReference(streams[0]);
-                    return;
-                }
-                const filetypes = this.observe.parser.getSupportedFileType();
-                if (filetypes.length === 0) {
-                    throw new Error(
-                        `Cannot find any supported origins for parser: ${this.observe.parser.alias()}`,
-                    );
-                }
-                this.observe.origin.change(
-                    new $.Origin.File.Configuration($.Origin.File.Configuration.initial()),
-                );
-                (this.observe.origin.instance as $.Origin.File.Configuration)
-                    .set()
-                    .type(filetypes[0]);
+                // TODO: check source also
+                // switch (this.observe.origin.instance.alias()) {
+                //     case $.Origin.Context.File:
+                //         const _filetypes = this.observe.parser.getSupportedFileType();
+                //         break;
+                //     case $.Origin.Context.Concat:
+                //         const _filetypes = this.observe.parser.getSupportedFileType();
+                //         break;
+                //     case $.Origin.Context.Stream:
+                //         const _streams = this.observe.parser
+                //             .getSupportedStream()
+                //             .map((r) => r.alias());
+                //         break;
+                // }
             }
         };
         return {
@@ -59,7 +51,7 @@ class Factory<T> {
         };
     }
 
-    public observe: $.Observe = $.Observe.new();
+    protected observe: $.Observe = $.Observe.new();
 
     public protocol(protocol: $.Parser.Protocol): T {
         this.observe.parser.change($.Parser.getByAlias(protocol));
@@ -94,6 +86,23 @@ class Factory<T> {
         this.updated().parser();
         return this as unknown as T;
     }
+
+    public get(): $.IObserve {
+        const parsers = this.observe.origin.getSupportedParsers().map((ref) => ref.alias());
+        const selected = this.observe.parser.alias();
+        if (!parsers.includes(selected)) {
+            throw new Error(
+                `Origin "${this.observe.origin.getNatureAlias()}" doesn't support parser: ${selected}; available parsers: ${parsers.join(
+                    ', ',
+                )}.`,
+            );
+        }
+        return this.observe.configuration;
+    }
+
+    public clone(): $.Observe {
+        return new $.Observe(this.get());
+    }
 }
 
 export class File extends Factory<File> {
@@ -102,9 +111,7 @@ export class File extends Factory<File> {
     constructor() {
         super();
         this.observe.origin.change(
-            new $.Origin.File.Configuration($.Origin.File.Configuration.initial())
-                .set()
-                .filename(''),
+            new $.Origin.File.Configuration($.Origin.File.Configuration.initial()),
         );
     }
 

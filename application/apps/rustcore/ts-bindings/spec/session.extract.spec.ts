@@ -46,7 +46,8 @@ describe('Extracting', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).observe.configuration,
+                                .file(tmpobj.name)
+                                .get(),
                         )
                         .on('confirmed', () => {
                             const filter = 'cpu=(\\d{1,})';
@@ -140,7 +141,8 @@ describe('Extracting', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).observe.configuration,
+                                .file(tmpobj.name)
+                                .get(),
                         )
                         .on('confirmed', () => {
                             const filterA = 'cpu=(\\d{1,})';

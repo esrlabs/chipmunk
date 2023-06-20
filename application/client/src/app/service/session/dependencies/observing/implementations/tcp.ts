@@ -39,7 +39,7 @@ export class Provider extends Base {
     }
 
     public openNewSessionOptions() {
-        session.initialize().configure(new Factory.Stream().tcp().observe);
+        session.initialize().configure(new Factory.Stream().tcp().clone());
     }
 
     public update(sources: ObserveSource[]): Provider {
