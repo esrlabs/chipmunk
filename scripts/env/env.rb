@@ -28,7 +28,7 @@ module Environment
   end
 
   def self.wasm_pack
-    if system('wasm-pack -V')
+    if system('wasm-pack --help')
       Reporter.add(Jobs::Skipped, Owner::Env, 'wasm-pack is installed already', '')
       return
     end
@@ -48,7 +48,7 @@ module Environment
   def self.list
     Shell.sh 'nj-cli -V'
     Shell.sh 'yarn -v'
-    Shell.sh 'wasm-pack -V'
+    # Shell.sh 'wasm-pack -V'
     Shell.sh 'node -v'
     Shell.sh 'rustc -V'
   end
