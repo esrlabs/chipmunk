@@ -1,4 +1,4 @@
-import { Destroy } from '@env/declarations';
+import { Destroy } from '@platform/types/env/types';
 import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Subscriber } from '@platform/env/subscription';
