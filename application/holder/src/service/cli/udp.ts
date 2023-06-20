@@ -44,8 +44,10 @@ export class Action extends CLIAction {
             Requests.IpcRequest.send(
                 Requests.Cli.Observe.Response,
                 new Requests.Cli.Observe.Request({
-                    observe: new Factory.Stream().udp(this.settings).protocol(cli.state().parser())
-                        .observe.configuration,
+                    observe: new Factory.Stream()
+                        .udp(this.settings)
+                        .protocol(cli.state().parser())
+                        .get(),
                 }),
             )
                 .then((response) => {

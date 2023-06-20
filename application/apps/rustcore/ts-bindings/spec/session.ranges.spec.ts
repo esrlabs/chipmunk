@@ -43,7 +43,8 @@ describe('Grab ranges', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).observe.configuration,
+                                .file(tmpobj.name)
+                                .get(),
                         )
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;

@@ -123,7 +123,8 @@ describe('Cancel', function () {
                             new Factory.File()
                                 .file(config.regular.files['text'])
                                 .type(Factory.FileType.Text)
-                                .asText().observe.configuration,
+                                .asText()
+                                .get(),
                         )
                         .catch(finish.bind(null, session, done));
                     let canceled: number = 0;

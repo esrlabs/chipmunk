@@ -37,7 +37,7 @@ export class Action extends Base {
         } else {
             session
                 .initialize()
-                .observe(new Factory.File().file(files[0].filename).asText().observe);
+                .observe(new Factory.File().file(files[0].filename).asText().clone());
         }
         return Promise.resolve();
     }

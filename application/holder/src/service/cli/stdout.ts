@@ -53,7 +53,7 @@ export class Action extends CLIAction {
                             cwd: this.cwd,
                             envs: {},
                         })
-                        .protocol(cli.state().parser()).observe.configuration,
+                        .protocol(cli.state().parser()).get(),
                 }),
             )
                 .then((response) => {

@@ -48,7 +48,8 @@ describe('Indexes', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).observe.configuration,
+                                .file(tmpobj.name)
+                                .get(),
                         )
                         .catch(finish.bind(null, session, done));
                     const updates: number[] = [];

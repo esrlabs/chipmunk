@@ -53,11 +53,14 @@ if (process.platform === 'win32') {
 
                 stream
                     .observe(
-                        new Factory.Stream().asText().process({
-                            command: `less ${tmpobj.name}`,
-                            cwd: process.cwd(),
-                            envs: process.env as { [key: string]: string },
-                        }).observe.configuration,
+                        new Factory.Stream()
+                            .asText()
+                            .process({
+                                command: `less ${tmpobj.name}`,
+                                cwd: process.cwd(),
+                                envs: process.env as { [key: string]: string },
+                            })
+                            .get(),
                     )
                     .catch(finish.bind(null, session, done));
                 events.StreamUpdated.subscribe((rows: number) => {
@@ -117,11 +120,14 @@ if (process.platform === 'win32') {
                 const lifeCycleEvents: string[] = [];
                 stream
                     .observe(
-                        new Factory.Stream().asText().process({
-                            command: `less ${tmpobj.name}`,
-                            cwd: process.cwd(),
-                            envs: process.env as { [key: string]: string },
-                        }).observe.configuration,
+                        new Factory.Stream()
+                            .asText()
+                            .process({
+                                command: `less ${tmpobj.name}`,
+                                cwd: process.cwd(),
+                                envs: process.env as { [key: string]: string },
+                            })
+                            .get(),
                     )
                     .on('confirmed', () => {
                         lifeCycleEvents.push('confirmed');
@@ -158,11 +164,14 @@ if (process.platform === 'win32') {
                 const lifeCycleEvents: string[] = [];
                 stream
                     .observe(
-                        new Factory.Stream().asText().process({
-                            command: `some_invalid_command`,
-                            cwd: process.cwd(),
-                            envs: process.env as { [key: string]: string },
-                        }).observe.configuration,
+                        new Factory.Stream()
+                            .asText()
+                            .process({
+                                command: `some_invalid_command`,
+                                cwd: process.cwd(),
+                                envs: process.env as { [key: string]: string },
+                            })
+                            .get(),
                     )
                     .on('confirmed', () => {
                         lifeCycleEvents.push('confirmed');
@@ -204,11 +213,14 @@ if (process.platform === 'win32') {
                 );
                 stream
                     .observe(
-                        new Factory.Stream().asText().process({
-                            command: `tail --lines=5000 -f ${tmpobj.name}`,
-                            cwd: process.cwd(),
-                            envs: process.env as { [key: string]: string },
-                        }).observe.configuration,
+                        new Factory.Stream()
+                            .asText()
+                            .process({
+                                command: `tail --lines=5000 -f ${tmpobj.name}`,
+                                cwd: process.cwd(),
+                                envs: process.env as { [key: string]: string },
+                            })
+                            .get(),
                     )
                     .catch(finish.bind(null, session, done));
                 const append = () => {
@@ -314,11 +326,14 @@ if (process.platform === 'win32') {
                 );
                 stream
                     .observe(
-                        new Factory.Stream().asText().process({
-                            command: `tail --lines=5000 -f ${tmpobj.name}`,
-                            cwd: process.cwd(),
-                            envs: process.env as { [key: string]: string },
-                        }).observe.configuration,
+                        new Factory.Stream()
+                            .asText()
+                            .process({
+                                command: `tail --lines=5000 -f ${tmpobj.name}`,
+                                cwd: process.cwd(),
+                                envs: process.env as { [key: string]: string },
+                            })
+                            .get(),
                     )
                     .catch(finish.bind(null, session, done));
                 const filter = 'match A';
@@ -429,11 +444,14 @@ if (process.platform === 'win32') {
                 );
                 const tailing = stream
                     .observe(
-                        new Factory.Stream().asText().process({
-                            command: `tail --lines=5000 -f ${tmpobj.name}`,
-                            cwd: process.cwd(),
-                            envs: process.env as { [key: string]: string },
-                        }).observe.configuration,
+                        new Factory.Stream()
+                            .asText()
+                            .process({
+                                command: `tail --lines=5000 -f ${tmpobj.name}`,
+                                cwd: process.cwd(),
+                                envs: process.env as { [key: string]: string },
+                            })
+                            .get(),
                     )
                     .catch(finish.bind(null, session, done));
                 events.StreamUpdated.subscribe((rows: number) => {
@@ -485,11 +503,14 @@ if (process.platform === 'win32') {
                 };
                 const sed = stream
                     .observe(
-                        new Factory.Stream().asText().process({
-                            command: `sed -u "w ${filename}"`,
-                            cwd: process.cwd(),
-                            envs: process.env as { [key: string]: string },
-                        }).observe.configuration,
+                        new Factory.Stream()
+                            .asText()
+                            .process({
+                                command: `sed -u "w ${filename}"`,
+                                cwd: process.cwd(),
+                                envs: process.env as { [key: string]: string },
+                            })
+                            .get(),
                     )
                     .on('processing', (e) => {
                         procceed();
@@ -498,11 +519,14 @@ if (process.platform === 'win32') {
                 // Tail file
                 const _tail = stream
                     .observe(
-                        new Factory.Stream().asText().process({
-                            command: `tail -f ${filename}`,
-                            cwd: process.cwd(),
-                            envs: process.env as { [key: string]: string },
-                        }).observe.configuration,
+                        new Factory.Stream()
+                            .asText()
+                            .process({
+                                command: `tail -f ${filename}`,
+                                cwd: process.cwd(),
+                                envs: process.env as { [key: string]: string },
+                            })
+                            .get(),
                     )
                     .on('processing', () => {
                         procceed();
