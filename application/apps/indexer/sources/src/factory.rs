@@ -103,6 +103,7 @@ pub struct UDPTransportConfig {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum FileFormat {
     PcapNG,
+    PcapLegacy,
     Text,
     Binary,
 }

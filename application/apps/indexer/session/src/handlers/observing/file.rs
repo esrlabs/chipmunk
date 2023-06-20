@@ -6,9 +6,11 @@ use crate::{
 };
 use indexer_base::progress::Severity;
 use sources::{
+    binary::{
+        pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
+        raw::BinaryByteSource,
+    },
     factory::{FileFormat, ParserType},
-    pcap::file::PcapngByteSource,
-    raw::binary::BinaryByteSource,
 };
 use std::{fs::File, path::Path};
 use tokio::{
@@ -33,6 +35,22 @@ pub async fn observe_file<'a>(
     match file_format {
         FileFormat::Binary => {
             let source = BinaryByteSource::new(input_file(filename)?);
+            let (_, listening) = join!(
+                tail::track(filename, tx_tail, operation_api.cancellation_token()),
+                super::run_source(
+                    operation_api,
+                    state,
+                    source,
+                    source_id,
+                    parser,
+                    None,
+                    Some(rx_tail)
+                )
+            );
+            listening
+        }
+        FileFormat::PcapLegacy => {
+            let source = PcapLegacyByteSource::new(input_file(filename)?)?;
             let (_, listening) = join!(
                 tail::track(filename, tx_tail, operation_api.cancellation_token()),
                 super::run_source(

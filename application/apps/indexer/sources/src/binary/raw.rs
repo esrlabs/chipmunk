@@ -90,7 +90,7 @@ impl<R: Read + Send + Sync + Seek> ByteSource for BinaryByteSource<R> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{raw::binary::BinaryByteSource, ByteSource};
+    use crate::{binary::raw::BinaryByteSource, ByteSource};
     use env_logger;
     use std::sync::Once;
 

@@ -7,11 +7,10 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
+pub mod binary;
 pub mod command;
 pub mod factory;
-pub mod pcap;
 pub mod producer;
-pub mod raw;
 pub mod sde;
 pub mod serial;
 pub mod socket;

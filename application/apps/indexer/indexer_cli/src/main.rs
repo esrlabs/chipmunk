@@ -43,9 +43,8 @@ use parsers::{
 };
 use processor::{export::export_raw, grabber::GrabError, text_source::TextFileSource};
 use sources::{
-    pcap::file::{print_from_pcapng, PcapngByteSource, VoidResults},
+    binary::{pcap::ng::PcapngByteSource, raw::BinaryByteSource},
     producer::MessageProducer,
-    raw::binary::BinaryByteSource,
 };
 use std::{
     fs::File,
@@ -55,6 +54,7 @@ use std::{
 use structopt::StructOpt;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
+pub type VoidResults = std::result::Result<IndexingProgress<()>, Notification>;
 
 lazy_static! {
     static ref EXAMPLE_FIBEX: std::path::PathBuf =
@@ -238,6 +238,7 @@ enum Chip {
         append: bool,
     },
     #[structopt(about = "someip from pcap files")]
+    #[allow(dead_code)]
     SomeIpPcap {
         #[structopt(help = "the pcap file to parse")]
         input: PathBuf,
@@ -443,10 +444,10 @@ pub async fn main() -> Result<()> {
             .await
         }
         Chip::SomeIpPcap {
-            input,
-            output,
-            model,
-        } => handle_someip_pcap_subcommand(model, &input, output, start).await,
+            input: _,
+            output: _,
+            model: _,
+        } => println!("NYI someip from pcap not available on cli"),
         Chip::DltStats {
             input,
             legacy,
@@ -1029,6 +1030,7 @@ pub async fn main() -> Result<()> {
         std::process::exit(0)
     }
 
+    #[allow(dead_code)]
     async fn progress_listener(
         source_file_size: u64,
         mut rx: mpsc::Receiver<VoidResults>,
@@ -1521,36 +1523,6 @@ pub async fn main() -> Result<()> {
                     std::process::exit(2)
                 }
             }
-        }
-    }
-
-    async fn handle_someip_pcap_subcommand(
-        model_path: Option<PathBuf>,
-        input_path: &Path,
-        output_path: Option<PathBuf>,
-        start: std::time::Instant,
-    ) {
-        debug!("handle_someip_pcap_subcommand");
-        if let Some(model_path) = model_path {
-            let output_path = output_path
-                .unwrap_or_else(|| PathBuf::from(&format!("{}.out", input_path.to_string_lossy())));
-
-            println!("read fibex file {}", model_path.to_str().unwrap());
-            let someip_parser = SomeipParser::from_fibex_files(vec![model_path]);
-
-            println!("parse input file {}", input_path.to_str().unwrap());
-            let input_file_size = fs::metadata(input_path).expect("file size error").len();
-            let cancel = CancellationToken::new();
-            let (tx, rx): (mpsc::Sender<VoidResults>, mpsc::Receiver<VoidResults>) =
-                mpsc::channel(100);
-            let (_, res) = tokio::join! {
-                progress_listener(input_file_size, rx, start),
-                print_from_pcapng(input_path, &output_path, tx, cancel, someip_parser),
-            };
-            println!("result: {res:?}");
-
-            println!("done with handle_someip_pcap_subcommand");
-            std::process::exit(0)
         }
     }
 

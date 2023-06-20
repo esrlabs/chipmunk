@@ -765,20 +765,11 @@ dependencies = [
 
 [[package]]
 name = "dirs"
-version = "4.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca3aa72a6f96ea37bbc5aa912f6788242832f75369bdfdadcb0e38423f100059"
-dependencies = [
- "dirs-sys 0.3.7",
-]
-
-[[package]]
-name = "dirs"
 version = "5.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "44c45a9d03d6676652bcb5e724c7e988de1acad23a711b5217ab9cbecbec2225"
 dependencies = [
- "dirs-sys 0.4.1",
+ "dirs-sys",
 ]
 
 [[package]]
@@ -789,17 +780,6 @@ checksum = "b98cf8ebf19c3d1b223e151f99a4f9f0690dca41414773390fc824184ac833e1"
 dependencies = [
  "cfg-if 1.0.0",
  "dirs-sys-next",
-]
-
-[[package]]
-name = "dirs-sys"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b1d1d91c932ef41c0f2663aa8b0ca0342d444d842c06914aa0a7e352d0bada6"
-dependencies = [
- "libc",
- "redox_users",
- "winapi 0.3.9",
 ]
 
 [[package]]
@@ -1299,7 +1279,7 @@ dependencies = [
  "bytes 1.4.0",
  "chrono",
  "crossbeam-channel",
- "dirs 4.0.0",
+ "dirs",
  "dlt-core",
  "env_logger",
  "futures 0.3.28",
@@ -1680,7 +1660,7 @@ checksum = "20a4c60ca5c9c0e114b3bd66ff4aa5f9b2b175442be51ca6c4365d687a97a2ac"
 dependencies = [
  "log",
  "mio 0.8.8",
- "nix 0.26.2",
+ "nix",
  "serialport",
  "winapi 0.3.9",
 ]
@@ -1735,18 +1715,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77a5d83df9f36fe23f0c3648c6bbb8b0298bb5f1939c8f2704431371f4b84d43"
 dependencies = [
  "smallvec 1.10.0",
-]
-
-[[package]]
-name = "nix"
-version = "0.25.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f346ff70e7dbfd675fe90590b92d59ef2de15a8779ae305ebcbfd3f0caf59be4"
-dependencies = [
- "autocfg",
- "bitflags 1.3.2",
- "cfg-if 1.0.0",
- "libc",
 ]
 
 [[package]]
@@ -2097,7 +2065,7 @@ dependencies = [
  "chrono",
  "criterion",
  "crossbeam-channel",
- "dirs 4.0.0",
+ "dirs",
  "encoding_rs_io",
  "env_logger",
  "futures 0.3.28",
@@ -2455,9 +2423,9 @@ dependencies = [
 
 [[package]]
 name = "rustyline"
-version = "10.1.1"
+version = "11.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1e83c32c3f3c33b08496e0d1df9ea8c64d39adb8eb36a1ebb1440c690697aef"
+checksum = "5dfc8644681285d1fb67a467fb3021bfea306b99b4146b166a1fe3ada965eece"
 dependencies = [
  "bitflags 1.3.2",
  "cfg-if 1.0.0",
@@ -2467,7 +2435,7 @@ dependencies = [
  "libc",
  "log",
  "memchr",
- "nix 0.25.1",
+ "nix",
  "radix_trie",
  "scopeguard",
  "unicode-segmentation",
@@ -2588,7 +2556,7 @@ dependencies = [
  "bitflags 2.0.2",
  "cfg-if 1.0.0",
  "mach2",
- "nix 0.26.2",
+ "nix",
  "regex",
  "scopeguard",
  "winapi 0.3.9",
@@ -2600,7 +2568,7 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "crossbeam-channel",
- "dirs 4.0.0",
+ "dirs",
  "dlt-core",
  "envvars",
  "futures 0.3.28",
@@ -2630,7 +2598,7 @@ version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da03fa3b94cc19e3ebfc88c4229c49d8f08cdbd1228870a45f0ffdf84988e14b"
 dependencies = [
- "dirs 5.0.1",
+ "dirs",
 ]
 
 [[package]]

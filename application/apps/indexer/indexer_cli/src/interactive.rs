@@ -2,7 +2,7 @@ use crate::{duration_report, Instant};
 use futures::{pin_mut, stream::StreamExt};
 use parsers::{dlt::DltParser, MessageStreamItem, ParseYield};
 use processor::grabber::LineRange;
-use rustyline::{error::ReadlineError, Editor};
+use rustyline::{error::ReadlineError, DefaultEditor};
 use session::session::Session;
 use sources::{
     factory::{DltParserSettings, FileFormat, ObserveOptions, ParserType},
@@ -142,7 +142,7 @@ enum Command {
 
 async fn collect_user_input(tx: mpsc::UnboundedSender<Command>) -> JoinHandle<()> {
     task::spawn_blocking(move || {
-        let mut rl = Editor::<()>::new().expect("could not create editor");
+        let mut rl = DefaultEditor::new().expect("could not create editor");
         loop {
             let readline = rl.readline(">> ");
             match readline {

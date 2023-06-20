@@ -5,9 +5,11 @@ use crate::{
 };
 use indexer_base::progress::Severity;
 use sources::{
+    binary::{
+        pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
+        raw::BinaryByteSource,
+    },
     factory::{FileFormat, ParserType},
-    pcap::file::PcapngByteSource,
-    raw::binary::BinaryByteSource,
 };
 use std::{fs::File, path::PathBuf};
 
@@ -48,6 +50,18 @@ pub async fn concat_files(
                     operation_api.clone(),
                     state.clone(),
                     BinaryByteSource::new(input_file),
+                    source_id,
+                    parser,
+                    None,
+                    None,
+                )
+                .await?
+            }
+            FileFormat::PcapLegacy => {
+                super::run_source(
+                    operation_api.clone(),
+                    state.clone(),
+                    PcapLegacyByteSource::new(input_file)?,
                     source_id,
                     parser,
                     None,
