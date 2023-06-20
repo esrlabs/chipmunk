@@ -59,7 +59,8 @@ describe('Exporting', function () {
                             new Factory.File()
                                 .type(Factory.FileType.Text)
                                 .asText()
-                                .file(tmpobj.name).observe.configuration,
+                                .file(tmpobj.name)
+                                .get(),
                         )
                         .catch(finish.bind(null, session, done));
                     let gotten: boolean = false;
@@ -171,7 +172,8 @@ describe('Exporting', function () {
                             new Factory.Concat()
                                 .type(Factory.FileType.Text)
                                 .files([tmpobj_a.name, tmpobj_b.name])
-                                .asText().observe.configuration,
+                                .asText()
+                                .get(),
                         )
                         .catch(finish.bind(null, session, done));
                     let gotten: boolean = false;
@@ -280,7 +282,8 @@ describe('Exporting', function () {
                             new Factory.File()
                                 .type(Factory.FileType.Text)
                                 .asText()
-                                .file(tmpobj.name).observe.configuration,
+                                .file(tmpobj.name)
+                                .get(),
                         )
                         .on('confirmed', () => {
                             search
@@ -418,7 +421,8 @@ describe('Exporting', function () {
                                 filter_config: undefined,
                                 with_storage_header: true,
                             })
-                            .file(config.regular.files['dlt'][0]).observe.configuration;
+                            .file(config.regular.files['dlt'][0])
+                            .get();
                         console.log(configuration);
                         stream
                             .observe(
@@ -429,7 +433,8 @@ describe('Exporting', function () {
                                         filter_config: undefined,
                                         with_storage_header: true,
                                     })
-                                    .file(config.regular.files['dlt'][0]).observe.configuration,
+                                    .file(config.regular.files['dlt'][0])
+                                    .get(),
                             )
                             .catch(finish.bind(null, session, done));
                         let gotten: boolean = false;
@@ -542,7 +547,8 @@ describe('Exporting', function () {
                                         filter_config: undefined,
                                         with_storage_header: true,
                                     })
-                                    .file(config.regular.files['dlt'][0]).observe.configuration,
+                                    .file(config.regular.files['dlt'][0])
+                                    .get(),
                             )
                             .catch(finish.bind(null, session, done));
                         let gotten: boolean = false;
@@ -582,8 +588,8 @@ describe('Exporting', function () {
                                                                             with_storage_header:
                                                                                 true,
                                                                         })
-                                                                        .file(output).observe
-                                                                        .configuration,
+                                                                        .file(output)
+                                                                        .get(),
                                                                 )
                                                                 .catch(
                                                                     finish.bind(
@@ -765,7 +771,8 @@ describe('Exporting', function () {
                                     .files([
                                         config.regular.files['dlt'][1],
                                         config.regular.files['dlt'][1],
-                                    ]).observe.configuration,
+                                    ])
+                                    .get(),
                             )
                             .catch(finish.bind(null, session, done));
                         let gotten: boolean = false;
@@ -883,7 +890,8 @@ describe('Exporting', function () {
                                     .files([
                                         config.regular.files['dlt'][1],
                                         config.regular.files['dlt'][1],
-                                    ]).observe.configuration,
+                                    ])
+                                    .get(),
                             )
                             .catch(finish.bind(null, session, done));
                         let gotten: boolean = false;
@@ -925,8 +933,8 @@ describe('Exporting', function () {
                                                                             with_storage_header:
                                                                                 true,
                                                                         })
-                                                                        .file(output).observe
-                                                                        .configuration,
+                                                                        .file(output)
+                                                                        .get(),
                                                                 )
                                                                 .catch(
                                                                     finish.bind(
@@ -1095,7 +1103,8 @@ describe('Exporting', function () {
                                     .files([
                                         config.regular.files['dlt'][1],
                                         config.regular.files['dlt'][1],
-                                    ]).observe.configuration,
+                                    ])
+                                    .get(),
                             )
                             .catch(finish.bind(null, session, done));
                         let gotten: boolean = false;
@@ -1152,8 +1161,8 @@ describe('Exporting', function () {
                                                                             with_storage_header:
                                                                                 true,
                                                                         })
-                                                                        .file(output).observe
-                                                                        .configuration,
+                                                                        .file(output)
+                                                                        .get(),
                                                                 )
                                                                 .catch(
                                                                     finish.bind(

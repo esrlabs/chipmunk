@@ -47,17 +47,17 @@ export class Action extends Base {
                 case FileType.Dlt:
                     session
                         .initialize()
-                        .configure(new Factory.File().file(files[0].filename).asDlt().observe);
+                        .configure(new Factory.File().file(files[0].filename).asDlt().clone());
                     break;
                 case FileType.PcapNG:
                     session
                         .initialize()
-                        .suggest(new Factory.File().file(files[0].filename).observe);
+                        .suggest(new Factory.File().file(files[0].filename).clone());
                     break;
                 default:
                     session
                         .initialize()
-                        .observe(new Factory.File().file(files[0].filename).asText().observe);
+                        .observe(new Factory.File().file(files[0].filename).asText().clone());
                     break;
             }
         }

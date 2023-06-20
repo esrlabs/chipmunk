@@ -37,16 +37,12 @@ describe('Observe', function () {
                         logger,
                         (i: number) => `some line data: ${i}\n`,
                     );
-                    const config = new Factory.File()
-                        .asText()
-                        .type(Factory.FileType.Text)
-                        .file(tmpobj.name).observe.configuration;
                     stream
                         .observe(
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).observe.configuration,
+                                .file(tmpobj.name).get(),
                         )
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;
@@ -123,7 +119,7 @@ describe('Observe', function () {
                                     filter_config: undefined,
                                     fibex_file_paths: [],
                                     with_storage_header: false,
-                                }).observe.configuration,
+                                }).get(),
                         )
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;
@@ -204,7 +200,7 @@ describe('Observe', function () {
                                     filter_config: undefined,
                                     fibex_file_paths: [],
                                     with_storage_header: true,
-                                }).observe.configuration,
+                                }).get(),
                         )
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;
@@ -284,7 +280,7 @@ describe('Observe', function () {
                                     filter_config: undefined,
                                     fibex_file_paths: undefined,
                                     with_storage_header: true,
-                                }).observe.configuration,
+                                }).get(),
                         )
                         .catch(finish.bind(null, session, done));
                     let updates: IAttachmentsUpdatedUpdated[] = [];
@@ -378,7 +374,7 @@ describe('Observe', function () {
                                 .file(config.regular.files['someip-pcapng'])
                                 .asSomeip({
                                     fibex_file_paths: [],
-                                }).observe.configuration,
+                                }).get(),
                         )
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;
@@ -484,7 +480,7 @@ describe('Observe', function () {
                                 .file(config.regular.files['someip-pcapng'])
                                 .asSomeip({
                                     fibex_file_paths: [config.regular.files['someip-fibex']],
-                                }).observe.configuration,
+                                }).get(),
                         )
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;
@@ -607,7 +603,7 @@ describe('Observe', function () {
                                                 new Factory.File()
                                                     .asText()
                                                     .type(Factory.FileType.Text)
-                                                    .file(test.file).observe.configuration,
+                                                    .file(test.file).get(),
                                             )
                                             .catch(finish.bind(null, session, done));
                                         break;
@@ -621,7 +617,7 @@ describe('Observe', function () {
                                                         filter_config: undefined,
                                                         fibex_file_paths: [],
                                                         with_storage_header: true,
-                                                    }).observe.configuration,
+                                                    }).get(),
                                             )
                                             .catch(finish.bind(null, session, done));
                                         break;
@@ -635,7 +631,7 @@ describe('Observe', function () {
                                                         filter_config: undefined,
                                                         fibex_file_paths: [],
                                                         with_storage_header: false,
-                                                    }).observe.configuration,
+                                                    }).get(),
                                             )
                                             .catch(finish.bind(null, session, done));
                                         break;

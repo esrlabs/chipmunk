@@ -140,7 +140,8 @@ export class State extends Holder {
                                     new Factory.Concat()
                                         .asText()
                                         .type(Factory.FileType.Text)
-                                        .files(files).observe,
+                                        .files(files)
+                                        .clone(),
                                 );
                         case FileType.Dlt:
                             return this._ilc.services.system.session
@@ -149,7 +150,8 @@ export class State extends Holder {
                                     new Factory.Concat()
                                         .asDlt()
                                         .type(Factory.FileType.Binary)
-                                        .files(files).observe,
+                                        .files(files)
+                                        .clone(),
                                 );
                         default:
                             return Promise.reject(
@@ -185,7 +187,8 @@ export class State extends Holder {
                                     new Factory.File()
                                         .asText()
                                         .type(Factory.FileType.Text)
-                                        .file(file.filename).observe,
+                                        .file(file.filename)
+                                        .clone(),
                                 )
                                 .catch((err: Error) => {
                                     this._ilc.logger.error(
@@ -200,7 +203,8 @@ export class State extends Holder {
                                     new Factory.File()
                                         .asDlt()
                                         .type(Factory.FileType.Binary)
-                                        .file(file.filename).observe,
+                                        .file(file.filename)
+                                        .clone(),
                                 )
                                 .catch((err: Error) => {
                                     this._ilc.logger.error(

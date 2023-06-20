@@ -18,7 +18,7 @@ export class Action extends Base {
     }
 
     public async apply(): Promise<void> {
-        session.initialize().configure(new Factory.Stream().udp().asDlt().observe);
+        session.initialize().configure(new Factory.Stream().udp().asDlt().clone());
         return Promise.resolve();
     }
 }
