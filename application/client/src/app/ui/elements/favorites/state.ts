@@ -129,8 +129,11 @@ export class State extends Holder {
                     .ilc()
                     .services.system.session.initialize()
                     .configure(
-                        new Factory.File().asDlt().type(Factory.FileType.Binary).file(item.filename)
-                            .observe,
+                        new Factory.File()
+                            .asDlt()
+                            .type(Factory.FileType.Binary)
+                            .file(item.filename)
+                            .clone(),
                     )
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
@@ -141,8 +144,11 @@ export class State extends Holder {
                     .ilc()
                     .services.system.session.initialize()
                     .configure(
-                        new Factory.File().asDlt().type(Factory.FileType.PcapNG).file(item.filename)
-                            .observe,
+                        new Factory.File()
+                            .asDlt()
+                            .type(Factory.FileType.PcapNG)
+                            .file(item.filename)
+                            .clone(),
                     )
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
@@ -153,8 +159,11 @@ export class State extends Holder {
                     .ilc()
                     .services.system.session.initialize()
                     .configure(
-                        new Factory.File().asText().type(Factory.FileType.Text).file(item.filename)
-                            .observe,
+                        new Factory.File()
+                            .asText()
+                            .type(Factory.FileType.Text)
+                            .file(item.filename)
+                            .clone(),
                     )
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
