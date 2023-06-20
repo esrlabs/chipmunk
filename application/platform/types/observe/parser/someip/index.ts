@@ -8,6 +8,23 @@ import * as Stream from '../../origin/stream/index';
 import * as obj from '../../../../env/obj';
 import * as Files from '../../types/file';
 
+export interface SomeipStatistic {
+    /** Statistic on service-ids and related method-ids */
+    services: SomeipStatisticItem[];
+    /** Statistic on message-types and related return-codes */
+    messages: SomeipStatisticItem[];
+}
+
+export interface SomeipStatisticItem {
+    item: SomeipStatisticDetail;
+    details: SomeipStatisticDetail[];
+}
+
+export interface SomeipStatisticDetail {
+    id: number;
+    num: number;
+}
+
 export interface IConfiguration {
     fibex_file_paths: string[] | undefined;
 }
@@ -48,5 +65,4 @@ export class Configuration
     public desc(): IList {
         return Configuration.desc();
     }
-
 }
