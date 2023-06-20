@@ -2,7 +2,7 @@ import { CancelablePromise } from 'platform/env/promise';
 import { Logger } from 'platform/log';
 import { jobs } from '@service/jobs';
 import { unbound } from '@service/unbound';
-import { SomeipStatistic } from 'platform/types/parsers/someip';
+import { SomeipStatistic } from 'platform/types/observe/parser/someip';
 
 import * as Requests from 'platform/ipc/request';
 
