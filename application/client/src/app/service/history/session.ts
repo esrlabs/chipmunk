@@ -24,7 +24,7 @@ export class HistorySession extends Subscriber {
     protected readonly sources: string[] = [];
     protected readonly globals: Subscriber = new Subscriber();
     protected readonly locker: LockToken = new LockToken(true);
-    protected readonly pendings: DataSource[] = [];
+    protected readonly pendings: $.Observe[] = [];
 
     public readonly definitions: Definitions;
     public collections: Collections;
@@ -59,6 +59,10 @@ export class HistorySession extends Subscriber {
     }
 
     protected handleNewSource(source: $.Observe) {
+        if (this.locker.isLocked()) {
+            this.pendings.push(source);
+            return;
+        }
         Definition.fromDataSource(source)
             .then((definition) => {
                 definition = this.storage.definitions.update(definition);
