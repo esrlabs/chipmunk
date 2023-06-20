@@ -57,7 +57,7 @@ describe('Errors', () => {
                             new Factory.File()
                                 .type(Factory.FileType.Text)
                                 .asText()
-                                .file('/fake/path/to/fake/file').observe.configuration,
+                                .file('/fake/path/to/fake/file').get(),
                         )
                         .then(
                             finish.bind(
@@ -105,7 +105,7 @@ describe('Errors', () => {
                             new Factory.File()
                                 .type(Factory.FileType.Text)
                                 .asText()
-                                .file(tmpobj.name).observe.configuration,
+                                .file(tmpobj.name).get(),
                         )
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;
@@ -172,7 +172,7 @@ describe('Errors', () => {
                             new Factory.File()
                                 .type(Factory.FileType.Text)
                                 .asText()
-                                .file(tmpobj.name).observe.configuration,
+                                .file(tmpobj.name).get(),
                         )
                         .on('confirmed', () => {
                             search
@@ -244,7 +244,7 @@ describe('Errors', () => {
                             new Factory.File()
                                 .type(Factory.FileType.Text)
                                 .asText()
-                                .file(tmpobj.name).observe.configuration,
+                                .file(tmpobj.name).get(),
                         )
                         .catch((err: Error) => {
                             finish(
@@ -307,7 +307,7 @@ describe('Errors', () => {
                             new Factory.File()
                                 .type(Factory.FileType.Text)
                                 .asText()
-                                .file(tmpobj.name).observe.configuration,
+                                .file(tmpobj.name).get(),
                         )
                         .catch((err: Error) =>
                             finish(

@@ -46,7 +46,8 @@ describe('Values', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).observe.configuration,
+                                .file(tmpobj.name)
+                                .get(),
                         )
                         .on('confirmed', () => {
                             search
@@ -119,7 +120,8 @@ describe('Values', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).observe.configuration,
+                                .file(tmpobj.name)
+                                .get(),
                         )
                         .on('confirmed', () => {
                             search
