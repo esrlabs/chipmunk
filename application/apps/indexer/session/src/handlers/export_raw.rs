@@ -10,10 +10,11 @@ use parsers::{
 };
 use processor::export::{export_raw, ExportError};
 use sources::{
+    binary::{
+        pcap::legacy::PcapLegacyByteSource, pcap::ng::PcapngByteSource, raw::BinaryByteSource,
+    },
     factory::{FileFormat, ParserType},
-    pcap::file::PcapngByteSource,
     producer::MessageProducer,
-    raw::binary::BinaryByteSource,
     ByteSource,
 };
 use std::{
@@ -103,6 +104,17 @@ async fn assing_source(
                 dest,
                 parser,
                 PcapngByteSource::new(reader)?,
+                sections,
+                read_to_end,
+                cancel,
+            )
+            .await
+        }
+        FileFormat::PcapLegacy => {
+            export(
+                dest,
+                parser,
+                PcapLegacyByteSource::new(reader)?,
                 sections,
                 read_to_end,
                 cancel,
