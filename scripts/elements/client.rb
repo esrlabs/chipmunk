@@ -94,9 +94,7 @@ class Client
       return
     end
     Dir.mkdir(dest) unless File.exist?(dest)
-    @changes_to_files = true if replace
     client = Client.new(false, prod)
-    client.set_changes_to_files(true) if replace
     client.build
     Shell.sh "cp -r #{Paths::CLIENT}/dist/client #{dest}"
     Reporter.done('Client', "delivery to #{dest}", '')
