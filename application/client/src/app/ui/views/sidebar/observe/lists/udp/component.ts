@@ -59,7 +59,7 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
                             .get(),
                     )
                     .then(() => {
-                        this.action.subjects.get().applied.emit();
+                        // this.action.subjects.get().applied.emit();
                     })
                     .catch((err: Error) => {
                         this.log().error(`Fail to apply connection to UDP: ${err.message}`);

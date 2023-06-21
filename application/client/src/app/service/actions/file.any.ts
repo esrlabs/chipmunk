@@ -38,13 +38,31 @@ export class Action extends Base {
             case FileType.Dlt:
                 session
                     .initialize()
-                    .configure(new Factory.File().file(file.filename).asDlt().get());
+                    .configure(
+                        new Factory.File()
+                            .file(file.filename)
+                            .asDlt()
+                            .type(Factory.FileType.Binary)
+                            .get(),
+                    );
                 break;
             case FileType.PcapNG:
-                session.initialize().suggest(new Factory.File().file(file.filename).get());
+                session
+                    .initialize()
+                    .suggest(
+                        new Factory.File().type(Factory.FileType.PcapNG).file(file.filename).get(),
+                    );
                 break;
             default:
-                session.initialize().observe(new Factory.File().file(file.filename).asText().get());
+                session
+                    .initialize()
+                    .observe(
+                        new Factory.File()
+                            .file(file.filename)
+                            .type(Factory.FileType.Text)
+                            .asText()
+                            .get(),
+                    );
                 break;
         }
     }

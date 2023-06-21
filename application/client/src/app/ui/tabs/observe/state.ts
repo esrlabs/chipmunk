@@ -1,17 +1,29 @@
 import { Observe, Parser } from '@platform/types/observe';
 import { IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Subjects, Subject } from '@platform/env/subscription';
+import { Subjects, Subject, Subscriber } from '@platform/env/subscription';
 import { File } from '@platform/types/files';
 import { bytesToStr } from '@env/str';
 import { Action } from './action';
+import { TabControls } from '@service/session';
 
 import * as StreamOrigin from '@platform/types/observe/origin/stream/index';
 import * as Origin from '@platform/types/observe/origin/index';
 import * as FileOrigin from '@platform/types/observe/origin/file';
 import * as ConcatOrigin from '@platform/types/observe/origin/concat';
 
-export class State {
+export interface IApi {
+    finish(observe: Observe): Promise<void>;
+    cancel(): void;
+    tab(): TabControls;
+}
+
+export interface IInputs {
+    observe: Observe;
+    api: IApi;
+}
+
+export class State extends Subscriber {
     public parsers: Parser.Reference[] = [];
     public parser: Parser.Protocol | undefined;
     public streams: StreamOrigin.Reference[] = [];
@@ -29,16 +41,44 @@ export class State {
     });
 
     constructor(
-        protected readonly ref: IlcInterface & ChangesDetector,
+        protected readonly ref: IlcInterface & ChangesDetector & { api: IApi },
         public readonly observe: Observe,
     ) {
+        super();
         this.update().stream();
         this.update().files();
         this.update().parser();
+        this.register(
+            this.action.subjects.get().updated.subscribe(() => {
+                this.ref.markChangesForCheck();
+            }),
+            this.action.subjects.get().apply.subscribe(() => {
+                this.finish();
+            }),
+        );
     }
 
     public destroy() {
         this.updates.destroy();
+        this.unsubscribe();
+    }
+
+    public finish() {
+        if (this.action.disabled) {
+            return;
+        }
+        this.ref.api
+            .finish(this.observe)
+            .then(() => {
+                console.log(`>>>>>>>>>>>>>>>>>>>>>>>>>>>>> HEY!!!`);
+            })
+            .catch((err: Error) => {
+                console.error(err);
+            });
+    }
+
+    public cancel() {
+        this.ref.api.cancel();
     }
 
     public update(): {

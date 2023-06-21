@@ -47,6 +47,12 @@ export class Action {
             from: (entry: Entry): Error | undefined => {
                 try {
                     const body: IActionContent = JSON.parse(entry.content);
+                    if (body.observe === undefined) {
+                        // chipmunk <= 3.8.1
+                        return new Error(
+                            `Unsupported format of action [TODO: implement convertor from 3.8.1 to new format.]`,
+                        );
+                    }
                     const observe = new $.Observe(body.observe);
                     const err = observe.json().from(entry.content);
                     if (err instanceof Error) {

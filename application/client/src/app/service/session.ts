@@ -20,6 +20,7 @@ import { Render } from '@schema/render';
 import { File } from '@platform/types/files';
 import { Observe } from '@platform/types/observe';
 import { getRender } from '@schema/render/tools';
+import { TabObserve } from '@tabs/observe/component';
 
 export { Session, TabControls, UnboundTab, Base };
 
@@ -228,37 +229,36 @@ export class Service extends Implementation {
     } {
         return {
             configure: (observe: Observe, session?: Session): Promise<string | undefined> => {
-                return new Promise((resolve, reject) => {
+                return new Promise((resolve) => {
                     const api = this.add().tab({
                         name: observe.origin.desc().major,
                         content: {
-                            factory: components.get('app-tabs-observe'),
-                            inputs: {
+                            factory: TabObserve,
+                            inputs: TabObserve.inputs({
                                 observe,
-                                setTitle: (title: string) => {
-                                    api?.setTitle(title);
-                                },
-                                done: (observe: Observe) => {
-                                    this.initialize()
-                                        .observe(observe, session)
-                                        .then((session) => {
-                                            resolve(session);
-                                        })
-                                        .catch((err: Error) => {
-                                            this.log().error(
-                                                `Fail to setup observe: ${err.message}`,
-                                            );
-                                            reject(err);
-                                        })
-                                        .finally(() => {
-                                            api?.close();
+                                api: {
+                                    finish: (observe: Observe): Promise<void> => {
+                                        return new Promise((_, failed) => {
+                                            this.initialize()
+                                                .observe(observe, session)
+                                                .then((session) => {
+                                                    api?.close();
+                                                    resolve(session);
+                                                })
+                                                .catch((err: Error) => {
+                                                    failed(err);
+                                                });
                                         });
+                                    },
+                                    cancel: (): void => {
+                                        api?.close();
+                                        resolve(undefined);
+                                    },
+                                    tab: (): TabControls => {
+                                        return api as unknown as TabControls;
+                                    },
                                 },
-                                cancel: () => {
-                                    api?.close();
-                                    resolve(undefined);
-                                },
-                            },
+                            }),
                         },
                         active: true,
                     });
