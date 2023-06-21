@@ -145,14 +145,19 @@ export class Service extends Implementation {
         listeners > 0 && this.log().verbose(`Activated ${listeners} hotkeys listeners`);
     }
 
-    protected unbind(filter?: Requirement[]): void {
+    protected unbind(filter: Requirement[] = []): void {
+        if (
+            this.window.webContents.devToolsWebContents !== null &&
+            this.window.webContents.devToolsWebContents.isFocused()
+        ) {
+            filter = [];
+        }
         let listeners = 0;
         KeysMap.forEach((key) => {
             if (key.client) {
                 return;
             }
             if (
-                filter !== undefined &&
                 filter.length > 0 &&
                 key.required.find((requirement) => {
                     return filter.indexOf(requirement) !== -1;
