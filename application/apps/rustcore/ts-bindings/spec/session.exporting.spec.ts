@@ -60,7 +60,8 @@ describe('Exporting', function () {
                                 .type(Factory.FileType.Text)
                                 .asText()
                                 .file(tmpobj.name)
-                                .get(),
+                                .get()
+                                .sterilized(),
                         )
                         .catch(finish.bind(null, session, done));
                     let gotten: boolean = false;
@@ -173,7 +174,8 @@ describe('Exporting', function () {
                                 .type(Factory.FileType.Text)
                                 .files([tmpobj_a.name, tmpobj_b.name])
                                 .asText()
-                                .get(),
+                                .get()
+                                .sterilized(),
                         )
                         .catch(finish.bind(null, session, done));
                     let gotten: boolean = false;
@@ -283,7 +285,8 @@ describe('Exporting', function () {
                                 .type(Factory.FileType.Text)
                                 .asText()
                                 .file(tmpobj.name)
-                                .get(),
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -434,7 +437,8 @@ describe('Exporting', function () {
                                         with_storage_header: true,
                                     })
                                     .file(config.regular.files['dlt'][0])
-                                    .get(),
+                                    .get()
+                                    .sterilized(),
                             )
                             .catch(finish.bind(null, session, done));
                         let gotten: boolean = false;
@@ -548,7 +552,8 @@ describe('Exporting', function () {
                                         with_storage_header: true,
                                     })
                                     .file(config.regular.files['dlt'][0])
-                                    .get(),
+                                    .get()
+                                    .sterilized(),
                             )
                             .catch(finish.bind(null, session, done));
                         let gotten: boolean = false;
@@ -589,7 +594,8 @@ describe('Exporting', function () {
                                                                                 true,
                                                                         })
                                                                         .file(output)
-                                                                        .get(),
+                                                                        .get()
+                                                                        .sterilized(),
                                                                 )
                                                                 .catch(
                                                                     finish.bind(
@@ -772,7 +778,8 @@ describe('Exporting', function () {
                                         config.regular.files['dlt'][1],
                                         config.regular.files['dlt'][1],
                                     ])
-                                    .get(),
+                                    .get()
+                                    .sterilized(),
                             )
                             .catch(finish.bind(null, session, done));
                         let gotten: boolean = false;
@@ -891,7 +898,8 @@ describe('Exporting', function () {
                                         config.regular.files['dlt'][1],
                                         config.regular.files['dlt'][1],
                                     ])
-                                    .get(),
+                                    .get()
+                                    .sterilized(),
                             )
                             .catch(finish.bind(null, session, done));
                         let gotten: boolean = false;
@@ -934,7 +942,8 @@ describe('Exporting', function () {
                                                                                 true,
                                                                         })
                                                                         .file(output)
-                                                                        .get(),
+                                                                        .get()
+                                                                        .sterilized(),
                                                                 )
                                                                 .catch(
                                                                     finish.bind(
@@ -1104,7 +1113,8 @@ describe('Exporting', function () {
                                         config.regular.files['dlt'][1],
                                         config.regular.files['dlt'][1],
                                     ])
-                                    .get(),
+                                    .get()
+                                    .sterilized(),
                             )
                             .catch(finish.bind(null, session, done));
                         let gotten: boolean = false;
@@ -1162,7 +1172,8 @@ describe('Exporting', function () {
                                                                                 true,
                                                                         })
                                                                         .file(output)
-                                                                        .get(),
+                                                                        .get()
+                                                                        .sterilized(),
                                                                 )
                                                                 .catch(
                                                                     finish.bind(

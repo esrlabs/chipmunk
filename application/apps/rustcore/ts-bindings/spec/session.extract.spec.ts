@@ -47,7 +47,7 @@ describe('Extracting', function () {
                                 .asText()
                                 .type(Factory.FileType.Text)
                                 .file(tmpobj.name)
-                                .get(),
+                                .get().sterilized(),
                         )
                         .on('confirmed', () => {
                             const filter = 'cpu=(\\d{1,})';
@@ -142,7 +142,7 @@ describe('Extracting', function () {
                                 .asText()
                                 .type(Factory.FileType.Text)
                                 .file(tmpobj.name)
-                                .get(),
+                                .get().sterilized(),
                         )
                         .on('confirmed', () => {
                             const filterA = 'cpu=(\\d{1,})';

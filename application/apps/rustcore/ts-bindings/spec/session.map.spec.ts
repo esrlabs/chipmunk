@@ -51,7 +51,7 @@ describe('Map', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name).get().sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -137,7 +137,7 @@ describe('Map', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name).get().sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -227,7 +227,7 @@ describe('Map', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name).get().sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -367,7 +367,7 @@ describe('Map', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name).get().sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -457,7 +457,7 @@ describe('Map', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name).get().sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -547,7 +547,7 @@ describe('Map', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name).get().sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -637,7 +637,7 @@ describe('Map', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name).get().sterilized(),
                         )
                         .on('confirmed', () => {
                             search

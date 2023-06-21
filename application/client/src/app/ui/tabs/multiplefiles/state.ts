@@ -141,7 +141,7 @@ export class State extends Holder {
                                         .asText()
                                         .type(Factory.FileType.Text)
                                         .files(files)
-                                        .clone(),
+                                        .get(),
                                 );
                         case FileType.Dlt:
                             return this._ilc.services.system.session
@@ -151,7 +151,7 @@ export class State extends Holder {
                                         .asDlt()
                                         .type(Factory.FileType.Binary)
                                         .files(files)
-                                        .clone(),
+                                        .get(),
                                 );
                         default:
                             return Promise.reject(
@@ -188,7 +188,7 @@ export class State extends Holder {
                                         .asText()
                                         .type(Factory.FileType.Text)
                                         .file(file.filename)
-                                        .clone(),
+                                        .get(),
                                 )
                                 .catch((err: Error) => {
                                     this._ilc.logger.error(
@@ -204,7 +204,7 @@ export class State extends Holder {
                                         .asDlt()
                                         .type(Factory.FileType.Binary)
                                         .file(file.filename)
-                                        .clone(),
+                                        .get(),
                                 )
                                 .catch((err: Error) => {
                                     this._ilc.logger.error(

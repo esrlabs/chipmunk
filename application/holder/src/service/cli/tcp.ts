@@ -62,7 +62,8 @@ export class Action extends CLIAction {
                     observe: new Factory.Stream()
                         .tcp(this.settings)
                         .protocol(cli.state().parser())
-                        .get(),
+                        .get()
+                        .sterilized(),
                 }),
             )
                 .then((response) => {

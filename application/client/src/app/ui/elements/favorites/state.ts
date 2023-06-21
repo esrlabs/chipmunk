@@ -133,7 +133,7 @@ export class State extends Holder {
                             .asDlt()
                             .type(Factory.FileType.Binary)
                             .file(item.filename)
-                            .clone(),
+                            .get(),
                     )
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
@@ -148,7 +148,7 @@ export class State extends Holder {
                             .asDlt()
                             .type(Factory.FileType.PcapNG)
                             .file(item.filename)
-                            .clone(),
+                            .get(),
                     )
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
@@ -163,7 +163,7 @@ export class State extends Holder {
                             .asText()
                             .type(Factory.FileType.Text)
                             .file(item.filename)
-                            .clone(),
+                            .get(),
                     )
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);

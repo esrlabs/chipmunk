@@ -47,7 +47,8 @@ describe('Values', function () {
                                 .asText()
                                 .type(Factory.FileType.Text)
                                 .file(tmpobj.name)
-                                .get(),
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -121,7 +122,8 @@ describe('Values', function () {
                                 .asText()
                                 .type(Factory.FileType.Text)
                                 .file(tmpobj.name)
-                                .get(),
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             search

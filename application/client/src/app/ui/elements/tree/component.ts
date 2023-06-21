@@ -114,7 +114,7 @@ export class ElementsTreeSelector
                                     .type(Factory.FileType.Text)
                                     .asText()
                                     .file(entity.getPath())
-                                    .clone(),
+                                    .get(),
                             )
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open text file; error: ${err.message}`);
@@ -131,7 +131,7 @@ export class ElementsTreeSelector
                                     .asDlt()
                                     .type(Factory.FileType.Binary)
                                     .file(entity.getPath())
-                                    .clone(),
+                                    .get(),
                             )
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open dlt file; error: ${err.message}`);
@@ -148,7 +148,7 @@ export class ElementsTreeSelector
                                     .type(Factory.FileType.PcapNG)
                                     .asDlt()
                                     .file(entity.getPath())
-                                    .clone(),
+                                    .get(),
                             )
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open pcapng file; error: ${err.message}`);

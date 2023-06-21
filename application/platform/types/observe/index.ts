@@ -92,7 +92,7 @@ export class Observe
     }
 
     public clone(): Observe {
-        return new Observe(this.configuration);
+        return new Observe(this.sterilized());
     }
 
     public isConfigurable(): boolean {
@@ -107,5 +107,9 @@ export class Observe
         throw new Error(
             `Parser "${parser}" and origin "${nature}" don't have description in Compatibility.Configurable table`,
         );
+    }
+
+    public sterilized(): IObserve {
+        return JSON.parse(JSON.stringify(this.configuration));
     }
 }
