@@ -48,7 +48,7 @@ export class Action extends CLIAction {
             Requests.IpcRequest.send(
                 Requests.Cli.Observe.Response,
                 new Requests.Cli.Observe.Request({
-                    observe: new Factory.Concat().files(this.files).get(),
+                    observe: new Factory.Concat().files(this.files).get().sterilized(),
                 }),
             )
                 .then((response) => {

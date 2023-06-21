@@ -87,7 +87,7 @@ class Factory<T> {
         return this as unknown as T;
     }
 
-    public get(): $.IObserve {
+    public get(): $.Observe {
         const parsers = this.observe.origin.getSupportedParsers().map((ref) => ref.alias());
         const selected = this.observe.parser.alias();
         if (!parsers.includes(selected)) {
@@ -97,11 +97,7 @@ class Factory<T> {
                 )}.`,
             );
         }
-        return this.observe.configuration;
-    }
-
-    public clone(): $.Observe {
-        return new $.Observe(this.get());
+        return this.observe;
     }
 }
 

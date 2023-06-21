@@ -46,7 +46,7 @@ export class Provider extends Base {
     }
 
     public openNewSessionOptions() {
-        session.initialize().configure(new Factory.Stream().process().clone());
+        session.initialize().configure(new Factory.Stream().process().get());
     }
 
     public sources(): ObserveSource[] {

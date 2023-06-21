@@ -44,7 +44,7 @@ describe('Concat', function () {
                             new Factory.Concat()
                                 .type(Factory.FileType.Text)
                                 .files([tmpobj_a.name, tmpobj_b.name])
-                                .asText().get(),
+                                .asText().get().sterilized(),
                         )
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;

@@ -47,7 +47,8 @@ export class Action extends CLIAction {
                     observe: new Factory.Stream()
                         .udp(this.settings)
                         .protocol(cli.state().parser())
-                        .get(),
+                        .get()
+                        .sterilized(),
                 }),
             )
                 .then((response) => {

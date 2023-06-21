@@ -18,7 +18,7 @@ export class Action extends Base {
     }
 
     public async apply(): Promise<void> {
-        session.initialize().configure(new Factory.Stream().asText().serial().clone());
+        session.initialize().configure(new Factory.Stream().asText().serial().get());
         return Promise.resolve();
     }
 }
