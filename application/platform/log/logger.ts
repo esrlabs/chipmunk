@@ -40,6 +40,20 @@ export abstract class Logger {
                     }
                 })(),
             );
+            if (level === Level.ERROR) {
+                try {
+                    throw new Error(`Error stack`);
+                } catch (err) {
+                    const stack = (err as Error).stack;
+                    if (typeof stack === 'string') {
+                        (err as Error).stack = stack
+                            .split(/[\n\r]/gi)
+                            .filter((s) => s.search(/\s*at Logger/g) === -1)
+                            .join('\n');
+                        console.log(err);
+                    }
+                }
+            }
         } else if (
             process !== undefined &&
             process !== null &&
