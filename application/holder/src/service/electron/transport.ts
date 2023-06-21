@@ -77,7 +77,14 @@ export class Implementation extends Transport {
                 rejector: reject,
                 ref: responseConstructorRef,
             });
-            this._window.webContents.send(events.HOST_REQUEST_NAME, pack.packed());
+            try {
+                this._window.webContents.send(events.HOST_REQUEST_NAME, pack.packed());
+            } catch (e) {
+                this._log.error(`Fail to parse message: ${error(e)}`);
+                this._log.error(`begin:`);
+                this._log.error(JSON.stringify(pack.packed()));
+                this._log.error(`:end`);
+            }
             // TODO: add timeout
         });
     }

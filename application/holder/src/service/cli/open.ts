@@ -66,8 +66,8 @@ export class Action extends CLIAction {
                 new Requests.Cli.Observe.Request({
                     observe:
                         this.files.length === 1
-                            ? new Factory.File().file(this.files[0]).get()
-                            : new Factory.Concat().files(this.files).get(),
+                            ? new Factory.File().file(this.files[0]).get().sterilized()
+                            : new Factory.Concat().files(this.files).get().sterilized(),
                 }),
             )
                 .then((response) => {

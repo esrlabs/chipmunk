@@ -38,15 +38,13 @@ export class Action extends Base {
             case FileType.Dlt:
                 session
                     .initialize()
-                    .configure(new Factory.File().file(file.filename).asDlt().clone());
+                    .configure(new Factory.File().file(file.filename).asDlt().get());
                 break;
             case FileType.PcapNG:
-                session.initialize().suggest(new Factory.File().file(file.filename).clone());
+                session.initialize().suggest(new Factory.File().file(file.filename).get());
                 break;
             default:
-                session
-                    .initialize()
-                    .observe(new Factory.File().file(file.filename).asText().clone());
+                session.initialize().observe(new Factory.File().file(file.filename).asText().get());
                 break;
         }
     }

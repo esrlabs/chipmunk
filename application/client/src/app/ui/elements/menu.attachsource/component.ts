@@ -38,7 +38,7 @@ export class AttachSourceMenu extends ChangesDetector {
             handler: () => {
                 this.ilc()
                     .services.system.session.initialize()
-                    .configure(new Factory.Stream().tcp().clone(), this.session);
+                    .configure(new Factory.Stream().tcp().get(), this.session);
             },
         },
         {
@@ -47,7 +47,7 @@ export class AttachSourceMenu extends ChangesDetector {
             handler: () => {
                 this.ilc()
                     .services.system.session.initialize()
-                    .configure(new Factory.Stream().udp().clone(), this.session);
+                    .configure(new Factory.Stream().udp().get(), this.session);
             },
         },
         {
@@ -56,7 +56,7 @@ export class AttachSourceMenu extends ChangesDetector {
             handler: () => {
                 this.ilc()
                     .services.system.session.initialize()
-                    .configure(new Factory.Stream().serial().clone(), this.session);
+                    .configure(new Factory.Stream().serial().get(), this.session);
             },
         },
         null,
@@ -66,7 +66,7 @@ export class AttachSourceMenu extends ChangesDetector {
             handler: () => {
                 this.ilc()
                     .services.system.session.initialize()
-                    .configure(new Factory.Stream().process().clone(), this.session);
+                    .configure(new Factory.Stream().process().get(), this.session);
             },
         },
     ];

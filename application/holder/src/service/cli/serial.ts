@@ -62,7 +62,9 @@ export class Action extends CLIAction {
                 new Requests.Cli.Observe.Request({
                     observe: new Factory.Stream()
                         .serial(this.settings)
-                        .protocol(cli.state().parser()).get(),
+                        .protocol(cli.state().parser())
+                        .get()
+                        .sterilized(),
                 }),
             )
                 .then((response) => {

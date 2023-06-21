@@ -47,7 +47,7 @@ describe('Search', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name).get().sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -207,7 +207,7 @@ describe('Search', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name).get().sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -352,7 +352,7 @@ describe('Search', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name).get().sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -416,7 +416,7 @@ describe('Search', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name).get().sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -565,7 +565,7 @@ describe('Search', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name).get().sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -717,7 +717,7 @@ describe('Search', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name).get().sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -863,7 +863,7 @@ describe('Search', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name).get().sterilized(),
                         )
                         .on('confirmed', () => {
                             const calls = ['match A', 'match D', 'match C', 'match B'];

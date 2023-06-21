@@ -57,7 +57,9 @@ describe('Errors', () => {
                             new Factory.File()
                                 .type(Factory.FileType.Text)
                                 .asText()
-                                .file('/fake/path/to/fake/file').get(),
+                                .file('/fake/path/to/fake/file')
+                                .get()
+                                .sterilized(),
                         )
                         .then(
                             finish.bind(
@@ -105,7 +107,9 @@ describe('Errors', () => {
                             new Factory.File()
                                 .type(Factory.FileType.Text)
                                 .asText()
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;
@@ -172,7 +176,9 @@ describe('Errors', () => {
                             new Factory.File()
                                 .type(Factory.FileType.Text)
                                 .asText()
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -244,7 +250,9 @@ describe('Errors', () => {
                             new Factory.File()
                                 .type(Factory.FileType.Text)
                                 .asText()
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .catch((err: Error) => {
                             finish(
@@ -307,7 +315,9 @@ describe('Errors', () => {
                             new Factory.File()
                                 .type(Factory.FileType.Text)
                                 .asText()
-                                .file(tmpobj.name).get(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .catch((err: Error) =>
                             finish(

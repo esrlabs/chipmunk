@@ -130,11 +130,11 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
                             ? new Factory.File()
                                   .file(files[0].filename)
                                   .protocol(last.parser.instance.alias())
-                                  .clone()
+                                  .get()
                             : new Factory.Concat()
                                   .files(files.map((f) => f.filename))
                                   .protocol(last.parser.instance.alias())
-                                  .clone(),
+                                  .get(),
                     )
                     .catch((err: Error) => {
                         this.log().error(`Fail to observe: ${err.message}`);

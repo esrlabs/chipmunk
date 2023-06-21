@@ -44,7 +44,7 @@ describe('Grab ranges', function () {
                                 .asText()
                                 .type(Factory.FileType.Text)
                                 .file(tmpobj.name)
-                                .get(),
+                                .get().sterilized(),
                         )
                         .catch(finish.bind(null, session, done));
                     let grabbing: boolean = false;

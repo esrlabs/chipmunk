@@ -124,7 +124,7 @@ describe('Cancel', function () {
                                 .file(config.regular.files['text'])
                                 .type(Factory.FileType.Text)
                                 .asText()
-                                .get(),
+                                .get().sterilized(),
                         )
                         .catch(finish.bind(null, session, done));
                     let canceled: number = 0;
