@@ -155,7 +155,7 @@ export class Stream extends Subscriber {
                     Requests.Observe.Start.Response,
                     new Requests.Observe.Start.Request({
                         session: this._uuid,
-                        observe: observe.configuration,
+                        observe: observe.sterilized(),
                     }),
                 )
                     .then((response) => {

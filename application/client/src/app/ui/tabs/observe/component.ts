@@ -2,7 +2,6 @@ import {
     Component,
     ChangeDetectorRef,
     ChangeDetectionStrategy,
-    AfterViewInit,
     Input,
     AfterContentInit,
     OnDestroy,
@@ -10,8 +9,7 @@ import {
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { TabControls } from '@service/session';
-import { State } from './state';
+import { State, IApi, IInputs } from './state';
 import { Observe } from '@platform/types/observe';
 
 @Component({
@@ -22,12 +20,14 @@ import { Observe } from '@platform/types/observe';
 })
 @Initial()
 @Ilc()
-export class TabObserve
-    extends ChangesDetector
-    implements AfterViewInit, AfterContentInit, OnDestroy
-{
+export class TabObserve extends ChangesDetector implements AfterContentInit, OnDestroy {
+    // This method is used only to highlight inputs of component
+    static inputs(inputs: IInputs): IInputs {
+        return inputs;
+    }
+
     @Input() observe!: Observe;
-    @Input() tab!: TabControls;
+    @Input() api!: IApi;
 
     public state!: State;
 
@@ -41,18 +41,6 @@ export class TabObserve
 
     public ngAfterContentInit(): void {
         this.state = new State(this, this.observe);
-        const state = this.tab.storage<State>().get();
-        if (state !== undefined) {
-            this.state = state;
-        } else {
-            this.tab.storage().set(this.state);
-        }
-    }
-
-    public ngAfterViewInit(): void {
-        // this.tab.setTitle(
-        //     this.files.length === 1 ? this.files[0].name : `${this.files.length} PcapNG files`,
-        // );
     }
 }
 export interface TabObserve extends IlcInterface {}

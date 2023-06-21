@@ -3,9 +3,9 @@ import { Session } from 'rustcore';
 import { JobsTracker } from 'platform/env/promise';
 import { scope } from 'platform/env/scope';
 import { Logger } from 'platform/log';
-import { $ } from 'rustcore';
 import { jobs } from '@service/jobs';
 import { ICancelablePromise } from 'platform/env/promise';
+import { $ } from 'rustcore';
 
 import * as Events from 'platform/ipc/event';
 
@@ -63,16 +63,17 @@ export class Holder {
     }
 
     public observe(): {
-        start(source: $.Observe): Promise<string>;
+        start(observe: $.IObserve): Promise<string>;
         cancel(uuid: string): Promise<void>;
         list(): { [key: string]: string };
     } {
         return {
-            start: (source: $.Observe): Promise<string> => {
+            start: (cfg: $.IObserve): Promise<string> => {
+                const observe = new $.Observe(cfg);
                 if (this._shutdown) {
                     return Promise.reject(new Error(`Session is closing`));
                 }
-                let jobDesc = source.origin.asJob();
+                let jobDesc = observe.origin.asJob();
                 if (jobDesc instanceof Error) {
                     this._logger.error(`Fail to get job description: ${jobDesc.message}`);
                     jobDesc = {
@@ -81,7 +82,7 @@ export class Holder {
                         icon: undefined,
                     };
                 }
-                const observe = jobs
+                const job = jobs
                     .create({
                         session: this.session.getUUID(),
                         name: jobDesc.name,
@@ -92,13 +93,13 @@ export class Holder {
                 return new Promise((resolve, reject) => {
                     const observer = this.session
                         .getStream()
-                        .observe(source.configuration)
+                        .observe(observe.configuration)
                         .on('confirmed', () => {
                             Events.IpcEvent.emit(
                                 new Events.Observe.Started.Event({
                                     session: this.session.getUUID(),
                                     operation: observer.uuid(),
-                                    source: source.json().to(),
+                                    source: observe.json().to(),
                                 }),
                             );
                         })
@@ -110,17 +111,17 @@ export class Holder {
                             reject(err);
                         })
                         .finally(() => {
-                            observe.done();
+                            job.done();
                             this._observers.delete(observer.uuid());
                             Events.IpcEvent.emit(
                                 new Events.Observe.Finished.Event({
                                     session: this.session.getUUID(),
                                     operation: observer.uuid(),
-                                    source: source.json().to(),
+                                    source: observe.json().to(),
                                 }),
                             );
                         });
-                    this._observers.set(observer.uuid(), { source, observer });
+                    this._observers.set(observer.uuid(), { source: observe, observer });
                 });
             },
             cancel: (uuid: string): Promise<void> => {

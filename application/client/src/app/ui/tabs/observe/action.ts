@@ -6,14 +6,10 @@ const DEFAULT_STATE = false;
 export class Action {
     public subjects: Subjects<{
         updated: Subject<void>;
-        applied: Subject<void>;
         apply: Subject<void>;
-        canceled: Subject<void>;
     }> = new Subjects({
         updated: new Subject<void>(),
         apply: new Subject<void>(),
-        applied: new Subject<void>(),
-        canceled: new Subject<void>(),
     });
 
     public caption: string = DEFAULT_CAPTION;
