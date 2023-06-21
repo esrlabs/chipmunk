@@ -1,6 +1,6 @@
 import { CLIAction, Type } from './action';
 import { Service } from '@service/cli';
-import { Protocol } from 'platform/types/observe/parser/index';
+import { Protocol } from 'platform/types/observe/parser';
 
 export class Action extends CLIAction {
     protected parser: Protocol | undefined;
