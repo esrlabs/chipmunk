@@ -9,7 +9,6 @@ export * as Parser from './parser';
 export * as Origin from './origin';
 export * as Types from './types';
 export * as Description from './description';
-import * as obj from '../../env/obj';
 
 export { IList, IOriginDetails, IJob } from './description';
 
