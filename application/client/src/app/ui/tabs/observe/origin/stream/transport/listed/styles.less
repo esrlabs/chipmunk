@@ -1,0 +1,57 @@
+@import '../../../../styles/variables.less';
+
+:host {
+    position: relative;
+    display: flex;
+    padding: 12px 12px;
+    flex-direction: row;
+    & div.icon {
+        color: @scheme-color-2;
+        padding-right: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        justify-items: center;
+        & mat-icon {
+            display: block;
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+        }
+        & span {
+            display: block;
+        }
+        &.running {
+            & mat-icon {
+                color: @scheme-color-0;
+            }
+        }
+        & span.type {
+            font-size: 11px;
+        }
+        & span.state {
+            font-size: 12px;
+            &.running {
+                color: @scheme-color-accent;
+            }
+            &.stopped {
+                color: @scheme-color-2;
+            }
+        }
+    }
+    & div.info {
+        position: relative;
+        overflow: hidden;
+        & p.major {
+            margin-bottom: 2px;
+        }
+        & p {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            direction: rtl;
+            white-space: nowrap;
+            text-align: left;
+        }
+    }   
+}

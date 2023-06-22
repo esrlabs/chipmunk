@@ -5,9 +5,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 
-import { FileModule } from './file/module';
-import { ConcatModule } from './concat/module';
-import { StreamModule } from './stream/module';
+import { FileModule } from './origin/file/module';
+import { ConcatModule } from './origin/concat/module';
+import { StreamModule } from './origin/stream/module';
 
 import { TabObserve } from './component';
 
