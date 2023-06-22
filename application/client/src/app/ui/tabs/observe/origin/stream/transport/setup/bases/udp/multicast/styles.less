@@ -1,0 +1,26 @@
+@import '../../../../../../../../../styles/variables.less';
+
+
+:host {
+    align-items: baseline;
+    position: relative;
+    display: flex;
+    margin: 0;
+    cursor: default;
+    padding-right: 6px;
+    & mat-form-field.inline {
+        margin-right: 12px;
+    }
+    & .mat-icon {
+        width: 16px;
+        height: 16px;
+        font-size: 16px;
+        color: @scheme-color-1;
+        &:hover {
+            color: @scheme-color-3;
+        }
+    }
+    & span.filler {
+        flex: auto;
+    }
+}
