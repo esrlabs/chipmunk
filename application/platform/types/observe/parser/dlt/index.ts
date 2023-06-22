@@ -99,4 +99,46 @@ export class Configuration
     public desc(): IList {
         return Configuration.desc();
     }
+
+    public setDefaultsFilterConfig(): void {
+        if (this.configuration.filter_config !== undefined) {
+            return;
+        }
+        this.configuration.filter_config = {
+            min_log_level: LogLevel.Verbose,
+            app_ids: undefined,
+            ecu_ids: undefined,
+            context_ids: undefined,
+            app_id_count: 0,
+            context_id_count: 0,
+        };
+    }
+
+    public dropFilterConfigIfPossible(): void {
+        if (this.configuration.filter_config === undefined) {
+            return;
+        }
+        if (this.configuration.filter_config.min_log_level !== LogLevel.Verbose) {
+            return;
+        }
+        if (
+            this.configuration.filter_config.app_ids !== undefined &&
+            this.configuration.filter_config.app_ids.length > 0
+        ) {
+            return;
+        }
+        if (
+            this.configuration.filter_config.context_ids !== undefined &&
+            this.configuration.filter_config.context_ids.length > 0
+        ) {
+            return;
+        }
+        if (
+            this.configuration.filter_config.ecu_ids !== undefined &&
+            this.configuration.filter_config.ecu_ids.length > 0
+        ) {
+            return;
+        }
+        this.configuration.filter_config = undefined;
+    }
 }
