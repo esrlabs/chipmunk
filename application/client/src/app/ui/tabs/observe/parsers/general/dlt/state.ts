@@ -24,10 +24,10 @@ export class State extends Base {
         super(observe);
     }
 
-    public update() {
+    public update(): State {
         const conf = this.observe.parser.as<Dlt.Configuration>(Dlt.Configuration);
         if (conf === undefined) {
-            return;
+            return this;
         }
         if (this.fibex.length !== 0) {
             conf.configuration.fibex_file_paths = this.fibex.map((f) => f.filename);
@@ -39,6 +39,7 @@ export class State extends Base {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             conf.configuration.filter_config!.min_log_level = this.logLevel;
         }
+        return this;
     }
 
     public addFibexFile() {
@@ -57,13 +58,13 @@ export class State extends Base {
                 this.ref.log().error(`Fail to open xml (fibex) file(s): ${err.message}`);
             })
             .finally(() => {
-                this.update();
-                this.ref.detectChanges();
+                this.update().ref.detectChanges();
             });
     }
 
     public removeFibex(file: File) {
         this.fibex = this.fibex.filter((f) => f.filename !== file.filename);
+        this.update().ref.detectChanges();
     }
 
     public timezoneSelect() {

@@ -3,7 +3,7 @@
     <mat-card-content>
         <mat-form-field class="material-mofication-normal stretch">
             <mat-label>Select required level of logs</mat-label>
-            <mat-select [(ngModel)]="state.logLevel"  (ngModelChange)="state.update()">
+            <mat-select [(ngModel)]="state.logLevel" (ngModelChange)="state.update()">
               <mat-option *ngFor="let level of state.LOG_LEVELS" [value]="level.value">
                 {{level.caption}}
               </mat-option>
