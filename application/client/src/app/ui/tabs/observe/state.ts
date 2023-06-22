@@ -67,14 +67,9 @@ export class State extends Subscriber {
         if (this.action.disabled) {
             return;
         }
-        this.ref.api
-            .finish(this.observe)
-            .then(() => {
-                console.log(`>>>>>>>>>>>>>>>>>>>>>>>>>>>>> HEY!!!`);
-            })
-            .catch((err: Error) => {
-                console.error(err);
-            });
+        this.ref.api.finish(this.observe).catch((err: Error) => {
+            console.error(err);
+        });
     }
 
     public cancel() {

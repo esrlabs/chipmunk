@@ -21,6 +21,9 @@ export class State extends Base {
             })
             .catch((err: Error) => {
                 this.ref.log().error(`Fail to open xml (fibex) file(s): ${err.message}`);
+            })
+            .finally(() => {
+                this.ref.detectChanges();
             });
     }
 
