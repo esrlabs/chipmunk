@@ -107,6 +107,7 @@ export class Configuration
                 this.overwrite({
                     [this.instance.alias()]: this.instance.configuration,
                 });
+                this.watcher.emit();
             }),
         );
     }

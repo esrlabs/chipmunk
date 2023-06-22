@@ -1,5 +1,26 @@
 export type AnyObj = { [key: string]: unknown };
 
+export function sterilize<T>(smth: T, remove: string[] = []): T {
+    if (isPrimitiveOrNull(smth)) {
+        return smth;
+    }
+    if (['function', 'symbol'].includes(typeof smth)) {
+        return smth;
+    }
+    remove.forEach((key: string) => {
+        if (typeof (smth as {}).hasOwnProperty === 'function' && (smth as {}).hasOwnProperty(key)) {
+            delete (smth as any)[key];
+        }
+    });
+    return JSON.parse(JSON.stringify(smth));
+}
+
+export function isPrimitiveOrNull(smth: any): boolean {
+    if (['string', 'number', 'boolean', 'undefined'].includes(typeof smth) || smth === null) {
+        return true;
+    }
+    return false;
+}
 export function is(smth: any): boolean {
     if (typeof smth !== 'object' || smth === null) {
         return false;

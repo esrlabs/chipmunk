@@ -76,9 +76,7 @@ export class State extends Base {
                         //         : `${this.files.length} DLT files`,
                         // );
                         this.stat = stat;
-                        this.struct().build(
-                            this.filters(),
-                        );
+                        this.struct().build(this.filters());
                         this.ref.markChangesForCheck();
                     })
                     .catch((err: Error) => {
@@ -147,6 +145,19 @@ export class State extends Base {
                     structure.entities.forEach((entity) => {
                         entity.selected && this.summary.selected.inc(entity);
                     });
+                });
+                const conf = this.observe.parser.as<Dlt.Configuration>(Dlt.Configuration);
+                if (conf === undefined) {
+                    return;
+                }
+                conf.setDefaultsFilterConfig();
+                this.structure.forEach((structure) => {
+                    const selected = structure.getSelected().map((f) => f.id);
+                    if (selected.length === 0) {
+                        (conf.configuration.filter_config as any)[structure.key] = undefined;
+                    } else {
+                        (conf.configuration.filter_config as any)[structure.key] = selected;
+                    }
                 });
             },
             all: (): void => {
