@@ -30,7 +30,7 @@ else
     ERRORS=1;
     echo "cargo is missed.";
 fi
-if wasm-pack -V &>/dev/null; then
+if wasm-pack --help &>/dev/null; then
     echo "wasm-pack is OK"
 else
     ERRORS=1;
