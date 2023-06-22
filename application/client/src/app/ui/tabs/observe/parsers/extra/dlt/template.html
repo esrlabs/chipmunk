@@ -4,6 +4,33 @@
           <mat-progress-bar mode="indeterminate"></mat-progress-bar>
           <p class="t-medium color-scheme-2">Scanning DLT structure...</p>
       </div>
+      <ng-container *ngIf="state.summary.total.isLoaded()">
+        <p class="t-medium color-scheme-2">Summary ({{state.summary.total.count}} / {{state.summary.selected.count}})</p>
+        <table class="table-fill">
+            <tr class="info" >
+                <td class="caption t-medium color-scheme-3">Fatal</td>
+                <td class="value t-medium color-scheme-2">{{state.summary.total.fatal}}<br/>{{state.summary.selected.fatal}}</td>
+                <td class="caption t-medium color-scheme-3">Error</td>
+                <td class="value t-medium color-scheme-2">{{state.summary.total.error}}<br/>{{state.summary.selected.error}}</td>
+            </tr>
+            <tr class="info">
+                <td class="caption t-medium color-scheme-3">Debug</td>
+                <td class="value t-medium color-scheme-2">{{state.summary.total.debug}}<br/>{{state.summary.selected.debug}}</td>
+                <td class="caption t-medium color-scheme-3">Info</td>
+                <td class="value t-medium color-scheme-2">{{state.summary.total.info}}<br/>{{state.summary.selected.info}}</td>
+            </tr>
+            <tr class="info">
+                <td class="caption t-medium color-scheme-3">Verbose</td>
+                <td class="value t-medium color-scheme-2">{{state.summary.total.verbose}}<br/>{{state.summary.selected.verbose}}</td>
+                <td class="caption t-medium color-scheme-3">Invalid</td>
+                <td class="value t-medium color-scheme-2">{{state.summary.total.invalid}}<br/>{{state.summary.selected.invalid}}</td>
+            </tr>
+            <tr class="info">
+                <td class="caption t-medium color-scheme-3">Total</td>
+                <td class="value t-medium color-scheme-2" colspan="3">{{state.summary.total.total}} / {{state.summary.selected.total}}</td>
+            </tr>
+        </table>
+      </ng-container>
       <app-el-dlt-extra-structure *ngFor="let section of state.structure"
         (contextmenu)="ngContextMenu($event)"
         (select)="ngOnEntitySelect()"
