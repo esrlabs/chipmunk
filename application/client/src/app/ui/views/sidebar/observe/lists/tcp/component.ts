@@ -2,7 +2,7 @@ import { Component, ChangeDetectorRef, AfterContentInit, ViewChild } from '@angu
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Provider } from '@service/session/dependencies/observing/implementations/tcp';
 import { Element } from '../../element/element';
-import { QuickSetup } from '@tabs/observe/stream/transport/setup/quick/tcp/component';
+import { QuickSetup } from '@tabs/observe/origin/stream/transport/setup/quick/tcp/component';
 import { Action } from '@ui/tabs/observe/action';
 import { IButton } from '../../common/title/component';
 import { State } from '../../states/tcp';
