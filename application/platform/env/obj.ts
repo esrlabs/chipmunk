@@ -8,6 +8,7 @@ export function sterilize<T>(smth: T, remove: string[] = []): T {
         return smth;
     }
     remove.forEach((key: string) => {
+        // eslint-disable-next-line no-prototype-builtins
         if (typeof (smth as {}).hasOwnProperty === 'function' && (smth as {}).hasOwnProperty(key)) {
             delete (smth as any)[key];
         }
