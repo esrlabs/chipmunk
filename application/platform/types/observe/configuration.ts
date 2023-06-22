@@ -5,9 +5,11 @@ import { List } from './description';
 import { Mutable } from '../unity/mutable';
 import { scope } from '../../env/scope';
 import { Subject, Subscriber } from '../../env/subscription';
+import { unique } from '../../env/sequence';
 
 import * as Stream from './origin/stream/index';
 import * as File from './types/file';
+import * as obj from '../../env/obj';
 
 export interface ConfigurationStatic<T, A> extends Validate<T>, Alias<A> {
     initial(): T;
@@ -25,64 +27,66 @@ export interface ReferenceDesc<T, C, A> extends ConfigurationStaticDesc<T, A> {
     new (...args: any[]): C & Configuration<T, C, A>;
 }
 
-const PROXY_SERIALIZE_METHOD = '__serialize_proxy__';
+const STAMP = '___uuid___';
 
-export function serializeProxy<T>(entry: T): T {
-    if (typeof (entry as any)[PROXY_SERIALIZE_METHOD] === 'function') {
-        return (entry as any)[PROXY_SERIALIZE_METHOD]() as T;
+function setter(subject: Subject<void>, target: any, prop: string | symbol, value: any): boolean {
+    if (prop === STAMP && typeof value === 'string') {
+        target[prop] = value;
+        return true;
     }
-    return entry;
+    if (obj.isPrimitiveOrNull(value) && target[prop] === value) {
+        // No changes: value is same
+        return true;
+    }
+    if (typeof target[prop] === 'object' && typeof value === 'object') {
+        if (target[prop][STAMP] !== undefined && target[prop][STAMP] === value[STAMP]) {
+            // No changes: value is same
+            return true;
+        }
+    }
+    target[prop] = observe(obj.sterilize(value), subject);
+    if (typeof target[prop] === 'object') {
+        // Set unique uuid of value to avoid dead loop
+        // target[prop][STAMP] = unique();
+        Object.defineProperty(target[prop], STAMP, {
+            value: unique(),
+            writable: false,
+            enumerable: false,
+        });
+    }
+    subject.emit();
+    return true;
 }
 
 function observe<T>(entry: T, subject: Subject<void>): T {
-    function wrap(entry: T) {
-        (entry as any)[PROXY_SERIALIZE_METHOD] = () => {
-            try {
-                return JSON.parse(JSON.stringify(entry));
-            } catch (err) {
-                logger().error(`Fail to serialize proxy: ${error(err)}`);
-            }
-        };
-        return entry;
-    }
     function logger() {
         return scope.getLogger('ObserveConfig');
     }
-    if (entry === null) {
-        logger().warn(`Cannot observe null value`);
-        return null as T;
+    if (obj.isPrimitiveOrNull(entry)) {
+        return entry;
     }
     if (['function', 'symbol'].includes(typeof entry)) {
         logger().warn(`Cannot observe ${typeof entry} value`);
         return undefined as T;
     }
-    if (['string', 'number', 'boolean'].includes(typeof entry)) {
-        return entry;
-    }
-    const set = (target: any, prop: string | symbol, value: any): boolean => {
-        if (prop === PROXY_SERIALIZE_METHOD) {
-            return true;
-        }
-        (target as any)[prop] = observe(serializeProxy(value), subject);
-        subject.emit();
-        return true;
-    };
     if (entry instanceof Array) {
-        return new Proxy(wrap(entry), { set }) as T;
+        // We should serialize object, because it can be already Proxy
+        return new Proxy(obj.sterilize(entry), { set: setter.bind(null, subject) }) as T;
     } else if (entry instanceof Object) {
         Object.keys(entry).forEach((key: string | number) => {
             // eslint-disable-next-line no-prototype-builtins
-            if (!entry.hasOwnProperty(key) || key === PROXY_SERIALIZE_METHOD) {
+            if (!entry.hasOwnProperty(key)) {
                 return;
             }
             const value = (entry as any)[key];
-            if (['string', 'number', 'boolean'].indexOf(typeof value) !== -1) {
+            if (obj.isPrimitiveOrNull(value)) {
                 return;
             } else if (value instanceof Array || value instanceof Object) {
                 (entry as any)[key] = observe(value, subject);
             }
         });
-        return new Proxy(wrap(entry), { set }) as T;
+        // We should serialize object, because it can be already Proxy
+        return new Proxy(obj.sterilize(entry), { set: setter.bind(null, subject) }) as T;
     }
     logger().error(`Type "${typeof entry}" cannot be observed`);
     return undefined as T;
@@ -128,6 +132,7 @@ export abstract class Configuration<T, C, A>
     implements JsonConvertor<Configuration<T, C, A>>, SelfValidate
 {
     protected ref: Reference<T, C, A>;
+    protected overwriting: boolean = false;
 
     public readonly configuration: T;
     public readonly watcher: Subject<void> = new Subject();
@@ -142,12 +147,15 @@ export abstract class Configuration<T, C, A>
     }
 
     public overwrite(configuration: T): void {
+        if (this.overwriting) {
+            return;
+        }
+        this.overwriting = true;
         (this as Mutable<Configuration<unknown, unknown, unknown>>).configuration = observe<T>(
-            // We should serialize object, because it can be already Proxy
-            serializeProxy(configuration),
+            configuration,
             this.watcher,
         );
-        this.watcher.emit();
+        this.overwriting = false;
     }
 
     public validate(): Error | undefined {
@@ -165,7 +173,7 @@ export abstract class Configuration<T, C, A>
     } {
         return {
             to: (): string => {
-                return JSON.stringify(this.configuration);
+                return obj.sterilize(JSON.stringify(this.configuration), [STAMP]);
             },
             from: (str: string): Configuration<T, C, A> | Error => {
                 try {
@@ -207,5 +215,9 @@ export abstract class Configuration<T, C, A>
             );
         }
         return getCompatibilityMod().SDESupport[this.ref.alias() as string];
+    }
+
+    public sterilized(): T {
+        return obj.sterilize(this.configuration, [STAMP]);
     }
 }

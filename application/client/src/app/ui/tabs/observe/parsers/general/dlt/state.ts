@@ -3,6 +3,7 @@ import { Timezone } from '@elements/timezones/timezone';
 import { bridge } from '@service/bridge';
 import { components } from '@env/decorators/initial';
 import { State as Base } from '../../state';
+import { Observe } from '@platform/types/observe';
 
 import * as Dlt from '@platform/types/observe/parser/dlt';
 
@@ -18,6 +19,27 @@ export class State extends Base {
     public fibex: File[] = [];
     public timezone: Timezone | undefined;
     public logLevel: Dlt.LogLevel = Dlt.LogLevel.Verbose;
+
+    constructor(observe: Observe) {
+        super(observe);
+    }
+
+    public update() {
+        const conf = this.observe.parser.as<Dlt.Configuration>(Dlt.Configuration);
+        if (conf === undefined) {
+            return;
+        }
+        if (this.fibex.length !== 0) {
+            conf.configuration.fibex_file_paths = this.fibex.map((f) => f.filename);
+        } else {
+            conf.configuration.fibex_file_paths = undefined;
+        }
+        if (this.logLevel !== Dlt.LogLevel.Verbose) {
+            conf.setDefaultsFilterConfig();
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            conf.configuration.filter_config!.min_log_level = this.logLevel;
+        }
+    }
 
     public addFibexFile() {
         bridge
@@ -35,6 +57,7 @@ export class State extends Base {
                 this.ref.log().error(`Fail to open xml (fibex) file(s): ${err.message}`);
             })
             .finally(() => {
+                this.update();
                 this.ref.detectChanges();
             });
     }

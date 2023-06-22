@@ -154,6 +154,7 @@ export class Configuration
                 this.overwrite({
                     [this.instance.alias()]: this.instance.configuration,
                 });
+                this.watcher.emit();
             }),
         );
     }
@@ -174,17 +175,14 @@ export class Configuration
             byConfiguration: (configuration: IConfiguration): void => {
                 this.overwrite(configuration);
                 this.setInstance();
-                this.watcher.emit();
             },
             byDeclaration: (stream: Declaration): void => {
                 this.overwrite({ [stream.alias()]: stream.configuration });
                 this.setInstance();
-                this.watcher.emit();
             },
             byReference: (Ref: Reference): void => {
                 this.overwrite({ [Ref.alias()]: new Ref(Ref.initial()) });
                 this.setInstance();
-                this.watcher.emit();
             },
         };
     }
