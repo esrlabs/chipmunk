@@ -146,7 +146,7 @@ export class SetupBase
             this.action.setDisabled(value.trim() === '');
         } else {
             this.state.cwd = value;
-            this.action.setDisabled(this.cwdInputRef.error.is());
+            !this.action.disabled && this.action.setDisabled(this.cwdInputRef.error.is());
         }
     }
 
