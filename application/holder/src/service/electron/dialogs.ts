@@ -8,6 +8,16 @@ import { dialog } from 'electron';
 export class Dialogs extends Implementation {
     private _window!: BrowserWindow;
 
+    protected fixFocusAndMouse(): void {
+        // On linux system (with GNOME) in some cases after system dialog
+        // has been shown, mouse is locked for whole system. With minimum
+        // timeout (after dialog inited) we should manualy unlock mouse
+        // and focus to the dialog
+        setTimeout(() => {
+            this._window.setEnabled(true);
+            this._window.setIgnoreMouseEvents(false);
+        });
+    }
     public bind(window: BrowserWindow): void {
         this._window = window;
     }
@@ -37,6 +47,7 @@ export class Dialogs extends Implementation {
         // Note: On Windows and Linux an open dialog can not be both a file selector and a directory selector,
         // so if you set properties to ['openFile', 'openDirectory'] on these platforms, a directory selector
         // will be shown.
+        this.fixFocusAndMouse();
         const result = await dialog.showOpenDialog(this._window, {
             title: 'Opening a folder',
             properties: ['openDirectory', 'multiSelections'],
@@ -53,6 +64,7 @@ export class Dialogs extends Implementation {
             let results;
             switch (target) {
                 case 0:
+                    this.fixFocusAndMouse();
                     results = await dialog.showOpenDialog(this._window, {
                         title: 'Opening a file',
                         properties: ['openFile', 'multiSelections'],
@@ -68,6 +80,7 @@ export class Dialogs extends Implementation {
                     });
                     break;
                 case 1:
+                    this.fixFocusAndMouse();
                     results = await dialog.showOpenDialog(this._window, {
                         title: 'Opening a DLT file',
                         properties: ['openFile', 'multiSelections'],
@@ -75,6 +88,7 @@ export class Dialogs extends Implementation {
                     });
                     break;
                 case 2:
+                    this.fixFocusAndMouse();
                     results = await dialog.showOpenDialog(this._window, {
                         title: 'Opening a PCAP/PCAPNG file',
                         properties: ['openFile', 'multiSelections'],
