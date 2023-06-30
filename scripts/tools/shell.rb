@@ -1,3 +1,6 @@
+# frozen_string_literal: true
+
+require 'English'
 module Shell
   @@cwd = ''
 
@@ -16,10 +19,10 @@ module Shell
     puts "[sh   ] #{Shell.cwd}> #{cmd}"
     if Shell.is_verbose_hidden
       Shell.suppress_output do
-        raise "#{cmd}: failed with #{$?.exitstatus}" unless Kernel.system(cmd, exception: true)
+        raise "#{cmd}: failed with #{$CHILD_STATUS.exitstatus}" unless Kernel.system(cmd, exception: true)
       end
     elsif !Kernel.system(cmd, exception: true)
-      raise "#{cmd}: failed with #{$?.exitstatus}"
+      raise "#{cmd}: failed with #{$CHILD_STATUS.exitstatus}"
     end
   end
 
@@ -38,7 +41,7 @@ module Shell
   end
 
   def self.chdir(dir, &block)
-    @@cwd = "#{dir}"
+    @@cwd = dir.to_s
     Dir.chdir(dir, &block)
     @@cwd = ''
   end

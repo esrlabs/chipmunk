@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Platform
   def initialize(reinstall, rebuild)
     @dist = "#{Paths::PLATFORM}/dist"
@@ -9,9 +11,7 @@ class Platform
     @changes_to_files = ChangeChecker.has_changes?(Paths::PLATFORM, @targets)
   end
 
-  def changes_to_files
-    @changes_to_files
-  end
+  attr_reader :changes_to_files
 
   def clean
     @targets.each do |path|
@@ -46,7 +46,7 @@ class Platform
         Shell.sh 'yarn run build'
         Reporter.done(self, 'build', '')
       end
-    rescue
+    rescue StandardError
       Reporter.failed(self, 'build', '')
       clean
       build
@@ -59,13 +59,15 @@ class Platform
     platform_dest = "#{node_modules}/platform"
     platform = Platform.new(false, false)
     Dir.mkdir(node_modules) unless File.exist?(node_modules)
-    Shell.rm_rf(platform_dest) if replace || !File.exist?("#{platform_dest}/dist") || File.symlink?(platform_dest) || platform.changes_to_files
-    unless File.exist?(platform_dest)
-      Reporter.other('Platform', "#{consumer} doesn't have platform", '')
-      platform.build
-      Shell.sh "cp -r #{Paths::PLATFORM} #{node_modules}"
-      Reporter.done('Platform', "delivery to #{consumer}", '')
+    if replace || !File.exist?("#{platform_dest}/dist") || File.symlink?(platform_dest) || platform.changes_to_files
+      Shell.rm_rf(platform_dest)
     end
+    return if File.exist?(platform_dest)
+
+    Reporter.other('Platform', "#{consumer} doesn't have platform", '')
+    platform.build
+    Shell.sh "cp -r #{Paths::PLATFORM} #{node_modules}"
+    Reporter.done('Platform', "delivery to #{consumer}", '')
   end
 
   def lint
