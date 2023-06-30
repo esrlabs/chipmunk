@@ -1,3 +1,5 @@
+require './scripts/env/paths'
+require './scripts/env/env'
 class Bindings
   def initialize(reinstall)
     @dist = "#{Paths::TS_BINDINGS}/dist"

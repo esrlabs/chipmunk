@@ -1,3 +1,5 @@
+require './scripts/tools/os'
+
 module Paths
   def self.get_release_build_folder
     if OS.windows?
@@ -33,7 +35,6 @@ module Paths
   CHECKLISTS = 'scripts/tools/file_checklists'
   CLIENT = 'application/client'
   CLIENT_DIST = 'application/client/dist'
-  CLIPPY = 'cargo +nightly clippy --all --all-features -- -D warnings -A clippy::uninlined_format_args'
   CONFIG = 'scripts/config.json'
   ELECTRON = 'application/holder'
   ELECTRON_CLIENT_DEST = 'application/holder/dist/client'
