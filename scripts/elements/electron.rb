@@ -1,3 +1,4 @@
+require './scripts/elements/indexer'
 class HolderSettings
   attr_accessor :reinstall, :replace_client, :client_prod, :platform_rebuild, :bindings_rebuild, :bindings_reinstall,
                 :launchers_rebuild
