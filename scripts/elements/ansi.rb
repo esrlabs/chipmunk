@@ -1,3 +1,7 @@
+require './scripts/env/paths'
+require './scripts/tools/change_checker'
+require './scripts/tools/reporter'
+
 class Ansi
   def initialize(reinstall, rebuild)
     @pkg = "#{Paths::ANSI}/pkg"

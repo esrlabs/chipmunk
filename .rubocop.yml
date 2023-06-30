@@ -1,0 +1,3 @@
+Metrics/BlockLength:
+  Max: 60
+  Enabled: true
