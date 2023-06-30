@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # os detection
 module OS
   def self.windows?
@@ -34,5 +36,4 @@ module OS
       'darwin'
     end
   end
-
 end
