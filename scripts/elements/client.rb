@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require './scripts/elements/matcher'
 require './scripts/elements/utils'
 class Client
@@ -55,7 +57,7 @@ class Client
             Shell.sh 'yarn run prod'
             Reporter.done(self, 'build in production mode', '')
           end
-        rescue
+        rescue StandardError
           Reporter.failed(self, 'build in production mode', '')
           @changes_to_files = true
           clean
@@ -78,7 +80,7 @@ class Client
             Shell.sh 'yarn run build'
             Reporter.done(self, 'build in developing mode', '')
           end
-        rescue
+        rescue StandardError
           Reporter.failed(self, 'build in developing mode', '')
           @changes_to_files = true
           clean
