@@ -1,3 +1,5 @@
+require './scripts/elements/matcher'
+require './scripts/elements/utils'
 class Client
   def initialize(reinstall, prod)
     @dist = "#{Paths::CLIENT}/dist"
@@ -89,14 +91,15 @@ class Client
   end
 
   def self.delivery(dest, prod, replace)
-    if !replace && File.exist?("#{Paths::CLIENT}/dist/client")
+    path_to_client = "#{Paths::CLIENT_DIST}/#{prod ? 'release' : 'debug'}"
+    if !replace && File.exist?(path_to_client)
       Reporter.skipped('Client', 'client already exist', '')
       return
     end
     Dir.mkdir(dest) unless File.exist?(dest)
     client = Client.new(false, prod)
     client.build
-    Shell.sh "cp -r #{Paths::CLIENT}/dist/client #{dest}"
+    Shell.sh "cp -r #{path_to_client} #{dest}"
     Reporter.done('Client', "delivery to #{dest}", '')
   end
 
