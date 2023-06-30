@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require './scripts/elements/indexer'
 class HolderSettings
   attr_accessor :reinstall, :replace_client, :client_prod, :platform_rebuild, :bindings_rebuild, :bindings_reinstall,
@@ -96,7 +98,7 @@ class Holder
           Shell.sh 'yarn run build'
           Reporter.done(self, 'built', '')
         end
-      rescue
+      rescue StandardError
         Reporter.failed(self, 'build', '')
         @changes_to_holder = true
         clean
