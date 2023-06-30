@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require './scripts/elements/platform'
 require './scripts/elements/bindings'
 require './scripts/elements/client'
