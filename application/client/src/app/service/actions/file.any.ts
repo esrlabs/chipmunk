@@ -2,7 +2,8 @@ import { Base } from './action';
 import { bridge } from '@service/bridge';
 import { session } from '@service/session';
 import { TabSourceMultipleFiles } from '@ui/tabs/multiplefiles/component';
-import { FileType, File } from '@platform/types/files';
+import { File } from '@platform/types/files';
+import { FileType } from '@platform/types/observe/types/file';
 
 import * as Factory from '@platform/types/observe/factory';
 
@@ -35,7 +36,7 @@ export class Action extends Base {
 
     public from(file: File): void {
         switch (file.type) {
-            case FileType.Dlt:
+            case FileType.Binary:
                 session
                     .initialize()
                     .configure(
@@ -50,7 +51,11 @@ export class Action extends Base {
                 session
                     .initialize()
                     .suggest(
-                        new Factory.File().type(Factory.FileType.PcapNG).file(file.filename).get(),
+                        new Factory.File()
+                            .asDlt()
+                            .type(Factory.FileType.PcapNG)
+                            .file(file.filename)
+                            .get(),
                     );
                 break;
             default:

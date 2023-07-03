@@ -1,17 +1,20 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { FileType, File } from '../../../types/files';
+import { File } from '../../../types/files';
+import { FileType } from '../../../types/observe/types/file';
 
 import * as validator from '../../../env/obj';
 
 @Define({ name: 'SelectFilesInFolderRequest' })
 export class Request extends SignatureRequirement {
-    public target: FileType;
+    public target: FileType | undefined;
     public ext?: string;
 
-    constructor(input: { target: FileType; ext?: string }) {
+    constructor(input: { target: FileType | undefined; ext?: string }) {
         super();
         validator.isObject(input);
-        this.target = input.target;
+        this.target = validator.getAsNotEmptyStringOrAsUndefined(input, 'target') as
+            | FileType
+            | undefined;
         this.ext = validator.getAsNotEmptyStringOrAsUndefined(input, 'ext');
     }
 }

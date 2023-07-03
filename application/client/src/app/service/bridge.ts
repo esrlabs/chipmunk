@@ -1,6 +1,7 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
-import { File, FileType, Entity } from '@platform/types/files';
+import { File, Entity } from '@platform/types/files';
+import { FileType } from '@platform/types/observe/types/file';
 import { ShellProfile } from '@platform/types/shells';
 import { StatisticInfo } from '@platform/types/observe/parser/dlt';
 import { Entry } from '@platform/types/storage/entry';
@@ -65,7 +66,7 @@ export class Service extends Implementation {
             save(ext?: string): Promise<string | undefined>;
         };
     } {
-        const request = (target: FileType, ext?: string): Promise<File[]> => {
+        const request = (target: FileType | undefined, ext?: string): Promise<File[]> => {
             return new Promise((resolve, reject) => {
                 Requests.IpcRequest.send(
                     Requests.File.Select.Response,
@@ -249,19 +250,19 @@ export class Service extends Implementation {
             },
             select: {
                 any: (): Promise<File[]> => {
-                    return request(FileType.Any, `dlt,pcapng,txt,log,logs`);
+                    return request(undefined, `dlt,pcapng,txt,log,logs`);
                 },
                 dlt: (): Promise<File[]> => {
-                    return request(FileType.Dlt);
+                    return request(FileType.Binary, 'dlt');
                 },
                 pcapng: (): Promise<File[]> => {
-                    return request(FileType.PcapNG);
+                    return request(FileType.PcapNG, `pcapng`);
                 },
                 text: (): Promise<File[]> => {
-                    return request(FileType.Text);
+                    return request(FileType.Text, `txt,log,logs`);
                 },
                 custom: (ext: string): Promise<File[]> => {
-                    return request(FileType.Any, ext);
+                    return request(undefined, ext);
                 },
                 save: (ext?: string): Promise<string | undefined> => {
                     return Requests.IpcRequest.send(
@@ -290,7 +291,7 @@ export class Service extends Implementation {
         ls(paths: string[]): Promise<string[]>;
         delimiter(): Promise<string>;
     } {
-        const request = (target: FileType, ext?: string): Promise<File[]> => {
+        const request = (target: FileType | undefined, ext?: string): Promise<File[]> => {
             return new Promise((resolve, reject) => {
                 Requests.IpcRequest.send(
                     Requests.Folder.Select.Response,
@@ -307,19 +308,19 @@ export class Service extends Implementation {
         };
         return {
             any: (): Promise<File[]> => {
-                return request(FileType.Any);
+                return request(undefined, `dlt,pcapng,txt,log,logs`);
             },
             dlt: (): Promise<File[]> => {
-                return request(FileType.Dlt);
+                return request(FileType.Binary, 'dlt');
             },
             pcapng: (): Promise<File[]> => {
-                return request(FileType.PcapNG);
+                return request(FileType.PcapNG, `pcapng`);
             },
             text: (): Promise<File[]> => {
-                return request(FileType.Any);
+                return request(FileType.Text, `txt,log,logs`);
             },
             custom: (ext: string): Promise<File[]> => {
-                return request(FileType.Any, ext);
+                return request(undefined, ext);
             },
             select: (): Promise<string[]> => {
                 return new Promise((resolve, reject) => {

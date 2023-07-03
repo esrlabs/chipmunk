@@ -2,7 +2,7 @@ import { SetupService, Interface, Implementation, register } from '@platform/ent
 import { services } from '@register/services';
 import { api } from '@service/api';
 import { CancelablePromise } from '@platform/env/promise';
-import { FileType } from '@platform/types/files';
+import { FileType } from '@platform/types/observe/types/file';
 import { Protocol } from '@platform/types/observe/parser';
 import { Source } from '@platform/types/observe/origin/stream/index';
 
@@ -24,9 +24,9 @@ export class Service extends Implementation {
                         return new CancelablePromise((resolve, _reject) => {
                             (() => {
                                 switch (request.type) {
-                                    case FileType.Any:
-                                        return new handlers.FileAny.Action().apply();
-                                    case FileType.Dlt:
+                                    case FileType.Text:
+                                        return new handlers.FileText.Action().apply();
+                                    case FileType.Binary:
                                         return new handlers.FileDlt.Action().apply();
                                     case FileType.PcapNG:
                                         return new handlers.FilePcap.Action().apply();
@@ -66,9 +66,9 @@ export class Service extends Implementation {
                         return new CancelablePromise((resolve, _reject) => {
                             (() => {
                                 switch (request.type) {
-                                    case FileType.Any:
-                                        return new handlers.FolderAny.Action().apply();
-                                    case FileType.Dlt:
+                                    case FileType.Text:
+                                        return new handlers.FolderText.Action().apply();
+                                    case FileType.Binary:
                                         return new handlers.FolderDlt.Action().apply();
                                     case FileType.PcapNG:
                                         return new handlers.FolderPcap.Action().apply();

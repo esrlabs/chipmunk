@@ -1,7 +1,7 @@
 import { CLIAction, Type } from './action';
 import { Service } from '@service/cli';
 import { getFileEntities } from '@env/fs';
-import { FileType } from 'platform/types/files';
+import { FileType } from 'platform/types/observe/types/file';
 
 import * as fs from 'fs';
 import * as path from 'path';

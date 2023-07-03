@@ -1,4 +1,5 @@
-import { File, Stat, FileType, getFileExtention } from 'platform/types/files';
+import { File, Stat, getFileExtention } from 'platform/types/files';
+import { FileType } from 'platform/types/observe/types/file';
 import { error } from 'platform/log/utils';
 
 import * as obj from 'platform/env/obj';
@@ -128,9 +129,10 @@ export function getFileEntity(filename: string): File | undefined | Error {
 }
 
 export function detectSupportedFileType(filename: string): FileType {
+    // TODO: detect binary or text file correctly
     switch (path.extname(filename).toLowerCase()) {
         case '.dlt':
-            return FileType.Dlt;
+            return FileType.Binary;
         case '.pcapng':
             return FileType.PcapNG;
         default:

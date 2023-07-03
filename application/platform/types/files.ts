@@ -1,3 +1,5 @@
+import { FileType } from './observe/types/file';
+
 import * as obj from '../env/obj';
 
 export enum EntityType {
@@ -68,14 +70,6 @@ export interface File {
     stat: Stat;
 }
 
-export enum FileType {
-    Text = 'Text',
-    Dlt = 'Dlt',
-    SomeIp = 'SomeIp',
-    PcapNG = 'PcapNG',
-    Any = 'Any',
-}
-
 export interface Stat {
     dev: number;
     ino: number;
@@ -116,15 +110,4 @@ export function getFileExtention(filename: string): string {
     }
     FILE_EXT_REG.lastIndex = 0;
     return match[0];
-}
-
-export function getFileTypeByExt(filename: string): FileType {
-    const normalized = filename.toLowerCase().trim();
-    if (normalized.endsWith('.dlt')) {
-        return FileType.Dlt;
-    } else if (normalized.endsWith('.pcapng')) {
-        return FileType.PcapNG;
-    } else {
-        return FileType.Any;
-    }
 }

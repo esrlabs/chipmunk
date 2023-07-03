@@ -10,7 +10,7 @@ import { cli } from '@service/cli';
 import { Menu, MenuItem } from 'electron';
 import { notifications } from '@service/notifications';
 import { unique } from 'platform/env/sequence';
-import { FileType } from 'platform/types/files';
+import { FileType } from 'platform/types/observe/types/file';
 import { ChipmunkGlobal } from '@register/global';
 
 import * as Actions from './actions';
@@ -309,7 +309,7 @@ export class Service extends Implementation {
                     {
                         label: 'Open File(s)',
                         click: async () => {
-                            Actions.openFile(FileType.Any).catch((err: Error) => {
+                            Actions.openFile(undefined).catch((err: Error) => {
                                 this.log().error(`Fail call action OpenFile: ${err.message}`);
                             });
                         },
@@ -321,7 +321,7 @@ export class Service extends Implementation {
                             {
                                 label: 'Files',
                                 click: async () => {
-                                    Actions.openFile(FileType.Any).catch((err: Error) => {
+                                    Actions.openFile(undefined).catch((err: Error) => {
                                         this.log().error(
                                             `Fail call action openFile: ${err.message}`,
                                         );
@@ -331,7 +331,7 @@ export class Service extends Implementation {
                             {
                                 label: 'Folder(s)',
                                 click: async () => {
-                                    Actions.openFolder(FileType.Any).catch((err: Error) => {
+                                    Actions.openFolder(undefined).catch((err: Error) => {
                                         this.log().error(
                                             `Fail call action OpenFolder: ${err.message}`,
                                         );
@@ -343,17 +343,19 @@ export class Service extends Implementation {
                                 label: 'Select Files from Folder',
                                 submenu: [
                                     {
-                                        label: 'DLT',
+                                        label: 'Binary (Dlt, SomeIp etc.)',
                                         click: async () => {
-                                            Actions.openFolder(FileType.Dlt).catch((err: Error) => {
-                                                this.log().error(
-                                                    `Fail call action openFile: ${err.message}`,
-                                                );
-                                            });
+                                            Actions.openFolder(FileType.Binary).catch(
+                                                (err: Error) => {
+                                                    this.log().error(
+                                                        `Fail call action openFile: ${err.message}`,
+                                                    );
+                                                },
+                                            );
                                         },
                                     },
                                     {
-                                        label: 'PCAPNG',
+                                        label: 'PcapNG',
                                         click: async () => {
                                             Actions.openFolder(FileType.PcapNG).catch(
                                                 (err: Error) => {

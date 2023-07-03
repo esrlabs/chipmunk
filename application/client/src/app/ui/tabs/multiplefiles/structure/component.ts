@@ -13,7 +13,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { MatSort, Sort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { FileHolder } from '../file.holder';
-import { FileType } from '@platform/types/files';
+import { FileType } from '@platform/types/observe/types/file';
 import { Subscription } from 'rxjs';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { State } from '../state';
@@ -122,7 +122,7 @@ export class TabSourceMultipleFilesStructure
                 handler: () => {
                     this.state.event({ type: EEventType.open, files: [file] });
                 },
-                disabled: file.type === FileType.Dlt,
+                disabled: file.type === FileType.Binary,
             });
         }
         items.push(
