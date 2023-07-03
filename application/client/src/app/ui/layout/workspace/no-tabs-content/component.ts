@@ -33,7 +33,6 @@ export class LayoutHome extends ChangesDetector implements AfterViewInit, OnDest
         conenctTo: [
             new actions.UdpDlt.Action(),
             new actions.TcpDlt.Action(),
-            new actions.SerialDlt.Action(),
             null,
             new actions.SerialText.Action(),
             null,

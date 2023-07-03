@@ -18,7 +18,6 @@ export class Action extends Base {
     }
 
     public async apply(): Promise<void> {
-        debugger;
         session.initialize().configure(new Factory.Stream().asText().process().get());
         return Promise.resolve();
     }
