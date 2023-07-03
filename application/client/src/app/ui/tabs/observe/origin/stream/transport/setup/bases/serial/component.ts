@@ -13,7 +13,7 @@ import * as Stream from '@platform/types/observe/origin/stream/index';
 })
 @Ilc()
 export class SetupBase extends ChangesDetector implements AfterContentInit, OnDestroy {
-    @Input() public configuration!: Stream.Serial.IConfiguration;
+    @Input() public configuration!: Stream.Serial.Configuration;
     @Input() public action!: Action;
     @Input() public session: Session | undefined;
 

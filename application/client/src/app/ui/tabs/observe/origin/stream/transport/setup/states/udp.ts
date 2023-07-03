@@ -15,27 +15,21 @@ export interface IMulticastInfo {
     };
 }
 
-export class State extends Stream.UDP.Configuration implements Destroy {
-    public action: Action;
+export class State  implements Destroy {
 
     public errors: {
         address: Errors.ErrorState;
     };
 
     constructor(
-        action: Action,
-        configuration: Stream.UDP.IConfiguration = Stream.UDP.Configuration.initial(),
+        public readonly action: Action,
+        public readonly configuration: Stream.UDP.Configuration,
     ) {
-        super(configuration);
-        this.action = action;
         this.errors = {
             address: new Errors.ErrorState(Errors.Field.bindingAddress, () => {
                 // this.update();
             }),
         };
-        this.watcher.subscribe(() => {
-            console.log(`>>>>>>>>>>>>>>> UPDATED`);
-        });
     }
 
     public destroy(): void {
@@ -43,26 +37,18 @@ export class State extends Stream.UDP.Configuration implements Destroy {
     }
 
     public drop() {
-        this.configuration.bind_addr = Stream.UDP.Configuration.initial().bind_addr;
-        this.configuration.multicast = Stream.UDP.Configuration.initial().multicast;
-    }
-
-    public from(opt: Stream.UDP.IConfiguration) {
-        this.overwrite(opt);
-        const pair = opt.bind_addr.split(':');
-        if (pair.length !== 2) {
-            return;
-        }
+        this.configuration.configuration.bind_addr = Stream.UDP.Configuration.initial().bind_addr;
+        this.configuration.configuration.multicast = Stream.UDP.Configuration.initial().multicast;
     }
 
     public addMulticast() {
-        this.configuration.multicast.push({
+        this.configuration.configuration.multicast.push({
             multiaddr: MULTICAST_ADDR,
             interface: MULTUCAST_INTERFACE,
         });
     }
 
     public removeMulticast(index: number) {
-        index > -1 && this.configuration.multicast.splice(index, 1);
+        index > -1 && this.configuration.configuration.multicast.splice(index, 1);
     }
 }

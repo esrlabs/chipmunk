@@ -84,17 +84,25 @@ export class State extends Subscriber {
         return {
             stream: (): void => {
                 const prev = this.stream;
-                if (this.observe.origin.configuration.Stream === undefined) {
+                const nature = this.observe.origin.nature();
+                if (
+                    nature instanceof Origin.File.Configuration ||
+                    nature instanceof Origin.Concat.Configuration
+                ) {
                     this.streams = [];
                     this.stream = undefined;
                 } else {
-                    const current = this.stream;
                     this.streams = this.observe.parser.getSupportedStream();
-                    this.stream =
-                        current !== undefined &&
-                        this.streams.find((p) => p.alias() === current) !== undefined
-                            ? current
-                            : this.streams[0].alias();
+                    if (this.stream === undefined) {
+                        this.stream = nature.alias();
+                    } else {
+                        const current = this.stream;
+                        this.stream =
+                            current !== undefined &&
+                            this.streams.find((p) => p.alias() === current) !== undefined
+                                ? current
+                                : this.streams[0].alias();
+                    }
                 }
                 this.ref.markChangesForCheck();
                 prev !== this.stream && this.updates.get().stream.emit();

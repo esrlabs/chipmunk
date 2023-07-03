@@ -2,6 +2,7 @@ import { Configuration as Base, ConfigurationStatic, ReferenceDesc } from '../..
 import { OriginDetails, IOriginDetails, Job, IJob } from '../../description';
 import { Statics } from '../../../../env/decorators';
 import { Mutable } from '../../../unity/mutable';
+import { Alias } from '../../../env/types';
 
 import * as Origin from '../index';
 
@@ -86,14 +87,14 @@ export function getAliasByConfiguration(configuration: IConfiguration): Source {
     return detected;
 }
 
-@Statics<ConfigurationStatic<IConfiguration, Origin.Context>>()
+@Statics<ConfigurationStatic<IConfiguration, Source>>()
 export class Configuration
-    extends Base<IConfiguration, Configuration, Origin.Context>
+    extends Base<IConfiguration, Configuration, Source>
     implements OriginDetails, Sde.Support, Parser.Support, Job
 {
-    static alias(): Origin.Context {
+    static alias(): Source {
         //TODO: alias should be defined for holders. Same for Parser as holder of parsers
-        return Origin.Context.Stream;
+        return Source.Process;
     }
 
     static validate(configuration: IConfiguration): Error | IConfiguration {
@@ -201,5 +202,15 @@ export class Configuration
 
     public getSupportedParsers(): Parser.Reference[] {
         return this.instance.getSupportedParsers();
+    }
+
+    public as<T>(Ref: { new (...args: any[]): Declaration } & Alias<unknown>): T | undefined {
+        if (this.instance.alias() === Ref.alias()) {
+            return this.instance as T;
+        }
+        if (typeof (this.instance as any).as === 'function') {
+            return (this.instance as any).as(Ref);
+        }
+        return undefined;
     }
 }

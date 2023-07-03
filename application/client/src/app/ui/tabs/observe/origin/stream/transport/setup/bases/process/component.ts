@@ -31,7 +31,7 @@ export class SetupBase
     extends ChangesDetector
     implements AfterContentInit, AfterViewInit, OnDestroy
 {
-    @Input() public configuration!: Stream.Process.IConfiguration;
+    @Input() public configuration!: Stream.Process.Configuration;
     @Input() public action!: Action;
     @Input() public session: Session | undefined;
 
@@ -59,26 +59,26 @@ export class SetupBase
 
     public ngAfterContentInit(): void {
         this.state = new State(this.action, this.configuration);
-        this._inputs.cmd.defaults = this.state.configuration.command;
-        this._inputs.cwd.defaults = this.state.configuration.cwd;
+        this._inputs.cmd.defaults = this.state.configuration.configuration.command;
+        this._inputs.cwd.defaults = this.state.configuration.configuration.cwd;
         // this.action.subjects.get().applied.subscribe(() => {
         //     this._inputs.cmd.recent.emit(undefined);
-        //     this.state.configuration.cwd.trim() !== '' &&
+        //     this.state.configuration.configuration.cwd.trim() !== '' &&
         //         this.ilc()
         //             .services.system.bridge.cwd()
-        //             .set(undefined, this.state.configuration.cwd)
+        //             .set(undefined, this.state.configuration.configuration.cwd)
         //             .catch((err: Error) => {
         //                 this.log().error(`Fail to set cwd path: ${err.message}`);
         //             });
         // });
-        // if (this.state.configuration.command.trim() === '') {
+        // if (this.state.configuration.configuration.command.trim() === '') {
         //     this.action.setDisabled(true);
         // }
         this.ilc()
             .services.system.bridge.env()
             .get()
             .then((envs) => {
-                this.state.configuration.envs = envs;
+                this.state.configuration.configuration.envs = envs;
             })
             .catch((err: Error) => {
                 this.log().error(`Fail to get envvars path: ${err.message}`);
@@ -128,9 +128,9 @@ export class SetupBase
     }
 
     public ngAfterViewInit(): void {
-        this.cmdInputRef.set(this.state.configuration.command);
-        this.cwdInputRef.set(this.state.configuration.cwd);
-        if (this.state.configuration.cwd.trim() !== '') {
+        this.cmdInputRef.set(this.state.configuration.configuration.command);
+        this.cwdInputRef.set(this.state.configuration.configuration.cwd);
+        if (this.state.configuration.configuration.cwd.trim() !== '') {
             return;
         }
         this.ilc()
@@ -148,11 +148,12 @@ export class SetupBase
     }
 
     public edit(target: 'cmd' | 'cwd', value: string): void {
+        console.log(`>>>>>>>>>>>>>>>>> edit`);
         if (target === 'cmd') {
-            this.state.configuration.command = value;
+            this.state.configuration.configuration.command = value;
             // this.action.setDisabled(value.trim() === '');
         } else {
-            this.state.configuration.cwd = value;
+            this.state.configuration.configuration.cwd = value;
             // this.action.setDisabled(this.cwdInputRef.error.is());
         }
     }

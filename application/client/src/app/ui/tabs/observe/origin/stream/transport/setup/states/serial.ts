@@ -59,8 +59,7 @@ const PARITY = [
 ];
 const STOP_BITS = [1, 2];
 
-export class State extends Stream.Serial.Configuration implements Destroy {
-    public action: Action;
+export class State implements Destroy {
     public errors: {
         baudRate: Errors.ErrorState;
     };
@@ -80,11 +79,9 @@ export class State extends Stream.Serial.Configuration implements Destroy {
     protected prev: string = '';
 
     constructor(
-        action: Action,
-        configuration: Stream.Serial.IConfiguration = Stream.Serial.Configuration.initial(),
+        public readonly action: Action,
+        public readonly configuration: Stream.Serial.Configuration,
     ) {
-        super(configuration);
-        this.action = action;
         this.errors = {
             baudRate: new Errors.ErrorState(Errors.Field.baudRate, () => {
                 // this.update();
@@ -95,10 +92,6 @@ export class State extends Stream.Serial.Configuration implements Destroy {
 
     public destroy(): void {
         // Having method "destroy()" is requirement of session's storage
-    }
-
-    public from(opt: Stream.Serial.IConfiguration) {
-        this.overwrite(opt);
     }
 
     public scan(): {
@@ -120,13 +113,14 @@ export class State extends Stream.Serial.Configuration implements Destroy {
                             return;
                         }
                         this.ports = ports;
-                        if (this.ports.includes(this.configuration.path)) {
+                        if (this.ports.includes(this.configuration.configuration.path)) {
                             return;
                         }
-                        this.configuration.path = this.ports[0] === undefined ? '' : this.ports[0];
-                        this.configuration.path !== '' &&
-                            this.history().restore(this.configuration.path);
-                        this.prev = this.configuration.path;
+                        this.configuration.configuration.path =
+                            this.ports[0] === undefined ? '' : this.ports[0];
+                        this.configuration.configuration.path !== '' &&
+                            this.history().restore(this.configuration.configuration.path);
+                        this.prev = this.configuration.configuration.path;
                         this.changed.emit();
                     })
                     .catch((err: Error) => {
@@ -163,7 +157,7 @@ export class State extends Stream.Serial.Configuration implements Destroy {
         return {
             update: (path: string): void => {
                 if (this.prev !== '') {
-                    this.states.set(this.prev, this.configuration);
+                    this.states.set(this.prev, this.configuration.configuration);
                 }
                 this.history().restore(path);
                 this.prev = path;
@@ -172,13 +166,11 @@ export class State extends Stream.Serial.Configuration implements Destroy {
             },
             restore: (path: string): void => {
                 const state = this.states.get(path);
-                if (state === undefined) {
-                    this.from(Stream.Serial.Configuration.initial());
-                } else {
-                    this.from(state);
-                }
+                this.configuration.overwrite(
+                    state === undefined ? Stream.Serial.Configuration.initial() : state,
+                );
                 this.baudRateProxtUpdate();
-                this.configuration.path = path;
+                this.configuration.configuration.path = path;
             },
             load: (): void => {
                 bridge
@@ -200,8 +192,8 @@ export class State extends Stream.Serial.Configuration implements Destroy {
                                     this.states.set(pair[0], pair[1]);
                                 }
                             });
-                            this.configuration.path !== '' &&
-                                this.history().restore(this.configuration.path);
+                            this.configuration.configuration.path !== '' &&
+                                this.history().restore(this.configuration.configuration.path);
                         } catch (e) {
                             logger.warn(`Fail to parse history: ${error(e)}`);
                         }
@@ -230,35 +222,42 @@ export class State extends Stream.Serial.Configuration implements Destroy {
     }
 
     public baudRateChange(): void {
-        this.configuration.baud_rate =
+        this.configuration.configuration.baud_rate =
             typeof this.baudRateProxy === 'string'
-                ? this.configuration.baud_rate
+                ? this.configuration.configuration.baud_rate
                 : this.baudRateProxy;
-        this.configuration.baud_rate =
-            typeof this.configuration.baud_rate === 'string'
-                ? parseInt(this.configuration.baud_rate, 10)
-                : this.configuration.baud_rate;
-        if (isNaN(this.configuration.baud_rate) || !isFinite(this.configuration.baud_rate)) {
-            this.configuration.baud_rate = Stream.Serial.Configuration.initial().baud_rate;
+        this.configuration.configuration.baud_rate =
+            typeof this.configuration.configuration.baud_rate === 'string'
+                ? parseInt(this.configuration.configuration.baud_rate, 10)
+                : this.configuration.configuration.baud_rate;
+        if (
+            isNaN(this.configuration.configuration.baud_rate) ||
+            !isFinite(this.configuration.configuration.baud_rate)
+        ) {
+            this.configuration.configuration.baud_rate =
+                Stream.Serial.Configuration.initial().baud_rate;
         }
         this.changed.emit();
     }
 
     public defaluts(): void {
-        const path = this.configuration.path;
-        this.from(Stream.Serial.Configuration.initial());
-        this.configuration.path = path;
-        this.states.set(this.configuration.path, this.configuration);
+        const path = this.configuration.configuration.path;
+        this.configuration.overwrite(Stream.Serial.Configuration.initial());
+        this.configuration.configuration.path = path;
+        this.states.set(this.configuration.configuration.path, this.configuration.configuration);
         this.baudRateProxtUpdate();
         this.history().save();
         this.changed.emit();
     }
 
     protected baudRateProxtUpdate(): void {
-        if (this.BAUD_RATE.find((r) => r == this.configuration.baud_rate) === undefined) {
+        if (
+            this.BAUD_RATE.find((r) => r == this.configuration.configuration.baud_rate) ===
+            undefined
+        ) {
             this.baudRateProxy = CUSTOM_BAUD_RATE_REF;
         } else {
-            this.baudRateProxy = this.configuration.baud_rate;
+            this.baudRateProxy = this.configuration.configuration.baud_rate;
         }
     }
 }

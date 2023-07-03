@@ -34,7 +34,7 @@ export class TabObserveStream extends ChangesDetector implements AfterContentIni
         if (origin === undefined) {
             throw new Error(`Current origin isn't a stream`);
         }
-        this.stream = new StreamState(origin.getStreamConfiguration(), this.state.action);
+        this.stream = new StreamState(this.state.action, origin.instance);
         this.parser = new ParserState(this.state.observe);
         this.env().subscriber.register(
             this.state.updates.get().stream.subscribe(() => {

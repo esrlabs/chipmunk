@@ -2,7 +2,7 @@
 <div *ngIf="!state.isEmpty()">
     <mat-form-field class="material-mofication-normal">
         <mat-label>Path to serial port</mat-label>
-        <mat-select [(ngModel)]="state.configuration.path" (ngModelChange)="state.history().update($event)">
+        <mat-select [(ngModel)]="state.configuration.configuration.path" (ngModelChange)="state.history().update($event)">
             <mat-option *ngFor="let port of state.ports" [value]="port">
                 {{port}}
             </mat-option>
@@ -20,7 +20,7 @@
     </mat-form-field>
     <mat-form-field class="material-mofication-normal row" *ngIf="state.isBoudRateCustom()">
         <mat-label>Custom Baud Rate</mat-label>
-        <input matInput [(ngModel)]="state.configuration.baud_rate" [errorStateMatcher]="state.errors.baudRate" (ngModelChange)="state.baudRateChange()">
+        <input matInput [(ngModel)]="state.configuration.configuration.baud_rate" [errorStateMatcher]="state.errors.baudRate" (ngModelChange)="state.baudRateChange()">
         <mat-error *ngIf="state.errors.baudRate.getErrorCode() === 'INVALID'">
             Please enter a valid u32 value
         </mat-error>
@@ -30,7 +30,7 @@
     </mat-form-field>
     <mat-form-field class="material-mofication-normal row">
         <mat-label>Data Bits</mat-label>
-        <mat-select [(ngModel)]="state.configuration.data_bits">
+        <mat-select [(ngModel)]="state.configuration.configuration.data_bits">
             <mat-option *ngFor="let value of state.DATA_BITS" [value]="value">
                 {{value}}
             </mat-option>
@@ -38,7 +38,7 @@
     </mat-form-field>
     <mat-form-field class="material-mofication-normal row">
         <mat-label>Flow Control</mat-label>
-        <mat-select [(ngModel)]="state.configuration.flow_control">
+        <mat-select [(ngModel)]="state.configuration.configuration.flow_control">
             <mat-option *ngFor="let keyvalue of state.FLOW_CONTROL" [value]="keyvalue.value">
                 {{keyvalue.name}}
             </mat-option>
@@ -46,7 +46,7 @@
     </mat-form-field>
     <mat-form-field class="material-mofication-normal row">
         <mat-label>Parity</mat-label>
-        <mat-select [(ngModel)]="state.configuration.parity">
+        <mat-select [(ngModel)]="state.configuration.configuration.parity">
             <mat-option *ngFor="let keyvalue of state.PARITY" [value]="keyvalue.value">
                 {{keyvalue.name}}
             </mat-option>
@@ -54,7 +54,7 @@
     </mat-form-field>
     <mat-form-field class="material-mofication-normal row">
         <mat-label>Stop Bits</mat-label>
-        <mat-select [(ngModel)]="state.configuration.stop_bits">
+        <mat-select [(ngModel)]="state.configuration.configuration.stop_bits">
             <mat-option *ngFor="let value of state.STOP_BITS" [value]="value">
                 {{value}}
             </mat-option>
