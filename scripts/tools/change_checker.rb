@@ -44,7 +44,7 @@ module ChangeChecker
   end
 
   def self.locations_to_check(path, omissions = [])
-    Dir.glob("#{path}/*").map { |f| f if File.directory?(f) && !omissions.include?(f) }.compact << path
+    Dir.glob("#{path}/*").select { |f| File.directory?(f) && !omissions.include?(f) } << path
   end
 
   def self.update_changelist(has_changed, new_checklist_file, old_checklist_file)
