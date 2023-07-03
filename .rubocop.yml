@@ -1,3 +1,10 @@
+AllCops:
+  NewCops: enable
+
 Metrics/BlockLength:
-  Max: 60
+  Max: 120
+  Enabled: true
+
+Metrics/MethodLength:
+  Max: 30
   Enabled: true
