@@ -8,13 +8,11 @@ class Release
     @compress = compress
   end
 
-  def clean
-    if File.exist?(Paths::RELEASE)
-      Shell.rm_rf(Paths::RELEASE)
-      Reporter.removed(self, "removed: #{Paths::RELEASE}", '')
-    else
-      Reporter.other(self, "doesn't exist: #{Paths::RELEASE}", '')
-    end
+  def self.clean
+    return unless File.exist?(Paths::RELEASE)
+
+    Shell.rm_rf(Paths::RELEASE)
+    Reporter.removed(self, "removed: #{Paths::RELEASE}", '')
   end
 
   def build
@@ -25,7 +23,7 @@ class Release
     else
       Rake::Task['build:dev'].invoke
     end
-    Updater.new.check(true)
+    Updater.check(true)
     Shell.chdir(Paths::ELECTRON) do
       set_envvars
       Shell.sh build_cmd
@@ -74,7 +72,7 @@ class Release
       return
     end
     snapshot_file = "#{Paths::RELEASE_BIN}/.release"
-    File.delete(snapshot_file) if File.exist?(snapshot_file)
+    FileUtils.rm_f(snapshot_file)
     lines = ".release\n"
     Dir.foreach(Paths::RELEASE_BIN) do |entry|
       lines = "#{lines}#{entry}\n" if entry != '.' && entry != '..'

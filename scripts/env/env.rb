@@ -2,13 +2,18 @@
 
 require './scripts/env/config'
 require './scripts/elements/platform'
+
+def command_exists(command)
+  require 'open3'
+  _stdout, _stderr, status = Open3.capture3(command)
+  status.success?
+end
 module Environment
   @@checked = false
 
   def self.rust
     config = Config.new
     if config.get_rust_version == 'stable'
-      Reporter.skipped('Env', 'Skip checking of rust version for stable', '')
       return
     end
     output = `rustc -V`
@@ -22,7 +27,7 @@ module Environment
   end
 
   def self.nj_cli
-    if system('nj-cli -V')
+    if command_exists('nj-cli -V')
       Reporter.skipped('Env', 'nj-cli is installed already', '')
       return
     end
@@ -31,7 +36,7 @@ module Environment
   end
 
   def self.wasm_pack
-    if system('wasm-pack --help')
+    if command_exists('wasm-pack --help')
       Reporter.skipped('Env', 'wasm-pack is installed already', '')
       return
     end
@@ -40,7 +45,7 @@ module Environment
   end
 
   def self.yarn
-    if system('yarn -v')
+    if command_exists('yarn -v')
       Reporter.skipped('Env', 'yarn is installed already', '')
       return
     end
@@ -63,7 +68,6 @@ module Environment
     Environment.nj_cli
     Environment.wasm_pack
     Environment.yarn
-    Environment.list
     Reporter.done('Env', 'checking envs', '')
     @@checked = true
   end

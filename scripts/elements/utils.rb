@@ -1,35 +1,35 @@
 # frozen_string_literal: true
 
 class Utils
+  PKG = "#{Paths::UTILS}/pkg"
+  TARGET = "#{Paths::UTILS}/target"
+  NODE_MODULES = "#{Paths::UTILS}/node_modules"
+  TEST_OUTPUT = "#{Paths::UTILS}/test_output"
+  TARGETS = [PKG, TARGET, NODE_MODULES, TEST_OUTPUT].freeze
+
   def initialize(reinstall, rebuild)
-    @pkg = "#{Paths::UTILS}/pkg"
-    @target = "#{Paths::UTILS}/target"
-    @node_modules = "#{Paths::UTILS}/node_modules"
-    @test_output = "#{Paths::UTILS}/test_output"
     @reinstall = reinstall
     @rebuild = rebuild
-    @installed = File.exist?("#{Paths::UTILS}/node_modules")
-    @targets = [@pkg, @target, @node_modules, @test_output]
-    @changes_to_files = ChangeChecker.has_changes?(Paths::UTILS, @targets)
+    @installed = File.exist?(NODE_MODULES)
+    @changes_to_files = ChangeChecker.has_changes?(Paths::UTILS, TARGETS)
   end
 
   attr_reader :changes_to_files
 
-  def clean
-    @targets.each do |path|
+  def self.clean
+    TARGETS.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
         Reporter.removed(self, "removed: #{path}", '')
-      else
-        Reporter.other(self, "doesn't exist: #{path}", '')
       end
     end
   end
 
   def install
-    Shell.rm_rf(@node_modules) if @reinstall
+    Shell.rm_rf(NODE_MODULES) if @reinstall
     if !@installed || @reinstall
       Shell.chdir(Paths::UTILS) do
+        Reporter.log 'Installing utils libraries'
         Shell.sh 'yarn install'
         Reporter.done(self, 'installing', '')
       end
@@ -43,14 +43,14 @@ class Utils
       Reporter.skipped(self, 'already built', '')
     else
       Environment.check
-      [@pkg, @target].each do |path|
+      [PKG, TARGET].each do |path|
         Shell.rm_rf(path)
         Reporter.removed(self, path, '')
       end
       Shell.chdir(Paths::UTILS) do
         Shell.sh 'wasm-pack build --target bundler'
       end
-      Reporter.done(self, "build #{@target}", '')
+      Reporter.done(self, "build #{TARGET}", '')
     end
   end
 end
