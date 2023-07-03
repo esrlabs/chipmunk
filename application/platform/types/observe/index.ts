@@ -73,6 +73,11 @@ export class Observe
     public readonly origin: Origin.Configuration;
     public readonly parser: Parser.Configuration;
 
+    /// Lock-state
+    /// Allows define a way to process observe data.
+    /// true - observe data can be used to observe (create a session);
+    /// false - observe data probably requires some addition configuration
+    /// for example settings of DLT or SomeIP
     protected readonly lock: LockToken = new LockToken(false);
 
     constructor(observe: IObserve) {

@@ -148,7 +148,6 @@ export class SetupBase
     }
 
     public edit(target: 'cmd' | 'cwd', value: string): void {
-        console.log(`>>>>>>>>>>>>>>>>> edit`);
         if (target === 'cmd') {
             this.state.configuration.configuration.command = value;
             // this.action.setDisabled(value.trim() === '');

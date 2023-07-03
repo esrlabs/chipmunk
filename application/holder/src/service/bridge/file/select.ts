@@ -1,7 +1,8 @@
 import { CancelablePromise } from 'platform/env/promise';
 import { Logger } from 'platform/log';
 import { electron } from '@service/electron';
-import { File, FileType } from 'platform/types/files';
+import { File } from 'platform/types/files';
+import { FileType } from 'platform/types/observe/types/file';
 import { getFileEntities } from '@env/fs';
 
 import * as Requests from 'platform/ipc/request';
@@ -71,10 +72,9 @@ export const handler = Requests.InjectLogger<
         return new CancelablePromise((resolve, reject) => {
             (() => {
                 switch (request.target) {
-                    case FileType.Any:
                     case FileType.Text:
                         return any(request.ext);
-                    case FileType.Dlt:
+                    case FileType.Binary:
                         return dlt();
                     case FileType.PcapNG:
                         return pcapng();

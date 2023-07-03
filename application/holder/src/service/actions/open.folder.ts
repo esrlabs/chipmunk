@@ -1,8 +1,8 @@
-import { FileType } from 'platform/types/files';
+import { FileType } from 'platform/types/observe/types/file';
 
 import * as Requests from 'platform/ipc/request';
 
-export function handler(type: FileType): Promise<void> {
+export function handler(type: FileType | undefined): Promise<void> {
     return new Promise((resolve, reject) => {
         Requests.IpcRequest.send(
             Requests.Actions.OpenFolder.Response,
