@@ -1,30 +1,17 @@
 import { CLIAction, Type } from './action';
 import { Service } from '@service/cli';
+import { getFileEntities } from '@env/fs';
+import { FileType } from 'platform/types/files';
 
 import * as fs from 'fs';
 import * as path from 'path';
 import * as Requests from 'platform/ipc/request';
 import * as Factory from 'platform/types/observe/factory';
+import * as Parser from 'platform/types/observe/parser';
 
 export class Action extends CLIAction {
     protected files: string[] = [];
     protected error: Error[] = [];
-    // static help(): {
-    //     keys: string;
-    //     desc: string;
-    //     examples: string[];
-    // } {
-    //     return {
-    //         keys: ARGS.join(' '),
-    //         desc: `Will open given file(s) in separated tabs (sessions). Opening of file is a default command, if file path is a first argument.`,
-    //         examples: [
-    //             `cm /path/file_name`,
-    //             `cm -O /path/file_name`,
-    //             `cm -O /path/file_name_a /path/file_name_b`,
-    //             `cm /path/file_name.log`,
-    //         ],
-    //     };
-    // }
 
     public name(): string {
         return 'Opening file(s)';
@@ -60,14 +47,37 @@ export class Action extends CLIAction {
         if (!this.defined()) {
             return Promise.resolve();
         }
+        const files = getFileEntities(this.files);
+        if (files instanceof Error) {
+            return Promise.reject(files);
+        }
+        if (files.length === 0) {
+            return Promise.resolve();
+        }
+        const observe =
+            files.length === 1
+                ? new Factory.File().file(files[0].filename).get()
+                : new Factory.Concat().files(files.map((f) => f.filename)).get();
+        const types: FileType[] = [];
+        files.forEach((file) => {
+            if (types.includes(file.type)) {
+                return;
+            }
+            types.push(file.type);
+        });
+        if (types.length === 1) {
+            if (types[0] === FileType.Text) {
+                observe.parser.change(
+                    new Parser.Text.Configuration(Parser.Text.Configuration.initial()),
+                );
+                console.log(observe.sterilized());
+            }
+        }
         return new Promise((resolve, _reject) => {
             Requests.IpcRequest.send(
                 Requests.Cli.Observe.Response,
                 new Requests.Cli.Observe.Request({
-                    observe:
-                        this.files.length === 1
-                            ? new Factory.File().file(this.files[0]).get().sterilized()
-                            : new Factory.Concat().files(this.files).get().sterilized(),
+                    observe: observe.sterilized(),
                 }),
             )
                 .then((response) => {

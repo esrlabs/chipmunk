@@ -1,6 +1,7 @@
 import { unique } from '../../env/sequence';
 import { Configuration as Base, getCompatibilityMod } from './configuration';
 import { Mutable } from '../unity/mutable';
+import { LockToken } from '../../env/lock.token';
 
 import * as Parser from './parser';
 import * as Origin from './origin';
@@ -72,6 +73,8 @@ export class Observe
     public readonly origin: Origin.Configuration;
     public readonly parser: Parser.Configuration;
 
+    protected readonly lock: LockToken = new LockToken(false);
+
     constructor(observe: IObserve) {
         super(observe);
         this.origin = new Origin.Configuration(observe.origin);
@@ -100,6 +103,34 @@ export class Observe
 
     public clone(): Observe {
         return new Observe(this.sterilized());
+    }
+
+    public locker(): {
+        lock(): Observe;
+        unlock(): Observe;
+        // Lock configuration if it's possible to lock
+        guess(): Observe;
+        is(): boolean;
+    } {
+        return {
+            lock: (): Observe => {
+                this.lock.lock();
+                return this;
+            },
+            unlock: (): Observe => {
+                this.lock.unlock();
+                return this;
+            },
+            guess: (): Observe => {
+                if (this.parser.instance instanceof Parser.Text.Configuration) {
+                    this.lock.lock();
+                }
+                return this;
+            },
+            is: (): boolean => {
+                return this.lock.isLocked();
+            },
+        };
     }
 
     public isConfigurable(): boolean {

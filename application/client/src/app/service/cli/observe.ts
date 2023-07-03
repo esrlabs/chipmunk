@@ -10,6 +10,7 @@ export function handler(
     request: Requests.Cli.Observe.Request,
 ): CancelablePromise<Requests.Cli.Observe.Response> {
     return new CancelablePromise(async (resolve, _reject) => {
+        debugger;
         action(cli, request)
             .then((session: string | undefined) => {
                 resolve(new Requests.Cli.Observe.Response({ session, error: undefined }));
@@ -27,7 +28,7 @@ export async function action(
 ): Promise<string | undefined> {
     return session
         .initialize()
-        .configure(new Observe(request.observe))
+        .auto(new Observe(request.observe).locker().guess())
         .catch((err: Error) => {
             cli.log().warn(`Fail to apply action (Events.Cli.Observe.Event): ${err.message}`);
             return undefined;
