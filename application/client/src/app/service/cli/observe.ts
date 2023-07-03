@@ -10,7 +10,6 @@ export function handler(
     request: Requests.Cli.Observe.Request,
 ): CancelablePromise<Requests.Cli.Observe.Response> {
     return new CancelablePromise(async (resolve, _reject) => {
-        debugger;
         action(cli, request)
             .then((session: string | undefined) => {
                 resolve(new Requests.Cli.Observe.Response({ session, error: undefined }));

@@ -270,13 +270,18 @@ export class Service extends Implementation {
                     });
                 });
             },
-            observe: async (observe: Observe, session?: Session): Promise<string> => {
+            observe: async (observe: Observe, existed?: Session): Promise<string> => {
                 const render = getRender(observe);
                 if (render instanceof Error) {
                     throw render;
                 }
-                session = session !== undefined ? session : await this.add(true).empty(render);
-                return await session.stream.observe().start(observe);
+                const session =
+                    existed !== undefined ? existed : await this.add(true).empty(render);
+                const uuid = await session.stream.observe().start(observe);
+                if (existed === undefined) {
+                    session.title().set(observe.origin.desc().major);
+                }
+                return uuid;
             },
             suggest: (observe: Observe): Promise<string | undefined> => {
                 // TODO: implement
