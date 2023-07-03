@@ -10,7 +10,6 @@ import * as StreamDltOnCustom from './stream.dlt.custom';
 import * as StreamTextOnCustom from './stream.text.custom';
 import * as UdpDlt from './udp.dlt';
 import * as TcpDlt from './tcp.dlt';
-import * as SerialDlt from './serial.dlt';
 import * as SerialText from './serial.text';
 import * as StdoutText from './stdout.text';
 import * as About from './about';
@@ -32,7 +31,6 @@ export * as StreamDltOnCustom from './stream.dlt.custom';
 export * as StreamTextOnCustom from './stream.text.custom';
 export * as UdpDlt from './udp.dlt';
 export * as TcpDlt from './tcp.dlt';
-export * as SerialDlt from './serial.dlt';
 export * as SerialText from './serial.text';
 export * as StdoutText from './stdout.text';
 export * as About from './about';
@@ -55,7 +53,6 @@ export const all = [
     [StreamTextOnCustom.ACTION_UUID, StreamTextOnCustom.Action],
     [UdpDlt.ACTION_UUID, UdpDlt.Action],
     [TcpDlt.ACTION_UUID, TcpDlt.Action],
-    [SerialDlt.ACTION_UUID, SerialDlt.Action],
     [SerialText.ACTION_UUID, SerialText.Action],
     [StdoutText.ACTION_UUID, StdoutText.Action],
     [About.ACTION_UUID, About.Action],

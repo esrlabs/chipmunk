@@ -131,8 +131,6 @@ export class Service extends Implementation {
                                                 return new handlers.UdpDlt.Action().apply();
                                             case Source.TCP:
                                                 return new handlers.TcpDlt.Action().apply();
-                                            case Source.Serial:
-                                                return new handlers.SerialDlt.Action().apply();
                                             default:
                                                 return Promise.reject(
                                                     new Error(

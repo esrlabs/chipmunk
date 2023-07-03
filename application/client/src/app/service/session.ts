@@ -221,6 +221,7 @@ export class Service extends Implementation {
     }
 
     public initialize(): {
+        auto(observe: Observe, session?: Session): Promise<string | undefined>;
         configure(observe: Observe, session?: Session): Promise<string | undefined>;
         // Will suggest to choose a parser
         suggest(observe: Observe): Promise<string | undefined>;
@@ -228,6 +229,11 @@ export class Service extends Implementation {
         multiple(files: File[]): Promise<string | undefined>;
     } {
         return {
+            auto: (observe: Observe, session?: Session): Promise<string | undefined> => {
+                return observe.locker().is()
+                    ? this.initialize().observe(observe, session)
+                    : this.initialize().configure(observe, session);
+            },
             configure: (observe: Observe, session?: Session): Promise<string | undefined> => {
                 return new Promise((resolve) => {
                     const api = this.add().tab({
