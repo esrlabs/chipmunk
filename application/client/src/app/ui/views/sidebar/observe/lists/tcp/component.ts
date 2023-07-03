@@ -55,7 +55,7 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
                     .clone(
                         new Factroy.Stream()
                             .asText()
-                            .tcp(this.quickSetupRef.state.configuration)
+                            .tcp(this.quickSetupRef.state.configuration.configuration)
                             .get(),
                     )
                     .then(() => {

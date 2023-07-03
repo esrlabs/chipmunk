@@ -58,6 +58,13 @@ export class Configuration
             throw instance;
         }
         (this as Mutable<Configuration>).instance = instance;
+        this.unsubscribe();
+        this.register(
+            this.instance.watcher.subscribe(() => {
+                this.overwrite([this.configuration[0], this.instance.configuration]);
+                this.watcher.emit();
+            }),
+        );
     }
 
     public readonly instance!: Stream.Configuration;
@@ -70,6 +77,7 @@ export class Configuration
     public change(stream: Stream.Declaration): void {
         this.instance.change().byDeclaration(stream);
         this.configuration[1] = this.instance.configuration;
+        this.setInstance();
     }
 
     public desc(): IOriginDetails {
@@ -86,10 +94,6 @@ export class Configuration
 
     public getSupportedParsers(): Parser.Reference[] {
         return this.instance.getSupportedParsers();
-    }
-
-    public getStreamConfiguration(): Stream.IConfiguration {
-        return this.configuration[1];
     }
 
     public as<T>(

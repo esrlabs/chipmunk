@@ -96,7 +96,7 @@ export class Configuration
         };
     }
 
-    protected setInstance(): void {
+    protected setInstance(): Configuration {
         const configuration = this.configuration;
         let instance: Declaration | undefined;
         Object.keys(REGISTER).forEach((key) => {
@@ -123,6 +123,7 @@ export class Configuration
                 this.watcher.emit();
             }),
         );
+        return this;
     }
 
     public readonly instance!: Declaration;
@@ -134,7 +135,7 @@ export class Configuration
 
     public change(parser: Declaration): void {
         this.overwrite({ [parser.alias()]: parser.configuration });
-        this.setInstance();
+        this.setInstance().watcher.emit();
     }
 
     public desc(): IList {
