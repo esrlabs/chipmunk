@@ -13,7 +13,7 @@ import * as Stream from '@platform/types/observe/origin/stream/index';
 })
 @Ilc()
 export class SetupBase extends ChangesDetector implements OnDestroy, AfterContentInit {
-    @Input() public configuration!: Stream.UDP.IConfiguration;
+    @Input() public configuration!: Stream.UDP.Configuration;
     @Input() public action!: Action;
     @Input() public session: Session | undefined;
 

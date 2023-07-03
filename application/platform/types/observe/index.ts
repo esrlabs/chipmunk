@@ -1,5 +1,6 @@
 import { unique } from '../../env/sequence';
 import { Configuration as Base, getCompatibilityMod } from './configuration';
+import { Mutable } from '../unity/mutable';
 
 import * as Parser from './parser';
 import * as Origin from './origin';
@@ -85,6 +86,12 @@ export class Observe
 
     public override isSdeSupported(): boolean {
         return this.origin.isSdeSupported();
+    }
+
+    public override overwrite(configuration: IObserve): void {
+        super.overwrite(configuration);
+        (this as Mutable<Observe>).origin = new Origin.Configuration(this.configuration.origin);
+        (this as Mutable<Observe>).parser = new Parser.Configuration(this.configuration.parser);
     }
 
     public getSupportedParsers(): Parser.Reference[] {
