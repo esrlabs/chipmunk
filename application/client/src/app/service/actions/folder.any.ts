@@ -2,7 +2,7 @@ import { Base } from './action';
 import { bridge } from '@service/bridge';
 import { session } from '@service/session';
 import { TabSourceMultipleFiles } from '@ui/tabs/multiplefiles/component';
-import { FileType } from '@platform/types/files';
+import { FileType } from '@platform/types/observe/types/file';
 import { notifications, Notification } from '@ui/service/notifications';
 
 import * as Factory from '@platform/types/observe/factory';
@@ -44,13 +44,13 @@ export class Action extends Base {
             });
         } else {
             switch (files[0].type) {
-                case FileType.Dlt:
+                case FileType.Binary:
                     session
                         .initialize()
                         .configure(new Factory.File().file(files[0].filename).asDlt().get());
                     break;
                 case FileType.PcapNG:
-                    session.initialize().suggest(new Factory.File().file(files[0].filename).get());
+                    session.initialize().suggest(new Factory.File().file(files[0].filename).asDlt().get());
                     break;
                 default:
                     session

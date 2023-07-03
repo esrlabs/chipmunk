@@ -1,6 +1,7 @@
 import { Matchee } from '@module/matcher';
 import { bytesToStr } from '@env/str';
-import { FileType, File } from '@platform/types/files';
+import { File } from '@platform/types/files';
+import { FileType } from '@platform/types/observe/types/file';
 
 import * as wasm from '@loader/wasm';
 

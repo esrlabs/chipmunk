@@ -52,6 +52,17 @@ export function getByAlias(alias: Protocol): Declaration {
     return new Ref(Ref.initial(), Ref);
 }
 
+export function suggestParserByFileExt(filename: string): Reference | undefined {
+    const normalized = filename.toLowerCase().trim();
+    if (normalized.endsWith('.dlt')) {
+        return Dlt.Configuration;
+    } else if (normalized.endsWith('.pcapng')) {
+        return Dlt.Configuration;
+    } else {
+        return undefined;
+    }
+}
+
 @Statics<ConfigurationStatic<IConfiguration, Protocol>>()
 export class Configuration
     extends Base<IConfiguration, Configuration, Protocol>

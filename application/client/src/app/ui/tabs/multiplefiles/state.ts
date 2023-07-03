@@ -1,6 +1,7 @@
 import { FileHolder } from './file.holder';
 import { bytesToStr } from '@env/str';
-import { File, FileType } from '@platform/types/files';
+import { File } from '@platform/types/files';
+import { FileType } from '@platform/types/observe/types/file';
 import { Subject } from '@platform/env/subscription';
 import { EEventType, IEvent } from './structure/component';
 import { Holder } from '@module/matcher';
@@ -106,11 +107,12 @@ export class State extends Holder {
     }
 
     public isConcatable(): boolean {
+        // TODO: Needs some rework! This method should consider parser
         return (
-            (this._selected.types.length === 1 && this._selected.types[0] !== FileType.SomeIp) ||
+            this._selected.types.length === 1 ||
             (this._selected.types.length === 2 &&
-                this._selected.types.includes(FileType.Any) &&
-                this._selected.types.includes(FileType.Text))
+                this._selected.types.includes(FileType.Text) &&
+                this._selected.types.includes(FileType.Binary))
         );
     }
 
@@ -133,7 +135,6 @@ export class State extends Holder {
                 (() => {
                     switch (fileType) {
                         case FileType.Text:
-                        case FileType.Any:
                             return this._ilc.services.system.session
                                 .initialize()
                                 .observe(
@@ -143,7 +144,8 @@ export class State extends Holder {
                                         .files(files)
                                         .get(),
                                 );
-                        case FileType.Dlt:
+                        case FileType.Binary:
+                        case FileType.PcapNG:
                             return this._ilc.services.system.session
                                 .initialize()
                                 .configure(
@@ -179,7 +181,6 @@ export class State extends Holder {
             openEach: (files?: FileHolder[]) => {
                 (files === undefined ? this._selected.files : files).forEach((file: FileHolder) => {
                     switch (file.type) {
-                        case FileType.Any:
                         case FileType.Text:
                             this._ilc.services.system.session
                                 .initialize()
@@ -196,7 +197,8 @@ export class State extends Holder {
                                     );
                                 });
                             break;
-                        case FileType.Dlt:
+                        case FileType.Binary:
+                        case FileType.PcapNG:
                             this._ilc.services.system.session
                                 .initialize()
                                 .configure(
@@ -212,8 +214,8 @@ export class State extends Holder {
                                     );
                                 });
                             break;
-                        case FileType.PcapNG:
-                            throw new Error(`Not implemented!`);
+                        default:
+                            throw new Error(`Not covered type ${this.files[0].type}`);
                     }
                 });
                 this._tab.close();
