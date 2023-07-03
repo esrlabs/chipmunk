@@ -3,14 +3,15 @@
 require './scripts/elements/matcher'
 require './scripts/elements/utils'
 class Client
+  DIST = Paths::CLIENT_DIST.to_s
+  NODE_MODULES = "#{Paths::CLIENT}/node_modules"
+  TARGETS = [DIST, NODE_MODULES].freeze
+
   def initialize(reinstall, prod)
-    @dist = "#{Paths::CLIENT}/dist"
-    @node_modules = "#{Paths::CLIENT}/node_modules"
     @reinstall = reinstall
     @prod = prod
-    @installed = File.exist?(@node_modules)
-    @targets = [@dist, @node_modules]
-    @changes_to_files = ChangeChecker.has_changes?(Paths::CLIENT, @targets)
+    @installed = File.exist?(NODE_MODULES)
+    @changes_to_files = ChangeChecker.has_changes?(Paths::CLIENT, TARGETS)
   end
 
   def set_changes_to_files(val)
@@ -18,9 +19,10 @@ class Client
   end
 
   def install
-    Shell.rm_rf(@node_modules) if @reinstall
+    Shell.rm_rf(NODE_MODULES) if @reinstall
     if !@installed || @reinstall
       Shell.chdir(Paths::CLIENT) do
+        Reporter.log 'Installing client libraries'
         Shell.sh 'yarn install'
         Reporter.done(self, 'installing', '')
       end
@@ -29,15 +31,14 @@ class Client
     end
   end
 
-  def clean
-    @targets.each do |path|
+  def self.clean
+    TARGETS.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
         Reporter.removed(self, "removed: #{path}", '')
-      else
-        Reporter.other(self, "doesn't exist: #{path}", '')
       end
     end
+    Shell.rm_rf(Paths::ELECTRON_CLIENT_DEST)
   end
 
   def build
@@ -98,10 +99,10 @@ class Client
       Reporter.skipped('Client', 'client already exist', '')
       return
     end
-    Dir.mkdir(dest) unless File.exist?(dest)
+    FileUtils.mkdir_p(dest)
     client = Client.new(false, prod)
     client.build
-    Shell.sh "cp -r #{path_to_client} #{dest}"
+    FileUtils.cp_r path_to_client, dest
     Reporter.done('Client', "delivery to #{dest}", '')
   end
 

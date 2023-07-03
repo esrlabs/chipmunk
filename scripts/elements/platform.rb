@@ -1,33 +1,33 @@
 # frozen_string_literal: true
 
 class Platform
+  DIST = "#{Paths::PLATFORM}/dist"
+  NODE_MODULES = "#{Paths::PLATFORM}/node_modules"
+  TARGETS = [DIST, NODE_MODULES].freeze
+
   def initialize(reinstall, rebuild)
-    @dist = "#{Paths::PLATFORM}/dist"
-    @node_modules = "#{Paths::PLATFORM}/node_modules"
     @reinstall = reinstall
     @rebuild = rebuild
-    @installed = File.exist?("#{Paths::PLATFORM}/node_modules")
-    @targets = [@dist, @node_modules]
-    @changes_to_files = ChangeChecker.has_changes?(Paths::PLATFORM, @targets)
+    @installed = File.exist?(NODE_MODULES)
+    @changes_to_files = ChangeChecker.has_changes?(Paths::PLATFORM, TARGETS)
   end
 
   attr_reader :changes_to_files
 
-  def clean
-    @targets.each do |path|
+  def self.clean
+    TARGETS.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
         Reporter.removed(self, "removed: #{path}", '')
-      else
-        Reporter.other(self, "doesn't exist: #{path}", '')
       end
     end
   end
 
   def install
-    Shell.rm_rf(@node_modules) if @reinstall
+    Shell.rm_rf(NODE_MODULES) if @reinstall
     if !@installed || @reinstall
       Shell.chdir(Paths::PLATFORM) do
+        Reporter.log 'Installing platform libraries'
         Shell.sh 'yarn install'
         Reporter.done(self, 'installing', '')
       end
@@ -39,8 +39,8 @@ class Platform
   def build
     Environment.check
     install
-    Shell.rm_rf(@dist)
-    Reporter.removed(self, @dist, '')
+    Shell.rm_rf(DIST)
+    Reporter.removed(self, DIST, '')
     begin
       Shell.chdir(Paths::PLATFORM) do
         Shell.sh 'yarn run build'
@@ -51,14 +51,14 @@ class Platform
       clean
       build
     end
-    Shell.rm_rf(@node_modules)
+    Shell.rm_rf(NODE_MODULES)
   end
 
   def self.check(consumer, replace)
     node_modules = "#{consumer}/node_modules"
     platform_dest = "#{node_modules}/platform"
     platform = Platform.new(false, false)
-    Dir.mkdir(node_modules) unless File.exist?(node_modules)
+    FileUtils.mkdir_p(node_modules)
     if replace || !File.exist?("#{platform_dest}/dist") || File.symlink?(platform_dest) || platform.changes_to_files
       Shell.rm_rf(platform_dest)
     end

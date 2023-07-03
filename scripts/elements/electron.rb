@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require './scripts/elements/indexer'
-class HolderSettings
+class ElectronSettings
   attr_accessor :reinstall, :replace_client, :client_prod, :platform_rebuild, :bindings_rebuild, :bindings_reinstall,
                 :launchers_rebuild
 
@@ -51,21 +51,23 @@ class HolderSettings
   end
 end
 
-class Holder
+class Electron
+  DIST = "#{Paths::ELECTRON}/dist"
+  RELEASE = "#{Paths::ELECTRON}/release"
+  NODE_MODULES = "#{Paths::ELECTRON}/node_modules"
+  TARGETS = [DIST, RELEASE, NODE_MODULES].freeze
+
   def initialize(settings)
-    @dist = "#{Paths::ELECTRON}/dist"
-    @release = "#{Paths::ELECTRON}/release"
-    @node_modules = "#{Paths::ELECTRON}/node_modules"
     @settings = settings
-    @installed = File.exist?(@node_modules)
-    @targets = [@dist, @release, @node_modules]
-    @changes_to_holder = ChangeChecker.has_changes?(Paths::ELECTRON, @targets)
+    @installed = File.exist?(NODE_MODULES)
+    @changes_to_electron = ChangeChecker.has_changes?(Paths::ELECTRON, TARGETS)
   end
 
   def install
-    Shell.rm_rf(@node_modules) if @settings.reinstall
+    Shell.rm_rf(NODE_MODULES) if @settings.reinstall
     if !@installed || @settings.reinstall
       Shell.chdir(Paths::ELECTRON) do
+        Reporter.log 'Installing Electron libraries'
         Shell.sh 'yarn install'
         Reporter.done(self, 'installing', '')
       end
@@ -74,13 +76,11 @@ class Holder
     end
   end
 
-  def clean
-    (@targets + Indexer.new.targets).each do |path|
+  def self.clean
+    (TARGETS + Indexer::TARGETS).each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
         Reporter.removed(self, "removed: #{path}", '')
-      else
-        Reporter.other(self, "doesn't exist: #{path}", '')
       end
     end
   end
@@ -90,9 +90,10 @@ class Holder
     install
     Platform.check(Paths::ELECTRON, @settings.platform_rebuild)
     Platform.check(Paths::TS_BINDINGS, @settings.platform_rebuild) if @settings.platform_rebuild
+    # TODO: Oli: depennd on bindings
     Bindings.check(Paths::ELECTRON, @settings.bindings_reinstall, @settings.bindings_rebuild)
-    Client.delivery(@dist, @settings.client_prod, @settings.replace_client)
-    if @changes_to_holder || Indexer.new.changes_to_files
+    Client.delivery(DIST, @settings.client_prod, @settings.replace_client)
+    if @changes_to_electron || Indexer.changes_to_files
       begin
         Shell.chdir(Paths::ELECTRON) do
           Shell.sh 'yarn run build'
@@ -100,12 +101,12 @@ class Holder
         end
       rescue StandardError
         Reporter.failed(self, 'build', '')
-        @changes_to_holder = true
+        @changes_to_electron = true
         clean
         build
       end
-      Shell.sh "cp #{Paths::ELECTRON}/package.json #{@dist}/package.json"
-      Updater.new.check(@settings.launchers_rebuild)
+      Shell.sh "cp #{Paths::ELECTRON}/package.json #{DIST}/package.json"
+      Updater.check(@settings.launchers_rebuild)
     else
       Reporter.skipped(self, 'build', '')
     end
