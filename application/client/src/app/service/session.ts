@@ -237,7 +237,7 @@ export class Service extends Implementation {
             configure: (observe: Observe, session?: Session): Promise<string | undefined> => {
                 return new Promise((resolve) => {
                     const api = this.add().tab({
-                        name: observe.origin.desc().major,
+                        name: observe.origin.title(),
                         content: {
                             factory: TabObserve,
                             inputs: TabObserve.inputs({
@@ -276,12 +276,37 @@ export class Service extends Implementation {
                     throw render;
                 }
                 const session =
-                    existed !== undefined ? existed : await this.add(true).empty(render);
-                const uuid = await session.stream.observe().start(observe);
-                if (existed === undefined) {
-                    session.title().set(observe.origin.desc().major);
-                }
-                return uuid;
+                    existed !== undefined ? existed : await this.add(false).empty(render);
+                return new Promise((resolve, reject) => {
+                    session.stream
+                        .observe()
+                        .start(observe)
+                        .then((uuid: string) => {
+                            if (existed === undefined) {
+                                const error = this.bind(
+                                    session.uuid(),
+                                    observe.origin.desc().major,
+                                    true,
+                                );
+                                if (error instanceof Error) {
+                                    this.log().error(`Fail to bind session: ${error.message}`);
+                                }
+                            }
+                            resolve(uuid);
+                        })
+                        .catch((err: Error) => {
+                            if (existed !== undefined) {
+                                return reject(err);
+                            }
+                            this.kill(session.uuid())
+                                .catch((closeErr: Error) => {
+                                    this.log().error(`Fail to close session: ${closeErr.message}`);
+                                })
+                                .finally(() => {
+                                    reject(err);
+                                });
+                        });
+                });
             },
             suggest: (observe: Observe): Promise<string | undefined> => {
                 // TODO: implement

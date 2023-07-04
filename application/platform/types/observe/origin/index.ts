@@ -139,6 +139,23 @@ export class Configuration
         return this.instance.desc();
     }
 
+    public title(): string {
+        const desc = this.desc().major;
+        if (desc.trim() === '') {
+            if (this.instance instanceof File.Configuration) {
+                return File.Configuration.desc().major;
+            } else if (this.instance instanceof Concat.Configuration) {
+                return Concat.Configuration.desc().major;
+            } else if (this.instance instanceof Stream.Configuration) {
+                return Stream.Configuration.desc().major;
+            } else {
+                throw new Error(`Origin type isn't supported yet`);
+            }
+        } else {
+            return desc;
+        }
+    }
+
     public asJob(): IJob {
         return this.instance.asJob();
     }
