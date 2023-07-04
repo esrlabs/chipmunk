@@ -16,7 +16,7 @@ export class LayoutSnackBar implements AfterContentInit {
 
     ngAfterContentInit(): void {
         this.env().subscriber.register(
-            notifications.pop.subscribe((notification: Notification) => {
+            notifications.subjects.get().pop.subscribe((notification: Notification) => {
                 this.zone.run(() => {
                     const ref = this.snackBar.openFromComponent(LayoutSnackBarMessage, {
                         data: {
