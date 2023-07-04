@@ -6,6 +6,8 @@ import { File } from '@platform/types/files';
 import { bytesToStr } from '@env/str';
 import { Action } from './action';
 import { TabControls } from '@service/session';
+import { Notification } from '@ui/service/notifications';
+import { Locker, Level } from '@ui/service/lockers';
 
 import * as StreamOrigin from '@platform/types/observe/origin/stream/index';
 import * as Origin from '@platform/types/observe/origin/index';
@@ -68,7 +70,22 @@ export class State extends Subscriber {
             return;
         }
         this.ref.api.finish(this.observe).catch((err: Error) => {
-            console.error(err);
+            this.ref
+                .ilc()
+                .services.ui.lockers.lock(
+                    new Locker(true, err.message).set().type(Level.error).spinner(false).end(),
+                    {
+                        closable: true,
+                        closeOnKey: 'Escape',
+                        closeOnBGClick: true,
+                    },
+                );
+            this.ref.ilc().services.ui.notifications.store(
+                new Notification({
+                    message: err.message,
+                    actions: [],
+                }),
+            );
         });
     }
 
