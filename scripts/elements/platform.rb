@@ -1,80 +1,56 @@
 # frozen_string_literal: true
 
-class Platform
+module Platform
   DIST = "#{Paths::PLATFORM}/dist"
   NODE_MODULES = "#{Paths::PLATFORM}/node_modules"
   TARGETS = [DIST, NODE_MODULES].freeze
+end
 
-  def initialize(reinstall, rebuild)
-    @reinstall = reinstall
-    @rebuild = rebuild
-    @installed = File.exist?(NODE_MODULES)
-    @changes_to_files = ChangeChecker.has_changes?(Paths::PLATFORM, TARGETS)
-  end
-
-  attr_reader :changes_to_files
-
-  def self.clean
-    TARGETS.each do |path|
+namespace :platform do
+  task :clean do
+    Platform::TARGETS.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed(self, "removed: #{path}", '')
+        Reporter.removed('platform', "removed: #{path}", '')
       end
     end
   end
 
-  def install
-    Shell.rm_rf(NODE_MODULES) if @reinstall
-    if !@installed || @reinstall
-      Shell.chdir(Paths::PLATFORM) do
-        Reporter.log 'Installing platform libraries'
-        Shell.sh 'yarn install'
-        Reporter.done(self, 'installing', '')
-      end
-    else
-      Reporter.skipped(self, 'installing', '')
+  task :wipe_installation do
+    Shell.rm_rf(Platform::NODE_MODULES)
+  end
+
+  task reinstall: ['platform:wipe_installation', 'platform:install']
+
+  task :install do
+    Shell.chdir(Paths::PLATFORM) do
+      Reporter.log 'Installing platform libraries'
+      Shell.sh 'yarn install'
+      Reporter.done('platform', 'installing', '')
     end
   end
 
-  def build
-    Environment.check
-    install
-    Shell.rm_rf(DIST)
-    Reporter.removed(self, DIST, '')
+  task rebuild: ['platform:clean', 'platform:build']
+
+  desc 'build platform'
+  task build: ['platform:install', 'environment:check'] do
+    Shell.rm_rf(Platform::DIST) if @rebuild
+    Reporter.removed('platform', Platform::DIST, '')
     begin
       Shell.chdir(Paths::PLATFORM) do
         Shell.sh 'yarn run build'
-        Reporter.done(self, 'build', '')
+        Reporter.done('platform', 'build', '')
       end
     rescue StandardError
-      Reporter.failed(self, 'build', '')
-      clean
-      build
+      Reporter.failed('platform', 'build', '')
     end
-    Shell.rm_rf(NODE_MODULES)
   end
 
-  def self.check(consumer, replace)
-    node_modules = "#{consumer}/node_modules"
-    platform_dest = "#{node_modules}/platform"
-    platform = Platform.new(false, false)
-    FileUtils.mkdir_p(node_modules)
-    if replace || !File.exist?("#{platform_dest}/dist") || File.symlink?(platform_dest) || platform.changes_to_files
-      Shell.rm_rf(platform_dest)
-    end
-    return if File.exist?(platform_dest)
-
-    Reporter.other('Platform', "#{consumer} doesn't have platform", '')
-    platform.build
-    Shell.sh "cp -r #{Paths::PLATFORM} #{node_modules}"
-    Reporter.done('Platform', "delivery to #{consumer}", '')
-  end
-
-  def lint
-    install
+  desc 'Lint platform'
+  task lint: 'platform:install' do
     Shell.chdir(Paths::PLATFORM) do
       Shell.sh 'yarn run lint'
-      Reporter.done(self, 'linting', '')
+      Reporter.done('platform', 'linting', '')
     end
   end
 end

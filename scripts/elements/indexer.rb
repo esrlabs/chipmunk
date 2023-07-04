@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require './scripts/env/paths'
-class Indexer
+module Indexer
   TARGET_INDEXER_BASE = "#{Paths::INDEXER}/indexer_base/target"
   TARGET_INDEXER_CLI = "#{Paths::INDEXER}/indexer_cli/target"
   TARGET_MERGING = "#{Paths::INDEXER}/merging/target"
@@ -16,13 +16,12 @@ class Indexer
     TARGET_PARSERS,
     TARGET_PROCESSOR,
     TARGET_SESSION,
-    TARGET_SOURCES].freeze
+    TARGET_SOURCES
+  ].freeze
+end
 
-  def self.changes_to_files
-    ChangeChecker.has_changes?(Paths::INDEXER, TARGETS)
-  end
-
-  def self.clean
+namespace :indexer do
+  task :clean do
     Shell.chdir Paths::INDEXER do
       Shell.sh 'cargo clean'
     end
