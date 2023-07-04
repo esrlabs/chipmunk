@@ -7,6 +7,7 @@ import { QuickSetup } from '@tabs/observe/origin/stream/transport/setup/quick/se
 import { IButton } from '../../common/title/component';
 import { State } from '../../states/serial';
 import { ListBase } from '../component';
+import { Configuration } from '@platform/types/observe/origin/stream/serial';
 
 import * as Factroy from '@platform/types/observe/factory';
 
@@ -22,6 +23,7 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
     public tailing: Element[] = [];
     public offline: Element[] = [];
     public action: Action = new Action();
+    public initial: Configuration = new Configuration(Configuration.initial());
     public buttons: IButton[] = [
         {
             icon: 'codicon-tasklist',
@@ -55,7 +57,7 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
                     .clone(
                         new Factroy.Stream()
                             .asText()
-                            .serial(this.quickSetupRef.state.configuration.configuration)
+                            .serial(this.initial.configuration)
                             .get(),
                     )
                     .then(() => {

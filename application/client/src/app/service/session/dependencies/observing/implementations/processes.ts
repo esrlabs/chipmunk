@@ -59,11 +59,6 @@ export class Provider extends Base {
             desc(): string;
             comp(): IComponentDesc;
         };
-        details(): {
-            name(): string | undefined;
-            desc(): string | undefined;
-            comp(): IComponentDesc | undefined;
-        };
         nocontent(): {
             name(): string | undefined;
             desc(): string | undefined;
@@ -90,23 +85,6 @@ export class Provider extends Base {
                                 provider: this,
                             },
                         };
-                    },
-                };
-            },
-            details: (): {
-                name(): string | undefined;
-                desc(): string | undefined;
-                comp(): IComponentDesc | undefined;
-            } => {
-                return {
-                    name: (): string | undefined => {
-                        return ``;
-                    },
-                    desc: (): string | undefined => {
-                        return '';
-                    },
-                    comp: (): IComponentDesc | undefined => {
-                        return undefined;
                     },
                 };
             },

@@ -7,6 +7,7 @@ import { Action } from '@ui/tabs/observe/action';
 import { IButton } from '../../common/title/component';
 import { State } from '../../states/tcp';
 import { ListBase } from '../component';
+import { Configuration } from '@platform/types/observe/origin/stream/tcp';
 
 import * as Factroy from '@platform/types/observe/factory';
 
@@ -22,6 +23,7 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
     public tailing: Element[] = [];
     public offline: Element[] = [];
     public action: Action = new Action();
+    public initial: Configuration = new Configuration(Configuration.initial());
     public buttons: IButton[] = [
         {
             icon: 'codicon-tasklist',
@@ -52,12 +54,7 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
         this.env().subscriber.register(
             this.action.subjects.get().apply.subscribe(() => {
                 this.provider
-                    .clone(
-                        new Factroy.Stream()
-                            .asText()
-                            .tcp(this.quickSetupRef.state.configuration.configuration)
-                            .get(),
-                    )
+                    .clone(new Factroy.Stream().asText().tcp(this.initial.configuration).get())
                     .then(() => {
                         // this.action.subjects.get().applied.emit();
                     })
