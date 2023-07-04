@@ -1,56 +1,58 @@
 # frozen_string_literal: true
 
-class Utils
+module Utils
   PKG = "#{Paths::UTILS}/pkg"
   TARGET = "#{Paths::UTILS}/target"
   NODE_MODULES = "#{Paths::UTILS}/node_modules"
   TEST_OUTPUT = "#{Paths::UTILS}/test_output"
   TARGETS = [PKG, TARGET, NODE_MODULES, TEST_OUTPUT].freeze
+end
 
-  def initialize(reinstall, rebuild)
-    @reinstall = reinstall
-    @rebuild = rebuild
-    @installed = File.exist?(NODE_MODULES)
-    @changes_to_files = ChangeChecker.has_changes?(Paths::UTILS, TARGETS)
-  end
-
-  attr_reader :changes_to_files
-
-  def self.clean
-    TARGETS.each do |path|
+namespace :utils do
+  task :clean do
+    Utils::TARGETS.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed(self, "removed: #{path}", '')
+        Reporter.removed('utils', "removed: #{path}", '')
       end
     end
   end
 
-  def install
-    Shell.rm_rf(NODE_MODULES) if @reinstall
-    if !@installed || @reinstall
-      Shell.chdir(Paths::UTILS) do
-        Reporter.log 'Installing utils libraries'
-        Shell.sh 'yarn install'
-        Reporter.done(self, 'installing', '')
-      end
-    else
-      Reporter.skipped(self, 'installing', '')
+  task :wipe_installation do
+    Shell.rm_rf(Utils::NODE_MODULES)
+  end
+
+  task reinstall: ['utils:wipe_installation', 'utils:install']
+
+  task :install do
+    Shell.chdir(Paths::UTILS) do
+      Reporter.log 'Installing utils libraries'
+      Shell.sh 'yarn install'
+      Reporter.done('utils', 'installing', '')
     end
   end
 
-  def build
-    if !@changes_to_files && !@rebuild
-      Reporter.skipped(self, 'already built', '')
-    else
-      Environment.check
-      [PKG, TARGET].each do |path|
+  desc 'Rebuild utils'
+  task rebuild: ['utils:clean', 'utils:build'] do
+    Reporter.print
+  end
+
+  desc 'Build utils'
+  task build: ['environment:check', 'utils:install'] do
+    changes_to_files = ChangeChecker.changes?(Paths::UTILS)
+    if changes_to_files
+      [Utils::PKG, Utils::TARGET].each do |path|
         Shell.rm_rf(path)
-        Reporter.removed(self, path, '')
+        Reporter.removed('utils', path, '')
       end
       Shell.chdir(Paths::UTILS) do
         Shell.sh 'wasm-pack build --target bundler'
+        ChangeChecker.changes?(Paths::UTILS, Utils::TARGETS)
       end
-      Reporter.done(self, "build #{TARGET}", '')
+      Reporter.done('utils', "build #{Utils::TARGET}", '')
+    else
+      Reporter.skipped('utils', 'already built', '')
     end
+    Reporter.print
   end
 end
