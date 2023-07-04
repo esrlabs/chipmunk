@@ -107,6 +107,8 @@ export class Configuration
     public as<T>(
         Ref: { new (...args: any[]): Stream.Declaration } & Alias<unknown>,
     ): T | undefined {
-        return this.instance.instance.alias() === Ref.alias() ? (this.instance as T) : undefined;
+        return this.instance.instance.alias() === Ref.alias()
+            ? (this.instance.instance as T)
+            : undefined;
     }
 }
