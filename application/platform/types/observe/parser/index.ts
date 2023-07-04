@@ -124,6 +124,7 @@ export class Configuration
         if (instance === undefined) {
             throw new Error(`Configuration of stream doesn't have definition of known source.`);
         }
+        this.instance !== undefined && this.instance.destroy();
         (this as Mutable<Configuration>).instance = instance;
         this.unsubscribe();
         this.register(
