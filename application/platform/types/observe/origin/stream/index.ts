@@ -4,8 +4,6 @@ import { Statics } from '../../../../env/decorators';
 import { Mutable } from '../../../unity/mutable';
 import { Alias } from '../../../env/types';
 
-import * as Origin from '../index';
-
 import * as Process from './process';
 import * as Serial from './serial';
 import * as TCP from './tcp';
