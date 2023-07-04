@@ -1,19 +1,7 @@
 import { ErrorStateMatcher } from '@angular/material/core';
-import { UntypedFormControl } from '@angular/forms';
-import { isValidIPv4, isValidIPv6 } from '@platform/env/ipaddr';
+import { UntypedFormControl, FormGroupDirective, NgForm } from '@angular/forms';
 
-const U32 = [0, 4294967295];
-
-function isValidU32(value: string): boolean {
-    const u32: number = parseInt(value, 10);
-    if (isNaN(u32) || !isFinite(u32)) {
-        return false;
-    }
-    if (u32 < U32[0] || u32 > U32[1]) {
-        return false;
-    }
-    return true;
-}
+import * as ip from '@platform/env/ipaddr';
 
 export enum Field {
     address = 'address',
@@ -40,7 +28,7 @@ export class ErrorState implements ErrorStateMatcher {
 
     public isErrorState(
         control: UntypedFormControl | null,
-        //form: FormGroupDirective | NgForm | null,
+        _form: FormGroupDirective | NgForm | null,
     ): boolean {
         if (control === null) {
             return false;
@@ -62,16 +50,19 @@ export class ErrorState implements ErrorStateMatcher {
         }
         switch (this._alias) {
             case Field.address:
-                return isValidIPv4(value) || isValidIPv6(value);
+                return (
+                    ip.isValidIPv4(value) ||
+                    ip.isValidIPv6(value) ||
+                    ip.isValidIPv4WithPort(value) ||
+                    ip.isValidIPv6WithPort(value)
+                );
             case Field.multicastInterface:
-                return isValidIPv4(value) || isValidU32(value);
-            // case Field.bindingPort: {
-            //     if (value.trim().search(/^\d{1,}$/gi) === -1) {
-            //         return false;
-            //     }
-            //     const bindingPort = parseInt(value.trim(), 10);
-            //     return isNaN(bindingPort) ? false : !isFinite(bindingPort) ? false : true;
-            // }
+                return (
+                    ip.isValidIPv4(value) ||
+                    ip.isValidIPv6(value) ||
+                    ip.isValidIPv4WithPort(value) ||
+                    ip.isValidIPv6WithPort(value)
+                );
             default:
                 throw new Error(`Unexpected Field value: ${this._alias}`);
         }

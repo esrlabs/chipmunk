@@ -1,5 +1,18 @@
 export type AnyObj = { [key: string]: unknown };
 
+const U32 = [0, 4294967295];
+
+export function isValidU32(value: string): boolean {
+    const u32: number = parseInt(value, 10);
+    if (isNaN(u32) || !isFinite(u32)) {
+        return false;
+    }
+    if (u32 < U32[0] || u32 > U32[1]) {
+        return false;
+    }
+    return true;
+}
+
 export function sterilize<T>(smth: T, remove: string[] = []): T {
     if (isPrimitiveOrNull(smth)) {
         return smth;

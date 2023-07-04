@@ -24,7 +24,7 @@ export class SetupBase extends ChangesDetector implements OnDestroy, AfterConten
     }
 
     public ngOnDestroy(): void {
-        // this.state.destroy();
+        this.state.destroy();
     }
 
     public ngAfterContentInit(): void {
