@@ -1,7 +1,7 @@
 import { error } from '../../../log/utils';
 import { Configuration as Base, ConfigurationStatic } from '../configuration';
 import { Context, SourceUuid } from './index';
-import { OriginDetails, IOriginDetails, Job, IJob } from '../description';
+import { OriginDetails, IOriginDetails, IList, Job, IJob } from '../description';
 import { Statics } from '../../../env/decorators';
 import { unique } from '../../../env/sequence';
 import { Mutable } from '../../unity/mutable';
@@ -24,6 +24,14 @@ export class Configuration
     extends Base<IConfiguration, Configuration, Context>
     implements OriginDetails, Sde.Support, Parser.Support, Job
 {
+    static desc(): IList {
+        return {
+            major: `Stream`,
+            minor: 'Streaming',
+            icon: 'files',
+        };
+    }
+
     static alias(): Context {
         return Context.Stream;
     }
