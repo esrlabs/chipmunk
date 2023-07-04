@@ -1,4 +1,4 @@
-<app-transport-udp *ngIf="this.as().UDP(); let configuration" [configuration]="configuration"></app-transport-udp>
-<app-transport-tcp *ngIf="this.as().TCP(); let configuration" [configuration]="configuration"></app-transport-tcp>
-<app-transport-serial *ngIf="this.as().Serial(); let configuration" [configuration]="configuration"></app-transport-serial>
-<app-transport-process *ngIf="this.as().Process(); let configuration" [configuration]="configuration"></app-transport-process>
+<app-transport-udp *ngIf="this.as().UDP(); let configuration" [configuration]="configuration" [action]="state.action"></app-transport-udp>
+<app-transport-tcp *ngIf="this.as().TCP(); let configuration" [configuration]="configuration" [action]="state.action"></app-transport-tcp>
+<app-transport-serial *ngIf="this.as().Serial(); let configuration" [configuration]="configuration" [action]="state.action"></app-transport-serial>
+<app-transport-process *ngIf="this.as().Process(); let configuration" [configuration]="configuration" [action]="state.action"></app-transport-process>

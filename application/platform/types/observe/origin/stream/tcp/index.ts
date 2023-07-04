@@ -1,12 +1,11 @@
-import { error } from '../../../../../log/utils';
 import { Source } from '../index';
 import { Configuration as Base, ConfigurationStaticDesc } from '../../../configuration';
 import { OriginDetails, IOriginDetails, IList, Job, IJob, OriginType } from '../../../description';
 import { Statics } from '../../../../../env/decorators';
 
-import * as obj from '../../../../../env/obj';
 import * as Parser from '../../../parser';
 import * as Sde from '../../../sde';
+import * as Ip from '../../../../../env/ipaddr';
 
 export interface IConfiguration {
     bind_addr: string;
@@ -30,18 +29,15 @@ export class Configuration
     }
 
     static validate(configuration: IConfiguration): Error | IConfiguration {
-        try {
-            obj.getAsNotEmptyString(configuration, 'bind_addr');
-            return configuration;
-        } catch (e) {
-            return new Error(error(e));
-        }
+        return Ip.anyIPAddr(configuration.bind_addr)
+            ? configuration
+            : new Error(`Invalid IP address`);
     }
 
     // Gives initial settings. Not necessarily valid.
     static initial(): IConfiguration {
         return {
-            bind_addr: '0.0.0.0',
+            bind_addr: '',
         };
     }
 
