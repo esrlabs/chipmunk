@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
-class Updater
+module Updater
   DEST = "#{Paths::UPDATER}/target"
   TARGET = OS.executable("#{Paths::UPDATER}/target/release/updater")
   TARGETS = [DEST].freeze
+end
 
-  def self.clean
-    TARGETS.each do |path|
+namespace :updater do
+  task :clean do
+    Updater::TARGETS.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
         Reporter.removed(self, "removed: #{path}", '')
@@ -14,15 +16,12 @@ class Updater
     end
   end
 
-  def self.build
-    Environment.check
+  desc 'Build updater'
+  task build: 'environment:check' do
     Shell.chdir(Paths::UPDATER) do
       Shell.sh 'cargo build --release'
-      Reporter.done(self, 'built', '')
+      Reporter.done('updater', 'built', '')
     end
-  end
-
-  def self.check(replace)
-    replace || !File.exist?(TARGET) ? build : Reporter.skipped(self, 'build', '')
+    Reporter.print
   end
 end
