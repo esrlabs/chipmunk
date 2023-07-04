@@ -7,6 +7,7 @@ import { Statics } from '../../../../../env/decorators';
 import * as obj from '../../../../../env/obj';
 import * as Parser from '../../../parser';
 import * as Sde from '../../../sde';
+import * as Ip from '../../../../../env/ipaddr';
 
 export interface Multicast {
     multiaddr: string;
@@ -37,13 +38,20 @@ export class Configuration
 
     static validate(configuration: IConfiguration): Error | IConfiguration {
         try {
-            obj.getAsNotEmptyString(configuration, 'bind_addr');
+            if (!Ip.anyIPAddr(configuration.bind_addr)) {
+                return new Error(`Invalid binding address`);
+            }
             obj.getAsArray(configuration, 'multicast');
-            configuration.multicast.forEach((multicast: Multicast) => {
-                obj.getAsNotEmptyString(multicast, 'multiaddr');
-                obj.getAsArrayOfNotEmptyString(multicast, 'interface');
-            });
-            return configuration;
+            return configuration.multicast
+                .map((multicast: Multicast) => {
+                    return (
+                        Ip.anyIPAddr(multicast.multiaddr) &&
+                        (Ip.isValidIPv4(multicast.interface) || Ip.isValidIPv6(multicast.interface))
+                    );
+                })
+                .filter((r) => !r).length === 0
+                ? configuration
+                : new Error(`Invalid multicast definition`);
         } catch (e) {
             return new Error(error(e));
         }
@@ -52,7 +60,7 @@ export class Configuration
     // Gives initial settings. Not necessarily valid.
     static initial(): IConfiguration {
         return {
-            bind_addr: '0.0.0.0',
+            bind_addr: '',
             multicast: [],
         };
     }
