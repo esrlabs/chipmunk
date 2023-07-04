@@ -162,7 +162,7 @@ export class SetupBase
             return;
         }
         if (target === 'cmd') {
-            // this.action.apply();
+            this.action.apply();
             this.cmdInputRef.control.drop();
         }
         this.markChangesForCheck();

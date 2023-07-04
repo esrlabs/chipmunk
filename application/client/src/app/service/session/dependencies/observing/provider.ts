@@ -30,11 +30,6 @@ export abstract class Provider {
             desc: string;
             comp: IComponentDesc;
         };
-        details: {
-            name: string | undefined;
-            desc: string | undefined;
-            comp: IComponentDesc | undefined;
-        };
         nocontent: {
             name: string | undefined;
             desc: string | undefined;
@@ -107,11 +102,6 @@ export abstract class Provider {
                 desc: this.getPanels().list().desc(),
                 comp: this.getPanels().list().comp(),
             },
-            details: {
-                name: this.getPanels().details().name(),
-                desc: this.getPanels().details().desc(),
-                comp: this.getPanels().details().comp(),
-            },
             nocontent: {
                 name: this.getPanels().nocontent().name(),
                 desc: this.getPanels().nocontent().desc(),
@@ -136,11 +126,6 @@ export abstract class Provider {
             name(): string;
             desc(): string;
             comp(): IComponentDesc;
-        };
-        details(): {
-            name(): string | undefined;
-            desc(): string | undefined;
-            comp(): IComponentDesc | undefined;
         };
         nocontent(): {
             name(): string | undefined;
