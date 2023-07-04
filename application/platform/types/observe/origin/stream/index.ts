@@ -129,7 +129,7 @@ export class Configuration
         };
     }
 
-    protected setInstance() {
+    protected setInstance(): Configuration {
         const configuration = this.configuration;
         let instance: Declaration | undefined;
         Object.keys(REGISTER).forEach((key) => {
@@ -146,6 +146,7 @@ export class Configuration
         if (instance === undefined) {
             throw new Error(`Configuration of stream doesn't have definition of known source.`);
         }
+        this.instance !== undefined && this.instance.destroy();
         (this as Mutable<Configuration>).instance = instance;
         this.unsubscribe();
         this.register(
@@ -156,6 +157,7 @@ export class Configuration
                 this.watcher.emit();
             }),
         );
+        return this;
     }
 
     public readonly instance!: Declaration;
@@ -173,15 +175,15 @@ export class Configuration
         return {
             byConfiguration: (configuration: IConfiguration): void => {
                 this.overwrite(configuration);
-                this.setInstance();
+                this.setInstance().watcher.emit();
             },
             byDeclaration: (stream: Declaration): void => {
                 this.overwrite({ [stream.alias()]: stream.configuration });
-                this.setInstance();
+                this.setInstance().watcher.emit();
             },
             byReference: (Ref: Reference): void => {
                 this.overwrite({ [Ref.alias()]: new Ref(Ref.initial()) });
-                this.setInstance();
+                this.setInstance().watcher.emit();
             },
         };
     }
