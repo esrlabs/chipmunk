@@ -40,7 +40,7 @@ export class LayoutPopups extends ChangesDetector implements AfterContentInit {
             this.visible = true;
             this.ilc().services.ui.popup.setCount(this.popups.size);
             this.ilc().emitter.ui.popup.updated(this.popups.size);
-            this.detectChanges();
+            this.markChangesForCheck();
             popup.subjects.get().opened.emit();
         });
         this.ilc().channel.ui.popup.close((uuid: string) => {
@@ -69,7 +69,7 @@ export class LayoutPopups extends ChangesDetector implements AfterContentInit {
         this.popups.size === 0 && (this.visible = false);
         this.ilc().services.ui.popup.setCount(this.popups.size);
         this.ilc().emitter.ui.popup.updated(this.popups.size);
-        this.detectChanges();
+        this.markChangesForCheck();
         stored.popup.subjects.get().closed.emit();
     }
 }
