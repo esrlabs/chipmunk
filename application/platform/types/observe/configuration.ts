@@ -1,6 +1,6 @@
 import { error } from '../../log/utils';
 import { JsonConvertor } from '../storage/json';
-import { Validate, SelfValidate, Alias } from '../env/types';
+import { Validate, SelfValidate, Alias, Destroy } from '../env/types';
 import { List } from './description';
 import { Mutable } from '../unity/mutable';
 import { scope } from '../../env/scope';
@@ -129,13 +129,14 @@ export function getCompatibilityMod(): ICompatibilityMod {
 
 export abstract class Configuration<T, C, A>
     extends Subscriber
-    implements JsonConvertor<Configuration<T, C, A>>, SelfValidate
+    implements JsonConvertor<Configuration<T, C, A>>, SelfValidate, Destroy
 {
     protected ref: Reference<T, C, A>;
     protected overwriting: boolean = false;
 
     public readonly configuration: T;
     public readonly watcher: Subject<void> = new Subject();
+    protected readonly __uuid: string = unique();
 
     constructor(configuration: T) {
         super();
@@ -144,6 +145,11 @@ export abstract class Configuration<T, C, A>
         }
         this.ref = this.constructor as Reference<T, C, A>;
         this.configuration = observe<T>(configuration, this.watcher);
+    }
+
+    public destroy(): void {
+        this.watcher.destroy();
+        this.unsubscribe();
     }
 
     public overwrite(configuration: T): void {

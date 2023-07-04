@@ -4,7 +4,6 @@ import { Context, SourceUuid } from './index';
 import { OriginDetails, IOriginDetails, IList, Job, IJob } from '../description';
 import { Statics } from '../../../env/decorators';
 import { unique } from '../../../env/sequence';
-import { Mutable } from '../../unity/mutable';
 import { Alias } from '../../env/types';
 
 import * as str from '../../../env/str';
@@ -60,13 +59,15 @@ export class Configuration
         return [unique(), Stream.Configuration.initial()];
     }
 
-    protected setInstance() {
+    public readonly instance!: Stream.Configuration;
+
+    constructor(configuration: IConfiguration) {
+        super(configuration);
         const instance = new Stream.Configuration(this.configuration[1]);
         if (instance instanceof Error) {
             throw instance;
         }
-        (this as Mutable<Configuration>).instance = instance;
-        this.unsubscribe();
+        this.instance = instance;
         this.register(
             this.instance.watcher.subscribe(() => {
                 this.overwrite([this.configuration[0], this.instance.configuration]);
@@ -75,17 +76,10 @@ export class Configuration
         );
     }
 
-    public readonly instance!: Stream.Configuration;
-
-    constructor(configuration: IConfiguration) {
-        super(configuration);
-        this.setInstance();
-    }
-
     public change(stream: Stream.Declaration): void {
         this.instance.change().byDeclaration(stream);
         this.configuration[1] = this.instance.configuration;
-        this.setInstance();
+        this.watcher.emit();
     }
 
     public desc(): IOriginDetails {

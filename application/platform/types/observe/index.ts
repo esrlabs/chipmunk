@@ -97,6 +97,8 @@ export class Observe
     }
 
     public override overwrite(configuration: IObserve): void {
+        this.origin !== undefined && this.origin.destroy();
+        this.parser !== undefined && this.parser.destroy();
         super.overwrite(configuration);
         (this as Mutable<Observe>).origin = new Origin.Configuration(this.configuration.origin);
         (this as Mutable<Observe>).parser = new Parser.Configuration(this.configuration.parser);
