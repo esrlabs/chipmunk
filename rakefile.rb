@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
+require 'rake/clean'
 require 'fileutils'
+require 'set'
 require './scripts/elements/ansi'
 require './scripts/elements/bindings'
 require './scripts/elements/client'
@@ -11,21 +13,18 @@ require './scripts/interactive/menu'
 
 namespace :clean do
   desc 'clean every build artifact'
-  task all: ['bindings:clean'] do
-    Updater.clean
-    Matcher.clean
-    Ansi.clean
-    Utils.clean
-    Client.clean
-    Platform.clean
-    Release.clean
-    Electron.clean
-    Indexer.clean
-  end
-
-  desc 'clean bindings'
-  task bindings: ['bindings:clean']
-
+  task all: [
+    'bindings:clean',
+    'electron:clean',
+    'client:clean',
+    'updater:clean',
+    'ansi:clean',
+    'utils:clean',
+    'platform:clean',
+    'release:clean',
+    'indexer:clean',
+    'matcher:clean'
+  ]
 end
 
 desc 'Access interactive menu'
@@ -34,170 +33,16 @@ task :default do
 end
 
 namespace :install do
-  desc 'Install client'
-  task :client do
-    Client.new(false, false).install
-  end
-
-  desc 'Install electron'
-  task :electron do
-    Electron.new(ElectronSettings.new).install
-  end
-
-  desc 'Install rustcore'
-  task rustcore: 'bindings:install'
 
   desc 'Install all'
-  task all: ['install:rustcore', 'install:client', 'install:electron'] do
-    Reporter.print
-  end
-end
-
-namespace :build do
-  desc 'Build client (dev)'
-  task :client_dev do
-    Client.delivery(Paths::ELECTRON_DIST, false, true)
-    Reporter.print
-  end
-
-  desc 'Build client (prod)'
-  task :client_prod do
-    Client.delivery(Paths::ELECTRON_DIST, true, true)
-    Reporter.print
-  end
-
-  desc 'Build ts-bindings'
-  task bindings: 'bindings:build' do
-    Reporter.print
-  end
-
-  desc 'Build electron (dev)'
-  task :dev do
-    Electron.new(ElectronSettings.new).build
-    Reporter.print
-  end
-
-  desc 'Build electron (prod)'
-  task :prod do
-    Electron.new(ElectronSettings.new.set_client_prod(true)).build
-    Reporter.print
-  end
-
-  desc 'Build updater'
-  task :updater do
-    Updater.build
-    Reporter.print
-  end
-
-  desc 'Build matcher'
-  task :matcher do
-    Matcher.new(false, false).build
-    Reporter.print
-  end
-
-  desc 'Build ansi'
-  task :ansi do
-    Ansi.new(false, false).build
-    Reporter.print
-  end
-
-  desc 'Build utils'
-  task :utils do
-    Utils.new(false, false).build
-    Reporter.print
-  end
-end
-
-# TODO: Oli: remove invokes
-namespace :rebuild do
-  desc 'Rebuild client (dev)'
-  task :client_dev do
-    Client.clean
-    Rake::Task['build:client_dev'].invoke
-  end
-
-  desc 'Rebuild client (prod)'
-  task :client_prod do
-    Client.clean
-    Rake::Task['build:client_prod'].invoke
-  end
-
-  desc 'Rebuild ts-bindings'
-  task :bindings => 'bindings:clean' do
-    Rake::Task['build:bindings'].invoke
-  end
-
-  desc 'Rebuild electron (dev)'
-  task :dev do
-    Electron.clean
-    Rake::Task['build:dev'].invoke
-  end
-
-  desc 'Rebuild electron (prod)'
-  task :prod do
-    Electron.clean
-    Rake::Task['build:prod'].invoke
-  end
-
-  desc 'Rebuild updater'
-  task :updater do
-    Updater.check(true)
-    Reporter.print
-  end
-end
-
-namespace :developing do
-  desc 'Rebuild client (dev) and delivery'
-  task :client do
-    Rake::Task['build:client_dev'].invoke
-  end
-
-  desc 'Recompile rs-bindings and rebuild ts-bindings'
-  task :bindings do
-    Rake::Task['build:bindings'].invoke
-  end
-
-  desc 'Rebuild electron'
-  task :electron do
-    Electron.new(ElectronSettings.new).build
-    Reporter.print
-  end
-
-  desc 'Rebuild electron (+ bindings)'
-  task :electron_bindings do
-    Electron.new(ElectronSettings.new.set_bindings_rebuild(true).set_replace_client(false)).build
-    Reporter.print
-  end
-
-  desc 'Rebuild electron (+ platform)'
-  task :electron_platform do
-    Electron.new(ElectronSettings.new.set_platform_rebuild(true)).build
-    Reporter.print
-  end
-
-  desc 'Rebuild electron (+ platform + bindings)'
-  task :electron_platform_bindings do
-    Electron.new(ElectronSettings.new.set_platform_rebuild(true).set_bindings_rebuild(true)).build
-    Reporter.print
-  end
-
-
-  desc 'Clean & rebuild all'
-  task clean_rebuild_all: :clean_all do
-    Electron.new(ElectronSettings.new.set_platform_rebuild(true).set_bindings_rebuild(true).set_bindings_reinstall(true)).build
-    Reporter.print
-  end
-end
-
-namespace :release do
-  desc 'Production'
-  task :prod do
-    Release.new(true, true).build
-    Reporter.print
-  end
-  desc 'Developing'
-  task :dev do
-    Release.new(false, false).build
+  task all: [
+    'ansi:install',
+    'matcher:install',
+    'utils:install',
+    'bindings:install',
+    'client:install',
+    'electron:install'
+  ] do
     Reporter.print
   end
 end
@@ -208,9 +53,8 @@ namespace :test do
 
   namespace :matcher do
     desc 'run karma tests'
-    task :karma do
+    task karma: 'matcher:install' do
       Reporter.print
-      Matcher.new(false, false).install
       Shell.chdir("#{Paths::MATCHER}/spec") do
         sh 'npm run test'
       end
@@ -223,15 +67,16 @@ namespace :test do
       end
     end
   end
+
   namespace :ansi do
     desc 'run karma tests'
-    task :karma do
+    task karma: 'ansi:install' do
       Reporter.print
-      Ansi.new(false, false).install
       Shell.chdir("#{Paths::ANSI}/spec") do
         sh 'npm run test'
       end
     end
+
     desc 'run rust tests'
     task :rust do
       Reporter.print
@@ -240,15 +85,16 @@ namespace :test do
       end
     end
   end
+
   namespace :utils do
     desc 'run karma tests'
-    task :karma do
+    task karma: 'utils:install' do
       Reporter.print
-      Utils.new(false, false).install
       Shell.chdir("#{Paths::UTILS}/spec") do
         sh 'npm run test'
       end
     end
+
     desc 'run rust tests'
     task :rust do
       Reporter.print
@@ -264,6 +110,7 @@ namespace :test do
              'test:utils:rust', 'test:matcher:rust']
 end
 
+# Makes sure clippy is installed and correclty executed
 class Clippy
   def initialize
     Rake.sh 'rustup component add clippy'
@@ -278,23 +125,6 @@ class Clippy
 end
 
 namespace :lint do
-  desc 'Lint electron'
-  task :electron do
-    Electron.new(ElectronSettings.new).lint
-  end
-
-  desc 'Lint client'
-  task :client do
-    Client.new(false, false).lint
-  end
-
-  desc 'Lint TS bindings'
-  task ts_bindings: 'bindings:lint'
-
-  desc 'Lint platform'
-  task :platform do
-    Platform.new(false, false).lint
-  end
 
   desc 'Clippy indexer'
   task :clippy do
@@ -308,7 +138,7 @@ namespace :lint do
   end
 
   desc 'lint all'
-  task all: ['lint:platform', 'lint:electron', 'lint:client', 'lint:ts_bindings', 'lint:clippy'] do
+  task all: ['platform:lint', 'electron:lint', 'client:lint', 'bindings:lint', 'lint:clippy'] do
     Reporter.print
   end
 end
@@ -320,76 +150,44 @@ namespace :env do
   end
 end
 
-namespace :check do
-  desc 'Executes all check before pull request'
-  task all: ['build:prod', 'lint:all'] do
-    Reporter.print
-  end
-end
-
-namespace :client do
-  desc 'test client'
-  task :test do
-    client = Client.new(false, true)
-    client.build
-  end
-
-  desc 'Install client'
-  task :install do
-    Shell.chdir(Paths::CLIENT) do
-      Reporter.log 'Installing client libraries'
-      sh 'yarn install'
-    end
-  end
-
-  desc 'Build client (dev)'
-  task :dev do
-    Shell.chdir(Paths::CLIENT) do
-      sh 'yarn run build'
-    end
-  end
-
-  desc 'Build client (prod)'
-  task :prod do
-    Shell.chdir(Paths::CLIENT) do
-      sh 'yarn run prod'
-    end
-  end
-
-  desc 'Clean'
-  task :clean do
-    Client.clean
-  end
-
-  # TODO: Oli: depend on client build
-  desc 'Delivery client'
-  task :delivery do
-    client_dist = "#{Paths::CLIENT_DIST}/#{prod ? 'release' : 'debug'}"
-    Dir.mkdir_p(Paths::ELECTRON_DIST)
-    FileUtils.cp_r client_dist, Paths::ELECTRON_DIST
-  end
-
-  desc 'Install, build and delivery of Client'
-  task all: ['client:install', 'client:prod', 'client:delivery']
-end
-
-desc 'setup chipmunk to be ready-to-use; use `TARGET=prod rake self_setup` to run in production mode'
-task :self_setup do
-  is_prod = ENV.fetch('TARGET') && ENV['TARGET'].downcase == 'prod'
-  is_prod ? 'prod' : 'dev'
-
-  o_binding = Bindings.new(false)
-  changes_to_bindings = o_binding.changes_to_rs || o_binding.changes_to_ts
-  o_electron = Electron.new(ElectronSettings.new.set_client_prod(is_prod).set_platform_rebuild(changes_to_bindings))
-  o_client = Client.new(false, false)
-
-  o_binding.install
-  o_client.install
-  o_electron.install
-
-  changes_to_bindings ? o_binding.build : Reporter.skipped('Bindings', 'skipped build since no changes to rustcore', '')
-  o_electron.build
-
-  puts 'Execution report : '
+desc 'setup chipmunk to be ready-to-use'
+task self_setup_dev: ['bindings:build', 'client:build_dev', 'electron:build_dev'] do
   Reporter.print
 end
+
+desc 'setup chipmunk to be ready-to-use (production)'
+task self_setup_production: ['bindings:build', 'client:build_prod', 'electron:build_prod'] do
+  Reporter.print
+end
+
+def print_deps
+  visited = Set.new
+  recursion_stack = Set.new
+
+  puts 'digraph dependencies {'
+  Rake::Task.tasks.each do |task|
+    print_recursively(task, visited, recursion_stack)
+  end
+  puts '}'
+end
+
+def print_recursively(task, visited, recursion_stack)
+  return if visited.include?(task)
+
+  visited.add(task)
+  recursion_stack.add(task)
+
+  task.prerequisite_tasks.each do |dependency|
+    raise "Cyclic dependency detected: #{task} -> #{dependency}" if recursion_stack.include?(dependency)
+
+    puts "  \"#{task}\" -> \"#{dependency}\""
+    print_recursively(dependency, visited, recursion_stack)
+  end
+  recursion_stack.delete(task)
+end
+
+desc 'overview of task dependencies'
+task :print_dot do
+  print_deps
+end
+

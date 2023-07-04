@@ -4,57 +4,56 @@ require './scripts/env/paths'
 require './scripts/tools/change_checker'
 require './scripts/tools/reporter'
 
-class Ansi
+module Ansi
   PKG = "#{Paths::ANSI}/pkg"
   TARGET = "#{Paths::ANSI}/target"
   NODE_MODULES = "#{Paths::ANSI}/node_modules"
   TEST_OUTPUT = "#{Paths::ANSI}/test_output"
   TARGETS = [PKG, TARGET, NODE_MODULES, TEST_OUTPUT].freeze
+end
 
-  def initialize(reinstall, rebuild)
-    @reinstall = reinstall
-    @rebuild = rebuild
-    @installed = File.exist?(NODE_MODULES)
-    @changes_to_files = ChangeChecker.has_changes?(Paths::ANSI, TARGETS)
-  end
-
-  attr_reader :changes_to_files
-
-  def self.clean
-    TARGETS.each do |path|
+namespace :ansi do
+  task :clean do
+    Ansi::TARGETS.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed(self, "removed: #{path}", '')
+        Reporter.removed('ansi', "removed: #{path}", '')
       end
     end
   end
 
-  def install
-    Shell.rm_rf(NODE_MODULES) if @reinstall
-    if !@installed || @reinstall
-      Shell.chdir(Paths::ANSI) do
-        Reporter.log 'Installing ansi libraries'
-        Shell.sh 'yarn install'
-        Reporter.done(self, 'installing', '')
-      end
-    else
-      Reporter.skipped(self, 'installing', '')
+  task :wipe_installation do
+    Shell.rm_rf(Ansi::NODE_MODULES)
+  end
+
+  task reinstall: ['ansi:wipe_installation', 'ansi:install']
+
+  task :install do
+    Shell.chdir(Paths::ANSI) do
+      Reporter.log 'Installing ansi libraries'
+      Shell.sh 'yarn install'
+      Reporter.done('ansi', 'installing', '')
     end
   end
 
-  def build
-    if !@changes_to_files && !@rebuild
-      Reporter.skipped(self, 'already built', '')
-    else
-      Environment.check
-      [PKG, TARGET].each do |path|
+  task rebuild: ['ansi:clean', 'ansi:build']
+
+  desc 'Build ansi'
+  task build: ['environment:check', 'ansi:install'] do
+    changes_to_files = ChangeChecker.changes?(Paths::ANSI)
+    if changes_to_files
+      [Ansi::PKG, Ansi::TARGET].each do |path|
         Shell.rm_rf(path)
-        Reporter.removed(self, path, '')
+        Reporter.removed('ansi', path, '')
       end
       Shell.chdir(Paths::ANSI) do
         Shell.sh 'wasm-pack build --target bundler'
+        ChangeChecker.reset(Paths::ANSI, Ansi::TARGETS)
       end
-      Reporter.done(self, "build #{TARGET}", '')
+      Reporter.done('ansi', "build #{Ansi::TARGET}", '')
+    else
+      Reporter.skipped('ansi', 'already built', '')
     end
+    Reporter.print
   end
 end
