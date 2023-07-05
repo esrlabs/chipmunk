@@ -6,3 +6,4 @@
     </p>
     <app-recent-nature [observe]="action.action.observe"></app-recent-nature>
 </div>
+<p class="t-medium nowrap description" *ngIf="state.getFilteredActions().length === 0">No recent actions</p>

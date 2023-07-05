@@ -2,15 +2,85 @@ import { Entry } from '@platform/types/storage/entry';
 import { error } from '@platform/log/utils';
 import { unique } from '@platform/env/sequence';
 import { session } from '@service/session';
-// import { lockers, Locker } from '@ui/service/lockers';
+import { lockers, Locker } from '@ui/service/lockers';
 import { Stat, IStat } from './stat';
-// import { recent } from '@service/recent';
+import { recent } from '@service/recent';
+import { scope } from '@platform/env/scope';
+import { Logger } from '@platform/log';
 
 import * as $ from '@platform/types/observe';
+import * as Factory from '@platform/types/observe/factory';
 
 interface IActionContent {
     stat: IStat;
     observe: $.IObserve;
+}
+
+// This function has to be removed since v 3.9.x or 3.10.x (after a couple of
+// update iterations)
+function convertVersion_3_8_1_FormatToCurrent(entry: Entry): $.Observe {
+    const action = JSON.parse(entry.content);
+    let observe;
+    if (action['file'] !== undefined) {
+        if (action['file']['dlt'] !== undefined) {
+            observe = new Factory.File()
+                .asDlt(action['file']['dlt'])
+                .type($.Types.File.FileType.Binary)
+                .file(action['file']['filename'])
+                .get();
+        } else if (action['file']['pcap'] !== undefined) {
+            observe = new Factory.File()
+                .asDlt(action['file']['pcap']['dlt'])
+                .type($.Types.File.FileType.PcapNG)
+                .file(action['file']['filename'])
+                .get();
+        } else {
+            observe = new Factory.File()
+                .asText()
+                .file(action['file']['filename'])
+                .type($.Types.File.FileType.Text)
+                .get();
+        }
+    } else if (action['dlt_stream'] !== undefined) {
+        const defs = action['dlt_stream'];
+        const source = defs['source'];
+        const preconstructed = new Factory.Stream().asDlt(defs['dlt']);
+        if (source['process'] !== undefined) {
+            preconstructed.process(source['process']);
+        } else if (source['serial'] !== undefined) {
+            preconstructed.serial(source['serial']);
+        } else if (source['tcp'] !== undefined) {
+            preconstructed.tcp(source['tcp']);
+        } else if (source['udp'] !== undefined) {
+            preconstructed.udp(source['udp']);
+        } else {
+            throw new Error(`Unknonw type of source for stream.`);
+        }
+        observe = preconstructed.get();
+    } else if (action['text_stream'] !== undefined) {
+        const defs = action['text_stream'];
+        const source = defs['source'];
+        const preconstructed = new Factory.Stream().asText();
+        if (source['process'] !== undefined) {
+            preconstructed.process(source['process']);
+        } else if (source['serial'] !== undefined) {
+            preconstructed.serial(source['serial']);
+        } else if (source['tcp'] !== undefined) {
+            preconstructed.tcp(source['tcp']);
+        } else if (source['udp'] !== undefined) {
+            preconstructed.udp(source['udp']);
+        } else {
+            throw new Error(`Unknonw type of source for stream.`);
+        }
+        observe = preconstructed.get();
+    } else {
+        throw new Error(`Unknonw type of action.`);
+    }
+    const error = observe.validate();
+    if (error instanceof Error) {
+        throw error;
+    }
+    return observe;
 }
 
 export class Action {
@@ -20,10 +90,14 @@ export class Action {
         return error instanceof Error ? error : action;
     }
 
+    protected logger: Logger;
+
     public stat: Stat = Stat.defaults();
     public uuid: string = unique();
 
-    constructor(public readonly observe: $.Observe) {}
+    constructor(public observe: $.Observe) {
+        this.logger = scope.getLogger(`Action: ${this.uuid}`);
+    }
 
     public isSuitable(observe?: $.Observe): boolean {
         if (observe === undefined) {
@@ -48,15 +122,16 @@ export class Action {
                 try {
                     const body: IActionContent = JSON.parse(entry.content);
                     if (body.observe === undefined) {
-                        // chipmunk <= 3.8.1
-                        return new Error(
-                            `Unsupported format of action [TODO: implement convertor from 3.8.1 to new format.]`,
-                        );
-                    }
-                    const observe = new $.Observe(body.observe);
-                    const err = observe.json().from(entry.content);
-                    if (err instanceof Error) {
-                        return err;
+                        // Check previous version (chipmunk <= 3.8.1)
+                        // console.log(JSON.parse(entry.content));
+                        this.observe = convertVersion_3_8_1_FormatToCurrent(entry);
+                    } else {
+                        const observe = new $.Observe(body.observe);
+                        const err = observe.json().from(entry.content);
+                        if (err instanceof Error) {
+                            return err;
+                        }
+                        this.observe = observe;
                     }
                     this.stat = Stat.from(body.stat);
                     this.uuid = entry.uuid;
@@ -105,7 +180,7 @@ export class Action {
                                   .initialize()
                                   .configure(observe)
                                   .catch((err: Error) => {
-                                      console.error(
+                                      this.logger.error(
                                           `Fail to configure observe object: ${err.message}`,
                                       );
                                   });
@@ -117,66 +192,44 @@ export class Action {
     }
 
     public remove(): Promise<void> {
-        // TODO: removing of action should be defined here
-        return Promise.resolve();
+        return recent.delete([this.uuid]).catch((err: Error) => {
+            this.logger.error(`Fail to remove recent action: ${err.message}`);
+        });
     }
 
     public apply(): Promise<void> {
-        throw new Error(`TODO: Implement!`);
-        // (() => {
-        //     if (this.file !== undefined) {
-        //         if (this.file.text !== undefined) {
-        //             return opener.text(this.file.text.filename).text();
-        //         } else if (this.file.dlt !== undefined) {
-        //             return opener.binary(this.file.dlt.filename).dlt(this.file.dlt.options);
-        //         } else {
-        //             return Promise.reject(new Error(`Opener for file action isn't found`));
-        //         }
-        //     } else if (this.dlt_stream !== undefined) {
-        //         return opener
-        //             .stream(this.dlt_stream.source, undefined, undefined)
-        //             .dlt(this.dlt_stream.options);
-        //     } else if (this.someip_stream !== undefined) {
-        //         return opener
-        //             .stream(this.someip_stream.source, undefined, undefined)
-        //             .someip(this.someip_stream.options);
-        //     } else if (this.text_stream !== undefined) {
-        //         return opener.stream(this.text_stream.source, undefined, undefined).text({});
-        //     } else {
-        //         return Promise.reject(new Error(`Opener for action isn't found`));
-        //     }
-        // })()
-        //     .then(() => {
-        //         this.handlers.after !== undefined && this.handlers.after();
-        //         recent.update([this]).catch((err: Error) => {
-        //             console.error(`Fail to update recent action: ${err.message}`);
-        //         });
-        //     })
-        //     .catch((err: Error) => {
-        //         const message = lockers.lock(
-        //             new Locker(false, `Fail to apply action via error: ${err.message}`)
-        //                 .set()
-        //                 .buttons([
-        //                     {
-        //                         caption: `Remove`,
-        //                         handler: () => {
-        //                             remove([this.uuid]);
-        //                             message.popup.close();
-        //                         },
-        //                     },
-        //                     {
-        //                         caption: `Cancel`,
-        //                         handler: () => {
-        //                             message.popup.close();
-        //                         },
-        //                     },
-        //                 ])
-        //                 .end(),
-        //             {
-        //                 closable: false,
-        //             },
-        //         );
-        //     });
+        return session
+            .initialize()
+            .auto(this.observe.locker().lock())
+            .then(() => {
+                return undefined;
+            })
+            .catch((err: Error) => {
+                const message = lockers.lock(
+                    new Locker(false, `Fail to apply action via error: ${err.message}`)
+                        .set()
+                        .buttons([
+                            {
+                                caption: `Remove`,
+                                handler: () => {
+                                    this.remove().finally(() => {
+                                        message.popup.close();
+                                    });
+                                },
+                            },
+                            {
+                                caption: `Cancel`,
+                                handler: () => {
+                                    message.popup.close();
+                                },
+                            },
+                        ])
+                        .end(),
+                    {
+                        closable: false,
+                    },
+                );
+            });
     }
 
     public merge(action: Action): void {
