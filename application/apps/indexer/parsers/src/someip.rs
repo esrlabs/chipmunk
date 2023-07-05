@@ -156,9 +156,11 @@ fn header_string(header: &Header) -> String {
 
 fn sd_message_string(header: &Header, payload: &SdPayload) -> String {
     let mut string = format!(
-        "SD{COLUMN_SEP}{}{COLUMN_SEP}{}",
+        "SD{}{}{}Flags: [{:02X?}]",
+        COLUMN_SEP,
+        COLUMN_SEP,
         header_string(header),
-        format!("Flags: [{:02X?}]", payload.flags)
+        payload.flags
     );
 
     for (i, entry) in payload.entries.iter().enumerate() {
@@ -489,7 +491,7 @@ pub fn read_someip_statistic_from_pcapng(
     }
 
     if let Some(err) = error {
-        return Err(Error::Parse(format!("{err}")));
+        return Err(Error::Parse(err.to_string()));
     }
 
     let result = SomeipStatistic {
