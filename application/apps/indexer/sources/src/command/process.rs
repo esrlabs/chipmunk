@@ -22,8 +22,7 @@ lazy_static! {
         Regex::new(r#"".*?""#).expect("Regex must compile (fail with GROUP_RE)");
     static ref QUOTE_RE: Regex =
         Regex::new(r#"""#).expect("Regex must compile (fail with QUOTE_RE)");
-    static ref ESC_RE: Regex =
-        Regex::new(r#"\\\s"#).expect("Regex must compile (fail with ESC_RE)");
+    static ref ESC_RE: Regex = Regex::new(r"\\\s").expect("Regex must compile (fail with ESC_RE)");
 }
 
 #[derive(Error, Debug)]
