@@ -50,6 +50,14 @@ export class RecentActions extends ChangesDetector implements AfterContentInit, 
                 this.detectChanges();
             }),
         );
+        if (this.observe !== undefined) {
+            this.env().subscriber.register(
+                this.observe.watcher.subscribe(() => {
+                    this.state.reload();
+                    this.detectChanges();
+                }),
+            );
+        }
     }
 
     public ngAfterViewInit(): void {
