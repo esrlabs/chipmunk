@@ -63,7 +63,7 @@ export class State extends Holder {
             });
     }
 
-    protected reload(): void {
+    public reload(): void {
         recent
             .get()
             .then((actions: Action[]) => {
