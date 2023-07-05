@@ -158,8 +158,8 @@ fn sd_message_string(header: &Header, payload: &SdPayload) -> String {
     let mut string = format!(
         "SD{}{}{}Flags: [{:02X?}]",
         COLUMN_SEP,
-        COLUMN_SEP,
         header_string(header),
+        COLUMN_SEP,
         payload.flags
     );
 
