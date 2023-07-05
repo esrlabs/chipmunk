@@ -9,78 +9,11 @@ import { scope } from '@platform/env/scope';
 import { Logger } from '@platform/log';
 
 import * as $ from '@platform/types/observe';
-import * as Factory from '@platform/types/observe/factory';
+import * as compatibility from './compatibility';
 
 interface IActionContent {
     stat: IStat;
     observe: $.IObserve;
-}
-
-// This function has to be removed since v 3.9.x or 3.10.x (after a couple of
-// update iterations)
-function convertVersion_3_8_1_FormatToCurrent(entry: Entry): $.Observe {
-    const action = JSON.parse(entry.content);
-    let observe;
-    if (action['file'] !== undefined) {
-        if (action['file']['dlt'] !== undefined) {
-            observe = new Factory.File()
-                .asDlt(action['file']['dlt'])
-                .type($.Types.File.FileType.Binary)
-                .file(action['file']['filename'])
-                .get();
-        } else if (action['file']['pcap'] !== undefined) {
-            observe = new Factory.File()
-                .asDlt(action['file']['pcap']['dlt'])
-                .type($.Types.File.FileType.PcapNG)
-                .file(action['file']['filename'])
-                .get();
-        } else {
-            observe = new Factory.File()
-                .asText()
-                .file(action['file']['filename'])
-                .type($.Types.File.FileType.Text)
-                .get();
-        }
-    } else if (action['dlt_stream'] !== undefined) {
-        const defs = action['dlt_stream'];
-        const source = defs['source'];
-        const preconstructed = new Factory.Stream().asDlt(defs['dlt']);
-        if (source['process'] !== undefined) {
-            preconstructed.process(source['process']);
-        } else if (source['serial'] !== undefined) {
-            preconstructed.serial(source['serial']);
-        } else if (source['tcp'] !== undefined) {
-            preconstructed.tcp(source['tcp']);
-        } else if (source['udp'] !== undefined) {
-            preconstructed.udp(source['udp']);
-        } else {
-            throw new Error(`Unknonw type of source for stream.`);
-        }
-        observe = preconstructed.get();
-    } else if (action['text_stream'] !== undefined) {
-        const defs = action['text_stream'];
-        const source = defs['source'];
-        const preconstructed = new Factory.Stream().asText();
-        if (source['process'] !== undefined) {
-            preconstructed.process(source['process']);
-        } else if (source['serial'] !== undefined) {
-            preconstructed.serial(source['serial']);
-        } else if (source['tcp'] !== undefined) {
-            preconstructed.tcp(source['tcp']);
-        } else if (source['udp'] !== undefined) {
-            preconstructed.udp(source['udp']);
-        } else {
-            throw new Error(`Unknonw type of source for stream.`);
-        }
-        observe = preconstructed.get();
-    } else {
-        throw new Error(`Unknonw type of action.`);
-    }
-    const error = observe.validate();
-    if (error instanceof Error) {
-        throw error;
-    }
-    return observe;
 }
 
 export class Action {
@@ -123,8 +56,7 @@ export class Action {
                     const body: IActionContent = JSON.parse(entry.content);
                     if (body.observe === undefined) {
                         // Check previous version (chipmunk <= 3.8.1)
-                        // console.log(JSON.parse(entry.content));
-                        this.observe = convertVersion_3_8_1_FormatToCurrent(entry);
+                        this.observe = compatibility.from_3_8_1(entry);
                     } else {
                         const observe = new $.Observe(body.observe);
                         const err = observe.json().from(entry.content);
