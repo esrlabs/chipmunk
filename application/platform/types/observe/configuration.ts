@@ -150,6 +150,7 @@ export abstract class Configuration<T, C, A>
     public destroy(): void {
         this.watcher.destroy();
         this.unsubscribe();
+        (this as any).configuration = this.sterilized();
     }
 
     public overwrite(configuration: T): void {
