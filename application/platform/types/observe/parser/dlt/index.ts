@@ -20,12 +20,26 @@ export interface LevelDistribution {
     log_invalid: number;
 }
 
+export function getLogLevelName(level: number): string {
+    const name = (DltLogLevelNames as Record<string, string>)[level];
+    return name === undefined ? 'unknown' : name;
+}
+
 export interface StatisticInfo {
     app_ids: [string, LevelDistribution][];
     context_ids: [string, LevelDistribution][];
     ecu_ids: [string, LevelDistribution][];
     contained_non_verbose: boolean;
 }
+
+export const DltLogLevelNames = {
+    1: 'Fatal',
+    2: 'Error',
+    3: 'Warn',
+    4: 'Info',
+    5: 'Debug',
+    6: 'Verbose',
+};
 
 export enum LogLevel {
     Fatal = 0x1 << 4,

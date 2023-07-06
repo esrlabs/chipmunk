@@ -14,11 +14,6 @@ import * as $ from '@platform/types/observe';
 export class RecentNatureSerial implements AfterContentInit {
     @Input() public origin!: $.Origin.Stream.Stream.Serial.Configuration;
 
-    public name!: string;
-    public path!: string;
-    public size!: string;
-    public created!: string;
-
     public ngAfterContentInit(): void {
         //
     }
