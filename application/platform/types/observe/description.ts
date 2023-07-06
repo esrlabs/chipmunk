@@ -18,6 +18,7 @@ export enum OriginType {
 }
 export interface IOriginDetails extends IList {
     type: OriginType;
+    action: string;
     state: {
         running: string;
         stopped: string;

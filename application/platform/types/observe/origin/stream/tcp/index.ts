@@ -47,6 +47,7 @@ export class Configuration
             minor: '',
             icon: 'network_wifi_3_bar',
             type: OriginType.net,
+            action: 'Connect',
             state: {
                 running: 'listening',
                 stopped: '',

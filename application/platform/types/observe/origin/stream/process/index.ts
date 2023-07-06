@@ -56,6 +56,7 @@ export class Configuration
             major: `${this.configuration.command}`,
             minor: this.configuration.cwd === '' ? 'no defined cwd' : this.configuration.cwd,
             icon: 'web_asset',
+            action: 'Execute',
             type: OriginType.command,
             state: {
                 running: 'spawning',

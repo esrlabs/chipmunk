@@ -90,6 +90,7 @@ export class Configuration
             minor: basefolder(this.configuration[2]),
             icon: 'insert_drive_file',
             type: OriginType.file,
+            action: 'Open',
             state: {
                 running: 'tail',
                 stopped: '',

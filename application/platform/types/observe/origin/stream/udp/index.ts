@@ -72,6 +72,7 @@ export class Configuration
                 this.configuration.multicast.length === 0
                     ? ''
                     : this.configuration.multicast.map((m) => m.multiaddr).join(', '),
+            action: 'Connect',
             icon: 'network_wifi_3_bar',
             type: OriginType.net,
             state: {
