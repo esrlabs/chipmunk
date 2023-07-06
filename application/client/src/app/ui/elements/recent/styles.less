@@ -9,6 +9,16 @@ app-recent-actions {
         position: relative;
         border-bottom: thin solid @scheme-color-4;
         padding: 6px 0;
+        display: flex;
+        width: 100%;
+        flex-direction: row;
+        align-items: flex-start;
+        & div.column_0 {
+   
+        }
+        & div.column_1 {
+            flex: auto;
+        }
         &:hover {
             background: @scheme-color-hover;
             &::before {
