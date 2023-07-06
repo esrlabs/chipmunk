@@ -6,11 +6,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { HiddenFilterModule } from '@elements/filter.hidden/module';
 
-import { RecentActions } from './component';
-import { RecentNatureModule } from './nature/module';
-import { RecentParserModule } from './parser/module';
+import { RecentParser } from './component';
+import { RecentParserDlt } from './dlt/component';
+import { RecentParserSomeIp } from './someip/component';
 
-const components = [RecentActions];
+const components = [RecentParser, RecentParserDlt, RecentParserSomeIp];
 @NgModule({
     imports: [
         CommonModule,
@@ -19,10 +19,8 @@ const components = [RecentActions];
         MatIconModule,
         MatMenuModule,
         HiddenFilterModule,
-        RecentNatureModule,
-        RecentParserModule,
     ],
     declarations: [...components],
     exports: [...components],
 })
-export class RecentActionsModule {}
+export class RecentParserModule {}

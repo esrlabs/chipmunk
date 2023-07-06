@@ -1,9 +1,10 @@
 <app-filter-hidden #filter></app-filter-hidden>
 <div class="action" *ngFor="let action of state.getFilteredActions()" (click)="onDefaultAction(action.action)" (contextmenu)="onAllActions($event, action.action)">
-    <p class="t-medium nowrap description">
+    <!-- <p class="t-medium nowrap description">
         <span class="major" [innerHTML]="safeHtml(action.description().major)"></span>
         <span class="color-scheme-2 minor" [innerHTML]="safeHtml(action.description().minor)"></span>
-    </p>
+    </p> -->
     <app-recent-nature [observe]="action.action.observe"></app-recent-nature>
+    <app-recent-parser [observe]="action.action.observe"></app-recent-parser>
 </div>
 <p class="t-medium nowrap description" *ngIf="state.getFilteredActions().length === 0">No recent actions</p>

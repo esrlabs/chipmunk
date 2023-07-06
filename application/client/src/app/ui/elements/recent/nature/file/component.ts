@@ -1,7 +1,7 @@
 import { Component, AfterContentInit, Input } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
-// import { bytesToStr, timestampToUTC } from '@env/str';
+import { getFileName, getParentFolder } from '@platform/types/files';
 
 import * as $ from '@platform/types/observe';
 
@@ -17,14 +17,10 @@ export class RecentNatureFile implements AfterContentInit {
 
     public name!: string;
     public path!: string;
-    public size!: string;
-    public created!: string;
 
     public ngAfterContentInit(): void {
-        // this.name = base.name;
-        // this.path = base.path;
-        // this.size = bytesToStr(base.size);
-        // this.created = timestampToUTC(base.created);
+        this.name = getFileName(this.origin.filename());
+        this.path = getParentFolder(this.origin.filename());
     }
 }
 export interface RecentNatureFile extends IlcInterface {}

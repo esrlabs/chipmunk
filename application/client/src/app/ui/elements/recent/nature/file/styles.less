@@ -5,27 +5,15 @@
     position: relative;
     display: block;
     width: 100%;
-    padding: 6px 0;
-    & div.section {
-        position: relative;
-    }
-    & span.path {
-        margin-left: 12px;
-    }
-    & .nowrap {
-        white-space: nowrap;    
-        text-overflow: ellipsis;
-        overflow: hidden;
-    }
-    & table > tr {
-        vertical-align: top;
-    }
-    & table * {
-        border-spacing: 0px;
-    }
-    & table {
-        & td.left-padding {
-            padding-left: 12px;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 13px;
+    & > p {
+        padding: 0;
+        margin: 0;
+        color: @scheme-color-3;
+        & > span {
+            color: @scheme-color-2;
         }
     }
 }
