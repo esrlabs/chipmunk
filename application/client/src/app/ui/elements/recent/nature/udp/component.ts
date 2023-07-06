@@ -14,11 +14,6 @@ import * as $ from '@platform/types/observe';
 export class RecentNatureUdp implements AfterContentInit {
     @Input() public origin!: $.Origin.Stream.Stream.UDP.Configuration;
 
-    public name!: string;
-    public path!: string;
-    public size!: string;
-    public created!: string;
-
     public ngAfterContentInit(): void {
         //
     }
