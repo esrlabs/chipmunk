@@ -91,6 +91,7 @@ export class Observe
         });
         this.parser.watcher.subscribe(() => {
             this.configuration.parser = this.parser.configuration;
+            this.parser.onOriginChange(this.origin);
         });
     }
 
