@@ -51,6 +51,7 @@ export class State extends Subscriber {
         this.update().files();
         this.update().parser();
         this.update().validate();
+        this.update().action();
         this.register(
             this.action.subjects.get().updated.subscribe(() => {
                 this.ref.markChangesForCheck();
@@ -60,6 +61,7 @@ export class State extends Subscriber {
             }),
             this.observe.watcher.subscribe(() => {
                 this.update().validate();
+                this.update().action();
             }),
         );
     }
@@ -102,6 +104,7 @@ export class State extends Subscriber {
         files(): void;
         parser(): void;
         validate(): void;
+        action(): void;
     } {
         return {
             stream: (): void => {
@@ -189,6 +192,9 @@ export class State extends Subscriber {
             validate: (): void => {
                 const error = this.observe.validate();
                 this.action.setDisabled(error instanceof Error);
+            },
+            action: (): void => {
+                this.action.setCaption(this.observe.origin.desc().action);
             },
         };
     }

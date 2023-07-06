@@ -65,6 +65,7 @@ export class Configuration
             major: this.configuration.path,
             minor: `Baud Rate: ${this.configuration.baud_rate}`,
             icon: 'import_export',
+            action: 'Connect',
             type: OriginType.serial,
             state: {
                 running: 'listening',

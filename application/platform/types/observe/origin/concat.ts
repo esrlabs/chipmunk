@@ -99,6 +99,7 @@ export class Configuration
             minor: first !== undefined ? basefolder(first[2]) : '',
             icon: 'insert_drive_file',
             type: OriginType.file,
+            action: 'Concat',
             state: {
                 running: 'processing',
                 stopped: '',
