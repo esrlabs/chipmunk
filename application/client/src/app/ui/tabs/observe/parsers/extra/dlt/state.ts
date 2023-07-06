@@ -62,9 +62,17 @@ export class State extends Base {
         load(): void;
         build(preselection?: Dlt.IFilters): void;
         filter(value: string): void;
+        supported(): boolean;
     } {
         return {
+            supported: (): boolean => {
+                const parser = this.observe.parser.as<Dlt.Configuration>(Dlt.Configuration);
+                return parser === undefined ? false : parser.configuration.with_storage_header;
+            },
             load: (): void => {
+                if (!this.struct().supported()) {
+                    return;
+                }
                 this.ref
                     .ilc()
                     .services.system.bridge.dlt()
@@ -84,6 +92,9 @@ export class State extends Base {
                     });
             },
             build: (preselection?: Dlt.IFilters): void => {
+                if (!this.struct().supported()) {
+                    return;
+                }
                 if (this.stat === undefined) {
                     return;
                 }
@@ -114,6 +125,9 @@ export class State extends Base {
                 this.buildSummary().all();
             },
             filter: (value: string): void => {
+                if (!this.struct().supported()) {
+                    return;
+                }
                 this.matcher.search(value);
                 this.structure.forEach((structure) => {
                     structure.entities.sort(

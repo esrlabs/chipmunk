@@ -92,6 +92,10 @@ export class Configuration
         return this.configuration.map((c) => c[2]);
     }
 
+    public filetypes(): Types.File.FileType[] {
+        return this.configuration.map((c) => c[1]);
+    }
+
     public desc(): IOriginDetails {
         const first = this.configuration[0];
         return {

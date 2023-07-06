@@ -1,10 +1,13 @@
 <mat-card class="fill sticky">
     <mat-card-content>
-      <div class="progress" *ngIf="!state.isStatLoaded()">
+      <div class="progress" *ngIf="!state.isStatLoaded() && state.struct().supported()">
           <mat-progress-bar mode="indeterminate"></mat-progress-bar>
           <p class="t-medium color-scheme-2">Scanning DLT structure...</p>
       </div>
-      <ng-container *ngIf="state.summary.total.isLoaded()">
+      <div class="progress" *ngIf="!state.struct().supported()">
+        <p class="t-medium color-scheme-2">DLT structure scanning isn't supported for this type of source</p>
+    </div>
+    <ng-container *ngIf="state.summary.total.isLoaded() && state.struct().supported()">
         <p class="t-medium color-scheme-2">Summary ({{state.summary.total.count}} / {{state.summary.selected.count}})</p>
         <table class="table-fill">
             <tr class="info" >
