@@ -7,6 +7,7 @@ import { List, IList } from '../../description';
 import * as Stream from '../../origin/stream/index';
 import * as Files from '../../types/file';
 import * as obj from '../../../../env/obj';
+import * as Origin from '../../origin/index';
 
 export interface LevelDistribution {
     non_log: number;
@@ -53,7 +54,7 @@ export interface IConfiguration {
 @Statics<ConfigurationStaticDesc<IConfiguration, Protocol>>()
 export class Configuration
     extends Base<IConfiguration, Configuration, Protocol>
-    implements List, Stream.Support, Files.Support
+    implements List, Stream.Support, Files.Support, Origin.OnChange
 {
     static desc(): IList {
         return {
@@ -94,6 +95,23 @@ export class Configuration
             fibex_file_paths: [],
             with_storage_header: true,
         };
+    }
+
+    public onOriginChange(origin: Origin.Configuration): void {
+        if (origin.instance instanceof Origin.Stream.Configuration) {
+            this.configuration.with_storage_header = false;
+        } else if (origin.instance instanceof Origin.File.Configuration) {
+            this.configuration.with_storage_header =
+                origin.instance.filetype() === Files.FileType.Binary;
+        } else if (origin.instance instanceof Origin.Concat.Configuration) {
+            // TODO: could be issue if concat configuration have different types
+            // of files
+            const types = origin.instance.filetypes();
+            this.configuration.with_storage_header =
+                types.length === 0 ? true : types[0] === Files.FileType.Binary;
+        } else {
+            throw new Error(`Not implemented usecase for DLT parser onOriginChange`);
+        }
     }
 
     public desc(): IList {

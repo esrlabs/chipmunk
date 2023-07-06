@@ -22,6 +22,10 @@ export enum Context {
 
 export type SourceUuid = string;
 
+export interface OnChange {
+    onOriginChange(origin: Configuration): void;
+}
+
 export interface IConfiguration {
     [Context.File]?: File.IConfiguration;
     [Context.Concat]?: Concat.IConfiguration;

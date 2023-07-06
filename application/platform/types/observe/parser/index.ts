@@ -13,6 +13,7 @@ export * as SomeIp from './someip';
 export * as Text from './text';
 import * as Stream from '../origin/stream/index';
 import * as Files from '../types/file';
+import * as Origin from '../origin/index';
 
 export type Reference = ReferenceDesc<IDeclaration, Declaration, Protocol>;
 
@@ -66,7 +67,7 @@ export function suggestParserByFileExt(filename: string): Reference | undefined 
 @Statics<ConfigurationStatic<IConfiguration, Protocol>>()
 export class Configuration
     extends Base<IConfiguration, Configuration, Protocol>
-    implements List, Stream.Support, Files.Support
+    implements List, Stream.Support, Files.Support, Origin.OnChange
 {
     static alias(): Protocol {
         throw new Error(`Alias of parsers holder should be used`);
@@ -143,6 +144,10 @@ export class Configuration
     constructor(configuration: IConfiguration) {
         super(configuration);
         this.setInstance();
+    }
+
+    public onOriginChange(origin: Origin.Configuration): void {
+        this.instance.onOriginChange(origin);
     }
 
     public change(parser: Declaration): void {

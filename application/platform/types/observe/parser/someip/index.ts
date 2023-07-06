@@ -7,6 +7,7 @@ import { List, IList } from '../../description';
 import * as Stream from '../../origin/stream/index';
 import * as obj from '../../../../env/obj';
 import * as Files from '../../types/file';
+import * as Origin from '../../origin/index';
 
 export interface SomeipStatistic {
     /** Statistic on service-ids and related method-ids */
@@ -60,6 +61,10 @@ export class Configuration
         return {
             fibex_file_paths: [],
         };
+    }
+
+    public onOriginChange(_origin: Origin.Configuration): void {
+        //Do nothing
     }
 
     public desc(): IList {
