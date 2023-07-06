@@ -84,8 +84,10 @@ export class Observe
         super(observe);
         this.origin = new Origin.Configuration(observe.origin);
         this.parser = new Parser.Configuration(observe.parser);
+        this.parser.onOriginChange(this.origin);
         this.origin.watcher.subscribe(() => {
             this.configuration.origin = this.origin.configuration;
+            this.parser.onOriginChange(this.origin);
         });
         this.parser.watcher.subscribe(() => {
             this.configuration.parser = this.parser.configuration;
