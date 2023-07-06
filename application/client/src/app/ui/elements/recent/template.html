@@ -4,7 +4,12 @@
         <span class="major" [innerHTML]="safeHtml(action.description().major)"></span>
         <span class="color-scheme-2 minor" [innerHTML]="safeHtml(action.description().minor)"></span>
     </p> -->
-    <app-recent-nature [observe]="action.action.observe"></app-recent-nature>
-    <app-recent-parser [observe]="action.action.observe"></app-recent-parser>
+    <div class="column_0">
+        <app-recent-nature-icon [observe]="action.action.observe"></app-recent-nature-icon>
+    </div>
+    <div class="column_1">
+        <app-recent-nature [observe]="action.action.observe"></app-recent-nature>
+        <app-recent-parser [observe]="action.action.observe"></app-recent-parser>
+    </div>
 </div>
 <p class="t-medium nowrap description" *ngIf="state.getFilteredActions().length === 0">No recent actions</p>

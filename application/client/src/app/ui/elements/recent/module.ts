@@ -7,10 +7,11 @@ import { MatMenuModule } from '@angular/material/menu';
 import { HiddenFilterModule } from '@elements/filter.hidden/module';
 
 import { RecentActions } from './component';
+import { RecentIcon } from './icon/component';
 import { RecentNatureModule } from './nature/module';
 import { RecentParserModule } from './parser/module';
 
-const components = [RecentActions];
+const components = [RecentActions, RecentIcon];
 @NgModule({
     imports: [
         CommonModule,
