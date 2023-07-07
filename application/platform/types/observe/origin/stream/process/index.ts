@@ -7,6 +7,7 @@ import { Statics } from '../../../../../env/decorators';
 import * as obj from '../../../../../env/obj';
 import * as Parser from '../../../parser';
 import * as Sde from '../../../sde';
+import * as str from '../../../../../env/str';
 
 export interface IConfiguration {
     command: string;
@@ -75,5 +76,16 @@ export class Configuration
 
     public getSupportedParsers(): Parser.Reference[] {
         return [Parser.Text.Configuration];
+    }
+
+    public override storable(): IConfiguration {
+        const sterilized = this.sterilized();
+        sterilized.envs = {};
+        // Doesn't make sense to store envvars collection.
+        return sterilized;
+    }
+
+    public override hash(): number {
+        return str.hash(`${this.configuration.command};${this.configuration.cwd}`);
     }
 }

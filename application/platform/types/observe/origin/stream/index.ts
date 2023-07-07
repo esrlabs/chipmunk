@@ -213,4 +213,12 @@ export class Configuration
         }
         return undefined;
     }
+
+    public override storable(): IConfiguration {
+        return { [this.instance.alias()]: this.instance.storable() };
+    }
+
+    public override hash(): number {
+        return this.instance.hash();
+    }
 }

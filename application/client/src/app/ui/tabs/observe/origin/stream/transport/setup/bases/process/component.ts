@@ -61,19 +61,16 @@ export class SetupBase
         this.state = new State(this.action, this.configuration);
         this._inputs.cmd.defaults = this.state.configuration.configuration.command;
         this._inputs.cwd.defaults = this.state.configuration.configuration.cwd;
-        // this.action.subjects.get().applied.subscribe(() => {
-        //     this._inputs.cmd.recent.emit(undefined);
-        //     this.state.configuration.configuration.cwd.trim() !== '' &&
-        //         this.ilc()
-        //             .services.system.bridge.cwd()
-        //             .set(undefined, this.state.configuration.configuration.cwd)
-        //             .catch((err: Error) => {
-        //                 this.log().error(`Fail to set cwd path: ${err.message}`);
-        //             });
-        // });
-        // if (this.state.configuration.configuration.command.trim() === '') {
-        //     this.action.setDisabled(true);
-        // }
+        this.action.subjects.get().apply.subscribe(() => {
+            this._inputs.cmd.recent.emit(undefined);
+            this.state.configuration.configuration.cwd.trim() !== '' &&
+                this.ilc()
+                    .services.system.bridge.cwd()
+                    .set(undefined, this.state.configuration.configuration.cwd)
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to set cwd path: ${err.message}`);
+                    });
+        });
         this.ilc()
             .services.system.bridge.env()
             .get()
@@ -150,10 +147,8 @@ export class SetupBase
     public edit(target: 'cmd' | 'cwd', value: string): void {
         if (target === 'cmd') {
             this.state.configuration.configuration.command = value;
-            // this.action.setDisabled(value.trim() === '');
         } else {
             this.state.configuration.configuration.cwd = value;
-            // this.action.setDisabled(this.cwdInputRef.error.is());
         }
     }
 

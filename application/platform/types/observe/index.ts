@@ -2,6 +2,7 @@ import { unique } from '../../env/sequence';
 import { Configuration as Base, getCompatibilityMod } from './configuration';
 import { Mutable } from '../unity/mutable';
 import { LockToken } from '../../env/lock.token';
+import { Signature } from '../env/types';
 
 import * as Parser from './parser';
 import * as Origin from './origin';
@@ -21,7 +22,7 @@ export interface IObserve {
 
 export class Observe
     extends Base<IObserve, Observe, undefined>
-    implements Sde.Support, Parser.Support
+    implements Sde.Support, Parser.Support, Signature<string>
 {
     static new(): Observe {
         return new Observe({
@@ -155,5 +156,20 @@ export class Observe
         throw new Error(
             `Parser "${parser}" and origin "${nature}" don't have description in Compatibility.Configurable table`,
         );
+    }
+
+    public override storable(): IObserve {
+        return {
+            origin: this.origin.storable(),
+            parser: this.parser.storable(),
+        };
+    }
+
+    public override hash(): number {
+        return this.origin.hash() + this.parser.hash();
+    }
+
+    public signature(): string {
+        return `${this.origin.hash()}${this.parser.hash()}`;
     }
 }

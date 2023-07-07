@@ -1,6 +1,5 @@
 import { Entry } from '@platform/types/storage/entry';
 import { error } from '@platform/log/utils';
-import { unique } from '@platform/env/sequence';
 import { session } from '@service/session';
 import { lockers, Locker } from '@ui/service/lockers';
 import { Stat, IStat } from './stat';
@@ -26,9 +25,11 @@ export class Action {
     protected logger: Logger;
 
     public stat: Stat = Stat.defaults();
-    public uuid: string = unique();
+    public uuid: string;
+    public converted: boolean = false;
 
     constructor(public observe: $.Observe) {
+        this.uuid = observe.signature();
         this.logger = scope.getLogger(`Action: ${this.uuid}`);
     }
 
@@ -57,16 +58,13 @@ export class Action {
                     if (body.observe === undefined) {
                         // Check previous version (chipmunk <= 3.8.1)
                         this.observe = compatibility.from_3_8_1(entry);
+                        this.converted = true;
                     } else {
                         const observe = new $.Observe(body.observe);
-                        const err = observe.json().from(entry.content);
-                        if (err instanceof Error) {
-                            return err;
-                        }
                         this.observe = observe;
                     }
                     this.stat = Stat.from(body.stat);
-                    this.uuid = entry.uuid;
+                    this.uuid = this.observe.signature();
                     return undefined;
                 } catch (err) {
                     return new Error(`Fail to parse action: ${error(err)}`);
@@ -77,7 +75,7 @@ export class Action {
                     uuid: this.uuid,
                     content: JSON.stringify({
                         stat: this.stat.asObj(),
-                        observe: this.observe.configuration,
+                        observe: this.observe.storable(),
                     } as IActionContent),
                 };
             },
