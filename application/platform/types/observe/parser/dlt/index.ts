@@ -8,6 +8,7 @@ import * as Stream from '../../origin/stream/index';
 import * as Files from '../../types/file';
 import * as obj from '../../../../env/obj';
 import * as Origin from '../../origin/index';
+import * as str from '../../../../env/str';
 
 export interface LevelDistribution {
     non_log: number;
@@ -111,6 +112,17 @@ export class Configuration
         };
     }
 
+    protected getDefaultsFilters(): IFilters {
+        return {
+            min_log_level: LogLevel.Verbose,
+            app_ids: undefined,
+            ecu_ids: undefined,
+            context_ids: undefined,
+            app_id_count: 0,
+            context_id_count: 0,
+        };
+    }
+
     public onOriginChange(origin: Origin.Configuration): void {
         if (origin.instance instanceof Origin.Stream.Configuration) {
             this.configuration.with_storage_header = false;
@@ -136,14 +148,7 @@ export class Configuration
         if (this.configuration.filter_config !== undefined) {
             return;
         }
-        this.configuration.filter_config = {
-            min_log_level: LogLevel.Verbose,
-            app_ids: undefined,
-            ecu_ids: undefined,
-            context_ids: undefined,
-            app_id_count: 0,
-            context_id_count: 0,
-        };
+        this.configuration.filter_config = this.getDefaultsFilters();
     }
 
     public dropFilterConfigIfPossible(): void {
@@ -172,5 +177,20 @@ export class Configuration
             return;
         }
         this.configuration.filter_config = undefined;
+    }
+
+    public override hash(): number {
+        const filters =
+            this.configuration.filter_config === undefined
+                ? this.getDefaultsFilters()
+                : this.configuration.filter_config;
+        return str.hash(
+            `dlt:${(this.configuration.fibex_file_paths === undefined
+                ? []
+                : this.configuration.fibex_file_paths
+            ).join(';')};${this.configuration.with_storage_header};${filters.min_log_level};${
+                filters.ecu_ids?.length
+            };${filters.app_ids?.length};${filters.context_ids?.length}`,
+        );
     }
 }

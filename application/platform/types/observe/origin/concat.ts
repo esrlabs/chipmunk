@@ -10,6 +10,7 @@ import { unique } from '../../../env/sequence';
 import * as Types from '../types';
 import * as Parser from '../parser';
 import * as Sde from '../sde';
+import * as str from '../../../env/str';
 
 export type IConfiguration = [SourceUuid, Types.File.FileType, Types.File.FileName][];
 
@@ -136,5 +137,9 @@ export class Configuration
             case Types.File.FileType.Text:
                 return [Parser.Text.Configuration];
         }
+    }
+
+    public override hash(): number {
+        return str.hash(`${this.files().join(';')};${this.filetypes().join(';')}`);
     }
 }

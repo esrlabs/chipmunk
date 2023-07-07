@@ -1,6 +1,6 @@
 import { error } from '../../log/utils';
 import { JsonConvertor } from '../storage/json';
-import { Validate, SelfValidate, Alias, Destroy } from '../env/types';
+import { Validate, SelfValidate, Alias, Destroy, Storable, Hash } from '../env/types';
 import { List } from './description';
 import { Mutable } from '../unity/mutable';
 import { scope } from '../../env/scope';
@@ -129,7 +129,12 @@ export function getCompatibilityMod(): ICompatibilityMod {
 
 export abstract class Configuration<T, C, A>
     extends Subscriber
-    implements JsonConvertor<Configuration<T, C, A>>, SelfValidate, Destroy
+    implements
+        JsonConvertor<Configuration<T, C, A>>,
+        SelfValidate,
+        Storable<T>,
+        Hash<number>,
+        Destroy
 {
     protected ref: Reference<T, C, A>;
     protected overwriting: boolean = false;
@@ -227,4 +232,12 @@ export abstract class Configuration<T, C, A>
     public sterilized(): T {
         return obj.sterilize(this.configuration, [STAMP]);
     }
+
+    // This is default implementation, but in some cases (like "Stream.Process")
+    // it should be adjusted
+    public storable(): T {
+        return this.sterilized();
+    }
+
+    public abstract hash(): number;
 }

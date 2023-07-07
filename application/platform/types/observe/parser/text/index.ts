@@ -4,6 +4,7 @@ import { Configuration as Base, ConfigurationStaticDesc } from '../../configurat
 import { Statics } from '../../../../env/decorators';
 import { List, IList } from '../../description';
 
+import * as str from '../../../../env/str';
 import * as Origin from '../../origin/index';
 import * as Stream from '../../origin/stream/index';
 import * as Files from '../../types/file';
@@ -49,5 +50,9 @@ export class Configuration
 
     public desc(): IList {
         return Configuration.desc();
+    }
+
+    public override hash(): number {
+        return str.hash(`text`);
     }
 }

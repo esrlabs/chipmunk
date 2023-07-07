@@ -174,4 +174,12 @@ export class Configuration
     public as<T>(Ref: { new (...args: any[]): Declaration } & Alias<unknown>): T | undefined {
         return this.instance.alias() === Ref.alias() ? (this.instance as T) : undefined;
     }
+
+    public override storable(): IConfiguration {
+        return { [this.instance.alias()]: this.instance.storable() };
+    }
+
+    public override hash(): number {
+        return this.instance.hash();
+    }
 }

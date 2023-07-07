@@ -6,6 +6,7 @@ import { Statics } from '../../../../../env/decorators';
 import * as Parser from '../../../parser';
 import * as Sde from '../../../sde';
 import * as Ip from '../../../../../env/ipaddr';
+import * as str from '../../../../../env/str';
 
 export interface IConfiguration {
     bind_addr: string;
@@ -65,5 +66,9 @@ export class Configuration
 
     public getSupportedParsers(): Parser.Reference[] {
         return [Parser.Dlt.Configuration];
+    }
+
+    public override hash(): number {
+        return str.hash(`${this.configuration.bind_addr}`);
     }
 }

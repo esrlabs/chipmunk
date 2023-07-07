@@ -8,6 +8,7 @@ import * as obj from '../../../../../env/obj';
 import * as Parser from '../../../parser';
 import * as Sde from '../../../sde';
 import * as Ip from '../../../../../env/ipaddr';
+import * as str from '../../../../../env/str';
 
 export interface Multicast {
     multiaddr: string;
@@ -95,5 +96,13 @@ export class Configuration
 
     public getSupportedParsers(): Parser.Reference[] {
         return [Parser.Dlt.Configuration, Parser.SomeIp.Configuration];
+    }
+
+    public override hash(): number {
+        return str.hash(
+            `${this.configuration.bind_addr};${this.configuration.multicast
+                .map((m) => `${m.multiaddr};${m.interface}`)
+                .join(';')}`,
+        );
     }
 }
