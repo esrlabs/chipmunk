@@ -10,7 +10,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@types/jasmine": "^4.3.2",
+    "@types/jasmine": "^4.3.5",
     "@wasm-tool/wasm-pack-plugin": "^1.6.0",
     "karma": "^6.4.0",
     "karma-chrome-launcher": "^3.1.1",
@@ -18,11 +18,11 @@
     "karma-spec-reporter": "^0.0.36",
     "karma-typescript": "^5.5.3",
     "karma-webpack": "^5.0.0",
-    "ts-loader": "^9.4.3",
+    "ts-loader": "^9.4.4",
     "ts-node": "^10.8.2",
-    "typescript": "^5.0.4",
-    "webpack": "^5.84.1",
-    "webpack-cli": "^5.1.1",
-    "webpack-dev-server": "^4.15.0"
+    "typescript": "^5.1.6",
+    "webpack": "^5.88.1",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^4.15.1"
   }
 }
