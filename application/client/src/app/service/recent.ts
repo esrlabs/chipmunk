@@ -26,41 +26,49 @@ export class Service extends Implementation {
     }
 
     public async get(): Promise<Action[]> {
-        const actions = await bridge
-            .entries({ key: STORAGE_KEY })
-            .get()
-            .then((entries) => {
-                const actions = entries
-                    .map((entry) => {
-                        const action = Action.from(entry);
-                        if (action instanceof Error) {
-                            this.log().error(`Fail to read action: ${error(action)}`);
-                            return undefined;
-                        } else {
-                            return action;
-                        }
-                    })
-                    .filter((a) => a !== undefined) as Action[];
-                const converted = actions.filter((a) => a.converted);
-                if (converted.length > 0) {
-                    this.update(converted)
-                        .then(() => {
-                            this.log().debug(
-                                `${converted.length} converted actions has been updated`,
-                            );
-                        })
-                        .catch((err: Error) => {
-                            this.log().error(
-                                `Fail to update converted recent actions: ${err.message}`,
-                            );
-                        });
+        const entries = await bridge.entries({ key: STORAGE_KEY }).get();
+        const actions = entries
+            .map((entry) => {
+                const action = Action.from(entry);
+                if (action instanceof Error) {
+                    this.log().error(`Fail to read action: ${error(action)}`);
+                    return undefined;
+                } else {
+                    return action;
                 }
-                return actions;
-            });
+            })
+            .filter((a) => a !== undefined) as Action[];
+        const invalid = actions.filter((a) => a.compatibility.invalidUuid !== undefined);
+        if (invalid.length > 0) {
+            await this.delete(invalid.map((a) => a.compatibility.invalidUuid as string))
+                .then(() => {
+                    this.log().debug(
+                        `${invalid.length} actions with invalid UUIDs has been removed`,
+                    );
+                })
+                .catch((err: Error) => {
+                    this.log().error(
+                        `Fail to remove recent actions with invalid uuid: ${err.message}`,
+                    );
+                });
+        }
+        const converted = actions.filter((a) => a.compatibility.converted);
+        if (converted.length > 0) {
+            await this.update(converted)
+                .then(() => {
+                    this.log().debug(`${converted.length} converted actions has been updated`);
+                })
+                .catch((err: Error) => {
+                    this.log().error(`Fail to update converted recent actions: ${err.message}`);
+                });
+        }
         return actions;
     }
 
     public async update(actions: Action[]): Promise<void> {
+        if (actions.length === 0) {
+            return;
+        }
         const stored = await this.get();
         actions.forEach((action) => {
             const found = stored.find((a) => a.uuid === action.uuid);
