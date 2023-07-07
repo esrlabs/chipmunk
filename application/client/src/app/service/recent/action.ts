@@ -26,7 +26,13 @@ export class Action {
 
     public stat: Stat = Stat.defaults();
     public uuid: string;
-    public converted: boolean = false;
+    public compatibility: {
+        converted: boolean;
+        invalidUuid: string | undefined;
+    } = {
+        converted: false,
+        invalidUuid: undefined,
+    };
 
     constructor(public observe: $.Observe) {
         this.uuid = observe.signature();
@@ -58,13 +64,15 @@ export class Action {
                     if (body.observe === undefined) {
                         // Check previous version (chipmunk <= 3.8.1)
                         this.observe = compatibility.from_3_8_1(entry);
-                        this.converted = true;
+                        this.compatibility.converted = true;
                     } else {
                         const observe = new $.Observe(body.observe);
                         this.observe = observe;
                     }
                     this.stat = Stat.from(body.stat);
                     this.uuid = this.observe.signature();
+                    this.compatibility.invalidUuid =
+                        entry.uuid !== this.uuid ? entry.uuid : undefined;
                     return undefined;
                 } catch (err) {
                     return new Error(`Fail to parse action: ${error(err)}`);
