@@ -8,6 +8,7 @@ import * as Stream from '../../origin/stream/index';
 import * as obj from '../../../../env/obj';
 import * as Files from '../../types/file';
 import * as Origin from '../../origin/index';
+import * as str from '../../../../env/str';
 
 export interface SomeipStatistic {
     /** Statistic on service-ids and related method-ids */
@@ -69,5 +70,14 @@ export class Configuration
 
     public desc(): IList {
         return Configuration.desc();
+    }
+
+    public override hash(): number {
+        return str.hash(
+            `someip:${(this.configuration.fibex_file_paths === undefined
+                ? []
+                : this.configuration.fibex_file_paths
+            ).join(';')}`,
+        );
     }
 }

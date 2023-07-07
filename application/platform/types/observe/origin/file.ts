@@ -6,10 +6,10 @@ import { filename, basefolder } from '../../../env/str';
 import { Statics } from '../../../env/decorators';
 import { unique } from '../../../env/sequence';
 
-import * as str from '../../../env/str';
 import * as Types from '../types';
 import * as Parser from '../parser';
 import * as Sde from '../sde';
+import * as str from '../../../env/str';
 
 export type IConfiguration = [SourceUuid, Types.File.FileType, Types.File.FileName];
 
@@ -115,5 +115,9 @@ export class Configuration
             case Types.File.FileType.Text:
                 return [Parser.Text.Configuration];
         }
+    }
+
+    public override hash(): number {
+        return str.hash(`${this.filename()};${this.filetype()}`);
     }
 }

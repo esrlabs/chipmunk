@@ -21,6 +21,7 @@ import { File } from '@platform/types/files';
 import { Observe } from '@platform/types/observe';
 import { getRender } from '@schema/render/tools';
 import { TabObserve } from '@tabs/observe/component';
+import { recent } from '@service/recent';
 
 export { Session, TabControls, UnboundTab, Base };
 
@@ -291,6 +292,11 @@ export class Service extends Implementation {
                                 if (error instanceof Error) {
                                     this.log().error(`Fail to bind session: ${error.message}`);
                                 }
+                                recent.add(observe).catch((err: Error) => {
+                                    this.log().error(
+                                        `Fail to save action as recent: ${err.message}`,
+                                    );
+                                });
                             }
                             resolve(uuid);
                         })

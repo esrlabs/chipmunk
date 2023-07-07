@@ -35,7 +35,7 @@ export class SetupBase extends ChangesDetector implements AfterContentInit, OnDe
 
     public ngOnDestroy() {
         this.state.scan().stop();
-        // this.state.destroy();
+        this.state.destroy();
     }
 }
 export interface SetupBase extends IlcInterface {}

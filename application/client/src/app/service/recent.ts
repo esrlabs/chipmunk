@@ -30,7 +30,7 @@ export class Service extends Implementation {
             .entries({ key: STORAGE_KEY })
             .get()
             .then((entries) => {
-                return entries
+                const actions = entries
                     .map((entry) => {
                         const action = Action.from(entry);
                         if (action instanceof Error) {
@@ -41,6 +41,21 @@ export class Service extends Implementation {
                         }
                     })
                     .filter((a) => a !== undefined) as Action[];
+                const converted = actions.filter((a) => a.converted);
+                if (converted.length > 0) {
+                    this.update(converted)
+                        .then(() => {
+                            this.log().debug(
+                                `${converted.length} converted actions has been updated`,
+                            );
+                        })
+                        .catch((err: Error) => {
+                            this.log().error(
+                                `Fail to update converted recent actions: ${err.message}`,
+                            );
+                        });
+                }
+                return actions;
             });
         return actions;
     }

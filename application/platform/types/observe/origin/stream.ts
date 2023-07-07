@@ -105,4 +105,12 @@ export class Configuration
             ? (this.instance.instance as T)
             : undefined;
     }
+
+    public override storable(): IConfiguration {
+        return [this.configuration[0], this.instance.storable()];
+    }
+
+    public override hash(): number {
+        return this.instance.hash();
+    }
 }

@@ -14,12 +14,20 @@ export abstract class SelfValidate {
     public abstract validate(): Error | undefined;
 }
 
+export abstract class Storable<T> {
+    public abstract storable(): T;
+}
+
 export abstract class Alias<T> {
     public abstract alias(): T;
 }
 
 export abstract class Signature<T> {
     public abstract signature(): T;
+}
+
+export abstract class Hash<T> {
+    public abstract hash(): T;
 }
 
 export abstract class Destroy {
