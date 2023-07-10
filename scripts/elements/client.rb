@@ -12,6 +12,7 @@ namespace :client do
   desc 'clean client'
   task :clean do
     Client::TARGETS.each do |path|
+      path = "#{path}/.node_integrity" if File.basename(path) == 'node_modules'
       if File.exist?(path)
         Shell.rm_rf(path)
         Reporter.removed('client', "removed: #{path}", '')
@@ -49,13 +50,13 @@ namespace :client do
     'ansi:build',
     'environment:check'
   ] do
-    client_build_needed = ChangeChecker.changes?(Paths::CLIENT)
+    client_build_needed = ChangeChecker.changes?('client_prod', Paths::CLIENT)
     # TODO: Oli: check if this is still needed: client_build_needed = changes_to_files || matcher.changes_to_files || ansi.changes_to_files || utils.changes_to_files
     if client_build_needed
       begin
         Shell.chdir(Paths::CLIENT) do
           Shell.sh 'yarn run prod'
-          ChangeChecker.reset(Paths::CLIENT, Client::TARGETS)
+          ChangeChecker.reset('client_prod', Paths::CLIENT, Client::TARGETS)
           Reporter.done('client', 'build in production mode', '')
         end
         client_dist = "#{Paths::CLIENT_DIST}/release"
@@ -76,12 +77,12 @@ namespace :client do
     'ansi:build',
     'utils:build'
   ] do
-    client_build_needed = ChangeChecker.changes?(Paths::CLIENT)
+    client_build_needed = ChangeChecker.changes?('client_dev', Paths::CLIENT)
     if client_build_needed
       begin
         Shell.chdir(Paths::CLIENT) do
           Shell.sh 'yarn run build'
-          ChangeChecker.reset(Paths::CLIENT, Client::TARGETS)
+          ChangeChecker.reset('client_dev', Paths::CLIENT, Client::TARGETS)
           Reporter.done('client', 'build in developing mode', '')
         end
         client_dist = "#{Paths::CLIENT_DIST}/debug"
@@ -93,13 +94,6 @@ namespace :client do
     else
       Reporter.skipped('client', 'build in developing mode', '')
     end
-  end
-
-  desc 'Delivery client'
-  task :delivery do
-    client_dist = "#{Paths::CLIENT_DIST}/client"
-    Dir.mkdir_p(Paths::ELECTRON_DIST)
-    sh "cp -r #{client_dist} #{Paths::ELECTRON_DIST}"
   end
 
   desc 'Lint client'
