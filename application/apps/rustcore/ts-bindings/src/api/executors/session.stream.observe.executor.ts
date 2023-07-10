@@ -18,6 +18,7 @@ export const executor: TExecutor<void, IObserve> = (
     logger: Logger,
     options: IObserve,
 ): CancelablePromise<void> => {
+    const debugInfo = JSON.stringify(options);
     return AsyncVoidConfirmedExecutor<IObserve>(
         session,
         provider,
@@ -25,6 +26,9 @@ export const executor: TExecutor<void, IObserve> = (
         options,
         function (session: RustSession, options: IObserve, operationUuid: string): Promise<void> {
             return session.observe(options, operationUuid);
+        },
+        (): string => {
+            return debugInfo;
         },
         'observe',
     );

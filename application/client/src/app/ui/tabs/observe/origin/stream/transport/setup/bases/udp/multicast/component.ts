@@ -12,6 +12,7 @@ import * as Stream from '@platform/types/observe/origin/stream/index';
 @Ilc()
 export class Multicast {
     @Input() public multicast!: Stream.UDP.Multicast;
+
     public errors: {
         multiaddr: Errors.ErrorState;
         interface: Errors.ErrorState;
