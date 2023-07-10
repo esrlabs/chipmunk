@@ -7,16 +7,7 @@ import * as Stream from '@platform/types/observe/origin/stream/index';
 const MULTICAST_ADDR = '255.255.255.255';
 const MULTUCAST_INTERFACE = '0.0.0.0';
 
-export interface IMulticastInfo {
-    fields: Stream.UDP.Multicast;
-    errors: {
-        multiaddr: Errors.ErrorState;
-        interface: Errors.ErrorState;
-    };
-}
-
-export class State  implements Destroy {
-
+export class State implements Destroy {
     public errors: {
         address: Errors.ErrorState;
     };

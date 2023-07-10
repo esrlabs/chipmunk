@@ -25,6 +25,7 @@ class LifeCycle extends Subscriber {
         protected readonly reject: (err: Error) => void,
         protected readonly cancel: (reason?: any) => void,
         protected readonly refCancelCB: (cb: TCanceler<void>) => void,
+        protected readonly getDebugInfo: () => string,
         protected readonly task: ICancelablePromise<void>,
     ) {
         super();
@@ -68,10 +69,16 @@ class LifeCycle extends Subscriber {
                 return;
             }
             this.logger.error(
-                `${this.signature}: cancellation was done with error: ${event.error.message}, but promise wasn't completed.`,
+                `${this.signature}: cancellation was done with error: ${
+                    event.error.message
+                }, but promise wasn't completed; info: ${this.getDebugInfo()}`,
             );
         } else {
-            this.logger.warn(`${this.signature}: (event) error ${event.error.message}`);
+            this.logger.warn(
+                `${this.signature}: (event) error ${
+                    event.error.message
+                }; info: ${this.getDebugInfo()}`,
+            );
         }
         this.reject(new Error(event.error.message));
     }
@@ -104,7 +111,7 @@ class LifeCycle extends Subscriber {
         if (uuid !== this.task.uuid()) {
             return;
         }
-        this.logger.verbose(`${this.signature}: (event) confirmed`);
+        this.logger.verbose(`${this.signature}: (event) confirmed; info: ${this.getDebugInfo()}`);
         this.task.emit('confirmed');
     }
 
@@ -154,6 +161,7 @@ export function AsyncVoidConfirmedExecutor<TOptions>(
     logger: Logger,
     options: TOptions,
     runner: TOperationRunner<TOptions>,
+    getDebugInfo: () => string,
     name: string,
 ): CancelablePromise<void> {
     return new CancelablePromise<void>((resolve, reject, cancel, refCancelCB, self) => {
@@ -168,6 +176,7 @@ export function AsyncVoidConfirmedExecutor<TOptions>(
             reject,
             cancel,
             refCancelCB,
+            getDebugInfo,
             self,
         );
         logger.verbose(`${signature}: started`);
