@@ -10,18 +10,6 @@
         <strong>required</strong>
     </mat-error>
 </mat-form-field>
-<!-- <mat-form-field class="material-mofication-normal row">
-    <mat-label>Port</mat-label>
-    <input matInput
-        [(ngModel)]="state.bindingPort"
-        [errorStateMatcher]="state.errors.bindingPort">
-    <mat-error *ngIf="state.errors.bindingPort.getErrorCode() === 'INVALID'">
-        Please enter a valid port value
-    </mat-error>
-    <mat-error *ngIf="state.errors.bindingPort.getErrorCode() === 'REQUIRED'">
-        <strong>required</strong>
-    </mat-error>
-</mat-form-field> -->
 <div class="mutlicasts" *ngIf="state.configuration.configuration.multicast.length > 0">
     <mat-divider></mat-divider>
     <p class="t-medium">Multicasts</p>
