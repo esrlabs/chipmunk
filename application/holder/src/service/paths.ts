@@ -153,7 +153,8 @@ export class Service extends Implementation {
     }
 
     public getClient(): string {
-        return path.resolve(this.getRoot(), 'client');
+        // TODO: @dmitry how to distinguish between debug/release?
+        return path.resolve(this.getRoot(), 'debug');
     }
 
     public getPreload(): string {

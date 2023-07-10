@@ -10,9 +10,14 @@ require './scripts/elements/electron'
 require './scripts/elements/release'
 require './scripts/elements/updater'
 require './scripts/interactive/menu'
+require './scripts/tools/change_checker'
+
+CLOBBER.include("#{Paths::CLIENT}/.angular")
+CLOBBER.include('./**/node_modules')
+
+task clean: 'clean:all'
 
 namespace :clean do
-  desc 'clean every build artifact'
   task all: [
     'bindings:clean',
     'electron:clean',
@@ -23,7 +28,8 @@ namespace :clean do
     'platform:clean',
     'release:clean',
     'indexer:clean',
-    'matcher:clean'
+    'matcher:clean',
+    'clean_change_list'
   ]
 end
 
@@ -191,3 +197,21 @@ task :print_dot do
   print_deps
 end
 
+# Put this in Rakefile (doesn't matter where)
+require 'benchmark'
+class Rake::Task
+  def execute_with_benchmark(*args)
+    bm = Benchmark.measure { execute_without_benchmark(*args) }
+    puts "   #{name} --> #{bm}"
+  end
+
+  alias_method :execute_without_benchmark, :execute
+  alias_method :execute, :execute_with_benchmark
+end
+
+desc 'start chipmunk (dev)'
+task run_dev: 'electron:build_dev' do
+  cd Paths::ELECTRON do
+    Shell.sh 'yarn run electron'
+  end
+end
