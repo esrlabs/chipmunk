@@ -7,46 +7,44 @@ RSpec.describe ChangeChecker do
   let(:path) { 'scripts' }
   let(:targets) { Paths::CHECKLISTS }
   let(:result) { ChangeChecker.changes?(path) }
-  let(:checklist_file) { ChangeChecker.checklist_file(path) }
-  let(:new_checklist_file) { ChangeChecker.checklist_file(path, true) }
+  let(:checklist_file) { ChangeChecker.checklist_path(path) }
 
   describe '.changes?' do
-    context 'given checklist file does not exist' do
-      it 'returns true' do
-        condition = !File.file?(checklist_file)
-        expect(result).to eq(condition)
+    context 'given checklist file was not cleaned' do
+      it 'should not exist' do
+        ChangeChecker.clean_change_list
+        result = File.file?(checklist_file)
+        expect(result).to eq(false)
       end
     end
 
-    context 'given checklist file exists' do
-      it 'returns false' do
-        condition = !File.file?(checklist_file)
-        expect(result).to eq(condition)
+    context 'given checklist file was created' do
+      it 'should exist' do
+        ChangeChecker.clean_change_list
+        ChangeChecker.create_changelist(path, targets)
+        result = File.file?(checklist_file)
+        expect(result).to eq(true)
       end
     end
 
     context 'given no changes made to underlying files since last run' do
-      it 'returns false' do
-        ChangeChecker.changelist(path, targets, true)
-        new_checklist_file = ChangeChecker.checklist_file(path, true)
-        condition = File.open(new_checklist_file).to_set != File.open(checklist_file).to_set
-        expect(result).to eq(condition)
+      it 'should not report changes' do
+        ChangeChecker.clean_change_list
+        ChangeChecker.create_changelist(path, targets)
+        expect(ChangeChecker.changes?(path)).to eq(false)
       end
     end
 
     context 'given changes made to underlying files since last run' do
-      it 'returns true' do
-        ChangeChecker.changelist(path, targets, true)
-        new_checklist_file = ChangeChecker.checklist_file(path, true)
-        condition = File.open(new_checklist_file).to_set != File.open(checklist_file).to_set
-        expect(result).to eq(condition)
+      it 'should report changes' do
+        ChangeChecker.clean_change_list
+        ChangeChecker.create_changelist(path, targets)
+        test_file = "#{path}/new.txt"
+        File.write(test_file, 'hi')
+        expect(ChangeChecker.changes?(path)).to eq(true)
+        FileUtils.rm_f test_file
       end
     end
 
-    context 'in any condition' do
-      it 'returns boolean value' do
-        expect(result).to be(true).or be(false)
-      end
-    end
   end
 end
