@@ -251,6 +251,16 @@
                 "files": {
                 }
             }
+        },
+        "observing": {
+            "regular": {
+                "execute_only": [],
+                "list": {
+                    "1": "Test 1. Regular"
+                },
+                "files": {
+                }
+            }
         }
     }
 }
