@@ -80,6 +80,9 @@ export interface IConfiguration {
         promises: {
             regular: IRegularTests;
         };
+        observing: {
+            regular: IRegularTests;
+        };
     };
 }
 

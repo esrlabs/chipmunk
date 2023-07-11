@@ -1,6 +1,6 @@
 import { error } from '../../../../../log/utils';
 import { Source } from '../index';
-import { Configuration as Base, ConfigurationStaticDesc } from '../../../configuration';
+import { Configuration as Base, ConfigurationStaticDesc, observe } from '../../../configuration';
 import { OriginDetails, IOriginDetails, IList, Job, IJob, OriginType } from '../../../description';
 import { Statics } from '../../../../../env/decorators';
 
@@ -64,6 +64,12 @@ export class Configuration
             bind_addr: '',
             multicast: [],
         };
+    }
+
+    public addMulticast(): void {
+        this.configuration.multicast.push(
+            observe({ interface: '0.0.0.0', multiaddr: '255.255.255.255' }, super.watcher),
+        );
     }
 
     public desc(): IOriginDetails {
