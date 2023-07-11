@@ -12,3 +12,4 @@ export * as sequence from './sequence';
 export * as str from './str';
 export * as subscription from './subscription';
 export * as togglers from './togglers';
+export { Observer } from './observer';
