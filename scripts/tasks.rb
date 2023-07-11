@@ -336,6 +336,16 @@ namespace :test do
         sh "#{Paths::JASMINE} spec/build/spec/session.promises.spec.js"
       end
     end
+
+    desc 'run observing tests'
+    task :observing do
+      Bindings.new(false).build
+      Bindings.new(false).build_spec
+      Reporter.print
+      Shell.chdir(Paths::TS_BINDINGS) do
+        sh "#{Paths::JASMINE} spec/build/spec/session.observing.spec.js"
+      end
+    end
   end
   namespace :matcher do
     desc 'run karma tests'
