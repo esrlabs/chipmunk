@@ -13,20 +13,27 @@ export function isValidU32(value: string): boolean {
     return true;
 }
 
-export function sterilize<T>(smth: T, remove: string[] = []): T {
+export function sterilize<T>(smth: T, ignore: string[] = []): T {
     if (isPrimitiveOrNull(smth)) {
         return smth;
     }
     if (['function', 'symbol'].includes(typeof smth)) {
         return smth;
     }
-    remove.forEach((key: string) => {
-        // eslint-disable-next-line no-prototype-builtins
-        if (typeof (smth as {}).hasOwnProperty === 'function' && (smth as {}).hasOwnProperty(key)) {
-            delete (smth as any)[key];
-        }
-    });
-    return JSON.parse(JSON.stringify(smth));
+    if (smth instanceof Array) {
+        return smth.map((el) => sterilize(el, ignore)) as T;
+    } else if (typeof smth === 'object') {
+        const clone: any = {};
+        Object.keys(smth as any).forEach((key: string) => {
+            if (ignore.includes(key)) {
+                return;
+            }
+            clone[key] = sterilize((smth as any)[key], ignore);
+        });
+        return clone;
+    } else {
+        return smth;
+    }
 }
 
 export function isPrimitiveOrNull(smth: any): boolean {
@@ -35,6 +42,18 @@ export function isPrimitiveOrNull(smth: any): boolean {
     }
     return false;
 }
+
+export function isArrayOrObj(smth: any): boolean {
+    if (isPrimitiveOrNull(smth)) {
+        return false;
+    }
+    if (smth instanceof Array || typeof smth === 'object') {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 export function is(smth: any): boolean {
     if (typeof smth !== 'object' || smth === null) {
         return false;

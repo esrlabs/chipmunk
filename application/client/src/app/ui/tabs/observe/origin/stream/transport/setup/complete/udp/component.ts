@@ -21,7 +21,6 @@ export class Setup extends SetupBase implements OnDestroy, AfterContentInit {
             this.env().subscriber.register(
                 this.update.subscribe(() => {
                     this.detectChanges();
-                    this.verify();
                 }),
             );
         super.ngAfterContentInit();

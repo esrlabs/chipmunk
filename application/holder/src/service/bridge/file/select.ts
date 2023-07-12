@@ -79,7 +79,7 @@ export const handler = Requests.InjectLogger<
                     case FileType.PcapNG:
                         return pcapng();
                     default:
-                        return Promise.reject(new Error(`Unsupported format of file`));
+                        return any(request.ext);
                 }
             })()
                 .then((files: File[]) => {
