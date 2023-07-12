@@ -1,4 +1,9 @@
-import { Configuration as Base, ConfigurationStatic, ReferenceDesc } from '../configuration';
+import {
+    Configuration as Base,
+    ConfigurationStatic,
+    ReferenceDesc,
+    Linked,
+} from '../configuration';
 import { Statics } from '../../../env/decorators';
 import { List, IList } from '../description';
 import { Mutable } from '../../unity/mutable';
@@ -15,11 +20,10 @@ import * as Stream from '../origin/stream/index';
 import * as Files from '../types/file';
 import * as Origin from '../origin/index';
 
-export type Reference = ReferenceDesc<IDeclaration, Declaration, Protocol>;
-
-export abstract class Support {
-    public abstract getSupportedParsers(): Reference[];
-}
+export type Reference =
+    | ReferenceDesc<Text.IConfiguration, Text.Configuration, Protocol>
+    | ReferenceDesc<Dlt.IConfiguration, Dlt.Configuration, Protocol>
+    | ReferenceDesc<SomeIp.IConfiguration, SomeIp.Configuration, Protocol>;
 
 export enum Protocol {
     Dlt = 'Dlt',
@@ -37,11 +41,17 @@ export interface IConfiguration {
     [Protocol.Text]?: Text.IConfiguration;
 }
 
-const REGISTER = {
+const REGISTER: {
+    [key: string]: Reference;
+} = {
     [Protocol.Dlt]: Dlt.Configuration,
     [Protocol.SomeIp]: SomeIp.Configuration,
     [Protocol.Text]: Text.Configuration,
 };
+
+export abstract class Support {
+    public abstract getSupportedParsers(): Reference[];
+}
 
 const DEFAULT = Text.Configuration;
 
@@ -50,7 +60,7 @@ export function getByAlias(alias: Protocol): Declaration {
     if (Ref === undefined) {
         throw new Error(`Unknown parser: ${alias}`);
     }
-    return new Ref(Ref.initial(), Ref);
+    return new Ref(Ref.initial(), undefined);
 }
 
 export function suggestParserByFileExt(filename: string): Reference | undefined {
@@ -109,40 +119,40 @@ export class Configuration
     }
 
     protected setInstance(): Configuration {
-        const configuration = this.configuration;
         let instance: Declaration | undefined;
         Object.keys(REGISTER).forEach((key) => {
             if (instance !== undefined) {
                 return;
             }
-            const config: any = configuration[key as Protocol];
+            const config: any = this.configuration[key as Protocol];
             if (config === undefined) {
                 return;
             }
             const Ref: any = REGISTER[key as Protocol];
-            instance = new Ref(config, Ref);
+            instance = new Ref(config, {
+                watcher: this.watcher(),
+                overwrite: (config: IConfiguration) => {
+                    return this.overwrite(config);
+                },
+            });
         });
         if (instance === undefined) {
             throw new Error(`Configuration of stream doesn't have definition of known source.`);
         }
         this.instance !== undefined && this.instance.destroy();
         (this as Mutable<Configuration>).instance = instance;
-        this.unsubscribe();
-        this.register(
-            this.instance.watcher.subscribe(() => {
-                this.overwrite({
-                    [this.instance.alias()]: this.instance.configuration,
-                });
-                this.watcher.emit();
-            }),
-        );
         return this;
     }
 
     public readonly instance!: Declaration;
 
-    constructor(configuration: IConfiguration) {
-        super(configuration);
+    constructor(configuration: IConfiguration, linked: Linked<IConfiguration> | undefined) {
+        super(configuration, linked);
+        this.register(
+            this.watcher().subscribe(() => {
+                this.setInstance();
+            }),
+        );
         this.setInstance();
     }
 
@@ -152,7 +162,6 @@ export class Configuration
 
     public change(parser: Declaration): void {
         this.overwrite({ [parser.alias()]: parser.configuration });
-        this.setInstance().watcher.emit();
     }
 
     public desc(): IList {

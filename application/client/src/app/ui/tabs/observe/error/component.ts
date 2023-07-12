@@ -1,9 +1,4 @@
-import {
-    Component,
-    ChangeDetectorRef,
-    Input,
-    AfterContentInit,
-} from '@angular/core';
+import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -27,13 +22,12 @@ export class TabObserveErrorState extends ChangesDetector implements AfterConten
 
     public ngAfterContentInit(): void {
         this.env().subscriber.register(
-            this.observe.watcher.subscribe(() => {
+            this.observe.watcher().subscribe(() => {
                 const error = this.observe.validate();
                 this.error = error instanceof Error ? error.message : undefined;
                 this.detectChanges();
             }),
         );
     }
-
 }
 export interface TabObserveErrorState extends IlcInterface {}

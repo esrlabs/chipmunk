@@ -1,4 +1,9 @@
-import { Configuration as Base, ConfigurationStatic, ReferenceDesc } from '../../configuration';
+import {
+    Configuration as Base,
+    ConfigurationStatic,
+    ReferenceDesc,
+    Linked,
+} from '../../configuration';
 import { OriginDetails, IOriginDetails, Job, IJob } from '../../description';
 import { Statics } from '../../../../env/decorators';
 import { Mutable } from '../../../unity/mutable';
@@ -16,11 +21,11 @@ export * as Serial from './serial';
 export * as TCP from './tcp';
 export * as UDP from './udp';
 
-export type Reference = ReferenceDesc<IDeclaration, Declaration, Source>;
-
-export abstract class Support {
-    public abstract getSupportedStream(): Reference[];
-}
+export type Reference =
+    | ReferenceDesc<Serial.IConfiguration, Serial.Configuration, Source>
+    | ReferenceDesc<Process.IConfiguration, Process.Configuration, Source>
+    | ReferenceDesc<TCP.IConfiguration, TCP.Configuration, Source>
+    | ReferenceDesc<UDP.IConfiguration, UDP.Configuration, Source>;
 
 export enum Source {
     TCP = 'TCP',
@@ -48,12 +53,18 @@ export interface IConfiguration {
     [Source.UDP]?: UDP.IConfiguration;
 }
 
-export const REGISTER = {
+export const REGISTER: {
+    [key: string]: Reference;
+} = {
     [Source.Process]: Process.Configuration,
     [Source.Serial]: Serial.Configuration,
     [Source.TCP]: TCP.Configuration,
     [Source.UDP]: UDP.Configuration,
 };
+
+export abstract class Support {
+    public abstract getSupportedStream(): Reference[];
+}
 
 export const DEFAULT = TCP.Configuration;
 
@@ -62,7 +73,7 @@ export function getByAlias(alias: Source, configuration?: IDeclaration): Declara
     if (Ref === undefined) {
         throw new Error(`Unknown stream: ${alias}`);
     }
-    return new Ref(configuration === undefined ? Ref.initial() : configuration, Ref);
+    return new Ref(configuration === undefined ? Ref.initial() : configuration, undefined);
 }
 
 export function getAliasByConfiguration(configuration: IConfiguration): Source {
@@ -130,40 +141,40 @@ export class Configuration
     }
 
     protected setInstance(): Configuration {
-        const configuration = this.configuration;
         let instance: Declaration | undefined;
         Object.keys(REGISTER).forEach((key) => {
             if (instance !== undefined) {
                 return;
             }
-            const config: any = configuration[key as Source];
+            const config: any = this.configuration[key as Source];
             if (config === undefined) {
                 return;
             }
             const Ref: any = REGISTER[key as Source];
-            instance = new Ref(config, Ref);
+            instance = new Ref(config, {
+                watcher: this.watcher(),
+                overwrite: (config: IConfiguration) => {
+                    return this.overwrite(config);
+                },
+            });
         });
         if (instance === undefined) {
             throw new Error(`Configuration of stream doesn't have definition of known source.`);
         }
         this.instance !== undefined && this.instance.destroy();
         (this as Mutable<Configuration>).instance = instance;
-        this.unsubscribe();
-        this.register(
-            this.instance.watcher.subscribe(() => {
-                this.overwrite({
-                    [this.instance.alias()]: this.instance.configuration,
-                });
-                this.watcher.emit();
-            }),
-        );
         return this;
     }
 
     public readonly instance!: Declaration;
 
-    constructor(configuration: IConfiguration) {
-        super(configuration);
+    constructor(configuration: IConfiguration, linked: Linked<IConfiguration> | undefined) {
+        super(configuration, linked);
+        this.register(
+            this.watcher().subscribe(() => {
+                this.setInstance();
+            }),
+        );
         this.setInstance();
     }
 
@@ -175,15 +186,12 @@ export class Configuration
         return {
             byConfiguration: (configuration: IConfiguration): void => {
                 this.overwrite(configuration);
-                this.setInstance().watcher.emit();
             },
             byDeclaration: (stream: Declaration): void => {
                 this.overwrite({ [stream.alias()]: stream.configuration });
-                this.setInstance().watcher.emit();
             },
             byReference: (Ref: Reference): void => {
-                this.overwrite({ [Ref.alias()]: new Ref(Ref.initial()) });
-                this.setInstance().watcher.emit();
+                this.overwrite({ [Ref.alias()]: new Ref(Ref.initial(), this.linked) });
             },
         };
     }

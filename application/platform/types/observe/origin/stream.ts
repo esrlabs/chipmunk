@@ -1,10 +1,11 @@
 import { error } from '../../../log/utils';
-import { Configuration as Base, ConfigurationStatic } from '../configuration';
+import { Configuration as Base, ConfigurationStatic, Linked } from '../configuration';
 import { Context, SourceUuid } from './index';
 import { OriginDetails, IOriginDetails, IList, Job, IJob } from '../description';
 import { Statics } from '../../../env/decorators';
 import { unique } from '../../../env/sequence';
 import { Alias } from '../../env/types';
+import { Mutable } from '../../unity/mutable';
 
 import * as str from '../../../env/str';
 import * as Stream from './stream/index';
@@ -59,27 +60,38 @@ export class Configuration
         return [unique(), Stream.Configuration.initial()];
     }
 
-    public readonly instance!: Stream.Configuration;
-
-    constructor(configuration: IConfiguration) {
-        super(configuration);
-        const instance = new Stream.Configuration(this.configuration[1]);
+    protected setInstance(): Configuration {
+        const instance = new Stream.Configuration(this.configuration[1], {
+            watcher: this.watcher(),
+            overwrite: (config: Stream.IConfiguration) => {
+                this.configuration[1] = config;
+                return this.configuration[1];
+            },
+        });
         if (instance instanceof Error) {
             throw instance;
         }
-        this.instance = instance;
-        this.register(
-            this.instance.watcher.subscribe(() => {
-                this.overwrite([this.configuration[0], this.instance.configuration]);
-                this.watcher.emit();
-            }),
-        );
+        this.instance !== undefined && this.instance.destroy();
+        (this as Mutable<Configuration>).instance = instance;
+        return this;
+    }
+
+    public readonly instance!: Stream.Configuration;
+
+    constructor(configuration: IConfiguration, linked: Linked<IConfiguration> | undefined) {
+        super(configuration, linked);
+        linked !== undefined &&
+            this.register(
+                linked.watcher.subscribe(() => {
+                    this.setInstance();
+                }),
+            );
+        this.setInstance();
     }
 
     public change(stream: Stream.Declaration): void {
         this.instance.change().byDeclaration(stream);
         this.configuration[1] = this.instance.configuration;
-        this.watcher.emit();
     }
 
     public desc(): IOriginDetails {

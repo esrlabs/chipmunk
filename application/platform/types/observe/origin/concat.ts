@@ -40,7 +40,7 @@ export class Configuration
             } else {
                 configuration.forEach((file) => {
                     // If file settings are not correct it will throw an error
-                    new ConfigurationFile(file);
+                    new ConfigurationFile(file, undefined);
                 });
             }
             return configuration;
