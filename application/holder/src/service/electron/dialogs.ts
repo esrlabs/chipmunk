@@ -13,6 +13,9 @@ export class Dialogs extends Implementation {
         // has been shown, mouse is locked for whole system. With minimum
         // timeout (after dialog inited) we should manualy unlock mouse
         // and focus to the dialog
+        if (process.platform !== 'linux') {
+            return;
+        }
         setTimeout(() => {
             this._window.setEnabled(true);
             this._window.setIgnoreMouseEvents(false);
