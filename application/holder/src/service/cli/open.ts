@@ -68,9 +68,8 @@ export class Action extends CLIAction {
         if (types.length === 1) {
             if (types[0] === FileType.Text) {
                 observe.parser.change(
-                    new Parser.Text.Configuration(Parser.Text.Configuration.initial()),
+                    new Parser.Text.Configuration(Parser.Text.Configuration.initial(), undefined),
                 );
-                console.log(observe.sterilized());
             }
         }
         return new Promise((resolve, _reject) => {

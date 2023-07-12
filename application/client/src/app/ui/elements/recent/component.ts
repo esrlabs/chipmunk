@@ -52,7 +52,7 @@ export class RecentActions extends ChangesDetector implements AfterContentInit, 
         );
         if (this.observe !== undefined) {
             this.env().subscriber.register(
-                this.observe.watcher.subscribe(() => {
+                this.observe.watcher().subscribe(() => {
                     this.state.reload();
                     this.detectChanges();
                 }),

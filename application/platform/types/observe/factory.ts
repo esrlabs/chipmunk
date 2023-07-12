@@ -63,6 +63,7 @@ class Factory<T> {
         this.observe.parser.change(
             new $.Parser.Dlt.Configuration(
                 configuration === undefined ? $.Parser.Dlt.Configuration.initial() : configuration,
+                undefined,
             ),
         );
         this.updated().parser();
@@ -75,6 +76,7 @@ class Factory<T> {
                 configuration === undefined
                     ? $.Parser.SomeIp.Configuration.initial()
                     : configuration,
+                undefined,
             ),
         );
         this.updated().parser();
@@ -82,7 +84,7 @@ class Factory<T> {
     }
 
     public asText(): T {
-        this.observe.parser.change(new $.Parser.Text.Configuration(null));
+        this.observe.parser.change(new $.Parser.Text.Configuration(null, undefined));
         this.updated().parser();
         return this as unknown as T;
     }
@@ -107,7 +109,7 @@ export class File extends Factory<File> {
     constructor() {
         super();
         this.observe.origin.change(
-            new $.Origin.File.Configuration($.Origin.File.Configuration.initial()),
+            new $.Origin.File.Configuration($.Origin.File.Configuration.initial(), undefined),
         );
     }
 
@@ -136,7 +138,7 @@ export class Concat extends Factory<Concat> {
     constructor() {
         super();
         this.observe.origin.change(
-            new $.Origin.Concat.Configuration($.Origin.Concat.Configuration.initial()),
+            new $.Origin.Concat.Configuration($.Origin.Concat.Configuration.initial(), undefined),
         );
     }
 
@@ -181,7 +183,7 @@ export class Stream extends Factory<Stream> {
     constructor() {
         super();
         this.observe.origin.change(
-            new $.Origin.Stream.Configuration($.Origin.Stream.Configuration.initial()),
+            new $.Origin.Stream.Configuration($.Origin.Stream.Configuration.initial(), undefined),
         );
     }
 
@@ -194,6 +196,7 @@ export class Stream extends Factory<Stream> {
                 configuration !== undefined
                     ? configuration
                     : $.Origin.Stream.Stream.Process.Configuration.initial(),
+                undefined,
             ),
         );
         this.updated().origin();
@@ -209,6 +212,7 @@ export class Stream extends Factory<Stream> {
                 configuration !== undefined
                     ? configuration
                     : $.Origin.Stream.Stream.Serial.Configuration.initial(),
+                undefined,
             ),
         );
         this.updated().origin();
@@ -224,6 +228,7 @@ export class Stream extends Factory<Stream> {
                 configuration !== undefined
                     ? configuration
                     : $.Origin.Stream.Stream.TCP.Configuration.initial(),
+                undefined,
             ),
         );
         this.updated().origin();
@@ -239,6 +244,7 @@ export class Stream extends Factory<Stream> {
                 configuration !== undefined
                     ? configuration
                     : $.Origin.Stream.Stream.UDP.Configuration.initial(),
+                undefined,
             ),
         );
         this.updated().origin();

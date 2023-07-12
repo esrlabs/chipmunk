@@ -23,7 +23,7 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
     public tailing: Element[] = [];
     public offline: Element[] = [];
     public action: Action = new Action();
-    public initial: Configuration = new Configuration(Configuration.initial());
+    public initial: Configuration = new Configuration(Configuration.initial(), undefined);
     public buttons: IButton[] = [
         {
             icon: 'codicon-tasklist',
@@ -54,12 +54,7 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
         this.env().subscriber.register(
             this.action.subjects.get().apply.subscribe(() => {
                 this.provider
-                    .clone(
-                        new Factroy.Stream()
-                            .asText()
-                            .serial(this.initial.configuration)
-                            .get(),
-                    )
+                    .clone(new Factroy.Stream().asText().serial(this.initial.configuration).get())
                     .then(() => {
                         // this.action.subjects.get().applied.emit();
                     })
