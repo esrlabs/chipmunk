@@ -31,9 +31,7 @@ export class Service extends Implementation {
                                     case FileType.PcapNG:
                                         return new handlers.FilePcap.Action().apply();
                                     default:
-                                        return Promise.reject(
-                                            new Error(`Unsupported format: ${request.type}`),
-                                        );
+                                        return new handlers.FileAny.Action().apply();
                                 }
                             })()
                                 .then(() =>
