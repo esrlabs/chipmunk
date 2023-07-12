@@ -2,14 +2,13 @@ import { error } from '../../log/utils';
 import { JsonConvertor } from '../storage/json';
 import { Validate, SelfValidate, Alias, Destroy, Storable, Hash } from '../env/types';
 import { List } from './description';
-import { Mutable } from '../unity/mutable';
 import { scope } from '../../env/scope';
 import { Subject, Subscriber } from '../../env/subscription';
 import { unique } from '../../env/sequence';
+import { Observer, ObserverEvent } from '../../env/observer';
 
 import * as Stream from './origin/stream/index';
 import * as File from './types/file';
-import * as obj from '../../env/obj';
 
 export interface ConfigurationStatic<T, A> extends Validate<T>, Alias<A> {
     initial(): T;
@@ -20,76 +19,13 @@ export interface ConfigurationStaticDesc<T, A> extends Validate<T>, Alias<A>, Li
 }
 
 export interface Reference<T, C, A> extends ConfigurationStatic<T, A> {
+    // new (configuration: T, linked: Linked<T> | undefined): C & Configuration<T, C, A>;
     new (...args: any[]): C & Configuration<T, C, A>;
 }
 
 export interface ReferenceDesc<T, C, A> extends ConfigurationStaticDesc<T, A> {
+    // new (configuration: T, linked: Linked<T> | undefined): C & Configuration<T, C, A>;
     new (...args: any[]): C & Configuration<T, C, A>;
-}
-
-const STAMP = '___uuid___';
-
-function setter(subject: Subject<void>, target: any, prop: string | symbol, value: any): boolean {
-    if (prop === STAMP && typeof value === 'string') {
-        target[prop] = value;
-        return true;
-    }
-    if (obj.isPrimitiveOrNull(value) && target[prop] === value) {
-        // No changes: value is same
-        return true;
-    }
-    if (typeof target[prop] === 'object' && typeof value === 'object') {
-        if (target[prop][STAMP] !== undefined && target[prop][STAMP] === value[STAMP]) {
-            // No changes: value is same
-            return true;
-        }
-    }
-    target[prop] = observe(obj.sterilize(value), subject);
-    if (typeof target[prop] === 'object') {
-        // Set unique uuid of value to avoid dead loop
-        // target[prop][STAMP] = unique();
-        Object.defineProperty(target[prop], STAMP, {
-            value: unique(),
-            writable: false,
-            enumerable: false,
-        });
-    }
-    subject.emit();
-    return true;
-}
-
-function observe<T>(entry: T, subject: Subject<void>): T {
-    function logger() {
-        return scope.getLogger('ObserveConfig');
-    }
-    if (obj.isPrimitiveOrNull(entry)) {
-        return entry;
-    }
-    if (['function', 'symbol'].includes(typeof entry)) {
-        logger().warn(`Cannot observe ${typeof entry} value`);
-        return undefined as T;
-    }
-    if (entry instanceof Array) {
-        // We should serialize object, because it can be already Proxy
-        return new Proxy(obj.sterilize(entry), { set: setter.bind(null, subject) }) as T;
-    } else if (entry instanceof Object) {
-        Object.keys(entry).forEach((key: string | number) => {
-            // eslint-disable-next-line no-prototype-builtins
-            if (!entry.hasOwnProperty(key)) {
-                return;
-            }
-            const value = (entry as any)[key];
-            if (obj.isPrimitiveOrNull(value)) {
-                return;
-            } else if (value instanceof Array || value instanceof Object) {
-                (entry as any)[key] = observe(value, subject);
-            }
-        });
-        // We should serialize object, because it can be already Proxy
-        return new Proxy(obj.sterilize(entry), { set: setter.bind(null, subject) }) as T;
-    }
-    logger().error(`Type "${typeof entry}" cannot be observed`);
-    return undefined as T;
 }
 
 export interface ICompatibilityMod {
@@ -127,6 +63,13 @@ export function getCompatibilityMod(): ICompatibilityMod {
     return compatibility;
 }
 
+export type TOverwriteHandler<T> = (configuration: T) => T;
+
+export interface Linked<T> {
+    overwrite: TOverwriteHandler<T>;
+    watcher: Subject<ObserverEvent>;
+}
+
 export abstract class Configuration<T, C, A>
     extends Subscriber
     implements
@@ -137,37 +80,50 @@ export abstract class Configuration<T, C, A>
         Destroy
 {
     protected ref: Reference<T, C, A>;
-    protected overwriting: boolean = false;
+    protected readonly src: T;
+    protected readonly observer: Observer<T> | undefined;
+    protected readonly linked: Linked<T> | undefined;
 
-    public readonly configuration: T;
-    public readonly watcher: Subject<void> = new Subject();
-    protected readonly __uuid: string = unique();
+    public readonly uuid: string = unique();
 
-    constructor(configuration: T) {
+    constructor(configuration: T, linked: Linked<T> | undefined) {
         super();
         if (typeof this.constructor !== 'function') {
             throw new Error(`Fail to get reference to Constructor`);
         }
         this.ref = this.constructor as Reference<T, C, A>;
-        this.configuration = observe<T>(configuration, this.watcher);
+        this.src = configuration;
+        this.linked = linked;
+        if (linked === undefined) {
+            this.observer = new Observer(configuration);
+        }
+    }
+
+    public get configuration(): T {
+        if (this.linked !== undefined) {
+            return this.src;
+        }
+        if (this.observer !== undefined) {
+            return this.observer.target;
+        }
+        throw new Error(`001: Configuration doesn't have observer or linked`);
+    }
+
+    public watcher(): Subject<ObserverEvent> {
+        if (this.linked !== undefined) {
+            return this.linked.watcher;
+        }
+        if (this.observer !== undefined) {
+            return this.observer.watcher;
+        }
+        throw new Error(`002: Configuration doesn't have observer or linked`);
     }
 
     public destroy(): void {
-        this.watcher.destroy();
-        this.unsubscribe();
-        (this as any).configuration = this.sterilized();
-    }
-
-    public overwrite(configuration: T): void {
-        if (this.overwriting) {
-            return;
+        if (this.observer !== undefined) {
+            this.observer.destroy();
         }
-        this.overwriting = true;
-        (this as Mutable<Configuration<unknown, unknown, unknown>>).configuration = observe<T>(
-            configuration,
-            this.watcher,
-        );
-        this.overwriting = false;
+        this.unsubscribe();
     }
 
     public validate(): Error | undefined {
@@ -179,13 +135,32 @@ export abstract class Configuration<T, C, A>
         return this.ref.alias();
     }
 
+    public overwrite(configuration: T): void {
+        if (this.linked !== undefined) {
+            (this as any).src = this.linked.overwrite(configuration);
+            return;
+        }
+        if (this.observer !== undefined) {
+            (this as any).src = configuration;
+            this.observer.overwrite(configuration);
+            return;
+        }
+        throw new Error(`004: Configuration doesn't have observer or linked`);
+    }
+
     public json(): {
         to(): string;
         from(str: string): Configuration<T, C, A> | Error;
     } {
         return {
             to: (): string => {
-                return obj.sterilize(JSON.stringify(this.configuration), [STAMP]);
+                if (this.linked !== undefined) {
+                    return JSON.stringify(Observer.sterilize(this.src));
+                }
+                if (this.observer !== undefined) {
+                    return JSON.stringify(this.observer.sterilize());
+                }
+                throw new Error(`005: Configuration doesn't have observer or linked`);
             },
             from: (str: string): Configuration<T, C, A> | Error => {
                 try {
@@ -230,7 +205,13 @@ export abstract class Configuration<T, C, A>
     }
 
     public sterilized(): T {
-        return obj.sterilize(this.configuration, [STAMP]);
+        if (this.linked !== undefined) {
+            return Observer.sterilize<T>(this.src);
+        }
+        if (this.observer !== undefined) {
+            return this.observer.sterilize();
+        }
+        throw new Error(`006: Configuration doesn't have observer or linked`);
     }
 
     // This is default implementation, but in some cases (like "Stream.Process")

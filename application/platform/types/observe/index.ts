@@ -1,4 +1,3 @@
-import { unique } from '../../env/sequence';
 import { Configuration as Base, getCompatibilityMod } from './configuration';
 import { Mutable } from '../unity/mutable';
 import { LockToken } from '../../env/lock.token';
@@ -68,11 +67,10 @@ export class Observe
         return error instanceof Error ? error : configuration;
     }
 
-    public readonly uuid: string = unique();
     public readonly childs: Observe[] = [];
     public readonly parent: Observe | undefined;
-    public readonly origin: Origin.Configuration;
-    public readonly parser: Parser.Configuration;
+    public readonly origin!: Origin.Configuration;
+    public readonly parser!: Parser.Configuration;
 
     /// Lock-state
     /// Allows define a way to process observe data.
@@ -81,17 +79,31 @@ export class Observe
     /// for example settings of DLT or SomeIP
     protected readonly lock: LockToken = new LockToken(false);
 
+    protected link(): void {
+        (this as Mutable<Observe>).origin = new Origin.Configuration(this.configuration.origin, {
+            watcher: this.watcher(),
+            overwrite: (config: Origin.IConfiguration) => {
+                this.configuration.origin = config;
+                return this.configuration.origin;
+            },
+        });
+        (this as Mutable<Observe>).parser = new Parser.Configuration(this.configuration.parser, {
+            watcher: this.watcher(),
+            overwrite: (config: Parser.IConfiguration) => {
+                this.configuration.parser = config;
+                return this.configuration.parser;
+            },
+        });
+    }
+
     constructor(observe: IObserve) {
-        super(observe);
-        this.origin = new Origin.Configuration(observe.origin);
-        this.parser = new Parser.Configuration(observe.parser);
+        super(observe, undefined);
+        this.link();
         this.parser.onOriginChange(this.origin);
-        this.origin.watcher.subscribe(() => {
-            this.configuration.origin = this.origin.configuration;
+        this.origin.watcher().subscribe(() => {
             this.parser.onOriginChange(this.origin);
         });
-        this.parser.watcher.subscribe(() => {
-            this.configuration.parser = this.parser.configuration;
+        this.parser.watcher().subscribe(() => {
             this.parser.onOriginChange(this.origin);
         });
     }
@@ -104,8 +116,7 @@ export class Observe
         this.origin !== undefined && this.origin.destroy();
         this.parser !== undefined && this.parser.destroy();
         super.overwrite(configuration);
-        (this as Mutable<Observe>).origin = new Origin.Configuration(this.configuration.origin);
-        (this as Mutable<Observe>).parser = new Parser.Configuration(this.configuration.parser);
+        this.link();
     }
 
     public getSupportedParsers(): Parser.Reference[] {

@@ -1,4 +1,4 @@
-import { Configuration as Base, ConfigurationStatic } from '../configuration';
+import { Configuration as Base, ConfigurationStatic, Linked } from '../configuration';
 import { Statics } from '../../../env/decorators';
 import { Mutable } from '../../unity/mutable';
 import { Alias } from '../../env/types';
@@ -88,40 +88,36 @@ export class Configuration
     }
 
     protected setInstance(): Configuration {
-        const configuration = this.configuration;
         let instance: Declaration | undefined;
         Object.keys(REGISTER).forEach((key) => {
             if (instance !== undefined) {
                 return;
             }
-            const config = configuration[key as Context];
+            const config: any = this.configuration[key as Context];
             if (config === undefined) {
                 return;
             }
-            const Ref = REGISTER[key as Context];
-            instance = new Ref(config as any);
+            const Ref: any = REGISTER[key as Context];
+            instance = new Ref(config, this.linked);
         });
         if (instance === undefined) {
-            throw new Error(`Configuration of origin doesn't have definition of known source.`);
+            throw new Error(`Configuration of stream doesn't have definition of known source.`);
         }
         this.instance !== undefined && this.instance.destroy();
         (this as Mutable<Configuration>).instance = instance;
-        this.unsubscribe();
-        this.register(
-            this.instance.watcher.subscribe(() => {
-                this.overwrite({
-                    [this.instance.alias()]: this.instance.configuration,
-                });
-                this.watcher.emit();
-            }),
-        );
         return this;
     }
 
     public readonly instance!: Declaration;
 
-    constructor(configuration: IConfiguration) {
-        super(configuration);
+    constructor(configuration: IConfiguration, linked: Linked<IConfiguration> | undefined) {
+        super(configuration, linked);
+        linked !== undefined &&
+            this.register(
+                linked.watcher.subscribe(() => {
+                    this.setInstance();
+                }),
+            );
         this.setInstance();
     }
 
@@ -137,7 +133,6 @@ export class Configuration
 
     public change(origin: Declaration): void {
         this.overwrite({ [origin.alias()]: origin.configuration });
-        this.setInstance().watcher.emit();
     }
 
     public desc(): IOriginDetails {
