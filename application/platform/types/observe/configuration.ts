@@ -5,7 +5,7 @@ import { List } from './description';
 import { scope } from '../../env/scope';
 import { Subject, Subscriber } from '../../env/subscription';
 import { unique } from '../../env/sequence';
-import { Observer, ObserverEvent } from '../../env/observer';
+import { Observer } from '../../env/observer';
 
 import * as Stream from './origin/stream/index';
 import * as File from './types/file';
