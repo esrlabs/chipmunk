@@ -59,7 +59,7 @@ export class State extends Subscriber {
             this.action.subjects.get().apply.subscribe(() => {
                 this.finish();
             }),
-            this.observe.watcher().subscribe(() => {
+            this.observe.watcher.subscribe(() => {
                 this.update().validate();
                 this.update().action();
             }),

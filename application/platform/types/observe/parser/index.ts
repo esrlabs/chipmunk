@@ -8,6 +8,7 @@ import { Statics } from '../../../env/decorators';
 import { List, IList } from '../description';
 import { Mutable } from '../../unity/mutable';
 import { Alias } from '../../env/types';
+import { Observer } from '../../../env/observer';
 
 import * as Dlt from './dlt';
 import * as SomeIp from './someip';
@@ -118,29 +119,44 @@ export class Configuration
         };
     }
 
-    protected setInstance(): Configuration {
-        let instance: Declaration | undefined;
+    protected getProtocolKey(): Protocol | undefined {
+        let found: Protocol | undefined;
         Object.keys(REGISTER).forEach((key) => {
-            if (instance !== undefined) {
+            if (found !== undefined) {
                 return;
             }
-            const config: any = this.configuration[key as Protocol];
-            if (config === undefined) {
+            if (this.configuration[key as Protocol] === undefined) {
                 return;
             }
-            const Ref: any = REGISTER[key as Protocol];
-            instance = new Ref(config, {
-                watcher: this.watcher(),
+            found = key as Protocol;
+        });
+        return found;
+    }
+
+    protected setInstance(): Configuration {
+        const protocol = this.getProtocolKey();
+        if (protocol === undefined) {
+            throw new Error(`Configuration of stream doesn't have definition of known protocol.`);
+        }
+        if (this.instance !== undefined) {
+            if (
+                this.instance.alias() === protocol &&
+                Observer.isSame(this.instance.configuration, this.configuration[protocol])
+            ) {
+                return this;
+            }
+        }
+        this.instance !== undefined && this.instance.destroy();
+        (this as Mutable<Configuration>).instance = new REGISTER[protocol](
+            this.configuration[protocol],
+            {
+                watcher: this.watcher,
                 overwrite: (config: IConfiguration) => {
                     return this.overwrite(config);
                 },
-            });
-        });
-        if (instance === undefined) {
-            throw new Error(`Configuration of stream doesn't have definition of known source.`);
-        }
-        this.instance !== undefined && this.instance.destroy();
-        (this as Mutable<Configuration>).instance = instance;
+            },
+        );
+        // console.log(new Error(`trace`));
         return this;
     }
 
@@ -149,7 +165,7 @@ export class Configuration
     constructor(configuration: IConfiguration, linked: Linked<IConfiguration> | undefined) {
         super(configuration, linked);
         this.register(
-            this.watcher().subscribe(() => {
+            this.watcher.subscribe(() => {
                 this.setInstance();
             }),
         );

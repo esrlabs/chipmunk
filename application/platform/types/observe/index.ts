@@ -81,14 +81,14 @@ export class Observe
 
     protected link(): void {
         (this as Mutable<Observe>).origin = new Origin.Configuration(this.configuration.origin, {
-            watcher: this.watcher(),
+            watcher: this.watcher,
             overwrite: (config: Origin.IConfiguration) => {
                 this.configuration.origin = config;
                 return this.configuration.origin;
             },
         });
         (this as Mutable<Observe>).parser = new Parser.Configuration(this.configuration.parser, {
-            watcher: this.watcher(),
+            watcher: this.watcher,
             overwrite: (config: Parser.IConfiguration) => {
                 this.configuration.parser = config;
                 return this.configuration.parser;
@@ -100,10 +100,10 @@ export class Observe
         super(observe, undefined);
         this.link();
         this.parser.onOriginChange(this.origin);
-        this.origin.watcher().subscribe(() => {
+        this.origin.watcher.subscribe(() => {
             this.parser.onOriginChange(this.origin);
         });
-        this.parser.watcher().subscribe(() => {
+        this.parser.watcher.subscribe(() => {
             this.parser.onOriginChange(this.origin);
         });
     }

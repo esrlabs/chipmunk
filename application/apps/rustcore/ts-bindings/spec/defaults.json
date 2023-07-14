@@ -256,7 +256,11 @@
             "regular": {
                 "execute_only": [],
                 "list": {
-                    "1": "Test 1. Regular"
+                    "1": "Test 1. Observer",
+                    "2": "Test 2. Observe configuration (streams)",
+                    "3": "Test 3. Observe configuration (origins)",
+                    "4": "Test 4. Observe configuration (parsers)",
+                    "5": "Test 5. Observe configuration updates (tracking)"
                 },
                 "files": {
                 }
