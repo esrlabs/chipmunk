@@ -6,6 +6,7 @@ import { Statics } from '../../../env/decorators';
 import { unique } from '../../../env/sequence';
 import { Alias } from '../../env/types';
 import { Mutable } from '../../unity/mutable';
+import { Observer } from '../../../env/observer';
 
 import * as str from '../../../env/str';
 import * as Stream from './stream/index';
@@ -61,8 +62,15 @@ export class Configuration
     }
 
     protected setInstance(): Configuration {
+        if (
+            this.instance !== undefined &&
+            Observer.isSame(this.instance.configuration, this.configuration[1])
+        ) {
+            return this;
+        }
+        this.instance !== undefined && this.instance.destroy();
         const instance = new Stream.Configuration(this.configuration[1], {
-            watcher: this.watcher(),
+            watcher: this.watcher,
             overwrite: (config: Stream.IConfiguration) => {
                 this.configuration[1] = config;
                 return this.configuration[1];
@@ -71,7 +79,6 @@ export class Configuration
         if (instance instanceof Error) {
             throw instance;
         }
-        this.instance !== undefined && this.instance.destroy();
         (this as Mutable<Configuration>).instance = instance;
         return this;
     }
@@ -80,12 +87,11 @@ export class Configuration
 
     constructor(configuration: IConfiguration, linked: Linked<IConfiguration> | undefined) {
         super(configuration, linked);
-        linked !== undefined &&
-            this.register(
-                linked.watcher.subscribe(() => {
-                    this.setInstance();
-                }),
-            );
+        this.register(
+            this.watcher.subscribe(() => {
+                this.setInstance();
+            }),
+        );
         this.setInstance();
     }
 

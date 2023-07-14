@@ -3,6 +3,7 @@ import { Statics } from '../../../env/decorators';
 import { Mutable } from '../../unity/mutable';
 import { Alias } from '../../env/types';
 import { OriginDetails, IOriginDetails, Job, IJob } from '../description';
+import { Observer } from '../../../env/observer';
 
 export * as File from './file';
 export * as Concat from './concat';
@@ -87,24 +88,43 @@ export class Configuration
         };
     }
 
-    protected setInstance(): Configuration {
-        let instance: Declaration | undefined;
+    protected getContextKey(): Context | undefined {
+        let found: Context | undefined;
         Object.keys(REGISTER).forEach((key) => {
-            if (instance !== undefined) {
+            if (found !== undefined) {
                 return;
             }
-            const config: any = this.configuration[key as Context];
-            if (config === undefined) {
+            if (this.configuration[key as Context] === undefined) {
                 return;
             }
-            const Ref: any = REGISTER[key as Context];
-            instance = new Ref(config, this.linked);
+            found = key as Context;
         });
-        if (instance === undefined) {
-            throw new Error(`Configuration of stream doesn't have definition of known source.`);
+        return found;
+    }
+
+    protected setInstance(): Configuration {
+        const context = this.getContextKey();
+        if (context === undefined) {
+            throw new Error(`Configuration of stream doesn't have definition of known context.`);
+        }
+        if (this.instance !== undefined) {
+            if (
+                this.instance.alias() === context &&
+                Observer.isSame(this.instance.configuration, this.configuration[context])
+            ) {
+                return this;
+            }
         }
         this.instance !== undefined && this.instance.destroy();
-        (this as Mutable<Configuration>).instance = instance;
+        (this as Mutable<Configuration>).instance = new REGISTER[context](
+            this.configuration[context] as any,
+            {
+                watcher: this.watcher,
+                overwrite: ((config: IConfiguration) => {
+                    return this.overwrite(config);
+                }) as any, /// TODO: <<<<<< VERY BAD!
+            },
+        );
         return this;
     }
 
@@ -112,12 +132,14 @@ export class Configuration
 
     constructor(configuration: IConfiguration, linked: Linked<IConfiguration> | undefined) {
         super(configuration, linked);
-        linked !== undefined &&
-            this.register(
-                linked.watcher.subscribe(() => {
-                    this.setInstance();
-                }),
-            );
+        this.register(
+            this.watcher.subscribe(() => {
+                if (this.overwriting) {
+                    return;
+                }
+                this.setInstance();
+            }),
+        );
         this.setInstance();
     }
 
@@ -133,6 +155,7 @@ export class Configuration
 
     public change(origin: Declaration): void {
         this.overwrite({ [origin.alias()]: origin.configuration });
+        // this.setInstance();
     }
 
     public desc(): IOriginDetails {

@@ -67,7 +67,7 @@ export type TOverwriteHandler<T> = (configuration: T) => T;
 
 export interface Linked<T> {
     overwrite: TOverwriteHandler<T>;
-    watcher: Subject<ObserverEvent>;
+    watcher: Subject<void>;
 }
 
 export abstract class Configuration<T, C, A>
@@ -83,8 +83,20 @@ export abstract class Configuration<T, C, A>
     protected readonly src: T;
     protected readonly observer: Observer<T> | undefined;
     protected readonly linked: Linked<T> | undefined;
+    protected overwriting: boolean = false;
 
     public readonly uuid: string = unique();
+    public watcher: Subject<void> = new Subject();
+
+    protected getOriginWatcher(): Subject<any> {
+        if (this.linked !== undefined) {
+            return this.linked.watcher;
+        }
+        if (this.observer !== undefined) {
+            return this.observer.watcher;
+        }
+        throw new Error(`002: Configuration doesn't have observer or linked`);
+    }
 
     constructor(configuration: T, linked: Linked<T> | undefined) {
         super();
@@ -97,6 +109,14 @@ export abstract class Configuration<T, C, A>
         if (linked === undefined) {
             this.observer = new Observer(configuration);
         }
+        this.register(
+            this.getOriginWatcher().subscribe(() => {
+                if (this.overwriting) {
+                    return;
+                }
+                this.watcher.emit();
+            }),
+        );
     }
 
     public get configuration(): T {
@@ -109,25 +129,16 @@ export abstract class Configuration<T, C, A>
         throw new Error(`001: Configuration doesn't have observer or linked`);
     }
 
-    public watcher(): Subject<ObserverEvent> {
-        if (this.linked !== undefined) {
-            return this.linked.watcher;
-        }
-        if (this.observer !== undefined) {
-            return this.observer.watcher;
-        }
-        throw new Error(`002: Configuration doesn't have observer or linked`);
-    }
-
     public destroy(): void {
         if (this.observer !== undefined) {
             this.observer.destroy();
         }
+        this.watcher.destroy();
         this.unsubscribe();
     }
 
     public validate(): Error | undefined {
-        const error: Error | T = this.ref.validate(this.configuration);
+        const error: Error | T = this.ref.validate(this.sterilized());
         return error instanceof Error ? error : undefined;
     }
 
@@ -136,16 +147,18 @@ export abstract class Configuration<T, C, A>
     }
 
     public overwrite(configuration: T): void {
+        this.overwriting = true;
         if (this.linked !== undefined) {
             (this as any).src = this.linked.overwrite(configuration);
-            return;
-        }
-        if (this.observer !== undefined) {
-            (this as any).src = configuration;
+        } else if (this.observer !== undefined) {
+            (this as any).src = Observer.sterilize(configuration);
             this.observer.overwrite(configuration);
-            return;
+        } else {
+            this.overwriting = false;
+            throw new Error(`004: Configuration doesn't have observer or linked`);
         }
-        throw new Error(`004: Configuration doesn't have observer or linked`);
+        this.overwriting = false;
+        this.watcher.emit();
     }
 
     public json(): {
