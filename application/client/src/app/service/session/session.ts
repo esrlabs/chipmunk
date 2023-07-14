@@ -137,6 +137,19 @@ export class Session extends Base {
                 },
             },
         });
+        this._sidebar.add({
+            uuid: ids.SIDEBAR_TAB_SETTINGS,
+            name: 'Settings',
+            active: false,
+            closable: false,
+            uppercaseTitle: true,
+            content: {
+                factory: components.get('app-views-settings'),
+                inputs: {
+                    session: this,
+                }
+            }
+        });
     }
 
     public init(): Promise<string> {
