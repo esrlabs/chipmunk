@@ -153,92 +153,90 @@ describe('Jobs', function () {
         return runner(config.regular, 6, async (logger, done, collector) => {
             const jobs = collector(await Jobs.create()) as Jobs;
             const path = config.regular.files['someip-pcapng'];
-            
             // test single source
             jobs.getSomeipStatistic([path])
-            .then((statistic) => {
-                expect(statistic.services.length).toEqual(2);
-                {
-                    let service = statistic.services[0];
-                    expect(service.item.id).toEqual(123);
-                    expect(service.item.num).toEqual(22);
-                    expect(service.details.length).toEqual(1);
-                    expect(service.details[0].id).toEqual(32773);
-                    expect(service.details[0].num).toEqual(22);
-                }
-                {
-                    let service = statistic.services[1];
-                    expect(service.item.id).toEqual(65535);
-                    expect(service.item.num).toEqual(33);
-                    expect(service.details.length).toEqual(1);
-                    expect(service.details[0].id).toEqual(33024);
-                    expect(service.details[0].num).toEqual(33);
-                }
-                expect(statistic.messages.length).toEqual(1);
-                {
-                    let message = statistic.messages[0];
-                    expect(message.item.id).toEqual(2);
-                    expect(message.item.num).toEqual(55);
-                    expect(message.details.length).toEqual(1);
-                    expect(message.details[0].id).toEqual(0);
-                    expect(message.details[0].num).toEqual(55);
-                }
+                .then((statistic) => {
+                    expect(statistic.services.length).toEqual(2);
+                    {
+                        let service = statistic.services[0];
+                        expect(service.item.id).toEqual(123);
+                        expect(service.item.num).toEqual(22);
+                        expect(service.details.length).toEqual(1);
+                        expect(service.details[0].id).toEqual(32773);
+                        expect(service.details[0].num).toEqual(22);
+                    }
+                    {
+                        let service = statistic.services[1];
+                        expect(service.item.id).toEqual(65535);
+                        expect(service.item.num).toEqual(33);
+                        expect(service.details.length).toEqual(1);
+                        expect(service.details[0].id).toEqual(33024);
+                        expect(service.details[0].num).toEqual(33);
+                    }
+                    expect(statistic.messages.length).toEqual(1);
+                    {
+                        let message = statistic.messages[0];
+                        expect(message.item.id).toEqual(2);
+                        expect(message.item.num).toEqual(55);
+                        expect(message.details.length).toEqual(1);
+                        expect(message.details[0].id).toEqual(0);
+                        expect(message.details[0].num).toEqual(55);
+                    }
 
-                // test multiple sources
-                jobs.getSomeipStatistic([path, path])
-                    .then((statistic) => {
-                        expect(statistic.services.length).toEqual(2);
-                        {
-                            let service = statistic.services[0];
-                            expect(service.item.id).toEqual(123);
-                            expect(service.item.num).toEqual(44);
-                            expect(service.details.length).toEqual(1);
-                            expect(service.details[0].id).toEqual(32773);
-                            expect(service.details[0].num).toEqual(44);
-                        }
-                        {
-                            let service = statistic.services[1];
-                            expect(service.item.id).toEqual(65535);
-                            expect(service.item.num).toEqual(66);
-                            expect(service.details.length).toEqual(1);
-                            expect(service.details[0].id).toEqual(33024);
-                            expect(service.details[0].num).toEqual(66);
-                        }
-                        expect(statistic.messages.length).toEqual(1);
-                        {
-                            let message = statistic.messages[0];
-                            expect(message.item.id).toEqual(2);
-                            expect(message.item.num).toEqual(110);
-                            expect(message.details.length).toEqual(1);
-                            expect(message.details[0].id).toEqual(0);
-                            expect(message.details[0].num).toEqual(110);
-                        }
+                    // test multiple sources
+                    jobs.getSomeipStatistic([path, path])
+                        .then((statistic) => {
+                            expect(statistic.services.length).toEqual(2);
+                            {
+                                let service = statistic.services[0];
+                                expect(service.item.id).toEqual(123);
+                                expect(service.item.num).toEqual(44);
+                                expect(service.details.length).toEqual(1);
+                                expect(service.details[0].id).toEqual(32773);
+                                expect(service.details[0].num).toEqual(44);
+                            }
+                            {
+                                let service = statistic.services[1];
+                                expect(service.item.id).toEqual(65535);
+                                expect(service.item.num).toEqual(66);
+                                expect(service.details.length).toEqual(1);
+                                expect(service.details[0].id).toEqual(33024);
+                                expect(service.details[0].num).toEqual(66);
+                            }
+                            expect(statistic.messages.length).toEqual(1);
+                            {
+                                let message = statistic.messages[0];
+                                expect(message.item.id).toEqual(2);
+                                expect(message.item.num).toEqual(110);
+                                expect(message.details.length).toEqual(1);
+                                expect(message.details[0].id).toEqual(0);
+                                expect(message.details[0].num).toEqual(110);
+                            }
 
-                        // test cancel job
-                        const job = jobs
-                            .getSomeipStatistic([path])
-                            .then((_) => {
-                                finish(
-                                    jobs,
-                                    done,
-                                    new Error(`This job should be cancelled, but not done`),
-                                );
-                            })
-                            .canceled(async () => {
-                                finish(jobs, done);
-                            })
-                            .catch((err: Error) => {
-                                finish(jobs, done, err);
-                            })
-                        job.abort();
-                    })
-                    .catch((err: Error) => {
-                        finish(jobs, done, err);
-                    });
-            })
-            .catch((err: Error) => {
-                finish(jobs, done, err);
-            });
+                            // test cancel job
+                            jobs.getSomeipStatistic([path])
+                                .then((_) => {
+                                    finish(
+                                        jobs,
+                                        done,
+                                        new Error(`This job should be cancelled, but not done`),
+                                    );
+                                })
+                                .canceled(async () => {
+                                    finish(jobs, done);
+                                })
+                                .catch((err: Error) => {
+                                    finish(jobs, done, err);
+                                })
+                                .abort();
+                        })
+                        .catch((err: Error) => {
+                            finish(jobs, done, err);
+                        });
+                })
+                .catch((err: Error) => {
+                    finish(jobs, done, err);
+                });
         });
     });
 });
