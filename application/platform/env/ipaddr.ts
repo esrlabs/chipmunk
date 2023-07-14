@@ -4,6 +4,12 @@ export enum EIPVer {
 }
 
 export function anyIPAddr(addr: unknown): boolean {
+    if (typeof addr !== 'string') {
+        return false;
+    }
+    if (addr.trim() === '') {
+        return false;
+    }
     return (
         isValidIPv4(addr) ||
         isValidIPv4WithPort(addr) ||

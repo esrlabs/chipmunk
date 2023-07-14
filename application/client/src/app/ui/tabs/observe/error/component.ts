@@ -22,7 +22,7 @@ export class TabObserveErrorState extends ChangesDetector implements AfterConten
 
     public ngAfterContentInit(): void {
         this.env().subscriber.register(
-            this.observe.watcher().subscribe(() => {
+            this.observe.watcher.subscribe(() => {
                 const error = this.observe.validate();
                 this.error = error instanceof Error ? error.message : undefined;
                 this.detectChanges();
