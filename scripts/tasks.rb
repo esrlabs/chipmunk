@@ -403,9 +403,9 @@ namespace :test do
              'test:binding:ranges', 'test:binding:exporting', 'test:binding:search',
              'test:binding:cancel', 'test:binding:errors', 'test:binding:map',
              'test:binding:jobs', 'test:binding:promises', 'test:binding:values',
-             'test:binding:indexes', 'test:binding:stream', 'test:matcher:karma',
-             'test:ansi:karma', 'test:ansi:rust', 'test:utils:karma',
-             'test:utils:rust', 'test:matcher:rust']
+             'test:binding:indexes', 'test:binding:stream', 'test:binding:observing',
+             'test:matcher:karma', 'test:ansi:karma', 'test:ansi:rust',
+             'test:utils:karma', 'test:utils:rust', 'test:matcher:rust']
 end
 
 namespace :lint do
