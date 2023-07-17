@@ -1,10 +1,19 @@
 # frozen_string_literal: true
 
-require 'dotenv/load'
 
 # Needed to get release meta data
 module Release
+  def self.load_from_env
+    begin
+      require 'dotenv'
+      Dotenv.load
+    rescue LoadError
+      puts 'dotenv not found, not considering .env file!'
+    end
+  end
+
   def self.build_cmd
+    Release.load_from_env
     if OS.mac?
       if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS') && !ENV.key?('SKIP_NOTARIZE')
         './node_modules/.bin/electron-builder --mac --dir'
@@ -19,6 +28,7 @@ module Release
   end
 
   def self.set_envvars
+    Release.load_from_env
     if ENV.key?('SKIP_NOTARIZE')
       ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'false'
       return
