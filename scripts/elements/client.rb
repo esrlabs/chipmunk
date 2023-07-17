@@ -36,12 +36,6 @@ namespace :client do
     end
   end
 
-  desc 'Rebuild client (prod)'
-  task rebuild_prod: ['client:clean', 'client:build_prod']
-
-  desc 'Rebuild client (dev)'
-  task rebuild_dev: ['client:clean', 'client:build_dev']
-
   desc 'Build client (prod)'
   task build_prod: [
     'client:install',
