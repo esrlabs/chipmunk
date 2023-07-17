@@ -43,6 +43,11 @@ module ChangeChecker
     end
   end
 
+  def self.clean_entry(user, path)
+    checklist_file = ChangeChecker.checklist_path(user, path)
+    FileUtils.rm_f(checklist_file)
+  end
+
   def self.changefile_exists?(user, path)
     checklist_file = ChangeChecker.checklist_path(user, path)
     File.file?(checklist_file)
