@@ -32,18 +32,23 @@ namespace :clean do
   ]
 end
 
-task :test_indexer do
-  cd Paths::INDEXER do
-    sh 'cargo test'
+namespace :test do
+  desc 'test rust core'
+  task :indexer do
+    cd Paths::INDEXER do
+      sh 'cargo test'
+    end
   end
-end
 
-desc 'run all test'
-task test: ['test_indexer',
-            'bindings:test',
+  desc 'test js/webassembly parts'
+  task js: ['bindings:test',
             'matcher:test',
             'ansi:test',
             'utils:test']
+
+  desc 'run all test'
+  task all: ['test:indexer', 'test:js']
+end
 
 # Makes sure clippy is installed and correclty executed
 class Clippy
@@ -60,20 +65,25 @@ class Clippy
   end
 end
 
-desc 'lint all rust modules'
-task :lint_rust do
-  clippy = Clippy.new
-  clippy.check('Indexer', Paths::INDEXER)
-  clippy.check('Rustbinding', Paths::RS_BINDINGS)
-  clippy.check('Matcher', "#{Paths::MATCHER}/src")
-  clippy.check('Ansi', "#{Paths::ANSI}/src")
-  clippy.check('Updater', Paths::UPDATER)
-  Reporter.print
-end
+namespace :lint do
+  desc 'lint all rust modules'
+  task :rust do
+    clippy = Clippy.new
+    clippy.check('Indexer', Paths::INDEXER)
+    clippy.check('Rustbinding', Paths::RS_BINDINGS)
+    clippy.check('Matcher', "#{Paths::MATCHER}/src")
+    clippy.check('Ansi', "#{Paths::ANSI}/src")
+    clippy.check('Updater', Paths::UPDATER)
+    Reporter.print
+  end
 
-desc 'lint all'
-task lint: ['platform:lint', 'electron:lint', 'client:lint', 'bindings:lint', 'lint_rust'] do
-  Reporter.print
+  desc 'lint all js/ts modules'
+  task js: ['platform:lint', 'electron:lint', 'client:lint', 'bindings:lint']
+
+  desc 'lint everything'
+  task all: ['lint_js', 'lint_rust'] do
+    Reporter.print
+  end
 end
 
 desc 'build chipmunk (dev)'
