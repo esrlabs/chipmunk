@@ -9,7 +9,6 @@ require './scripts/elements/client'
 require './scripts/elements/electron'
 require './scripts/elements/release'
 require './scripts/elements/updater'
-require './scripts/interactive/menu'
 require './scripts/tools/change_checker'
 
 CLOBBER.include("#{Paths::CLIENT}/.angular")
@@ -33,88 +32,11 @@ namespace :clean do
   ]
 end
 
-desc 'Access interactive menu'
-task :default do
-  renderInterectiveMenu
-end
-
-namespace :install do
-
-  desc 'Install all'
-  task all: [
-    'ansi:install',
-    'matcher:install',
-    'utils:install',
-    'bindings:install',
-    'client:install',
-    'electron:install'
-  ] do
-    Reporter.print
-  end
-end
-
-namespace :test do
-  desc 'run binding tests'
-  task bindings: 'bindings:run_tests'
-
-  namespace :matcher do
-    desc 'run karma tests'
-    task karma: 'matcher:install' do
-      Reporter.print
-      Shell.chdir("#{Paths::MATCHER}/spec") do
-        sh 'npm run test'
-      end
-    end
-    desc 'run rust tests'
-    task :rust do
-      Reporter.print
-      Shell.chdir(Paths::MATCHER) do
-        sh 'wasm-pack test --node'
-      end
-    end
-  end
-
-  namespace :ansi do
-    desc 'run karma tests'
-    task karma: 'ansi:install' do
-      Reporter.print
-      Shell.chdir("#{Paths::ANSI}/spec") do
-        sh 'npm run test'
-      end
-    end
-
-    desc 'run rust tests'
-    task :rust do
-      Reporter.print
-      Shell.chdir(Paths::ANSI) do
-        sh 'wasm-pack test --node'
-      end
-    end
-  end
-
-  namespace :utils do
-    desc 'run karma tests'
-    task karma: 'utils:install' do
-      Reporter.print
-      Shell.chdir("#{Paths::UTILS}/spec") do
-        sh 'npm run test'
-      end
-    end
-
-    desc 'run rust tests'
-    task :rust do
-      Reporter.print
-      Shell.chdir(Paths::UTILS) do
-        sh 'wasm-pack test --node'
-      end
-    end
-  end
-  desc 'run all test'
-  task all: ['test:bindings',
-             'test:matcher:karma',
-             'test:ansi:karma', 'test:ansi:rust', 'test:utils:karma',
-             'test:utils:rust', 'test:matcher:rust']
-end
+desc 'run all test'
+task test: ['bindings:test',
+            'matcher:test',
+            'ansi:test',
+            'utils:test']
 
 # Makes sure clippy is installed and correclty executed
 class Clippy
@@ -132,8 +54,8 @@ end
 
 namespace :lint do
 
-  desc 'Clippy indexer'
-  task :clippy do
+  desc 'lint all rust modules'
+  task :rust do
     clippy = Clippy.new
     clippy.check('Indexer', Paths::INDEXER)
     clippy.check('Rustbinding', Paths::RS_BINDINGS)
@@ -144,27 +66,16 @@ namespace :lint do
   end
 
   desc 'lint all'
-  task all: ['platform:lint', 'electron:lint', 'client:lint', 'bindings:lint', 'lint:clippy'] do
+  task all: ['platform:lint', 'electron:lint', 'client:lint', 'bindings:lint', 'lint:rust'] do
     Reporter.print
   end
 end
 
-namespace :env do
-  desc 'Install target version of rust'
-  task :rust do
-    Environment.rust
-  end
-end
+desc 'build chipmunk (dev)'
+task build_dev: 'electron:build_dev'
 
-desc 'setup chipmunk to be ready-to-use'
-task self_setup_dev: ['bindings:build', 'client:build_dev', 'electron:build_dev'] do
-  Reporter.print
-end
-
-desc 'setup chipmunk to be ready-to-use (production)'
-task self_setup_production: ['bindings:build', 'client:build_prod', 'electron:build_prod'] do
-  Reporter.print
-end
+desc 'build chipmunk (prod)'
+task build_prod: 'electron:build_prod'
 
 def print_deps
   visited = Set.new
@@ -197,7 +108,14 @@ task :print_dot do
   print_deps
 end
 
-# Put this in Rakefile (doesn't matter where)
+desc 'start chipmunk (dev)'
+task run_dev: 'electron:build_dev' do
+  cd Paths::ELECTRON do
+    Shell.sh 'yarn run electron'
+  end
+end
+
+# uncomment for benchmarking the tasks
 require 'benchmark'
 class Rake::Task
   def execute_with_benchmark(*args)
@@ -207,11 +125,4 @@ class Rake::Task
 
   alias_method :execute_without_benchmark, :execute
   alias_method :execute, :execute_with_benchmark
-end
-
-desc 'start chipmunk (dev)'
-task run_dev: 'electron:build_dev' do
-  cd Paths::ELECTRON do
-    Shell.sh 'yarn run electron'
-  end
 end

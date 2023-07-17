@@ -33,9 +33,6 @@ namespace :matcher do
     end
   end
 
-  desc 'Rebuild matcher'
-  task rebuild: ['matcher:clean', 'matcher:build']
-
   desc 'Build matcher'
   task build: ['environment:check', 'matcher:install'] do
     changes_to_files = ChangeChecker.changes?('matcher', Paths::MATCHER)
@@ -54,4 +51,21 @@ namespace :matcher do
     end
     Reporter.print
   end
+
+  task test_karma: 'matcher:install' do
+    Reporter.print
+    Shell.chdir("#{Paths::MATCHER}/spec") do
+      sh 'npm run test'
+    end
+  end
+
+  task :test_rust do
+    Reporter.print
+    Shell.chdir(Paths::MATCHER) do
+      sh 'wasm-pack test --node'
+    end
+  end
+
+  desc 'run matcher tests'
+  task test: ['matcher:test_karma', 'matcher:test_rust']
 end
