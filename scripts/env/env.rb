@@ -9,26 +9,24 @@ def command_exists(command)
   status.success?
 end
 
-module Environment
-  @@checked = false
-
-  def self.list
-    Shell.sh 'nj-cli -V'
-    Shell.sh 'yarn -v'
-    # put back in when wasm-pack supports the version again
-    # Shell.sh 'wasm-pack -V'
-    Shell.sh 'node -v'
-    Shell.sh 'rustc -V'
-  end
-end
-# TODO: Oli: environment tasks
 namespace :environment do
+  desc 'check that all needed tools are installed'
   task :check do
     check_rust
     check_nj_cli
     check_wasm_pack
     check_yarn
     Reporter.done('Env', 'checking environment', '')
+  end
+
+  desc 'list info of needed tools'
+  task :list do
+    Shell.sh 'nj-cli -V'
+    Shell.sh 'yarn -v'
+    # put back in when wasm-pack supports the version again
+    # Shell.sh 'wasm-pack -V'
+    Shell.sh 'node -v'
+    Shell.sh 'rustc -V'
   end
 end
 
