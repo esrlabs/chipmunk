@@ -163,20 +163,27 @@ export class Base {
         sequence: number,
         alias: string,
     ): CancelablePromise<Output> {
-        return new CancelablePromise((resolve, reject, cancel, refCancel, _self) => {
+        return new CancelablePromise((resolve, reject, cancel, refCancel, self) => {
             if (this._state !== State.inited) {
                 return reject(new Error(`Session isn't inited`));
             }
             this.queue.add(sequence, alias);
             refCancel(() => {
                 this.abort(sequence).catch((err: Error) => {
+                    if (self.isCompleted())  {
+                        this.logger.warn("Job was already completed on aborting");
+                        return;
+                    }
                     this.logger.error(`Fail to cancel ${error(err)}`);
                 });
             });
             task.then((nativeOutput: string) => {
                 try {
                     const result: JobResult<Input> = JSON.parse(nativeOutput);
-                    if (result === 'Cancelled') {
+                    if (result === 'Cancelled' || self.isCanceling()) {
+                        if (result !== 'Cancelled' && self.isCanceling())  {
+                            this.logger.warn("Job result dropped due canceling");
+                        }
                         cancel();
                     } else if (convert === undefined) {
                         resolve(result.Finished as unknown as Output);
