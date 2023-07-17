@@ -1,90 +1,80 @@
 name: LintMaster
 
 on:
-    push:
-        branches:
-            - master # Push events on master branch
+  push:
+    branches:
+      - master # Push events on master branch
 
 jobs:
-    ts_lint:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v2
-            - name: install ruby
-              uses: ruby/setup-ruby@v1
-              with:
-                  ruby-version: "3.0"
-                  bundler-cache: true
-            - name: install ruby:gem::dotenv
-              run: gem install dotenv
-            - name: install ruby:gem::json
-              run: gem install json
-            - uses: actions-rs/toolchain@v1
-              with:
-                  toolchain: stable
-                  override: true
-            - name: NPM install
-              working-directory: ./application/
-              run: rake install:all
-            - name: JS/TS linting
-              working-directory: ./application/
-              run: rake lint:all
-    rust_lint:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v2
-            - name: install ruby
-              uses: ruby/setup-ruby@v1
-              with:
-                  ruby-version: "3.0"
-                  bundler-cache: true
-            - name: install ruby:gem::dotenv
-              run: gem install dotenv
-            - name: install ruby:gem::json
-              run: gem install json
-            - uses: actions-rs/toolchain@v1
-              with:
-                  toolchain: stable
-                  override: true
-            - name: Rust linting
-              working-directory: ./application/
-              run: rake clippy:all
-    integration_tests:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v2
-            - name: install ruby
-              uses: ruby/setup-ruby@v1
-              with:
-                  ruby-version: "3.0"
-                  bundler-cache: true
-            - name: install ruby:gem::dotenv
-              run: gem install dotenv
-            - name: install ruby:gem::json
-              run: gem install json
-            - uses: actions-rs/toolchain@v1
-              with:
-                  toolchain: stable
-                  override: true
-            - name: Run integration tests
-              working-directory: ./application
-              env:
-                  ELECTRON_RUN_AS_NODE: 1
-              run: rake test:all
-    unit_tests:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v2
-            - uses: actions-rs/toolchain@v1
-              with:
-                  toolchain: stable
-                  override: true
-            - name: Run unit tests on indexer
-              uses: actions-rs/cargo@v1
-              with:
-                  command: test
-                  args: --manifest-path ./application/apps/indexer/Cargo.toml
+  ts_lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: install ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.0"
+          bundler-cache: true
+      - name: install ruby:gem::dotenv
+        run: gem install dotenv
+      - name: install ruby:gem::json
+        run: gem install json
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: JS/TS linting
+        run: rake lint:js
+  rust_lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: install ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.0"
+          bundler-cache: true
+      - name: install ruby:gem::dotenv
+        run: gem install dotenv
+      - name: install ruby:gem::json
+        run: gem install json
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Rust linting
+        run: rake lint:rust
+  integration_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: install ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.0"
+          bundler-cache: true
+      - name: install ruby:gem::dotenv
+        run: gem install dotenv
+      - name: install ruby:gem::json
+        run: gem install json
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Run integration tests
+        run: rake test:js
+  unit_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: install ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.0"
+          bundler-cache: true
+      - name: Run unit tests on indexer
+        run: rake test:rust
