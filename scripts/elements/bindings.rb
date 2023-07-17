@@ -14,7 +14,6 @@ module Bindings
 end
 
 namespace :bindings do
-  desc 'Install bindings'
   task :install do
     Shell.chdir(Paths::TS_BINDINGS) do
       Reporter.log 'Installing ts-binding libraries'
@@ -37,7 +36,8 @@ namespace :bindings do
     end
   end
 
-  task run_tests: ['bindings:build_spec', 'bindings:build'] do
+  desc 'run binding tests'
+  task test: ['bindings:build_spec', 'bindings:build'] do
     Shell.chdir(Paths::TS_BINDINGS) do
       sh "#{Paths::JASMINE} spec/build/spec/session.jobs.spec.js"
       sh "#{Paths::JASMINE} spec/build/spec/session.search.spec.js"
@@ -73,11 +73,6 @@ namespace :bindings do
     FileUtils.mkdir_p platform_dest
     files_to_copy = Dir["#{Paths::PLATFORM}/*"].reject { |f| File.basename(f) == 'node_modules' }
     FileUtils.cp_r files_to_copy, platform_dest
-  end
-
-  desc 'Rebuild bindings'
-  task rebuild: ['bindings:clean', 'bindings:build'] do
-    Reporter.print
   end
 
   task :build_rs_bindings do
