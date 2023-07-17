@@ -44,23 +44,11 @@ namespace :client do
     'ansi:build',
     'environment:check'
   ] do
-    client_build_needed = ChangeChecker.changes?('client_prod', Paths::CLIENT)
-    # TODO: Oli: check if this is still needed: client_build_needed = changes_to_files || matcher.changes_to_files || ansi.changes_to_files || utils.changes_to_files
+    client_build_needed = ChangeChecker.changes?('client_release', Paths::CLIENT)
     if client_build_needed
-      begin
-        Shell.chdir(Paths::CLIENT) do
-          Shell.sh 'yarn run prod'
-          ChangeChecker.reset('client_prod', Paths::CLIENT, Client::TARGETS)
-          Reporter.done('client', 'build in production mode', '')
-        end
-        client_dist = "#{Paths::CLIENT_DIST}/release"
-        Dir.mkdir_p(Paths::ELECTRON_DIST)
-        sh "cp -r #{client_dist} #{Paths::ELECTRON_DIST}"
-      rescue StandardError
-        Reporter.failed('client', 'build in production mode', '')
-      end
+      execute_client_build('release')
     else
-      Reporter.skipped('client', 'build in production mode', '')
+      Reporter.skipped('client_release', 'build in production mode', '')
     end
   end
 
@@ -71,22 +59,11 @@ namespace :client do
     'ansi:build',
     'utils:build'
   ] do
-    client_build_needed = ChangeChecker.changes?('client_dev', Paths::CLIENT)
+    client_build_needed = ChangeChecker.changes?('client_debug', Paths::CLIENT)
     if client_build_needed
-      begin
-        Shell.chdir(Paths::CLIENT) do
-          Shell.sh 'yarn run build'
-          ChangeChecker.reset('client_dev', Paths::CLIENT, Client::TARGETS)
-          Reporter.done('client', 'build in developing mode', '')
-        end
-        client_dist = "#{Paths::CLIENT_DIST}/debug"
-        Dir.mkdir_p(Paths::ELECTRON_DIST)
-        sh "cp -r #{client_dist} #{Paths::ELECTRON_DIST}"
-      rescue StandardError
-        Reporter.failed('client', 'build in developing mode', '')
-      end
+      execute_client_build('debug')
     else
-      Reporter.skipped('client', 'build in developing mode', '')
+      Reporter.skipped('client_debug', 'build in debug mode', '')
     end
   end
 
@@ -97,4 +74,20 @@ namespace :client do
       Reporter.done('client', 'linting', '')
     end
   end
+end
+
+def execute_client_build(kind)
+  puts "execute_client_build(#{kind})"
+  Shell.chdir(Paths::CLIENT) do
+    Shell.sh 'yarn run prod'
+    ChangeChecker.reset("client_#{kind}", Paths::CLIENT, Client::TARGETS)
+    Reporter.done('client', "build in #{kind} mode", '')
+  end
+  client_dist = "#{Paths::CLIENT_DIST}/#{kind}"
+  FileUtils.mkdir_p(Paths::ELECTRON_CLIENT_DEST)
+  FileUtils.cp_r "#{client_dist}/.", Paths::ELECTRON_CLIENT_DEST
+rescue StandardError => e
+  puts "An error of type #{e.class} happened, message is #{e.message}"
+  ChangeChecker.clean_entry("client_#{kind}", Paths::CLIENT)
+  Reporter.failed('client', "build in #{kind} mode", '')
 end
