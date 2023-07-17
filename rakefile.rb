@@ -32,8 +32,15 @@ namespace :clean do
   ]
 end
 
+task :test_indexer do
+  cd Paths::INDEXER do
+    sh 'cargo test'
+  end
+end
+
 desc 'run all test'
-task test: ['bindings:test',
+task test: ['test_indexer',
+            'bindings:test',
             'matcher:test',
             'ansi:test',
             'utils:test']
@@ -47,28 +54,26 @@ class Clippy
   def check(owner, path)
     Shell.chdir(path) do
       Rake.sh 'cargo clippy --all --all-features -- -D warnings -A clippy::uninlined_format_args'
+      Rake.sh 'cargo fmt -- --color=always --check'
     end
     Reporter.other(owner, "checked: #{path}", '')
   end
 end
 
-namespace :lint do
+desc 'lint all rust modules'
+task :lint_rust do
+  clippy = Clippy.new
+  clippy.check('Indexer', Paths::INDEXER)
+  clippy.check('Rustbinding', Paths::RS_BINDINGS)
+  clippy.check('Matcher', "#{Paths::MATCHER}/src")
+  clippy.check('Ansi', "#{Paths::ANSI}/src")
+  clippy.check('Updater', Paths::UPDATER)
+  Reporter.print
+end
 
-  desc 'lint all rust modules'
-  task :rust do
-    clippy = Clippy.new
-    clippy.check('Indexer', Paths::INDEXER)
-    clippy.check('Rustbinding', Paths::RS_BINDINGS)
-    clippy.check('Matcher', "#{Paths::MATCHER}/src")
-    clippy.check('Ansi', "#{Paths::ANSI}/src")
-    clippy.check('Updater', Paths::UPDATER)
-    Reporter.print
-  end
-
-  desc 'lint all'
-  task all: ['platform:lint', 'electron:lint', 'client:lint', 'bindings:lint', 'lint:rust'] do
-    Reporter.print
-  end
+desc 'lint all'
+task lint: ['platform:lint', 'electron:lint', 'client:lint', 'bindings:lint', 'lint_rust'] do
+  Reporter.print
 end
 
 desc 'build chipmunk (dev)'
