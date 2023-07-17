@@ -1,15 +1,12 @@
 # frozen_string_literal: true
 
-
 # Needed to get release meta data
 module Release
   def self.load_from_env
-    begin
-      require 'dotenv'
-      Dotenv.load
-    rescue LoadError
-      puts 'dotenv not found, not considering .env file!'
-    end
+    require 'dotenv'
+    Dotenv.load
+  rescue LoadError
+    puts 'dotenv not found, not considering .env file!'
   end
 
   def self.build_cmd
