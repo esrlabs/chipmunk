@@ -37,8 +37,6 @@ namespace :ansi do
     end
   end
 
-  task rebuild: ['ansi:clean', 'ansi:build']
-
   desc 'Build ansi'
   task build: ['environment:check', 'ansi:install'] do
     changes_to_files = ChangeChecker.changes?('ansi', Paths::ANSI)
@@ -57,4 +55,21 @@ namespace :ansi do
     end
     Reporter.print
   end
+
+  task test_karma: 'ansi:install' do
+    Reporter.print
+    Shell.chdir("#{Paths::ANSI}/spec") do
+      sh 'npm run test'
+    end
+  end
+
+  task :test_rust do
+    Reporter.print
+    Shell.chdir(Paths::ANSI) do
+      sh 'wasm-pack test --node'
+    end
+  end
+
+  desc 'run ansi tests'
+  task test: ['ansi:test_karma', 'ansi:test_rust']
 end
