@@ -8,7 +8,6 @@ import { Statics } from '../../../env/decorators';
 import { List, IList } from '../description';
 import { Mutable } from '../../unity/mutable';
 import { Alias } from '../../env/types';
-import { Observer } from '../../../env/observer';
 
 import * as Dlt from './dlt';
 import * as SomeIp from './someip';
