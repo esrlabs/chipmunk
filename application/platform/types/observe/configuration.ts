@@ -3,7 +3,7 @@ import { JsonConvertor } from '../storage/json';
 import { Validate, SelfValidate, Alias, Destroy, Storable, Hash } from '../env/types';
 import { List } from './description';
 import { scope } from '../../env/scope';
-import { Subject, Subscriber } from '../../env/subscription';
+import { Subject, Subscriber, Subscription } from '../../env/subscription';
 import { unique } from '../../env/sequence';
 import { Observer } from '../../env/observer';
 
@@ -159,6 +159,22 @@ export abstract class Configuration<T, C, A>
         }
         this.overwriting = false;
         this.watcher.emit();
+    }
+
+    public setRef(configuration: T): void {
+        if (this.linked !== undefined) {
+            (this as any).src = configuration;
+        } else if (this.observer !== undefined) {
+            throw new Error(`Only linked configuration can be rerefered to new target`);
+        } else {
+            throw new Error(`004: Configuration doesn't have observer or linked`);
+        }
+    }
+
+    public subscribe(handler: () => void): Subscription {
+        return this.watcher.subscribe(() => {
+            setTimeout(handler);
+        });
     }
 
     public json(): {

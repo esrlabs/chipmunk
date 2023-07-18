@@ -17,6 +17,8 @@ export class Configuration
     extends Base<IConfiguration, Configuration, Source>
     implements OriginDetails, Sde.Support, Job
 {
+    public MARKER = 'application/platform/types/observe/origin/stream/tcp/index.ts';
+
     static desc(): IList {
         return {
             major: `TCP`,

@@ -160,11 +160,15 @@ export class Configuration
         if (source === undefined) {
             throw new Error(`Configuration of stream doesn't have definition of known source.`);
         }
+        if (this.configuration[source] === undefined) {
+            throw new Error(`No source is defined in stream configuration`);
+        }
         if (this.instance !== undefined) {
             if (
                 this.instance.alias() === source &&
                 Observer.isSame(this.instance.configuration, this.configuration[source])
             ) {
+                this.instance.setRef(this.configuration[source] as any);
                 return this;
             }
         }
