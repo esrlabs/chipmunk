@@ -108,6 +108,12 @@ export class Observe
         });
     }
 
+    public override destroy(): void {
+        super.destroy();
+        this.parser !== undefined && this.parser.destroy();
+        this.origin !== undefined && this.origin.destroy();
+    }
+
     public override isSdeSupported(): boolean {
         return this.origin.isSdeSupported();
     }

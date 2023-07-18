@@ -161,7 +161,7 @@ export abstract class Configuration<T, C, A>
         this.watcher.emit();
     }
 
-    public setRef(configuration: T): void {
+    public setRef<C>(configuration: T | C): void {
         if (this.linked !== undefined) {
             (this as any).src = configuration;
         } else if (this.observer !== undefined) {

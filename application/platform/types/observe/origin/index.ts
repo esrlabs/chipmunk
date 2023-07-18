@@ -107,13 +107,9 @@ export class Configuration
         if (context === undefined) {
             throw new Error(`Configuration of stream doesn't have definition of known context.`);
         }
-        if (this.instance !== undefined) {
-            if (
-                this.instance.alias() === context &&
-                Observer.isSame(this.instance.configuration, this.configuration[context])
-            ) {
-                return this;
-            }
+        if (this.instance !== undefined && this.instance.alias() === context) {
+            this.instance.setRef(this.configuration[context]);
+            return this;
         }
         this.instance !== undefined && this.instance.destroy();
         (this as Mutable<Configuration>).instance = new REGISTER[context](
@@ -141,6 +137,11 @@ export class Configuration
             }),
         );
         this.setInstance();
+    }
+
+    public override destroy(): void {
+        super.destroy();
+        this.instance !== undefined && this.instance.destroy();
     }
 
     public files(): string[] | string | undefined {
