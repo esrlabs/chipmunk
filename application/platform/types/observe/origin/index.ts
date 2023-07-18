@@ -3,7 +3,6 @@ import { Statics } from '../../../env/decorators';
 import { Mutable } from '../../unity/mutable';
 import { Alias } from '../../env/types';
 import { OriginDetails, IOriginDetails, Job, IJob } from '../description';
-import { Observer } from '../../../env/observer';
 
 export * as File from './file';
 export * as Concat from './concat';
