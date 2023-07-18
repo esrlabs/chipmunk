@@ -67,19 +67,26 @@ export class Configuration
             Observer.isSame(this.instance.configuration, this.configuration[1])
         ) {
             return this;
+        } else if (
+            this.instance !== undefined &&
+            !Observer.isSame(this.instance.configuration, this.configuration[1])
+        ) {
+            this.instance.setRef(this.configuration[1]);
+            return this;
+        } else {
+            this.instance !== undefined && this.instance.destroy();
+            const instance = new Stream.Configuration(this.configuration[1], {
+                watcher: this.watcher,
+                overwrite: (config: Stream.IConfiguration) => {
+                    this.configuration[1] = config;
+                    return this.configuration[1];
+                },
+            });
+            if (instance instanceof Error) {
+                throw instance;
+            }
+            (this as Mutable<Configuration>).instance = instance;
         }
-        this.instance !== undefined && this.instance.destroy();
-        const instance = new Stream.Configuration(this.configuration[1], {
-            watcher: this.watcher,
-            overwrite: (config: Stream.IConfiguration) => {
-                this.configuration[1] = config;
-                return this.configuration[1];
-            },
-        });
-        if (instance instanceof Error) {
-            throw instance;
-        }
-        (this as Mutable<Configuration>).instance = instance;
         return this;
     }
 

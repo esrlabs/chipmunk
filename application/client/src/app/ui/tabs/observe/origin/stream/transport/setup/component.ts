@@ -12,7 +12,21 @@ import * as Stream from '@platform/types/observe/origin/stream';
 })
 @Ilc()
 export class Transport extends ChangesDetector implements AfterContentInit {
+    public Source = Stream.Stream.Source;
+
     @Input() public state!: State;
+
+    public instance: {
+        [Stream.Stream.Source.Process]: Stream.Stream.Process.Configuration | undefined;
+        [Stream.Stream.Source.Serial]: Stream.Stream.Serial.Configuration | undefined;
+        [Stream.Stream.Source.UDP]: Stream.Stream.UDP.Configuration | undefined;
+        [Stream.Stream.Source.TCP]: Stream.Stream.TCP.Configuration | undefined;
+    } = {
+        [Stream.Stream.Source.Process]: undefined,
+        [Stream.Stream.Source.Serial]: undefined,
+        [Stream.Stream.Source.UDP]: undefined,
+        [Stream.Stream.Source.TCP]: undefined,
+    };
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -21,39 +35,17 @@ export class Transport extends ChangesDetector implements AfterContentInit {
     public ngAfterContentInit(): void {
         this.env().subscriber.register(
             this.state.updated.subscribe(() => {
-                this.detectChanges();
+                this.update().detectChanges();
             }),
         );
+        this.update();
     }
 
-    public as(): {
-        UDP(): Stream.Stream.UDP.Configuration | undefined;
-        TCP(): Stream.Stream.TCP.Configuration | undefined;
-        Serial(): Stream.Stream.Serial.Configuration | undefined;
-        Process(): Stream.Stream.Process.Configuration | undefined;
-    } {
-        return {
-            UDP: (): Stream.Stream.UDP.Configuration | undefined => {
-                return this.state.configuration.as<Stream.Stream.UDP.Configuration>(
-                    Stream.Stream.UDP.Configuration,
-                );
-            },
-            TCP: (): Stream.Stream.TCP.Configuration | undefined => {
-                return this.state.configuration.as<Stream.Stream.TCP.Configuration>(
-                    Stream.Stream.TCP.Configuration,
-                );
-            },
-            Serial: (): Stream.Stream.Serial.Configuration | undefined => {
-                return this.state.configuration.as<Stream.Stream.Serial.Configuration>(
-                    Stream.Stream.Serial.Configuration,
-                );
-            },
-            Process: (): Stream.Stream.Process.Configuration | undefined => {
-                return this.state.configuration.as<Stream.Stream.Process.Configuration>(
-                    Stream.Stream.Process.Configuration,
-                );
-            },
+    protected update(): Transport {
+        (this.instance as any) = {
+            [this.state.configuration.instance.alias()]: this.state.configuration.instance,
         };
+        return this;
     }
 }
 export interface Transport extends IlcInterface {}

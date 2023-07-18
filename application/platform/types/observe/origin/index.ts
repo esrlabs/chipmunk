@@ -155,7 +155,6 @@ export class Configuration
 
     public change(origin: Declaration): void {
         this.overwrite({ [origin.alias()]: origin.configuration });
-        // this.setInstance();
     }
 
     public desc(): IOriginDetails {
