@@ -8,7 +8,6 @@ import { OriginDetails, IOriginDetails, Job, IJob } from '../../description';
 import { Statics } from '../../../../env/decorators';
 import { Mutable } from '../../../unity/mutable';
 import { Alias } from '../../../env/types';
-import { Observer } from '../../../../env/observer';
 
 import * as Process from './process';
 import * as Serial from './serial';
@@ -163,14 +162,9 @@ export class Configuration
         if (this.configuration[source] === undefined) {
             throw new Error(`No source is defined in stream configuration`);
         }
-        if (this.instance !== undefined) {
-            if (
-                this.instance.alias() === source &&
-                Observer.isSame(this.instance.configuration, this.configuration[source])
-            ) {
-                this.instance.setRef(this.configuration[source] as any);
-                return this;
-            }
+        if (this.instance !== undefined && this.instance.alias() === source) {
+            this.instance.setRef(this.configuration[source]);
+            return this;
         }
         this.instance !== undefined && this.instance.destroy();
         (this as Mutable<Configuration>).instance = new REGISTER[source](
@@ -195,6 +189,11 @@ export class Configuration
             }),
         );
         this.setInstance();
+    }
+
+    public override destroy(): void {
+        super.destroy();
+        this.instance !== undefined && this.instance.destroy();
     }
 
     public change(): {

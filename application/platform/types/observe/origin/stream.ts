@@ -62,19 +62,10 @@ export class Configuration
     }
 
     protected setInstance(): Configuration {
-        if (
-            this.instance !== undefined &&
-            Observer.isSame(this.instance.configuration, this.configuration[1])
-        ) {
-            return this;
-        } else if (
-            this.instance !== undefined &&
-            !Observer.isSame(this.instance.configuration, this.configuration[1])
-        ) {
+        if (this.instance !== undefined) {
             this.instance.setRef(this.configuration[1]);
             return this;
         } else {
-            this.instance !== undefined && this.instance.destroy();
             const instance = new Stream.Configuration(this.configuration[1], {
                 watcher: this.watcher,
                 overwrite: (config: Stream.IConfiguration) => {
@@ -100,6 +91,11 @@ export class Configuration
             }),
         );
         this.setInstance();
+    }
+
+    public override destroy(): void {
+        super.destroy();
+        this.instance !== undefined && this.instance.destroy();
     }
 
     public change(stream: Stream.Declaration): void {

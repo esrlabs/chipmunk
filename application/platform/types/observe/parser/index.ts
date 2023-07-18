@@ -138,13 +138,9 @@ export class Configuration
         if (protocol === undefined) {
             throw new Error(`Configuration of stream doesn't have definition of known protocol.`);
         }
-        if (this.instance !== undefined) {
-            if (
-                this.instance.alias() === protocol &&
-                Observer.isSame(this.instance.configuration, this.configuration[protocol])
-            ) {
-                return this;
-            }
+        if (this.instance !== undefined && this.instance.alias() === protocol) {
+            this.instance.setRef(this.configuration[protocol]);
+            return this;
         }
         this.instance !== undefined && this.instance.destroy();
         (this as Mutable<Configuration>).instance = new REGISTER[protocol](
@@ -156,7 +152,6 @@ export class Configuration
                 },
             },
         );
-        // console.log(new Error(`trace`));
         return this;
     }
 
@@ -170,6 +165,11 @@ export class Configuration
             }),
         );
         this.setInstance();
+    }
+
+    public override destroy(): void {
+        super.destroy();
+        this.instance !== undefined && this.instance.destroy();
     }
 
     public onOriginChange(origin: Origin.Configuration): void {
