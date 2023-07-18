@@ -17,7 +17,7 @@ import { ChangesDetector } from "@ui/env/extentions/changes";
 @Initial()
 @Ilc()
 export class Settings extends ChangesDetector {
-    @Input() session!: Session;
+    // @Input() session!: Session;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);

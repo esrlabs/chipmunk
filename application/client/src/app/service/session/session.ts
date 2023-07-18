@@ -124,6 +124,7 @@ export class Session extends Base {
                 },
             },
         });
+        debugger
         this._sidebar.add({
             uuid: ids.SIDEBAR_TAB_FILTERS,
             name: 'Filters',
@@ -147,8 +148,9 @@ export class Session extends Base {
                 factory: components.get('app-views-settings'),
                 inputs: {
                     session: this,
-                }
-            }
+
+                },
+            },
         });
     }
 
