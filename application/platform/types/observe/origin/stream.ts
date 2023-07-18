@@ -6,7 +6,6 @@ import { Statics } from '../../../env/decorators';
 import { unique } from '../../../env/sequence';
 import { Alias } from '../../env/types';
 import { Mutable } from '../../unity/mutable';
-import { Observer } from '../../../env/observer';
 
 import * as str from '../../../env/str';
 import * as Stream from './stream/index';
