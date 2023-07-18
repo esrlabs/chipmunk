@@ -48,7 +48,7 @@ impl UnboundSession {
                 jobs.retain(|id, signal| {
                     let cancelled = signal.is_cancelled();
                     if cancelled {
-                        UnboundSession::stopped(&progress, &mut uuids, id);
+                        UnboundSession::stopped(&progress, &uuids, id);
                     }
                     !cancelled
                 });
@@ -89,7 +89,7 @@ impl UnboundSession {
                         });
                         for (id, signal) in jobs.iter() {
                             signal.confirmed().await;
-                            UnboundSession::stopped(&progress, &mut uuids, id);
+                            UnboundSession::stopped(&progress, &uuids, id);
                         }
                         jobs.clear();
                         if tx.send(()).is_err() {
@@ -99,7 +99,7 @@ impl UnboundSession {
                     }
                     API::Remove(id) => {
                         if jobs.remove(&id).is_some() {
-                            UnboundSession::stopped(&progress, &mut uuids, &id);
+                            UnboundSession::stopped(&progress, &uuids, &id);
                         }
                     }
                 }
@@ -120,7 +120,7 @@ impl UnboundSession {
         progress.started(&alias, &uuid);
     }
 
-    fn stopped(progress: &ProgressProviderAPI, uuids: &mut HashMap<u64, Uuid>, id: &u64) {
+    fn stopped(progress: &ProgressProviderAPI, uuids: &HashMap<u64, Uuid>, id: &u64) {
         if let Some(uuid) = uuids.get(id) {
             progress.stopped(uuid);
         } else {
