@@ -16,7 +16,9 @@ export class Element {
         this.source = source;
         this.provider = provider;
         const session = this.provider.session;
-        this.id = session.stream.observe().descriptions.id(this.source.observe.uuid);
+        const sourceId = this.source.observe.origin.source();
+        this.id =
+            sourceId !== undefined ? session.stream.observe().descriptions.id(sourceId) : undefined;
         this.selected = session.stream.sde.selecting().is(this.source.observe.uuid);
     }
 

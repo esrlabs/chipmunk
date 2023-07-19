@@ -92,6 +92,10 @@ export class Configuration
         this.setInstance();
     }
 
+    public source(): string | undefined {
+        return this.configuration[0];
+    }
+
     public override destroy(): void {
         super.destroy();
         this.instance !== undefined && this.instance.destroy();

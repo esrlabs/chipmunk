@@ -113,6 +113,15 @@ export class File extends Factory<File> {
         );
     }
 
+    public source(id: string): File {
+        if (!(this.observe.origin.instance instanceof $.Origin.File.Configuration)) {
+            throw new Error(`Given observe object doesn't have File origin`);
+        }
+        this.observe.origin.instance.set().source(id);
+        this.updated().origin();
+        return this;
+    }
+
     public file(filename: string): File {
         if (!(this.observe.origin.instance instanceof $.Origin.File.Configuration)) {
             throw new Error(`Given observe object doesn't have File origin`);

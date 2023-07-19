@@ -67,8 +67,6 @@ export class Observe
         return error instanceof Error ? error : configuration;
     }
 
-    public readonly childs: Observe[] = [];
-    public readonly parent: Observe | undefined;
     public readonly origin!: Origin.Configuration;
     public readonly parser!: Parser.Configuration;
 
@@ -96,16 +94,16 @@ export class Observe
         });
     }
 
+    protected onOriginChange() {
+        this.parser.onOriginChange(this.origin);
+    }
+
     constructor(observe: IObserve) {
         super(observe, undefined);
         this.link();
         this.parser.onOriginChange(this.origin);
-        this.origin.watcher.subscribe(() => {
-            this.parser.onOriginChange(this.origin);
-        });
-        this.parser.watcher.subscribe(() => {
-            this.parser.onOriginChange(this.origin);
-        });
+        this.origin.watcher.subscribe(this.onOriginChange.bind(this));
+        this.parser.watcher.subscribe(this.onOriginChange.bind(this));
     }
 
     public override destroy(): void {

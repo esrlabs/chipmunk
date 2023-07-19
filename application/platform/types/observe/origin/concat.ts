@@ -56,6 +56,10 @@ export class Configuration
 
     protected defaultFileType: Types.File.FileType = Types.File.FileType.Text;
 
+    public source(): string | undefined {
+        return undefined;
+    }
+
     public set(): {
         files(files: string[]): Configuration;
         defaults(type: Types.File.FileType): Configuration;
