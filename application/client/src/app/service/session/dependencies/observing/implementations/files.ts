@@ -5,6 +5,7 @@ import { List } from '@ui/views/sidebar/observe/lists/file/component';
 import { IMenuItem } from '@ui/service/contextmenu';
 
 import * as $ from '@platform/types/observe';
+import * as Factory from '@platform/types/observe/factory';
 
 export class Provider extends Base {
     private _sources: ObserveSource[] = [];
@@ -26,9 +27,31 @@ export class Provider extends Base {
     }
 
     public update(sources: ObserveSource[]): Provider {
+        // Add files
         this._sources = sources.filter(
             (source) => source.observe.origin.nature() instanceof $.Origin.File.Configuration,
         );
+        // Add files from concat-container
+        sources.map((source) => {
+            const concat = source.observe.origin.as<$.Origin.Concat.Configuration>(
+                $.Origin.Concat.Configuration,
+            );
+            if (concat === undefined) {
+                return;
+            }
+            this._sources.push(
+                ...concat.configuration.map((conf: $.Origin.File.IConfiguration) => {
+                    const observe = new Factory.File()
+                        .source(conf[0])
+                        .type(conf[1])
+                        .file(conf[2])
+                        .get();
+                    observe.parser.change(source.observe.parser.instance);
+                    return new ObserveSource(observe).asChild();
+                }),
+            );
+        });
+
         return this;
     }
 
@@ -98,9 +121,7 @@ export class Provider extends Base {
             return new Error(`Cannot attach new source while file is tailing`);
         }
         const single = this._sources.find(
-            (s) =>
-                s.observe.origin.nature() instanceof $.Origin.File.Configuration &&
-                s.observe.parent === undefined,
+            (s) => s.observe.origin.nature() instanceof $.Origin.File.Configuration && !s.child,
         );
         if (single !== undefined) {
             return new Error(

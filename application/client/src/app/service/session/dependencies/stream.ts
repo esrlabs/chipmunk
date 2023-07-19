@@ -225,19 +225,10 @@ export class Stream extends Subscriber {
             sources: (): ObserveSource[] => {
                 const sources: ObserveSource[] = [];
                 Array.from(this.observed.running.values()).forEach((observed: ObserveOperation) => {
-                    const source = observed.asObserve();
-                    if (source.childs.length !== 0) {
-                        sources.push(...source.childs.map((s) => new ObserveSource(s, observed)));
-                    } else {
-                        sources.push(new ObserveSource(source, observed));
-                    }
+                    sources.push(new ObserveSource(observed.asObserve(), observed));
                 });
                 Array.from(this.observed.done.values()).forEach((source: Observe) => {
-                    if (source.childs.length !== 0) {
-                        sources.push(...source.childs.map((s) => new ObserveSource(s)));
-                    } else {
-                        sources.push(new ObserveSource(source));
-                    }
+                    sources.push(new ObserveSource(source));
                 });
                 return sources;
             },

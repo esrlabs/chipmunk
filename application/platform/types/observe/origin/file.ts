@@ -60,9 +60,14 @@ export class Configuration
         return [unique(), Types.File.FileType.Text, ''];
     }
 
+    public source(): string | undefined {
+        return this.configuration[0];
+    }
+
     public set(): {
         filename(filename: string): Configuration;
         type(type: Types.File.FileType): Configuration;
+        source(id: string): Configuration;
     } {
         return {
             filename: (filename: string): Configuration => {
@@ -71,6 +76,10 @@ export class Configuration
             },
             type: (type: Types.File.FileType): Configuration => {
                 this.configuration[1] = type;
+                return this;
+            },
+            source: (id: string): Configuration => {
+                this.configuration[0] = id;
                 return this;
             },
         };
