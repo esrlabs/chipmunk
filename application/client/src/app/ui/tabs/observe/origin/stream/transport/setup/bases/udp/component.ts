@@ -29,6 +29,13 @@ export class SetupBase extends ChangesDetector implements OnDestroy, AfterConten
 
     public ngAfterContentInit(): void {
         this.state = new State(this.action, this.configuration);
+        this.env().subscriber.register(
+            this.configuration.subscribe(() => {
+                this.action.setDisabled(this.configuration.validate() instanceof Error);
+                this.detectChanges();
+            }),
+        );
+        this.action.setDisabled(this.configuration.validate() instanceof Error);
     }
 
     public addMulticast() {

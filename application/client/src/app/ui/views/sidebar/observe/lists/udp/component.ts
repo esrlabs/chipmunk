@@ -54,9 +54,11 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
         this.env().subscriber.register(
             this.action.subjects.get().apply.subscribe(() => {
                 this.provider
-                    .clone(new Factroy.Stream().asText().udp(this.initial.configuration).get())
+                    .openAsNewOrigin(
+                        new Factroy.Stream().asDlt().udp(this.initial.configuration).get(),
+                    )
                     .then(() => {
-                        // this.action.subjects.get().applied.emit();
+                        this.initial.overwrite(Configuration.initial());
                     })
                     .catch((err: Error) => {
                         this.log().error(`Fail to apply connection to UDP: ${err.message}`);

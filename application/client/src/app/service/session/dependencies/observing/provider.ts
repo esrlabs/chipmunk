@@ -89,6 +89,16 @@ export abstract class Provider {
         return this.session.stream.observe().start(observe.clone());
     }
 
+    public openAsNewOrigin(observe: Observe): Promise<string> {
+        const last = this.last();
+        if (last !== undefined) {
+            observe.parser.change(last.parser.instance);
+        } else {
+            return Promise.reject(new Error(`No data about current parser`));
+        }
+        return this.session.stream.observe().start(observe.clone());
+    }
+
     public openAsNew(source: ObserveSource | Observe): Promise<string | undefined> {
         return session
             .initialize()
