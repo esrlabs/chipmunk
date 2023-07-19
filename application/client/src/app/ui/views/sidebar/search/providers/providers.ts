@@ -485,6 +485,14 @@ export class Providers {
                     });
                 },
             });
+
+        event.items.push({ /* Delimiter */}, {
+            caption: 'Export All to File',
+            handler: () => console.log('Exporting to the file'),
+        });
+
+        event.items.push({ caption: 'Import from File', handler: () => console.log('Importing from file') });
+
         this._providers.forEach((provider: Provider<any>) => {
             const custom: IMenuItem[] = provider.getContextMenuItems(
                 event.entity,
@@ -498,6 +506,21 @@ export class Providers {
             }
         });
         this.subjects.get().context.emit(event);
+    }
+
+    public contextMenuOptions(items: IMenuItem[]): IMenuItem[] {
+        items.push({});
+        items.push(
+        {
+            caption: 'Export All to File',
+            handler: () => console.log('Exporting from providers'),
+        });
+        items.push(
+        {
+            caption: 'Import from File',
+            handler: () => console.log('Importing'),
+        });
+        return items;
     }
 
     private _onDoubleclickEvent(event: IDoubleclickEvent) {

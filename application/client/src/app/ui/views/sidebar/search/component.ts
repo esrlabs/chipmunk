@@ -59,10 +59,10 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
                 handler: () => {
                     this.log().debug(`Not implemented yet`);
                 },
-            },
+            }
         ];
         contextmenu.show({
-            items: items,
+            items: this.providers.contextMenuOptions(items),
             x: event.pageX,
             y: event.pageY,
         });
