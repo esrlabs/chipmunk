@@ -143,6 +143,10 @@ export class Configuration
         this.instance !== undefined && this.instance.destroy();
     }
 
+    public source(): string | undefined {
+        return this.instance.source();
+    }
+
     public files(): string[] | string | undefined {
         if (this.instance instanceof File.Configuration) {
             return this.instance.filename();
