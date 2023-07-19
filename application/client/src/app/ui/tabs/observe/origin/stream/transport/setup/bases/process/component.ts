@@ -61,16 +61,6 @@ export class SetupBase
         this.state = new State(this.action, this.configuration);
         this._inputs.cmd.defaults = this.state.configuration.configuration.command;
         this._inputs.cwd.defaults = this.state.configuration.configuration.cwd;
-        this.action.subjects.get().apply.subscribe(() => {
-            this._inputs.cmd.recent.emit(undefined);
-            this.state.configuration.configuration.cwd.trim() !== '' &&
-                this.ilc()
-                    .services.system.bridge.cwd()
-                    .set(undefined, this.state.configuration.configuration.cwd)
-                    .catch((err: Error) => {
-                        this.log().error(`Fail to set cwd path: ${err.message}`);
-                    });
-        });
         this.ilc()
             .services.system.bridge.env()
             .get()
@@ -122,6 +112,23 @@ export class SetupBase
             .finally(() => {
                 this.detectChanges();
             });
+        this.env().subscriber.register(
+            this.configuration.subscribe(() => {
+                this.action.setDisabled(this.configuration.validate() instanceof Error);
+                this.detectChanges();
+            }),
+            this.action.subjects.get().apply.subscribe(() => {
+                this._inputs.cmd.recent.emit(undefined);
+                this.state.configuration.configuration.cwd.trim() !== '' &&
+                    this.ilc()
+                        .services.system.bridge.cwd()
+                        .set(undefined, this.state.configuration.configuration.cwd)
+                        .catch((err: Error) => {
+                            this.log().error(`Fail to set cwd path: ${err.message}`);
+                        });
+            }),
+        );
+        this.action.setDisabled(this.configuration.validate() instanceof Error);
     }
 
     public ngAfterViewInit(): void {
@@ -135,6 +142,7 @@ export class SetupBase
             .get(undefined)
             .then((cwd) => {
                 this.cwdInputRef.set(cwd);
+                this.configuration.configuration.cwd = cwd;
             })
             .catch((err: Error) => {
                 this.log().error(`Fail to get cwd path: ${err.message}`);

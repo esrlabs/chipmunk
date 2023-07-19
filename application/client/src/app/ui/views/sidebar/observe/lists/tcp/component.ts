@@ -54,9 +54,10 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
         this.env().subscriber.register(
             this.action.subjects.get().apply.subscribe(() => {
                 this.provider
-                    .clone(new Factroy.Stream().asText().tcp(this.initial.configuration).get())
-                    .then(() => {
-                        // this.action.subjects.get().applied.emit();
+                    .openAsNewOrigin(
+                        new Factroy.Stream().asDlt().tcp(this.initial.configuration).get(),
+                    ).then(() => {
+                        this.initial.overwrite(Configuration.initial());
                     })
                     .catch((err: Error) => {
                         this.log().error(`Fail to apply connection to TCP: ${err.message}`);
