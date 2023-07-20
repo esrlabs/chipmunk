@@ -144,8 +144,17 @@ export class State extends Holder {
                                         .files(files)
                                         .get(),
                                 );
-                        case FileType.Binary:
                         case FileType.PcapNG:
+                            return this._ilc.services.system.session
+                                .initialize()
+                                .configure(
+                                    new Factory.Concat()
+                                        .asDlt()
+                                        .type(Factory.FileType.PcapNG)
+                                        .files(files)
+                                        .get(),
+                                );
+                        case FileType.Binary:
                             return this._ilc.services.system.session
                                 .initialize()
                                 .configure(
