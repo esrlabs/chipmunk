@@ -45,8 +45,8 @@ export class Provider extends Base {
                         .source(conf[0])
                         .type(conf[1])
                         .file(conf[2])
+                        .parser(source.observe.parser.instance)
                         .get();
-                    observe.parser.change(source.observe.parser.instance);
                     return new ObserveSource(observe).asChild();
                 }),
             );
