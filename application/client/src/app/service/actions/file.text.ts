@@ -35,7 +35,7 @@ export class Action extends Base {
                 },
             });
         } else {
-            session.initialize().observe(new Factory.File().file(files[0].filename).asText().get());
+            session.initialize().observe(new Factory.File().type(files[0].type).file(files[0].filename).asText().get());
         }
         return Promise.resolve();
     }
