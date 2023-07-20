@@ -43,12 +43,12 @@ export const DltLogLevelNames = {
 };
 
 export enum LogLevel {
-    Fatal = 0x1 << 4,
-    Error = 0x2 << 4,
-    Warn = 0x3 << 4,
-    Info = 0x4 << 4,
-    Debug = 0x5 << 4,
-    Verbose = 0x6 << 4,
+    Fatal = 1,
+    Error = 2,
+    Warn = 3,
+    Info = 4,
+    Debug = 5,
+    Verbose = 6,
 }
 
 export interface IFilters {
