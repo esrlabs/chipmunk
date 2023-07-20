@@ -83,6 +83,11 @@ class Factory<T> {
         return this as unknown as T;
     }
 
+    public parser(parser: $.Parser.Declaration): T {
+        this.observe.parser.change(parser);
+        return this as unknown as T;
+    }
+
     public asText(): T {
         this.observe.parser.change(new $.Parser.Text.Configuration(null, undefined));
         this.updated().parser();
