@@ -77,26 +77,34 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
                 ...offline.map(filterAsFile).map((i) => i.filename()),
             ])
             .then((files: File[]) => {
-                this.tailing = [];
-                this.offline = [];
-                files.forEach((file) => {
-                    const tailingSource = tailing.find(
-                        (s) => asFileInstance(s).filename() === file.filename,
-                    );
-                    const offlineSource = offline.find(
-                        (s) => asFileInstance(s).filename() === file.filename,
-                    );
-                    if (tailingSource !== undefined) {
-                        this.tailing.push(
-                            new Element(tailingSource, this.provider).set().file(file),
-                        );
-                    }
-                    if (offlineSource !== undefined) {
-                        this.offline.push(
-                            new Element(offlineSource, this.provider).set().file(file),
-                        );
-                    }
-                });
+                this.tailing = tailing
+                    .map((s) => {
+                        const filename = asFileInstance(s).filename();
+                        const file = files.find((f) => f.filename === filename);
+                        if (file === undefined) {
+                            this.log().error(
+                                `Fail to find a file ${filename} in cache; or get file metadata`,
+                            );
+                        }
+                        return file === undefined
+                            ? null
+                            : new Element(s, this.provider).set().file(file);
+                    })
+                    .filter((i) => i !== null) as Element[];
+                this.offline = offline
+                    .map((s) => {
+                        const filename = asFileInstance(s).filename();
+                        const file = files.find((f) => f.filename === filename);
+                        if (file === undefined) {
+                            this.log().error(
+                                `Fail to find a file ${filename} in cache; or get file metadata`,
+                            );
+                        }
+                        return file === undefined
+                            ? null
+                            : new Element(s, this.provider).set().file(file);
+                    })
+                    .filter((i) => i !== null) as Element[];
             })
             .catch((err: Error) => {
                 this.log().error(`Fail load stat of files: ${err.message}`);
@@ -116,6 +124,10 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
         if (last === undefined) {
             return;
         }
+        const lastFile = last.origin.as<$.Origin.File.Configuration>($.Origin.File.Configuration);
+        if (lastFile === undefined) {
+            return;
+        }
         this.ilc()
             .services.system.bridge.files()
             .select.any()
@@ -128,10 +140,12 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
                     .start(
                         files.length === 1
                             ? new Factory.File()
+                                  .type(lastFile.configuration[1])
                                   .file(files[0].filename)
                                   .protocol(last.parser.instance.alias())
                                   .get()
                             : new Factory.Concat()
+                                  .type(lastFile.configuration[1])
                                   .files(files.map((f) => f.filename))
                                   .protocol(last.parser.instance.alias())
                                   .get(),
