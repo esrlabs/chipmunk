@@ -18,7 +18,7 @@ export class Dialogs extends Implementation {
         }
         setTimeout(() => {
             this._window.setEnabled(true);
-            this._window.setIgnoreMouseEvents(false);
+            this._window.blur();
         });
     }
     public bind(window: BrowserWindow): void {
@@ -26,6 +26,7 @@ export class Dialogs extends Implementation {
     }
 
     public saveFile(ext?: string): Promise<string | undefined> {
+        this.fixFocusAndMouse();
         return dialog
             .showSaveDialog(this._window, {
                 title: 'Select file to save',
