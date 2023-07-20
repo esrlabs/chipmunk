@@ -120,9 +120,18 @@ export class Provider extends Base {
         if (active !== undefined) {
             return new Error(`Cannot attach new source while file is tailing`);
         }
-        const single = this._sources.find(
-            (s) => s.observe.origin.nature() instanceof $.Origin.File.Configuration && !s.child,
-        );
+        const single = this._sources.find((s) => {
+            const file = s.observe.origin.as<$.Origin.File.Configuration>(
+                $.Origin.File.Configuration,
+            );
+            if (file === undefined) {
+                return false;
+            }
+            if (file.filetype() === $.Types.File.FileType.Text && !s.child) {
+                return true;
+            }
+            return false;
+        });
         if (single !== undefined) {
             return new Error(
                 `Single file has been opened. In this case you cannot attach new source(s).`,
