@@ -17,7 +17,7 @@ async function collect(exts: string[]): Promise<string[]> {
 
 function any(ext?: string): Promise<File[]> {
     return new Promise((resolve, reject) => {
-        collect(ext !== undefined ? [ext] : [])
+        collect(ext !== undefined ? ext.split(',') : [])
             .then((files: string[]) => {
                 const entities = getFileEntities(files);
                 if (entities instanceof Error) {

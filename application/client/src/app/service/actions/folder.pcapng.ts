@@ -42,7 +42,7 @@ export class Action extends Base {
                 },
             });
         } else {
-            session.initialize().suggest(new Factory.File().file(files[0].filename).get());
+            session.initialize().suggest(new Factory.File().type(files[0].type).file(files[0].filename).get());
         }
         return Promise.resolve();
     }

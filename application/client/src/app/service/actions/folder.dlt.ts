@@ -45,7 +45,9 @@ export class Action extends Base {
         } else {
             session
                 .initialize()
-                .configure(new Factory.File().file(files[0].filename).asDlt().get());
+                .configure(
+                    new Factory.File().type(files[0].type).file(files[0].filename).asDlt().get(),
+                );
         }
         return Promise.resolve();
     }
