@@ -2,8 +2,9 @@
 
 require './scripts/tools/os'
 
+# info of all paths used in chipmunk (OS dependend)
 module Paths
-  def self.get_release_build_folder
+  def self.release_build_folder
     if OS.windows?
       'win-unpacked'
     elsif OS.linux?
@@ -13,7 +14,7 @@ module Paths
     end
   end
 
-  def self.get_release_bin_folder
+  def self.release_bin_folder
     if OS.windows?
       'win-unpacked'
     elsif OS.linux?
@@ -23,7 +24,7 @@ module Paths
     end
   end
 
-  def self.get_release_resources_folder
+  def self.release_resources_folder
     if OS.windows?
       'win-unpacked/Resources'
     elsif OS.linux?
@@ -44,7 +45,6 @@ module Paths
   CHECKLISTS = "#{ROOT}/scripts/tools/file_checklists"
   CLIENT = "#{ROOT}/application/client"
   CLIENT_DIST = "#{CLIENT}/dist"
-  CONFIG = "#{ROOT}/scripts/config.json"
 
   ELECTRON = "#{ROOT}/application/holder"
   ELECTRON_DIST = "#{ELECTRON}/dist"
@@ -56,9 +56,9 @@ module Paths
   PLATFORM = "#{ROOT}/application/platform"
   PLATFORM_DIST = "#{PLATFORM}/dist"
   RELEASE = "#{ELECTRON}/release"
-  RELEASE_BIN = "#{RELEASE}/#{Paths.get_release_bin_folder}"
-  RELEASE_BUILD = "#{RELEASE}/#{Paths.get_release_build_folder}"
-  RELEASE_RESOURCES = "#{RELEASE}/#{Paths.get_release_resources_folder}"
+  RELEASE_BIN = "#{RELEASE}/#{Paths.release_bin_folder}"
+  RELEASE_BUILD = "#{RELEASE}/#{Paths.release_build_folder}"
+  RELEASE_RESOURCES = "#{RELEASE}/#{Paths.release_resources_folder}"
   RUSTCORE = "#{ROOT}/application/apps/rustcore"
   RS_BINDINGS = "#{RUSTCORE}/rs-bindings"
   TS_BINDINGS = "#{RUSTCORE}/ts-bindings"

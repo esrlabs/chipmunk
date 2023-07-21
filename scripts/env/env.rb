@@ -1,11 +1,16 @@
 # frozen_string_literal: true
 
-require './scripts/env/config'
 require './scripts/elements/platform'
 
 def command_exists(command)
   require 'open3'
-  _stdout, _stderr, status = Open3.capture3(command)
+  begin
+    _stdout, _stderr, status = Open3.capture3(command)
+  rescue StandardError
+    puts "command could not be checked: #{command}"
+    return false
+  end
+  puts "command #{command} could not be executed" unless status.success?
   status.success?
 end
 
@@ -26,7 +31,7 @@ namespace :environment do
     # put back in when wasm-pack supports the version again
     # Shell.sh 'wasm-pack -V'
     Shell.sh 'node -v'
-    Shell.sh 'rustc -V'
+    Shell.sh 'rustup toolchain list'
   end
 end
 
@@ -38,15 +43,15 @@ def check_yarn
 end
 
 def check_rust
-  config = Config.new
-  return if config.get_rust_version == 'stable'
+  return if command_exists('rustup -V')
 
-  output = `rustc -V`
-  return if output.include? config.get_rust_version
+  output = `rustup toolchain list`
+  prefered_rust_version = 'stable'
+  is_installed = output.lines.map { |l| l =~ /#{prefered_rust_version}/ }.any? { |x| !x.nil? }
+  return if is_installed
 
-  Shell.sh "rustup install #{config.get_rust_version}"
-  Shell.sh "rustup default #{config.get_rust_version}"
-  Reporter.done('Env', "Installed rust (#{config.get_rust_version})", '')
+  Shell.sh "rustup install #{prefered_rust_version}"
+  Reporter.done('Env', "Installed rust (#{prefered_rust_version})", '')
 end
 
 def check_nj_cli
