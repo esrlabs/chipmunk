@@ -34,6 +34,20 @@ export class Configuration
         return Source.Process;
     }
 
+    static sterilizeEnvVars(envs: { [key: string]: any }): { [key: string]: string } {
+        Object.keys(envs).forEach((key: string) => {
+            if (typeof envs[key] === 'string') {
+                return;
+            }
+            if (typeof envs[key].toString === 'function') {
+                envs[key] = envs[key].toString();
+            } else {
+                envs[key] = JSON.stringify(envs[key]);
+            }
+        });
+        return envs;
+    }
+
     static validate(configuration: IConfiguration): Error | IConfiguration {
         try {
             obj.getAsNotEmptyString(configuration, 'command');
