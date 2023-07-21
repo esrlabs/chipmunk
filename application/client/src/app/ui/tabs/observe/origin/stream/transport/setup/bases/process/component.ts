@@ -65,7 +65,8 @@ export class SetupBase
             .services.system.bridge.env()
             .get()
             .then((envs) => {
-                this.state.configuration.configuration.envs = envs;
+                this.state.configuration.configuration.envs =
+                    Stream.Process.Configuration.sterilizeEnvVars(envs);
             })
             .catch((err: Error) => {
                 this.log().error(`Fail to get envvars path: ${err.message}`);
