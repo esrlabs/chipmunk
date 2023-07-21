@@ -22,15 +22,15 @@
     "types": "./dist/lib.d.ts",
     "copyright": "Copyright © 2022 year ESR Labs",
     "devDependencies": {
-        "@types/node": "^18.15.11",
-        "@typescript-eslint/eslint-plugin": "^5.58.0",
-        "@typescript-eslint/parser": "^5.58.0",
-        "eslint": "^8.38.0",
+        "@types/node": "^20.4.2",
+        "@typescript-eslint/eslint-plugin": "^6.1.0",
+        "@typescript-eslint/parser": "^6.1.0",
+        "eslint": "^8.45.0",
         "eslint-plugin-import": "^2.27.5",
         "eslint-plugin-node": "^11.1.0",
         "eslint-plugin-promise": "^6.1.1",
-        "tslib": "^2.5.0",
-        "typescript": "^5.0.4"
+        "tslib": "^2.6.0",
+        "typescript": "^5.1.6"
     },
     "scripts": {
         "build": "node_modules/.bin/tsc -p tsconfig.json",
