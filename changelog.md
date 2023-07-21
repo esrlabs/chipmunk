@@ -17,7 +17,6 @@
 - Angular upgrade to 16.x
 - Upgraded all npm modules
 - Fix timing issue for jobs on ts-binding (unbound session on rustcore)
-- 
 
 # 3.8.2
 - Prevent executing "empty" command on streaming
