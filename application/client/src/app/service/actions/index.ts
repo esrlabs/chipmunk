@@ -6,8 +6,6 @@ import * as FolderDlt from './folder.dlt';
 import * as FolderText from './folder.text';
 import * as FolderPcap from './folder.pcapng';
 import * as FolderAny from './folder.any';
-import * as StreamDltOnCustom from './stream.dlt.custom';
-import * as StreamTextOnCustom from './stream.text.custom';
 import * as UdpDlt from './udp.dlt';
 import * as TcpDlt from './tcp.dlt';
 import * as SerialText from './serial.text';
@@ -27,8 +25,6 @@ export * as FolderDlt from './folder.dlt';
 export * as FolderText from './folder.text';
 export * as FolderPcap from './folder.pcapng';
 export * as FolderAny from './folder.any';
-export * as StreamDltOnCustom from './stream.dlt.custom';
-export * as StreamTextOnCustom from './stream.text.custom';
 export * as UdpDlt from './udp.dlt';
 export * as TcpDlt from './tcp.dlt';
 export * as SerialText from './serial.text';
@@ -49,8 +45,6 @@ export const all = [
     [FolderText.ACTION_UUID, FolderText.Action],
     [FolderPcap.ACTION_UUID, FolderPcap.Action],
     [FolderAny.ACTION_UUID, FolderAny.Action],
-    [StreamDltOnCustom.ACTION_UUID, StreamDltOnCustom.Action],
-    [StreamTextOnCustom.ACTION_UUID, StreamTextOnCustom.Action],
     [UdpDlt.ACTION_UUID, UdpDlt.Action],
     [TcpDlt.ACTION_UUID, TcpDlt.Action],
     [SerialText.ACTION_UUID, SerialText.Action],

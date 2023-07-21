@@ -62,6 +62,10 @@ export const REGISTER: {
     [Source.UDP]: UDP.Configuration,
 };
 
+export function getAllRefs(): Reference[] {
+    return Object.keys(REGISTER).map((key) => REGISTER[key]);
+}
+
 export abstract class Support {
     public abstract getSupportedStream(): Reference[];
 }

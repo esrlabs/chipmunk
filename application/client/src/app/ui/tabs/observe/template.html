@@ -5,8 +5,8 @@
         <p class="t-normal info">Stream From:</p>
         <mat-form-field class="material-mofication-normal black">
             <mat-select [(ngModel)]="state.stream" (ngModelChange)="state.change().stream()">
-                <mat-option *ngFor="let stream of state.streams" [value]="stream.alias()">
-                    {{stream.desc().major}}
+                <mat-option *ngFor="let stream of state.streams" [value]="stream.ref.alias()" [disabled]="stream.disabled">
+                    {{stream.ref.desc().major}}
                 </mat-option>
             </mat-select>
         </mat-form-field>    
@@ -15,8 +15,8 @@
         <p class="t-normal info">Used Parser:</p>
         <mat-form-field class="material-mofication-normal black">
             <mat-select [(ngModel)]="state.parser" (ngModelChange)="state.change().parser()">
-              <mat-option *ngFor="let parser of state.parsers" [value]="parser.alias()">
-                {{parser.desc().major}}
+              <mat-option *ngFor="let parser of state.parsers" [value]="parser.ref.alias()" [disabled]="parser.disabled">
+                {{parser.ref.desc().major}}
               </mat-option>
             </mat-select>
         </mat-form-field> 
