@@ -1530,16 +1530,13 @@ pub async fn main() -> Result<()> {
         output_path: Option<PathBuf>,
         start: std::time::Instant,
     ) {
-        use someip_payload::fibex::{FibexParser, FibexReader};
         debug!("handle_someip_pcap_subcommand");
         if let Some(model_path) = model_path {
             let output_path = output_path
                 .unwrap_or_else(|| PathBuf::from(&format!("{}.out", input_path.to_string_lossy())));
 
             println!("read fibex file {}", model_path.to_str().unwrap());
-            let fibex_reader = FibexReader::from_file(model_path).unwrap();
-            let fibex_model = FibexParser::try_parse(vec![fibex_reader]).expect("cannot parse fibex");
-            let someip_parser = SomeipParser::from_fibex(fibex_model);
+            let someip_parser = SomeipParser::from_fibex_files(vec![model_path]);
 
             println!("parse input file {}", input_path.to_str().unwrap());
             let input_file_size = fs::metadata(input_path).expect("file size error").len();

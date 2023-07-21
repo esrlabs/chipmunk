@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::{
     operations::{OperationAPI, OperationResult},
     state::SessionStateAPI,
@@ -44,7 +46,9 @@ pub async fn run_source<S: ByteSource>(
     match parser {
         ParserType::SomeIp(settings) => {
             let someip_parser = match &settings.fibex_file_paths {
-                Some(paths) => SomeipParser::from_fibex_files(paths.clone()),
+                Some(paths) => {
+                    SomeipParser::from_fibex_files(paths.iter().map(PathBuf::from).collect())
+                }
                 None => SomeipParser::new(),
             };
             let producer = MessageProducer::new(someip_parser, source, rx_sde);
