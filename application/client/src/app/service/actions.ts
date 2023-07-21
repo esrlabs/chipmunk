@@ -109,7 +109,6 @@ export class Service extends Implementation {
                                     case Protocol.Text:
                                         switch (request.source) {
                                             case undefined:
-                                                return new handlers.StreamTextOnCustom.Action().apply();
                                             case Source.Process:
                                                 return new handlers.StdoutText.Action().apply();
                                             case Source.Serial:
@@ -124,7 +123,6 @@ export class Service extends Implementation {
                                     case Protocol.Dlt:
                                         switch (request.source) {
                                             case undefined:
-                                                return new handlers.StreamDltOnCustom.Action().apply();
                                             case Source.UDP:
                                                 return new handlers.UdpDlt.Action().apply();
                                             case Source.TCP:

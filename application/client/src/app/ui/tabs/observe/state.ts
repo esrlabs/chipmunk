@@ -13,6 +13,8 @@ import * as StreamOrigin from '@platform/types/observe/origin/stream/index';
 import * as Origin from '@platform/types/observe/origin/index';
 import * as FileOrigin from '@platform/types/observe/origin/file';
 import * as ConcatOrigin from '@platform/types/observe/origin/concat';
+import * as Parsers from '@platform/types/observe/parser';
+import * as Streams from '@platform/types/observe/origin/stream/index';
 
 export interface IApi {
     finish(observe: Observe): Promise<void>;
@@ -26,9 +28,9 @@ export interface IInputs {
 }
 
 export class State extends Subscriber {
-    public parsers: Parser.Reference[] = [];
+    public parsers: { ref: Parser.Reference; disabled: boolean }[] = [];
     public parser: Parser.Protocol | undefined;
-    public streams: StreamOrigin.Reference[] = [];
+    public streams: { ref: StreamOrigin.Reference; disabled: boolean }[] = [];
     public file: File | undefined;
     public concat: File[] | undefined;
     public stream: StreamOrigin.Source | undefined;
@@ -117,17 +119,30 @@ export class State extends Subscriber {
                     this.streams = [];
                     this.stream = undefined;
                 } else {
-                    this.streams = this.observe.parser.getSupportedStream();
+                    this.streams = this.observe.parser.getSupportedStream().map((ref) => {
+                        return { ref, disabled: false };
+                    });
                     if (this.stream === undefined) {
                         this.stream = nature.alias();
                     } else {
                         const current = this.stream;
                         this.stream =
                             current !== undefined &&
-                            this.streams.find((p) => p.alias() === current) !== undefined
+                            this.streams.find((p) => p.ref.alias() === current) !== undefined
                                 ? current
-                                : this.streams[0].alias();
+                                : this.streams[0].ref.alias();
                     }
+                    this.streams.push(
+                        ...Streams.getAllRefs()
+                            .filter(
+                                (ref) =>
+                                    this.streams.find((p) => p.ref.alias() === ref.alias()) ===
+                                    undefined,
+                            )
+                            .map((ref) => {
+                                return { ref, disabled: true };
+                            }),
+                    );
                 }
                 this.ref.markChangesForCheck();
                 prev !== this.stream && this.updates.get().stream.emit();
@@ -180,12 +195,25 @@ export class State extends Subscriber {
             },
             parser: (): void => {
                 const current = this.parser;
-                this.parsers = this.observe.origin.getSupportedParsers();
+                this.parsers = this.observe.origin.getSupportedParsers().map((ref) => {
+                    return { ref, disabled: false };
+                });
                 this.parser =
                     current !== undefined &&
-                    this.parsers.find((p) => p.alias() === current) !== undefined
+                    this.parsers.find((p) => p.ref.alias() === current) !== undefined
                         ? current
-                        : this.parsers[0].alias();
+                        : this.parsers[0].ref.alias();
+                this.parsers.push(
+                    ...Parsers.getAllRefs()
+                        .filter(
+                            (ref) =>
+                                this.parsers.find((p) => p.ref.alias() === ref.alias()) ===
+                                undefined,
+                        )
+                        .map((ref) => {
+                            return { ref, disabled: true };
+                        }),
+                );
                 this.ref.markChangesForCheck();
                 current !== this.parser && this.updates.get().parser.emit();
             },
