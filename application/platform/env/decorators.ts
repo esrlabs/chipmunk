@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/ban-types
 export interface DecoratorConstructor extends Function {
     new (...args: any[]): any;
 }
