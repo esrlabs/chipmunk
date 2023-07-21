@@ -49,6 +49,10 @@ const REGISTER: {
     [Protocol.Text]: Text.Configuration,
 };
 
+export function getAllRefs(): Reference[] {
+    return Object.keys(REGISTER).map((key) => REGISTER[key]);
+}
+
 export abstract class Support {
     public abstract getSupportedParsers(): Reference[];
 }
