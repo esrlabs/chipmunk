@@ -2,8 +2,6 @@
 
 require 'rake'
 CLI_EXE_NAME = 'indexer_cli'
-EXE_NAME = 'chip'
-HOME = ENV['HOME']
 
 LEVEL_WARN = 1
 LEVEL_INFO = 2
@@ -13,71 +11,6 @@ VERBOSITY = LEVEL_DEBUG
 
 def debug(content)
   puts("DEBUG: #{content}") unless VERBOSITY < LEVEL_DEBUG
-end
-
-def green(content)
-  require 'colored'
-  content.green.to_s
-rescue LoadError
-  content
-end
-
-def yellow(content)
-  require 'colored'
-  content.yellow.to_s
-rescue LoadError
-  content
-end
-
-def info(content)
-  puts("#{green('INFO')}: #{content}") unless VERBOSITY < LEVEL_INFO
-end
-
-def warn(content)
-  require 'colored'
-  puts("#{yellow('WARN')}: #{content}") unless VERBOSITY < LEVEL_WARN
-end
-
-def sh_cmds(commands)
-  sh commands.join(' && ')
-end
-
-# distinguish between OS
-module OS
-  def self.windows?
-    (/cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM) != nil
-  end
-
-  def self.mac?
-    (/darwin/ =~ RUBY_PLATFORM) != nil
-  end
-
-  def self.unix?
-    !OS.windows?
-  end
-
-  def self.linux?
-    OS.unix? && !OS.mac?
-  end
-
-  def self.jruby?
-    RUBY_ENGINE == 'jruby'
-  end
-end
-desc 'run tests'
-task :test do
-  sh 'cargo test'
-end
-
-desc 'Format code with nightly cargo fmt'
-task :format do
-  sh 'cargo +nightly fmt'
-end
-desc 'Check'
-task :check do
-  sh 'cargo +nightly fmt -- --color=always --check'
-  sh 'cargo clippy'
-  sh 'cargo test'
 end
 
 namespace :bench do
@@ -98,6 +31,7 @@ desc 'run tests with printing to stdout'
 task :test_nocapture do
   sh 'cargo test -q -- --nocapture'
 end
+
 def create_changelog(current_version, next_version)
   raw_log = `git log --format=%B #{current_version}..HEAD`.strip
   log_lines = raw_log.split(/\n/)
@@ -112,108 +46,6 @@ def create_changelog(current_version, next_version)
     text = File.read(file)
     new_contents = text.gsub(/^#\sChangelog/, "# Changelog\n\n#{log_entry}")
     File.open(file, 'w') { |f| f.puts new_contents }
-  end
-end
-
-def build_debug
-  sh 'cargo build'
-  current_version = read_current_version
-  debug_folder = 'target/debug'
-  os_ext = 'darwin'
-  cd debug_folder.to_s, verbose: false do
-    cp CLI_EXE_NAME.to_s, EXE_NAME.to_s
-    cp EXE_NAME.to_s, "#{HOME}/bin/#{EXE_NAME}"
-    sh "tar -cvzf indexing@#{current_version}-#{os_ext}.tgz #{EXE_NAME}"
-  end
-end
-
-def build_the_release
-  sh 'cargo build --release'
-  current_version = read_current_version
-  release_folder = 'target/release'
-  os_ext = 'darwin'
-  if OS.linux?
-    os_ext = 'linux'
-  elsif OS.windows?
-    os_ext = 'windows'
-    release_folder = 'target/x86_64-pc-windows-gnu/release'
-  end
-  cd release_folder.to_s, verbose: true do
-    cp CLI_EXE_NAME.to_s, EXE_NAME.to_s
-    cp EXE_NAME.to_s, "#{HOME}/bin/#{EXE_NAME}"
-    sh "tar -cvzf indexing@#{current_version}-#{os_ext}.tgz #{EXE_NAME}"
-  end
-end
-
-def build_the_release_windows
-  sh 'cargo build --release --target=x86_64-pc-windows-gnu'
-  current_version = read_current_version
-  release_folder = 'target/x86_64-pc-windows-gnu/release'
-  tgz_file = "indexing@#{current_version}-win64.tgz"
-  cd release_folder.to_s, verbose: false do
-    cp "#{CLI_EXE_NAME}.exe", "#{EXE_NAME}.exe"
-    sh "tar -cvzf #{tgz_file} #{EXE_NAME}.exe"
-  end
-  mv "#{release_folder}/#{tgz_file}", 'target/release'
-end
-
-def build_the_release_windows32
-  sh 'cargo build --release --target=i686-pc-windows-gnu'
-  current_version = read_current_version
-  release_folder = 'target/i686-pc-windows-gnu/release'
-  tgz_file = "indexing@#{current_version}-win32.tgz"
-  cd release_folder.to_s, verbose: false do
-    cp "#{CLI_EXE_NAME}.exe", "#{EXE_NAME}.exe"
-    sh "tar -cvzf #{tgz_file} #{EXE_NAME}.exe"
-  end
-  mv "#{release_folder}/#{tgz_file}", 'target/release'
-end
-desc 'create new version and release'
-task :create_release do
-  current_tag = `git describe --tags`
-  current_toml_version = read_current_version
-  unless current_tag.start_with?(current_toml_version)
-    warn "current tag #{current_tag} does not match toml version: #{current_toml_version}"
-  end
-
-  require 'highline'
-  cli = HighLine.new
-  cli.choose do |menu|
-    default = :minor
-    menu.prompt = "this will create and tag a new version (default: #{default}) "
-    menu.choice(:minor) do
-      next_version = get_next_version(:minor)
-      debug "create minor version with version #{next_version}"
-      create_new_version(next_version)
-      build_the_release
-    end
-    menu.choice(:major) do
-      next_version = get_next_version(:major)
-      debug "create major version with version #{next_version}"
-      create_new_version(next_version)
-      build_the_release
-    end
-    menu.choice(:patch) do
-      next_version = get_next_version(:patch)
-      debug "create patch version with version #{next_version}"
-      create_new_version(next_version)
-      build_the_release
-    end
-    menu.choice(:abort) { cli.say('ok...maybe later') }
-    menu.default = default
-  end
-end
-
-desc 'build debug, no version bump'
-task :build_debug do
-  build_debug
-end
-desc 'build release, no version bump'
-task :build_release do
-  build_the_release
-  if OS.linux?
-    build_the_release_windows
-    build_the_release_windows32
   end
 end
 

@@ -81,7 +81,7 @@ namespace :lint do
   task js: ['platform:lint', 'electron:lint', 'client:lint', 'bindings:lint']
 
   desc 'lint everything'
-  task all: ['lint_js', 'lint_rust'] do
+  task all: ['lint:js', 'lint:rust'] do
     Reporter.print
   end
 end
@@ -92,11 +92,23 @@ task build_dev: 'electron:build_dev'
 desc 'build chipmunk (prod)'
 task build_prod: 'electron:build_prod'
 
+def visible_tasks
+  visible = `rake -T`
+  visible.lines.map do |line|
+    if (match = line.match(/rake\s([\w:]*)/i))
+      one = match.captures
+      one[0]
+    end
+  end
+end
+
 def print_deps
   visited = Set.new
   recursion_stack = Set.new
-
   puts 'digraph dependencies {'
+  visible_tasks.each do |t|
+    puts "\s\s\"#{t}\" [style=filled,color=\"orange\"];"
+  end
   Rake::Task.tasks.each do |task|
     print_recursively(task, visited, recursion_stack)
   end
