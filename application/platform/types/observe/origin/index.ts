@@ -116,8 +116,9 @@ export class Configuration
             {
                 watcher: this.watcher,
                 overwrite: ((config: IConfiguration) => {
-                    return this.overwrite(config);
-                }) as any, /// TODO: <<<<<< VERY BAD!
+                    this.overwrite(config);
+                    return this.configuration[context] as any;
+                })
             },
         );
         return this;
