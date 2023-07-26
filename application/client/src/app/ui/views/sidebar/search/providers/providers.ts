@@ -15,6 +15,8 @@ import { Entity } from './definitions/entity';
 import { unique } from '@platform/env/sequence';
 import { Logger } from '@platform/log';
 import { ProvidersEvents } from './definitions/events';
+import { history } from '@service/history';
+import { bridge } from '@service/bridge';
 
 type TSelectedEntities = string[];
 
@@ -508,17 +510,55 @@ export class Providers {
         this.subjects.get().context.emit(event);
     }
 
+
     public contextMenuOptions(items: IMenuItem[]): IMenuItem[] {
+        const historySession = history.get(this.session);
+        if(historySession === undefined) {
+            this.logger.error('History session is not defined');
+            return items
+        }
         items.push({});
         items.push(
         {
             caption: 'Export All to File',
-            handler: () => console.log('Exporting from providers'),
+            handler: () => {
+                bridge.files().select.save().then((filename: string | undefined) => {
+                    if(filename === undefined) {
+                        return;
+                    }
+                    history.export([historySession.collections.uuid], filename);
+                }).catch(error => this.logger.error(error.message));
+            },
         });
         items.push(
         {
             caption: 'Import from File',
-            handler: () => console.log('Importing'),
+            handler: () => {
+                bridge.files().select.text()
+                .then(file => {
+                    if (file.length !== 1) {
+                        this.logger.error('No file selected');
+                        return;
+                    }
+                    history.import(file[0].filename).then((uuids: string[]) => {
+                        if (uuids.length === 0) {
+                            this.logger.warn('File does not have collection');
+                            return;
+                        }
+                        if (uuids.length > 1) {
+                            this.session.switch().toolbar.presets();
+                            return;
+                        } else {
+                            const collection = history.collections.get(uuids[0]);
+                            if (collection === undefined) {
+                                this.logger.error(`Cannot find imported collection with UUID: ${uuids[0]}`);
+                                return;
+                            }
+                            historySession.apply(collection);
+                        }
+                    });
+                });
+            },
         });
         return items;
     }

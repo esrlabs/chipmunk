@@ -58,7 +58,7 @@ export class Provider implements EntryConvertable {
         return bridge.entries({ file: filename }).overwrite([this.entry().to()]);
     }
 
-    public import(filename: string): Promise<void> {
+    public import(filename: string): Promise<string[]> {
         return bridge
             .entries({ file: filename })
             .get()
@@ -83,11 +83,12 @@ export class Provider implements EntryConvertable {
                     });
                     return col;
                 });
+                let uuid: string[] = this.collections.map(collection => collection.uuid);
                 this.storage.definitions.add(this.definitions);
                 this.storage.collections.add(this.collections);
                 this.collections = [];
                 this.definitions = [];
-                return undefined;
+                return uuid;
             });
     }
 
