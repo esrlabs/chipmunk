@@ -417,4 +417,41 @@ describe('Platform: observing', function () {
             next();
         });
     });
+
+    it(config.regular.list[6], function () {
+        return runner(config.regular, 6, async (logger, done, collector) => {
+            const observe = new Factory.Stream().asText().serial().get();
+            checkContext(observe, { file: false, concat: false, stream: true });
+            const serial = observe.origin.as<$.Origin.Stream.Stream.Serial.Configuration>(
+                $.Origin.Stream.Stream.Serial.Configuration,
+            ) as $.Origin.Stream.Stream.Serial.Configuration;
+            expect(serial instanceof $.Origin.Stream.Stream.Serial.Configuration).toEqual(true);
+            expect(typeof serial.configuration.path).toEqual('string');
+            const initial = $.Origin.Stream.Stream.Serial.Configuration.initial();
+            initial.path = '/dev/test';
+            serial.overwrite(initial);
+            expect(typeof serial.configuration.path).toEqual('string');
+            expect(serial.configuration.path).toEqual('/dev/test');
+            const stream = observe.origin.as<$.Origin.Stream.Configuration>(
+                $.Origin.Stream.Configuration,
+            ) as $.Origin.Stream.Configuration;
+            expect(stream instanceof $.Origin.Stream.Configuration).toEqual(true);
+            stream.change(
+                new $.Origin.Stream.Stream.Process.Configuration(
+                    $.Origin.Stream.Stream.Process.Configuration.initial(),
+                    undefined,
+                ),
+            );
+            const process = observe.origin.as<$.Origin.Stream.Stream.Process.Configuration>(
+                $.Origin.Stream.Stream.Process.Configuration,
+            ) as $.Origin.Stream.Stream.Process.Configuration;
+            expect(process instanceof $.Origin.Stream.Stream.Process.Configuration).toEqual(true);
+            const params = $.Origin.Stream.Stream.Process.Configuration.initial();
+            params.command = 'test';
+            process.overwrite(params);
+            expect(typeof process.configuration.command).toEqual('string');
+            expect(process.configuration.command).toEqual('test');
+            finish(undefined, done);
+        });
+    });
 });

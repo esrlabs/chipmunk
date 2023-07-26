@@ -176,7 +176,8 @@ export class Configuration
             {
                 watcher: this.watcher,
                 overwrite: (config: IConfiguration) => {
-                    return this.overwrite(config);
+                    this.overwrite({ [source]: config });
+                    return this.configuration[source];
                 },
             },
         );
