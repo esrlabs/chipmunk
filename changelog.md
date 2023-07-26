@@ -1,3 +1,8 @@
+# 3.9.1
+
+## Fixes
+- fix error related to overwriting configuration of observing (stream/parser)
+
 # 3.9.0
 
 ## UI/UX & Features
