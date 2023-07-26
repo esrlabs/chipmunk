@@ -76,7 +76,7 @@ export class Service extends Implementation {
         return this.provider.export(uuids, filename);
     }
 
-    public import(filename: string): Promise<void> {
+    public import(filename: string): Promise<string[]> {
         return this.provider.import(filename);
     }
 }
