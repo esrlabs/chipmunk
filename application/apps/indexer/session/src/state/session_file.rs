@@ -60,8 +60,6 @@ pub struct SessionFile {
     pub writer: Option<BufWriter<File>>,
     pub last_message_timestamp: Instant,
     pub sources: SourceIDs,
-    /// true - if session file is a single text file, which user opens; false - *.session file, which was created
-    /// to collect decoded content or if concat
     pub stage: SessionFileStage,
 }
 
