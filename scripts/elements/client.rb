@@ -46,7 +46,7 @@ namespace :client do
   ] do
     client_build_needed = ChangeChecker.changes?('client_release', Paths::CLIENT)
     if client_build_needed
-      execute_client_build('release')
+      execute_client_build(:release)
     else
       Reporter.skipped('client_release', 'build in production mode', '')
     end
@@ -61,7 +61,7 @@ namespace :client do
   ] do
     client_build_needed = ChangeChecker.changes?('client_debug', Paths::CLIENT)
     if client_build_needed
-      execute_client_build('debug')
+      execute_client_build(:debug)
     else
       Reporter.skipped('client_debug', 'build in debug mode', '')
     end
@@ -76,14 +76,36 @@ namespace :client do
   end
 end
 
+def output(kind)
+  case kind
+  when :production
+    'release'
+  when :debug
+    'debug'
+  else
+    raise "#{kind} not supported"
+  end
+end
+
+def yarn_target(kind)
+  case kind
+  when :production
+    'prod'
+  when :debug
+    'build'
+  else
+    raise "#{kind} not supported"
+  end
+end
+
 def execute_client_build(kind)
   puts "execute_client_build(#{kind})"
   Shell.chdir(Paths::CLIENT) do
-    Shell.sh 'yarn run prod'
+    Shell.sh "yarn run #{yarn_target(kind)}"
     ChangeChecker.reset("client_#{kind}", Paths::CLIENT, Client::TARGETS)
     Reporter.done('client', "build in #{kind} mode", '')
   end
-  client_dist = "#{Paths::CLIENT_DIST}/#{kind}"
+  client_dist = "#{Paths::CLIENT_DIST}/#{output(kind)}"
   FileUtils.mkdir_p(Paths::ELECTRON_CLIENT_DEST)
   FileUtils.cp_r "#{client_dist}/.", Paths::ELECTRON_CLIENT_DEST
 rescue StandardError => e
