@@ -489,12 +489,7 @@ export class Providers {
                 },
             });
 
-        event.items.push({ /* Delimiter */}, {
-            caption: 'Export All to File',
-            handler: () => console.log('Exporting to the file'),
-        });
-
-        event.items.push({ caption: 'Import from File', handler: () => console.log('Importing from file') });
+        this.contextMenuOptions(event.items);
 
         this._providers.forEach((provider: Provider<any>) => {
             const custom: IMenuItem[] = provider.getContextMenuItems(
@@ -518,23 +513,23 @@ export class Providers {
             this.logger.error('History session is not defined');
             return items
         }
-        items.push({});
+        items.push({ /* Delimiter */ });
         const store = this.session.search.store();
         const showExport: boolean = (store.filters().get().length + store.charts().get().length + store.disabled().get().length) !== 0;
         showExport && items.push(
         {
             caption: 'Export All to File',
-            handler: () => this.exportFilters(historySession),
+            handler: () => this._exportFilters(historySession),
         });
         items.push(
         {
             caption: 'Import from File',
-            handler: () => this.importFilterFile(historySession),
+            handler: () => this._importFilterFile(historySession),
         });
         return items;
     }
 
-    private exportFilters = (historySession: HistorySession) => {
+    private _exportFilters = (historySession: HistorySession) => {
         bridge.files().select.save()
         .then((filename: string | undefined) => {
             if (filename === undefined)
@@ -544,7 +539,7 @@ export class Providers {
         .catch(error => this.logger.error(error.message));
     }
 
-    private importFilterFile = (historySession: HistorySession) => {
+    private _importFilterFile = (historySession: HistorySession) => {
         bridge.files().select.text()
         .then(file => {
             if (file.length !== 1) {
