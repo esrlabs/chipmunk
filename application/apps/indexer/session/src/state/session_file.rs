@@ -46,6 +46,13 @@ pub enum SessionFileState {
     NoChanges,
 }
 
+#[derive(Debug, Clone)]
+pub enum SessionFileStage {
+    NotCreated,
+    Linked,
+    NotLinked,
+}
+
 #[derive(Debug)]
 pub struct SessionFile {
     pub grabber: Option<Box<Grabber>>,
@@ -53,6 +60,9 @@ pub struct SessionFile {
     pub writer: Option<BufWriter<File>>,
     pub last_message_timestamp: Instant,
     pub sources: SourceIDs,
+    /// true - if session file is a single text file, which user opens; false - *.session file, which was created
+    /// to collect decoded content or if concat
+    pub stage: SessionFileStage,
 }
 
 impl SessionFile {
@@ -63,12 +73,14 @@ impl SessionFile {
             writer: None,
             last_message_timestamp: Instant::now(),
             sources: SourceIDs::new(),
+            stage: SessionFileStage::NotCreated,
         }
     }
 
     pub fn init(&mut self, mut filename: Option<PathBuf>) -> Result<(), NativeError> {
         if self.grabber.is_none() {
             let filename = if let Some(filename) = filename.take() {
+                self.stage = SessionFileStage::Linked;
                 filename
             } else {
                 let streams = paths::get_streams_dir()?;
@@ -85,6 +97,7 @@ impl SessionFile {
                         )),
                     }
                 })?));
+                self.stage = SessionFileStage::NotLinked;
                 filename
             };
             self.filename = Some(filename.clone());

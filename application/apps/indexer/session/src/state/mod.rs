@@ -37,7 +37,7 @@ pub use indexes::{
 };
 use observed::Observed;
 use searchers::{SearcherState, Searchers};
-pub use session_file::{GrabbedElement, SessionFile, SessionFileState};
+pub use session_file::{GrabbedElement, SessionFile, SessionFileStage, SessionFileState};
 pub use source_ids::SourceDefinition;
 pub use values::Values;
 
@@ -405,8 +405,15 @@ pub async fn run(
                     )
                     .await;
                 tx_response.send(res).map_err(|_| {
-                    NativeError::channel("Failed to respond to Api::WriteSessionFile")
+                    NativeError::channel("Failed to respond to Api::FlushSessionFile")
                 })?;
+            }
+            Api::GetSessionFileStage(tx_response) => {
+                tx_response
+                    .send(Ok(state.session_file.stage.clone()))
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::GetSessionFileStage")
+                    })?;
             }
             Api::UpdateSession((source_id, tx_response)) => {
                 let res = state
