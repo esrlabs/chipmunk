@@ -518,7 +518,9 @@ export class Providers {
             return items
         }
         items.push({});
-        items.push(
+        let store = this.session.search.store();
+        let showExport: boolean = (store.filters().get().length + store.charts().get().length + store.disabled().get().length) !== 0;
+        showExport && items.push(
         {
             caption: 'Export All to File',
             handler: () => {
