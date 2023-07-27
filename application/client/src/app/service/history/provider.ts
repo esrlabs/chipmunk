@@ -83,7 +83,7 @@ export class Provider implements EntryConvertable {
                     });
                     return col;
                 });
-                let uuid: string[] = this.collections.map(collection => collection.uuid);
+                const uuid: string[] = this.collections.map(collection => collection.uuid);
                 this.storage.definitions.add(this.definitions);
                 this.storage.collections.add(this.collections);
                 this.collections = [];
