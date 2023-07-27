@@ -17,6 +17,7 @@ import { Logger } from '@platform/log';
 import { ProvidersEvents } from './definitions/events';
 import { history } from '@service/history';
 import { bridge } from '@service/bridge';
+import { HistorySession } from '@service/history/session';
 
 type TSelectedEntities = string[];
 
@@ -523,47 +524,53 @@ export class Providers {
         showExport && items.push(
         {
             caption: 'Export All to File',
-            handler: () => {
-                bridge.files().select.save().then((filename: string | undefined) => {
-                    if(filename === undefined) {
-                        return;
-                    }
-                    history.export([historySession.collections.uuid], filename);
-                }).catch(error => this.logger.error(error.message));
-            },
+            handler: () => this.exportFilters(historySession),
         });
         items.push(
         {
             caption: 'Import from File',
-            handler: () => {
-                bridge.files().select.text()
-                .then(file => {
-                    if (file.length !== 1) {
-                        this.logger.error('No file selected');
-                        return;
-                    }
-                    history.import(file[0].filename).then((uuids: string[]) => {
-                        if (uuids.length === 0) {
-                            this.logger.warn('File does not have collection');
-                            return;
-                        }
-                        if (uuids.length > 1) {
-                            this.session.switch().toolbar.presets();
-                            return;
-                        } else {
-                            const collection = history.collections.get(uuids[0]);
-                            if (collection === undefined) {
-                                this.logger.error(`Cannot find imported collection with UUID: ${uuids[0]}`);
-                                return;
-                            }
-                            historySession.apply(collection);
-                        }
-                    });
-                });
-            },
+            handler: () => this.importFilterFile(historySession),
         });
         return items;
     }
+
+    private exportFilters = (historySession: HistorySession) => {
+        bridge.files().select.save()
+        .then((filename: string | undefined) => {
+            if (filename === undefined)
+                return;
+            history.export([historySession.collections.uuid], filename);
+        })
+        .catch(error => this.logger.error(error.message));
+    }
+
+    private importFilterFile = (historySession: HistorySession) => {
+        bridge.files().select.text()
+        .then(file => {
+            if (file.length !== 1) {
+                this.logger.error('No file selected');
+                return;
+            }
+            history.import(file[0].filename)
+            .then((uuids: string[]) => {
+                if (uuids.length === 0) {
+                    this.logger.warn('File does not have a collection');
+                    return;
+                }
+                if (uuids.length > 1) {
+                    this.session.switch().toolbar.presets();
+                    return;
+                } else {
+                    const collection = history.collections.get(uuids[0]);
+                    if (collection === undefined) {
+                        this.logger.error(`Cannot find imported collection with UUID: ${uuids[0]}`);
+                        return
+                    }
+                    historySession.apply(collection);
+                }
+            })
+        })
+    };
 
     private _onDoubleclickEvent(event: IDoubleclickEvent) {
         event.provider.search(event.entity);
