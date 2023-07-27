@@ -17,6 +17,7 @@ end
 namespace :environment do
   desc 'check that all needed tools are installed'
   task :check do
+    check_node
     check_rust
     check_nj_cli
     check_wasm_pack
@@ -27,12 +28,18 @@ namespace :environment do
   desc 'list info of needed tools'
   task :list do
     Shell.sh 'nj-cli -V'
+    Shell.sh 'node -v'
     Shell.sh 'yarn -v'
     # put back in when wasm-pack supports the version again
     # Shell.sh 'wasm-pack -V'
-    Shell.sh 'node -v'
     Shell.sh 'rustup toolchain list'
   end
+end
+
+def check_node
+  return if command_exists('node -v')
+
+  raise 'node not installed, please install before'
 end
 
 def check_yarn
