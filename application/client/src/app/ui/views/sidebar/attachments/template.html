@@ -4,7 +4,7 @@
     <span class="filler"></span>
     <span class="small-icon-button codicon codicon-checklist" *ngIf="attachments.length > 0" [matMenuTriggerFor]="menu"></span>
 </div>
-<p class="info" *ngIf="filtered.attachments">No attachments has been received</p>
+<p class="info" *ngIf="filtered.attachments.length === 0">No attachments has been received</p>
 <mat-expansion-panel *ngIf="filtered.attachments.length > 0" [hideToggle]="true" [expanded]="true" class="list">
     <mat-expansion-panel-header>
         <mat-panel-title>Received Attachments</mat-panel-title>

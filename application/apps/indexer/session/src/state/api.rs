@@ -1,7 +1,7 @@
 use crate::{
     events::NativeError,
     state::{
-        indexes::controller::Mode as IndexesMode, observed::Observed, session_file::GrabbedElement,
+        indexes::controller::Mode as IndexesMode, observed::Observed, session_file::{GrabbedElement, SessionFileStage},
         source_ids::SourceDefinition, values::ValuesError, AttachmentInfo,
     },
     tracker::OperationTrackerAPI,
@@ -28,6 +28,7 @@ pub enum Api {
     GetSessionFile(oneshot::Sender<Result<PathBuf, NativeError>>),
     WriteSessionFile((u8, String, oneshot::Sender<Result<(), NativeError>>)),
     FlushSessionFile(oneshot::Sender<Result<(), NativeError>>),
+    GetSessionFileStage(oneshot::Sender<Result<SessionFileStage, NativeError>>),
     UpdateSession((u8, oneshot::Sender<Result<bool, NativeError>>)),
     AddSource((String, oneshot::Sender<u8>)),
     GetSource((String, oneshot::Sender<Option<u8>>)),
@@ -155,6 +156,7 @@ impl Display for Api {
                 Self::GetSessionFile(_) => "GetSessionFile",
                 Self::WriteSessionFile(_) => "WriteSessionFile",
                 Self::FlushSessionFile(_) => "FlushSessionFile",
+                Self::GetSessionFileStage(_) => "GetSessionFileStage",
                 Self::UpdateSession(_) => "UpdateSession",
                 Self::AddSource(_) => "AddSource",
                 Self::GetSource(_) => "GetSource",
@@ -371,6 +373,12 @@ impl SessionStateAPI {
     pub async fn flush_session_file(&self) -> Result<(), NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::FlushSessionFile(tx), rx).await?
+    }
+
+    pub async fn get_session_file_stage(&self) -> Result<SessionFileStage, NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GetSessionFileStage(tx), rx)
+            .await?
     }
 
     pub async fn update_session(&self, source_id: u8) -> Result<bool, NativeError> {
