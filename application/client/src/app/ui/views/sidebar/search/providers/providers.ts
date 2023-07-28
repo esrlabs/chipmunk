@@ -489,8 +489,6 @@ export class Providers {
                 },
             });
 
-        this.contextMenuOptions(event.items);
-
         this._providers.forEach((provider: Provider<any>) => {
             const custom: IMenuItem[] = provider.getContextMenuItems(
                 event.entity,
@@ -503,6 +501,9 @@ export class Providers {
                 event.items = event.items.concat(custom);
             }
         });
+
+        this.contextMenuOptions(event.items);
+
         this.subjects.get().context.emit(event);
     }
 
@@ -511,7 +512,7 @@ export class Providers {
         const historySession = history.get(this.session);
         if(historySession === undefined) {
             this.logger.error('History session is not defined');
-            return items
+            return items;
         }
         items.push({ /* Delimiter */ });
         const store = this.session.search.store();
@@ -519,53 +520,56 @@ export class Providers {
         showExport && items.push(
         {
             caption: 'Export All to File',
-            handler: () => this._exportFilters(historySession),
+            handler: () => this.filters(historySession).export(),
         });
         items.push(
         {
             caption: 'Import from File',
-            handler: () => this._importFilterFile(historySession),
+            handler: () => this.filters(historySession).import(),
         });
         return items;
     }
 
-    private _exportFilters = (historySession: HistorySession) => {
-        bridge.files().select.save()
-        .then((filename: string | undefined) => {
-            if (filename === undefined)
-                return;
-            history.export([historySession.collections.uuid], filename);
-        })
-        .catch(error => this.logger.error(error.message));
-    }
-
-    private _importFilterFile = (historySession: HistorySession) => {
-        bridge.files().select.text()
-        .then(file => {
-            if (file.length !== 1) {
-                this.logger.error('No file selected');
-                return;
-            }
-            history.import(file[0].filename)
-            .then((uuids: string[]) => {
-                if (uuids.length === 0) {
-                    this.logger.warn('File does not have a collection');
-                    return;
-                }
-                if (uuids.length > 1) {
-                    this.session.switch().toolbar.presets();
-                    return;
-                } else {
-                    const collection = history.collections.get(uuids[0]);
-                    if (collection === undefined) {
-                        this.logger.error(`Cannot find imported collection with UUID: ${uuids[0]}`);
-                        return
+    protected filters(historySession: HistorySession): { import(): void; export(): void } {
+        return {
+            import: (): void => {
+                bridge.files().select.text()
+                .then(file => {
+                    if (file.length !== 1) {
+                        this.logger.error('No file selected');
+                        return;
                     }
-                    historySession.apply(collection);
-                }
-            })
-        })
-    };
+                    history.import(file[0].filename)
+                    .then((uuids: string[]) => {
+                        if (uuids.length === 0) {
+                            this.logger.warn('File does not have a collection');
+                            return;
+                        }
+                        if (uuids.length > 1) {
+                            this.session.switch().toolbar.presets();
+                            return;
+                        } else {
+                            const collection = history.collections.get(uuids[0]);
+                            if (collection === undefined) {
+                                this.logger.error(`Cannot find imported collection with UUID: ${uuids[0]}`);
+                                return;
+                            }
+                            historySession.apply(collection);
+                        }
+                    })
+                })
+            },
+            export: (): void => {
+                bridge.files().select.save()
+                .then((filename: string | undefined) => {
+                    if (filename === undefined)
+                        return;
+                    history.export([historySession.collections.uuid], filename);
+                })
+                .catch(error => this.logger.error(error.message));
+            }
+        };
+    }
 
     private _onDoubleclickEvent(event: IDoubleclickEvent) {
         event.provider.search(event.entity);
