@@ -18,6 +18,7 @@ import { ProvidersEvents } from './definitions/events';
 import { history } from '@service/history';
 import { bridge } from '@service/bridge';
 import { HistorySession } from '@service/history/session';
+import { Notification, notifications } from '@ui/service/notifications';
 
 type TSelectedEntities = string[];
 
@@ -557,18 +558,32 @@ export class Providers {
                             historySession.apply(collection);
                         }
                     })
+                    .catch(error => this._logAndNotifyError(error));
                 })
+                .catch(error => this._logAndNotifyError(error))
             },
             export: (): void => {
                 bridge.files().select.save()
                 .then((filename: string | undefined) => {
                     if (filename === undefined)
                         return;
-                    history.export([historySession.collections.uuid], filename);
+                    history.export([historySession.collections.uuid], filename)
+                    .catch(error => this._logAndNotifyError(error))
                 })
-                .catch(error => this.logger.error(error.message));
+                .catch(error => this._logAndNotifyError(error))
             }
         };
+    }
+
+    private _logAndNotifyError(error: any): void {
+        this.logger.error(error.message);
+        notifications.notify(
+            new Notification({
+                message: error.message,
+                session: this.session.uuid(),
+                actions: []
+            })
+        );
     }
 
     private _onDoubleclickEvent(event: IDoubleclickEvent) {
