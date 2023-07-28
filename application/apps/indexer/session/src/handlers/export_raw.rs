@@ -5,9 +5,17 @@ use crate::{
 };
 use indexer_base::{config::IndexSection, progress::Severity};
 use log::debug;
-use parsers::{dlt::DltParser, text::StringTokenizer, LogMessage, MessageStreamItem};
+use parsers::{
+    dlt::DltParser, someip::SomeipParser, text::StringTokenizer, LogMessage, MessageStreamItem,
+};
 use processor::export::{export_raw, ExportError};
-use sources::{factory::ParserType, producer::MessageProducer, raw::binary::BinaryByteSource};
+use sources::{
+    factory::{FileFormat, ParserType},
+    pcap::file::PcapngByteSource,
+    producer::MessageProducer,
+    raw::binary::BinaryByteSource,
+    ByteSource,
+};
 use std::{
     fs::File,
     path::{Path, PathBuf},
@@ -36,14 +44,15 @@ pub async fn execute_export(
         .map(IndexSection::from)
         .collect::<Vec<IndexSection>>();
     let count = observed.get_files().len();
-    for (i, (parser, filename)) in observed.get_files().iter().enumerate() {
+    for (i, (parser, file_format, filename)) in observed.get_files().iter().enumerate() {
         if indexes.is_empty() {
             break;
         }
-        let read = if let Some(read) = export(
+        let read = if let Some(read) = assing_source(
             filename,
             &out_path,
             parser,
+            file_format,
             &indexes,
             i != (count - 1),
             cancel,
@@ -63,32 +72,78 @@ pub async fn execute_export(
     Ok(Some(true))
 }
 
-async fn export(
+async fn assing_source(
     src: &PathBuf,
     dest: &Path,
     parser: &ParserType,
+    file_format: &FileFormat,
     sections: &Vec<IndexSection>,
     read_to_end: bool,
     cancel: &CancellationToken,
 ) -> Result<Option<usize>, NativeError> {
-    let src_file = File::open(src).map_err(|e| NativeError {
+    let reader = File::open(src).map_err(|e| NativeError {
         severity: Severity::ERROR,
         kind: NativeErrorKind::Io,
         message: Some(format!("Fail open file {}: {}", src.to_string_lossy(), e)),
     })?;
+    match file_format {
+        FileFormat::Binary | FileFormat::Text => {
+            export(
+                dest,
+                parser,
+                BinaryByteSource::new(reader),
+                sections,
+                read_to_end,
+                cancel,
+            )
+            .await
+        }
+        FileFormat::PcapNG => {
+            export(
+                dest,
+                parser,
+                PcapngByteSource::new(reader)?,
+                sections,
+                read_to_end,
+                cancel,
+            )
+            .await
+        }
+    }
+}
+
+async fn export<S: ByteSource>(
+    dest: &Path,
+    parser: &ParserType,
+    source: S,
+    sections: &Vec<IndexSection>,
+    read_to_end: bool,
+    cancel: &CancellationToken,
+) -> Result<Option<usize>, NativeError> {
     match parser {
-        ParserType::SomeIp(_) => Err(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::UnsupportedFileType,
-            message: Some(String::from("SomeIp parser not yet supported")),
-        }),
+        ParserType::SomeIp(settings) => {
+            let parser = if let Some(files) = settings.fibex_file_paths.as_ref() {
+                SomeipParser::from_fibex_files(files.iter().map(PathBuf::from).collect())
+            } else {
+                SomeipParser::new()
+            };
+            let mut producer = MessageProducer::new(parser, source, None);
+            export_runner(
+                Box::pin(producer.as_stream()),
+                dest,
+                sections,
+                read_to_end,
+                cancel,
+            )
+            .await
+        }
         ParserType::Dlt(settings) => {
             let parser = DltParser::new(
                 settings.filter_config.as_ref().map(|f| f.into()),
                 settings.fibex_metadata.as_ref(),
                 settings.with_storage_header,
             );
-            let mut producer = MessageProducer::new(parser, BinaryByteSource::new(src_file), None);
+            let mut producer = MessageProducer::new(parser, source, None);
             export_runner(
                 Box::pin(producer.as_stream()),
                 dest,
@@ -99,8 +154,7 @@ async fn export(
             .await
         }
         ParserType::Text => {
-            let mut producer =
-                MessageProducer::new(StringTokenizer {}, BinaryByteSource::new(src_file), None);
+            let mut producer = MessageProducer::new(StringTokenizer {}, source, None);
             export_runner(
                 Box::pin(producer.as_stream()),
                 dest,
