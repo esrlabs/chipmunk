@@ -558,9 +558,9 @@ export class Providers {
                             historySession.apply(collection);
                         }
                     })
-                    .catch(error => this._logAndNotifyError(error));
+                    .catch(error => this.logAndNotifyError(error));
                 })
-                .catch(error => this._logAndNotifyError(error))
+                .catch(error => this.logAndNotifyError(error))
             },
             export: (): void => {
                 bridge.files().select.save()
@@ -568,14 +568,14 @@ export class Providers {
                     if (filename === undefined)
                         return;
                     history.export([historySession.collections.uuid], filename)
-                    .catch(error => this._logAndNotifyError(error))
+                    .catch(error => this.logAndNotifyError(error))
                 })
-                .catch(error => this._logAndNotifyError(error))
+                .catch(error => this.logAndNotifyError(error))
             }
         };
     }
 
-    private _logAndNotifyError(error: any): void {
+    protected logAndNotifyError(error: any): void {
         this.logger.error(error.message);
         notifications.notify(
             new Notification({
