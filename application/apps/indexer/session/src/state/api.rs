@@ -379,7 +379,7 @@ impl SessionStateAPI {
         self.exec_operation(Api::FlushSessionFile(tx), rx).await?
     }
 
-    pub async fn get_session_file_stage(&self) -> Result<Option<SessionFileOrigin>, NativeError> {
+    pub async fn get_session_file_origin(&self) -> Result<Option<SessionFileOrigin>, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetSessionFileOrigin(tx), rx)
             .await?
