@@ -27,7 +27,7 @@ pub async fn start_observing(
         ObserveOrigin::File(uuid, file_origin, filename) => {
             let (is_text, session_file_origin) = (
                 matches!(options.parser, ParserType::Text),
-                state.get_session_file_stage().await?,
+                state.get_session_file_origin().await?,
             );
             match session_file_origin {
                 Some(origin) if origin.is_linked() => Err(NativeError {
