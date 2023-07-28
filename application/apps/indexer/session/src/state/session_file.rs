@@ -47,20 +47,32 @@ pub enum SessionFileState {
 }
 
 #[derive(Debug, Clone)]
-pub enum SessionFileStage {
-    NotCreated,
-    Linked,
-    NotLinked,
+pub enum SessionFileOrigin {
+    Linked(PathBuf),
+    Generated(PathBuf),
+}
+
+impl SessionFileOrigin {
+    pub fn filename(&self) -> PathBuf {
+        match self {
+            Self::Linked(filename) => filename,
+            Self::Generated(filename) => filename,
+        }
+        .clone()
+    }
+
+    pub fn is_linked(&self) -> bool {
+        matches!(self, Self::Linked(_))
+    }
 }
 
 #[derive(Debug)]
 pub struct SessionFile {
     pub grabber: Option<Box<Grabber>>,
-    pub filename: Option<PathBuf>,
+    pub filename: Option<SessionFileOrigin>,
     pub writer: Option<BufWriter<File>>,
     pub last_message_timestamp: Instant,
     pub sources: SourceIDs,
-    pub stage: SessionFileStage,
 }
 
 impl SessionFile {
@@ -71,14 +83,13 @@ impl SessionFile {
             writer: None,
             last_message_timestamp: Instant::now(),
             sources: SourceIDs::new(),
-            stage: SessionFileStage::NotCreated,
         }
     }
 
     pub fn init(&mut self, mut filename: Option<PathBuf>) -> Result<(), NativeError> {
         if self.grabber.is_none() {
             let filename = if let Some(filename) = filename.take() {
-                self.stage = SessionFileStage::Linked;
+                self.filename = Some(SessionFileOrigin::Linked(filename.clone()));
                 filename
             } else {
                 let streams = paths::get_streams_dir()?;
@@ -95,10 +106,9 @@ impl SessionFile {
                         )),
                     }
                 })?));
-                self.stage = SessionFileStage::NotLinked;
+                self.filename = Some(SessionFileOrigin::Generated(filename.clone()));
                 filename
             };
-            self.filename = Some(filename.clone());
             Ok(Grabber::lazy(TextFileSource::new(&filename))
                 .map(|g| self.grabber = Some(Box::new(g)))?)
         } else {
@@ -240,8 +250,8 @@ impl SessionFile {
     }
 
     pub fn filename(&self) -> Result<PathBuf, NativeError> {
-        if let Some(filename) = self.filename.as_ref() {
-            Ok(filename.clone())
+        if let Some(origin) = self.filename.as_ref() {
+            Ok(origin.filename())
         } else {
             Err(NativeError {
                 severity: Severity::ERROR,
