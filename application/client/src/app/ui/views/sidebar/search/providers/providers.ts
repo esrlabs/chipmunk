@@ -503,19 +503,22 @@ export class Providers {
             }
         });
 
-        this.contextMenuOptions(event.items);
+        this.injectGeneralMenuItems(event.items);
 
         this.subjects.get().context.emit(event);
+
     }
 
 
-    public contextMenuOptions(items: IMenuItem[]): IMenuItem[] {
+    public injectGeneralMenuItems(items: IMenuItem[]): void {
         const historySession = history.get(this.session);
         if(historySession === undefined) {
             this.logger.error('History session is not defined');
-            return items;
+            return;
         }
-        items.push({ /* Delimiter */ });
+        items.push({
+            /* Delimiter */
+        });
         const store = this.session.search.store();
         const showExport: boolean = (store.filters().get().length + store.charts().get().length + store.disabled().get().length) !== 0;
         showExport && items.push(
@@ -528,10 +531,20 @@ export class Providers {
             caption: 'Import from File',
             handler: () => this.filters(historySession).import(),
         });
-        return items;
     }
 
     protected filters(historySession: HistorySession): { import(): void; export(): void } {
+        const logAndNotifyError = (error: Error): void => {
+            this.logger.error(error.message);
+            notifications.notify(
+                new Notification({
+                    message: error.message,
+                    session: this.session.uuid(),
+                    actions: []
+                })
+            );
+        };
+
         return {
             import: (): void => {
                 bridge.files().select.text()
@@ -558,9 +571,9 @@ export class Providers {
                             historySession.apply(collection);
                         }
                     })
-                    .catch(error => this.logAndNotifyError(error));
+                    .catch(error => logAndNotifyError(error));
                 })
-                .catch(error => this.logAndNotifyError(error))
+                .catch(error => logAndNotifyError(error))
             },
             export: (): void => {
                 bridge.files().select.save()
@@ -568,22 +581,11 @@ export class Providers {
                     if (filename === undefined)
                         return;
                     history.export([historySession.collections.uuid], filename)
-                    .catch(error => this.logAndNotifyError(error))
+                    .catch(error => logAndNotifyError(error))
                 })
-                .catch(error => this.logAndNotifyError(error))
-            }
+                .catch(error => logAndNotifyError(error))
+            },
         };
-    }
-
-    protected logAndNotifyError(error: any): void {
-        this.logger.error(error.message);
-        notifications.notify(
-            new Notification({
-                message: error.message,
-                session: this.session.uuid(),
-                actions: []
-            })
-        );
     }
 
     private _onDoubleclickEvent(event: IDoubleclickEvent) {
