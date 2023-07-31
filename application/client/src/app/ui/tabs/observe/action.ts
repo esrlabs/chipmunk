@@ -7,9 +7,11 @@ export class Action {
     public subjects: Subjects<{
         updated: Subject<void>;
         apply: Subject<void>;
+        applied: Subject<void>;
     }> = new Subjects({
         updated: new Subject<void>(),
         apply: new Subject<void>(),
+        applied: new Subject<void>(),
     });
 
     public caption: string = DEFAULT_CAPTION;
@@ -40,5 +42,9 @@ export class Action {
 
     public apply(): void {
         this.subjects.get().apply.emit();
+    }
+
+    public applied(): void {
+        this.subjects.get().applied.emit();
     }
 }
