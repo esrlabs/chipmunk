@@ -59,6 +59,7 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
                     )
                     .then(() => {
                         this.initial.overwrite(Configuration.initial());
+                        this.action.applied();
                     })
                     .catch((err: Error) => {
                         this.log().error(`Fail to apply connection to Serial: ${err.message}`);

@@ -35,6 +35,10 @@ export class SetupBase extends ChangesDetector implements AfterContentInit, OnDe
                 this.action.setDisabled(this.configuration.validate() instanceof Error);
                 this.detectChanges();
             }),
+            this.action.subjects.get().applied.subscribe(() => {
+                this.action.setDisabled(this.configuration.validate() instanceof Error);
+                this.detectChanges();
+            }),
         );
         this.action.setDisabled(this.configuration.validate() instanceof Error);
         this.state.scan().start();

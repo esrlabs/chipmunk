@@ -34,6 +34,10 @@ export class SetupBase extends ChangesDetector implements OnDestroy, AfterConten
                 this.action.setDisabled(this.configuration.validate() instanceof Error);
                 this.detectChanges();
             }),
+            this.action.subjects.get().applied.subscribe(() => {
+                this.action.setDisabled(this.configuration.validate() instanceof Error);
+                this.detectChanges();
+            }),
         );
         this.action.setDisabled(this.configuration.validate() instanceof Error);
     }

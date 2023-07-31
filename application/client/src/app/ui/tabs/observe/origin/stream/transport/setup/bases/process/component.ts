@@ -45,6 +45,28 @@ export class SetupBase
         cwd: FoldersOptions;
     };
 
+    protected setup(): void {
+        this.cmdInputRef.set(this.state.configuration.configuration.command);
+        this.cwdInputRef.set(this.state.configuration.configuration.cwd);
+        this.action.setDisabled(this.configuration.validate() instanceof Error);
+        if (this.state.configuration.configuration.cwd.trim() !== '') {
+            return;
+        }
+        this.ilc()
+            .services.system.bridge.cwd()
+            .get(undefined)
+            .then((cwd) => {
+                this.cwdInputRef.set(cwd);
+                this.configuration.configuration.cwd = cwd;
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to get cwd path: ${err.message}`);
+            })
+            .finally(() => {
+                this.detectChanges();
+            });
+    }
+
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
@@ -118,7 +140,7 @@ export class SetupBase
                 this.action.setDisabled(this.configuration.validate() instanceof Error);
                 this.detectChanges();
             }),
-            this.action.subjects.get().apply.subscribe(() => {
+            this.action.subjects.get().applied.subscribe(() => {
                 this._inputs.cmd.recent.emit(undefined);
                 this.state.configuration.configuration.cwd.trim() !== '' &&
                     this.ilc()
@@ -127,30 +149,14 @@ export class SetupBase
                         .catch((err: Error) => {
                             this.log().error(`Fail to set cwd path: ${err.message}`);
                         });
+                this.setup();
             }),
         );
         this.action.setDisabled(this.configuration.validate() instanceof Error);
     }
 
     public ngAfterViewInit(): void {
-        this.cmdInputRef.set(this.state.configuration.configuration.command);
-        this.cwdInputRef.set(this.state.configuration.configuration.cwd);
-        if (this.state.configuration.configuration.cwd.trim() !== '') {
-            return;
-        }
-        this.ilc()
-            .services.system.bridge.cwd()
-            .get(undefined)
-            .then((cwd) => {
-                this.cwdInputRef.set(cwd);
-                this.configuration.configuration.cwd = cwd;
-            })
-            .catch((err: Error) => {
-                this.log().error(`Fail to get cwd path: ${err.message}`);
-            })
-            .finally(() => {
-                this.detectChanges();
-            });
+        this.setup();
     }
 
     public edit(target: 'cmd' | 'cwd', value: string): void {
@@ -165,7 +171,7 @@ export class SetupBase
         if (this.cwdInputRef.error.is() || this.cmdInputRef.error.is()) {
             return;
         }
-        if (target === 'cmd') {
+        if (target === 'cmd' && this.configuration.validate() === undefined) {
             this.action.apply();
             this.cmdInputRef.control.drop();
         }
