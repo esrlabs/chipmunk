@@ -4,10 +4,11 @@ use std::path::PathBuf;
 use crate::{events::ComputationError, unbound::signal::Signal};
 use log::trace;
 use parsers::{
-    dlt::DltParser, someip::SomeipParser, LogMessage, MessageStreamItem, ParseYield, Parser,
+    dlt::DltParser, someip::SomeipParser, LogMessage, LogMessageOverview, MessageStreamItem,
+    Overview, ParseYield, Parser,
 };
+use serde::Serialize;
 use sources::{factory::ParserType, producer::MessageProducer, ByteSource};
-
 use tokio_stream::StreamExt;
 
 pub async fn run_source<S: ByteSource>(
@@ -16,16 +17,9 @@ pub async fn run_source<S: ByteSource>(
     parser: &ParserType,
 ) -> Result<CommandOutcome<String>, ComputationError> {
     match parser {
-        ParserType::SomeIp(settings) => {
-            let someip_parser = match &settings.fibex_file_paths {
-                Some(paths) => {
-                    SomeipParser::from_fibex_files(paths.iter().map(PathBuf::from).collect())
-                }
-                None => SomeipParser::new(),
-            };
-            let producer = MessageProducer::new(someip_parser, source, None);
-            run_producer(signal, producer).await
-        }
+        ParserType::SomeIp(_settings) => Err(ComputationError::OperationNotSupported(
+            "Not yet implemented".into(),
+        )),
         ParserType::Text => Err(ComputationError::OperationNotSupported(
             "Text parser cannot be used for overview".into(),
         )),
@@ -36,13 +30,28 @@ pub async fn run_source<S: ByteSource>(
                 settings.with_storage_header,
             );
             let producer = MessageProducer::new(dlt_parser, source, None);
-            run_producer(signal, producer).await
+            run_producer(
+                signal,
+                DltParser::get_overview_collector().ok_or(
+                    ComputationError::OperationNotSupported(
+                        "Fail to get overview collector".into(),
+                    ),
+                )?,
+                producer,
+            )
+            .await
         }
     }
 }
 
-async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
+async fn run_producer<
+    T: LogMessage + LogMessageOverview<O>,
+    P: Parser<T>,
+    S: ByteSource,
+    O: Serialize,
+>(
     signal: Signal,
+    mut collector: O,
     mut producer: MessageProducer<T, P, S>,
 ) -> Result<CommandOutcome<String>, ComputationError> {
     use log::debug;
@@ -50,11 +59,11 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     futures::pin_mut!(stream);
     while let Some((_, item)) = stream.next().await {
         match item {
-            MessageStreamItem::Item(ParseYield::Message(_item)) => {
+            MessageStreamItem::Item(ParseYield::Message(item)) => {
                 if signal.is_cancelled() {
                     break;
                 }
-                // do it
+                item.add(&mut collector);
             }
             MessageStreamItem::Item(ParseYield::MessageAndAttachment((_item, _attachment))) => {
                 // Ignore for now;
@@ -80,5 +89,11 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
         }
     }
     debug!("listen done");
-    Ok(CommandOutcome::Finished(String::from("{ }")))
+    Ok(CommandOutcome::Finished(
+        serde_json::to_string(&collector).map_err(|e| {
+            ComputationError::OperationNotSupported(format!(
+                "Fail to convert collecter to JSON: {e:?}"
+            ))
+        })?,
+    ))
 }

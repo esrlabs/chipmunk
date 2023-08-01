@@ -276,6 +276,7 @@ describe('Jobs', function () {
                     console.log(
                         `${config.regular.list[7]} done in ${(Date.now() - started) / 1000} sec`,
                     );
+                    console.log(stat);
                     finish(jobs, done);
                 })
                 .catch((err: Error) => {

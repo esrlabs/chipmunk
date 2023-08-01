@@ -1,7 +1,10 @@
 pub mod attachment;
 pub mod fmt;
 
-use crate::{dlt::fmt::FormattableMessage, Error, LogMessage, ParseYield, Parser};
+use crate::{
+    dlt::fmt::FormattableMessage, Error, LogMessage, LogMessageOverview, Overview, ParseYield,
+    Parser,
+};
 use byteorder::{BigEndian, WriteBytesExt};
 use dlt_core::{
     dlt::{self},
@@ -41,29 +44,49 @@ impl LogMessage for FormattableMessage<'_> {
         writer.write_all(&bytes)?;
         Ok(len)
     }
-
-    fn overview<Statistics>(&self, _overview: &mut Statistics) {
-        ()
-        // Some(Overview {
-        //     childs: None,
-        //     key: String::from("log_level"),
-        //     value: self.message.extended_header.as_ref().map(|header| {
-        //         if let MessageType::Log(level) = header.message_type {
-        //             match level {
-        //                 LogLevel::Fatal => 0,
-        //                 LogLevel::Error => 1,
-        //                 LogLevel::Warn => 2,
-        //                 LogLevel::Debug => 3,
-        //                 LogLevel::Info => 4,
-        //                 LogLevel::Verbose => 5,
-        //                 LogLevel::Invalid(l) => l,
-        //             }
-        //             .to_string()
-        //         } else {
-        //             0u8.to_string()
-        //         }
-        //     }),
-        // })
+}
+/*
+fn overview<Statistics>(&self, _overview: &mut Statistics) {
+Some(Overview {
+    childs: None,
+    key: String::from("log_level"),
+    value: self.message.extended_header.as_ref().map(|header| {
+        if let MessageType::Log(level) = header.message_type {
+            match level {
+                LogLevel::Fatal => 0,
+                LogLevel::Error => 1,
+                LogLevel::Warn => 2,
+                LogLevel::Debug => 3,
+                LogLevel::Info => 4,
+                LogLevel::Verbose => 5,
+                LogLevel::Invalid(l) => l,
+            }
+            .to_string()
+        } else {
+            0u8.to_string()
+        }
+    }),
+})
+}
+ */
+impl LogMessageOverview<Statistics> for FormattableMessage<'_> {
+    fn add(&self, collector: &mut Statistics) {
+        let level = self.message.extended_header.as_ref().map_or(0u8, |header| {
+            if let MessageType::Log(level) = header.message_type {
+                match level {
+                    LogLevel::Fatal => 0,
+                    LogLevel::Error => 1,
+                    LogLevel::Warn => 2,
+                    LogLevel::Debug => 3,
+                    LogLevel::Info => 4,
+                    LogLevel::Verbose => 5,
+                    LogLevel::Invalid(l) => l,
+                }
+            } else {
+                0u8
+            }
+        });
+        *collector.levels.entry(level).or_insert(1) += 1;
     }
 }
 
@@ -197,6 +220,12 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
                 ))
             }
         }
+    }
+}
+
+impl<'m> Overview<Statistics> for DltParser<'m> {
+    fn get_overview_collector() -> Option<Statistics> {
+        Some(Statistics::default())
     }
 }
 
