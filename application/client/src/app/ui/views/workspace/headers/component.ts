@@ -4,10 +4,12 @@ import {
     ChangeDetectionStrategy,
     ChangeDetectorRef,
     AfterContentInit,
+    HostListener,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Columns, Header } from '@schema/render/columns';
 import { Session } from '@service/session';
+import { IMenuItem, contextmenu } from '@ui/service/contextmenu';
 import { LimittedValue } from '@ui/env/entities/value.limited';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Direction } from '@directives/resizer';
@@ -48,6 +50,8 @@ class RenderedHeader {
 export class ColumnsHeaders extends ChangesDetector implements AfterContentInit {
     public readonly Direction = Direction;
     public offset: number = 0;
+    public _ng_mouseOverHeader: string = '';
+    public _ng_more: string = 'more_horiz';
 
     @Input() public controller!: Columns;
     @Input() public session!: Session;
@@ -57,6 +61,8 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
+
+    @HostListener('mouse')
 
     public ngAfterContentInit(): void {
         this.env().subscriber.register(
@@ -68,6 +74,34 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
             .filter((h) => h.visible)
             .map((h) => new RenderedHeader(h));
         this.markChangesForCheck();
+    }
+
+    public _ng_onMouseOver(header: string): void {
+        this._ng_mouseOverHeader = header;
+        this.detectChanges();
+    }
+
+    public _ng_onMouseOut(): void {
+        this._ng_mouseOverHeader = '';
+        this.detectChanges();
+    }
+
+    public _ng_onClick(event: MouseEvent): void {
+        const items: IMenuItem[] = [
+            {
+                caption: 'Select Colors',
+                handler: () => console.log('Color selected'),
+            },
+            {
+                caption: 'Select Column',
+                handler: () => console.log('Column'),
+            }
+        ]
+        contextmenu.show({
+            items,
+            x: event.pageX,
+            y: event.pageY,
+        });
     }
 
     public ngGetOffsetStyle(): { [key: string]: string } {
