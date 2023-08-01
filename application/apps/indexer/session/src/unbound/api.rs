@@ -1,6 +1,7 @@
 use crate::events::ComputationError;
 use processor::search::filter::SearchFilter;
 use serde::Serialize;
+use sources::factory::ObserveOptions;
 use tokio::sync::{mpsc::UnboundedSender, oneshot};
 
 use super::commands::{Command, CommandOutcome};
@@ -150,6 +151,16 @@ impl UnboundSessionAPI {
             Command::GetSomeipStatistic(files, tx_results),
         )
         .await
+    }
+
+    pub async fn get_overview(
+        &self,
+        id: u64,
+        options: ObserveOptions,
+    ) -> Result<CommandOutcome<String>, ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(id, rx_results, Command::GetOverview(options, tx_results))
+            .await
     }
 
     pub async fn get_shell_profiles(

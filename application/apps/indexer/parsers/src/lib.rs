@@ -44,6 +44,10 @@ pub trait Parser<T> {
         input: &'a [u8],
         timestamp: Option<u64>,
     ) -> Result<(&'a [u8], Option<ParseYield<T>>), Error>;
+
+    fn get_overview_collector<O: Serialize + Default>() -> Option<O> {
+        None
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -81,6 +85,10 @@ pub trait LogMessage: Display + Serialize {
     /// Serializes a message directly into a Writer
     /// returns the size of the serialized message
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error>;
+
+    fn overview<O: Serialize>(&self, _collector: &mut O) {
+        ()
+    }
 }
 
 #[derive(Debug)]

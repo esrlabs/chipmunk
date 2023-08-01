@@ -10,6 +10,7 @@ use node_bindgen::{
 use serde::Serialize;
 use session::{
     events::ComputationError,
+    factory::ObserveOptions,
     unbound::{api::UnboundSessionAPI, commands::CommandOutcome, UnboundSession},
 };
 use std::{convert::TryFrom, thread};
@@ -248,6 +249,23 @@ impl UnboundJobs {
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
             .get_regex_error(id_from_i64(id)?, filter.as_filter())
+            .await
+            .map_err(ComputationErrorWrapper)
+            .map(CommandOutcomeWrapper)
+    }
+
+    #[node_bindgen]
+    async fn get_overview(
+        &self,
+        id: i64,
+        options: String,
+    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
+        let options: ObserveOptions = serde_json::from_str(&options)
+            .map_err(|e| ComputationError::Process(format!("Cannot parse source settings: {e}")))?;
+        self.api
+            .as_ref()
+            .ok_or(ComputationError::SessionUnavailable)?
+            .get_overview(id_from_i64(id)?, options)
             .await
             .map_err(ComputationErrorWrapper)
             .map(CommandOutcomeWrapper)

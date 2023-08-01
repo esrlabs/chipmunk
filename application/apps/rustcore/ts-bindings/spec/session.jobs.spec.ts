@@ -10,6 +10,8 @@ import { Jobs, Tracker } from '../src/index';
 import { readConfigurationFile } from './config';
 import { finish, runner } from './common';
 
+import * as Factory from 'platform/types/observe/factory';
+
 import * as os from 'os';
 
 const config = readConfigurationFile().get().tests.jobs;
@@ -233,6 +235,48 @@ describe('Jobs', function () {
                         .catch((err: Error) => {
                             finish(jobs, done, err);
                         });
+                })
+                .catch((err: Error) => {
+                    finish(jobs, done, err);
+                });
+        });
+    });
+
+    it(config.regular.list[7], function () {
+        return runner(config.regular, 7, async (logger, done, collector) => {
+            const jobs = collector(await Jobs.create()) as Jobs;
+            const started = Date.now();
+            jobs.getDltStats([config.regular.files['dlt']])
+                .then((stat) => {
+                    console.log(
+                        `${config.regular.list[7]} done in ${(Date.now() - started) / 1000} sec`,
+                    );
+                    finish(jobs, done);
+                })
+                .catch((err: Error) => {
+                    finish(jobs, done, err);
+                });
+        });
+    });
+
+    it(config.regular.list[8], function () {
+        return runner(config.regular, 8, async (logger, done, collector) => {
+            const jobs = collector(await Jobs.create()) as Jobs;
+            const started = Date.now();
+            jobs.getOverview(
+                new Factory.File()
+                    .type(Factory.FileType.Binary)
+                    .file(config.regular.files['dlt'])
+                    .asDlt()
+                    .get()
+                    .json()
+                    .to(),
+            )
+                .then((stat) => {
+                    console.log(
+                        `${config.regular.list[7]} done in ${(Date.now() - started) / 1000} sec`,
+                    );
+                    finish(jobs, done);
                 })
                 .catch((err: Error) => {
                     finish(jobs, done, err);

@@ -125,6 +125,23 @@ export class Jobs extends Base {
         return job;
     }
 
+    public getOverview(observe: string): CancelablePromise<SomeipStatistic> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<SomeipStatistic> = this.execute(
+            (res: string): any | Error => {
+                try {
+                    return JSON.parse(res) as any;
+                } catch (e) {
+                    return new Error(error(e));
+                }
+            },
+            this.native.getOverview(sequence, observe),
+            sequence,
+            'getOverview',
+        );
+        return job;
+    }
+
     public getShellProfiles(): CancelablePromise<ShellProfile[]> {
         const sequence = this.sequence();
         const job: CancelablePromise<ShellProfile[]> = this.execute(

@@ -3,19 +3,36 @@ pub mod fmt;
 
 use crate::{dlt::fmt::FormattableMessage, Error, LogMessage, ParseYield, Parser};
 use byteorder::{BigEndian, WriteBytesExt};
-pub use dlt_core::{
-    dlt::LogLevel,
-    fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
-    filtering::{DltFilterConfig, ProcessedDltFilterConfig},
-};
 use dlt_core::{
     dlt::{self},
     parse::{dlt_consume_msg, dlt_message},
 };
+pub use dlt_core::{
+    dlt::{LogLevel, MessageType},
+    fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
+    filtering::{DltFilterConfig, ProcessedDltFilterConfig},
+};
 use serde::Serialize;
-use std::{io::Write, ops::Range};
+use std::{collections::HashMap, io::Write, ops::Range};
 
 use self::attachment::FtScanner;
+
+#[derive(Debug, Serialize)]
+pub struct Statistics {
+    levels: HashMap<u8, u64>,
+    ecu_id: HashMap<String, u64>,
+    app_id: HashMap<String, u64>,
+}
+
+impl Default for Statistics {
+    fn default() -> Self {
+        Self {
+            levels: HashMap::new(),
+            ecu_id: HashMap::new(),
+            app_id: HashMap::new(),
+        }
+    }
+}
 
 impl LogMessage for FormattableMessage<'_> {
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
@@ -23,6 +40,30 @@ impl LogMessage for FormattableMessage<'_> {
         let len = bytes.len();
         writer.write_all(&bytes)?;
         Ok(len)
+    }
+
+    fn overview<Statistics>(&self, _overview: &mut Statistics) {
+        ()
+        // Some(Overview {
+        //     childs: None,
+        //     key: String::from("log_level"),
+        //     value: self.message.extended_header.as_ref().map(|header| {
+        //         if let MessageType::Log(level) = header.message_type {
+        //             match level {
+        //                 LogLevel::Fatal => 0,
+        //                 LogLevel::Error => 1,
+        //                 LogLevel::Warn => 2,
+        //                 LogLevel::Debug => 3,
+        //                 LogLevel::Info => 4,
+        //                 LogLevel::Verbose => 5,
+        //                 LogLevel::Invalid(l) => l,
+        //             }
+        //             .to_string()
+        //         } else {
+        //             0u8.to_string()
+        //         }
+        //     }),
+        // })
     }
 }
 
@@ -118,8 +159,13 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
         input: &'b [u8],
         timestamp: Option<u64>,
     ) -> Result<(&'b [u8], Option<ParseYield<FormattableMessage<'m>>>), Error> {
-        match dlt_message(input, self.filter_config.as_ref(), self.with_storage_header)
-            .map_err(|e| Error::Parse(format!("{e}")))?
+        match dlt_message(
+            input,
+            self.filter_config.as_ref(),
+            self.with_storage_header,
+            true,
+        )
+        .map_err(|e| Error::Parse(format!("{e}")))?
         {
             (rest, dlt_core::parse::ParsedMessage::FilteredOut(_n)) => {
                 self.offset += input.len() - rest.len();

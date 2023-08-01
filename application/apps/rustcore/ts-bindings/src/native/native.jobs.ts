@@ -26,6 +26,7 @@ export abstract class JobsNative {
     public abstract getFileChecksum(sequence: number, path: string): Promise<string>;
     public abstract getDltStats(sequence: number, files: string[]): Promise<string>;
     public abstract getSomeipStatistic(sequence: number, files: string[]): Promise<string>;
+    public abstract getOverview(sequence: number, options: string): Promise<string>;
     public abstract getShellProfiles(sequence: number): Promise<string>;
     public abstract getContextEnvvars(sequence: number): Promise<string>;
     public abstract getSerialPortsList(sequence: number): Promise<string[]>;
@@ -170,8 +171,8 @@ export class Base {
             this.queue.add(sequence, alias);
             refCancel(() => {
                 this.abort(sequence).catch((err: Error) => {
-                    if (self.isCompleted())  {
-                        this.logger.warn("Job was already completed on aborting");
+                    if (self.isCompleted()) {
+                        this.logger.warn('Job was already completed on aborting');
                         return;
                     }
                     this.logger.error(`Fail to cancel ${error(err)}`);
@@ -181,8 +182,8 @@ export class Base {
                 try {
                     const result: JobResult<Input> = JSON.parse(nativeOutput);
                     if (result === 'Cancelled' || self.isCanceling()) {
-                        if (result !== 'Cancelled' && self.isCanceling())  {
-                            this.logger.warn("Job result dropped due canceling");
+                        if (result !== 'Cancelled' && self.isCanceling()) {
+                            this.logger.warn('Job result dropped due canceling');
                         }
                         cancel();
                     } else if (convert === undefined) {

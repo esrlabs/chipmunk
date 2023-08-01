@@ -2,6 +2,7 @@ mod cancel_test;
 mod checksum;
 mod dlt;
 mod folder;
+mod overview;
 mod process;
 mod regex;
 mod serial;
@@ -10,13 +11,13 @@ mod someip;
 
 use crate::{events::ComputationError, unbound::commands::someip::get_someip_statistic};
 
+use super::signal::Signal;
 use log::{error, trace};
 use processor::search::filter::SearchFilter;
 use serde::{Deserialize, Serialize};
+use sources::factory::ObserveOptions;
 use tokio::sync::oneshot;
 use uuid::Uuid;
-
-use super::signal::Signal;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum CommandOutcome<T> {
@@ -70,6 +71,10 @@ pub enum Command {
         Vec<String>,
         oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>,
     ),
+    GetOverview(
+        ObserveOptions,
+        oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>,
+    ),
     GetShellProfiles(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
     GetContextEnvvars(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
     SerialPortsList(oneshot::Sender<Result<CommandOutcome<Vec<String>>, ComputationError>>),
@@ -95,6 +100,7 @@ impl std::fmt::Display for Command {
                 Command::Checksum(_, _) => "Calculating file's checksum",
                 Command::GetDltStats(_, _) => "Getting dlt stats",
                 Command::GetSomeipStatistic(_, _) => "Getting someip statistic",
+                Command::GetOverview(_, _) => "GetOverview",
                 Command::GetRegexError(_, _) => "Checking regex",
             }
         )
@@ -126,6 +132,9 @@ pub async fn process(command: Command, signal: Signal) {
         Command::GetSomeipStatistic(files, tx) => {
             tx.send(get_someip_statistic(files, signal)).is_err()
         }
+        Command::GetOverview(observe, tx) => tx
+            .send(overview::get_overview(observe, signal).await)
+            .is_err(),
         Command::GetShellProfiles(tx) => tx.send(shells::get_valid_profiles(signal)).is_err(),
         Command::GetContextEnvvars(tx) => tx.send(shells::get_context_envvars(signal)).is_err(),
         Command::SerialPortsList(tx) => tx.send(serial::available_ports(signal)).is_err(),
@@ -146,6 +155,7 @@ pub async fn err(command: Command, err: ComputationError) {
         Command::Checksum(_file, tx) => tx.send(Err(err)).is_err(),
         Command::GetDltStats(_files, tx) => tx.send(Err(err)).is_err(),
         Command::GetSomeipStatistic(_files, tx) => tx.send(Err(err)).is_err(),
+        Command::GetOverview(_observe, tx) => tx.send(Err(err)).is_err(),
         Command::GetShellProfiles(tx) => tx.send(Err(err)).is_err(),
         Command::GetContextEnvvars(tx) => tx.send(Err(err)).is_err(),
         Command::SerialPortsList(tx) => tx.send(Err(err)).is_err(),
