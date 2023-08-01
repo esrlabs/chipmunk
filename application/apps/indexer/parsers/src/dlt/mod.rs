@@ -45,30 +45,7 @@ impl LogMessage for FormattableMessage<'_> {
         Ok(len)
     }
 }
-/*
-fn overview<Statistics>(&self, _overview: &mut Statistics) {
-Some(Overview {
-    childs: None,
-    key: String::from("log_level"),
-    value: self.message.extended_header.as_ref().map(|header| {
-        if let MessageType::Log(level) = header.message_type {
-            match level {
-                LogLevel::Fatal => 0,
-                LogLevel::Error => 1,
-                LogLevel::Warn => 2,
-                LogLevel::Debug => 3,
-                LogLevel::Info => 4,
-                LogLevel::Verbose => 5,
-                LogLevel::Invalid(l) => l,
-            }
-            .to_string()
-        } else {
-            0u8.to_string()
-        }
-    }),
-})
-}
- */
+
 impl LogMessageOverview<Statistics> for FormattableMessage<'_> {
     fn add(&self, collector: &mut Statistics) {
         let level = self.message.extended_header.as_ref().map_or(0u8, |header| {
