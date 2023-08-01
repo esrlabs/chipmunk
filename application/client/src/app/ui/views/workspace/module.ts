@@ -12,6 +12,7 @@ import { AutocompleteModule } from '@elements/autocomplete/module';
 import { AttachSourceMenuModule } from '@elements/menu.attachsource/module';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 
@@ -33,6 +34,7 @@ const components = [ViewWorkspace, ...entryComponents];
         AutocompleteModule,
         MatMenuModule,
         MatDividerModule,
+        MatIconModule,
         MatProgressBarModule,
         MatProgressSpinnerModule,
         AttachSourceMenuModule,
