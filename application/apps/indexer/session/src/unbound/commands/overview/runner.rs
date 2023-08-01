@@ -54,41 +54,16 @@ async fn run_producer<
     mut collector: O,
     mut producer: MessageProducer<T, P, S>,
 ) -> Result<CommandOutcome<String>, ComputationError> {
-    use log::debug;
     let stream = producer.as_stream();
     futures::pin_mut!(stream);
     while let Some((_, item)) = stream.next().await {
-        match item {
-            MessageStreamItem::Item(ParseYield::Message(item)) => {
-                if signal.is_cancelled() {
-                    break;
-                }
-                item.add(&mut collector);
+        if let MessageStreamItem::Item(ParseYield::Message(item)) = item {
+            if signal.is_cancelled() {
+                break;
             }
-            MessageStreamItem::Item(ParseYield::MessageAndAttachment((_item, _attachment))) => {
-                // Ignore for now;
-            }
-            MessageStreamItem::Item(ParseYield::Attachment(_attachment)) => {
-                // Ignore for now;
-            }
-            MessageStreamItem::Done => {
-                trace!("observe, message stream is done");
-            }
-            // MessageStreamItem::FileRead => {
-            //     state.file_read().await?;
-            // }
-            MessageStreamItem::Skipped => {
-                trace!("observe: skipped a message");
-            }
-            MessageStreamItem::Incomplete => {
-                trace!("observe: incomplete message");
-            }
-            MessageStreamItem::Empty => {
-                trace!("observe: empty message");
-            }
+            item.add(&mut collector);
         }
     }
-    debug!("listen done");
     Ok(CommandOutcome::Finished(
         serde_json::to_string(&collector).map_err(|e| {
             ComputationError::OperationNotSupported(format!(
