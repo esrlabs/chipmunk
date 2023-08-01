@@ -3,6 +3,7 @@
       class="header"
       *ngFor="let header of headers; let i = index"
       (mouseenter)="_ng_onMouseOver(header.caption)"
+      (mouseleave)="_ng_onMouseLeave()"
       [ngStyle]="header.styles"
 >
       {{header.caption}}
