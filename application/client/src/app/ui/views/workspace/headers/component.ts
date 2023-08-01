@@ -81,7 +81,7 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
         this.detectChanges();
     }
 
-    public _ng_onMouseOut(): void {
+    public _ng_onMouseLeave(): void {
         this._ng_mouseOverHeader = '';
         this.detectChanges();
     }
