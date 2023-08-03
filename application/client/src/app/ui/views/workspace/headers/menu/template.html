@@ -1,0 +1,24 @@
+<div class="wrapper">
+    <div class="controls">
+        <ul class="colors">
+            <li [attr.class]="'color'"
+                [ngStyle]="{'background': color}"
+                *ngFor="let color of colors"
+            ></li>
+        </ul>
+    </div>
+</div>
+<!-- <div class="wrapper">
+    <ul class="columns">
+        <li [attr.class]="'column ' + (_ng_selected == i ? 'selected' : '')" *ngFor="let column of _ng_columns; let i = index;" (mousedown)="_ng_onColumnMouseDown($event, i)">
+            <mat-checkbox [disableRipple]="true" [checked]="column.visible" (change)="_ng_onChange(i)" (mousedown)="_ng_onCheckBoxMouseDown($event, i)"></mat-checkbox>
+            <span class="label t-normal" [ngStyle]="{'color': column.color}">{{column.header}}</span>
+        </li>
+    </ul>
+    <div class="controls">
+        <ul *ngIf="_ng_selected !== undefined" class="colors">
+            <li [attr.class]="'color ' + (this._ng_columns[this._ng_selected].color === color ? 'selected' : '')" *ngFor="let color of _ng_colors" [ngStyle]="{'background': color}" (mousedown)="_ng_onColorMouseDown($event, color)"></li>
+        </ul>
+            <button mat-stroked-button color="primary" class="ok" (mousedown)="_ng_apply()">OK</button>
+    </div>
+</div> -->

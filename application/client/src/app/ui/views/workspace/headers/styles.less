@@ -27,7 +27,10 @@
         border-left: none;
     }
     span.offset {
-        display: block;
+        position: relative;
+        display: inline-block;
+        margin: 0;
+        padding: 0 0 0 1px;
     }
     span.resizer {
         position: absolute;
@@ -37,5 +40,12 @@
         top: 0;
         height: 100%;
         cursor: e-resize;
+    }
+    & mat-icon.more {
+        position: relative;
+        float: right;
+        margin-top: -24px;
+        color: @scheme-color-0;
+        background-color: @scheme-color-5;
     }
 }
