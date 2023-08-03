@@ -13,6 +13,7 @@ import { IMenuItem, contextmenu } from '@ui/service/contextmenu';
 import { LimittedValue } from '@ui/env/entities/value.limited';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Direction } from '@directives/resizer';
+import { ViewWorkspaceHeadersMenuComponent } from './menu/component';
 
 class RenderedHeader {
     public caption: string;
@@ -98,7 +99,11 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
             }
         ]
         contextmenu.show({
-            items,
+            // items,
+            component: {
+                factory: ViewWorkspaceHeadersMenuComponent,
+                inputs: {},
+            },
             x: event.pageX,
             y: event.pageY,
         });

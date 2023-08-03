@@ -4,6 +4,7 @@ import { ViewWorkspace } from './component';
 import { ViewContentMapComponent } from './map/component';
 import { ViewSdeComponent } from './sde/component';
 import { ViewWorkspaceTitleComponent } from './title/component';
+import { ViewWorkspaceHeadersMenuComponent } from './headers/menu/component';
 import { ColumnsHeaders } from './headers/component';
 import { ScrollAreaModule } from '@elements/scrollarea/module';
 import { ContainersModule } from '@elements/containers/module';
@@ -21,6 +22,7 @@ const entryComponents = [
     ViewContentMapComponent,
     ColumnsHeaders,
     ViewSdeComponent,
+    ViewWorkspaceHeadersMenuComponent,
     ViewWorkspaceTitleComponent,
 ];
 const components = [ViewWorkspace, ...entryComponents];
