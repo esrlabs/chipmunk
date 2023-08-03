@@ -1,0 +1,113 @@
+@import '../../../../styles/variables.less';
+
+:host {
+    position: relative;
+    display: block;
+    padding: 16px;
+    margin: 0;
+    min-width: 13rem;
+    & div.wrapper{
+        position: relative;
+        white-space: nowrap;
+        & ul.columns{
+            position: relative;
+            display: inline-block;
+            vertical-align: top;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+            & li.column{
+                position: relative;
+                display: block;
+                padding: 0px 10px 4px 6px;
+                margin: 0;
+                list-style: none;
+                width: 100%;
+                &:hover{
+                    background: @scheme-color-4;
+                }
+                &.selected {
+                    background: @scheme-color-4;
+                }
+                &::after{
+                    position: absolute;
+                    display: block;
+                    content: '';
+                    width: ~"calc(100% - 1.5rem)";
+                    right: 0;
+                    top: 0;
+                    height: 100%;
+                    background: rgba(0,0,0,0.001);
+                }
+            }
+        }
+        & ul.colors{
+            position: relative;
+            display: inline-block;
+            vertical-align: top;
+            padding: 0;
+            margin: 0 0 0 0.5rem;
+            list-style: none;
+            width: 5.6rem;
+            white-space: normal;
+            & li.color{
+                position: relative;
+                display: inline-block;
+                height: 1.25rem;
+                width: 1.25rem;
+                margin: 0 0.15rem 0.15rem 0;
+                padding: 0;
+                list-style: none;
+                line-height: 0;
+                box-sizing: border-box;
+                vertical-align: top;
+                &:hover,
+                &.selected {
+                    border: 1px solid @scheme-color-0;
+                    &::after{
+                        position: absolute;
+                        content: '';
+                        top:0;
+                        left:0;
+                        width: 0;
+                        height: 0;
+                        border-top: 6px solid @scheme-color-0;
+                        border-right: 6px solid transparent;
+                    }
+                    &:hover{
+                        &::after{
+                            display: none;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    & div.controls {
+        position: relative;
+        float: right;
+        margin-left: 16px;
+        width: 6rem;
+    }
+
+    & button.ok {
+        float: right;
+        font-size: 0.8rem!important;
+        line-height: 1.7rem!important;
+        margin-top: 1rem;
+        min-width: 1rem!important;
+        padding: 0 1rem!important;
+        position: relative;
+    }
+
+    & span.label {
+        position: relative;
+        display: inline-block;
+        padding: 2px 0px 0px 4px;
+        cursor: default;
+        color: @scheme-color-1;
+        vertical-align: top;
+    }
+}
+
