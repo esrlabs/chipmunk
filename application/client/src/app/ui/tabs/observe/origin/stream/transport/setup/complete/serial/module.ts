@@ -10,9 +10,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { BaseModule } from '../../bases/serial/module';
 import { Setup } from './component';
+import { AutocompleteModule } from '@elements/autocomplete/module';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @NgModule({
     imports: [
@@ -27,11 +29,13 @@ import { Setup } from './component';
         MatFormFieldModule,
         MatSelectModule,
         MatInputModule,
-        MatAutocompleteModule,
+        AutocompleteModule,
         MatRadioModule,
         BaseModule,
+        MatProgressSpinnerModule,
+        MatMenuModule,
     ],
     declarations: [Setup],
-    exports: [Setup]
+    exports: [Setup],
 })
 export class SetupModule {}

@@ -97,7 +97,7 @@ export class AutocompleteInput
                 this.detectChanges();
             }),
         );
-        this.control.bind(this.inputRef.nativeElement, this.panelRef);
+        this.control.bind(this.inputRef.nativeElement, this.panelRef, this.error);
     }
 
     public ngRemove(recent: Recent, event: MouseEvent) {

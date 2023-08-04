@@ -4,6 +4,7 @@ import {
     MatAutocompleteTrigger,
     MatAutocompleteSelectedEvent,
 } from '@angular/material/autocomplete';
+import { ErrorState } from './error';
 
 export class Controll {
     public control: UntypedFormControl = new UntypedFormControl();
@@ -22,7 +23,9 @@ export class Controll {
         enter: new Subject(),
         panel: new Subject(),
     };
-    private _panel!: MatAutocompleteTrigger;
+
+    protected panel!: MatAutocompleteTrigger;
+    protected error!: ErrorState;
 
     public destroy() {
         this.actions.enter.destroy();
@@ -30,9 +33,10 @@ export class Controll {
         this.actions.panel.destroy();
     }
 
-    public bind(ref: HTMLInputElement, panel: MatAutocompleteTrigger) {
+    public bind(ref: HTMLInputElement, panel: MatAutocompleteTrigger, errorState: ErrorState) {
         this.ref = ref;
-        this._panel = panel;
+        this.panel = panel;
+        this.error = errorState;
     }
 
     public isEmpty(): boolean {
@@ -48,19 +52,19 @@ export class Controll {
         } else if (event.key === 'Enter') {
             if (this.recent) {
                 this.recent = false;
-                this._panel.closePanel();
+                this.panel !== undefined && this.panel.closePanel();
                 this.actions.panel.emit(false);
             }
             this.actions.enter.emit(this.value);
         } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
             if (!this.recent) {
                 this.recent = true;
-                this._panel.openPanel();
+                this.panel !== undefined && this.panel.openPanel();
                 this.actions.panel.emit(true);
             }
         } else if (this.control.value !== '' && !this.recent) {
             this.recent = true;
-            this._panel.openPanel();
+            this.panel !== undefined && this.panel.openPanel();
             this.actions.panel.emit(true);
         }
         const prev = this.value;
@@ -69,11 +73,13 @@ export class Controll {
     }
 
     public drop() {
+        this.error !== undefined && this.error.setValue('');
         this.control.setValue('');
         this.value = '';
     }
 
     public set(value: string) {
+        this.error !== undefined && this.error.setValue(value);
         this.control.setValue(value);
         const prev = this.value;
         this.value = this.control.value;

@@ -26,6 +26,11 @@ export abstract class ErrorState extends ErrorStateMatcher {
             this.validate();
         }) as unknown as number;
     }
+
+    public setValue(value: string) {
+        this.value = value;
+        this.validate();
+    }
 }
 
 export class NullErrorState extends ErrorState {
