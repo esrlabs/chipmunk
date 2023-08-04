@@ -67,7 +67,7 @@ export class Configuration
     public set(): {
         filename(filename: string): Configuration;
         type(type: Types.File.FileType): Configuration;
-        source(id: string): Configuration;
+        alias(alias?: string): Configuration;
     } {
         return {
             filename: (filename: string): Configuration => {
@@ -78,8 +78,8 @@ export class Configuration
                 this.configuration[1] = type;
                 return this;
             },
-            source: (id: string): Configuration => {
-                this.configuration[0] = id;
+            alias: (alias: string): Configuration => {
+                this.configuration[0] = alias === undefined ? unique() : alias;
                 return this;
             },
         };

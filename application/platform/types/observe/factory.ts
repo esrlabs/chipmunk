@@ -118,11 +118,11 @@ export class File extends Factory<File> {
         );
     }
 
-    public source(id: string): File {
+    public alias(alias: string): File {
         if (!(this.observe.origin.instance instanceof $.Origin.File.Configuration)) {
             throw new Error(`Given observe object doesn't have File origin`);
         }
-        this.observe.origin.instance.set().source(id);
+        this.observe.origin.instance.set().alias(alias);
         this.updated().origin();
         return this;
     }

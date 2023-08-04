@@ -122,6 +122,16 @@ export class Configuration
         return this.instance.getSupportedParsers();
     }
 
+    public set(): {
+        alias(alias?: string): void;
+    } {
+        return {
+            alias: (alias?: string): void => {
+                this.configuration[0] = alias === undefined ? unique() : alias;
+            },
+        };
+    }
+
     public as<T>(
         Ref: { new (...args: any[]): Stream.Declaration } & Alias<unknown>,
     ): T | undefined {

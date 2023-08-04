@@ -65,6 +65,7 @@ export class Configuration
         defaults(type: Types.File.FileType): Configuration;
         push(filename: string, type: Types.File.FileType): Configuration;
         remove(filename: string): Configuration;
+        alias(alias?: string): Configuration;
     } {
         return {
             files: (files: string[]): Configuration => {
@@ -88,6 +89,12 @@ export class Configuration
                 if (index !== -1) {
                     this.configuration.splice(index, 1);
                 }
+                return this;
+            },
+            alias: (alias?: string): Configuration => {
+                this.configuration.forEach((file) => {
+                    file[0] = alias === undefined ? unique() : alias;
+                });
                 return this;
             },
         };
