@@ -1,9 +1,22 @@
-import { Component, ChangeDetectorRef, Input, OnDestroy, AfterContentInit } from '@angular/core';
+import {
+    Component,
+    ChangeDetectorRef,
+    Input,
+    OnDestroy,
+    AfterContentInit,
+    ViewChild,
+} from '@angular/core';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from '../../states/serial';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Action } from '@ui/tabs/observe/action';
 import { Session } from '@service/session';
+import {
+    AutocompleteInput,
+    Options as AutocompleteOptions,
+} from '@elements/autocomplete/component';
+import { Subject } from '@platform/env/subscription';
+import { PathErrorState } from './error';
 
 import * as Stream from '@platform/types/observe/origin/stream/index';
 
@@ -16,8 +29,18 @@ export class SetupBase extends ChangesDetector implements AfterContentInit, OnDe
     @Input() public configuration!: Stream.Serial.Configuration;
     @Input() public action!: Action;
     @Input() public session: Session | undefined;
+    @ViewChild('path') public pathInputRef!: AutocompleteInput;
 
     public state!: State;
+    public pathInputOptions: AutocompleteOptions = {
+        name: 'SerialPortPathRecentList',
+        storage: 'serialport_paths_recent',
+        defaults: '',
+        placeholder: 'Enter path to serial port',
+        label: 'Serial port path',
+        recent: new Subject<string | undefined>(),
+        error: new PathErrorState(),
+    };
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -47,6 +70,27 @@ export class SetupBase extends ChangesDetector implements AfterContentInit, OnDe
     public ngOnDestroy() {
         this.state.scan().stop();
         this.state.destroy();
+    }
+
+    public selectDetectedPort(port: string): void {
+        this.state.configuration.configuration.path = port;
+        this.pathInputRef.set(port).focus();
+    }
+
+    public onPathChange(value: string): void {
+        this.state.configuration.configuration.path = value;
+    }
+
+    public onPathEnter(): void {
+        if (this.pathInputRef.error.is() || this.state.configuration.validate() !== undefined) {
+            return;
+        }
+        this.action.apply();
+        this.markChangesForCheck();
+    }
+
+    public panel(): void {
+        this.markChangesForCheck();
     }
 }
 export interface SetupBase extends IlcInterface {}

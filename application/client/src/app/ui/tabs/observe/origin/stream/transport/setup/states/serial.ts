@@ -5,7 +5,6 @@ import { error } from '@platform/log/utils';
 import { Destroy } from '@platform/types/env/types';
 import { Action } from '../../../../../action';
 
-import * as Errors from '../bases/serial/error';
 import * as Stream from '@platform/types/observe/origin/stream/index';
 
 const SERIAL_PORT_SETTINGS_STORAGE = 'serial_port_settings';
@@ -60,13 +59,10 @@ const PARITY = [
 const STOP_BITS = [1, 2];
 
 export class State implements Destroy {
-    public errors: {
-        baudRate: Errors.ErrorState;
-    };
-
     public ports: string[] = [];
     public changed: Subject<void> = new Subject<void>();
     public baudRateProxy: number | string = 9600;
+    public loaded: boolean = false;
 
     public BAUD_RATE = BAUD_RATE;
     public DATA_BITS = DATA_BITS;
@@ -82,11 +78,6 @@ export class State implements Destroy {
         public readonly action: Action,
         public readonly configuration: Stream.Serial.Configuration,
     ) {
-        this.errors = {
-            baudRate: new Errors.ErrorState(Errors.Field.baudRate, () => {
-                // this.update();
-            }),
-        };
         this.history().load();
     }
 
@@ -109,19 +100,20 @@ export class State implements Destroy {
                     .ports()
                     .list()
                     .then((ports: string[]) => {
-                        if (isSame(this.ports, ports)) {
-                            return;
+                        this.loaded = true;
+                        if (!isSame(this.ports.slice(1), ports)) {
+                            this.ports = ports;
                         }
-                        this.ports = ports;
-                        if (this.ports.includes(this.configuration.configuration.path)) {
-                            return;
-                        }
-                        this.configuration.configuration.path =
-                            this.ports[0] === undefined ? '' : this.ports[0];
-                        this.configuration.configuration.path !== '' &&
-                            this.history().restore(this.configuration.configuration.path);
-                        this.prev = this.configuration.configuration.path;
                         this.changed.emit();
+                        // if (this.ports.includes(this.configuration.configuration.path)) {
+                        //     return;
+                        // }
+                        // this.configuration.configuration.path =
+                        //     this.ports[0] === undefined ? '' : this.ports[0];
+                        // this.configuration.configuration.path !== '' &&
+                        //     this.history().restore(this.configuration.configuration.path);
+                        // this.prev = this.configuration.configuration.path;
+                        // this.changed.emit();
                     })
                     .catch((err: Error) => {
                         logger.error(`Fail to update ports list due error: ${err.message}`);
