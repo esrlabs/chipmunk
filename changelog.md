@@ -1,3 +1,25 @@
+# 3.9.4
+
+## Fixes:
+- Fix issue with same source UUID on restarting source
+
+# 3.9.3
+
+## Features
+- Import / Export filters from context menu on sidebar
+
+## Fixes:
+- Fix quick observe setup
+  
+# 3.9.2
+
+## Fixes
+- Creates suitable source for exporting as raw
+- Allows export SomeIp into binary from PcapNg
+- Fixes issue with exporting DLT from PcapNg
+- Allows attaching to same session text & binary files after concat operation was done
+- Fires error on attempt to attach a file to session with linked session file
+
 # 3.9.1
 
 ## Fixes
