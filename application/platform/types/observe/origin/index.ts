@@ -115,10 +115,10 @@ export class Configuration
             this.configuration[context] as any,
             {
                 watcher: this.watcher,
-                overwrite: ((config: IConfiguration) => {
+                overwrite: (config: IConfiguration) => {
                     this.overwrite(config);
                     return this.configuration[context] as any;
-                })
+                },
             },
         );
         return this;
@@ -221,6 +221,17 @@ export class Configuration
         } else {
             return this.instance.alias();
         }
+    }
+
+    public set(): {
+        alias(alias?: string): void;
+    } {
+        return {
+            // Change signature of source
+            alias: (alias?: string): void => {
+                this.instance.set().alias(alias);
+            },
+        };
     }
 
     public override storable(): IConfiguration {

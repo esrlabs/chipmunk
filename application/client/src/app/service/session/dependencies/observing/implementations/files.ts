@@ -42,7 +42,7 @@ export class Provider extends Base {
             this._sources.push(
                 ...concat.configuration.map((conf: $.Origin.File.IConfiguration) => {
                     const observe = new Factory.File()
-                        .source(conf[0])
+                        .alias(conf[0])
                         .type(conf[1])
                         .file(conf[2])
                         .parser(source.observe.parser.instance)

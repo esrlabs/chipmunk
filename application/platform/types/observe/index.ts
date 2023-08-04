@@ -128,7 +128,10 @@ export class Observe
     }
 
     public clone(): Observe {
-        return new Observe(this.sterilized());
+        const cloned = new Observe(this.sterilized());
+        // Drop alias to prevent multiple observing entries with same UUID
+        cloned.origin.set().alias();
+        return cloned;
     }
 
     public locker(): {
