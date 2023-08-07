@@ -16,13 +16,15 @@ module Shell
     $stderr.reopen original_stderr
   end
 
-  def self.timed_sh(cmd)
-    timed_operation(-> { sh cmd }, cmd)
+  def self.timed_sh(cmd, desc)
+    desc = cmd if desc.nil?
+    timed_operation(-> { sh cmd }, desc)
   end
 
-  def self.cp_r(src, dest)
+  def self.cp_r(src, dest, desc = nil)
     cmd = "cp_r(#{src}, #{dest})"
-    timed_operation(-> { FileUtils.cp_r src, dest }, cmd)
+    desc = cmd if desc.nil?
+    timed_operation(-> { FileUtils.cp_r src, dest }, desc)
   end
 
   def self.timed_operation(cmd, tag)
