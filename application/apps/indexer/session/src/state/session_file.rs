@@ -24,7 +24,7 @@ pub const FLUSH_DATA_IN_MS: u128 = 500;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GrabbedElement {
     #[serde(rename = "id")]
-    pub source_id: u8,
+    pub source_id: u16,
     #[serde(rename = "c")]
     pub content: String,
     #[serde(rename = "p")]
@@ -148,7 +148,7 @@ impl SessionFile {
 
     pub fn write(
         &mut self,
-        source_id: u8,
+        source_id: u16,
         state_cancellation_token: CancellationToken,
         msg: String,
     ) -> Result<SessionFileState, NativeError> {
@@ -201,7 +201,7 @@ impl SessionFile {
 
     pub fn update(
         &mut self,
-        source_id: u8,
+        source_id: u16,
         state_cancellation_token: CancellationToken,
     ) -> Result<SessionFileState, NativeError> {
         let grabber = &mut (self.grabber.as_mut().ok_or(NativeError {
