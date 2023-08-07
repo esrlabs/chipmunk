@@ -44,26 +44,32 @@ namespace :bindings do
     end
   end
 
-  desc 'run binding tests'
-  task test: ['bindings:build_spec', 'bindings:build'] do
-    # Bindings.run_jasmine_spec('jobs')
-    ENV['ELECTRON_RUN_AS_NODE'] = '1'
-    Shell.chdir(Paths::TS_BINDINGS) do
-      sh "#{Paths::JASMINE} spec/build/spec/session.jobs.spec.js"
-      sh "#{Paths::JASMINE} spec/build/spec/session.search.spec.js"
-      sh "#{Paths::JASMINE} spec/build/spec/session.values.spec.js"
-      sh "#{Paths::JASMINE} spec/build/spec/session.extract.spec.js"
-      sh "#{Paths::JASMINE} spec/build/spec/session.ranges.spec.js"
-      sh "#{Paths::JASMINE} spec/build/spec/session.exporting.spec.js"
-      sh "#{Paths::JASMINE} spec/build/spec/session.map.spec.js"
-      sh "#{Paths::JASMINE} spec/build/spec/session.observe.spec.js"
-      sh "#{Paths::JASMINE} spec/build/spec/session.indexes.spec.js"
-      sh "#{Paths::JASMINE} spec/build/spec/session.concat.spec.js"
-      sh "#{Paths::JASMINE} spec/build/spec/session.cancel.spec.js"
-      sh "#{Paths::JASMINE} spec/build/spec/session.errors.spec.js"
-      sh "#{Paths::JASMINE} spec/build/spec/session.stream.spec.js"
-      sh "#{Paths::JASMINE} spec/build/spec/session.promises.spec.js"
+  namespace :test do
+    test_specs = %w[
+      jobs
+      search
+      values
+      extract
+      ranges
+      exporting
+      map
+      observe
+      indexes
+      concat
+      cancel
+      errors
+      stream
+      promises
+    ]
+    test_specs.each do |spec|
+      desc "run jasmine #{spec}-spec"
+      task spec.to_sym => ['bindings:build_spec', 'bindings:build'] do
+        Bindings.run_jasmine_spec(spec)
+      end
     end
+
+    desc 'run binding tests'
+    task all: test_specs.map { |spec| "bindings:test:#{spec}" }
   end
 
   desc 'clean bindings'
