@@ -12,7 +12,7 @@ namespace :platform do
       path = "#{path}/.node_integrity" if File.basename(path) == 'node_modules'
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed('platform', "removed: #{path}", '')
+        Reporter.removed('platform', "removed: #{File.basename(path)}", '')
       end
     end
   end
@@ -26,8 +26,8 @@ namespace :platform do
   task :install do
     Shell.chdir(Paths::PLATFORM) do
       Reporter.log 'Installing platform libraries'
-      Shell.sh 'yarn install'
-      Reporter.done('platform', 'installing', '')
+      duration = Shell.timed_sh('yarn install')
+      Reporter.done('platform', 'installing', '', duration)
     end
   end
 
@@ -36,11 +36,11 @@ namespace :platform do
   desc 'build platform'
   task build: ['platform:install', 'environment:check'] do
     Shell.rm_rf(Platform::DIST) if @rebuild
-    Reporter.removed('platform', Platform::DIST, '')
+    Reporter.removed('platform', File.basename(Platform::DIST), '')
     begin
       Shell.chdir(Paths::PLATFORM) do
-        Shell.sh 'yarn run build'
-        Reporter.done('platform', 'build', '')
+        duration = Shell.timed_sh 'yarn run build'
+        Reporter.done('platform', 'build', '', duration)
       end
     rescue StandardError
       Reporter.failed('platform', 'build', '')
@@ -50,8 +50,9 @@ namespace :platform do
   desc 'Lint platform'
   task lint: 'platform:install' do
     Shell.chdir(Paths::PLATFORM) do
-      Shell.sh 'yarn run lint'
-      Reporter.done('platform', 'linting', '')
+      duration = Shell.timed_sh 'yarn run lint'
+      duration += Shell.timed_sh 'yarn run check'
+      Reporter.done('platform', 'linting', '', duration)
     end
   end
 end

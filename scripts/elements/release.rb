@@ -72,7 +72,7 @@ namespace :release do
   task :clean do
     if File.exist?(Paths::RELEASE)
       Shell.rm_rf(Paths::RELEASE)
-      Reporter.removed('release', "removed: #{Paths::RELEASE}", '')
+      Reporter.removed('release', "removed: #{File.basename(Paths::RELEASE)}", '')
     end
   end
 
