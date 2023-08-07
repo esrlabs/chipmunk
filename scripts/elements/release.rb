@@ -96,7 +96,7 @@ namespace :release do
   task :bundle do
     Shell.chdir(Paths::ELECTRON) do
       Release.set_envvars
-      Shell.sh Release.build_cmd
+      Shell.timed_sh Release.build_cmd
       Reporter.done('release', 'built', '')
     end
     Release.snapshot
