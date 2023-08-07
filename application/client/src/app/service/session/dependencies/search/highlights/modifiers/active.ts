@@ -1,4 +1,11 @@
-import { Modifier, EType, IHTMLInjection, EHTMLInjectionType, IModifierRange, EAlias } from '../modifier';
+import {
+    Modifier,
+    EType,
+    IHTMLInjection,
+    EHTMLInjectionType,
+    IModifierRange,
+    EAlias,
+} from '../modifier';
 import { FilterRequest } from '../../filters/request';
 
 import * as ModifiersTools from '../tools';
@@ -67,7 +74,7 @@ export class ActiveFilterModifier extends Modifier {
 
     private _map(row: string, filters: FilterRequest[]) {
         filters.forEach((request: FilterRequest) => {
-            row.replace(request.as().regExp(), (match: string, ...args: any[]) => {
+            row.replace(request.as().serializedRegExp(), (match: string, ...args: any[]) => {
                 const offset: number =
                     typeof args[args.length - 2] === 'number'
                         ? args[args.length - 2]

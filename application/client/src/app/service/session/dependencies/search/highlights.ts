@@ -4,6 +4,7 @@ import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { ModifierProcessor } from './highlights/processor';
 import { Owner } from '@schema/content/row';
 import { Search } from '../search';
+import { serializeHtml } from '@platform/env/str';
 
 import * as Modifiers from './highlights/modifiers/index';
 
@@ -74,18 +75,31 @@ export class Highlights extends Subscriber {
         background: string | undefined;
         injected: { [key: string]: boolean };
     } {
-        const filtres = new Modifiers.FiltersModifier(this._session.store().filters().get(), row);
-        const charts = new Modifiers.ChartsModifier(this._session.store().charts().get(), row);
+        // Get rid of original HTML in logs
+        const serializeRow = serializeHtml(row);
+        const filtres = new Modifiers.FiltersModifier(
+            this._session.store().filters().get(),
+            serializeRow,
+        );
+        const charts = new Modifiers.ChartsModifier(
+            this._session.store().charts().get(),
+            serializeRow,
+        );
         const active = this._session.state().getActive();
         const processor = new ModifierProcessor([
             filtres,
             charts,
             ...(active !== undefined
-                ? [new Modifiers.ActiveFilterModifier([new FilterRequest({ filter: active })], row)]
+                ? [
+                      new Modifiers.ActiveFilterModifier(
+                          [new FilterRequest({ filter: active })],
+                          serializeRow,
+                      ),
+                  ]
                 : []),
         ]);
         const matched = filtres.matched();
-        const processed = processor.parse(row, parent, hasOwnStyles);
+        const processed = processor.parse(serializeRow, parent, hasOwnStyles);
         return {
             html: processed.row,
             color: matched === undefined ? undefined : matched.definition.colors.color,

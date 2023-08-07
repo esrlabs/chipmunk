@@ -9,6 +9,7 @@ import {
 import { Owner } from '@schema/content/row';
 import { Logger } from '@platform/log';
 import { scope } from '@platform/env/scope';
+import { serializeHtml } from '@platform/env/str';
 
 export class ModifierProcessor {
     private _modifiers: Modifier[];
@@ -30,7 +31,7 @@ export class ModifierProcessor {
             // ASCII escapes
             this._modifiers.forEach((modifier: Modifier) => {
                 const finalized: string = modifier.finalize(str);
-                const safe: string = this._serialize(finalized);
+                const safe: string = serializeHtml(finalized);
                 if (safe.length !== finalized.length) {
                     this._logger.warn(`Modifier "${modifier.getName()}" tries to inject HTML`);
                 }
@@ -38,8 +39,6 @@ export class ModifierProcessor {
             });
             return str;
         };
-        // Get rid of original HTML in logs
-        row = this._serialize(row);
         this._injections = [];
         const modifiers: Modifier[] = this._getApplicableModifiers(parent, hasOwnStyles);
         Priorities.forEach((type: EType, index: number) => {
@@ -168,11 +167,6 @@ export class ModifierProcessor {
                 return true;
             }
         });
-    }
-
-    private _serialize(str: string): string {
-        // Serialize input string to prevent brocken HTML
-        return str.replace(/</gi, '&lt;').replace(/>/gi, '&gt;');
     }
 
     private _getInjectionError(injection: string): Error | undefined {

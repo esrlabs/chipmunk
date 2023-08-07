@@ -10,6 +10,7 @@ import { Equal } from '@platform/types/env/types';
 import { Updatable } from '../store';
 import { UpdateEvent } from './store.update';
 import { getFilterError } from '@module/util';
+import { serializeHtml } from '@platform/env/str';
 
 import * as regexFilters from '@platform/env/filters';
 import * as obj from '@platform/env/obj';
@@ -88,6 +89,7 @@ export class ChartRequest
     public readonly updated: Subject<UpdateEvent> = new Subject<UpdateEvent>();
 
     private _regex!: RegExp;
+    private _safeRegExp!: RegExp;
     private _hash!: string;
 
     static isValid(filter: string | undefined): boolean {
@@ -171,11 +173,15 @@ export class ChartRequest
 
     public as(): {
         regExp(): RegExp;
+        serializedRegExp(): RegExp;
         filter(): string;
     } {
         return {
             regExp: (): RegExp => {
                 return this._regex;
+            },
+            serializedRegExp: (): RegExp => {
+                return this._safeRegExp;
             },
             filter: (): string => {
                 return this.definition.filter;
@@ -296,6 +302,11 @@ export class ChartRequest
     protected update(): boolean {
         const prev: string = this._hash;
         this._regex = regexFilters.getMarkerRegExp(this.definition.filter, {
+            reg: true,
+            word: false,
+            cases: false,
+        });
+        this._safeRegExp = regexFilters.getMarkerRegExp(serializeHtml(this.definition.filter), {
             reg: true,
             word: false,
             cases: false,
