@@ -151,14 +151,14 @@ task run_prod: 'electron:build_prod' do
   end
 end
 
-# uncomment for benchmarking the tasks
-require 'benchmark'
-class Rake::Task
-  def execute_with_benchmark(*args)
-    bm = Benchmark.measure { execute_without_benchmark(*args) }
-    puts "   #{name} --> #{bm}"
-  end
+# # uncomment for benchmarking the tasks
+# require 'benchmark'
+# class Rake::Task
+#   def execute_with_benchmark(*args)
+#     bm = Benchmark.measure { execute_without_benchmark(*args) }
+#     puts "   #{name} --> #{bm}"
+#   end
 
-  alias_method :execute_without_benchmark, :execute
-  alias_method :execute, :execute_with_benchmark
-end
+#   alias_method :execute_without_benchmark, :execute
+#   alias_method :execute, :execute_with_benchmark
+# end

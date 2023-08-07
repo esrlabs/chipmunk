@@ -2,6 +2,7 @@
 
 require './scripts/env/paths'
 require './scripts/env/env'
+require './scripts/tools/shell'
 module Bindings
   DIST = "#{Paths::TS_BINDINGS}/dist"
   DIST_RS = "#{Paths::RS_BINDINGS}/dist"
@@ -11,13 +12,20 @@ module Bindings
   TS_NODE_MODULES = "#{Paths::TS_BINDINGS}/node_modules"
   BUILD_ENV = "#{TS_NODE_MODULES}/.bin/electron-build-env"
   TARGETS = [DIST, TS_NODE_MODULES, TARGET, DIST_RS, SPEC, TS_BINDINGS_LIB].freeze
+
+  def self.run_jasmine_spec(spec)
+    ENV['ELECTRON_RUN_AS_NODE'] = '1'
+    Shell.chdir(Paths::TS_BINDINGS) do
+      Shell.sh "#{Paths::JASMINE} spec/build/spec/session.#{spec}.spec.js"
+    end
+  end
 end
 
 namespace :bindings do
   task :install do
     Shell.chdir(Paths::TS_BINDINGS) do
       Reporter.log 'Installing ts-binding libraries'
-      duration = Shell.timed_sh('yarn install')
+      duration = Shell.timed_sh('yarn install', 'yarn install bindings')
       Reporter.done('bindings', 'installing', '', duration)
     end
   end
@@ -25,7 +33,7 @@ namespace :bindings do
   desc 'Lint TS bindings'
   task lint: 'bindings:install' do
     Shell.chdir(Paths::TS_BINDINGS) do
-      duration = Shell.timed_sh 'yarn run lint'
+      duration = Shell.timed_sh 'yarn run lint', 'lint ts-bindings'
       Reporter.done('bindings', 'linting', '', duration)
     end
   end
@@ -38,6 +46,7 @@ namespace :bindings do
 
   desc 'run binding tests'
   task test: ['bindings:build_spec', 'bindings:build'] do
+    # Bindings.run_jasmine_spec('jobs')
     ENV['ELECTRON_RUN_AS_NODE'] = '1'
     Shell.chdir(Paths::TS_BINDINGS) do
       sh "#{Paths::JASMINE} spec/build/spec/session.jobs.spec.js"
@@ -73,13 +82,13 @@ namespace :bindings do
     Shell.rm_rf(platform_dest)
     FileUtils.mkdir_p platform_dest
     files_to_copy = Dir["#{Paths::PLATFORM}/*"].reject { |f| File.basename(f) == 'node_modules' }
-    duration = Shell.cp_r files_to_copy, platform_dest
-    Reporter.done('bindings', "copy platform to #{platform_dest}", '', duration)
+    duration = Shell.cp_r files_to_copy, platform_dest, 'copy platform to bindings'
+    Reporter.done('bindings', 'copy platform to bindings', '', duration)
   end
 
   task :build_rs_bindings do
     Shell.chdir(Paths::RS_BINDINGS) do
-      duration = Shell.timed_sh "#{Bindings::BUILD_ENV} nj-cli build --release"
+      duration = Shell.timed_sh "#{Bindings::BUILD_ENV} nj-cli build --release", 'nj-cli build bindings'
       Reporter.done('bindings', 'build rs bindings', '', duration)
     end
     FileUtils.mkdir_p "#{Bindings::DIST}/native"
@@ -96,7 +105,7 @@ namespace :bindings do
       begin
         duration = 0
         Shell.chdir(Paths::TS_BINDINGS) do
-          duration += Shell.timed_sh 'yarn run build'
+          duration += Shell.timed_sh 'yarn run build', 'build ts-bindings'
           ChangeChecker.reset('bindings', Paths::TS_BINDINGS,
                               [Bindings::DIST, Bindings::SPEC, Bindings::TS_NODE_MODULES])
           Reporter.done('bindings', 'build ts bindings', '', duration)

@@ -15,7 +15,7 @@ class Compressor
              end
     @archname += '.tgz'
     Shell.chdir(@location) do
-      duration = Shell.timed_sh "tar -czf ../#{@archname} #{target}"
+      duration = Shell.timed_sh "tar -czf ../#{@archname} #{target}", "compress #{target}"
       Reporter.done('Compressor', "compressed: #{@archname}", '', duration)
     end
   end
