@@ -15,7 +15,7 @@ namespace :client do
       path = "#{path}/.node_integrity" if File.basename(path) == 'node_modules'
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed('client', "removed: #{path}", '')
+        Reporter.removed('client', "removed: #{File.basename(path)}", '')
       end
     end
     Shell.rm_rf(Paths::ELECTRON_CLIENT_DEST)
@@ -31,8 +31,8 @@ namespace :client do
   task :install do
     Shell.chdir(Paths::CLIENT) do
       Reporter.log 'Installing client libraries'
-      Shell.sh 'yarn install'
-      Reporter.done('client', 'installing', '')
+      duration = Shell.timed_sh('yarn install')
+      Reporter.done('client', 'installing', '', duration)
     end
   end
 
@@ -46,7 +46,7 @@ namespace :client do
   ] do
     client_build_needed = ChangeChecker.changes?('client_release', Paths::CLIENT)
     if client_build_needed
-      execute_client_build(:release)
+      execute_client_build(:production)
     else
       Reporter.skipped('client_release', 'build in production mode', '')
     end
@@ -70,8 +70,9 @@ namespace :client do
   desc 'Lint client'
   task lint: 'client:install' do
     Shell.chdir(Paths::CLIENT) do
-      Shell.sh 'yarn run lint'
-      Reporter.done('client', 'linting', '')
+      duration = Shell.timed_sh 'yarn run lint'
+      duration += Shell.timed_sh 'yarn run check'
+      Reporter.done('client', 'linting', '', duration)
     end
   end
 end
@@ -83,7 +84,7 @@ def output(kind)
   when :debug
     'debug'
   else
-    raise "#{kind} not supported"
+    raise "output #{kind} not supported"
   end
 end
 
@@ -94,20 +95,21 @@ def yarn_target(kind)
   when :debug
     'build'
   else
-    raise "#{kind} not supported"
+    raise "target #{kind} not supported"
   end
 end
 
 def execute_client_build(kind)
   puts "execute_client_build(#{kind})"
   Shell.chdir(Paths::CLIENT) do
-    Shell.sh "yarn run #{yarn_target(kind)}"
+    duration = Shell.timed_sh "yarn run #{yarn_target(kind)}"
     ChangeChecker.reset("client_#{kind}", Paths::CLIENT, Client::TARGETS)
-    Reporter.done('client', "build in #{kind} mode", '')
+    Reporter.done('client', "build in #{kind} mode", '', duration)
   end
   client_dist = "#{Paths::CLIENT_DIST}/#{output(kind)}"
   FileUtils.mkdir_p(Paths::ELECTRON_CLIENT_DEST)
-  FileUtils.cp_r "#{client_dist}/.", Paths::ELECTRON_CLIENT_DEST
+  duration = Shell.cp_r "#{client_dist}/.", Paths::ELECTRON_CLIENT_DEST
+  Reporter.done('client', "copy client to #{Paths::ELECTRON_CLIENT_DEST}", '', duration)
 rescue StandardError => e
   puts "An error of type #{e.class} happened, message is #{e.message}"
   ChangeChecker.clean_entry("client_#{kind}", Paths::CLIENT)
