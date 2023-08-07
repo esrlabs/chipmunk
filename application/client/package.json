@@ -10,7 +10,8 @@
     "test": "node_modules/.bin/ng test",
     "e2e": "node_modules/.bin/ng e2e",
     "prod": "node_modules/.bin/ng build --configuration production",
-    "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0"
+    "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0",
+    "check": "node_modules/.bin/tsc -p tsconfig.json --noemit"
   },
   "private": true,
   "dependencies": {

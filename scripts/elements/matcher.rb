@@ -14,7 +14,7 @@ namespace :matcher do
       path = "#{path}/.node_integrity" if File.basename(path) == 'node_modules'
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed('matcher', "removed: #{path}", '')
+        Reporter.removed('matcher', "removed: #{File.basename(path)}", '')
       end
     end
   end
@@ -28,8 +28,8 @@ namespace :matcher do
   task :install do
     Shell.chdir(Paths::MATCHER) do
       Reporter.log 'Installing matcher libraries'
-      Shell.sh 'yarn install'
-      Reporter.done('matcher', 'installing', '')
+      duration = Shell.timed_sh('yarn install')
+      Reporter.done('matcher', 'installing', '', duration)
     end
   end
 
@@ -37,15 +37,16 @@ namespace :matcher do
   task build: ['environment:check', 'matcher:install'] do
     changes_to_files = ChangeChecker.changes?('matcher', Paths::MATCHER)
     if changes_to_files
+      duration = 0
       [Matcher::PKG, Matcher::TARGET].each do |path|
         Shell.rm_rf(path)
-        Reporter.removed('matcher', path, '')
+        Reporter.removed('matcher', File.basename(path), '')
       end
       Shell.chdir(Paths::MATCHER) do
-        Shell.sh 'wasm-pack build --target bundler'
+        duration = Shell.timed_sh 'wasm-pack build --target bundler'
         ChangeChecker.reset('matcher', Paths::MATCHER, Matcher::TARGETS)
       end
-      Reporter.done('matcher', "build #{Matcher::TARGET}", '')
+      Reporter.done('matcher', "build #{Matcher::TARGET}", '', duration)
     else
       Reporter.skipped('matcher', 'already built', '')
     end
