@@ -52,8 +52,12 @@ export class FileHolder extends Matchee {
         return this._selected;
     }
 
-    public get size(): string {
+    public get sizeAsStr(): string {
         return bytesToStr(this._file.stat.size);
+    }
+
+    public get size(): number {
+        return this._file.stat.size;
     }
 
     public sizeInByte(): number {
