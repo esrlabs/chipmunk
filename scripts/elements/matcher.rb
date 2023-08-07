@@ -28,7 +28,7 @@ namespace :matcher do
   task :install do
     Shell.chdir(Paths::MATCHER) do
       Reporter.log 'Installing matcher libraries'
-      duration = Shell.timed_sh('yarn install')
+      duration = Shell.timed_sh('yarn install', 'yarn install matcher')
       Reporter.done('matcher', 'installing', '', duration)
     end
   end
@@ -43,7 +43,7 @@ namespace :matcher do
         Reporter.removed('matcher', File.basename(path), '')
       end
       Shell.chdir(Paths::MATCHER) do
-        duration = Shell.timed_sh 'wasm-pack build --target bundler'
+        duration = Shell.timed_sh 'wasm-pack build --target bundler', 'wasm-pack build matcher'
         ChangeChecker.reset('matcher', Paths::MATCHER, Matcher::TARGETS)
       end
       Reporter.done('matcher', "build #{Matcher::TARGET}", '', duration)
@@ -56,14 +56,14 @@ namespace :matcher do
   task test_karma: 'matcher:install' do
     Reporter.print
     Shell.chdir("#{Paths::MATCHER}/spec") do
-      sh 'npm run test'
+      Shell.timed_sh 'npm run test', 'npm test matcher'
     end
   end
 
   task :test_rust do
     Reporter.print
     Shell.chdir(Paths::MATCHER) do
-      sh 'wasm-pack test --node'
+      Shell.timed_sh 'wasm-pack test --node', 'wasm-pack test matcher'
     end
   end
 
