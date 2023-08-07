@@ -26,7 +26,7 @@ namespace :platform do
   task :install do
     Shell.chdir(Paths::PLATFORM) do
       Reporter.log 'Installing platform libraries'
-      duration = Shell.timed_sh('yarn install')
+      duration = Shell.timed_sh('yarn install', 'yarn install platform')
       Reporter.done('platform', 'installing', '', duration)
     end
   end
@@ -39,7 +39,7 @@ namespace :platform do
     Reporter.removed('platform', File.basename(Platform::DIST), '')
     begin
       Shell.chdir(Paths::PLATFORM) do
-        duration = Shell.timed_sh 'yarn run build'
+        duration = Shell.timed_sh 'yarn run build', 'build platform'
         Reporter.done('platform', 'build', '', duration)
       end
     rescue StandardError
@@ -50,8 +50,8 @@ namespace :platform do
   desc 'Lint platform'
   task lint: 'platform:install' do
     Shell.chdir(Paths::PLATFORM) do
-      duration = Shell.timed_sh 'yarn run lint'
-      duration += Shell.timed_sh 'yarn run check'
+      duration = Shell.timed_sh 'yarn run lint', 'lint platform'
+      duration += Shell.timed_sh 'yarn run check', 'tsc check platform'
       Reporter.done('platform', 'linting', '', duration)
     end
   end
