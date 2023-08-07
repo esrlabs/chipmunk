@@ -11,7 +11,7 @@ namespace :updater do
     Updater::TARGETS.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed(self, "removed: #{path}", '')
+        Reporter.removed(self, "removed: #{File.basename(path)}", '')
       end
     end
   end
@@ -19,8 +19,8 @@ namespace :updater do
   desc 'Build updater'
   task build: 'environment:check' do
     Shell.chdir(Paths::UPDATER) do
-      Shell.sh 'cargo +stable build --release'
-      Reporter.done('updater', 'built', '')
+      duration = Shell.timed_sh 'cargo +stable build --release'
+      Reporter.done('updater', 'built', '', duration)
     end
     Reporter.print
   end

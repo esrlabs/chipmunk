@@ -120,6 +120,7 @@
         "build-darwin": "node_modules/.bin/electron-builder --mac --dir",
         "build-linux": "node_modules/.bin/electron-builder --linux --dir",
         "build-win": "node_modules/.bin/electron-builder --win --dir",
-        "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0"
+        "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0",
+        "check": "node_modules/.bin/tsc -p tsconfig.json --noemit"
     }
 }
