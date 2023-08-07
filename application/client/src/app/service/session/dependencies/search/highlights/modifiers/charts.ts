@@ -1,4 +1,11 @@
-import { Modifier, EType, IHTMLInjection, EHTMLInjectionType, IModifierRange, EAlias } from '../modifier';
+import {
+    Modifier,
+    EType,
+    IHTMLInjection,
+    EHTMLInjectionType,
+    IModifierRange,
+    EAlias,
+} from '../modifier';
 import { ChartRequest } from '../../charts/request';
 
 import * as Colors from '@styles/colors';
@@ -73,7 +80,7 @@ export class ChartsModifier extends Modifier {
 
     private _map(row: string, highlights: ChartRequest[]) {
         highlights.forEach((request: ChartRequest) => {
-            row.replace(request.as().regExp(), (match: string, ...args: any[]) => {
+            row.replace(request.as().serializedRegExp(), (match: string, ...args: any[]) => {
                 const offset: number =
                     typeof args[args.length - 2] === 'number'
                         ? args[args.length - 2]

@@ -80,7 +80,7 @@ export class FiltersModifier extends Modifier {
 
     private _map(row: string, highlights: FilterRequest[]) {
         highlights.forEach((request: FilterRequest) => {
-            row.replace(request.as().regExp(), (match: string, ...args: any[]) => {
+            row.replace(request.as().serializedRegExp(), (match: string, ...args: any[]) => {
                 const offset: number =
                     typeof args[args.length - 2] === 'number'
                         ? args[args.length - 2]
