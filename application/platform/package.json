@@ -34,7 +34,8 @@
     },
     "scripts": {
         "build": "node_modules/.bin/tsc -p tsconfig.json",
-        "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0 "
+        "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0 ",
+        "check": "node_modules/.bin/tsc -p tsconfig.json --noemit"
     },
     "exports": {
         "./entity": "./dist/entity/index.js",

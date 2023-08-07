@@ -18,7 +18,7 @@ namespace :ansi do
       path = "#{path}/.node_integrity" if File.basename(path) == 'node_modules'
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed('ansi', "removed: #{path}", '')
+        Reporter.removed('ansi', "removed: #{File.basename(path)}", '')
       end
     end
   end
@@ -32,8 +32,8 @@ namespace :ansi do
   task :install do
     Shell.chdir(Paths::ANSI) do
       Reporter.log 'Installing ansi libraries'
-      Shell.sh 'yarn install'
-      Reporter.done('ansi', 'installing', '')
+      duration = Shell.timed_sh('yarn install')
+      Reporter.done('ansi', 'installing', '', duration)
     end
   end
 
@@ -41,15 +41,16 @@ namespace :ansi do
   task build: ['environment:check', 'ansi:install'] do
     changes_to_files = ChangeChecker.changes?('ansi', Paths::ANSI)
     if changes_to_files
+      duration = 0
       [Ansi::PKG, Ansi::TARGET].each do |path|
         Shell.rm_rf(path)
-        Reporter.removed('ansi', path, '')
+        Reporter.removed('ansi', File.basename(path), '')
       end
       Shell.chdir(Paths::ANSI) do
-        Shell.sh 'wasm-pack build --target bundler'
+        duration += Shell.timed_sh 'wasm-pack build --target bundler'
         ChangeChecker.reset('ansi', Paths::ANSI, Ansi::TARGETS)
       end
-      Reporter.done('ansi', "build #{Ansi::TARGET}", '')
+      Reporter.done('ansi', "build #{Ansi::TARGET}", '', duration)
     else
       Reporter.skipped('ansi', 'already built', '')
     end

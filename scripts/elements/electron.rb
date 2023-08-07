@@ -14,7 +14,7 @@ namespace :electron do
       path = "#{path}/.node_integrity" if File.basename(path) == 'node_modules'
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed(self, "removed: #{path}", '')
+        Reporter.removed(self, "removed: #{File.basename(path)}", '')
       end
     end
   end
@@ -28,8 +28,8 @@ namespace :electron do
   task :install do
     Shell.chdir(Paths::ELECTRON) do
       Reporter.log 'Installing Electron libraries'
-      Shell.sh 'yarn install'
-      Reporter.done('electron', 'installing', '')
+      duration = Shell.timed_sh('yarn install')
+      Reporter.done('electron', 'installing', '', duration)
     end
   end
 
@@ -37,21 +37,24 @@ namespace :electron do
     rustcore_dest = "#{Paths::ELECTRON}/node_modules/rustcore"
     Shell.rm_rf(rustcore_dest)
     FileUtils.mkdir_p rustcore_dest
-    # FileUtils.cp_r Dir["#{Paths::TS_BINDINGS}/*"], rustcore_dest
-    FileUtils.cp_r Dir["#{Paths::TS_BINDINGS}/*"].reject { |f| File.basename(f) == 'node_modules' }, rustcore_dest
+    files_to_copy = Dir["#{Paths::TS_BINDINGS}/*"].reject { |f| File.basename(f) == 'node_modules' }
+    duration = Shell.cp_r files_to_copy, rustcore_dest
+    Reporter.done('electron', "copy ts-bindings to #{Paths::ELECTRON_CLIENT_DEST}", '', duration)
     Shell.rm_rf("#{rustcore_dest}/native")
     platform_dest = "#{rustcore_dest}/node_modules/platform"
     Shell.rm_rf(platform_dest)
     FileUtils.mkdir_p platform_dest
-    FileUtils.cp_r Dir["#{Paths::PLATFORM}/*"].reject { |f| File.basename(f) == 'node_modules' }, platform_dest
+    files_to_copy = Dir["#{Paths::PLATFORM}/*"].reject { |f| File.basename(f) == 'node_modules' }
+    duration = Shell.cp_r files_to_copy, platform_dest
+    Reporter.done('electron', "copy platform to #{Paths::ELECTRON_CLIENT_DEST}", '', duration)
   end
 
   task copy_client_debug: 'client:build_dev' do
     path_to_client = "#{Paths::CLIENT_DIST}/debug"
     FileUtils.rm_f Electron::DIST
     FileUtils.mkdir_p(Electron::DIST)
-    FileUtils.cp_r path_to_client, Electron::DIST
-    Reporter.done('Client', "delivery to #{Electron::DIST}", '')
+    duration = Shell.cp_r path_to_client, Electron::DIST
+    Reporter.done('Client', "delivery to #{Electron::DIST}", '', duration)
   end
 
   # def self.delivery(dest, prod, replace)
@@ -59,15 +62,16 @@ namespace :electron do
     path_to_client = "#{Paths::CLIENT_DIST}/release"
     FileUtils.rm_f Electron::DIST
     FileUtils.mkdir_p(Electron::DIST)
-    FileUtils.cp_r path_to_client, Electron::DIST
-    Reporter.done('Client', "delivery to #{Electron::DIST}", '')
+    duration = Shell.cp_r path_to_client, Electron::DIST
+    Reporter.done('Client', "delivery to #{Electron::DIST}", '', duration)
   end
 
   task copy_platform: 'platform:build' do
     platform_dest = "#{Electron::NODE_MODULES}/platform"
     Shell.rm_rf(platform_dest)
     FileUtils.mkdir_p platform_dest
-    FileUtils.cp_r Dir["#{Paths::PLATFORM}/*"].reject { |f| File.basename(f) == 'node_modules' }, platform_dest
+    duration = Shell.cp_r Dir["#{Paths::PLATFORM}/*"].reject { |f| File.basename(f) == 'node_modules' }, platform_dest
+    Reporter.done('Client', "platform-delivery to #{platform_dest}", '', duration)
   end
 
   task check_environment_and_platform: ['environment:check', 'electron:copy_platform']
@@ -77,9 +81,9 @@ namespace :electron do
     if changes_to_electron
       begin
         Shell.chdir(Paths::ELECTRON) do
-          Shell.sh 'yarn run build'
+          duration = Shell.timed_sh 'yarn run build'
           ChangeChecker.reset('electron', Paths::ELECTRON, Electron::TARGETS)
-          Reporter.done('electron', 'built', '')
+          Reporter.done('electron', 'built', '', duration)
         end
       rescue StandardError => e
         puts "An error of type #{e.class} happened, message is #{e.message}"
@@ -116,8 +120,9 @@ namespace :electron do
   desc 'Lint electron'
   task lint: 'electron:install' do
     Shell.chdir(Paths::ELECTRON) do
-      Shell.sh 'yarn run lint'
-      Reporter.done('electron', 'linting', '')
+      duration = Shell.timed_sh 'yarn run lint'
+      duration += Shell.timed_sh 'yarn run check'
+      Reporter.done('electron', 'linting', '', duration)
     end
   end
 end

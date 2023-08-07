@@ -3,6 +3,7 @@
 require 'English'
 module Shell
   @@cwd = ''
+  @times = {}
 
   def self.suppress_output
     original_stdout = $stdout.clone
@@ -13,6 +14,30 @@ module Shell
   ensure
     $stdout.reopen original_stdout
     $stderr.reopen original_stderr
+  end
+
+  def self.timed_sh(cmd)
+    timed_operation(-> { sh cmd }, cmd)
+  end
+
+  def self.cp_r(src, dest)
+    cmd = "cp_r(#{src}, #{dest})"
+    timed_operation(-> { FileUtils.cp_r src, dest }, cmd)
+  end
+
+  def self.timed_operation(cmd, tag)
+    starting = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    cmd.call
+    ending = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    elapsed = ending - starting
+    current = @times[tag] || 0
+    new_elapsed = current + elapsed
+    @times[tag] = new_elapsed
+    elapsed
+  end
+
+  def self.report
+    @times.each { |key, value| puts "#{key} took #{value.round(1)}s" }
   end
 
   def self.sh(cmd)

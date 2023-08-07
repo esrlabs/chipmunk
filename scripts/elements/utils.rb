@@ -14,7 +14,7 @@ namespace :utils do
       path = "#{path}/.node_integrity" if File.basename(path) == 'node_modules'
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed('utils', "removed: #{path}", '')
+        Reporter.removed('utils', "removed: #{File.basename(path)}", '')
       end
     end
   end
@@ -28,8 +28,8 @@ namespace :utils do
   task :install do
     Shell.chdir(Paths::UTILS) do
       Reporter.log 'Installing utils libraries'
-      Shell.sh 'yarn install'
-      Reporter.done('utils', 'installing', '')
+      duration = Shell.timed_sh('yarn install')
+      Reporter.done('utils', 'installing', '', duration)
     end
   end
 
@@ -37,15 +37,16 @@ namespace :utils do
   task build: ['environment:check', 'utils:install'] do
     changes_to_files = ChangeChecker.changes?('utils', Paths::UTILS)
     if changes_to_files
+      duration = 0
       [Utils::PKG, Utils::TARGET].each do |path|
         Shell.rm_rf(path)
-        Reporter.removed('utils', path, '')
+        Reporter.removed('utils', File.basename(path), '')
       end
       Shell.chdir(Paths::UTILS) do
-        Shell.sh 'wasm-pack build --target bundler'
+        duration = Shell.timed_sh 'wasm-pack build --target bundler'
         ChangeChecker.reset('utils', Paths::UTILS, Utils::TARGETS)
       end
-      Reporter.done('utils', "build #{Utils::TARGET}", '')
+      Reporter.done('utils', "build #{Utils::TARGET}", '', duration)
     else
       Reporter.skipped('utils', 'already built', '')
     end

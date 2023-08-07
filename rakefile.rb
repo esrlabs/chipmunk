@@ -36,7 +36,7 @@ namespace :test do
   desc 'test rust core'
   task :rust do
     cd Paths::INDEXER do
-      sh 'cargo +stable test'
+      Shell.timed_operation(-> { sh 'cargo +stable test' }, 'cargo test')
     end
   end
 
@@ -58,8 +58,10 @@ class Clippy
 
   def check(owner, path)
     Shell.chdir(path) do
-      Rake.sh 'cargo +stable clippy --all --all-features -- -D warnings -A clippy::uninlined_format_args'
-      Rake.sh 'cargo +stable fmt -- --color=always --check'
+      clippy = 'cargo +stable clippy --all --all-features -- -D warnings -A clippy::uninlined_format_args'
+      Shell.timed_operation(-> { Rake.sh clippy}, 'clippy')
+      fmt = 'cargo +stable fmt -- --color=always --check'
+      Shell.timed_operation(-> { Rake.sh fmt}, 'clippy')
     end
     Reporter.other(owner, "checked: #{path}", '')
   end
@@ -150,13 +152,13 @@ task run_prod: 'electron:build_prod' do
 end
 
 # uncomment for benchmarking the tasks
-# require 'benchmark'
-# class Rake::Task
-#   def execute_with_benchmark(*args)
-#     bm = Benchmark.measure { execute_without_benchmark(*args) }
-#     puts "   #{name} --> #{bm}"
-#   end
+require 'benchmark'
+class Rake::Task
+  def execute_with_benchmark(*args)
+    bm = Benchmark.measure { execute_without_benchmark(*args) }
+    puts "   #{name} --> #{bm}"
+  end
 
-#   alias_method :execute_without_benchmark, :execute
-#   alias_method :execute, :execute_with_benchmark
-# end
+  alias_method :execute_without_benchmark, :execute
+  alias_method :execute, :execute_with_benchmark
+end
