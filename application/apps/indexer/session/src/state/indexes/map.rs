@@ -90,6 +90,10 @@ impl Map {
         Some(ranges)
     }
 
+    pub fn get_all_as_ranges(&self) -> Vec<RangeInclusive<u64>> {
+        self.keys.as_ranges()
+    }
+
     fn index_add(&mut self, position: u64, nature: Nature) {
         if self.indexes.insert(position, nature).is_none() {
             self.keys.add(position);

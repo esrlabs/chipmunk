@@ -193,6 +193,10 @@ impl Controller {
         self.map.frame(range)
     }
 
+    pub(crate) fn get_all_as_ranges(&self) -> Vec<RangeInclusive<u64>> {
+        self.map.get_all_as_ranges()
+    }
+
     pub(crate) fn len(&self) -> usize {
         self.map.len()
     }

@@ -15,6 +15,28 @@ impl Keys {
             sorted: false,
         }
     }
+
+    pub fn as_ranges(&self) -> Vec<RangeInclusive<u64>> {
+        let mut ranges = vec![];
+        let mut from: u64 = 0;
+        let mut to: u64 = 0;
+        for (i, value) in self.keys.iter().enumerate() {
+            if i == 0 {
+                from = *value;
+            } else if to + 1 != *value {
+                ranges.push(RangeInclusive::new(from, to));
+                from = *value;
+            }
+            to = *value;
+        }
+        if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from)
+            || (ranges.is_empty() && !self.keys.is_empty())
+        {
+            ranges.push(RangeInclusive::new(from, to));
+        }
+        ranges
+    }
+
     pub fn add(&mut self, position: u64) {
         self.keys.push(position);
         self.sorted = false;

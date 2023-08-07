@@ -1,7 +1,6 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { cutUuid } from '@log/index';
-import { Map } from './search/map';
 import { IGrabbedElement, IndexingMode } from '@platform/types/content';
 import { Range, IRange } from '@platform/types/range';
 
@@ -15,7 +14,6 @@ export class Indexed extends Subscriber {
     }> = new Subjects({
         updated: new Subject<number>(),
     });
-    public readonly map: Map = new Map();
     private _len: number = 0;
     private _uuid!: string;
     private _mode: IndexingMode = IndexingMode.Regular;
@@ -114,6 +112,20 @@ export class Indexed extends Subscriber {
                 }
                 return [];
             });
+    }
+
+    public asRanges(): Promise<IRange[]> {
+        if (this._len === 0) {
+            return Promise.resolve([]);
+        }
+        return Requests.IpcRequest.send(
+            Requests.Stream.IndexesAsRanges.Response,
+            new Requests.Stream.IndexesAsRanges.Request({
+                session: this._uuid,
+            }),
+        ).then((response: Requests.Stream.IndexesAsRanges.Response) => {
+            return response.ranges;
+        });
     }
 
     public getIndexesAround(

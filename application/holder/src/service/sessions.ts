@@ -166,6 +166,15 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
+                    Requests.Stream.IndexesAsRanges.Request,
+                    RequestHandlers.Stream.IndexesAsRanges.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
                     Requests.Search.Search.Request,
                     RequestHandlers.Search.Search.handler,
                 ),

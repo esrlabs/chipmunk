@@ -432,6 +432,13 @@ impl Session {
             .map_err(ComputationError::NativeError)
     }
 
+    pub async fn get_indexed_ranges(&self) -> Result<Vec<RangeInclusive<u64>>, ComputationError> {
+        self.state
+            .get_indexed_ranges()
+            .await
+            .map_err(ComputationError::NativeError)
+    }
+
     /// Used for debug goals
     pub fn sleep(&self, operation_id: Uuid, ms: u64) -> Result<(), ComputationError> {
         self.tx_operations

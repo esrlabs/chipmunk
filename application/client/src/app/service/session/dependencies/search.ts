@@ -9,7 +9,6 @@ import { DisableStore } from './search/disabled/store';
 import { ChartsStore } from './search/charts/store';
 import { Highlights } from './search/highlights';
 import { State } from './search/state';
-import { Map } from './search/map';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -23,7 +22,6 @@ export class Search extends Subscriber {
         updated: new Subject<ISearchUpdated>(),
         map: new Subject<void>(),
     });
-    public readonly map: Map = new Map();
     private _len: number = 0;
     private _uuid!: string;
     private _store!: {
@@ -51,12 +49,7 @@ export class Search extends Subscriber {
                 if (event.session !== this._uuid) {
                     return;
                 }
-                const error = this.map.parse(event.map);
-                if (error instanceof Error) {
-                    this.log().error(`Fail to parse map update: ${error.message}`);
-                } else {
-                    this.subjects.get().map.emit();
-                }
+                this.subjects.get().map.emit();
             }),
         );
         this._store = {
@@ -93,7 +86,6 @@ export class Search extends Subscriber {
         this._store.disabled.destroy();
         this._highlights.destroy();
         this._state.destroy();
-        this.map.destroy();
         this.subjects.destroy();
     }
 

@@ -13,7 +13,7 @@ import { EFileOptionsRequirements } from '../api/executors/session.stream.observ
 import { Type, Source, NativeError } from '../interfaces/errors';
 import { v4 as uuidv4 } from 'uuid';
 import { getValidNum } from '../util/numbers';
-import { IRange } from 'platform/types/range';
+import { IRange, fromTuple } from 'platform/types/range';
 import { ISourceLink } from 'platform/types/observe/types';
 import { IndexingMode, Attachment } from 'platform/types/content';
 import { Logger, utils } from 'platform/log';
@@ -176,6 +176,7 @@ export abstract class RustSession extends RustSessionRequiered {
     public abstract sendIntoSde(targetOperationUuid: string, jsonStrMsg: string): Promise<string>;
 
     public abstract getAttachments(): Promise<Attachment[]>;
+    public abstract getIndexedRanges(): Promise<IRange[]>;
 
     public abstract abort(
         selfOperationUuid: string,
@@ -295,6 +296,7 @@ export abstract class RustSessionNative {
 
     public abstract sendIntoSde(targetOperationUuid: string, jsonStrMsg: string): Promise<string>;
     public abstract getAttachments(): Promise<string>;
+    public abstract getIndexedRanges(): Promise<string>;
 
     public abstract abort(
         selfOperationUuid: string,
@@ -1096,6 +1098,34 @@ export class RustSessionWrapper extends RustSession {
                             attachments.push(attachment);
                         }
                         resolve(attachments);
+                    } catch (e) {
+                        reject(new Error(utils.error(e)));
+                    }
+                })
+                .catch((err) => {
+                    reject(
+                        new NativeError(NativeError.from(err), Type.Other, Source.GetAttachments),
+                    );
+                });
+        });
+    }
+
+    public getIndexedRanges(): Promise<IRange[]> {
+        return new Promise((resolve, reject) => {
+            this._native
+                .getIndexedRanges()
+                .then((str: string) => {
+                    try {
+                        const ranges: IRange[] = [];
+                        for (const unchecked of JSON.parse(str) as unknown[]) {
+                            const range = fromTuple(unchecked);
+                            if (range instanceof Error) {
+                                reject(range);
+                                return;
+                            }
+                            ranges.push(range);
+                        }
+                        resolve(ranges);
                     } catch (e) {
                         reject(new Error(utils.error(e)));
                     }

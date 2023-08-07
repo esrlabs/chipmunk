@@ -47,7 +47,9 @@ describe('Search', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get().sterilized(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -124,7 +126,39 @@ describe('Search', function () {
                                                                     expect(
                                                                         searchStreamUpdated,
                                                                     ).toEqual(true);
-                                                                    finish(session, done);
+                                                                    stream
+                                                                        .getIndexedRanges()
+                                                                        .then((ranges) => {
+                                                                            expect(
+                                                                                ranges[0].from,
+                                                                            ).toEqual(0);
+                                                                            expect(
+                                                                                ranges[0].to,
+                                                                            ).toEqual(5);
+                                                                            expect(
+                                                                                ranges.length,
+                                                                            ).toEqual(50);
+                                                                            for (
+                                                                                let i = 1;
+                                                                                i < 50;
+                                                                                i += 1
+                                                                            ) {
+                                                                                expect(
+                                                                                    ranges[i].from,
+                                                                                ).toEqual(i * 100);
+                                                                                expect(
+                                                                                    ranges[i].to,
+                                                                                ).toEqual(i * 100);
+                                                                            }
+                                                                            finish(session, done);
+                                                                        })
+                                                                        .catch((err: Error) => {
+                                                                            finish(
+                                                                                session,
+                                                                                done,
+                                                                                err,
+                                                                            );
+                                                                        });
                                                                 })
                                                                 .catch((err: Error) => {
                                                                     finish(session, done, err);
@@ -207,7 +241,9 @@ describe('Search', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get().sterilized(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -352,7 +388,9 @@ describe('Search', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get().sterilized(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -416,7 +454,9 @@ describe('Search', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get().sterilized(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -565,7 +605,9 @@ describe('Search', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get().sterilized(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -717,7 +759,9 @@ describe('Search', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get().sterilized(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -863,7 +907,9 @@ describe('Search', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get().sterilized(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             const calls = ['match A', 'match D', 'match C', 'match B'];

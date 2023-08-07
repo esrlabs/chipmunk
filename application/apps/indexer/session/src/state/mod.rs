@@ -674,6 +674,13 @@ pub async fn run(
                     NativeError::channel("Failed to respond to Api::DropSearchValues")
                 })?;
             }
+            Api::GetIndexedRanges(tx_response) => {
+                tx_response
+                    .send(state.indexes.get_all_as_ranges())
+                    .map_err(|_| {
+                        NativeError::channel("Failed to respond to Api::GetIndexedRanges")
+                    })?;
+            }
             Api::CloseSession(tx_response) => {
                 state_cancellation_token.cancel();
                 state.status = Status::Closed;
