@@ -150,7 +150,7 @@ impl SessionState {
 
     async fn handle_write_session_file(
         &mut self,
-        source_id: u8,
+        source_id: u16,
         state_cancellation_token: CancellationToken,
         tx_callback_events: UnboundedSender<CallbackEvent>,
         msg: String,
@@ -185,7 +185,7 @@ impl SessionState {
 
     async fn handle_update_session(
         &mut self,
-        source_id: u8,
+        source_id: u16,
         state_cancellation_token: CancellationToken,
         tx_callback_events: UnboundedSender<CallbackEvent>,
     ) -> Result<bool, NativeError> {

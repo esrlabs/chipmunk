@@ -30,12 +30,12 @@ use super::values::graph::CandlePoint;
 pub enum Api {
     SetSessionFile((Option<PathBuf>, oneshot::Sender<Result<(), NativeError>>)),
     GetSessionFile(oneshot::Sender<Result<PathBuf, NativeError>>),
-    WriteSessionFile((u8, String, oneshot::Sender<Result<(), NativeError>>)),
+    WriteSessionFile((u16, String, oneshot::Sender<Result<(), NativeError>>)),
     FlushSessionFile(oneshot::Sender<Result<(), NativeError>>),
     GetSessionFileOrigin(oneshot::Sender<Result<Option<SessionFileOrigin>, NativeError>>),
-    UpdateSession((u8, oneshot::Sender<Result<bool, NativeError>>)),
-    AddSource((String, oneshot::Sender<u8>)),
-    GetSource((String, oneshot::Sender<Option<u8>>)),
+    UpdateSession((u16, oneshot::Sender<Result<bool, NativeError>>)),
+    AddSource((String, oneshot::Sender<u16>)),
+    GetSource((String, oneshot::Sender<Option<u16>>)),
     GetSourcesDefinitions(oneshot::Sender<Vec<SourceDefinition>>),
     #[allow(clippy::large_enum_variant)]
     AddExecutedObserve((ObserveOptions, oneshot::Sender<()>)),
@@ -368,7 +368,7 @@ impl SessionStateAPI {
         self.exec_operation(Api::GetSessionFile(tx), rx).await?
     }
 
-    pub async fn write_session_file(&self, source_id: u8, msg: String) -> Result<(), NativeError> {
+    pub async fn write_session_file(&self, source_id: u16, msg: String) -> Result<(), NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::WriteSessionFile((source_id, msg, tx)), rx)
             .await?
@@ -385,19 +385,19 @@ impl SessionStateAPI {
             .await?
     }
 
-    pub async fn update_session(&self, source_id: u8) -> Result<bool, NativeError> {
+    pub async fn update_session(&self, source_id: u16) -> Result<bool, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::UpdateSession((source_id, tx)), rx)
             .await?
     }
 
-    pub async fn add_source(&self, uuid: &str) -> Result<u8, NativeError> {
+    pub async fn add_source(&self, uuid: &str) -> Result<u16, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::AddSource((uuid.to_owned(), tx)), rx)
             .await
     }
 
-    pub async fn get_source(&self, uuid: &str) -> Result<Option<u8>, NativeError> {
+    pub async fn get_source(&self, uuid: &str) -> Result<Option<u16>, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetSource((uuid.to_owned(), tx)), rx)
             .await
