@@ -1,6 +1,37 @@
+import * as num from '../env/num';
+
 export interface IRange {
     from: number;
     to: number;
+}
+
+export function fromTuple(
+    range: [number, number] | { start: number; end: number } | unknown,
+): IRange | Error {
+    if (range instanceof Array && range.length === 2) {
+        if (!num.isValidU32(range[0])) {
+            return new Error(
+                `Begining of range isn't valid: ${range[0]}; ${JSON.stringify(range)}`,
+            );
+        }
+        if (!num.isValidU32(range[1])) {
+            return new Error(`End of range isn't valid: ${range[1]}; ${JSON.stringify(range)}`);
+        }
+        return { from: range[0], to: range[1] };
+    } else if (typeof range === 'object' && range !== undefined && range !== null) {
+        const asObj = range as { start: number; end: number };
+        if (!num.isValidU32(asObj.start)) {
+            return new Error(
+                `Begining of range isn't valid: ${asObj.start}; ${JSON.stringify(range)}`,
+            );
+        }
+        if (!num.isValidU32(asObj.end)) {
+            return new Error(`End of range isn't valid: ${asObj.end}; ${JSON.stringify(range)}`);
+        }
+        return { from: asObj.start, to: asObj.end };
+    } else {
+        return new Error(`Expecting tuple: [number, number]: ${JSON.stringify(range)}`);
+    }
 }
 
 export class Range {

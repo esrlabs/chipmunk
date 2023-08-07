@@ -1,7 +1,7 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { cutUuid } from '@log/index';
 import { Stream } from './stream';
-import { Search } from './search';
+import { Indexed } from './indexed';
 import { IRange } from '@platform/types/range';
 import { bridge } from '@service/bridge';
 
@@ -9,13 +9,13 @@ import { bridge } from '@service/bridge';
 export class Exporter {
     private _uuid!: string;
     private _stream!: Stream;
-    private _search!: Search;
+    private _indexed!: Indexed;
 
-    public init(uuid: string, stream: Stream, search: Search) {
+    public init(uuid: string, stream: Stream, indexed: Indexed) {
         this.setLoggerName(`Cache: ${cutUuid(uuid)}`);
         this._uuid = uuid;
         this._stream = stream;
-        this._search = search;
+        this._indexed = indexed;
     }
 
     public destroy() {
@@ -44,14 +44,14 @@ export class Exporter {
                     : this._stream.export().text(dest, ranges);
             },
             search: async (): Promise<boolean> => {
-                const ranges = this._search.map.get().all();
-                if (ranges.length === 0) {
+                if (this._indexed.len() === 0) {
                     return false;
                 }
                 const dest = await bridge.files().select.save();
                 if (dest === undefined) {
                     return false;
                 }
+                const ranges = await this._indexed.asRanges();
                 return asRaw
                     ? this._stream.export().raw(dest, ranges)
                     : this._stream.export().text(dest, ranges);

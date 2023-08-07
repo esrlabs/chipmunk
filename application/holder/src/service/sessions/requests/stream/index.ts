@@ -8,3 +8,4 @@ export * as Mode from './set_indexing_mode';
 export * as Expand from './expand_indexing_map';
 export * as IndexedLen from './indexed_len';
 export * as IndexesAround from './indexes_around';
+export * as IndexesAsRanges from './indexes_as_ranges';

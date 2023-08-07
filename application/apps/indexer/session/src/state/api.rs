@@ -139,6 +139,7 @@ pub enum Api {
         ),
     ),
     DropSearchValues(oneshot::Sender<bool>),
+    GetIndexedRanges(oneshot::Sender<Vec<RangeInclusive<u64>>>),
     CloseSession(oneshot::Sender<()>),
     SetDebugMode((bool, oneshot::Sender<()>)),
     NotifyCancelingOperation(Uuid),
@@ -194,6 +195,7 @@ impl Display for Api {
                 Self::SetSearchValues(_, _) => "SetSearchValues",
                 Self::GetSearchValues(_) => "GetSearchValues",
                 Self::DropSearchValues(_) => "DropSearchValues",
+                Self::GetIndexedRanges(_) => "GetIndexedRanges",
                 Self::CloseSession(_) => "CloseSession",
                 Self::SetDebugMode(_) => "SetDebugMode",
                 Self::NotifyCancelingOperation(_) => "NotifyCancelingOperation",
@@ -543,6 +545,11 @@ impl SessionStateAPI {
     pub async fn drop_search_values(&self) -> Result<bool, NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::DropSearchValues(tx), rx).await
+    }
+
+    pub async fn get_indexed_ranges(&self) -> Result<Vec<RangeInclusive<u64>>, NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::GetIndexedRanges(tx), rx).await
     }
 
     pub async fn close_session(&self) -> Result<(), NativeError> {

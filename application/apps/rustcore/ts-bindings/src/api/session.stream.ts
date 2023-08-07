@@ -104,6 +104,10 @@ export class SessionStream {
         return this._session.getAttachments();
     }
 
+    public getIndexedRanges(): Promise<IRange[]> {
+        return this._session.getIndexedRanges();
+    }
+
     public export(dest: string, ranges: IRange[]): ICancelablePromise<boolean> {
         return Executors.export(this._session, this._provider, this._logger, { dest, ranges });
     }

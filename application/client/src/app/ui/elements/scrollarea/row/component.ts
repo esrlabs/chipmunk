@@ -188,16 +188,14 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                           {},
                           {
                               caption: 'Export All Search Result',
-                              disabled: this.row.session.search.map.get().all().length === 0,
+                              disabled: this.row.session.indexed.len() === 0,
                               handler: () => {
                                   exportSearch(false);
                               },
                           },
                           {
                               caption: 'Export All Search Result as Raw',
-                              disabled:
-                                  !isRawAvailable ||
-                                  this.row.session.search.map.get().all().length === 0,
+                              disabled: !isRawAvailable || this.row.session.indexed.len() === 0,
                               handler: () => {
                                   exportSearch(true);
                               },
