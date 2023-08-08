@@ -1,4 +1,3 @@
-let wasm: typeof import('../pkg');
 
 class Item {
     private _name: string;
@@ -30,6 +29,7 @@ class Item {
 }
 
 describe('test', function () {
+    let wasm: typeof import('../pkg');
     beforeAll(async function () {
         wasm = await import('../pkg');
     });

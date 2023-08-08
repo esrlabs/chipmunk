@@ -1,6 +1,6 @@
-let wasm: typeof import('../pkg');
 
 describe('test', function () {
+    let wasm: typeof import('../pkg');
     beforeAll(async function () {
         wasm = await import('../pkg');
     });

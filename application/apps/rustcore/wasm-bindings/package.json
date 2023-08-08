@@ -1,7 +1,7 @@
 {
-  "name": "ansi",
-  "version": "0.0.1",
-  "description": "Test env for ansi",
+  "name": "wasm-bindings",
+  "version": "0.0.2",
+  "description": "Test env for wasm bindings",
   "scripts": {
     "build": "node_modules/.bin/webpack",
     "start": "node_modules/.bin/webpack-dev-server",
