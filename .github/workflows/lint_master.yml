@@ -26,6 +26,8 @@ jobs:
           override: true
       - name: JS/TS linting
         run: rake lint:js
+      - name: typescript checking
+        run: rake tsc
   rust_lint:
     runs-on: ubuntu-latest
     steps:

@@ -70,10 +70,18 @@ namespace :client do
   task lint: 'client:install' do
     Shell.chdir(Paths::CLIENT) do
       duration = Shell.timed_sh 'yarn run lint', 'lint client'
-      duration += Shell.timed_sh 'yarn run check', 'tsc check client'
       Reporter.done('client', 'linting', '', duration)
     end
   end
+
+  desc 'tsc comile check client'
+  task check: ['client:install', 'wasm:build', 'electron:copy_tsbindings_and_platform'] do
+    Shell.chdir(Paths::CLIENT) do
+      duration = Shell.timed_sh 'yarn run check', 'tsc check client'
+      Reporter.done('client', 'check', '', duration)
+    end
+  end
+
 end
 
 def output(kind)
