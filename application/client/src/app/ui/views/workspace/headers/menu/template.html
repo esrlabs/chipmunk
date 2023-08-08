@@ -1,9 +1,16 @@
 <div class="wrapper">
+    <ul class="columns">
+        <li [attr.class]="'column'" *ngFor="let column of columns; let i = index;">
+            <mat-checkbox [disableRipple]="true" [checked]="column.visible"></mat-checkbox>
+            <span class="label t-normal" [ngStyle]="{'color': column.color}">{{column.caption}}</span>
+        </li>
+    </ul>
     <div class="controls">
         <ul class="colors">
             <li [attr.class]="'color'"
                 [ngStyle]="{'background': color}"
                 *ngFor="let color of colors"
+                (click)="ngOnClick($event, color)"
             ></li>
         </ul>
     </div>
