@@ -16,7 +16,7 @@ export class List extends Storage implements EntryConvertable {
     public observer: Observable<Recent[]>;
 
     protected readonly control: UntypedFormControl;
-    protected readonly matcher: wasm.Matcher = wasm.getMatcher().Matcher.new();
+    protected readonly matcher: wasm.Matcher = wasm.getBindings().Matcher.new();
     protected readonly filealias: string;
 
     constructor(control: UntypedFormControl, name: string, filealias: string) {
