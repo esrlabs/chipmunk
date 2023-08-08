@@ -4,6 +4,7 @@ export abstract class Support {
 
 export enum FileType {
     PcapNG = 'PcapNG',
+    PcapLegacy = 'PcapLegacy',
     Text = 'Text',
     Binary = 'Binary',
 }
@@ -14,6 +15,8 @@ export function getFileTypeFrom(smth: unknown): FileType | Error {
             return FileType.Binary;
         case FileType.PcapNG:
             return FileType.PcapNG;
+        case FileType.PcapLegacy:
+            return FileType.PcapLegacy;
         case FileType.Text:
             return FileType.Text;
         default:

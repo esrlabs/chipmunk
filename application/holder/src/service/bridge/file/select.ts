@@ -61,6 +61,24 @@ function pcapng(): Promise<File[]> {
     });
 }
 
+function pcap(): Promise<File[]> {
+    return new Promise((resolve, reject) => {
+        electron
+            .dialogs()
+            .openFile()
+            .pcap()
+            .then((files: string[]) => {
+                const entities = getFileEntities(files);
+                if (entities instanceof Error) {
+                    reject(entities);
+                } else {
+                    resolve(entities);
+                }
+            })
+            .catch(reject);
+    });
+}
+
 export const handler = Requests.InjectLogger<
     Requests.File.Select.Request,
     CancelablePromise<Requests.File.Select.Response>
@@ -78,6 +96,8 @@ export const handler = Requests.InjectLogger<
                         return dlt();
                     case FileType.PcapNG:
                         return pcapng();
+                    case FileType.PcapLegacy:
+                        return pcap();
                     default:
                         return any(request.ext);
                 }

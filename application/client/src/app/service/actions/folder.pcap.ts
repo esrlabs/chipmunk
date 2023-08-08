@@ -2,27 +2,26 @@ import { Base } from './action';
 import { bridge } from '@service/bridge';
 import { session } from '@service/session';
 import { TabSourceMultipleFiles } from '@ui/tabs/multiplefiles/component';
-import { FileType } from '@platform/types/observe/types/file';
 import { notifications, Notification } from '@ui/service/notifications';
 
 import * as Factory from '@platform/types/observe/factory';
 
-export const ACTION_UUID = 'open_any_folder';
+export const ACTION_UUID = 'open_pcap_legacy_folder';
 
 export class Action extends Base {
     public group(): number {
-        return 1;
+        return 0;
     }
     public uuid(): string {
         return ACTION_UUID;
     }
 
     public caption(): string {
-        return 'Open Folder(s)';
+        return 'Select Folder with Pcap';
     }
 
     public async apply(): Promise<void> {
-        const files = await bridge.folders().any();
+        const files = await bridge.folders().pcap();
         if (files.length === 0) {
             notifications.notify(
                 new Notification({
@@ -43,24 +42,9 @@ export class Action extends Base {
                 },
             });
         } else {
-            switch (files[0].type) {
-                case FileType.Binary:
-                    session
-                        .initialize()
-                        .configure(new Factory.File().file(files[0].filename).asDlt().get());
-                    break;
-                case FileType.PcapNG:
-                case FileType.PcapLegacy:
-                    session
-                        .initialize()
-                        .suggest(new Factory.File().file(files[0].filename).asDlt().get());
-                    break;
-                default:
-                    session
-                        .initialize()
-                        .observe(new Factory.File().file(files[0].filename).asText().get());
-                    break;
-            }
+            session
+                .initialize()
+                .suggest(new Factory.File().type(files[0].type).file(files[0].filename).get());
         }
         return Promise.resolve();
     }

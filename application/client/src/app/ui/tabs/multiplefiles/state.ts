@@ -154,6 +154,16 @@ export class State extends Holder {
                                         .files(files)
                                         .get(),
                                 );
+                        case FileType.PcapLegacy:
+                            return this._ilc.services.system.session
+                                .initialize()
+                                .configure(
+                                    new Factory.Concat()
+                                        .asDlt()
+                                        .type(Factory.FileType.PcapLegacy)
+                                        .files(files)
+                                        .get(),
+                                );
                         case FileType.Binary:
                             return this._ilc.services.system.session
                                 .initialize()
@@ -207,13 +217,44 @@ export class State extends Holder {
                                 });
                             break;
                         case FileType.Binary:
-                        case FileType.PcapNG:
                             this._ilc.services.system.session
                                 .initialize()
                                 .configure(
                                     new Factory.File()
                                         .asDlt()
                                         .type(Factory.FileType.Binary)
+                                        .file(file.filename)
+                                        .get(),
+                                )
+                                .catch((err: Error) => {
+                                    this._ilc.logger.error(
+                                        `Fail to open dlt file; error: ${err.message}`,
+                                    );
+                                });
+                            break;
+                        case FileType.PcapNG:
+                            this._ilc.services.system.session
+                                .initialize()
+                                .configure(
+                                    new Factory.File()
+                                        .asDlt()
+                                        .type(Factory.FileType.PcapNG)
+                                        .file(file.filename)
+                                        .get(),
+                                )
+                                .catch((err: Error) => {
+                                    this._ilc.logger.error(
+                                        `Fail to open dlt file; error: ${err.message}`,
+                                    );
+                                });
+                            break;
+                        case FileType.PcapLegacy:
+                            this._ilc.services.system.session
+                                .initialize()
+                                .configure(
+                                    new Factory.File()
+                                        .asDlt()
+                                        .type(Factory.FileType.PcapLegacy)
                                         .file(file.filename)
                                         .get(),
                                 )

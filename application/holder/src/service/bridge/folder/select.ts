@@ -60,6 +60,21 @@ function pcapng(): Promise<File[]> {
     });
 }
 
+function pcap(): Promise<File[]> {
+    return new Promise((resolve, reject) => {
+        collect(['pcap'])
+            .then((files: string[]) => {
+                const entities = getFileEntities(files);
+                if (entities instanceof Error) {
+                    reject(entities);
+                } else {
+                    resolve(entities);
+                }
+            })
+            .catch(reject);
+    });
+}
+
 export const handler = Requests.InjectLogger<
     Requests.Folder.Select.Request,
     CancelablePromise<Requests.Folder.Select.Response>
@@ -77,6 +92,8 @@ export const handler = Requests.InjectLogger<
                         return dlt();
                     case FileType.PcapNG:
                         return pcapng();
+                    case FileType.PcapLegacy:
+                        return pcap();
                     default:
                         return Promise.reject(new Error(`Unsupported format of file`));
                 }

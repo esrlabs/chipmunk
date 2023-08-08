@@ -58,6 +58,17 @@ export class Action extends Base {
                             .get(),
                     );
                 break;
+            case FileType.PcapLegacy:
+                session
+                    .initialize()
+                    .suggest(
+                        new Factory.File()
+                            .asDlt()
+                            .type(Factory.FileType.PcapLegacy)
+                            .file(file.filename)
+                            .get(),
+                    );
+                break;
             default:
                 session
                     .initialize()

@@ -61,6 +61,7 @@ export class Service extends Implementation {
             any(): Promise<File[]>;
             dlt(): Promise<File[]>;
             pcapng(): Promise<File[]>;
+            pcap(): Promise<File[]>;
             text(): Promise<File[]>;
             custom(ext: string): Promise<File[]>;
             save(ext?: string): Promise<string | undefined>;
@@ -255,6 +256,9 @@ export class Service extends Implementation {
                 dlt: (): Promise<File[]> => {
                     return request(FileType.Binary, 'dlt');
                 },
+                pcap: (): Promise<File[]> => {
+                    return request(FileType.PcapLegacy, `pcap`);
+                },
                 pcapng: (): Promise<File[]> => {
                     return request(FileType.PcapNG, `pcapng`);
                 },
@@ -285,6 +289,7 @@ export class Service extends Implementation {
         any(): Promise<File[]>;
         dlt(): Promise<File[]>;
         pcapng(): Promise<File[]>;
+        pcap(): Promise<File[]>;
         text(): Promise<File[]>;
         custom(ext: string): Promise<File[]>;
         select(): Promise<string[]>;
@@ -315,6 +320,9 @@ export class Service extends Implementation {
             },
             pcapng: (): Promise<File[]> => {
                 return request(FileType.PcapNG, `pcapng`);
+            },
+            pcap: (): Promise<File[]> => {
+                return request(FileType.PcapLegacy, `pcap`);
             },
             text: (): Promise<File[]> => {
                 return request(FileType.Text, `txt,log,logs`);

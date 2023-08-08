@@ -63,6 +63,7 @@ export class Dialogs extends Implementation {
         any(ext?: string): Promise<string[]>;
         dlt(): Promise<string[]>;
         pcapng(): Promise<string[]>;
+        pcap(): Promise<string[]>;
     } {
         const opener = async (target: number, ext?: string): Promise<string[]> => {
             let results;
@@ -99,6 +100,14 @@ export class Dialogs extends Implementation {
                         filters: [{ name: 'PCAPNG Files', extensions: ['pcapng'] }],
                     });
                     break;
+                case 3:
+                    this.fixFocusAndMouse();
+                    results = await dialog.showOpenDialog(this._window, {
+                        title: 'Opening a PCAP file',
+                        properties: ['openFile', 'multiSelections'],
+                        filters: [{ name: 'PCAP Files', extensions: ['pcap'] }],
+                    });
+                    break;
                 default:
                     throw new Error(`Unsupported opetion for open file dialog`);
             }
@@ -108,6 +117,7 @@ export class Dialogs extends Implementation {
             any: (ext?: string) => opener(0, ext),
             dlt: () => opener(1),
             pcapng: () => opener(2),
+            pcap: () => opener(3),
         };
     }
 }

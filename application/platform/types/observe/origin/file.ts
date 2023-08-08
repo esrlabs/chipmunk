@@ -121,6 +121,8 @@ export class Configuration
                 return [Parser.Dlt.Configuration, Parser.SomeIp.Configuration];
             case Types.File.FileType.PcapNG:
                 return [Parser.Dlt.Configuration, Parser.SomeIp.Configuration];
+            case Types.File.FileType.PcapLegacy:
+                return [Parser.Dlt.Configuration, Parser.SomeIp.Configuration];
             case Types.File.FileType.Text:
                 return [Parser.Text.Configuration];
         }

@@ -155,6 +155,23 @@ export class ElementsTreeSelector
                             });
                     },
                 },
+                {
+                    caption: 'Open as PcapN',
+                    handler: () => {
+                        this.ilc()
+                            .services.system.session.initialize()
+                            .observe(
+                                new Factory.File()
+                                    .type(Factory.FileType.PcapLegacy)
+                                    .asDlt()
+                                    .file(entity.getPath())
+                                    .get(),
+                            )
+                            .catch((err: Error) => {
+                                this.log().error(`Fail to open pcapng file; error: ${err.message}`);
+                            });
+                    },
+                },
             ],
             x: event.x,
             y: event.y,

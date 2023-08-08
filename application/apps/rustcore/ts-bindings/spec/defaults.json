@@ -6,20 +6,23 @@
             "regular": {
                 /* With numbers you can define, which tests should be executed. "execute_only": [1, 3] will run ONLY tests 1 and 3*/
                 /* If "execute_only" isn't empty, all performance tests will be ignored*/
-                "execute_only": [1, 4, 5, 6],
+                "execute_only": [1, 4, 5, 6, 7, 8],
                 "list": {
                     "1": "Test 1. Observe and grab content (text)",
                     "2": "Test 2. Observe and grab content (pcapng)",
                     "3": "Test 3. Observe and grab content (dlt)",
                     "4": "Test 4. Observe and grab content (attachments)",
                     "5": "Test 5. Observe and grab content (someip from pcapng)",
-                    "6": "Test 6. Observe and grab content (someip from pcapng with fibex)"
+                    "6": "Test 6. Observe and grab content (someip from pcapng with fibex)",
+                    "7": "Test 7. Observe and grab content (someip from pcap)",
+                    "8": "Test 8. Observe and grab content (someip from pcap with fibex)"
                 },
                 "files": {
                     "pcapng": "/storage/projects/esrlabs/logs-examples/test.pcapng",
                     "dlt": "/storage/projects/esrlabs/logs-examples/dlt_receive_2.dlt",
                     "attachments": "../../../../application/developing/resources/attachments.dlt",
                     "someip-pcapng": "../../../../application/developing/resources/someip.pcapng",
+                    "someip-pcap": "../../../../application/developing/resources/someip.pcap",
                     "someip-fibex": "../../../../application/developing/resources/someip.xml"
                 }
             },

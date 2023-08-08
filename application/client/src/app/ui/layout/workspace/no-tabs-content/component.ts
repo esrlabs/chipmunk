@@ -25,10 +25,12 @@ export class LayoutHome extends ChangesDetector implements AfterViewInit, OnDest
             new actions.FileAny.Action(),
             new actions.FileDlt.Action(),
             new actions.FilePcap.Action(),
+            new actions.FilePcapLegacy.Action(),
             null,
             new actions.FolderText.Action(),
             new actions.FolderDlt.Action(),
             new actions.FolderPcap.Action(),
+            new actions.FilePcapLegacy.Action(),
         ],
         conenctTo: [
             new actions.UdpDlt.Action(),
