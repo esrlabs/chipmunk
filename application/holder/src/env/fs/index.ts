@@ -129,7 +129,6 @@ export function getFileEntity(filename: string): File | undefined | Error {
 }
 
 export function detectSupportedFileType(filename: string): FileType {
-    // TODO: detect binary or text file correctly
     switch (path.extname(filename).toLowerCase()) {
         case '.dlt':
             return FileType.Binary;

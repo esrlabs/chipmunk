@@ -94,6 +94,19 @@ class Factory<T> {
         return this as unknown as T;
     }
 
+    public guessParser(): T {
+        const parsers = this.observe.origin.getSupportedParsers();
+        if (parsers.length === 0) {
+            throw new Error(
+                `Origin "${this.observe.origin.getNatureAlias()}" doesn't have any suitable parseres.`,
+            );
+        }
+        const Ref = parsers[0];
+        this.observe.parser.change(new Ref(Ref.initial(), undefined));
+        this.updated().parser();
+        return this as unknown as T;
+    }
+
     public get(): $.Observe {
         const parsers = this.observe.origin.getSupportedParsers().map((ref) => ref.alias());
         const selected = this.observe.parser.alias();

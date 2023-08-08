@@ -17,12 +17,16 @@ export class Filter {
         enter: Subject<string>;
         focus: Subject<void>;
         blur: Subject<void>;
+        up: Subject<void>;
+        down: Subject<void>;
     }> = new Subjects({
         change: new Subject<string>(),
         drop: new Subject<void>(),
         enter: new Subject<string>(),
         focus: new Subject<void>(),
         blur: new Subject<void>(),
+        up: new Subject<void>(),
+        down: new Subject<void>(),
     });
     private _element!: HTMLInputElement | undefined;
 

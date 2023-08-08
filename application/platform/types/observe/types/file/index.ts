@@ -21,4 +21,23 @@ export function getFileTypeFrom(smth: unknown): FileType | Error {
     }
 }
 
+export function extname(filename: string): string {
+    const matches = filename.match(/\.[\w\d_]*$/gi);
+    if (matches !== null) {
+        return matches[0];
+    }
+    return '';
+}
+
+export function getFileTypeByFilename(filename: string): FileType {
+    switch (extname(filename).toLowerCase()) {
+        case '.dlt':
+            return FileType.Binary;
+        case '.pcapng':
+            return FileType.PcapNG;
+        default:
+            return FileType.Text;
+    }
+}
+
 export type FileName = string;
