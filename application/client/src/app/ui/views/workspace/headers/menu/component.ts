@@ -4,11 +4,13 @@ import {
     ChangeDetectionStrategy,
     ChangeDetectorRef,
     Component,
+    Input,
     OnDestroy,
+    OnChanges,
 } from '@angular/core';
-import { ComColorSelectorComponent } from '@ui/elements/color.selector/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { CColors, scheme_color_accent } from '@ui/styles/colors';
+import { CColors } from '@ui/styles/colors';
+import { Columns, Header } from '@schema/render/columns';
 
 @Component({
     selector: 'app-scrollarea-rows-columns-headers-context-menu',
@@ -18,11 +20,14 @@ import { CColors, scheme_color_accent } from '@ui/styles/colors';
 })
 export class ViewWorkspaceHeadersMenuComponent
     extends ChangesDetector
-    implements OnDestroy, AfterContentInit, AfterViewInit {
+    implements OnDestroy, OnChanges, AfterContentInit, AfterViewInit {
         // public _ng_columns: IColumn[] = [];
-        public _ng_selected: number | undefined = undefined;
-        public colors: string[] = [];
-        public color: string = scheme_color_accent;
+        public selectedColumn: number | undefined = undefined;
+        public columns: Header[] = [];
+        public colors: string[] = CColors;
+
+        @Input() public controller!: Columns;
+        @Input() public header!: string;
 
         constructor(cdRef: ChangeDetectorRef) {
             super(cdRef);
@@ -32,22 +37,31 @@ export class ViewWorkspaceHeadersMenuComponent
 
         }
 
+        public ngOnChanges() {
+        }
+
         public ngAfterContentInit(): void {
-            this._init();
-            debugger
+            this.columns = [...this.controller.headers];
         }
 
         public ngAfterViewInit(): void {
 
         }
 
-        private _init() {
-            this._setColors();
-        }
-
-        private _setColors() {
-            this.colors = [...CColors];
+        public ngOnClick(event: MouseEvent, color: string): void {
+            event.stopImmediatePropagation();
+            event.stopPropagation();
+            event.preventDefault();
+            const header: Header | undefined = this.controller.headers.find(header => header.caption === this.header);
+            if (header) {
+                header.color = color;
+                this.controller.headers[header.index] = header;
+            } else {
+                console.log('column not defined');
+            }
             this.detectChanges();
         }
 
+        private _setHeaders(headers: Header[]) {
+        }
 }
