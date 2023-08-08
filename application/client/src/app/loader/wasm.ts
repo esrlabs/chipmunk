@@ -1,47 +1,25 @@
 import { scope } from '@platform/env/scope';
 
-import * as matcher from '@matcher/matcher';
-import * as ansi from '@ansi/ansi';
-import * as utils from '@utils/utils';
+import * as wasm_bindings from '@wasm/wasm_bindings';
 
-export { Matcher } from '@matcher/matcher';
+export { Matcher } from '@wasm/wasm_bindings';
 
 const wasm: {
-    matcher: typeof matcher | undefined;
-    ansi: typeof ansi | undefined;
-    utils: typeof utils | undefined;
+    bindings: typeof wasm_bindings | undefined;
 } = {
-    matcher: undefined,
-    ansi: undefined,
-    utils: undefined,
+    bindings: undefined,
 };
 
 export function load(): Promise<void> {
     const logger = scope.getLogger('wasm');
     return Promise.all([
-        import('@matcher/matcher')
+        import('@wasm/wasm_bindings')
             .then((module) => {
-                wasm.matcher = module;
-                logger.debug(`@matcher/matcher is loaded`);
+                wasm.bindings = module;
+                logger.debug(`@wasm/wasm_bindings is loaded`);
             })
             .catch((err: Error) => {
-                logger.error(`fail to load @matcher/matcher: ${err.message}`);
-            }),
-        import('@ansi/ansi')
-            .then((module) => {
-                wasm.ansi = module;
-                logger.debug(`@ansi/ansi is loaded`);
-            })
-            .catch((err: Error) => {
-                logger.error(`fail to load @ansi/ansi: ${err.message}`);
-            }),
-        import('@utils/utils')
-            .then((module) => {
-                wasm.utils = module;
-                logger.debug(`@utils/utils is loaded`);
-            })
-            .catch((err: Error) => {
-                logger.error(`fail to load @utils/utils: ${err.message}`);
+                logger.error(`fail to load @wasm/wasm_bindings: ${err.message}`);
             }),
     ])
         .catch((err: Error) => {
@@ -50,23 +28,9 @@ export function load(): Promise<void> {
         .then((_) => void 0);
 }
 
-export function getMatcher(): typeof matcher {
-    if (wasm.matcher === undefined) {
-        throw new Error(`wasm module "matcher" isn't loaded`);
-    }
-    return wasm.matcher;
-}
-
-export function getAnsi(): typeof ansi {
-    if (wasm.ansi === undefined) {
+export function getBindings(): typeof wasm_bindings {
+    if (wasm.bindings === undefined) {
         throw new Error(`wasm module "ansi" isn't loaded`);
     }
-    return wasm.ansi;
-}
-
-export function getUtils(): typeof utils {
-    if (wasm.utils === undefined) {
-        throw new Error(`wasm module "utils" isn't loaded`);
-    }
-    return wasm.utils;
+    return wasm.bindings;
 }
