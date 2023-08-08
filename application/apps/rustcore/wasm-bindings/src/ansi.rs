@@ -32,14 +32,14 @@ fn converting() {
 }
 
 #[wasm_bindgen_test]
-fn error_handaling() {
+fn error_handling() {
     assert!(
         convert("[38;3;43m01-23 10:01:29.103  2116  2710 I chatty  : uid=1000(system) Binder:2116_4 expire 4 lines[0m").is_err()
     );
 }
 
 #[wasm_bindgen_test]
-fn escapeing() {
+fn escaping() {
     assert_eq!(
         escape("[38;3;43m01-23 10:01:29.103  2116  2710 I chatty  : uid=1000(system) Binder:2116_4 expire 4 lines[0m")
             .expect("Input string should be escaped as well")

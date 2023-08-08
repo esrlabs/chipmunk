@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-require './scripts/elements/matcher'
-require './scripts/elements/utils'
+require './scripts/elements/wasm'
 module Client
   DIST = Paths::CLIENT_DIST.to_s
   NODE_MODULES = "#{Paths::CLIENT}/node_modules"
@@ -43,9 +42,7 @@ namespace :client do
   desc 'Build client (prod)'
   task build_prod: [
     'client:install',
-    'matcher:build',
-    'utils:build',
-    'ansi:build',
+    'wasm:build',
     'environment:check'
   ] do
     client_build_needed = ChangeChecker.changes?('client_release', Paths::CLIENT)
@@ -59,9 +56,7 @@ namespace :client do
   desc 'Build client (dev)'
   task build_dev: [
     'client:install',
-    'matcher:build',
-    'ansi:build',
-    'utils:build'
+    'wasm:build'
   ] do
     client_build_needed = ChangeChecker.changes?('client_debug', Paths::CLIENT)
     if client_build_needed
