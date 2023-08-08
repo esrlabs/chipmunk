@@ -10,6 +10,7 @@ import { EntityType, getFileName } from '@platform/types/files';
 import { notifications, Notification } from '@ui/service/notifications';
 import { createPassiveMatcheeList } from '@module/matcher';
 import { unique } from '@platform/env/sequence';
+import { getFileTypeByFilename } from '@platform/types/observe/types/file';
 
 import * as Factory from '@platform/types/observe/factory';
 
@@ -158,7 +159,7 @@ export class State extends Holder {
                 this.ilc
                     .ilc()
                     .services.system.session.initialize()
-                    .configure(
+                    .observe(
                         new Factory.File()
                             .asText()
                             .type(Factory.FileType.Text)
@@ -170,14 +171,32 @@ export class State extends Holder {
                     });
             },
             auto: (): void => {
-                // TODO: needs implementation
-                // this.ilc
-                //     .ilc()
-                //     .services.system.opener.text(item.filename)
-                //     .auto()
-                //     .catch((err: Error) => {
-                //         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
-                //     });
+                const filetype = getFileTypeByFilename(item.filename);
+                if (filetype === Factory.FileType.Text) {
+                    this.ilc
+                        .ilc()
+                        .services.system.session.initialize()
+                        .observe(
+                            new Factory.File().asText().type(filetype).file(item.filename).get(),
+                        )
+                        .catch((err: Error) => {
+                            this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
+                        });
+                } else {
+                    this.ilc
+                        .ilc()
+                        .services.system.session.initialize()
+                        .configure(
+                            new Factory.File()
+                                .type(filetype)
+                                .file(item.filename)
+                                .guessParser()
+                                .get(),
+                        )
+                        .catch((err: Error) => {
+                            this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
+                        });
+                }
             },
         };
     }
@@ -268,7 +287,7 @@ export class State extends Holder {
         const data = await favorites.places().get();
         this.roots = data.filter((f) => f.exists).map((f) => f.path);
         await this.includeFromFolder(this.roots).catch((err: Error) => {
-            console.log(`Fail to get items from folder: ${err.message}`);
+            this.ilc.log().error(`Fail to get items from folder: ${err.message}`);
         });
         this.scanning = undefined;
         this.update.emit();

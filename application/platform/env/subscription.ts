@@ -189,6 +189,10 @@ export class Subject<T> {
         return this as unknown as Subject<C>;
     }
 
+    public isAlone(): boolean {
+        return this._handlers.length === 0;
+    }
+
     private _unsubscribe(id: string) {
         let index: number = -1;
         this._handlers.forEach((handle: any, i: number) => {
