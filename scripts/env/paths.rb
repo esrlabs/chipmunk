@@ -37,10 +37,7 @@ module Paths
   ROOT = File.expand_path('../..', __dir__)
   APPS = "#{ROOT}/application/apps"
 
-  WEBASSEMBLY = "#{APPS}/webassembly"
-  ANSI = "#{WEBASSEMBLY}/ansi"
-  MATCHER = "#{WEBASSEMBLY}/matcher"
-  UTILS = "#{WEBASSEMBLY}/utils"
+  WASM = "#{APPS}/rustcore/wasm-bindings"
 
   CHECKLISTS = "#{ROOT}/scripts/tools/file_checklists"
   CLIENT = "#{ROOT}/application/client"
