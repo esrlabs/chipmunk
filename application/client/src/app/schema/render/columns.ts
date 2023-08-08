@@ -6,6 +6,7 @@ export interface Header {
     desc: string;
     visible: boolean;
     width: LimittedValue | undefined;
+    color: string | undefined;
     index: number;
 }
 export class Columns {
@@ -52,6 +53,7 @@ export class Columns {
                               widths[i],
                           ),
                 visible: headersVisability[i],
+                color: '#FFFFFF',
                 index: i,
             };
         });

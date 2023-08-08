@@ -19,6 +19,7 @@ class RenderedHeader {
     public caption: string;
     public styles: { [key: string]: string } = {};
     public width: LimittedValue | undefined;
+    public color: string | undefined;
 
     private _ref: Header;
 
@@ -26,6 +27,7 @@ class RenderedHeader {
         this._ref = ref;
         this.caption = ref.caption;
         this.width = ref.width;
+        this.color = ref.color;
         this.width !== undefined && this.resize(this.width.value);
     }
 
@@ -51,7 +53,7 @@ class RenderedHeader {
 export class ColumnsHeaders extends ChangesDetector implements AfterContentInit {
     public readonly Direction = Direction;
     public offset: number = 0;
-    public _ng_mouseOverHeader: string = '';
+    public ngMouseOverHeader: string = '';
     public _ng_more: string = 'more_horiz';
 
     @Input() public controller!: Columns;
@@ -62,8 +64,6 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
-
-    @HostListener('mouse')
 
     public ngAfterContentInit(): void {
         this.env().subscriber.register(
@@ -77,32 +77,24 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
         this.markChangesForCheck();
     }
 
-    public _ng_onMouseOver(header: string): void {
-        this._ng_mouseOverHeader = header;
+    public ngOnMouseOver(header: string): void {
+        this.ngMouseOverHeader = header;
         this.detectChanges();
     }
 
-    public _ng_onMouseLeave(): void {
-        this._ng_mouseOverHeader = '';
+    public ngOnMouseLeave(): void {
+        this.ngMouseOverHeader = '';
         this.detectChanges();
     }
 
-    public _ng_onClick(event: MouseEvent): void {
-        const items: IMenuItem[] = [
-            {
-                caption: 'Select Colors',
-                handler: () => console.log('Color selected'),
-            },
-            {
-                caption: 'Select Column',
-                handler: () => console.log('Column'),
-            }
-        ]
+    public ngOnClick(event: MouseEvent): void {
         contextmenu.show({
-            // items,
             component: {
                 factory: ViewWorkspaceHeadersMenuComponent,
-                inputs: {},
+                inputs: {
+                    controller: this.controller,
+                    header: this.ngMouseOverHeader,
+                },
             },
             x: event.pageX,
             y: event.pageY,
