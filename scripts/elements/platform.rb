@@ -51,8 +51,15 @@ namespace :platform do
   task lint: 'platform:install' do
     Shell.chdir(Paths::PLATFORM) do
       duration = Shell.timed_sh 'yarn run lint', 'lint platform'
-      duration += Shell.timed_sh 'yarn run check', 'tsc check platform'
       Reporter.done('platform', 'linting', '', duration)
+    end
+  end
+
+  desc 'tsc comile check platform'
+  task check: 'platform:install' do
+    Shell.chdir(Paths::PLATFORM) do
+      duration = Shell.timed_sh 'yarn run check', 'tsc check platform'
+      Reporter.done('platform', 'check', '', duration)
     end
   end
 end
