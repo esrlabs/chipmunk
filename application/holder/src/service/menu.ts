@@ -366,6 +366,18 @@ export class Service extends Implementation {
                                             );
                                         },
                                     },
+                                    {
+                                        label: 'Pcap',
+                                        click: async () => {
+                                            Actions.openFolder(FileType.PcapLegacy).catch(
+                                                (err: Error) => {
+                                                    this.log().error(
+                                                        `Fail call action openFile: ${err.message}`,
+                                                    );
+                                                },
+                                            );
+                                        },
+                                    },
                                 ],
                             },
                         ],

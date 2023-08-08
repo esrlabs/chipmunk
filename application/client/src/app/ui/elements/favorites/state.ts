@@ -120,6 +120,7 @@ export class State extends Holder {
     public open(item: Item): {
         dlt(): void;
         pcapng(): void;
+        pcap(): void;
         text(): void;
         auto(): void;
     } {
@@ -148,6 +149,21 @@ export class State extends Holder {
                         new Factory.File()
                             .asDlt()
                             .type(Factory.FileType.PcapNG)
+                            .file(item.filename)
+                            .get(),
+                    )
+                    .catch((err: Error) => {
+                        this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
+                    });
+            },
+            pcap: (): void => {
+                this.ilc
+                    .ilc()
+                    .services.system.session.initialize()
+                    .configure(
+                        new Factory.File()
+                            .asDlt()
+                            .type(Factory.FileType.PcapLegacy)
                             .file(item.filename)
                             .get(),
                     )

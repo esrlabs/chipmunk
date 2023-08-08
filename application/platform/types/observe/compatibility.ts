@@ -29,10 +29,12 @@ export const Files: {
         // Supported file types
         File.FileType.Binary,
         File.FileType.PcapNG,
+        File.FileType.PcapLegacy,
     ],
     [Parser.Protocol.SomeIp]: [
         // Supported file types
         File.FileType.PcapNG,
+        File.FileType.PcapLegacy,
     ],
     [Parser.Protocol.Text]: [
         // Supported file types
