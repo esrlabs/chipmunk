@@ -7,8 +7,11 @@ import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Holder } from '@module/matcher/holder';
 import { Logger } from '@platform/log';
+import { unique } from '@platform/env/sequence';
 
 import * as $ from '@platform/types/observe';
+
+const ELEMENT_HEIGHT = 28;
 
 export type CloseHandler = () => void;
 
@@ -18,15 +21,13 @@ export class State extends Holder {
     public update: Subject<void> = new Subject<void>();
     public selected: string = '';
     public readonly observe?: $.Observe;
+    public uuid: string = unique();
 
     protected close: CloseHandler | undefined;
 
     private _logger: Logger;
 
-    constructor(
-        ilc: IlcInterface & ChangesDetector,
-        observe?: $.Observe,
-    ) {
+    constructor(ilc: IlcInterface & ChangesDetector, observe?: $.Observe) {
         super();
         this.observe = observe;
         this.filter = new Filter(ilc, { placeholder: 'Recent files / sources' });
@@ -112,6 +113,7 @@ export class State extends Holder {
         up(): void;
         down(): void;
         update(): void;
+        scrollIntoView(index: number): void;
     } {
         const actions = this.getFilteredActions();
         return {
@@ -124,11 +126,17 @@ export class State extends Holder {
                     return;
                 }
                 const index = actions.findIndex((a) => a.hash() === this.selected);
-                if (index === -1 || index === 0) {
-                    this.selected = actions[actions.length - 1].hash();
-                    return;
-                }
-                this.selected = actions[index - 1].hash();
+                this.move().scrollIntoView(
+                    (() => {
+                        if (index === -1 || index === 0) {
+                            this.selected = actions[actions.length - 1].hash();
+                            return actions.length - 1;
+                        } else {
+                            this.selected = actions[index - 1].hash();
+                            return index - 1;
+                        }
+                    })(),
+                );
             },
             down: (): void => {
                 if (actions.length === 0) {
@@ -139,11 +147,17 @@ export class State extends Holder {
                     return;
                 }
                 const index = actions.findIndex((a) => a.hash() === this.selected);
-                if (index === -1 || index === actions.length - 1) {
-                    this.selected = actions[0].hash();
-                    return;
-                }
-                this.selected = actions[index + 1].hash();
+                this.move().scrollIntoView(
+                    (() => {
+                        if (index === -1 || index === actions.length - 1) {
+                            this.selected = actions[0].hash();
+                            return 0;
+                        } else {
+                            this.selected = actions[index + 1].hash();
+                            return index + 1;
+                        }
+                    })(),
+                );
             },
             update: (): void => {
                 if (actions.length === 0) {
@@ -157,6 +171,21 @@ export class State extends Holder {
                 if (index === -1) {
                     this.selected = actions[0].hash();
                 }
+            },
+            scrollIntoView: (index: number): void => {
+                const container = document.querySelector(`div[id="${this.uuid}"]`);
+                if (container === undefined || container === null) {
+                    return;
+                }
+                const size = container.getBoundingClientRect();
+                const offset = index * ELEMENT_HEIGHT;
+                if (
+                    offset >= container.scrollTop &&
+                    offset + ELEMENT_HEIGHT <= size.height + container.scrollTop
+                ) {
+                    return;
+                }
+                container.scrollTo(0, offset + ELEMENT_HEIGHT - size.height);
             },
         };
     }

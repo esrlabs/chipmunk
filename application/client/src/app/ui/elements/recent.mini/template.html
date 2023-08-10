@@ -1,5 +1,5 @@
 <app-filter-input #filter [filter]="state.filter"></app-filter-input>
-<div class="actions">
+<div [attr.id]="state.uuid" class="actions">
     <div [attr.class]="'action ' + (state.selected === action.hash() ? 'selected' : '')" 
         *ngFor="let action of state.getFilteredActions();" 
         (click)="onDefaultAction(action.action)" 
