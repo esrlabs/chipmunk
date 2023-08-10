@@ -4,9 +4,10 @@ import {
     Component,
     Input,
 } from '@angular/core';
-import { ChangesDetector } from '@ui/env/extentions/changes';
-import { CColors } from '@ui/styles/colors';
 import { Columns } from '@schema/render/columns';
+import { ChangesDetector } from '@ui/env/extentions/changes';
+import { contextmenu } from '@ui/service/contextmenu';
+import { CColors } from '@ui/styles/colors';
 
 @Component({
     selector: 'app-scrollarea-rows-columns-headers-context-menu',
@@ -29,6 +30,11 @@ export class ViewWorkspaceHeadersMenuComponent extends ChangesDetector {
     public ngOnCheckboxClick(event: MouseEvent, i: number): void {
         event.stopPropagation();
         this.controller.toggleVisibility(i);
+        this.detectChanges();
+    }
+
+    public ngOnApply(): void {
+        contextmenu.remove();
         this.detectChanges();
     }
 
