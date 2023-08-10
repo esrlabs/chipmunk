@@ -1,9 +1,9 @@
-import { Subject, Subjects } from '@platform/env/subscription';
-import { LimittedValue } from '@ui/env/entities/value.limited';
-import { hash } from '@platform/env/str';
 import { scope } from '@platform/env/scope';
-import { bridge } from '@service/bridge';
+import { hash } from '@platform/env/str';
+import { Subject, Subjects } from '@platform/env/subscription';
 import { error } from '@platform/log/utils';
+import { bridge } from '@service/bridge';
+import { LimittedValue } from '@ui/env/entities/value.limited';
 
 export interface Header {
     caption: string;
@@ -71,7 +71,7 @@ export class Columns {
 
     public toggleVisibility(column: number): void {
         if (this.headers[column] === undefined) {
-            throw new Error(`Invalid index of column`);
+            throw new Error(`Maximum ${this.headers.length} present in the file and tried to toggle visibility of column at index #${column}`);
         }
         this.headers[column].visible = !this.headers[column].visible;
         this.subjects.get().visibility.emit(column);
@@ -87,7 +87,7 @@ export class Columns {
 
     public setColor(column: number, color: string): void {
         if (this.headers[column] === undefined) {
-            throw new Error(`Invalid index of column`);
+            throw new Error(`Maximum ${this.headers.length} present in the file and tried to set the color of column at #${column}`);
         }
         this.headers[column].color = color;
         this.subjects.get().colorize.emit(column);
@@ -96,7 +96,7 @@ export class Columns {
 
     public getColor(column: number): string | undefined {
         if (this.headers[column] === undefined) {
-            throw new Error(`Invalid index of column`);
+            throw new Error(`Maximum ${this.headers.length} present in the file and tried to get the color of column at #${column}`);
         }
         return this.headers[column].color;
     }
@@ -120,19 +120,13 @@ export class Columns {
         if (style === undefined) {
             return {};
         }
+
         const width = this.getWidth(column);
-        if (width === undefined) {
-            style['width'] = '';
-        } else {
-            style['width'] = `${width}px`;
-        }
+        style['width'] = width !== undefined ? `${width}px` : '';
 
         const color = this.getColor(column);
-        if (color !== undefined) {
-            style['color'] = color;
-        } else {
-            style['color'] = '';
-        }
+        style['color'] = color !== undefined ? color : '';
+
         return style;
     }
 
@@ -150,10 +144,10 @@ export class Columns {
                     try {
                         const headers = JSON.parse(content);
                         if (!(headers instanceof Array)) {
-                            throw new Error('Headers not an array');
+                            throw new Error('Content from file does not represent Headers as an Array');
                         }
                         if (headers.length !== this.headers.length) {
-                            throw new Error('Header length mismatched');
+                            throw new Error(`Mismatching header count from last session`);
                         }
                         this.headers.forEach((header, index) => {
                             if (headers[index].width !== undefined) {
@@ -173,7 +167,7 @@ export class Columns {
                         logger.error(error(err));
                     }
                 })
-                .catch(error => logger.error(error.message));
+                .catch(error => logger.error(error));
             },
             save: () => {
                 bridge.storage(this.hash()).write(JSON.stringify(this.headers.map((header) => {
@@ -183,7 +177,7 @@ export class Columns {
                         visible: header.visible,
                      };
                 }))).catch(error => {
-                    logger.error(error.message);
+                    logger.error(error);
                 });
         }
     }
