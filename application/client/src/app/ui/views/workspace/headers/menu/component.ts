@@ -14,26 +14,26 @@ import { Columns } from '@schema/render/columns';
     templateUrl: './template.html',
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ViewWorkspaceHeadersMenuComponent
-    extends ChangesDetector {
-        public selectedColumn: number | undefined = undefined;
-        public colors: string[] = CColors;
+export class ViewWorkspaceHeadersMenuComponent extends ChangesDetector {
+    public selectedColumn: number | undefined = undefined;
+    public colors: string[] = CColors;
 
-        @Input() public column!: number;
-        @Input() public controller!: Columns;
-        @Input() public header!: string;
+    @Input() public column!: number;
+    @Input() public controller!: Columns;
+    @Input() public header!: string;
 
-        constructor(cdRef: ChangeDetectorRef) {
-            super(cdRef);
-        }
+    constructor(cdRef: ChangeDetectorRef) {
+        super(cdRef);
+    }
 
-        public ngOnCheckboxMouseDown(_event: MouseEvent, i: number): void {
-            this.controller.toggleVisibility(i);
-            this.detectChanges();
-        }
+    public ngOnCheckboxClick(event: MouseEvent, i: number): void {
+        event.stopPropagation();
+        this.controller.toggleVisibility(i);
+        this.detectChanges();
+    }
 
-        public ngOnColorClick(_event: MouseEvent, color: string): void {
-            this.controller.setColor(this.column, color);
-            this.detectChanges();
-        }
+    public ngOnColorClick(_event: MouseEvent, color: string): void {
+        this.controller.setColor(this.column, color);
+        this.detectChanges();
+    }
 }

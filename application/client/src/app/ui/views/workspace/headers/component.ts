@@ -49,9 +49,7 @@ class RenderedHeader {
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Ilc()
-export class ColumnsHeaders
-    extends ChangesDetector
-    implements AfterContentInit {
+export class ColumnsHeaders extends ChangesDetector implements AfterContentInit {
     public readonly Direction = Direction;
     public offset: number = 0;
     public ngMouseOverHeader: string = '';
