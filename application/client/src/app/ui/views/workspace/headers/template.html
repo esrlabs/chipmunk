@@ -5,7 +5,7 @@
       (mouseleave)="ngOnMouseLeave()"
       [ngStyle]="header.styles">
       <span>{{header.caption}}</span>
-      <mat-icon *ngIf="ngMouseOverHeader === header.caption" class="more" (click)="ngOnClick($event)">{{_ng_more}}</mat-icon>
+      <mat-icon *ngIf="ngMouseOverHeader === header.caption" class="more" (click)="ngOnClick($event, i)">{{_ng_more}}</mat-icon>
       <span *ngIf="header.width !== undefined"
             class="resizer"
             appResizer
