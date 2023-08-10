@@ -122,7 +122,11 @@ export class Columns {
         }
 
         const width = this.getWidth(column);
-        style['width'] = width !== undefined ? `${width}px` : '';
+        if (width === undefined) {
+            style['width'] = '';
+        } else {
+            style['width'] = `${width}px`;
+        }
 
         const color = this.getColor(column);
         style['color'] = color !== undefined ? color : '';
