@@ -4,12 +4,11 @@ import {
     ChangeDetectionStrategy,
     ChangeDetectorRef,
     AfterContentInit,
-    HostListener,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Columns, Header } from '@schema/render/columns';
 import { Session } from '@service/session';
-import { IMenuItem, contextmenu } from '@ui/service/contextmenu';
+import { contextmenu } from '@ui/service/contextmenu';
 import { LimittedValue } from '@ui/env/entities/value.limited';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Direction } from '@directives/resizer';
@@ -50,7 +49,9 @@ class RenderedHeader {
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Ilc()
-export class ColumnsHeaders extends ChangesDetector implements AfterContentInit {
+export class ColumnsHeaders
+    extends ChangesDetector
+    implements AfterContentInit {
     public readonly Direction = Direction;
     public offset: number = 0;
     public ngMouseOverHeader: string = '';
@@ -70,6 +71,12 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
             this.session.stream.subjects.get().rank.subscribe(() => {
                 this.markChangesForCheck();
             }),
+            this.controller.subjects.get().visibility.subscribe(() => {
+                this.headers = this.controller.headers
+                .filter((h) => h.visible)
+                .map((h) => new RenderedHeader(h));
+                this.markChangesForCheck();
+            })
         );
         this.headers = this.controller.headers
             .filter((h) => h.visible)
@@ -87,11 +94,12 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
         this.detectChanges();
     }
 
-    public ngOnClick(event: MouseEvent): void {
+    public ngOnClick(event: MouseEvent, column: number): void {
         contextmenu.show({
             component: {
                 factory: ViewWorkspaceHeadersMenuComponent,
                 inputs: {
+                    column,
                     controller: this.controller,
                     header: this.ngMouseOverHeader,
                 },
