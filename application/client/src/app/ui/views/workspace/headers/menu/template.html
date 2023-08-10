@@ -1,13 +1,18 @@
 <div class="wrapper">
     <ul class="columns">
-        <li [attr.class]="'column'" *ngFor="let header of controller.headers; let i = index;">
+        <li
+            [attr.class]="'column'"
+            *ngFor="let header of controller.headers; let i = index;"
+            (click)="ngOnCheckboxClick($event, i)">
             <mat-checkbox
                 class="material-mofication-mini"
                 [disableRipple]="true"
-                [checked]="header.visible"
-                (mousedown)="ngOnCheckboxMouseDown($event, i)"
-            ></mat-checkbox>
-            <span class="label t-normal" [ngStyle]="{'color': header.color}">{{header.caption}}</span>
+                [checked]="header.visible"></mat-checkbox>
+            <span
+                class="label t-normal"
+                [ngStyle]="{'color': header.color}">
+                {{header.caption}}
+            </span>
         </li>
     </ul>
     <div class="controls">
@@ -15,8 +20,8 @@
             <li [attr.class]="'color'"
                 [ngStyle]="{'background': color}"
                 *ngFor="let color of colors"
-                (click)="ngOnColorClick($event, color)"
-            ></li>
+                (click)="ngOnColorClick($event, color)">
+            </li>
         </ul>
     </div>
 </div>
