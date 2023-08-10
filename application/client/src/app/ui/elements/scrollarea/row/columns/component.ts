@@ -56,6 +56,15 @@ export class Columns extends ChangesDetector implements AfterContentInit {
                 this.cells[column].update().styles();
                 this.detectChanges();
             }),
+            this.controller.subjects.get().visibility.subscribe((column) => {
+                this.cells[column].update().visability();
+                this.visible = this.cells.filter((c) => c.visible);
+                this.detectChanges();
+            }),
+            this.controller.subjects.get().colorize.subscribe((column) => {
+                this.cells[column].update().styles();
+                this.detectChanges();
+            })
         );
         this.env().subscriber.register(
             this.row.change.subscribe(() => {
