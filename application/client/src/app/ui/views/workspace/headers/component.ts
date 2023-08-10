@@ -55,7 +55,7 @@ export class ColumnsHeaders
     public readonly Direction = Direction;
     public offset: number = 0;
     public ngMouseOverHeader: string = '';
-    public _ng_more: string = 'more_horiz';
+    public ngMore: string = 'more_horiz';
 
     @Input() public controller!: Columns;
     @Input() public session!: Session;

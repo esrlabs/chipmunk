@@ -27,7 +27,7 @@ export class ViewWorkspaceHeadersMenuComponent
             super(cdRef);
         }
 
-        public _ng_onCheckboxMouseDown(_event: MouseEvent, i: number): void {
+        public ngOnCheckboxMouseDown(_event: MouseEvent, i: number): void {
             this.controller.toggleVisibility(i);
             this.detectChanges();
         }
