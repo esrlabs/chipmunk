@@ -59,7 +59,6 @@ namespace :bindings do
   desc 'clean bindings'
   task :clean do
     Bindings::TARGETS.each do |path|
-      path = "#{path}/.node_integrity" if File.basename(path) == 'node_modules'
       if File.exist?(path)
         Shell.rm_rf(path)
         Reporter.removed('bindings', "removed: #{path}", '')
@@ -70,9 +69,7 @@ namespace :bindings do
   task copy_platform: 'platform:build' do
     platform_dest = "#{Bindings::TS_NODE_MODULES}/platform"
     Shell.rm_rf(platform_dest)
-    FileUtils.mkdir_p platform_dest
-    files_to_copy = Dir["#{Paths::PLATFORM}/*"].reject { |f| File.basename(f) == 'node_modules' }
-    FileUtils.cp_r files_to_copy, platform_dest
+    FileUtils.cp_r(Paths::PLATFORM, Bindings::TS_NODE_MODULES)
   end
 
   desc 'Rebuild bindings'
@@ -80,34 +77,30 @@ namespace :bindings do
     Reporter.print
   end
 
-  task :build_rs_bindings do
-    Shell.chdir(Paths::RS_BINDINGS) do
-      Shell.sh "#{Bindings::BUILD_ENV} nj-cli build --release"
-      Reporter.done('bindings', 'build rs bindings', '')
-    end
-    FileUtils.mkdir_p "#{Bindings::DIST}/native"
-    FileUtils.cp "#{Paths::RS_BINDINGS}/dist/index.node", "#{Bindings::DIST}/native/index.node"
-    dir_tests = "#{Paths::TS_BINDINGS}/src/native"
-    mod_file = "#{dir_tests}/index.node"
-    FileUtils.rm_f(mod_file)
-    FileUtils.cp "#{Paths::RS_BINDINGS}/dist/index.node", "#{Paths::TS_BINDINGS}/src/native/index.node"
-    puts 'done with build_rs_bindings'
-  end
-
-  task :build_ts_bindings do
-    changes_to_ts = ChangeChecker.changes?('bindings', Paths::TS_BINDINGS)
-    if changes_to_ts
+  desc 'Build bindings'
+  task build: ['bindings:copy_platform', 'bindings:install', 'environment:check'] do
+    changes_to_rs = ChangeChecker.changes?(Paths::RS_BINDINGS)
+    changes_to_ts = ChangeChecker.changes?(Paths::TS_BINDINGS)
+    if changes_to_rs || changes_to_ts
+      Shell.chdir(Paths::RS_BINDINGS) do
+        Shell.sh "#{Bindings::BUILD_ENV} nj-cli build --release"
+        ChangeChecker.reset(Paths::RS_BINDINGS, [Bindings::DIST_RS, Bindings::TARGET])
+        Reporter.done('bindings', 'build rs bindings', '')
+      end
       begin
         Shell.chdir(Paths::TS_BINDINGS) do
           Shell.sh 'yarn run build'
-          ChangeChecker.reset('bindings', Paths::TS_BINDINGS,
+          ChangeChecker.reset(Paths::TS_BINDINGS,
                               [Bindings::DIST, Bindings::SPEC, Bindings::TS_NODE_MODULES])
           Reporter.done('bindings', 'build ts bindings', '')
         end
-        ChangeChecker.create_changelist('bindings', Paths::TS_BINDINGS, Bindings::TARGETS)
+        FileUtils.cp "#{Paths::RS_BINDINGS}/dist/index.node", "#{Bindings::DIST}/native/index.node"
+        dir_tests = "#{Paths::TS_BINDINGS}/src/native"
+        mod_file = "#{dir_tests}/index.node"
+        FileUtils.rm(mod_file)
+        FileUtils.cp "#{Paths::RS_BINDINGS}/dist/index.node", "#{Paths::TS_BINDINGS}/src/native/index.node"
         Reporter.done('bindings', 'delivery', '')
-      rescue StandardError => e
-        puts "An error of type #{e.class} happened, message is #{e.message}"
+      rescue StandardError
         Reporter.failed('bindings', 'build ts bindings', '')
       end
     else
@@ -115,13 +108,4 @@ namespace :bindings do
     end
     Reporter.print
   end
-
-  desc 'Build bindings'
-  task build: [
-    'bindings:copy_platform',
-    'bindings:install',
-    'environment:check',
-    'bindings:build_rs_bindings',
-    'bindings:build_ts_bindings'
-  ]
 end

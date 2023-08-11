@@ -15,7 +15,6 @@ end
 namespace :ansi do
   task :clean do
     Ansi::TARGETS.each do |path|
-      path = "#{path}/.node_integrity" if File.basename(path) == 'node_modules'
       if File.exist?(path)
         Shell.rm_rf(path)
         Reporter.removed('ansi', "removed: #{path}", '')
@@ -41,7 +40,7 @@ namespace :ansi do
 
   desc 'Build ansi'
   task build: ['environment:check', 'ansi:install'] do
-    changes_to_files = ChangeChecker.changes?('ansi', Paths::ANSI)
+    changes_to_files = ChangeChecker.changes?(Paths::ANSI)
     if changes_to_files
       [Ansi::PKG, Ansi::TARGET].each do |path|
         Shell.rm_rf(path)
@@ -49,7 +48,7 @@ namespace :ansi do
       end
       Shell.chdir(Paths::ANSI) do
         Shell.sh 'wasm-pack build --target bundler'
-        ChangeChecker.reset('ansi', Paths::ANSI, Ansi::TARGETS)
+        ChangeChecker.reset(Paths::ANSI, Ansi::TARGETS)
       end
       Reporter.done('ansi', "build #{Ansi::TARGET}", '')
     else

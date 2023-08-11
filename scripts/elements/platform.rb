@@ -9,7 +9,6 @@ end
 namespace :platform do
   task :clean do
     Platform::TARGETS.each do |path|
-      path = "#{path}/.node_integrity" if File.basename(path) == 'node_modules'
       if File.exist?(path)
         Shell.rm_rf(path)
         Reporter.removed('platform', "removed: #{path}", '')

@@ -11,7 +11,6 @@ end
 namespace :matcher do
   task :clean do
     Matcher::TARGETS.each do |path|
-      path = "#{path}/.node_integrity" if File.basename(path) == 'node_modules'
       if File.exist?(path)
         Shell.rm_rf(path)
         Reporter.removed('matcher', "removed: #{path}", '')
@@ -38,7 +37,7 @@ namespace :matcher do
 
   desc 'Build matcher'
   task build: ['environment:check', 'matcher:install'] do
-    changes_to_files = ChangeChecker.changes?('matcher', Paths::MATCHER)
+    changes_to_files = ChangeChecker.changes?(Paths::MATCHER)
     if changes_to_files
       [Matcher::PKG, Matcher::TARGET].each do |path|
         Shell.rm_rf(path)
@@ -46,7 +45,7 @@ namespace :matcher do
       end
       Shell.chdir(Paths::MATCHER) do
         Shell.sh 'wasm-pack build --target bundler'
-        ChangeChecker.reset('matcher', Paths::MATCHER, Matcher::TARGETS)
+        ChangeChecker.changes?(Paths::MATCHER, Matcher::TARGETS)
       end
       Reporter.done('matcher', "build #{Matcher::TARGET}", '')
     else
