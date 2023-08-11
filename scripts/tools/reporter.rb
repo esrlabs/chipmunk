@@ -49,11 +49,6 @@ class Reporter
     end
     Shell.report
   end
-
-  def self.short_path(p)
-    require 'pathname'
-    Pathname.new(p).each_filename.to_a.last(4).join('/')
-  end
 end
 
 def align(content, len)

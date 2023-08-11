@@ -6,10 +6,6 @@ module Client
   DIST = Paths::CLIENT_DIST.to_s
   NODE_MODULES = "#{Paths::CLIENT}/node_modules"
   TARGETS = [DIST, NODE_MODULES].freeze
-
-  def self.client_dist(kind)
-    "#{Paths::CLIENT_DIST}/#{output(kind)}"
-  end
 end
 
 namespace :client do
@@ -35,7 +31,7 @@ namespace :client do
   task :install do
     Shell.chdir(Paths::CLIENT) do
       Reporter.log 'Installing client libraries'
-      duration = Shell.timed_sh('yarn install', 'yarn install client')
+      duration = Shell.timed_sh('yarn install')
       Reporter.done('client', 'installing', '', duration)
     end
   end
@@ -74,8 +70,8 @@ namespace :client do
   desc 'Lint client'
   task lint: 'client:install' do
     Shell.chdir(Paths::CLIENT) do
-      duration = Shell.timed_sh 'yarn run lint', 'lint client'
-      duration += Shell.timed_sh 'yarn run check', 'tsc check client'
+      duration = Shell.timed_sh 'yarn run lint'
+      duration += Shell.timed_sh 'yarn run check'
       Reporter.done('client', 'linting', '', duration)
     end
   end
@@ -106,10 +102,14 @@ end
 def execute_client_build(kind)
   puts "execute_client_build(#{kind})"
   Shell.chdir(Paths::CLIENT) do
-    duration = Shell.timed_sh "yarn run #{yarn_target(kind)}", "build client (#{output(kind)})"
+    duration = Shell.timed_sh "yarn run #{yarn_target(kind)}"
     ChangeChecker.reset("client_#{kind}", Paths::CLIENT, Client::TARGETS)
     Reporter.done('client', "build in #{kind} mode", '', duration)
   end
+  client_dist = "#{Paths::CLIENT_DIST}/#{output(kind)}"
+  FileUtils.mkdir_p(Paths::ELECTRON_CLIENT_DEST)
+  duration = Shell.cp_r "#{client_dist}/.", Paths::ELECTRON_CLIENT_DEST
+  Reporter.done('client', "copy client to #{Paths::ELECTRON_CLIENT_DEST}", '', duration)
 rescue StandardError => e
   puts "An error of type #{e.class} happened, message is #{e.message}"
   ChangeChecker.clean_entry("client_#{kind}", Paths::CLIENT)

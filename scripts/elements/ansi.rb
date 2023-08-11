@@ -32,7 +32,7 @@ namespace :ansi do
   task :install do
     Shell.chdir(Paths::ANSI) do
       Reporter.log 'Installing ansi libraries'
-      duration = Shell.timed_sh('yarn install', 'yarn install ansi')
+      duration = Shell.timed_sh('yarn install')
       Reporter.done('ansi', 'installing', '', duration)
     end
   end
@@ -47,7 +47,7 @@ namespace :ansi do
         Reporter.removed('ansi', File.basename(path), '')
       end
       Shell.chdir(Paths::ANSI) do
-        duration += Shell.timed_sh 'wasm-pack build --target bundler', 'wasm-pack build ansi'
+        duration += Shell.timed_sh 'wasm-pack build --target bundler'
         ChangeChecker.reset('ansi', Paths::ANSI, Ansi::TARGETS)
       end
       Reporter.done('ansi', "build #{Ansi::TARGET}", '', duration)
@@ -60,14 +60,14 @@ namespace :ansi do
   task test_karma: 'ansi:install' do
     Reporter.print
     Shell.chdir("#{Paths::ANSI}/spec") do
-      Shell.timed_sh 'npm run test', 'npm test ansi'
+      sh 'npm run test'
     end
   end
 
   task :test_rust do
     Reporter.print
     Shell.chdir(Paths::ANSI) do
-      Shell.timed_sh 'wasm-pack test --node', 'wasm-pack test ansi'
+      sh 'wasm-pack test --node'
     end
   end
 

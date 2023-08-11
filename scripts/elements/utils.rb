@@ -28,7 +28,7 @@ namespace :utils do
   task :install do
     Shell.chdir(Paths::UTILS) do
       Reporter.log 'Installing utils libraries'
-      duration = Shell.timed_sh('yarn install', 'yarn install utils')
+      duration = Shell.timed_sh('yarn install')
       Reporter.done('utils', 'installing', '', duration)
     end
   end
@@ -43,7 +43,7 @@ namespace :utils do
         Reporter.removed('utils', File.basename(path), '')
       end
       Shell.chdir(Paths::UTILS) do
-        duration = Shell.timed_sh 'wasm-pack build --target bundler', 'wasm-pack build utils'
+        duration = Shell.timed_sh 'wasm-pack build --target bundler'
         ChangeChecker.reset('utils', Paths::UTILS, Utils::TARGETS)
       end
       Reporter.done('utils', "build #{Utils::TARGET}", '', duration)
@@ -56,14 +56,14 @@ namespace :utils do
   task test_karma: 'utils:install' do
     Reporter.print
     Shell.chdir("#{Paths::UTILS}/spec") do
-      Shell.timed_sh 'npm run test', 'npm test utils'
+      sh 'npm run test'
     end
   end
 
   task :test_rust do
     Reporter.print
     Shell.chdir(Paths::UTILS) do
-      Shell.timed_sh 'wasm-pack test --node', 'wasm-pack test utils'
+      sh 'wasm-pack test --node'
     end
   end
 
