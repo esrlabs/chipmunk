@@ -83,9 +83,6 @@ namespace :lint do
   end
 end
 
-desc 'check with typscript compiler'
-task tsc: ['client:check', 'electron:check', 'platform:check']
-
 desc 'build chipmunk (dev)'
 task build_dev: 'electron:build_dev'
 

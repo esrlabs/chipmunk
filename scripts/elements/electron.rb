@@ -66,6 +66,32 @@ namespace :electron do
     Reporter.done('electron', "copy platform to #{short_dest}", '', duration)
   end
 
+  # task copy_platform: 'platform:build' do
+  #   platform_dest = "#{Electron::NODE_MODULES}/platform"
+  #   Shell.rm_rf(platform_dest)
+  #   FileUtils.mkdir_p platform_dest
+  #   files_to_copy = Dir["#{Paths::PLATFORM}/*"].reject { |f| File.basename(f) == 'node_modules' }
+  #   duration = files_to_copy, platform_dest, 'copy platform to electron'
+  #   Reporter.done('Client', "platform-delivery to #{platform_dest}", '', duration)
+  # end
+
+  # task copy_client_debug: 'client:build_dev' do
+  #   path_to_client = "#{Paths::CLIENT_DIST}/debug"
+  #   FileUtils.rm_f Electron::DIST
+  #   FileUtils.mkdir_p(Electron::DIST)
+  #   duration = Shell.cp_r path_to_client, Electron::DIST
+  #   Reporter.done('Client', "delivery to #{Electron::DIST}", '', duration)
+  # end
+
+  # def self.delivery(dest, prod, replace)
+  # task copy_client_prod: 'client:build_prod' do
+  #   path_to_client = "#{Paths::CLIENT_DIST}/release"
+  #   FileUtils.rm_f Electron::DIST
+  #   FileUtils.mkdir_p(Electron::DIST)
+  #   duration = Shell.cp_r path_to_client, Electron::DIST
+  #   Reporter.done('Client', "delivery to #{Electron::DIST}", '', duration)
+  # end
+
   task do_build: 'updater:build' do
     changes_to_electron = ChangeChecker.changes?('electron', Paths::ELECTRON)
     if changes_to_electron
@@ -111,15 +137,8 @@ namespace :electron do
   task lint: 'electron:install' do
     Shell.chdir(Paths::ELECTRON) do
       duration = Shell.timed_sh 'yarn run lint', 'lint electron'
+      duration += Shell.timed_sh 'yarn run check', 'tsc check electron'
       Reporter.done('electron', 'linting', '', duration)
-    end
-  end
-
-  desc 'tsc comile check electron'
-  task check: ['electron:install', 'wasm:build', 'electron:copy_tsbindings_and_platform'] do
-    Shell.chdir(Paths::ELECTRON) do
-      duration = Shell.timed_sh 'yarn run check', 'tsc check electron'
-      Reporter.done('electron', 'check', '', duration)
     end
   end
 end
