@@ -1,11 +1,9 @@
 <span class="offset" [ngStyle]="ngGetOffsetStyle()"></span>
 <span class="header"
       *ngFor="let header of headers; let i = index"
-      (mouseenter)="ngOnMouseOver(header.caption)"
-      (mouseleave)="ngOnMouseLeave()"
       [ngStyle]="header.styles">
       <span>{{header.caption}}</span>
-      <mat-icon *ngIf="ngMouseOverHeader === header.caption" class="more" (click)="ngOnClick($event, i)">{{ngMore}}</mat-icon>
+      <mat-icon class="more" (click)="ngOnClick($event, i)">{{ngMore}}</mat-icon>
       <span *ngIf="header.width !== undefined"
             class="resizer"
             appResizer
