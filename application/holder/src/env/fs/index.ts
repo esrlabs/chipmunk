@@ -1,5 +1,5 @@
 import { File, Stat, getFileExtention } from 'platform/types/files';
-import { FileType } from 'platform/types/observe/types/file';
+import { getFileTypeByFilename } from 'platform/types/observe/types/file';
 import { error } from 'platform/log/utils';
 
 import * as obj from 'platform/env/obj';
@@ -121,22 +121,9 @@ export function getFileEntity(filename: string): File | undefined | Error {
                 'ctimeMs',
                 'birthtimeMs',
             ]),
-            type: detectSupportedFileType(filename),
+            type: getFileTypeByFilename(filename),
         };
     } catch (_) {
         return new Error(`Fail to get stat info for "${filename}"`);
-    }
-}
-
-export function detectSupportedFileType(filename: string): FileType {
-    switch (path.extname(filename).toLowerCase()) {
-        case '.dlt':
-            return FileType.Binary;
-        case '.pcapng':
-            return FileType.PcapNG;
-        case '.pcap':
-            return FileType.PcapLegacy;
-        default:
-            return FileType.Text;
     }
 }

@@ -45,20 +45,28 @@ export class Action extends Base {
         } else {
             switch (files[0].type) {
                 case FileType.Binary:
-                    session
-                        .initialize()
-                        .configure(new Factory.File().file(files[0].filename).asDlt().get());
-                    break;
                 case FileType.PcapNG:
                 case FileType.PcapLegacy:
                     session
                         .initialize()
-                        .suggest(new Factory.File().file(files[0].filename).asDlt().get());
+                        .configure(
+                            new Factory.File()
+                                .type(files[0].type)
+                                .file(files[0].filename)
+                                .asDlt()
+                                .get(),
+                        );
                     break;
-                default:
+                case FileType.Text:
                     session
                         .initialize()
-                        .observe(new Factory.File().file(files[0].filename).asText().get());
+                        .observe(
+                            new Factory.File()
+                                .type(files[0].type)
+                                .file(files[0].filename)
+                                .asText()
+                                .get(),
+                        );
                     break;
             }
         }
