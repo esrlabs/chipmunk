@@ -1,56 +1,55 @@
 # frozen_string_literal: true
 
-module Matcher
+class Matcher
   PKG = "#{Paths::MATCHER}/pkg"
   TARGET = "#{Paths::MATCHER}/target"
   NODE_MODULES = "#{Paths::MATCHER}/node_modules"
   TEST_OUTPUT = "#{Paths::MATCHER}/test_output"
   TARGETS = [PKG, TARGET, NODE_MODULES, TEST_OUTPUT].freeze
-end
+  def initialize(reinstall, rebuild)
+    @reinstall = reinstall
+    @rebuild = rebuild
+    @installed = File.exist?("#{Paths::MATCHER}/node_modules")
+    @changes_to_files = ChangeChecker.has_changes?(Paths::MATCHER, TARGETS)
+  end
 
-namespace :matcher do
-  task :clean do
-    Matcher::TARGETS.each do |path|
+  attr_reader :changes_to_files
+
+  def self.clean
+    TARGETS.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed('matcher', "removed: #{path}", '')
+        Reporter.removed(self, "removed: #{path}", '')
       end
     end
   end
 
-  task :wipe_installation do
-    Shell.rm_rf(Matcher::NODE_MODULES)
-  end
-
-  task reinstall: ['matcher:wipe_installation', 'matcher:install']
-
-  task :install do
-    Shell.chdir(Paths::MATCHER) do
-      Reporter.log 'Installing matcher libraries'
-      Shell.sh 'yarn install'
-      Reporter.done('matcher', 'installing', '')
+  def install
+    Shell.rm_rf(NODE_MODULES) if @reinstall
+    if !@installed || @reinstall
+      Shell.chdir(Paths::MATCHER) do
+        Reporter.log 'Installing matcher libraries'
+        Shell.sh 'yarn install'
+        Reporter.done(self, 'installing', '')
+      end
+    else
+      Reporter.skipped(self, 'installing', '')
     end
   end
 
-  desc 'Rebuild matcher'
-  task rebuild: ['matcher:clean', 'matcher:build']
-
-  desc 'Build matcher'
-  task build: ['environment:check', 'matcher:install'] do
-    changes_to_files = ChangeChecker.changes?(Paths::MATCHER)
-    if changes_to_files
-      [Matcher::PKG, Matcher::TARGET].each do |path|
+  def build
+    if !@changes_to_files && !@rebuild
+      Reporter.skipped(self, 'already built', '')
+    else
+      Environment.check
+      [PKG, TARGET].each do |path|
         Shell.rm_rf(path)
-        Reporter.removed('matcher', path, '')
+        Reporter.removed(self, path, '')
       end
       Shell.chdir(Paths::MATCHER) do
         Shell.sh 'wasm-pack build --target bundler'
-        ChangeChecker.changes?(Paths::MATCHER, Matcher::TARGETS)
       end
-      Reporter.done('matcher', "build #{Matcher::TARGET}", '')
-    else
-      Reporter.skipped('matcher', 'already built', '')
+      Reporter.done(self, "build #{TARGET}", '')
     end
-    Reporter.print
   end
 end

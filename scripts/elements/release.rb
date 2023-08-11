@@ -2,9 +2,43 @@
 
 require 'dotenv/load'
 
-# Needed to get release meta data
-module Release
-  def self.build_cmd
+class Release
+  def initialize(prod, compress)
+    @prod = prod
+    @compress = compress
+  end
+
+  def self.clean
+    return unless File.exist?(Paths::RELEASE)
+
+    Shell.rm_rf(Paths::RELEASE)
+    Reporter.removed(self, "removed: #{Paths::RELEASE}", '')
+  end
+
+  def build
+    Environment.check
+    clean
+    if @prod
+      Rake::Task['rebuild:prod'].invoke
+    else
+      Rake::Task['build:dev'].invoke
+    end
+    Updater.check(true)
+    Shell.chdir(Paths::ELECTRON) do
+      set_envvars
+      Shell.sh build_cmd
+      Reporter.done(self, 'built', '')
+    end
+    snapshot
+    Reporter.done(self, "done: #{Paths::RELEASE_BUILD}", '')
+    if @compress
+      Compressor.new(Paths::RELEASE_BUILD, release_file_name).compress
+    else
+      Reporter.skipped(self, 'compressing is skipped', '')
+    end
+  end
+
+  def build_cmd
     if OS.mac?
       if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS') && !ENV.key?('SKIP_NOTARIZE')
         './node_modules/.bin/electron-builder --mac --dir'
@@ -18,19 +52,21 @@ module Release
     end
   end
 
-  def self.set_envvars
+  def set_envvars
     if ENV.key?('SKIP_NOTARIZE')
       ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'false'
       return
     end
     if OS.mac?
       ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'true' if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS')
+    elsif OS.linux?
+      ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'false'
     else
       ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'false'
     end
   end
 
-  def self.snapshot
+  def snapshot
     if OS.mac?
       Reporter.skipped(self, "build for darwin doesn't require snapshot", '')
       return
@@ -46,57 +82,17 @@ module Release
       fd.flush
       fd.close
     end
-    Reporter.done('release', 'files snapshot has been created', '')
+    Reporter.done(self, 'files snapshot has been created', '')
   end
 
-  def self.version
+  def version
     package = JSON.parse(File.read("#{Paths::ELECTRON}/package.json"))
     package['version']
   end
-end
 
-def release_file_name
-  prefix = OS.prefix
-  prefix += '64' if prefix == 'win'
-  "chipmunk-next@#{Release.version}-#{prefix}-portable"
-end
-
-namespace :release do
-  task :clean do
-    if File.exist?(Paths::RELEASE)
-      Shell.rm_rf(Paths::RELEASE)
-      Reporter.removed('release', "removed: #{Paths::RELEASE}", '')
-    end
-  end
-
-  task prepare_build: ['environment:check', 'release:clean', 'updater:build']
-
-  desc 'Create release (production mode)'
-  task prod: [
-    'release:prepare_build',
-    'electron:build_prod',
-    'release:bundle',
-    'release:compress'
-  ]
-
-  desc 'Create release (dev mode)'
-  task dev: [
-    'release:prepare_build',
-    'electron:build_dev',
-    'release:bundle'
-  ]
-
-  task :bundle do
-    Shell.chdir(Paths::ELECTRON) do
-      Release.set_envvars
-      Shell.sh Release.build_cmd
-      Reporter.done('release', 'built', '')
-    end
-    Release.snapshot
-    Reporter.done('release', "done: #{Paths::RELEASE_BUILD}", '')
-  end
-
-  task :compress do
-    Compressor.new(Paths::RELEASE_BUILD, release_file_name).compress
+  def release_file_name
+    prefix = OS.prefix
+    prefix += '64' if prefix == 'win'
+    "chipmunk-next@#{version}-#{prefix}-portable"
   end
 end

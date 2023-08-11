@@ -2,7 +2,7 @@
 
 require './scripts/env/paths'
 require './scripts/env/env'
-module Bindings
+class Bindings
   DIST = "#{Paths::TS_BINDINGS}/dist"
   DIST_RS = "#{Paths::RS_BINDINGS}/dist"
   TARGET = "#{Paths::RS_BINDINGS}/target"
@@ -11,23 +11,56 @@ module Bindings
   TS_NODE_MODULES = "#{Paths::TS_BINDINGS}/node_modules"
   BUILD_ENV = "#{TS_NODE_MODULES}/.bin/electron-build-env"
   TARGETS = [DIST, TS_NODE_MODULES, TARGET, DIST_RS, SPEC, TS_BINDINGS_LIB].freeze
+
+  def initialize(reinstall)
+    @nj_cli = 'nj-cli'
+    @reinstall = reinstall
+    @installed = File.exist?(TS_NODE_MODULES)
+    @changes_to_rs = ChangeChecker.has_changes?(Paths::RS_BINDINGS, [DIST_RS, TARGET])
+    @changes_to_ts = ChangeChecker.has_changes?(Paths::TS_BINDINGS, [DIST, SPEC, TS_NODE_MODULES])
+  end
+
+  attr_reader :changes_to_rs, :changes_to_ts
+
+
+  def self.check(consumer, reinstall, replace)
+    node_modules = "#{consumer}/node_modules"
+    rustcore_dest = "#{node_modules}/rustcore"
+    FileUtils.mkdir_p(node_modules)
+    Shell.rm_rf(rustcore_dest) if replace || !File.exist?("#{rustcore_dest}/dist") || File.symlink?(rustcore_dest)
+    return if File.exist?(rustcore_dest)
+
+    Reporter.other(self, "#{consumer} doesn't have platform", '')
+    bindings = Bindings.new(reinstall)
+    bindings.build
+    Shell.rm_rf dest_modules
+    Dir.mkdir_p rustcore_dest
+    Shell.cp_r "#{Paths::TS_BINDINGS}/*", rustcore_dest
+    Shell.rm_rf("#{rustcore_dest}/native")
+    Shell.rm_rf("#{rustcore_dest}/node_modules")
+    Shell.chdir(rustcore_dest) do
+      Reporter.log "Installing rustcore production libraries for #{consumer}"
+      Shell.sh 'yarn install --production'
+    end
+    Platform.check(rustcore_dest, false)
+    Reporter.done('Bindings', 'reinstalled in production', '')
+    Reporter.done('Bindings', "delivery to #{consumer}", '')
+  end
 end
 
 namespace :bindings do
-  desc 'Install bindings'
   task :install do
     Shell.chdir(Paths::TS_BINDINGS) do
       Reporter.log 'Installing ts-binding libraries'
       Shell.sh 'yarn install'
-      Reporter.done('bindings', 'installing', '')
+      Reporter.done(self, 'installing', '')
     end
   end
 
-  desc 'Lint TS bindings'
   task lint: 'bindings:install' do
     Shell.chdir(Paths::TS_BINDINGS) do
       Shell.sh 'yarn run lint'
-      Reporter.done('bindings', 'linting', '')
+      Reporter.done(self, 'linting', '')
     end
   end
 
@@ -56,56 +89,45 @@ namespace :bindings do
     end
   end
 
-  desc 'clean bindings'
   task :clean do
     Bindings::TARGETS.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed('bindings', "removed: #{path}", '')
+        Reporter.removed(self, "removed: #{path}", '')
       end
     end
   end
 
-  task copy_platform: 'platform:build' do
-    platform_dest = "#{Bindings::TS_NODE_MODULES}/platform"
-    Shell.rm_rf(platform_dest)
-    FileUtils.cp_r(Paths::PLATFORM, Bindings::TS_NODE_MODULES)
-  end
+  task build: 'bindings:install' do
+    Environment.check
+    Platform.check(Paths::TS_BINDINGS, false)
 
-  desc 'Rebuild bindings'
-  task rebuild: ['bindings:clean', 'bindings:build'] do
-    Reporter.print
-  end
-
-  desc 'Build bindings'
-  task build: ['bindings:copy_platform', 'bindings:install', 'environment:check'] do
-    changes_to_rs = ChangeChecker.changes?(Paths::RS_BINDINGS)
-    changes_to_ts = ChangeChecker.changes?(Paths::TS_BINDINGS)
+    changes_to_rs = ChangeChecker.has_changes?(Paths::RS_BINDINGS, [Bindings::DIST_RS, Bindings::TARGET])
+    changes_to_ts = ChangeChecker.has_changes?(Paths::TS_BINDINGS, [Bindings::DIST, Bindings::SPEC, Bindings::TS_NODE_MODULES])
     if changes_to_rs || changes_to_ts
       Shell.chdir(Paths::RS_BINDINGS) do
-        Shell.sh "#{Bindings::BUILD_ENV} nj-cli build --release"
-        ChangeChecker.reset(Paths::RS_BINDINGS, [Bindings::DIST_RS, Bindings::TARGET])
-        Reporter.done('bindings', 'build rs bindings', '')
+        Shell.sh "#{BUILD_ENV} #{@nj_cli} build --release"
+        Reporter.done(self, 'build rs bindings', '')
       end
       begin
         Shell.chdir(Paths::TS_BINDINGS) do
           Shell.sh 'yarn run build'
-          ChangeChecker.reset(Paths::TS_BINDINGS,
-                              [Bindings::DIST, Bindings::SPEC, Bindings::TS_NODE_MODULES])
-          Reporter.done('bindings', 'build ts bindings', '')
+          Reporter.done(self, 'build ts bindings', '')
         end
-        FileUtils.cp "#{Paths::RS_BINDINGS}/dist/index.node", "#{Bindings::DIST}/native/index.node"
-        dir_tests = "#{Paths::TS_BINDINGS}/src/native"
-        mod_file = "#{dir_tests}/index.node"
-        FileUtils.rm(mod_file)
-        FileUtils.cp "#{Paths::RS_BINDINGS}/dist/index.node", "#{Paths::TS_BINDINGS}/src/native/index.node"
-        Reporter.done('bindings', 'delivery', '')
       rescue StandardError
-        Reporter.failed('bindings', 'build ts bindings', '')
+        Reporter.failed(self, 'build ts bindings', '')
+        @changes_to_ts = true
+        clean
+        build
       end
+      Shell.sh "cp #{Paths::RS_BINDINGS}/dist/index.node #{DIST}/native/index.node"
+      dir_tests = "#{Paths::TS_BINDINGS}/src/native"
+      mod_file = "#{dir_tests}/index.node"
+      Shell.rm(mod_file)
+      Shell.sh "cp #{Paths::RS_BINDINGS}/dist/index.node #{Paths::TS_BINDINGS}/src/native/index.node"
+      Reporter.done(self, 'delivery', '')
     else
-      Reporter.skipped('bindings', 'build', '')
+      Reporter.skipped(self, 'build', '')
     end
-    Reporter.print
   end
 end

@@ -1,16 +1,15 @@
 # frozen_string_literal: true
 
 require 'rspec'
-require './scripts/tools/change_checker'
 
 RSpec.describe ChangeChecker do
   let(:path) { 'scripts' }
   let(:targets) { Paths::CHECKLISTS }
-  let(:result) { ChangeChecker.changes?(path) }
+  let(:result) { ChangeChecker.has_changes?(path, targets) }
   let(:checklist_file) { ChangeChecker.checklist_file(path) }
   let(:new_checklist_file) { ChangeChecker.checklist_file(path, true) }
 
-  describe '.changes?' do
+  describe '.has_changes?' do
     context 'given checklist file does not exist' do
       it 'returns true' do
         condition = !File.file?(checklist_file)

@@ -17,6 +17,6 @@ class Compressor
     Shell.chdir(@location) do
       Shell.sh "tar -czf ../#{@archname} #{target}"
     end
-    Reporter.done('Compressor', "compressed: #{@archname}", '')
+    Reporter.done(self, "compressed: #{@archname}", '')
   end
 end
