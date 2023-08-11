@@ -573,9 +573,11 @@ task :self_setup do
   is_prod = ENV['TARGET'] && ENV['TARGET'].downcase == 'prod'
   current_env = is_prod ? 'prod' : 'dev'
 
+  puts "Samster #{is_prod}"
+
   o_binding = Bindings.new(false)
   changes_to_bindings = o_binding.instance_variable_get(("@changes_to_rs").intern) || o_binding.instance_variable_get(("@changes_to_ts").intern)
-  o_holder = Holder.new(HolderSettings.new.set_client_prod(is_prod).set_platform_rebuild(changes_to_bindings))
+  o_holder = Holder.new(HolderSettings.new.set_client_prod(is_prod))
   changes_to_holder = o_holder.instance_variable_get(("@changes_to_holder").intern) || o_holder.instance_variable_get(("@changes_to_indexer").intern)
 
   o_binding.install

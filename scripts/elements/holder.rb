@@ -98,23 +98,12 @@ class Holder
     Platform.check(Paths::TS_BINDINGS, @settings.platform_rebuild) if @settings.platform_rebuild
     Bindings.check(Paths::ELECTRON, @settings.bindings_reinstall, @settings.bindings_rebuild)
     Client.delivery(@dist, @settings.client_prod, @settings.replace_client)
-    if @changes_to_holder || @changes_to_indexer
-      begin
-        Shell.chdir(Paths::ELECTRON) do
-          Shell.sh 'yarn run build'
-          Reporter.done(self, 'built', '')
-        end
-      rescue
-        Reporter.failed(self, 'build', '')
-        @changes_to_holder = true
-        clean
-        build
-      end
-      Shell.sh "cp #{Paths::ELECTRON}/package.json #{@dist}/package.json"
-      Updater.new.check(@settings.launchers_rebuild)
-    else
-      Reporter.skipped(self, 'build', '')
+    Shell.chdir(Paths::ELECTRON) do
+      Shell.sh 'yarn run build'
+      Reporter.done(self, 'built', '')
     end
+    Shell.sh "cp #{Paths::ELECTRON}/package.json #{@dist}/package.json"
+    Updater.new.check(@settings.launchers_rebuild)
   end
 
   def lint
