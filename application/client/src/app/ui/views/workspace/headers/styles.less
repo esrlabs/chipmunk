@@ -22,7 +22,16 @@
         overflow: hidden;
 		padding: 0 12px;
 		border-left: thin solid @scheme-color-3;
-	}
+
+        & mat-icon {
+           display: none;
+        }
+        &:hover {
+        & mat-icon {
+           display: block;
+        }
+        }
+    }
     & span:nth-child(2) {
         border-left: none;
     }

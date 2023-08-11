@@ -52,7 +52,6 @@ class RenderedHeader {
 export class ColumnsHeaders extends ChangesDetector implements AfterContentInit {
     public readonly Direction = Direction;
     public offset: number = 0;
-    public ngMouseOverHeader: string = '';
     public ngMore: string = 'more_horiz';
 
     @Input() public controller!: Columns;
@@ -82,16 +81,6 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
         this.markChangesForCheck();
     }
 
-    public ngOnMouseOver(header: string): void {
-        this.ngMouseOverHeader = header;
-        this.detectChanges();
-    }
-
-    public ngOnMouseLeave(): void {
-        this.ngMouseOverHeader = '';
-        this.detectChanges();
-    }
-
     public ngOnClick(event: MouseEvent, column: number): void {
         contextmenu.show({
             component: {
@@ -99,7 +88,6 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
                 inputs: {
                     column,
                     controller: this.controller,
-                    header: this.ngMouseOverHeader,
                 },
             },
             x: event.pageX,
