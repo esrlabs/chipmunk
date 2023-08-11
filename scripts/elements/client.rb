@@ -9,10 +9,6 @@ class Client
     @changes_to_files = ChangeChecker.has_changes?(Paths::CLIENT, @targets)
   end
 
-  def set_changes_to_files(val)
-    @changes_to_files = val
-  end
-
   def install
     Shell.rm_rf(@node_modules) if @reinstall
     if !@installed || @reinstall
@@ -43,7 +39,7 @@ class Client
       matcher = Matcher.new(true, true)
       ansi = Ansi.new(true, true)
       utils = Utils.new(true, true)
-      client_build_needed = @changes_to_files || matcher.changes_to_files || ansi.changes_to_files || utils.changes_to_files
+      client_build_needed = @changes_to_files || matcher.instance_variable_get(("@changes_to_files").intern) || ansi.instance_variable_get(("@changes_to_files").intern) || utils.instance_variable_get(("@changes_to_files").intern)
       matcher.build
       ansi.build
       utils.build
@@ -66,7 +62,7 @@ class Client
       matcher = Matcher.new(false, false)
       ansi = Ansi.new(false, false)
       utils = Utils.new(false, false)
-      client_build_needed = @changes_to_files || matcher.changes_to_files || ansi.changes_to_files || utils.changes_to_files
+      client_build_needed = @changes_to_files || matcher.instance_variable_get(("@changes_to_files").intern) || ansi.instance_variable_get(("@changes_to_files").intern) || utils.instance_variable_get(("@changes_to_files").intern)
       matcher.build
       ansi.build
       utils.build
@@ -94,9 +90,7 @@ class Client
       return
     end
     Dir.mkdir(dest) unless File.exist?(dest)
-    @changes_to_files = true if replace
     client = Client.new(false, prod)
-    client.set_changes_to_files(true) if replace
     client.build
     Shell.sh "cp -r #{Paths::CLIENT}/dist/client #{dest}"
     Reporter.done('Client', "delivery to #{dest}", '')

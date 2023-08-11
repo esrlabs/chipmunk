@@ -31,7 +31,7 @@ module Environment
       Reporter.skipped('Env', 'wasm-pack is installed already', '')
       return
     end
-    Shell.sh 'cargo install wasm-pack'
+    Shell.sh 'curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh'
     Reporter.done('Env', 'wasm-pack is installed', '')
   end
 

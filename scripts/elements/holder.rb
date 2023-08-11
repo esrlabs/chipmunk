@@ -55,8 +55,17 @@ class Holder
     @node_modules = "#{Paths::ELECTRON}/node_modules"
     @settings = settings
     @installed = File.exist?(@node_modules)
-    @targets = [@dist, @release, @node_modules]
-    @changes_to_holder = ChangeChecker.has_changes?(Paths::ELECTRON, @targets)
+    @target_indexer_base = "#{Paths::INDEXER}/indexer_base/target"
+    @target_indexer_cli = "#{Paths::INDEXER}/indexer_cli/target"
+    @target_merging = "#{Paths::INDEXER}/merging/target"
+    @target_parsers = "#{Paths::INDEXER}/parsers/target"
+    @target_processor = "#{Paths::INDEXER}/processor/target"
+    @target_session = "#{Paths::INDEXER}/session/target"
+    @target_sources = "#{Paths::INDEXER}/sources/target"
+    @targets = [@dist, @release, @node_modules, @target_indexer_base, @target_indexer_cli, @target_merging, @target_parsers,
+                @target_processor, @target_session, @target_sources]
+    @changes_to_holder = ChangeChecker.has_changes?(Paths::ELECTRON, [@dist, @release, @node_modules])
+    @changes_to_indexer = ChangeChecker.has_changes?(Paths::INDEXER, @targets - [@dist, @release, @node_modules])
   end
 
   def install
@@ -72,7 +81,7 @@ class Holder
   end
 
   def clean
-    (@targets + Indexer.new.targets).each do |path|
+    @targets.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
         Reporter.removed(self, "removed: #{path}", '')
@@ -89,7 +98,7 @@ class Holder
     Platform.check(Paths::TS_BINDINGS, @settings.platform_rebuild) if @settings.platform_rebuild
     Bindings.check(Paths::ELECTRON, @settings.bindings_reinstall, @settings.bindings_rebuild)
     Client.delivery(@dist, @settings.client_prod, @settings.replace_client)
-    if @changes_to_holder || Indexer.new.changes_to_files
+    if @changes_to_holder || @changes_to_indexer
       begin
         Shell.chdir(Paths::ELECTRON) do
           Shell.sh 'yarn run build'

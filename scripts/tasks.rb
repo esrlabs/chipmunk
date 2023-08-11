@@ -448,14 +448,14 @@ namespace :clippy do
   task :indexer do
     Reporter.other('Indexer', "checked: #{Paths::INDEXER}", '')
     Shell.chdir(Paths::INDEXER) do
-      sh Paths::CLIPPY
+      sh Paths::CLIPPY_NIGHTLY
     end
   end
 
   desc 'Clippy rs-bindings'
   task :rs_bindings do
     Shell.chdir(Paths::RS_BINDINGS) do
-      sh Paths::CLIPPY
+      sh Paths::CLIPPY_NIGHTLY
     end
     Reporter.other("Rustcore", "checked: #{Paths::RS_BINDINGS}", '')
   end
@@ -463,7 +463,7 @@ namespace :clippy do
   desc 'Clippy matcher'
   task :matcher do
     Shell.chdir("#{Paths::MATCHER}/src") do
-      sh Paths::CLIPPY
+      sh Paths::CLIPPY_NIGHTLY
     end
     Reporter.other("Matcher", "checked: #{Paths::MATCHER}", '')
   end
@@ -471,7 +471,7 @@ namespace :clippy do
   desc 'Clippy ansi'
   task :ansi do
     Shell.chdir("#{Paths::ANSI}/src") do
-      sh Paths::CLIPPY
+      sh Paths::CLIPPY_NIGHTLY
     end
     Reporter.other("Ansi", "checked: #{Paths::ANSI}", '')
   end
@@ -479,7 +479,7 @@ namespace :clippy do
   desc 'Clippy utils'
   task :utils do
     Shell.chdir("#{Paths::UTILS}/src") do
-      sh Paths::CLIPPY
+      sh Paths::CLIPPY_NIGHTLY
     end
     Reporter.other("Utils", "checked: #{Paths::UTILS}", '')
   end
@@ -487,7 +487,7 @@ namespace :clippy do
   desc 'Clippy updater'
   task :updater do
     Shell.chdir("#{Paths::UPDATER}") do
-      sh Paths::CLIPPY
+      sh Paths::CLIPPY_NIGHTLY
     end
     Reporter.other("Updater", "checked: #{Paths::UPDATER}", '')
   end
@@ -502,15 +502,15 @@ end
 namespace :env do
   desc 'Install target version of rust'
   task :rust do
-    Environment.rust
+    config = Config.new
+    sh "rustup install #{config.get_rust_version}"
+    sh "rustup default #{config.get_rust_version}"
   end
 end
 
-namespace :check do
-  desc 'Executes all check before pull request'
-  task all: ['build:prod', 'lint:all', 'clippy:all'] do
-    Reporter.print
-  end
+desc 'Executes all check before pull request'
+task am_i_ready: ['build:prod', 'lint:all', 'clippy:all'] do
+  Reporter.print
 end
 
 namespace :client do
@@ -574,12 +574,12 @@ task :self_setup do
   current_env = is_prod ? 'prod' : 'dev'
 
   o_binding = Bindings.new(false)
-  changes_to_bindings = o_binding.changes_to_rs || o_binding.changes_to_ts
+  changes_to_bindings = o_binding.instance_variable_get(("@changes_to_rs").intern) || o_binding.instance_variable_get(("@changes_to_ts").intern)
   o_holder = Holder.new(HolderSettings.new.set_client_prod(is_prod).set_platform_rebuild(changes_to_bindings))
-  o_client = Client.new(false, false)
+  changes_to_holder = o_holder.instance_variable_get(("@changes_to_holder").intern) || o_holder.instance_variable_get(("@changes_to_indexer").intern)
 
   o_binding.install
-  o_client.install
+  Client.new(false, false).install
   o_holder.install
 
   changes_to_bindings ? o_binding.build : Reporter.skipped('Bindings', 'skipped build since no changes to rustcore', '')

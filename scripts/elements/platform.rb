@@ -9,10 +9,6 @@ class Platform
     @changes_to_files = ChangeChecker.has_changes?(Paths::PLATFORM, @targets)
   end
 
-  def changes_to_files
-    @changes_to_files
-  end
-
   def clean
     @targets.each do |path|
       if File.exist?(path)
@@ -59,7 +55,7 @@ class Platform
     platform_dest = "#{node_modules}/platform"
     platform = Platform.new(false, false)
     Dir.mkdir(node_modules) unless File.exist?(node_modules)
-    Shell.rm_rf(platform_dest) if replace || !File.exist?("#{platform_dest}/dist") || File.symlink?(platform_dest) || platform.changes_to_files
+    Shell.rm_rf(platform_dest) if replace || !File.exist?("#{platform_dest}/dist") || File.symlink?(platform_dest) || platform.instance_variable_get(("@changes_to_files").intern)
     unless File.exist?(platform_dest)
       Reporter.other('Platform', "#{consumer} doesn't have platform", '')
       platform.build
