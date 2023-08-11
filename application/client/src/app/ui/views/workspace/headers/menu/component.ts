@@ -21,7 +21,6 @@ export class ViewWorkspaceHeadersMenuComponent extends ChangesDetector {
 
     @Input() public column!: number;
     @Input() public controller!: Columns;
-    @Input() public header!: string;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -30,11 +29,6 @@ export class ViewWorkspaceHeadersMenuComponent extends ChangesDetector {
     public ngOnCheckboxClick(event: MouseEvent, i: number): void {
         event.stopPropagation();
         this.controller.toggleVisibility(i);
-        this.detectChanges();
-    }
-
-    public ngOnApply(): void {
-        contextmenu.remove();
         this.detectChanges();
     }
 

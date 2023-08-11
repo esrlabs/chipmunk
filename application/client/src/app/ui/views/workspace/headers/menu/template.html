@@ -1,7 +1,6 @@
 <div class="wrapper">
     <ul class="columns">
-        <li
-            [attr.class]="'column'"
+        <li class="column"
             *ngFor="let header of controller.headers; let i = index;"
             (click)="ngOnCheckboxClick($event, i)">
             <mat-checkbox
@@ -17,17 +16,11 @@
     </ul>
     <div class="controls">
         <ul class="colors">
-            <li [attr.class]="'color'"
+            <li class="color"
                 [ngStyle]="{'background': color}"
                 *ngFor="let color of colors"
                 (click)="ngOnColorClick($event, color)">
             </li>
         </ul>
-        <button
-            mat-stroked-button color="primary"
-            class="ok"
-            (click)="ngOnApply()">
-            OK
-        </button>
     </div>
 </div>
