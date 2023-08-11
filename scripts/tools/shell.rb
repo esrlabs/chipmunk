@@ -32,12 +32,12 @@ module Shell
 
   def self.rm_rf(dir)
     puts "[rm_rf] #{Shell.cwd}> #{dir}" if Shell.is_verbose_hidden
-    FileUtils.rm_rf(dir)
+    FileUtils.rm_rf(dir) if File.exist?(dir)
   end
 
   def self.rm(file)
     puts "[rm   ] #{Shell.cwd}> #{file}" if Shell.is_verbose_hidden
-    FileUtils.rm_f(file)
+    FileUtils.rm(file) if File.exist?(file)
   end
 
   def self.chdir(dir, &block)

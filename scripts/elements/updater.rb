@@ -1,20 +1,24 @@
 # frozen_string_literal: true
 
 class Updater
-  DEST = "#{Paths::UPDATER}/target"
-  TARGET = OS.executable("#{Paths::UPDATER}/target/release/updater")
-  TARGETS = [DEST].freeze
+  def initialize
+    @dest = "#{Paths::UPDATER}/target"
+    @target = OS.executable("#{Paths::UPDATER}/target/release/updater")
+    @targets = [@dest]
+  end
 
-  def self.clean
-    TARGETS.each do |path|
+  def clean
+    @targets.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
         Reporter.removed(self, "removed: #{path}", '')
+      else
+        Reporter.other(self, "doesn't exist: #{path}", '')
       end
     end
   end
 
-  def self.build
+  def build
     Environment.check
     Shell.chdir(Paths::UPDATER) do
       Shell.sh 'cargo build --release'
@@ -22,7 +26,7 @@ class Updater
     end
   end
 
-  def self.check(replace)
-    replace || !File.exist?(TARGET) ? build : Reporter.skipped(self, 'build', '')
+  def check(replace)
+    replace || !File.exist?(@target) ? build : Reporter.skipped(self, 'build', '')
   end
 end

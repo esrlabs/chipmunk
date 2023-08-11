@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require 'rspec'
+require './scripts/tools/mod'
+require './scripts/env/mod'
 
 RSpec.describe ChangeChecker do
   let(:path) { 'scripts' }

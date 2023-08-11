@@ -9,10 +9,6 @@ module Status
 end
 
 class Reporter
-  def self.log(msg)
-    puts "#{Time.now}: #{msg}"
-  end
-
   @jobs = []
 
   %i[done skipped failed removed other].each do |status|
@@ -53,16 +49,16 @@ end
 
 def icon_type(type)
   case type
-  when :done
+  when 'done'
     '*'
-  when :skipped
-    '-'
-  when :failed
-    'x'
-  when :removed
-    '>'
-  when :other
-    '?'
+  when 'skipped'
+    '*'
+  when 'failed'
+    '*'
+  when 'removed'
+    '*'
+  when 'other'
+    '*'
   else
     '...'
   end

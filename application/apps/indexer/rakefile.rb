@@ -282,15 +282,15 @@ class Version < Array
   end
 
   def <(other)
-    (self <=> other).negative?
+    (self <=> other) < 0
   end
 
   def >(other)
-    (self <=> other).positive?
+    (self <=> other) > 0
   end
 
   def ==(other)
-    (self <=> other).zero?
+    (self <=> other) == 0
   end
 
   def patch

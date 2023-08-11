@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-# Create compressed archive of application
 class Compressor
   def initialize(location, archname)
     @location = location
