@@ -23,7 +23,7 @@ end
 namespace :indexer do
   task :clean do
     Shell.chdir Paths::INDEXER do
-      Shell.sh 'cargo +stable clean'
+      Shell.sh 'cargo clean'
     end
   end
 end

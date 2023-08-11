@@ -36,7 +36,7 @@ namespace :test do
   desc 'test rust core'
   task :rust do
     cd Paths::INDEXER do
-      sh 'cargo +stable test'
+      sh 'cargo test'
     end
   end
 
@@ -58,8 +58,8 @@ class Clippy
 
   def check(owner, path)
     Shell.chdir(path) do
-      Rake.sh 'cargo +stable clippy --all --all-features -- -D warnings -A clippy::uninlined_format_args'
-      Rake.sh 'cargo +stable fmt -- --color=always --check'
+      Rake.sh 'cargo clippy --all --all-features -- -D warnings -A clippy::uninlined_format_args'
+      Rake.sh 'cargo fmt -- --color=always --check'
     end
     Reporter.other(owner, "checked: #{path}", '')
   end

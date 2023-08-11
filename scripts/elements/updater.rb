@@ -19,7 +19,7 @@ namespace :updater do
   desc 'Build updater'
   task build: 'environment:check' do
     Shell.chdir(Paths::UPDATER) do
-      Shell.sh 'cargo +stable build --release'
+      Shell.sh 'cargo build --release'
       Reporter.done('updater', 'built', '')
     end
     Reporter.print
