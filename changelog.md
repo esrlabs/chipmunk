@@ -1,3 +1,17 @@
+# 3.9.5
+
+## Fixes:
+- Fix scrolling issue for recent actions list
+- Fix opening files from favorites and recent
+- Serialize html on row before apply highlights
+- Correct search export to file
+- Add lock screen on concating files
+- Fix sorting and UI issues on concat
+- Extend max sources number to 65535 (from 255) 
+
+## Features
+- Add support of PCAP file format 
+
 # 3.9.4
 
 ## Fixes:
