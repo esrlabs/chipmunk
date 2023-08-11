@@ -64,8 +64,6 @@ class Holder
     @target_sources = "#{Paths::INDEXER}/sources/target"
     @targets = [@dist, @release, @node_modules, @target_indexer_base, @target_indexer_cli, @target_merging, @target_parsers,
                 @target_processor, @target_session, @target_sources]
-    @changes_to_holder = ChangeChecker.has_changes?(Paths::ELECTRON, [@dist, @release, @node_modules])
-    @changes_to_indexer = ChangeChecker.has_changes?(Paths::INDEXER, @targets - [@dist, @release, @node_modules])
   end
 
   def install
@@ -73,10 +71,10 @@ class Holder
     if !@installed || @settings.reinstall
       Shell.chdir(Paths::ELECTRON) do
         Shell.sh 'yarn install'
-        Reporter.done(self, 'installing', '')
+        Reporter.add(Jobs::Install, Owner::Holder, 'installing', '')
       end
     else
-      Reporter.skipped(self, 'installing', '')
+      Reporter.add(Jobs::Skipped, Owner::Holder, 'installing', '')
     end
   end
 
@@ -84,9 +82,9 @@ class Holder
     @targets.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed(self, "removed: #{path}", '')
+        Reporter.add(Jobs::Clearing, Owner::Holder, "removed: #{path}", '')
       else
-        Reporter.other(self, "doesn't exist: #{path}", '')
+        Reporter.add(Jobs::Clearing, Owner::Holder, "doesn't exist: #{path}", '')
       end
     end
   end
@@ -100,7 +98,7 @@ class Holder
     Client.delivery(@dist, @settings.client_prod, @settings.replace_client)
     Shell.chdir(Paths::ELECTRON) do
       Shell.sh 'yarn run build'
-      Reporter.done(self, 'built', '')
+      Reporter.add(Jobs::Building, Owner::Holder, 'built', '')
     end
     Shell.sh "cp #{Paths::ELECTRON}/package.json #{@dist}/package.json"
     Updater.new.check(@settings.launchers_rebuild)
@@ -110,7 +108,7 @@ class Holder
     install
     Shell.chdir(Paths::ELECTRON) do
       Shell.sh 'yarn run lint'
-      Reporter.done(self, 'linting', '')
+      Reporter.add(Jobs::Checks, Owner::Holder, 'linting', '')
     end
   end
 end

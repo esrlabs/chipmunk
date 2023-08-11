@@ -446,7 +446,7 @@ namespace :clippy do
 
   desc 'Clippy indexer'
   task :indexer do
-    Reporter.other('Indexer', "checked: #{Paths::INDEXER}", '')
+    Reporter.add(Jobs::Clippy, Owner::Indexer, "checked: #{Paths::INDEXER}", '')
     Shell.chdir(Paths::INDEXER) do
       sh Paths::CLIPPY_NIGHTLY
     end
@@ -457,7 +457,7 @@ namespace :clippy do
     Shell.chdir(Paths::RS_BINDINGS) do
       sh Paths::CLIPPY_NIGHTLY
     end
-    Reporter.other("Rustcore", "checked: #{Paths::RS_BINDINGS}", '')
+    Reporter.add(Jobs::Clippy, Owner::Rustcore, "checked: #{Paths::RS_BINDINGS}", '')
   end
 
   desc 'Clippy matcher'
@@ -465,7 +465,7 @@ namespace :clippy do
     Shell.chdir("#{Paths::MATCHER}/src") do
       sh Paths::CLIPPY_NIGHTLY
     end
-    Reporter.other("Matcher", "checked: #{Paths::MATCHER}", '')
+    Reporter.add(Jobs::Clippy, Owner::Matcher, "checked: #{Paths::MATCHER}", '')
   end
 
   desc 'Clippy ansi'
@@ -473,7 +473,7 @@ namespace :clippy do
     Shell.chdir("#{Paths::ANSI}/src") do
       sh Paths::CLIPPY_NIGHTLY
     end
-    Reporter.other("Ansi", "checked: #{Paths::ANSI}", '')
+    Reporter.add(Jobs::Clippy, Owner::Ansi, "checked: #{Paths::ANSI}", '')
   end
 
   desc 'Clippy utils'
@@ -481,7 +481,7 @@ namespace :clippy do
     Shell.chdir("#{Paths::UTILS}/src") do
       sh Paths::CLIPPY_NIGHTLY
     end
-    Reporter.other("Utils", "checked: #{Paths::UTILS}", '')
+    Reporter.add(Jobs::Clippy, Owner::Utils, "checked: #{Paths::UTILS}", '')
   end
 
   desc 'Clippy updater'
@@ -489,7 +489,7 @@ namespace :clippy do
     Shell.chdir("#{Paths::UPDATER}") do
       sh Paths::CLIPPY_NIGHTLY
     end
-    Reporter.other("Updater", "checked: #{Paths::UPDATER}", '')
+    Reporter.add(Jobs::Clippy, Owner::Updater, "checked: #{Paths::UPDATER}", '')
   end
 
   desc 'Clippy all'
@@ -568,25 +568,21 @@ task :ancillary_dev_options do
   Rake::Task.tasks.each {|task| puts "rake #{task.name}" if !visible_tasks.include?(task.name)}
 end
 
-desc 'setup chipmunk to be ready-to-use; use `TARGET=prod rake self_setup` to run in production mode'
+desc 'setup chipmunk to be ready-to-use'
 task :self_setup do
-  is_prod = ENV['TARGET'] && ENV['TARGET'].downcase == 'prod'
-  current_env = is_prod ? 'prod' : 'dev'
-
-  puts "Samster #{is_prod}"
-
-  o_binding = Bindings.new(false)
-  changes_to_bindings = o_binding.instance_variable_get(("@changes_to_rs").intern) || o_binding.instance_variable_get(("@changes_to_ts").intern)
-  o_holder = Holder.new(HolderSettings.new.set_client_prod(is_prod))
-  changes_to_holder = o_holder.instance_variable_get(("@changes_to_holder").intern) || o_holder.instance_variable_get(("@changes_to_indexer").intern)
-
-  o_binding.install
-  Client.new(false, false).install
-  o_holder.install
-
-  changes_to_bindings ? o_binding.build : Reporter.skipped('Bindings', 'skipped build since no changes to rustcore', '')
-  o_holder.build
-
-  puts "Execution report : "
+  Rake::Task['install:all'].invoke
+  omissions_ts = %w[dist spec/build node_modules].map {|loc| "#{Paths::TS_BINDINGS}/#{loc}"}
+  omissions_rs = %w[dist target].map {|loc| "#{Paths::RS_BINDINGS}/#{loc}"}
+  omissions_platform = %w[dist node_modules].map {|loc| "#{Paths::PLATFORM}/#{loc}"}
+  bindings_rebuild = ChangeChecker.has_changes?(Paths::TS_BINDINGS, omissions_ts) || ChangeChecker.has_changes?(Paths::RS_BINDINGS, omissions_rs)
+  platform_rebuild = ChangeChecker.has_changes?(Paths::PLATFORM, omissions_platform)
+  if ENV['TARGET'] && ENV['TARGET'].downcase == 'prod'
+    Holder.new(HolderSettings.new.set_bindings_rebuild(bindings_rebuild).set_platform_rebuild(platform_rebuild).set_client_prod(true)).clean unless (!bindings_rebuild && !platform_rebuild)
+    Holder.new(HolderSettings.new.set_client_prod(true)).build
+  else
+    Holder.new(HolderSettings.new.set_bindings_rebuild(bindings_rebuild).set_platform_rebuild(platform_rebuild)).clean unless (!bindings_rebuild && !platform_rebuild)
+    Holder.new(HolderSettings.new).build
+  end
+  Updater.new.check(ChangeChecker.has_changes?(Paths::UPDATER, ["#{Paths::UPDATER}/target"]))
   Reporter.print
 end

@@ -13,10 +13,10 @@ class Client
     if !@installed || @reinstall
       Shell.chdir(Paths::CLIENT) do
         Shell.sh 'yarn install'
-        Reporter.done(self, 'installing', '')
+        Reporter.add(Jobs::Install, Owner::Client, 'installing', '')
       end
     else
-      Reporter.skipped(self, 'installing', '')
+      Reporter.add(Jobs::Skipped, Owner::Client, 'installing', '')
     end
   end
 
@@ -24,9 +24,9 @@ class Client
     @targets.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed(self, "removed: #{path}", '')
+        Reporter.add(Jobs::Clearing, Owner::Client, "removed: #{path}", '')
       else
-        Reporter.other(self, "doesn't exist: #{path}", '')
+        Reporter.add(Jobs::Clearing, Owner::Client, "doesn't exist: #{path}", '')
       end
     end
   end
@@ -40,7 +40,7 @@ class Client
       Utils.new(true, true).build
       Shell.chdir(Paths::CLIENT) do
         Shell.sh 'yarn run prod'
-        Reporter.done(self, 'build in production mode', '')
+        Reporter.add(Jobs::Building, Owner::Client, 'production mode', '')
       end
     else
       Matcher.new(false, false).build
@@ -48,28 +48,28 @@ class Client
       Utils.new(false, false).build
       Shell.chdir(Paths::CLIENT) do
         Shell.sh 'yarn run build'
-        Reporter.done(self, 'build in developing mode', '')
+        Reporter.add(Jobs::Building, Owner::Client, 'developing mode', '')
       end
     end
   end
 
   def self.delivery(dest, prod, replace)
     if !replace && File.exist?("#{Paths::CLIENT}/dist/client")
-      Reporter.skipped(Jobs::Skipped, Owner::Client, 'client already exist', '')
+      Reporter.add(Jobs::Skipped, Owner::Client, 'client already exist', '')
       return
     end
     Dir.mkdir(dest) unless File.exist?(dest)
     client = Client.new(false, prod)
     client.build
     Shell.sh "cp -r #{Paths::CLIENT}/dist/client #{dest}"
-    Reporter.done(self, "delivery to #{dest}", '')
+    Reporter.add(Jobs::Other, Owner::Client, "delivery to #{dest}", '')
   end
 
   def lint
     install
     Shell.chdir(Paths::CLIENT) do
       Shell.sh 'yarn run lint'
-      Reporter.done(self, 'linting', '')
+      Reporter.add(Jobs::Checks, Owner::Client, 'linting', '')
     end
   end
 end

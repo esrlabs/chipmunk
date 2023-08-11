@@ -1,40 +1,49 @@
-module Status
-  Done = 'done'
+module Jobs
+  Install = 'install'
   Skipped = 'skipped'
-  Failed = 'failed'
-  Removed = 'removed'
+  Building = 'building'
+  Clearing = 'clearing'
+  Checks = 'checks'
+  Release = 'release'
+  Clippy = 'clippy'
   Other = 'other'
+end
+
+module Owner
+  Client = 'Client'
+  Platform = 'Platform'
+  Holder = 'Holder'
+  Indexer = 'Indexer'
+  Rustcore = 'Rustcore'
+  Bindings = 'Bindings'
+  Matcher = 'Matcher'
+  Ansi = 'Ansi'
+  Utils = 'Utils'
+  Updater = 'Updater'
+  Release = 'Release'
+  Compressor = 'Compressor'
+  Env = 'Env'
 end
 
 class Reporter
   @jobs = []
-
-  [:done, :skipped, :failed, :removed, :other].each do |status|
-    singleton_class.define_method status do |owner, description, icon|
-      Reporter.add(status, owner, description, icon)
-    end
-  end
-
   def self.add(type, owner, description, icon)
-    owner_str = if owner.is_a? String
-                  owner
-                else
-                  "#{owner.class}"
-                end
     @jobs.push({
                  'type' => type,
-                 'owner' => owner_str,
+                 'owner' => owner,
                  'description' => description,
                  'icon' => icon
                })
     unless Shell.is_verbose_hidden
-      puts "#{icon_type(type)}\t[#{align(type, 10)}]\t[#{align(owner_str, 10)}]: #{description}"
+      puts "#{icon_type(type)}\t[#{align(type,
+                                         10)}]\t[#{align(owner, 10)}]: #{description}"
     end
   end
 
   def self.print
     @jobs.each do |job|
-      puts "#{icon_type(job['type'])}\t[#{align(job['type'], 10)}]\t[#{align(job['owner'], 10)}]: #{job['description']}"
+      puts "#{icon_type(job['type'])}\t[#{align(job['type'],
+                                                10)}]\t[#{align(job['owner'], 10)}]: #{job['description']}"
     end
   end
 end
@@ -47,15 +56,21 @@ end
 
 def icon_type(type)
   case type
-  when 'done'
+  when Jobs::Install
     '*'
-  when 'skipped'
+  when Jobs::Skipped
     '*'
-  when 'failed'
+  when Jobs::Building
     '*'
-  when 'removed'
+  when Jobs::Clearing
     '*'
-  when 'other'
+  when Jobs::Checks
+    '*'
+  when Jobs::Clippy
+    '*'
+  when Jobs::Release
+    '🎉'
+  when Jobs::Other
     '*'
   else
     '...'

@@ -10,17 +10,15 @@ class Bindings
     @reinstall = reinstall
     @installed = File.exist?(@node_modules)
     @targets = [@dist, @node_modules, @target, @dist_rs, @spec]
-    @changes_to_rs = ChangeChecker.has_changes?(Paths::RS_BINDINGS, [@dist_rs, @target])
-    @changes_to_ts = ChangeChecker.has_changes?(Paths::TS_BINDINGS, [@dist, @spec, @node_modules])
   end
 
   def clean
     @targets.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed(self, "removed: #{path}", '')
+        Reporter.add(Jobs::Clearing, Owner::Bindings, "removed: #{path}", '')
       else
-        Reporter.other(self, "doesn't exist: #{path}", '')
+        Reporter.add(Jobs::Clearing, Owner::Bindings, "doesn't exist: #{path}", '')
       end
     end
   end
@@ -30,10 +28,10 @@ class Bindings
     if !@installed || @reinstall
       Shell.chdir(Paths::TS_BINDINGS) do
         Shell.sh 'yarn install'
-        Reporter.done(self, 'installing', '')
+        Reporter.add(Jobs::Install, Owner::Bindings, 'installing', '')
       end
     else
-      Reporter.skipped(self, 'installing', '')
+      Reporter.add(Jobs::Skipped, Owner::Bindings, 'installing', '')
     end
   end
 
@@ -41,22 +39,20 @@ class Bindings
     Environment.check
     install
     Platform.check(Paths::TS_BINDINGS, false)
-    if @changes_to_rs || @changes_to_ts
-      Shell.chdir(Paths::RS_BINDINGS) do
-        Shell.sh "./#{@build_env} #{@nj_cli} build --release"
-        Reporter.done(self, 'build rs bindings', '')
-      end
-      Shell.chdir(Paths::TS_BINDINGS) do
-        Shell.sh 'yarn run build'
-        Reporter.done(self, 'build ts bindings', '')
-      end
-      Shell.sh "cp #{Paths::RS_BINDINGS}/dist/index.node #{@dist}/native/index.node"
-      dir_tests = "#{Paths::TS_BINDINGS}/src/native"
-      mod_file = "#{dir_tests}/index.node"
-      Shell.rm(mod_file)
-      Shell.sh "cp #{Paths::RS_BINDINGS}/dist/index.node #{Paths::TS_BINDINGS}/src/native/index.node"
-      Reporter.done(self, 'delivery', '')
+    Shell.chdir(Paths::RS_BINDINGS) do
+      Shell.sh "./#{@build_env} #{@nj_cli} build --release"
+      Reporter.add(Jobs::Building, Owner::Bindings, 'rs bindings', '')
     end
+    Shell.chdir(Paths::TS_BINDINGS) do
+      Shell.sh 'yarn run build'
+      Reporter.add(Jobs::Building, Owner::Bindings, 'ts bindings', '')
+    end
+    Shell.sh "cp #{Paths::RS_BINDINGS}/dist/index.node #{@dist}/native/index.node"
+    dir_tests = "#{Paths::TS_BINDINGS}/src/native"
+    mod_file = "#{dir_tests}/index.node"
+    Shell.rm(mod_file)
+    Shell.sh "cp #{Paths::RS_BINDINGS}/dist/index.node #{Paths::TS_BINDINGS}/src/native/index.node"
+    Reporter.add(Jobs::Other, Owner::Bindings, 'delivery', '')
   end
 
   def build_spec
@@ -71,7 +67,7 @@ class Bindings
     Dir.mkdir(node_modules) unless File.exist?(node_modules)
     Shell.rm_rf(rustcore_dest) if replace || !File.exist?("#{rustcore_dest}/dist") || File.symlink?(rustcore_dest)
     unless File.exist?(rustcore_dest)
-      Reporter.other(self, "#{consumer} doesn't have platform", '')
+      Reporter.add(Jobs::Checks, Owner::Bindings, "#{consumer} doesn't have platform", '')
       bindings = Bindings.new(reinstall)
       bindings.build
       Shell.sh "rm -rf #{node_modules}/rustcore" if File.exist?("#{node_modules}/rustcore")
@@ -84,8 +80,8 @@ class Bindings
         Shell.sh 'yarn install --production'
       end
       Platform.check(dest_module, false)
-      Reporter.done(self, 'reinstalled in production', '')
-      Reporter.done(self, "delivery to #{consumer}", '')
+      Reporter.add(Jobs::Building, Owner::Bindings, 'reinstalled in production', '')
+      Reporter.add(Jobs::Other, Owner::Bindings, "delivery to #{consumer}", '')
     end
   end
 
@@ -93,7 +89,7 @@ class Bindings
     install
     Shell.chdir(Paths::TS_BINDINGS) do
       Shell.sh 'yarn run lint'
-      Reporter.done(self, 'linting', '')
+      Reporter.add(Jobs::Checks, Owner::Bindings, 'linting', '')
     end
   end
 end

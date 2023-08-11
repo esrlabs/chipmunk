@@ -6,16 +6,15 @@ class Platform
     @rebuild = rebuild
     @installed = File.exist?("#{Paths::PLATFORM}/node_modules")
     @targets = [@dist, @node_modules]
-    @changes_to_files = ChangeChecker.has_changes?(Paths::PLATFORM, @targets)
   end
 
   def clean
     @targets.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed(self, "removed: #{path}", '')
+        Reporter.add(Jobs::Clearing, Owner::Platform, "removed: #{path}", '')
       else
-        Reporter.other(self, "doesn't exist: #{path}", '')
+        Reporter.add(Jobs::Clearing, Owner::Platform, "doesn't exist: #{path}", '')
       end
     end
   end
@@ -25,21 +24,22 @@ class Platform
     if !@installed || @reinstall
       Shell.chdir(Paths::PLATFORM) do
         Shell.sh 'yarn install'
-        Reporter.done(self, 'installing', '')
+        Reporter.add(Jobs::Install, Owner::Platform, 'installing', '')
       end
     else
-      Reporter.skipped(self, 'installing', '')
+      Reporter.add(Jobs::Skipped, Owner::Platform, 'installing', '')
     end
   end
 
   def build
     Environment.check
+    Reporter.add(Jobs::Skipped, Owner::Platform, 'already built', '') if File.exist?(@dist) && !@rebuild
     install
     Shell.rm_rf(@dist)
-    Reporter.removed(self, @dist, '')
+    Reporter.add(Jobs::Clearing, Owner::Platform, @dist, '')
     Shell.chdir(Paths::PLATFORM) do
       Shell.sh 'yarn run build'
-      Reporter.done(self, 'built', '')
+      Reporter.add(Jobs::Building, Owner::Platform, 'clearing', '')
     end
     Shell.rm_rf(@node_modules)
   end
@@ -50,11 +50,11 @@ class Platform
     Dir.mkdir(node_modules) unless File.exist?(node_modules)
     Shell.rm_rf(platform_dest) if replace || !File.exist?("#{platform_dest}/dist") || File.symlink?(platform_dest)
     unless File.exist?(platform_dest)
-      Reporter.other(self, "#{consumer} doesn't have platform", '')
+      Reporter.add(Jobs::Checks, Owner::Platform, "#{consumer} doesn't have platform", '')
       platform = Platform.new(false, false)
       platform.build
       Shell.sh "cp -r #{Paths::PLATFORM} #{node_modules}"
-      Reporter.done(self, "delivery to #{consumer}", '')
+      Reporter.add(Jobs::Other, Owner::Platform, "delivery to #{consumer}", '')
     end
   end
 
@@ -62,7 +62,7 @@ class Platform
     install
     Shell.chdir(Paths::PLATFORM) do
       Shell.sh 'yarn run lint'
-      Reporter.done(self, 'linting', '')
+      Reporter.add(Jobs::Checks, Owner::Platform, 'linting', '')
     end
   end
 end

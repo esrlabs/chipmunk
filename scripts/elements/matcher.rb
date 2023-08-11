@@ -15,9 +15,9 @@ class Matcher
     @targets.each do |path|
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed(self, "removed: #{path}", '')
+        Reporter.add(Jobs::Clearing, Owner::Matcher, "removed: #{path}", '')
       else
-        Reporter.other(self, "doesn't exist: #{path}", '')
+        Reporter.add(Jobs::Clearing, Owner::Matcher, "doesn't exist: #{path}", '')
       end
     end
   end
@@ -27,26 +27,26 @@ class Matcher
     if !@installed || @reinstall
       Shell.chdir(Paths::MATCHER) do
         Shell.sh 'yarn install'
-        Reporter.done(self, 'installing', '')
+        Reporter.add(Jobs::Install, Owner::Matcher, 'installing', '')
       end
     else
-      Reporter.skipped(self, 'installing', '')
+      Reporter.add(Jobs::Skipped, Owner::Matcher, 'installing', '')
     end
   end
 
   def build
     if !@changes_to_files && !@rebuild
-      Reporter.skipped(self, 'already built', '')
+      Reporter.add(Jobs::Skipped, Owner::Matcher, 'already built', '')
     else
       Environment.check
       [@pkg, @target].each do |path|
         Shell.rm_rf(path)
-        Reporter.removed(self, path, '')
+        Reporter.add(Jobs::Clearing, Owner::Matcher, path, '')
       end
       Shell.chdir(Paths::MATCHER) do
         Shell.sh 'wasm-pack build --target bundler'
       end
-      Reporter.done(self, "build #{@target}", '')
+      Reporter.add(Jobs::Building, Owner::Matcher, @target, '')
     end
   end
 end

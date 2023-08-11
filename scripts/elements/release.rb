@@ -9,9 +9,9 @@ class Release
   def clean
     if File.exist?(Paths::RELEASE)
       Shell.rm_rf(Paths::RELEASE)
-      Reporter.removed(self, "removed: #{Paths::RELEASE}", '')
+      Reporter.add(Jobs::Clearing, Owner::Release, "removed: #{Paths::RELEASE}", '')
     else
-      Reporter.other(self, "doesn't exist: #{Paths::RELEASE}", '')
+      Reporter.add(Jobs::Clearing, Owner::Release, "doesn't exist: #{Paths::RELEASE}", '')
     end
   end
 
@@ -27,14 +27,14 @@ class Release
     Shell.chdir(Paths::ELECTRON) do
       set_envvars
       Shell.sh build_cmd
-      Reporter.done(self, "built", '')
+      Reporter.add(Jobs::Building, Owner::Release, 'built', '')
     end
     snapshot
-    Reporter.done(self, "done: #{Paths::RELEASE_BUILD}", '')
+    Reporter.add(Jobs::Release, Owner::Release, "done: #{Paths::RELEASE_BUILD}", '')
     if @compress
       Compressor.new(Paths::RELEASE_BUILD, release_file_name).compress
     else
-      Reporter.skipped(self, 'compressing is skipped', '')
+      Reporter.add(Jobs::Skipped, Owner::Release, 'compressing is skipped', '')
     end
   end
 
@@ -68,7 +68,7 @@ class Release
 
   def snapshot
     if OS.mac?
-      Reporter.skipped(self, "build for darwin doesn't require snapshot", '')
+      Reporter.add(Jobs::Skipped, Owner::Release, "build for darwin does'n require snapshot", '')
       return
     end
     snapshot_file = "#{Paths::RELEASE_BIN}/.release"
@@ -82,7 +82,7 @@ class Release
       fd.flush
       fd.close
     end
-    Reporter.done(self, 'files snapshot has been created', '')
+    Reporter.add(Jobs::Other, Owner::Release, 'files snapshot has been created', '')
   end
 
   def version
