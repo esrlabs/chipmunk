@@ -33,6 +33,11 @@ namespace :utils do
     end
   end
 
+  desc 'Rebuild utils'
+  task rebuild: ['utils:clean', 'utils:build'] do
+    Reporter.print
+  end
+
   desc 'Build utils'
   task build: ['environment:check', 'utils:install'] do
     changes_to_files = ChangeChecker.changes?('utils', Paths::UTILS)
@@ -51,21 +56,4 @@ namespace :utils do
     end
     Reporter.print
   end
-
-  task test_karma: 'utils:install' do
-    Reporter.print
-    Shell.chdir("#{Paths::UTILS}/spec") do
-      sh 'npm run test'
-    end
-  end
-
-  task :test_rust do
-    Reporter.print
-    Shell.chdir(Paths::UTILS) do
-      sh 'wasm-pack test --node'
-    end
-  end
-
-  desc 'run utils tests'
-  task test: ['utils:test_karma', 'utils:test_rust']
 end

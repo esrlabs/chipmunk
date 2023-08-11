@@ -25,6 +25,7 @@ namespace :electron do
 
   task reinstall: ['electron:clean_installation', 'electron:install']
 
+  desc 'Install electron'
   task :install do
     Shell.chdir(Paths::ELECTRON) do
       Reporter.log 'Installing Electron libraries'
@@ -89,6 +90,16 @@ namespace :electron do
     else
       Reporter.skipped('electron', 'build', '')
     end
+  end
+
+  desc 'rebuild dev version of electron'
+  task rebuild_debug: ['electron:clean', 'electron:build_dev'] do
+    Reporter.print
+  end
+
+  desc 'rebuild production version of electron'
+  task rebuild_prod: ['electron:clean', 'electron:build_prod'] do
+    Reporter.print
   end
 
   desc 'build dev version of electron'
