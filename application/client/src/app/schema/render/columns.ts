@@ -185,4 +185,4 @@ export class Columns {
                 });
         }
     }
-}};
+}}
