@@ -41,7 +41,9 @@
       "@tabs/*": ["src/app/ui/tabs/*"],
       "@statusbar/*": ["src/app/ui/statusbar/*"],
       "@sidebar/*": ["src/app/ui/sidebar/*"],
-      "@wasm/*": ["../apps/rustcore/wasm-bindings/pkg/*"],
+      "@matcher/*": ["../apps/webassembly/matcher/pkg/*"],
+      "@ansi/*": ["../apps/webassembly/ansi/pkg/*"],
+      "@utils/*": ["../apps/webassembly/utils/pkg/*"],
       "tslib": ["node_modules/tslib"],
     }
   },

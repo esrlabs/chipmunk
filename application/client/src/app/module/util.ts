@@ -7,7 +7,7 @@ export function getFilterError(
     regex: boolean,
 ): string | undefined {
     try {
-        const result = wasm.getBindings().get_filter_error(filter, caseSensitive, wholeWord, regex);
+        const result = wasm.getUtils().get_filter_error(filter, caseSensitive, wholeWord, regex);
         return typeof result !== 'string' ? undefined : result;
     } catch (e) {
         return undefined;

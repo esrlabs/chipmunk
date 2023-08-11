@@ -4,7 +4,7 @@ import * as wasm from '@loader/wasm';
 
 export function ansiToHtml(input: string): string | Error {
     try {
-        return wasm.getBindings().convert(input);
+        return wasm.getAnsi().convert(input);
     } catch (e) {
         return new Error(error(e));
     }
@@ -12,7 +12,7 @@ export function ansiToHtml(input: string): string | Error {
 
 export function escapeAnsi(input: string): string | Error {
     try {
-        return wasm.getBindings().escape(input);
+        return wasm.getAnsi().escape(input);
     } catch (e) {
         return new Error(error(e));
     }

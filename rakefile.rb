@@ -3,7 +3,7 @@
 require 'rake/clean'
 require 'fileutils'
 require 'set'
-require './scripts/elements/wasm'
+require './scripts/elements/ansi'
 require './scripts/elements/bindings'
 require './scripts/elements/client'
 require './scripts/elements/electron'
@@ -22,10 +22,12 @@ namespace :clean do
     'electron:clean',
     'client:clean',
     'updater:clean',
-    'wasm:clean',
+    'ansi:clean',
+    'utils:clean',
     'platform:clean',
     'release:clean',
     'indexer:clean',
+    'matcher:clean',
     'clean_change_list'
   ]
 end
@@ -40,7 +42,9 @@ namespace :test do
 
   desc 'test js/webassembly parts'
   task js: ['bindings:test:all',
-            'wasm:test']
+            'matcher:test',
+            'ansi:test',
+            'utils:test']
 
   desc 'run all test'
   task all: ['test:rust', 'test:js']
@@ -69,7 +73,8 @@ namespace :lint do
     clippy = Clippy.new
     clippy.check('Indexer', Paths::INDEXER)
     clippy.check('Rustbinding', Paths::RS_BINDINGS)
-    clippy.check('Wasm', "#{Paths::WASM}/src")
+    clippy.check('Matcher', "#{Paths::MATCHER}/src")
+    clippy.check('Ansi', "#{Paths::ANSI}/src")
     clippy.check('Updater', Paths::UPDATER)
     Reporter.print
   end

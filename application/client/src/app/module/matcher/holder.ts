@@ -4,6 +4,6 @@ export abstract class Holder {
     protected readonly matcher: wasm.Matcher;
 
     constructor() {
-        this.matcher = wasm.getBindings().Matcher.new();
+        this.matcher = wasm.getMatcher().Matcher.new();
     }
 }
