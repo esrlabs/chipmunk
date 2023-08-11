@@ -1,4 +1,3 @@
-desc 'Access interactive menu'
 task :default do
   renderInterectiveMenu
 end
@@ -19,7 +18,7 @@ namespace :install do
     Bindings.new(false).install
   end
 
-  desc 'Install all'
+  desc 'install all'
   task all: ['install:rustcore', 'install:client', 'install:holder'] do
     Reporter.print
   end
@@ -510,76 +509,5 @@ end
 
 desc 'Executes all check before pull request'
 task am_i_ready: ['build:prod', 'lint:all', 'clippy:all'] do
-  Reporter.print
-end
-
-namespace :client do
-  desc 'test client'
-  task :test do
-    client = Client.new(false, true)
-    client.build
-  end
-
-  desc 'Install client'
-  task :install do
-    Shell.chdir(Paths::CLIENT) do
-      sh 'yarn install'
-    end
-  end
-
-  desc 'Build client (dev)'
-  task :dev do
-    Shell.chdir(Paths::CLIENT) do
-      sh 'yarn run build'
-    end
-  end
-
-  desc 'Build client (prod)'
-  task :prod do
-    Shell.chdir(Paths::CLIENT) do
-      sh 'yarn run prod'
-    end
-  end
-
-  desc 'Clean'
-  task :clean do
-    Shell.rm_rf(Paths::CLIENT_DIST)
-    Shell.rm_rf(Paths::ELECTRON_CLIENT_DEST)
-  end
-
-  desc 'Delivery client'
-  task :delivery do
-    client_dist = "#{Paths::CLIENT_DIST}/client"
-    Dir.mkdir(Paths::ELECTRON_DIST) unless File.exist?(Paths::ELECTRON_DIST)
-    sh "cp -r #{client_dist} #{Paths::ELECTRON_DIST}"
-  end
-
-  desc 'Install, build and delivery of Client'
-  task all: ['client:install', 'client:clean', 'client:prod', 'client:delivery']
-end
-
-visible_tasks = %w(ancillary_dev_options am_i_ready install:all test:all developing:clean_rebuild_all self_setup)
-Rake::Task.tasks.each do |task|
-  visible_tasks.include?(task.name) or task.clear_comments
-end
-
-desc 'Display commands for granular tasks'
-task :ancillary_dev_options do
-  Rake::Task.tasks.each {|task| puts "rake #{task.name}" if !visible_tasks.include?(task.name)}
-end
-
-desc 'setup chipmunk'
-task :self_setup do
-  Rake::Task['install:all'].invoke
-  bindings_rebuild = ChangeChecker.has_changes?(Paths::TS_BINDINGS) || ChangeChecker.has_changes?(Paths::RS_BINDINGS)
-  platform_rebuild = ChangeChecker.has_changes?(Paths::PLATFORM)
-  if ENV['TARGET'] && ENV['TARGET'].downcase == 'prod'
-    Holder.new(HolderSettings.new.set_bindings_rebuild(bindings_rebuild).set_platform_rebuild(platform_rebuild).set_client_prod(true)).clean unless (!bindings_rebuild && !platform_rebuild)
-    Holder.new(HolderSettings.new.set_client_prod(true)).build
-  else
-    Holder.new(HolderSettings.new.set_bindings_rebuild(bindings_rebuild).set_platform_rebuild(platform_rebuild)).clean unless (!bindings_rebuild && !platform_rebuild)
-    Holder.new(HolderSettings.new).build
-  end
-  Updater.new.check(ChangeChecker.has_changes?("#{Paths::UPDATER}/target"))
   Reporter.print
 end
