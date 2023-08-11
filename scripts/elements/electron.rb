@@ -38,7 +38,7 @@ namespace :electron do
     Shell.rm_rf(rustcore_dest)
     FileUtils.mkdir_p rustcore_dest
     # FileUtils.cp_r Dir["#{Paths::TS_BINDINGS}/*"], rustcore_dest
-    FileUtils.cp_r Dir["#{Paths::TS_BINDINGS}/*"].reject { |f| File.basename(f) == 'node_modules' }, rustcore_dest
+    FileUtils.cp_r Dir["#{Paths::TS_BINDINGS}/*"].reject{ |f| File.basename(f) == 'node_modules' }, rustcore_dest
     Shell.rm_rf("#{rustcore_dest}/native")
     platform_dest = "#{rustcore_dest}/node_modules/platform"
     Shell.rm_rf(platform_dest)

@@ -34,7 +34,7 @@ end
 
 namespace :test do
   desc 'test rust core'
-  task :rust do
+  task :indexer do
     cd Paths::INDEXER do
       sh 'cargo test'
     end
@@ -47,7 +47,7 @@ namespace :test do
             'utils:test']
 
   desc 'run all test'
-  task all: ['test:rust', 'test:js']
+  task all: ['test:indexer', 'test:js']
 end
 
 # Makes sure clippy is installed and correclty executed
@@ -130,21 +130,14 @@ task run_dev: 'electron:build_dev' do
   end
 end
 
-desc 'start chipmunk (prod)'
-task run_prod: 'electron:build_prod' do
-  cd Paths::ELECTRON do
-    Shell.sh 'yarn run electron'
-  end
-end
-
 # uncomment for benchmarking the tasks
-# require 'benchmark'
-# class Rake::Task
-#   def execute_with_benchmark(*args)
-#     bm = Benchmark.measure { execute_without_benchmark(*args) }
-#     puts "   #{name} --> #{bm}"
-#   end
+require 'benchmark'
+class Rake::Task
+  def execute_with_benchmark(*args)
+    bm = Benchmark.measure { execute_without_benchmark(*args) }
+    puts "   #{name} --> #{bm}"
+  end
 
-#   alias_method :execute_without_benchmark, :execute
-#   alias_method :execute, :execute_with_benchmark
-# end
+  alias_method :execute_without_benchmark, :execute
+  alias_method :execute, :execute_with_benchmark
+end
