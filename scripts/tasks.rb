@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 desc 'Access interactive menu'
 task :default do
   renderInterectiveMenu
@@ -459,7 +457,7 @@ namespace :clippy do
     Shell.chdir(Paths::RS_BINDINGS) do
       sh Paths::CLIPPY
     end
-    Reporter.other('Rustcore', "checked: #{Paths::RS_BINDINGS}", '')
+    Reporter.other("Rustcore", "checked: #{Paths::RS_BINDINGS}", '')
   end
 
   desc 'Clippy matcher'
@@ -467,7 +465,7 @@ namespace :clippy do
     Shell.chdir("#{Paths::MATCHER}/src") do
       sh Paths::CLIPPY
     end
-    Reporter.other('Matcher', "checked: #{Paths::MATCHER}", '')
+    Reporter.other("Matcher", "checked: #{Paths::MATCHER}", '')
   end
 
   desc 'Clippy ansi'
@@ -475,7 +473,7 @@ namespace :clippy do
     Shell.chdir("#{Paths::ANSI}/src") do
       sh Paths::CLIPPY
     end
-    Reporter.other('Ansi', "checked: #{Paths::ANSI}", '')
+    Reporter.other("Ansi", "checked: #{Paths::ANSI}", '')
   end
 
   desc 'Clippy utils'
@@ -483,15 +481,15 @@ namespace :clippy do
     Shell.chdir("#{Paths::UTILS}/src") do
       sh Paths::CLIPPY
     end
-    Reporter.other('Utils', "checked: #{Paths::UTILS}", '')
+    Reporter.other("Utils", "checked: #{Paths::UTILS}", '')
   end
 
   desc 'Clippy updater'
   task :updater do
-    Shell.chdir(Paths::UPDATER.to_s) do
+    Shell.chdir("#{Paths::UPDATER}") do
       sh Paths::CLIPPY
     end
-    Reporter.other('Updater', "checked: #{Paths::UPDATER}", '')
+    Reporter.other("Updater", "checked: #{Paths::UPDATER}", '')
   end
 
   desc 'Clippy all'
@@ -552,7 +550,7 @@ namespace :client do
   desc 'Delivery client'
   task :delivery do
     client_dist = "#{Paths::CLIENT_DIST}/client"
-    FileUtils.mkdir_p(Paths::ELECTRON_DIST)
+    Dir.mkdir(Paths::ELECTRON_DIST) unless File.exist?(Paths::ELECTRON_DIST)
     sh "cp -r #{client_dist} #{Paths::ELECTRON_DIST}"
   end
 
@@ -560,20 +558,20 @@ namespace :client do
   task all: ['client:install', 'client:clean', 'client:prod', 'client:delivery']
 end
 
-visible_tasks = %w[ancillary_dev_options am_i_ready install:all test:all developing:clean_rebuild_all self_setup]
+visible_tasks = %w(ancillary_dev_options am_i_ready install:all test:all developing:clean_rebuild_all self_setup)
 Rake::Task.tasks.each do |task|
   visible_tasks.include?(task.name) or task.clear_comments
 end
 
 desc 'Display commands for granular tasks'
 task :ancillary_dev_options do
-  Rake::Task.tasks.each { |task| puts "rake #{task.name}" unless visible_tasks.include?(task.name) }
+  Rake::Task.tasks.each {|task| puts "rake #{task.name}" if !visible_tasks.include?(task.name)}
 end
 
 desc 'setup chipmunk to be ready-to-use; use `TARGET=prod rake self_setup` to run in production mode'
 task :self_setup do
-  is_prod = ENV.fetch('TARGET', nil) && ENV['TARGET'].downcase == 'prod'
-  is_prod ? 'prod' : 'dev'
+  is_prod = ENV['TARGET'] && ENV['TARGET'].downcase == 'prod'
+  current_env = is_prod ? 'prod' : 'dev'
 
   o_binding = Bindings.new(false)
   changes_to_bindings = o_binding.changes_to_rs || o_binding.changes_to_ts
@@ -587,6 +585,6 @@ task :self_setup do
   changes_to_bindings ? o_binding.build : Reporter.skipped('Bindings', 'skipped build since no changes to rustcore', '')
   o_holder.build
 
-  puts 'Execution report : '
+  puts "Execution report : "
   Reporter.print
 end
