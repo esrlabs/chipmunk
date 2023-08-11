@@ -220,4 +220,32 @@ mod test {
         keys.remove(&7);
         assert_eq!(keys.first(), None);
     }
+
+    #[test]
+    fn test_keys_004() {
+        use std::ops::RangeInclusive;
+        let mut keys = super::Keys::new();
+        assert_eq!(keys.first(), None);
+        keys.add(100);
+        keys.add(101);
+        keys.add(102);
+        keys.add(103);
+        keys.add(104);
+        keys.add(105);
+        keys.add(13);
+        keys.add(12);
+        keys.add(11);
+        keys.add(10);
+        keys.add(5);
+        keys.add(4);
+        keys.add(3);
+        keys.add(2);
+        keys.add(1);
+        keys.sort();
+        let ranges = keys.as_ranges();
+        assert_eq!(ranges.len(), 3);
+        assert_eq!(ranges[0], RangeInclusive::new(1, 5));
+        assert_eq!(ranges[1], RangeInclusive::new(10, 13));
+        assert_eq!(ranges[2], RangeInclusive::new(100, 105));
+    }
 }
