@@ -568,14 +568,11 @@ task :ancillary_dev_options do
   Rake::Task.tasks.each {|task| puts "rake #{task.name}" if !visible_tasks.include?(task.name)}
 end
 
-desc 'setup chipmunk to be ready-to-use'
+desc 'setup chipmunk'
 task :self_setup do
   Rake::Task['install:all'].invoke
-  omissions_ts = %w[dist spec/build node_modules].map {|loc| "#{Paths::TS_BINDINGS}/#{loc}"}
-  omissions_rs = %w[dist target].map {|loc| "#{Paths::RS_BINDINGS}/#{loc}"}
-  omissions_platform = %w[dist node_modules].map {|loc| "#{Paths::PLATFORM}/#{loc}"}
-  bindings_rebuild = ChangeChecker.has_changes?(Paths::TS_BINDINGS, omissions_ts) || ChangeChecker.has_changes?(Paths::RS_BINDINGS, omissions_rs)
-  platform_rebuild = ChangeChecker.has_changes?(Paths::PLATFORM, omissions_platform)
+  bindings_rebuild = ChangeChecker.has_changes?(Paths::TS_BINDINGS) || ChangeChecker.has_changes?(Paths::RS_BINDINGS)
+  platform_rebuild = ChangeChecker.has_changes?(Paths::PLATFORM)
   if ENV['TARGET'] && ENV['TARGET'].downcase == 'prod'
     Holder.new(HolderSettings.new.set_bindings_rebuild(bindings_rebuild).set_platform_rebuild(platform_rebuild).set_client_prod(true)).clean unless (!bindings_rebuild && !platform_rebuild)
     Holder.new(HolderSettings.new.set_client_prod(true)).build
@@ -583,6 +580,6 @@ task :self_setup do
     Holder.new(HolderSettings.new.set_bindings_rebuild(bindings_rebuild).set_platform_rebuild(platform_rebuild)).clean unless (!bindings_rebuild && !platform_rebuild)
     Holder.new(HolderSettings.new).build
   end
-  Updater.new.check(ChangeChecker.has_changes?(Paths::UPDATER, ["#{Paths::UPDATER}/target"]))
+  Updater.new.check(ChangeChecker.has_changes?("#{Paths::UPDATER}/target"))
   Reporter.print
 end
