@@ -41,7 +41,7 @@ namespace :test do
   end
 
   desc 'test js/webassembly parts'
-  task js: ['bindings:test:all',
+  task js: ['bindings:test',
             'matcher:test',
             'ansi:test',
             'utils:test']
