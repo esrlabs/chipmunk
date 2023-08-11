@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 module Screens
   def self.welcome(prompt)
     clear
@@ -188,8 +186,8 @@ module Screens
       { name: 'Test binding map [rake test:binding:map]', value: 9 },
       { name: 'Test matcher karma [rake test:matcher:karma]', value: 10 },
       { name: 'Test matcher rust [rake test:matcher:rust', value: 11 },
-      { name: 'Test utils karma [rake test:utils:karma]', value: 12 },
-      { name: 'Test utils rust [rake test:utils:rust]', value: 13 },
+      { name: 'Test utils karma [rake test:utils:karma]', value: 12},
+      { name: 'Test utils rust [rake test:utils:rust]', value: 13},
       { name: 'Test all [rake test:all', value: 14 },
       { name: 'back', value: 15 },
       { name: 'exit', value: 16 }

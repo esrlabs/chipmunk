@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 class Utils
   def initialize(reinstall, rebuild)
     @pkg = "#{Paths::UTILS}/pkg"
@@ -12,8 +10,10 @@ class Utils
     @targets = [@pkg, @target, @node_modules, @test_output]
     @changes_to_files = ChangeChecker.has_changes?(Paths::UTILS, @targets)
   end
-
-  attr_reader :changes_to_files
+  
+  def changes_to_files
+    @changes_to_files
+  end
 
   def clean
     @targets.each do |path|
@@ -25,7 +25,7 @@ class Utils
       end
     end
   end
-
+  
   def install
     Shell.rm_rf(@node_modules) if @reinstall
     if !@installed || @reinstall
@@ -37,7 +37,7 @@ class Utils
       Reporter.skipped(self, 'installing', '')
     end
   end
-
+  
   def build
     if !@changes_to_files && !@rebuild
       Reporter.skipped(self, 'already built', '')
@@ -54,3 +54,4 @@ class Utils
     end
   end
 end
+  

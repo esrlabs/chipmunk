@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 class Compressor
   def initialize(location, archname)
     @location = location

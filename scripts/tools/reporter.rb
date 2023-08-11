@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 module Status
   Done = 'done'
   Skipped = 'skipped'
@@ -11,7 +9,7 @@ end
 class Reporter
   @jobs = []
 
-  %i[done skipped failed removed other].each do |status|
+  [:done, :skipped, :failed, :removed, :other].each do |status|
     singleton_class.define_method status do |owner, description, icon|
       Reporter.add(status, owner, description, icon)
     end
@@ -21,7 +19,7 @@ class Reporter
     owner_str = if owner.is_a? String
                   owner
                 else
-                  owner.class.to_s
+                  "#{owner.class}"
                 end
     @jobs.push({
                  'type' => type,
@@ -29,9 +27,9 @@ class Reporter
                  'description' => description,
                  'icon' => icon
                })
-    return if Shell.is_verbose_hidden
-
-    puts "#{icon_type(type)}\t[#{align(type, 10)}]\t[#{align(owner_str, 10)}]: #{description}"
+    unless Shell.is_verbose_hidden
+      puts "#{icon_type(type)}\t[#{align(type, 10)}]\t[#{align(owner_str, 10)}]: #{description}"
+    end
   end
 
   def self.print
@@ -43,7 +41,7 @@ end
 
 def align(content, len)
   spaces = len - content.length
-  spaces = 0 if spaces.negative?
+  spaces = 0 if spaces < 0
   "#{content}#{' ' * spaces}"
 end
 

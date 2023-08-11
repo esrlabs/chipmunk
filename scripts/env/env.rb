@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require './scripts/env/config'
 require './scripts/elements/platform'
 module Environment
@@ -58,7 +56,6 @@ module Environment
 
   def self.check
     return if @@checked
-
     Environment.rust
     Environment.nj_cli
     Environment.wasm_pack

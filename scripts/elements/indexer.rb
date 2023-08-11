@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require './scripts/env/paths'
 class Indexer
   def initialize
@@ -15,7 +13,9 @@ class Indexer
                 @target_processor, @target_session, @target_sources]
   end
 
-  attr_reader :targets
+  def targets
+    @targets
+  end
 
   def changes_to_files
     puts "This is #{@targets}"

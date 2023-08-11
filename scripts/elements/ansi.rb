@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require './scripts/env/paths'
 require './scripts/tools/change_checker'
 require './scripts/tools/reporter'
@@ -17,7 +15,9 @@ class Ansi
     @changes_to_files = ChangeChecker.has_changes?(Paths::ANSI, @targets)
   end
 
-  attr_reader :changes_to_files
+  def changes_to_files
+    @changes_to_files
+  end
 
   def clean
     @targets.each do |path|

@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 class Updater
   def initialize
     @dest = "#{Paths::UPDATER}/target"
@@ -22,11 +20,11 @@ class Updater
     Environment.check
     Shell.chdir(Paths::UPDATER) do
       Shell.sh 'cargo build --release'
-      Reporter.done(self, 'built', '')
+      Reporter.done(self, "built", '')
     end
   end
 
   def check(replace)
-    replace || !File.exist?(@target) ? build : Reporter.skipped(self, 'build', '')
+    replace || !File.exist?(@target) ? build : Reporter.skipped(self, "build", '')
   end
 end

@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require './scripts/env/paths'
 require './scripts/env/env'
 class Bindings
@@ -18,7 +16,13 @@ class Bindings
     @changes_to_ts = ChangeChecker.has_changes?(Paths::TS_BINDINGS, [@dist, @spec, @node_modules])
   end
 
-  attr_reader :changes_to_rs, :changes_to_ts
+  def changes_to_rs
+    @changes_to_rs
+  end
+
+  def changes_to_ts
+    @changes_to_ts
+  end
 
   def clean
     @targets.each do |path|
@@ -57,7 +61,7 @@ class Bindings
           Shell.sh 'yarn run build'
           Reporter.done(self, 'build ts bindings', '')
         end
-      rescue StandardError
+      rescue
         Reporter.failed(self, 'build ts bindings', '')
         @changes_to_ts = true
         clean
@@ -85,23 +89,23 @@ class Bindings
     rustcore_dest = "#{node_modules}/rustcore"
     Dir.mkdir(node_modules) unless File.exist?(node_modules)
     Shell.rm_rf(rustcore_dest) if replace || !File.exist?("#{rustcore_dest}/dist") || File.symlink?(rustcore_dest)
-    return if File.exist?(rustcore_dest)
-
-    Reporter.other(self, "#{consumer} doesn't have platform", '')
-    bindings = Bindings.new(reinstall)
-    bindings.build
-    Shell.sh "rm -rf #{node_modules}/rustcore" if File.exist?("#{node_modules}/rustcore")
-    Dir.mkdir("#{node_modules}/rustcore")
-    Shell.sh "cp -r #{Paths::TS_BINDINGS}/* #{node_modules}/rustcore"
-    Shell.rm_rf("#{node_modules}/rustcore/native")
-    Shell.rm_rf("#{node_modules}/rustcore/node_modules")
-    dest_module = "#{node_modules}/rustcore"
-    Shell.chdir(dest_module) do
-      Shell.sh 'yarn install --production'
+    unless File.exist?(rustcore_dest)
+      Reporter.other(self, "#{consumer} doesn't have platform", '')
+      bindings = Bindings.new(reinstall)
+      bindings.build
+      Shell.sh "rm -rf #{node_modules}/rustcore" if File.exist?("#{node_modules}/rustcore")
+      Dir.mkdir("#{node_modules}/rustcore")
+      Shell.sh "cp -r #{Paths::TS_BINDINGS}/* #{node_modules}/rustcore"
+      Shell.rm_rf("#{node_modules}/rustcore/native")
+      Shell.rm_rf("#{node_modules}/rustcore/node_modules")
+      dest_module = "#{node_modules}/rustcore"
+      Shell.chdir(dest_module) do
+        Shell.sh 'yarn install --production'
+      end
+      Platform.check(dest_module, false)
+      Reporter.done('Bindings', 'reinstalled in production', '')
+      Reporter.done('Bindings', "delivery to #{consumer}", '')
     end
-    Platform.check(dest_module, false)
-    Reporter.done('Bindings', 'reinstalled in production', '')
-    Reporter.done('Bindings', "delivery to #{consumer}", '')
   end
 
   def lint

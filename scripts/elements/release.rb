@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require 'dotenv/load'
 
 class Release
@@ -29,7 +27,7 @@ class Release
     Shell.chdir(Paths::ELECTRON) do
       set_envvars
       Shell.sh build_cmd
-      Reporter.done(self, 'built', '')
+      Reporter.done(self, "built", '')
     end
     snapshot
     Reporter.done(self, "done: #{Paths::RELEASE_BUILD}", '')

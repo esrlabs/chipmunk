@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 class Matcher
   def initialize(reinstall, rebuild)
     @pkg = "#{Paths::MATCHER}/pkg"
@@ -13,7 +11,9 @@ class Matcher
     @changes_to_files = ChangeChecker.has_changes?(Paths::MATCHER, @targets)
   end
 
-  attr_reader :changes_to_files
+  def changes_to_files
+    @changes_to_files
+  end
 
   def clean
     @targets.each do |path|
