@@ -224,8 +224,6 @@ export class Service extends Implementation {
     public initialize(): {
         auto(observe: Observe, session?: Session): Promise<string | undefined>;
         configure(observe: Observe, session?: Session): Promise<string | undefined>;
-        // Will suggest to choose a parser
-        suggest(observe: Observe): Promise<string | undefined>;
         observe(observe: Observe, session?: Session): Promise<string>;
         multiple(files: File[]): Promise<string | undefined>;
     } {
@@ -313,10 +311,6 @@ export class Service extends Implementation {
                                 });
                         });
                 });
-            },
-            suggest: (observe: Observe): Promise<string | undefined> => {
-                // TODO: implement
-                return this.initialize().configure(observe);
             },
             multiple: (files: File[]): Promise<string | undefined> => {
                 return new Promise((resolve, reject) => {

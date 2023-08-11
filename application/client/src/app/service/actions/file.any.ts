@@ -37,45 +37,21 @@ export class Action extends Base {
     public from(file: File): void {
         switch (file.type) {
             case FileType.Binary:
-                session
-                    .initialize()
-                    .configure(
-                        new Factory.File()
-                            .file(file.filename)
-                            .asDlt()
-                            .type(Factory.FileType.Binary)
-                            .get(),
-                    );
-                break;
             case FileType.PcapNG:
-                session
-                    .initialize()
-                    .suggest(
-                        new Factory.File()
-                            .asDlt()
-                            .type(Factory.FileType.PcapNG)
-                            .file(file.filename)
-                            .get(),
-                    );
-                break;
             case FileType.PcapLegacy:
                 session
                     .initialize()
-                    .suggest(
-                        new Factory.File()
-                            .asDlt()
-                            .type(Factory.FileType.PcapLegacy)
-                            .file(file.filename)
-                            .get(),
+                    .configure(
+                        new Factory.File().type(file.type).file(file.filename).asDlt().get(),
                     );
                 break;
-            default:
+            case FileType.Text:
                 session
                     .initialize()
                     .observe(
                         new Factory.File()
-                            .file(file.filename)
                             .type(Factory.FileType.Text)
+                            .file(file.filename)
                             .asText()
                             .get(),
                     );

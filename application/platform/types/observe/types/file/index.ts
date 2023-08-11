@@ -38,6 +38,8 @@ export function getFileTypeByFilename(filename: string): FileType {
             return FileType.Binary;
         case '.pcapng':
             return FileType.PcapNG;
+        case '.pcap':
+            return FileType.PcapLegacy;
         default:
             return FileType.Text;
     }
