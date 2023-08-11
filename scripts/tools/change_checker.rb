@@ -13,12 +13,9 @@ module ChangeChecker
   # to check if any changes in files have been done in the path since
   # the previous run.
   def self.create_changelist(user, path, omissions = [])
-    starting = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     FileUtils.mkdir_p Paths::CHECKLISTS
     checklist_path = ChangeChecker.checklist_path(user, path)
     File.write(checklist_path, ChangeChecker.fingerprint(path, omissions))
-    ending = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    ending - starting
   end
 
   # Method checks whether a 'path' has changes to files in underlying folders, excluding the folders in the 'omissions' list.

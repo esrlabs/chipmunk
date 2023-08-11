@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require './scripts/tools/shell'
-
 module Status
   Done = 'done'
   Skipped = 'skipped'
@@ -18,12 +16,12 @@ class Reporter
   @jobs = []
 
   %i[done skipped failed removed other].each do |status|
-    singleton_class.define_method status do |owner, description, icon, duration = nil|
-      Reporter.add(status, owner, description, icon, duration)
+    singleton_class.define_method status do |owner, description, icon|
+      Reporter.add(status, owner, description, icon)
     end
   end
 
-  def self.add(type, owner, description, icon, duration)
+  def self.add(type, owner, description, icon)
     owner_str = if owner.is_a? String
                   owner
                 else
@@ -33,21 +31,17 @@ class Reporter
                  'type' => type,
                  'owner' => owner_str,
                  'description' => description,
-                 'icon' => icon,
-                 'duration' => duration,
+                 'icon' => icon
                })
     return if Shell.is_verbose_hidden
 
-    duration_string = duration.nil? ? '' : " (duration: #{duration.round(1)}s)"
-    puts "#{icon_type(type)}\t[#{align(type, 10)}]\t[#{align(owner_str, 10)}]: #{description}#{duration_string}"
+    puts "#{icon_type(type)}\t[#{align(type, 10)}]\t[#{align(owner_str, 10)}]: #{description}"
   end
 
   def self.print
     @jobs.each do |job|
-      duration_string = job['duration'].nil? ? '' : " (duration: #{job['duration'].round(1)}s)"
-      puts "#{icon_type(job['type'])}\t[#{align(job['type'], 10)}]\t[#{align(job['owner'], 10)}]: #{job['description']}#{duration_string}"
+      puts "#{icon_type(job['type'])}\t[#{align(job['type'], 10)}]\t[#{align(job['owner'], 10)}]: #{job['description']}"
     end
-    Shell.report
   end
 end
 

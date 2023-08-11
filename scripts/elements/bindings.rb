@@ -17,16 +17,16 @@ namespace :bindings do
   task :install do
     Shell.chdir(Paths::TS_BINDINGS) do
       Reporter.log 'Installing ts-binding libraries'
-      duration = Shell.timed_sh('yarn install')
-      Reporter.done('bindings', 'installing', '', duration)
+      Shell.sh 'yarn install'
+      Reporter.done('bindings', 'installing', '')
     end
   end
 
   desc 'Lint TS bindings'
   task lint: 'bindings:install' do
     Shell.chdir(Paths::TS_BINDINGS) do
-      duration = Shell.timed_sh 'yarn run lint'
-      Reporter.done('bindings', 'linting', '', duration)
+      Shell.sh 'yarn run lint'
+      Reporter.done('bindings', 'linting', '')
     end
   end
 
@@ -63,7 +63,7 @@ namespace :bindings do
       path = "#{path}/.node_integrity" if File.basename(path) == 'node_modules'
       if File.exist?(path)
         Shell.rm_rf(path)
-        Reporter.removed('bindings', "removed: #{File.basename(path)}", '')
+        Reporter.removed('bindings', "removed: #{path}", '')
       end
     end
   end
@@ -73,14 +73,13 @@ namespace :bindings do
     Shell.rm_rf(platform_dest)
     FileUtils.mkdir_p platform_dest
     files_to_copy = Dir["#{Paths::PLATFORM}/*"].reject { |f| File.basename(f) == 'node_modules' }
-    duration = Shell.cp_r files_to_copy, platform_dest
-    Reporter.done('bindings', "copy platform to #{platform_dest}", '', duration)
+    FileUtils.cp_r files_to_copy, platform_dest
   end
 
   task :build_rs_bindings do
     Shell.chdir(Paths::RS_BINDINGS) do
-      duration = Shell.timed_sh "#{Bindings::BUILD_ENV} nj-cli build --release"
-      Reporter.done('bindings', 'build rs bindings', '', duration)
+      Shell.sh "#{Bindings::BUILD_ENV} nj-cli build --release"
+      Reporter.done('bindings', 'build rs bindings', '')
     end
     FileUtils.mkdir_p "#{Bindings::DIST}/native"
     FileUtils.cp "#{Paths::RS_BINDINGS}/dist/index.node", "#{Bindings::DIST}/native/index.node"
@@ -88,21 +87,21 @@ namespace :bindings do
     mod_file = "#{dir_tests}/index.node"
     FileUtils.rm_f(mod_file)
     FileUtils.cp "#{Paths::RS_BINDINGS}/dist/index.node", "#{Paths::TS_BINDINGS}/src/native/index.node"
+    puts 'done with build_rs_bindings'
   end
 
   task :build_ts_bindings do
     changes_to_ts = ChangeChecker.changes?('bindings', Paths::TS_BINDINGS)
     if changes_to_ts
       begin
-        duration = 0
         Shell.chdir(Paths::TS_BINDINGS) do
-          duration += Shell.timed_sh 'yarn run build'
+          Shell.sh 'yarn run build'
           ChangeChecker.reset('bindings', Paths::TS_BINDINGS,
                               [Bindings::DIST, Bindings::SPEC, Bindings::TS_NODE_MODULES])
-          Reporter.done('bindings', 'build ts bindings', '', duration)
+          Reporter.done('bindings', 'build ts bindings', '')
         end
-        duration += ChangeChecker.create_changelist('bindings', Paths::TS_BINDINGS, Bindings::TARGETS)
-        Reporter.done('bindings', 'delivery', '', duration)
+        ChangeChecker.create_changelist('bindings', Paths::TS_BINDINGS, Bindings::TARGETS)
+        Reporter.done('bindings', 'delivery', '')
       rescue StandardError => e
         puts "An error of type #{e.class} happened, message is #{e.message}"
         Reporter.failed('bindings', 'build ts bindings', '')
