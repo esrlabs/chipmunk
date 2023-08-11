@@ -38,7 +38,6 @@ namespace :bindings do
 
   desc 'run binding tests'
   task test: ['bindings:build_spec', 'bindings:build'] do
-    ENV['ELECTRON_RUN_AS_NODE'] = '1'
     Shell.chdir(Paths::TS_BINDINGS) do
       sh "#{Paths::JASMINE} spec/build/spec/session.jobs.spec.js"
       sh "#{Paths::JASMINE} spec/build/spec/session.search.spec.js"
