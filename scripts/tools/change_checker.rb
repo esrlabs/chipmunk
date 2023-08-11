@@ -1,6 +1,4 @@
 require 'set'
-require './scripts/tools/shell'
-
 module ChangeChecker
 
   # Creates a file with the last modified time of the latest changed file in the list of underlying folders, except the omitted folder locations.

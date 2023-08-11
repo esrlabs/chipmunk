@@ -1,5 +1,3 @@
-require './scripts/env/config'
-require './scripts/elements/platform'
 module Environment
   @@checked = false
 

@@ -1,4 +1,3 @@
-require './scripts/env/paths'
 class Indexer
   def initialize
     @target_indexer_base = "#{Paths::INDEXER}/indexer_base/target"
