@@ -26,6 +26,7 @@ export abstract class Logger {
                 (() => {
                     switch (level) {
                         case Level.VERBOS:
+                        case Level.WTF:
                             return 'color: grey';
                         case Level.INFO:
                             return 'color: blue';
@@ -63,9 +64,9 @@ export abstract class Logger {
             process.stdout.write(msg);
         }
     }
+    protected signature;
 
     public static maxNameLength = 0;
-    private _signature = '';
 
     public abstract store(msg: string, level: Level): void;
 
@@ -78,13 +79,13 @@ export abstract class Logger {
         if (signature.length > Logger.maxNameLength) {
             Logger.maxNameLength = signature.length;
         }
-        this._signature = `${' '.repeat(LEFT_SPACE_ON_LOGGER_SIG)}${signature}${' '.repeat(
+        this.signature = `${' '.repeat(LEFT_SPACE_ON_LOGGER_SIG)}${signature}${' '.repeat(
             RIGHT_SPACE_ON_LOGGER_SIG,
         )}`;
     }
 
     public rename(signature: string): void {
-        this._signature = `${' '.repeat(LEFT_SPACE_ON_LOGGER_SIG)}${signature}${' '.repeat(
+        this.signature = `${' '.repeat(LEFT_SPACE_ON_LOGGER_SIG)}${signature}${' '.repeat(
             RIGHT_SPACE_ON_LOGGER_SIG,
         )}`;
     }
@@ -132,6 +133,17 @@ export abstract class Logger {
      */
     public debug(...args: unknown[]) {
         return this.log(this.msg(...args), Level.DEBUG);
+    }
+
+    /**
+     * Publish WTF logs. As soon as at least 1 WTF log was published
+     * all others logs would not be published any more. WTF logs allows
+     * developer to get clean logs for debugging
+     * @param {any} args - Any input for logs
+     * @returns {string} - Formatted log-string
+     */
+    public wtf(...args: unknown[]) {
+        return this.log(this.msg(...args), Level.WTF);
     }
 
     public measure(operation: string): () => void {
@@ -196,11 +208,17 @@ export abstract class Logger {
                 msg.length,
             )}`;
         };
+        if (level === Level.WTF) {
+            state.setDebugging(true);
+        }
+        if (state.isDebugging() && level !== Level.WTF) {
+            return original;
+        }
         const levelStr = `${level}`;
         const fill = LOG_LEVEL_MAX - levelStr.length;
         const message = `[${this.time()}][${levelStr}${' '.repeat(
             fill > 0 && isFinite(fill) && !isNaN(fill) ? fill : 0,
-        )}][${this._signature}]: ${cut(original)}`;
+        )}][${this.signature}]: ${cut(original)}`;
         this.publish(message, level).store(message, level);
         return original;
     }
