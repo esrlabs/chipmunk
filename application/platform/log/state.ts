@@ -4,6 +4,7 @@ export class State {
     protected level!: Level;
     protected allowed!: { [key: string]: boolean };
     protected lockedBy: string | undefined;
+    protected debugging: boolean = false;
 
     constructor() {
         this.setLevel(Level.DEBUG);
@@ -21,6 +22,7 @@ export class State {
         Object.keys(LOGS_LEVEL_TABLE).forEach((key: string) => {
             this.allowed[key] = LOGS_LEVEL_TABLE[level].includes(key as Level);
         });
+        this.allowed[Level.WTF] = true;
         return undefined;
     }
 
@@ -34,6 +36,14 @@ export class State {
         }
         this.lockedBy = lockedBy;
         return undefined;
+    }
+
+    public isDebugging(): boolean {
+        return this.debugging;
+    }
+
+    public setDebugging(state: boolean): void {
+        this.debugging = state;
     }
 }
 
