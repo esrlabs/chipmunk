@@ -42,13 +42,6 @@ export class Stream extends Subscriber {
     });
     private _len: number = 0;
     private _uuid!: string;
-    private _locking: {
-        operations: string[];
-        unlock?: () => void;
-    } = {
-        operations: [],
-        unlock: undefined,
-    };
 
     public readonly observed: {
         running: Map<string, ObserveOperation>;
@@ -89,7 +82,6 @@ export class Stream extends Subscriber {
                     this.log().error(`Fail to parse Observe: ${observe.message}`);
                     return;
                 }
-                this.locking().lock(observe, event.operation);
                 this.observed.running.set(
                     event.operation,
                     new ObserveOperation(
@@ -122,7 +114,6 @@ export class Stream extends Subscriber {
                 if (event.session !== this._uuid) {
                     return;
                 }
-                this.locking().unlock(event.operation);
                 const stored = this.observed.running.get(event.operation);
                 if (stored === undefined) {
                     return;
@@ -392,39 +383,6 @@ export class Stream extends Subscriber {
                             this.log().error(`Fail to check state export raw: ${error.message}`);
                         });
                 });
-            },
-        };
-    }
-
-    protected locking(): {
-        lock(observe: $.Observe, operation: string): void;
-        unlock(operation: string): void;
-    } {
-        return {
-            lock: (observe: $.Observe, operation: string): void => {
-                if (
-                    observe.origin.as<$.Origin.Concat.Configuration>(
-                        $.Origin.Concat.Configuration,
-                    ) === undefined
-                ) {
-                    return;
-                }
-                this._locking.operations.push(operation);
-                if (this._locking.unlock !== undefined) {
-                    return;
-                }
-                this._locking.unlock = lockers.progress(`Concating files...`);
-            },
-            unlock: (operation: string): void => {
-                if (this._locking.unlock === undefined) {
-                    return;
-                }
-                this._locking.operations = this._locking.operations.filter((o) => o !== operation);
-                if (this._locking.operations.length !== 0) {
-                    return;
-                }
-                this._locking.unlock();
-                this._locking.unlock = undefined;
             },
         };
     }
