@@ -15,6 +15,10 @@ import { getNgZoneSafly } from '@ui/env/globals';
 
 import * as events from '@platform/ipc/setup/channels';
 
+// If some request takes more than LONG_REQUEST_ALERT (ms),
+// warn message will be logged
+const LONG_REQUEST_ALERT = 2000;
+
 function ipc(): IPC {
     if (isAvailable()) {
         return window.electron.ipc;
@@ -32,6 +36,7 @@ interface PendingEntity {
     resolver: (...args: any[]) => void;
     rejector: (error: Error | Errors.RustNativeError) => void;
     ref: EntityConstructor<any> & ISignatureRequirement;
+    sent: number;
 }
 
 export class Implementation extends Transport {
@@ -83,6 +88,7 @@ export class Implementation extends Transport {
                 resolver: resolve,
                 rejector: reject,
                 ref: responseConstructorRef,
+                sent: Date.now(),
             });
             ipc().send(events.RENDER_REQUEST_NAME, pack.packed());
             // TODO: add timeout
@@ -282,6 +288,13 @@ export class Implementation extends Transport {
         if (payload instanceof Error) {
             desc.rejector(payload);
             return;
+        }
+        if (LONG_REQUEST_ALERT < Date.now() - desc.sent) {
+            this._log.warn(
+                `Request ${payload.getSignature()}(${pack.getSequence()}) took too long (${
+                    Date.now() - desc.sent
+                }ms)`,
+            );
         }
         this._zone(() => {
             desc.resolver(payload);
