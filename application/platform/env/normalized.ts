@@ -7,18 +7,18 @@ export class NormalizedBackgroundTask {
     constructor(duration: number) {
         this.duration = duration;
         this.timestamp = Date.now();
+        this.safe = this.safe.bind(this);
     }
 
     public run(task: () => void) {
         clearTimeout(this.timer);
-        const current = Date.now();
-        const diff = current - this.timestamp;
+        const diff = Date.now() - this.timestamp;
         if (diff > this.duration) {
             // This task should be done in any way - do not store timer ref
             setTimeout(this.safe(task, true), 0);
         } else {
             // This task could be canceled, store reference
-            this.timer = setTimeout(this.safe(task, false), diff);
+            this.timer = setTimeout(this.safe(task, false), this.duration - diff);
         }
     }
 
