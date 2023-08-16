@@ -2,7 +2,7 @@ import { error } from '../../../log/utils';
 import { Configuration as Base, ConfigurationStaticDesc } from '../configuration';
 import { OriginDetails, IOriginDetails, IList, Job, IJob, OriginType } from '../description';
 import { Configuration as ConfigurationFile } from './file';
-import { Context, SourceUuid } from './index';
+import { Context, SourceUuid, IConfiguration as IOriginConfiguration } from './index';
 import { basefolder } from '../../../env/str';
 import { Statics } from '../../../env/decorators';
 import { unique } from '../../../env/sequence';
@@ -106,6 +106,14 @@ export class Configuration
 
     public filetypes(): Types.File.FileType[] {
         return this.configuration.map((c) => c[1]);
+    }
+
+    public asFileOrigins(): IOriginConfiguration[] {
+        return this.configuration.map((c) => {
+            return {
+                [Context.File]: c,
+            };
+        });
     }
 
     public desc(): IOriginDetails {

@@ -95,12 +95,14 @@ export class Stream extends Subscriber {
                 this.observe()
                     .descriptions.request()
                     .then((sources) => {
+                        let updated = false;
                         sources.forEach((source) => {
                             if (!this.observed.map.has(source.id)) {
                                 this.observed.map.set(source.id, source);
-                                this.subjects.get().sources.emit();
+                                updated = true;
                             }
                         });
+                        updated && this.subjects.get().sources.emit();
                     })
                     .catch((err: Error) => {
                         this.log().error(`Fail get sources description: ${err.message}`);
