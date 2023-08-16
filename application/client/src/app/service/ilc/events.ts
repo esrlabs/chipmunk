@@ -116,7 +116,7 @@ export class Events {
                         }) => void
                     >(),
                 ),
-                resize: this._add<void>(new Subject<void>()).balanced(50),
+                resize: this._add<void>(new Subject<void>()).balanced(25),
                 view: this._add<Declarations.AvailableToolbarTabs>(
                     new Subject<Declarations.AvailableToolbarTabs>(),
                 ),
@@ -124,13 +124,13 @@ export class Events {
             sidebar: {
                 min: this._add<void>(new Subject<void>()),
                 max: this._add<void>(new Subject<void>()),
-                resize: this._add<void>(new Subject<void>()).balanced(50),
+                resize: this._add<void>(new Subject<void>()).balanced(25),
                 view: this._add<Declarations.AvailableSidebarTabs>(
                     new Subject<Declarations.AvailableSidebarTabs>(),
                 ),
             },
             window: {
-                resize: this._add<void>(new Subject<void>().balanced(50)),
+                resize: this._add<void>(new Subject<void>().balanced(25)),
             },
             layout: {
                 resize: this._add<void>(new Subject<void>()),
