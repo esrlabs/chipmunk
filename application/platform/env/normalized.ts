@@ -15,10 +15,10 @@ export class NormalizedBackgroundTask {
         const diff = Date.now() - this.timestamp;
         if (diff > this.duration) {
             // This task should be done in any way - do not store timer ref
-            setTimeout(this.safe(task, true), 0);
+            setTimeout(this.safe(task), 0);
         } else {
             // This task could be canceled, store reference
-            this.timer = setTimeout(this.safe(task, false), this.duration - diff);
+            this.timer = setTimeout(this.safe(task), this.duration - diff);
         }
     }
 
@@ -27,13 +27,13 @@ export class NormalizedBackgroundTask {
         this.controller.abort();
     }
 
-    protected safe(task: () => void, untracked: boolean): () => void {
+    protected safe(task: () => void): () => void {
         return () => {
             if (this.controller.signal.aborted) {
                 return;
             }
             task();
-            this.timestamp = untracked ? 0 : Date.now();
+            this.timestamp = Date.now();
         };
     }
 }
