@@ -5,10 +5,10 @@ import { List } from '@ui/views/sidebar/observe/lists/file/component';
 import { IMenuItem } from '@ui/service/contextmenu';
 
 import * as $ from '@platform/types/observe';
-import * as Factory from '@platform/types/observe/factory';
 
 export class Provider extends Base {
     private _sources: ObserveSource[] = [];
+    private _processed: string[] = [];
 
     public contextMenu(source: ObserveSource): IMenuItem[] {
         const items: IMenuItem[] = [];
@@ -27,31 +27,29 @@ export class Provider extends Base {
     }
 
     public update(sources: ObserveSource[]): Provider {
+        const added = sources.filter((s) => !this._processed.includes(s.uuid()));
         // Add files
-        this._sources = sources.filter(
-            (source) => source.observe.origin.nature() instanceof $.Origin.File.Configuration,
+        this._sources.push(
+            ...added.filter(
+                (source) => source.observe.origin.nature() instanceof $.Origin.File.Configuration,
+            ),
         );
         // Add files from concat-container
-        sources.map((source) => {
+        added.map((source) => {
             const concat = source.observe.origin.as<$.Origin.Concat.Configuration>(
                 $.Origin.Concat.Configuration,
             );
             if (concat === undefined) {
                 return;
             }
-            this._sources.push(
-                ...concat.configuration.map((conf: $.Origin.File.IConfiguration) => {
-                    const observe = new Factory.File()
-                        .alias(conf[0])
-                        .type(conf[1])
-                        .file(conf[2])
-                        .parser(source.observe.parser.instance)
-                        .get();
-                    return new ObserveSource(observe).asChild();
-                }),
-            );
+            const origins = concat.asFileOrigins();
+            const parser = source.observe.parser.sterilized();
+            const files = origins.map((origin) => {
+                return new ObserveSource(new $.Observe({ origin, parser })).asChild();
+            });
+            this._sources.push(...files);
         });
-
+        this._processed.push(...added.map((a) => a.uuid()));
         return this;
     }
 

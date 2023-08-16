@@ -165,9 +165,9 @@ export abstract class Configuration<T, C, A>
         if (this.linked !== undefined) {
             (this as any).src = configuration;
         } else if (this.observer !== undefined) {
-            throw new Error(`Only linked configuration can be rerefered to new target`);
+            throw new Error(`005: Only linked configuration can be rerefered to new target`);
         } else {
-            throw new Error(`004: Configuration doesn't have observer or linked`);
+            throw new Error(`006: Configuration doesn't have observer or linked`);
         }
     }
 
@@ -189,7 +189,7 @@ export abstract class Configuration<T, C, A>
                 if (this.observer !== undefined) {
                     return JSON.stringify(this.observer.sterilize());
                 }
-                throw new Error(`005: Configuration doesn't have observer or linked`);
+                throw new Error(`007: Configuration doesn't have observer or linked`);
             },
             from: (str: string): Configuration<T, C, A> | Error => {
                 try {
@@ -209,7 +209,7 @@ export abstract class Configuration<T, C, A>
     public getSupportedStream(): Stream.Reference[] {
         if (getCompatibilityMod().Streams[this.ref.alias() as string] === undefined) {
             throw new Error(
-                `Entity "${this.ref.alias()}" isn't registred in compatibility.Streams list`,
+                `008: Entity "${this.ref.alias()}" isn't registred in compatibility.Streams list`,
             );
         }
         return getCompatibilityMod().Streams[this.ref.alias() as string];
@@ -218,7 +218,7 @@ export abstract class Configuration<T, C, A>
     public getSupportedFileType(): File.FileType[] {
         if (getCompatibilityMod().Files[this.ref.alias() as string] === undefined) {
             throw new Error(
-                `Entity "${this.ref.alias()}" isn't registred in compatibility.Files list`,
+                `009: Entity "${this.ref.alias()}" isn't registred in compatibility.Files list`,
             );
         }
         return getCompatibilityMod().Files[this.ref.alias() as string];
@@ -227,7 +227,7 @@ export abstract class Configuration<T, C, A>
     public isSdeSupported(): boolean {
         if (getCompatibilityMod().SDESupport[this.ref.alias() as string] === undefined) {
             throw new Error(
-                `Entity "${this.ref.alias()}" isn't registred in compatibility.SDESupport list`,
+                `010: Entity "${this.ref.alias()}" isn't registred in compatibility.SDESupport list`,
             );
         }
         return getCompatibilityMod().SDESupport[this.ref.alias() as string];
@@ -240,7 +240,7 @@ export abstract class Configuration<T, C, A>
         if (this.observer !== undefined) {
             return this.observer.sterilize();
         }
-        throw new Error(`006: Configuration doesn't have observer or linked`);
+        throw new Error(`011: Configuration doesn't have observer or linked`);
     }
 
     // This is default implementation, but in some cases (like "Stream.Process")
