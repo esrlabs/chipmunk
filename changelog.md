@@ -1,3 +1,9 @@
+# 3.9.6
+
+## Fixes:
+- Remove a screen locker on concat operation
+- Reduce a time of the first feedback on concat
+
 # 3.9.5
 
 ## Fixes:
