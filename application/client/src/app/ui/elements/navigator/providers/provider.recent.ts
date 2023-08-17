@@ -15,7 +15,7 @@ export class Provider extends Base<Action> {
                 recent
                     .delete(uuids)
                     .then(() => {
-                        //TODO: trigger reloading
+                        this.reload.emit();
                     })
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to remove recent action: ${err.message}`);
@@ -26,7 +26,7 @@ export class Provider extends Base<Action> {
                     .get()
                     .then((actions: Action[]) => {
                         this.storage().remove(actions.map((action: Action) => action.uuid));
-                        //TODO: trigger reloading
+                        this.reload.emit();
                     })
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to remove all recent actions: ${err.message}`);
@@ -48,7 +48,9 @@ export class Provider extends Base<Action> {
         if (!(action instanceof Action)) {
             return;
         }
-        // TODO: implement
+        action.apply().catch((err: Error) => {
+            this.ilc.log().error(`Fail to apply action: ${err.message}`);
+        });
     }
 
     public stat(): IStatistics {
@@ -59,7 +61,7 @@ export class Provider extends Base<Action> {
         };
     }
 
-    public getContextMenu(entity: unknown): IMenuItem[] {
+    public getContextMenu(entity: unknown, _close?: () => void): IMenuItem[] {
         if (!(entity instanceof Action)) {
             return [];
         }

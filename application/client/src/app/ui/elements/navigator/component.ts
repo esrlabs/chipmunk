@@ -45,18 +45,17 @@ export class Navigator
     }
 
     public ngAfterContentInit(): void {
-        this.state = new State(this);
+        this.state = new State(this, (): HTMLInputElement | undefined => {
+            this.detectChanges();
+            return this.filterInputRef !== undefined
+                ? this.filterInputRef.getInputElementRef()
+                : undefined;
+        });
         this.close !== undefined && this.state.bind(this.close);
     }
 
     public ngAfterViewInit(): void {
-        this.bindFilterInput();
-        this.env().subscriber.register(
-            this.state.update.subscribe(() => {
-                this.bindFilterInput();
-                this.markChangesForCheck();
-            }),
-        );
+        this.state.load();
     }
 
     public ngItemContextMenu(event: MouseEvent, entity: Entity) {
@@ -71,32 +70,8 @@ export class Navigator
         this.state.action(entity);
     }
 
-    // public addFolder(): void {
-    //     this.state
-    //         .selectAndAdd()
-    //         .then(() => {
-    //             this.state
-    //                 .load()
-    //                 .catch((err: Error) => {
-    //                     this.log().error(`Fail to reload state favorites: ${err.message}`);
-    //                 })
-    //                 .finally(() => {
-    //                     this.detectChanges();
-    //                 });
-    //         })
-    //         .catch((err: Error) => {
-    //             this.log().error(`Fail to add favorites: ${err.message}`);
-    //         });
-    // }
-
     public safeHtml(html: string): SafeHtml {
         return this._sanitizer.bypassSecurityTrustHtml(html);
-    }
-
-    public bindFilterInput() {
-        this.detectChanges();
-        this.filterInputRef !== undefined &&
-            this.state.entries.filter.bind(this.filterInputRef.getInputElementRef()).focus();
     }
 }
 export interface Navigator extends IlcInterface {}

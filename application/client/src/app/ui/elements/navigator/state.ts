@@ -1,7 +1,6 @@
 import { Entity } from './providers/entity';
-import { Entries } from './providers/entries';
+import { Entries, ICollection } from './providers/entries';
 import { Providers } from './providers/providers';
-import { Subject } from '@platform/env/subscription';
 import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Holder } from '@module/matcher/holder';
@@ -12,21 +11,24 @@ import { IMenuItem } from '@ui/service/contextmenu';
 export type CloseHandler = () => void;
 
 export class State extends Holder {
-    public readonly update: Subject<void> = new Subject<void>();
     public readonly uuid: string = unique();
     public entries: Entries;
+    public empty: boolean = true;
+    public filtered: ICollection[] = [];
 
     public statistics: IStatistics[] = [];
     public loading: boolean = true;
 
     protected close: CloseHandler | undefined;
-    protected readonly ilc: IlcInterface & ChangesDetector;
     protected readonly providers: Providers;
 
-    constructor(ilc: IlcInterface & ChangesDetector) {
+    constructor(
+        protected readonly ilc: IlcInterface & ChangesDetector,
+        protected readonly filterRefGetter: () => HTMLInputElement | undefined,
+    ) {
         super();
         this.ilc = ilc;
-        this.entries = new Entries(this.uuid, ilc, this.matcher, this.update);
+        this.entries = new Entries(this.uuid, ilc, this.matcher);
         this.providers = new Providers(ilc, this.matcher, this.entries);
         ilc.env().subscriber.register(
             ilc
@@ -47,11 +49,22 @@ export class State extends Holder {
                             this.action(target);
                             return true;
                         }
-                        ilc.markChangesForCheck();
+                        ilc.detectChanges();
                         return true;
                     },
                 ),
+            this.entries.updated.subscribe(() => {
+                this.filtered = this.entries.filtered();
+                this.ilc.detectChanges();
+            }),
         );
+    }
+
+    public destroy() {
+        this.providers.destroy();
+    }
+
+    public load(): void {
         this.loading = true;
         this.providers
             .load()
@@ -59,23 +72,17 @@ export class State extends Holder {
                 this.entries.defaultSelection();
                 this.loading = false;
                 this.statistics = this.providers.stat();
-                this.update.emit();
+                this.empty = this.entries.len() === 0;
+                this.entries.filter.bind(this.filterRefGetter()).focus();
+                this.ilc.markChangesForCheck();
             })
             .catch((err: Error) => {
                 this.ilc.log().error(`Fail to load navigation entries with: ${err.message}`);
             });
     }
 
-    public destroy() {
-        this.providers.destroy();
-    }
-
     public bind(close: CloseHandler) {
         this.close = close;
-    }
-
-    public isEmpty(): boolean {
-        return this.entries.len() === 0;
     }
 
     public count(): number {
@@ -88,7 +95,7 @@ export class State extends Holder {
     }
 
     public getContextMenu(entity: Entity): IMenuItem[] {
-        return this.providers.getContextMenu(entity.origin);
+        return this.providers.getContextMenu(entity.origin, this.close);
     }
 
     public getNoContentActions(index: number): INoContentActions {

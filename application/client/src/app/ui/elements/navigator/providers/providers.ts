@@ -21,6 +21,29 @@ export class Providers {
         protected readonly entries: Entries,
     ) {
         this.providers = PROVIDERS.map((Ref, i) => new Ref(ilc, i));
+        this.providers.forEach((provider: Provider<TEntity>, i: number) => {
+            ilc.env().subscriber.register(
+                provider.reload.subscribe(() => {
+                    this.entries.remove(i);
+                    provider
+                        .load()
+                        .then((entities) => {
+                            this.entries.add(
+                                i,
+                                provider.title(),
+                                entities.map((en) => new Entity(en, i, this.matcher)),
+                            );
+                        })
+                        .catch((err: Error) => {
+                            this.ilc
+                                .log()
+                                .error(
+                                    `Fail to reload navigation provider data with: ${err.message}`,
+                                );
+                        });
+                }),
+            );
+        });
     }
 
     public destroy() {
@@ -55,8 +78,8 @@ export class Providers {
         return this.providers.map((p) => p.stat());
     }
 
-    public getContextMenu(entity: TEntity): IMenuItem[] {
-        return this.providers.map((p) => p.getContextMenu(entity)).flat();
+    public getContextMenu(entity: TEntity, close?: () => void): IMenuItem[] {
+        return this.providers.map((p) => p.getContextMenu(entity, close)).flat();
     }
 
     public getNoContentActions(index: number): INoContentActions {

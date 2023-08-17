@@ -1,6 +1,7 @@
 import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { IMenuItem } from '@ui/service/contextmenu';
+import { Subject } from '@platform/env/subscription';
 
 export interface IStatistics {
     title: string;
@@ -16,6 +17,8 @@ export interface INoContentActions {
 export abstract class Provider<T> {
     private readonly _abort: AbortController = new AbortController();
 
+    public reload: Subject<void> = new Subject();
+
     constructor(
         public readonly ilc: IlcInterface & ChangesDetector,
         public readonly index: number,
@@ -24,7 +27,7 @@ export abstract class Provider<T> {
     public abstract load(): Promise<T[]>;
     public abstract action(entity: T): void;
     public abstract stat(): IStatistics;
-    public abstract getContextMenu(entity: T): IMenuItem[];
+    public abstract getContextMenu(entity: T, close?: () => void): IMenuItem[];
     public abstract title(): string;
     public abstract getNoContentActions(): INoContentActions;
 

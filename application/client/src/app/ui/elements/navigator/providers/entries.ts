@@ -10,30 +10,33 @@ import * as wasm from '@loader/wasm';
 const MAX_VISIBLE_ITEMS = 35;
 const ELEMENT_HEIGHT = 28;
 
-interface ICollection {
+export interface ICollection {
     title: string;
-    total: number;
     entries: Entity[];
     index: number;
 }
 
+export interface ICollectionInfo {
+    total: number;
+    index: number;
+}
+
 export class Entries {
-    protected readonly entries: Map<number, ICollection> = new Map();
+    protected entries: Map<number, ICollection> = new Map();
 
     public readonly filter: Filter;
+    public readonly updated: Subject<void> = new Subject();
     public selected: string = '';
 
     constructor(
         protected readonly uuid: string,
         protected readonly ilc: IlcInterface & ChangesDetector,
         protected readonly matcher: wasm.Matcher,
-        protected readonly update: Subject<void>,
     ) {
         this.filter = new Filter(ilc, { placeholder: 'Type to filter' });
         ilc.env().subscriber.register(
             this.filter.subjects.get().change.subscribe((value: string) => {
                 this.filtering(value);
-                ilc.markChangesForCheck();
             }),
         );
     }
@@ -45,7 +48,21 @@ export class Entries {
         });
         this.defaultSelection();
         this.move().update();
-        this.update.emit();
+        this.updated.emit();
+    }
+
+    protected sort(): void {
+        const sorted: Map<number, ICollection> = new Map();
+        Array.from(this.entries.keys())
+            .sort()
+            .forEach((index: number) => {
+                const collection = this.entries.get(index);
+                if (collection === undefined) {
+                    return;
+                }
+                sorted.set(index, collection);
+            });
+        this.entries = sorted;
     }
 
     protected all(): Entity[] {
@@ -76,9 +93,16 @@ export class Entries {
         this.entries.set(index, {
             title,
             index,
-            total: entries.length,
             entries: createPassiveMatcheeList<Entity>(entries, this.matcher),
         });
+        this.sort();
+        this.updated.emit();
+    }
+
+    public remove(index: number): void {
+        this.entries.delete(index);
+        this.sort();
+        this.updated.emit();
     }
 
     public len(): number {
@@ -92,12 +116,27 @@ export class Entries {
             return {
                 index: collection.index,
                 title: collection.title,
-                total: collection.total,
                 entries: collection.entries
                     .filter((a: Entity) => a.getScore() > 0)
                     .slice(0, MAX_VISIBLE_ITEMS),
             };
         });
+    }
+
+    public stat(): ICollectionInfo[] {
+        return Array.from(this.entries.values()).map((collection: ICollection) => {
+            return {
+                index: collection.index,
+                title: collection.title,
+                total: collection.entries.length,
+            };
+        });
+    }
+
+    public hasEmptyCollection(): boolean {
+        return Array.from(this.entries.values())
+            .map((en) => en.entries.length)
+            .includes(0);
     }
 
     public getSelected(): Entity | undefined {
