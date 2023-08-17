@@ -1,7 +1,7 @@
-<div class="wrapper" *ngIf="!state.isEmpty()">
+<div class="wrapper" *ngIf="!state.empty">
     <app-filter-input #filter [filter]="state.entries.filter"></app-filter-input>
     <div [attr.id]="state.uuid" class="actions">
-        <ng-container *ngFor="let collection of state.entries.filtered();">
+        <ng-container *ngFor="let collection of state.filtered;">
             <span class="collection-title t-small">{{collection.title}}</span>
             <span class="collection-divider"></span>
             <div [attr.class]="'action ' + (state.entries.selected === entity.uuid ? 'selected' : '')" 
@@ -27,11 +27,14 @@
         </div>
     </div>
 </div>
-<ng-container *ngFor="let collection of state.entries.filtered();">
-    <div class="wrapper" *ngIf="!state.loading && collection.total === 0">
-        <p class="warning t-medium">{{state.getNoContentActions(collection.index).title}}</p>
-        <div class="controlls">
-            <button mat-stroked-button *ngFor="let button of state.getNoContentActions(collection.index).buttons" (click)="button.handler()">{{button.caption}}</button>
+<div class="no-content-actions" *ngIf="!state.loading && state.entries.hasEmptyCollection()">
+    <ng-container *ngFor="let collection of state.entries.stat();">
+        <div class="collection-actions" *ngIf="collection.total === 0">
+            <p class="warning t-medium">{{state.getNoContentActions(collection.index).title}}</p>
+            <div class="controlls" *ngIf="state.getNoContentActions(collection.index).buttons.length > 0">
+                <button mat-stroked-button *ngFor="let button of state.getNoContentActions(collection.index).buttons" (click)="button.handler()">{{button.caption}}</button>
+            </div>
         </div>
-    </div>
-</ng-container>
+    </ng-container>
+</div>
+

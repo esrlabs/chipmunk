@@ -6,17 +6,21 @@ app-navigator {
     display: block;
     width: 100%;
     overflow: hidden;
-    & div.wrapper {
+    & div.no-content-actions {
         position: relative;
         display: block;
         width: 100%;
         overflow: hidden;
+        & div.collection-actions{
+            border-top: thin solid @scheme-color-4;
+            & p.warning {
+                padding: 6px 12px;
+                color: @scheme-color-0;
+                overflow: hidden;
+            }
+        }
     }
-    & p.warning {
-        padding: 24px;
-        color: @scheme-color-0;
-        overflow: hidden;
-    }
+
     & span.collection-divider {
         position: absolute;
         left:12px;

@@ -220,7 +220,7 @@ export class Provider extends Base<IFileDescription> {
         if (desc === undefined) {
             return;
         }
-        this.open(desc);
+        this.open(desc).auto();
     }
 
     public stat(): IStatistics {
@@ -231,7 +231,7 @@ export class Provider extends Base<IFileDescription> {
         };
     }
 
-    public getContextMenu(entity: unknown): IMenuItem[] {
+    public getContextMenu(entity: unknown, close?: () => void): IMenuItem[] {
         const desc = this.asFileDescription(entity);
         if (desc === undefined) {
             return [];
@@ -241,24 +241,28 @@ export class Provider extends Base<IFileDescription> {
                 caption: 'Open as text',
                 handler: () => {
                     this.open(desc).text();
+                    close !== undefined && close();
                 },
             },
             {
                 caption: 'Open as DLT',
                 handler: () => {
                     this.open(desc).dlt();
+                    close !== undefined && close();
                 },
             },
             {
                 caption: 'Open as PcapNG',
                 handler: () => {
                     this.open(desc).pcapng();
+                    close !== undefined && close();
                 },
             },
             {
                 caption: 'Open as Pcap',
                 handler: () => {
                     this.open(desc).pcap();
+                    close !== undefined && close();
                 },
             },
         ];
