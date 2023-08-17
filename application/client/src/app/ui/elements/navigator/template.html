@@ -1,0 +1,37 @@
+<div class="wrapper" *ngIf="!state.isEmpty()">
+    <app-filter-input #filter [filter]="state.entries.filter"></app-filter-input>
+    <div [attr.id]="state.uuid" class="actions">
+        <ng-container *ngFor="let collection of state.entries.filtered();">
+            <span class="collection-title t-small">{{collection.title}}</span>
+            <span class="collection-divider"></span>
+            <div [attr.class]="'action ' + (state.entries.selected === entity.uuid ? 'selected' : '')" 
+                *ngFor="let entity of collection.entries;"
+                (click)="ngAction(entity)"
+                (contextmenu)="ngItemContextMenu($event, entity)">
+                <p class="t-medium nowrap description">
+                    <span class="color-scheme-1 major" [innerHTML]="safeHtml(entity.description().major)"></span>
+                    <span class="color-scheme-2 minor" [innerHTML]="safeHtml(entity.description().minor)"></span>
+                </p>
+            </div>
+        </ng-container>
+    </div>
+    <div class="stat">
+        <div *ngIf="state.loading">
+            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        </div>
+        <div *ngFor="let statistics of state.statistics">
+            <ng-container *ngIf="statistics.total > 0">
+                <p class="info t-small">{{statistics.title}}</p>
+                <p class="sub-info t-small" *ngFor="let info of statistics.info">{{info}}</p>    
+            </ng-container>
+        </div>
+    </div>
+</div>
+<ng-container *ngFor="let collection of state.entries.filtered();">
+    <div class="wrapper" *ngIf="!state.loading && collection.total === 0">
+        <p class="warning t-medium">{{state.getNoContentActions(collection.index).title}}</p>
+        <div class="controlls">
+            <button mat-stroked-button *ngFor="let button of state.getNoContentActions(collection.index).buttons" (click)="button.handler()">{{button.caption}}</button>
+        </div>
+    </div>
+</ng-container>

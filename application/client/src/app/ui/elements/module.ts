@@ -12,6 +12,7 @@ import { AutocompleteModule } from '@elements/autocomplete/module';
 import { ComTooltipComponent } from '@elements/tooltip/component';
 import { FolderInputModule } from '@elements/folderinput/module';
 import { FavoritesModule } from '@elements/favorites/module';
+import { NavigatorModule } from '@elements/navigator/module';
 
 @NgModule({
     imports: [
@@ -26,6 +27,7 @@ import { FavoritesModule } from '@elements/favorites/module';
         AutocompleteModule,
         FolderInputModule,
         FavoritesModule,
+        NavigatorModule,
     ],
     declarations: [ComTooltipComponent],
     exports: [
