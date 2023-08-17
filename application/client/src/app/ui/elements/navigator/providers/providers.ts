@@ -1,0 +1,68 @@
+import { Entity, TEntity } from './entity';
+import { Entries } from './entries';
+import { INoContentActions, IStatistics, Provider } from './provider';
+import { Provider as ProviderFiles } from './provider.files';
+import { Provider as ProviderRecent } from './provider.recent';
+import { IlcInterface } from '@service/ilc';
+import { ChangesDetector } from '@ui/env/extentions/changes';
+
+import * as wasm from '@loader/wasm';
+
+import { IMenuItem } from '@ui/service/contextmenu';
+
+const PROVIDERS = [ProviderRecent, ProviderFiles];
+
+export class Providers {
+    protected readonly providers: Provider<TEntity>[] = [];
+
+    constructor(
+        protected readonly ilc: IlcInterface & ChangesDetector,
+        protected readonly matcher: wasm.Matcher,
+        protected readonly entries: Entries,
+    ) {
+        this.providers = PROVIDERS.map((Ref, i) => new Ref(ilc, i));
+    }
+
+    public destroy() {
+        this.providers.forEach((p) => p.destroy());
+    }
+
+    public load(): Promise<void> {
+        return Promise.allSettled(this.providers.map((p) => p.load())).then(
+            (results: PromiseSettledResult<TEntity[]>[]) => {
+                results.forEach((result, i) => {
+                    if (result.status === 'rejected') {
+                        this.ilc
+                            .log()
+                            .error(`Fail to get navigation provider data with: ${result.reason}`);
+                        return;
+                    }
+                    this.entries.add(
+                        i,
+                        this.providers[i].title(),
+                        result.value.map((en) => new Entity(en, i, this.matcher)),
+                    );
+                });
+            },
+        );
+    }
+
+    public action(entity: TEntity): void {
+        this.providers.forEach((p) => p.action(entity));
+    }
+
+    public stat(): IStatistics[] {
+        return this.providers.map((p) => p.stat());
+    }
+
+    public getContextMenu(entity: TEntity): IMenuItem[] {
+        return this.providers.map((p) => p.getContextMenu(entity)).flat();
+    }
+
+    public getNoContentActions(index: number): INoContentActions {
+        if (this.providers[index] === undefined) {
+            throw new Error(`Fail to find provider with index ${index}.`);
+        }
+        return this.providers[index].getNoContentActions();
+    }
+}

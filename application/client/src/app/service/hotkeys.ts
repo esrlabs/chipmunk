@@ -117,7 +117,7 @@ export class Service extends Implementation {
             this.listen('Ctrl + P', () => {
                 this._services.ui.popup.open({
                     component: {
-                        factory: components.get('app-favorites-mini'),
+                        factory: components.get('app-navigator'),
                         inputs: {},
                     },
                     position: {
