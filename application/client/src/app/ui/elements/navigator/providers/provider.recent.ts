@@ -36,6 +36,7 @@ export class Provider extends Base<Action> {
     }
     public load(): Promise<Action[]> {
         return recent.get().then((actions: Action[]) => {
+            actions = actions.filter((action) => action.isSuitable(this.observe));
             actions.sort((a: Action, b: Action) => {
                 return b.stat.score().recent() >= a.stat.score().recent() ? 1 : -1;
             });

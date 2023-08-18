@@ -7,6 +7,7 @@ import { Holder } from '@module/matcher/holder';
 import { unique } from '@platform/env/sequence';
 import { INoContentActions, IStatistics } from './providers/provider';
 import { IMenuItem } from '@ui/service/contextmenu';
+import { Observe } from '@platform/types/observe';
 
 export type CloseHandler = () => void;
 
@@ -25,11 +26,12 @@ export class State extends Holder {
     constructor(
         protected readonly ilc: IlcInterface & ChangesDetector,
         protected readonly filterRefGetter: () => HTMLInputElement | undefined,
+        protected readonly observe: Observe | undefined,
     ) {
         super();
         this.ilc = ilc;
         this.entries = new Entries(this.uuid, ilc, this.matcher);
-        this.providers = new Providers(ilc, this.matcher, this.entries);
+        this.providers = new Providers(ilc, this.matcher, this.entries, this.observe);
         ilc.env().subscriber.register(
             ilc
                 .ilc()
