@@ -62,6 +62,7 @@ export class Navigator
 
     public ngAfterViewInit(): void {
         this.state.load();
+        this.detectChanges();
     }
 
     public ngItemContextMenu(event: MouseEvent, entity: Entity) {
