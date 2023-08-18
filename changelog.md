@@ -1,3 +1,8 @@
+# 3.9.7
+
+## Features
+- Add mixed popup (Ctrl + P / Cmd + P) to show recent action(s) with files from favorites places
+  
 # 3.9.6
 
 ## Fixes:
