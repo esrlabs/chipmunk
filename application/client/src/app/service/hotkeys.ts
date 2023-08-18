@@ -131,23 +131,6 @@ export class Service extends Implementation {
             }),
         );
         this.register(
-            this.listen('Shift + Ctrl + P', () => {
-                this._services.ui.popup.open({
-                    component: {
-                        factory: components.get('app-recent-actions-mini'),
-                        inputs: {},
-                    },
-                    position: {
-                        vertical: Vertical.top,
-                        horizontal: Horizontal.center,
-                    },
-                    closeOnKey: 'Escape',
-                    width: 450,
-                    uuid: 'Shift + Ctrl + P',
-                });
-            }),
-        );
-        this.register(
             this.listen('Ctrl + O', () => {
                 new FileAnyAction().apply().catch((err: Error) => {
                     this.log().error(`Fail to call action FileAnyAction; error: ${err.message}`);

@@ -63,7 +63,7 @@ export abstract class Provider {
         }
         popup.open({
             component: {
-                factory: components.get('app-recent-actions-mini'),
+                factory: components.get('app-navigator'),
                 inputs: {
                     observe,
                 },
