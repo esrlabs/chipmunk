@@ -20,23 +20,31 @@ app-navigator {
             }
         }
     }
-
-    & span.collection-divider {
-        position: absolute;
-        left:12px;
-        right: 12px;
-        height: 1px;
-        border-top: thin solid @scheme-color-4;
+    & div.collection-title {
+        position: sticky;
+        top:0;
         z-index: 1;
-    }
-    & span.collection-title {
-        position: absolute;
-        right: 12px;
-        font-size: 11px;
-        background: @scheme-color-4;
-        color: @scheme-color-0;
-        z-index: 1;
-        padding: 3px 6px;
+        height: 0;
+        width: 100%;
+        & span.title {
+            position: absolute;
+            right: 12px;
+            font-size: 11px;
+            background: @scheme-color-4;
+            color: @scheme-color-0;
+            z-index: 1;
+            padding: 3px 6px;
+            min-width: 78px;
+        }
+        & span.divider {
+            position: absolute;
+            left:12px;
+            right: 12px;
+            height: 1px;
+            border-top: thin solid @scheme-color-4;
+            z-index: 1;
+        }
+    
     }
     & div.controlls {
         padding-bottom: 12px;
@@ -120,5 +128,13 @@ app-navigator {
     & div.stat {
         padding-bottom: 12px;
         border-top: thin solid @scheme-color-4;
+    }
+    & div.progress {
+        & p {
+            color: @scheme-color-1;
+            display: block;
+            text-align: center;
+        }
+        padding: 12px 12px;
     }
 }
