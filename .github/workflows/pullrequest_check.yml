@@ -8,6 +8,8 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v2
+            - name: libudev-dev
+              run: sudo apt-get install -y libudev-dev
             - name: install ruby
               uses: ruby/setup-ruby@v1
               with:
@@ -32,6 +34,8 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v2
+            - name: libudev-dev
+              run: sudo apt-get install -y libudev-dev
             - name: install ruby
               uses: ruby/setup-ruby@v1
               with:
@@ -53,6 +57,8 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v2
+            - name: libudev-dev
+              run: sudo apt-get install -y libudev-dev
             - name: install ruby
               uses: ruby/setup-ruby@v1
               with:
@@ -76,6 +82,8 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v2
+            - name: libudev-dev
+              run: sudo apt-get install -y libudev-dev
             - uses: actions-rs/toolchain@v1
               with:
                   toolchain: stable
