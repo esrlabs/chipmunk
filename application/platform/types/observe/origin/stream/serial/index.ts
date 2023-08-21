@@ -16,6 +16,8 @@ export interface IConfiguration {
     flow_control: number;
     parity: number;
     stop_bits: number;
+    send_data_delay: number;
+    exclusive: boolean;
 }
 
 @Statics<ConfigurationStaticDesc<IConfiguration, Source>>()
@@ -54,12 +56,14 @@ export class Configuration
     // Gives initial settings. Not necessarily valid.
     static initial(): IConfiguration {
         return {
-            baud_rate: 9600,
+            baud_rate: 115200,
             data_bits: 8,
             flow_control: 0,
             parity: 0,
             path: '',
             stop_bits: 1,
+            send_data_delay: 0,
+            exclusive: true,
         };
     }
 

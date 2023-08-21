@@ -57,11 +57,23 @@ const PARITY = [
     { value: 2, name: 'Even' },
 ];
 const STOP_BITS = [1, 2];
+const EXCLUSIVE = [
+    { value: true, name: 'Yes (default)' },
+    { value: false, name: 'No' },
+];
+const DELAY = [
+    { value: 0, name: 'No delay (default)' },
+    { value: 10, name: '10 ms' },
+    { value: 20, name: '20 ms' },
+    { value: 30, name: '30 ms' },
+    { value: 40, name: '40 ms' },
+    { value: 50, name: '50 ms' },
+];
 
 export class State implements Destroy {
     public ports: string[] = [];
     public changed: Subject<void> = new Subject<void>();
-    public baudRateProxy: number | string = 9600;
+    public baudRateProxy: number | string = 115200;
     public loaded: boolean = false;
 
     public BAUD_RATE = BAUD_RATE;
@@ -69,6 +81,8 @@ export class State implements Destroy {
     public FLOW_CONTROL = FLOW_CONTROL;
     public PARITY = PARITY;
     public STOP_BITS = STOP_BITS;
+    public EXCLUSIVE = EXCLUSIVE;
+    public DELAY = DELAY;
 
     protected timer: number = -1;
     protected states: Map<string, Stream.Serial.IConfiguration> = new Map();

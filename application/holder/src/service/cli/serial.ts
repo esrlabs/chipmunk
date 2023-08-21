@@ -104,8 +104,19 @@ export class Action extends CLIAction {
             flow_control: -1,
             parity: -1,
             stop_bits: -1,
+            send_data_delay: -1,
+            exclusive: true,
         };
-        const keys = ['path', 'baud_rate', 'data_bits', 'flow_control', 'parity', 'stop_bits'];
+        const keys = [
+            'path',
+            'baud_rate',
+            'data_bits',
+            'flow_control',
+            'parity',
+            'stop_bits',
+            'send_data_delay',
+            'exclusive',
+        ];
         parts.forEach((p, i) => {
             if (error instanceof Error) {
                 return;
@@ -115,8 +126,22 @@ export class Action extends CLIAction {
                 return;
             }
             if (i === 0) {
-                (parameters as unknown as { [key: string]: string | number })[keys[i]] = p;
-            } else if (i !== 0) {
+                (parameters as unknown as { [key: string]: string | number | boolean })[keys[i]] =
+                    p;
+            } else if (i === keys.length - 1) {
+                (parameters as unknown as { [key: string]: string | number | boolean })[keys[i]] =
+                    typeof p === 'boolean'
+                        ? p
+                        : typeof p === 'string'
+                        ? p === 'true'
+                            ? true
+                            : false
+                        : typeof p === 'number'
+                        ? p === 1
+                            ? true
+                            : false
+                        : true;
+            } else {
                 const value = parseInt(p, 10);
                 if (isNaN(value) || !isFinite(value)) {
                     error = new Error(`Parameter "${keys[i]}" has invalid value.`);

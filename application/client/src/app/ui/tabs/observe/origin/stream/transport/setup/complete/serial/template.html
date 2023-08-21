@@ -57,6 +57,22 @@
         </mat-option>
     </mat-select>
 </mat-form-field>
+<mat-form-field class="material-mofication-normal row">
+    <mat-label>Exclusive opening</mat-label>
+    <mat-select [(ngModel)]="state.configuration.configuration.exclusive">
+        <mat-option *ngFor="let keyvalue of state.EXCLUSIVE" [value]="keyvalue.value">
+            {{keyvalue.name}}
+        </mat-option>
+    </mat-select>
+</mat-form-field>
+<mat-form-field class="material-mofication-normal row">
+    <mat-label>Delay on writing</mat-label>
+    <mat-select [(ngModel)]="state.configuration.configuration.send_data_delay">
+        <mat-option *ngFor="let keyvalue of state.DELAY" [value]="keyvalue.value">
+            {{keyvalue.name}}
+        </mat-option>
+    </mat-select>
+</mat-form-field>
 <div class="controlls">
     <button mat-stroked-button (click)="state.defaluts()">Drop Setting To Defaults</button>
 </div>

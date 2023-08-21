@@ -1344,6 +1344,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4668fb0ea861c1df094127ac5f1da3409a82116a4ba74fca2e58ef927159bb3"
 
 [[package]]
+name = "libudev"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78b324152da65df7bb95acfcaab55e3097ceaab02fb19b228a9eb74d55f135e0"
+dependencies = [
+ "libc",
+ "libudev-sys",
+]
+
+[[package]]
+name = "libudev-sys"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c8469b4a23b962c1396b9b451dda50ef5b283e8dd309d69033475fa9b334324"
+dependencies = [
+ "libc",
+ "pkg-config",
+]
+
+[[package]]
 name = "linked-hash-map"
 version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2478,14 +2498,15 @@ dependencies = [
 
 [[package]]
 name = "serialport"
-version = "4.2.1"
+version = "4.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "353dc2cbfc67c9a14a89a1292a9d8e819bd51066b083e08c1974ba08e3f48c62"
+checksum = "c32634e2bd4311420caa504404a55fad2131292c485c97014cbed89a5899885f"
 dependencies = [
  "CoreFoundation-sys",
  "IOKit-sys",
  "bitflags 2.0.2",
  "cfg-if 1.0.0",
+ "libudev",
  "mach2",
  "nix",
  "regex",
@@ -2513,10 +2534,10 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "serialport",
  "sources",
  "thiserror",
  "tokio",
- "tokio-serial",
  "tokio-stream",
  "tokio-util",
  "uuid",
