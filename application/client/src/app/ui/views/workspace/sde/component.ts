@@ -71,13 +71,10 @@ export class ViewSdeComponent extends ChangesDetector implements AfterContentIni
 
     public enter(): void {
         const value = this.sdeInputRef.control.value;
-        if (value.trim() === '') {
-            return;
-        }
         this.state
             .send(value)
             .then(() => {
-                this.options.recent.emit(value);
+                value.trim() !== '' && this.options.recent.emit(value);
             })
             .finally(() => {
                 this.sdeInputRef.control.drop();

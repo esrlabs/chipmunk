@@ -87,6 +87,8 @@ pub struct SerialTransportConfig {
     pub flow_control: u8,
     pub parity: u8,
     pub stop_bits: u8,
+    pub send_data_delay: u8,
+    pub exclusive: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

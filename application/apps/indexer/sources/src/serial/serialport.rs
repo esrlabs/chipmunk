@@ -9,6 +9,7 @@ use futures::{
     SinkExt,
 };
 use std::{io, str};
+use tokio::time::{sleep, Duration};
 use tokio_serial::{DataBits, FlowControl, Parity, SerialPortBuilderExt, SerialStream, StopBits};
 use tokio_util::codec::{Decoder, Encoder, Framed};
 
@@ -83,6 +84,7 @@ pub struct SerialSource {
     read_stream: SplitStream<Framed<SerialStream, LineCodec>>,
     buffer: Buffer,
     amount: usize,
+    send_data_delay: u8,
 }
 
 // Do we need to do some actions of destructor?
@@ -103,10 +105,10 @@ impl SerialSource {
         {
             Ok(mut port) => {
                 #[cfg(unix)]
-                if let Err(err) = port.set_exclusive(false) {
+                if let Err(err) = port.set_exclusive(config.exclusive) {
                     return Err(SourceError::Setup(format!(
-                        "Unable to set serial port {} exclusive to false: {}",
-                        config.path, err
+                        "Unable to set serial port {} exclusive to {}: {}",
+                        config.path, config.exclusive, err
                     )));
                 }
                 let stream = LineCodec.framed(port);
@@ -116,6 +118,7 @@ impl SerialSource {
                     read_stream,
                     buffer: Buffer::new(),
                     amount: 0,
+                    send_data_delay: config.send_data_delay,
                 })
             }
             Err(err) => Err(SourceError::Setup(format!(
@@ -172,20 +175,40 @@ impl ByteSource for SerialSource {
 
     async fn income(&mut self, request: sde::SdeRequest) -> Result<sde::SdeResponse, SourceError> {
         Ok(match request {
-            sde::SdeRequest::WriteText(str) => {
+            sde::SdeRequest::WriteText(mut str) => {
                 let len = str.len();
-                self.write_stream
-                    .send(str.as_bytes().to_vec())
-                    .await
-                    .map_err(SourceError::Io)?;
+                if self.send_data_delay == 0 {
+                    self.write_stream
+                        .send(str.as_bytes().to_vec())
+                        .await
+                        .map_err(SourceError::Io)?;
+                } else {
+                    while !str.is_empty() {
+                        self.write_stream
+                            .send(str.drain(0..1).collect::<String>().as_bytes().to_vec())
+                            .await
+                            .map_err(SourceError::Io)?;
+                        sleep(Duration::from_millis(self.send_data_delay as u64)).await;
+                    }
+                }
                 sde::SdeResponse { bytes: len }
             }
-            sde::SdeRequest::WriteBytes(bytes) => {
+            sde::SdeRequest::WriteBytes(mut bytes) => {
                 let len = bytes.len();
-                self.write_stream
-                    .send(bytes)
-                    .await
-                    .map_err(SourceError::Io)?;
+                if self.send_data_delay == 0 {
+                    self.write_stream
+                        .send(bytes)
+                        .await
+                        .map_err(SourceError::Io)?;
+                } else {
+                    while !bytes.is_empty() {
+                        self.write_stream
+                            .send(bytes.drain(0..1).collect::<Vec<u8>>())
+                            .await
+                            .map_err(SourceError::Io)?;
+                        sleep(Duration::from_millis(self.send_data_delay as u64)).await;
+                    }
+                }
                 sde::SdeResponse { bytes: len }
             }
         })
