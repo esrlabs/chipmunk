@@ -42,7 +42,7 @@ export class ScrollAreaVerticalComponent
     private _scrollEventLockToken: LockToken = new LockToken(-1);
 
     @HostListener('scroll', ['$event', '$event.target']) onScroll(
-        event: MouseEvent,
+        _event: MouseEvent,
         target: HTMLElement,
     ) {
         if (this._scrollEventLockToken.isLocked()) {
@@ -78,10 +78,16 @@ export class ScrollAreaVerticalComponent
         this._count = this.service.getLen();
         this.env().subscriber.register(
             this.service.onLen((len: number) => {
+                if (this._count === len) {
+                    return;
+                }
                 this._count = len;
                 this._calculate();
             }),
             this.holder.onHeightChange((height: number) => {
+                if (this._height === height) {
+                    return;
+                }
                 this._height = height;
                 this._calculate();
             }),
@@ -92,6 +98,7 @@ export class ScrollAreaVerticalComponent
                 ) {
                     return;
                 }
+                this.detectChanges();
                 const position = event.range.from / this._count;
                 this.elRef.nativeElement.scrollTop =
                     this.elRef.nativeElement.scrollHeight * position;
