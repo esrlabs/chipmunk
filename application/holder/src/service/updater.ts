@@ -32,8 +32,10 @@ declare const global: ChipmunkGlobal;
 
 const UPDATER = 'updater';
 const AUTO = { key: 'autoUpdateCheck', path: 'general' };
-const REPO = 'chipmunk';
-const TARGET_TAG_STARTS = 'next-';
+
+export const REPO = 'chipmunk';
+export const TARGET_TAG_STARTS = 'next-';
+
 enum LatestReleaseNotFound {
     NoUpdates,
     NoNextGeneration,

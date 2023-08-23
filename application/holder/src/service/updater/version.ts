@@ -49,4 +49,11 @@ export class Version {
         }
         return false;
     }
+
+    public isGivenSame(version: Version): boolean {
+        const diff: number[] = this.parts.map((xxx: number, i: number) => {
+            return version.parts[i] - xxx;
+        });
+        return diff[0] + diff[1] + diff[2] === 0;
+    }
 }

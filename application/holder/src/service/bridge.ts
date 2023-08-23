@@ -42,6 +42,15 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
+                    Requests.App.Changelogs.Request,
+                    RequestHandlers.App.Changelogs.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
                     Requests.File.Save.Request,
                     RequestHandlers.File.Save.handler,
                 ),

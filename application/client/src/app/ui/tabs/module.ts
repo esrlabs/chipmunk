@@ -6,6 +6,7 @@ import { PairsModule } from '@elements/pairs/module';
 import { MultipleFilesModule } from '@ui/tabs/multiplefiles/module';
 import { DialogsModule } from '@ui/views/dialogs/module';
 import { SettingsModule } from '@ui/tabs/settings/module';
+import { ChangelogModule } from '@ui/tabs/changelogs/module';
 
 @NgModule({
     imports: [CommonModule, TimezoneSelectorModule],
@@ -16,6 +17,7 @@ import { SettingsModule } from '@ui/tabs/settings/module';
         PairsModule,
         MultipleFilesModule,
         SettingsModule,
+        ChangelogModule,
     ],
     bootstrap: [
         TimezoneSelectorModule,
@@ -24,6 +26,7 @@ import { SettingsModule } from '@ui/tabs/settings/module';
         MultipleFilesModule,
         DialogsModule,
         SettingsModule,
+        ChangelogModule,
     ],
 })
 export class TabsModule {}

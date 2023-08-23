@@ -611,6 +611,7 @@ export class Service extends Implementation {
 
     public app(): {
         version(): Promise<string>;
+        changelogs(version?: string): Promise<{ markdown: string; version: string }>;
     } {
         return {
             version: (): Promise<string> => {
@@ -624,6 +625,21 @@ export class Service extends Implementation {
                                 return reject(new Error(response.error));
                             }
                             resolve(response.version);
+                        })
+                        .catch(reject);
+                });
+            },
+            changelogs: (version?: string): Promise<{ markdown: string; version: string }> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.App.Changelogs.Response,
+                        new Requests.App.Changelogs.Request({ version }),
+                    )
+                        .then((response) => {
+                            if (response.error !== undefined) {
+                                return reject(new Error(response.error));
+                            }
+                            resolve({ markdown: response.markdown, version: response.version });
                         })
                         .catch(reject);
                 });

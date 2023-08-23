@@ -74,6 +74,10 @@ export const services: { [key: string]: Inputs } = {
         name: 'Favorites',
         uuid: v4(),
     },
+    changelogs: {
+        name: 'Changelogs',
+        uuid: v4(),
+    },
 };
 
 export const ui: { [key: string]: Inputs } = {

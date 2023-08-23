@@ -41,6 +41,7 @@ export interface IReleaseData {
     name: string;
     id: number;
     tag_name: string;
+    body: string;
 }
 
 export class GitHubAsset {
