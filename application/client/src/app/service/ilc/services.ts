@@ -19,6 +19,7 @@ import { actions, Service as ActionsService } from '@service/actions';
 import { settings, Service as Settings } from '@service/settings';
 import { favorites, Service as Favorites } from '@service/favorites';
 import { sys, Service as Sys } from '@service/sys';
+import { changelogs, Service as Changelogs } from '@service/changelogs';
 
 import { Logger } from '@platform/log';
 
@@ -36,6 +37,7 @@ export class Services {
         settings: Settings;
         favorites: Favorites;
         sys: Sys;
+        changelogs: Changelogs;
     };
     public readonly ui: {
         popup: UIPopupService;
@@ -68,6 +70,7 @@ export class Services {
             settings,
             favorites,
             sys,
+            changelogs,
         };
         this.ui = {
             popup,

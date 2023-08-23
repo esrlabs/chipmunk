@@ -22,6 +22,11 @@ export class AppComponent extends ChangesDetector implements AfterViewInit {
     public ngAfterViewInit(): void {
         setNgZone(this.ngZone);
         this.ilc().services.system.state.setClientAsReady();
+        this.ilc()
+            .services.system.changelogs.check()
+            .catch((err: Error) => {
+                this.log().error(`Fail to check changelogs; error: ${err.message}`);
+            });
     }
 }
 export interface AppComponent extends IlcInterface {}
