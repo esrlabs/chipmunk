@@ -1,0 +1,23 @@
+<div class="preset-container">
+    <div class="preset-container-content">
+        <div class="left">
+            <mat-card class="fill sticky">
+                <mat-card-content>
+                    <div #content class="markdown" [innerHTML]="html.content"></div>
+                </mat-card-content>
+            </mat-card>
+        </div>
+        <div class="right">
+            <mat-card>
+                <mat-card-subtitle>Navigation</mat-card-subtitle>
+                <mat-card-subtitle>
+                    <button class="small" mat-stroked-button (click)="home()">HOME</button>
+                    <button class="small" mat-stroked-button (click)="back()" [disabled]="history.length === 0">BACK</button>
+                </mat-card-subtitle>
+                <mat-card-content>
+                    <div #index class="markdown" [innerHTML]="html.index"></div>
+                </mat-card-content>
+            </mat-card>
+        </div>
+    </div>
+</div>

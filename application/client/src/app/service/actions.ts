@@ -226,6 +226,28 @@ export class Service extends Implementation {
                     },
                 ),
         );
+        this.register(
+            api
+                .transport()
+                .respondent(
+                    this.getName(),
+                    Requests.Actions.Help.Request,
+                    (
+                        _request: Requests.Actions.Help.Request,
+                    ): CancelablePromise<Requests.Actions.Help.Response> => {
+                        return new CancelablePromise((resolve, _reject) => {
+                            new handlers.Help.Action()
+                                .apply()
+                                .catch((err: Error) => {
+                                    this.log().error(`Fail to call Help action: ${err.message}`);
+                                })
+                                .finally(() => {
+                                    resolve(new Requests.Actions.Help.Response());
+                                });
+                        });
+                    },
+                ),
+        );
         return Promise.resolve();
     }
 }
