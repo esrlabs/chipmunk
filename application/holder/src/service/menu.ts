@@ -118,7 +118,7 @@ export class Service extends Implementation {
                                           click: async () => {
                                               Actions.settings().catch((err: Error) => {
                                                   this.log().error(
-                                                      `Fail call action About: ${err.message}`,
+                                                      `Fail call action Settings: ${err.message}`,
                                                   );
                                               });
                                           },
@@ -131,12 +131,20 @@ export class Service extends Implementation {
                                   click: async () => {
                                       Actions.updates().catch((err: Error) => {
                                           this.log().error(
-                                              `Fail call action About: ${err.message}`,
+                                              `Fail call action Updates: ${err.message}`,
                                           );
                                       });
                                   },
                               },
                               { type: 'separator' },
+                              {
+                                  label: 'Help / Documentation',
+                                  click: async () => {
+                                      Actions.help().catch((err: Error) => {
+                                          this.log().error(`Fail call action Help: ${err.message}`);
+                                      });
+                                  },
+                              },
                               {
                                   label: 'About',
                                   click: async () => {
@@ -247,7 +255,7 @@ export class Service extends Implementation {
                                           click: async () => {
                                               Actions.settings().catch((err: Error) => {
                                                   this.log().error(
-                                                      `Fail call action About: ${err.message}`,
+                                                      `Fail call action Settings: ${err.message}`,
                                                   );
                                               });
                                           },
@@ -260,12 +268,20 @@ export class Service extends Implementation {
                                   click: async () => {
                                       Actions.updates().catch((err: Error) => {
                                           this.log().error(
-                                              `Fail call action About: ${err.message}`,
+                                              `Fail call action Updates: ${err.message}`,
                                           );
                                       });
                                   },
                               },
                               { type: 'separator' },
+                              {
+                                  label: 'Help / Documentation',
+                                  click: async () => {
+                                      Actions.help().catch((err: Error) => {
+                                          this.log().error(`Fail call action Help: ${err.message}`);
+                                      });
+                                  },
+                              },
                               {
                                   label: 'About',
                                   click: async () => {
