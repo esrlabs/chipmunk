@@ -1,2 +1,0 @@
-- [Opening files](/features/files.md)
-- [Serial port connection](/features/serial.md)
