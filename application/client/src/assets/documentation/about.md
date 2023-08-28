@@ -1,7 +1,3 @@
-# Chipmunk 3 Beta Phase
-
-Today we proudly inform you about the first beta release of chipmunk 3.
-
 ## Design & Architecture
 
 The most important change of Chipmunk 3: all stuff related to IO, calculations, parsing etc has been completely moved to the rust core.
