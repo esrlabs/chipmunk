@@ -1,4 +1,5 @@
-- [About](/about.md)
+- [Features](/features.md) 
 - [Search](/search/index.md) 
 - [Charts](/charts/index.md)
 - [Navigation](/navigation/index.md)
+- [About](/about.md)
