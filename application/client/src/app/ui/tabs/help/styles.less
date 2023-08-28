@@ -1,6 +1,6 @@
 @import '../../styles/variables.less';
 
-:host {
+app-tabs-help {
     position: absolute;
     display: block;
     top: 0;
@@ -50,6 +50,52 @@
         }
         & mat-card-subtitle {
             text-align: right;
+            & button:last-child {
+                margin-right: -1px;
+            }
+            &:first-child {
+                padding-top: 16px;
+            }
+        }
+        & ul {
+            padding: 8px 0;
+        }
+        & li {
+            position: relative;
+            display: block;
+            list-style: none;
+            cursor: default;
+            height: 24px;
+            width: 100%;
+            & > a {
+                text-decoration: none;
+                cursor: default;
+                position: absolute;
+                top:0;
+                left:0;
+                width: 100%;
+                height: 100%;
+                padding-top: 2px;
+            }
+            &:hover {
+                background: @scheme-color-4;
+                &::after,
+                &::before {
+                    position: absolute;
+                    content: '';
+                    width: 16px;
+                    height: 100%;
+                    background: @scheme-color-4;
+                    top: 0;
+                }
+                &::after {
+                    left: -16px;
+                }
+                &::before {
+                    left:100%;
+                }
+
+            }
         }
     }
 
