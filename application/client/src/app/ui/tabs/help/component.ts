@@ -27,7 +27,7 @@ export class Help extends ChangesDetector implements AfterViewInit {
         content: string;
     } = {
         index: '/index.md',
-        content: '/about.md',
+        content: '/features.md',
     };
     protected history: string[] = [];
 
