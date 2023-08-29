@@ -6,7 +6,6 @@ import {
 } from '@angular/core';
 import { Columns } from '@schema/render/columns';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { contextmenu } from '@ui/service/contextmenu';
 import { CColors } from '@ui/styles/colors';
 
 @Component({
