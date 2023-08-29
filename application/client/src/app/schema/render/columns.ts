@@ -89,7 +89,7 @@ export class Columns {
         if (this.headers[column] === undefined) {
             throw new Error(`Maximum ${this.headers.length} present in the file and tried to set the color of column at #${column}`);
         }
-        this.headers[column].color = color;
+        this.headers[column].color = (color === 'rgba(0,0,0,0)') ? '#FFF' : color;
         this.subjects.get().colorize.emit(column);
         this.storage().save();
     }
