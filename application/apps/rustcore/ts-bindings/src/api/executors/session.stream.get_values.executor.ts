@@ -1,7 +1,7 @@
 import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './executor';
 import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../session.provider';
-import { IValuesMap } from '../../interfaces/index';
+import { IValuesMap } from 'platform/types/filter';
 import { error } from 'platform/log/utils';
 
 export interface IOptions {

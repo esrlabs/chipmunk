@@ -8,7 +8,7 @@ import {
     TExtractedValues,
     IExtractedMatch,
     IExtractedValue,
-} from '../../interfaces/index';
+} from 'platform/types/filter';
 
 export const executor: TExecutor<TExtractedValues, IFilter[]> = (
     session: RustSession,

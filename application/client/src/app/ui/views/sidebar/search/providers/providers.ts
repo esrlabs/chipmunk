@@ -20,8 +20,6 @@ import { bridge } from '@service/bridge';
 import { HistorySession } from '@service/history/session';
 import { Notification, notifications } from '@ui/service/notifications';
 
-type TSelectedEntities = string[];
-
 export class Providers {
     public readonly subjects: Subjects<ProvidersEvents> = new Subjects({
         select: new Subject(),
@@ -56,7 +54,6 @@ export class Providers {
             provider.destroy();
         });
         this._keyboard.destroy();
-        this._store().drop();
     }
 
     public add(name: ProviderData, providerConstructor: ProviderConstructor): boolean {
@@ -71,7 +68,6 @@ export class Providers {
         provider.subjects.get().context.subscribe(this._onContextMenuEvent.bind(this));
         provider.subjects.get().doubleclick.subscribe(this._onDoubleclickEvent.bind(this));
         provider.subjects.get().change.subscribe(this._onChange.bind(this));
-        provider.subjects.get().reload.subscribe(this._onReload.bind(this));
         provider.subjects.get().edit.subscribe(this._onEdit.bind(this));
         provider.init();
         this._providers.set(name, provider);
@@ -260,64 +256,6 @@ export class Providers {
         };
     }
 
-    private _store(): {
-        load(): TSelectedEntities;
-        save(entities: TSelectedEntities): void;
-        restore(provider: string): void;
-        drop(): void;
-    } {
-        const self = this;
-        return {
-            load: () => {
-                return [];
-                // if (self._session === undefined) {
-                //     return [];
-                // }
-                // const stored: TSelectedEntities | undefined = self._session
-                //     .getScope()
-                //     .get<TSelectedEntities>(PROVIDERS_SCOPE_KEY);
-                // return stored === undefined ? [] : stored.slice();
-            },
-            save: (entities: TSelectedEntities) => {
-                console.log(`Not implemented: ${entities}`);
-                // if (self._session === undefined) {
-                //     return;
-                // }
-                // self._session
-                //     .getScope()
-                //     .set<TSelectedEntities>(PROVIDERS_SCOPE_KEY, entities.slice());
-            },
-            restore: (provider: string) => {
-                const stored = self._store().load();
-                this._providers.forEach((target: Provider<any>) => {
-                    if (provider !== target.uuid) {
-                        return;
-                    }
-                    target.select().drop(self.SENDER);
-                    target.select().apply(self.SENDER, stored);
-                    if (stored.length === 1) {
-                        const entity = target.entities().find((e) => e.uuid() === stored[0]);
-                        entity !== undefined &&
-                            this.subjects.get().select.emit({
-                                entity: entity,
-                                provider: target,
-                                guids: stored,
-                            });
-                    }
-                });
-                if (stored.length === 0) {
-                    this.subjects.get().select.emit(undefined);
-                }
-            },
-            drop: () => {
-                // if (self._session === undefined) {
-                //     return;
-                // }
-                // self._session.getScope().delete(PROVIDERS_SCOPE_KEY);
-            },
-        };
-    }
-
     private _onSelectionEntity(event: ISelectEvent) {
         if (event.sender === this.SENDER) {
             // Ignore events triggered by holder
@@ -358,7 +296,6 @@ export class Providers {
         this._providers.forEach((provider: Provider<any>) => {
             provider.setLastSelection(guids.length > 0 ? event.entity : undefined);
         });
-        this._store().save(guids);
     }
 
     private _onContextMenuEvent(event: IContextMenuEvent) {
@@ -506,13 +443,11 @@ export class Providers {
         this.injectGeneralMenuItems(event.items);
 
         this.subjects.get().context.emit(event);
-
     }
-
 
     public injectGeneralMenuItems(items: IMenuItem[]): void {
         const historySession = history.get(this.session);
-        if(historySession === undefined) {
+        if (historySession === undefined) {
             this.logger.error('History session is not defined');
             return;
         }
@@ -520,14 +455,17 @@ export class Providers {
             /* Delimiter */
         });
         const store = this.session.search.store();
-        const showExport: boolean = (store.filters().get().length + store.charts().get().length + store.disabled().get().length) !== 0;
-        showExport && items.push(
-        {
-            caption: 'Export All to File',
-            handler: () => this.filters(historySession).export(),
-        });
-        items.push(
-        {
+        const showExport: boolean =
+            store.filters().get().length +
+                store.charts().get().length +
+                store.disabled().get().length !==
+            0;
+        showExport &&
+            items.push({
+                caption: 'Export All to File',
+                handler: () => this.filters(historySession).export(),
+            });
+        items.push({
             caption: 'Import from File',
             handler: () => this.filters(historySession).import(),
         });
@@ -540,50 +478,57 @@ export class Providers {
                 new Notification({
                     message: error.message,
                     session: this.session.uuid(),
-                    actions: []
-                })
+                    actions: [],
+                }),
             );
         };
 
         return {
             import: (): void => {
-                bridge.files().select.text()
-                .then(file => {
-                    if (file.length !== 1) {
-                        this.logger.error('No file selected');
-                        return;
-                    }
-                    history.import(file[0].filename)
-                    .then((uuids: string[]) => {
-                        if (uuids.length === 0) {
-                            this.logger.warn('File does not have a collection');
+                bridge
+                    .files()
+                    .select.text()
+                    .then((file) => {
+                        if (file.length !== 1) {
+                            this.logger.error('No file selected');
                             return;
                         }
-                        if (uuids.length > 1) {
-                            this.session.switch().toolbar.presets();
-                            return;
-                        } else {
-                            const collection = history.collections.get(uuids[0]);
-                            if (collection === undefined) {
-                                this.logger.error(`Cannot find imported collection with UUID: ${uuids[0]}`);
-                                return;
-                            }
-                            historySession.apply(collection);
-                        }
+                        history
+                            .import(file[0].filename)
+                            .then((uuids: string[]) => {
+                                if (uuids.length === 0) {
+                                    this.logger.warn('File does not have a collection');
+                                    return;
+                                }
+                                if (uuids.length > 1) {
+                                    this.session.switch().toolbar.presets();
+                                    return;
+                                } else {
+                                    const collection = history.collections.get(uuids[0]);
+                                    if (collection === undefined) {
+                                        this.logger.error(
+                                            `Cannot find imported collection with UUID: ${uuids[0]}`,
+                                        );
+                                        return;
+                                    }
+                                    historySession.apply(collection);
+                                }
+                            })
+                            .catch((error) => logAndNotifyError(error));
                     })
-                    .catch(error => logAndNotifyError(error));
-                })
-                .catch(error => logAndNotifyError(error))
+                    .catch((error) => logAndNotifyError(error));
             },
             export: (): void => {
-                bridge.files().select.save()
-                .then((filename: string | undefined) => {
-                    if (filename === undefined)
-                        return;
-                    history.export([historySession.collections.uuid], filename)
-                    .catch(error => logAndNotifyError(error))
-                })
-                .catch(error => logAndNotifyError(error))
+                bridge
+                    .files()
+                    .select.save()
+                    .then((filename: string | undefined) => {
+                        if (filename === undefined) return;
+                        history
+                            .export([historySession.collections.uuid], filename)
+                            .catch((error) => logAndNotifyError(error));
+                    })
+                    .catch((error) => logAndNotifyError(error));
             },
         };
     }
@@ -595,10 +540,6 @@ export class Providers {
     private _onChange() {
         this._providers.forEach((p) => p.updatePanels());
         this.subjects.get().change.emit();
-    }
-
-    private _onReload(provider: string) {
-        this._store().restore(provider);
     }
 
     private _onEdit(guid: string | undefined) {

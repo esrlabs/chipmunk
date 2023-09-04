@@ -3,14 +3,8 @@ import { scope } from 'platform/env/scope';
 import { RustSession } from '../native/native.session';
 import { ICancelablePromise } from 'platform/env/promise';
 import { EventProvider } from '../api/session.provider';
-import {
-    IFilter,
-    IGrabbedElement,
-    ISearchMap,
-    TExtractedValues,
-    INearest,
-    IValuesMap,
-} from '../interfaces/index';
+import { IGrabbedElement } from 'platform/types/content';
+import { IFilter, ISearchMap, TExtractedValues, INearest, IValuesMap } from 'platform/types/filter';
 import { Executors } from './executors/session.stream.executors';
 import { SearchTaskManager } from './executors/single.task.search';
 import { ValuesTaskManager } from './executors/single.task.values';

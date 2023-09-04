@@ -1,7 +1,7 @@
 import { RustSession } from '../../native/native.session';
 import { ICancelablePromise } from 'platform/env/promise';
 import { EventProvider } from '../../api/session.provider';
-import { IFilter, TExtractedValues } from '../../interfaces/index';
+import { IFilter, TExtractedValues } from 'platform/types/filter';
 import { Executors } from './session.stream.executors';
 import { TaskManager } from './single.task';
 import { scope } from 'platform/env/scope';

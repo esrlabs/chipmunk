@@ -1,5 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { IValuesMinMaxMap } from '../../../interfaces/interface.rust.api.general';
+import { IValuesMinMaxMap } from '../../../types/filter';
 
 import * as validator from '../../../env/obj';
 

@@ -1,4 +1,4 @@
-import { IValuesMap, IValuesMinMaxMap } from '@platform/interfaces/interface.rust.api.general';
+import { IValuesMap, IValuesMinMaxMap } from '@platform/types/filter';
 import { scheme_color_0, scheme_color_5_75, shadeColor } from '@styles/colors';
 import { Base } from './render';
 import { ChartRequest, ChartType } from '@service/session/dependencies/search/charts/request';
