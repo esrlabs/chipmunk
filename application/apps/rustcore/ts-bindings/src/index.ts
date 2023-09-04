@@ -24,18 +24,6 @@ export {
 } from './api/session';
 export { Jobs } from './api/jobs';
 export { Tracker } from './api/tracker';
-export {
-    IGrabbedElement,
-    IExtractDTFormatOptions,
-    IExtractDTFormatResult,
-    IResultSearchElement,
-    IMapEntity,
-    IMatchEntity,
-    IFilter,
-    IFilterFlags,
-    IGrabbedContent,
-    IValuesMap,
-} from './interfaces/index';
 export { Units, Events, Interfaces };
 
 export * as $ from 'platform/types/observe';

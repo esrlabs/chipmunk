@@ -1,7 +1,7 @@
 import { CancelablePromise } from 'platform/env/promise';
 import { Base } from '../native/native.jobs';
 import { error } from 'platform/log/utils';
-import { IFilter } from '../interfaces/index';
+import { IFilter } from 'platform/types/filter';
 import { ShellProfile } from 'platform/types/shells';
 import { SomeipStatistic } from 'platform/types/observe/parser/someip';
 import { StatisticInfo } from 'platform/types/observe/parser/dlt';

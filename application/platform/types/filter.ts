@@ -23,3 +23,44 @@ export enum EFlag {
     word = 'word',
     reg = 'reg',
 }
+
+export type ISearchMap = Array<[number, number][]>;
+
+export type IValuesMap = { [key: number]: [number, number, number, number][] };
+
+export type IValuesMinMaxMap = { [key: number]: [number, number] };
+
+export interface INearest {
+    index: number;
+    position: number;
+}
+
+export interface IExtractedMatch {
+    filter: IFilter;
+    values: string[];
+}
+
+export interface IExtractedValueSrc {
+    index: number; // row position in the stream
+    // [filter_index, [values]]
+    values: Array<Array<number | string[]>>;
+}
+export type TExtractedValuesSrc = IExtractedValueSrc[];
+
+export interface IExtractedValue {
+    position: number; // row position in the stream
+    values: IExtractedMatch[];
+}
+
+export type TExtractedValues = IExtractedValue[];
+
+export interface IMatchEntity {
+    filter: string;
+    match: string;
+    row: number;
+}
+
+export interface IMapEntity {
+    filter: string;
+    rows: number[];
+}

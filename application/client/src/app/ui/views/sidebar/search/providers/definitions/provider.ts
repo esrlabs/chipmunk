@@ -72,7 +72,6 @@ export abstract class Provider<T> extends Subscriber {
         edit: new Subject(),
         context: new Subject(),
         doubleclick: new Subject(),
-        reload: new Subject(),
     });
     public readonly session: Session;
     public readonly logger: Logger;

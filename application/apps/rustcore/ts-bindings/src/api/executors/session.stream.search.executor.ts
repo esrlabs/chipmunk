@@ -1,7 +1,7 @@
 import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './executor';
 import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../../api/session.provider';
-import { IFilter } from '../../interfaces/index';
+import { IFilter } from 'platform/types/filter';
 
 export const executor: TExecutor<number, IFilter[]> = (
     session: RustSession,

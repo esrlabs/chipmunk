@@ -2,7 +2,7 @@ import { Subject } from 'platform/env/subscription';
 import { ISearchUpdated } from 'platform/types/filter';
 import { Computation } from '../provider/provider';
 import { EErrorKind, EErrorSeverity } from '../provider/provider.errors';
-import { IMapEntity, IMatchEntity, IValuesMinMaxMap } from '../interfaces/index';
+import { IMapEntity, IMatchEntity, IValuesMinMaxMap } from 'platform/types/filter';
 import { IAttachment } from 'platform/types/content';
 
 export interface IProgressState {

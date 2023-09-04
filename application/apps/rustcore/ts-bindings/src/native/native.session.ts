@@ -2,12 +2,8 @@
 import { RustSessionRequiered } from '../native/native.session.required';
 import { TEventEmitter } from '../provider/provider.general';
 import { Computation } from '../provider/provider';
-import {
-    IFilter,
-    IGrabbedElement,
-    IExtractDTFormatResult,
-    IExtractDTFormatOptions,
-} from '../interfaces/index';
+import { IFilter } from 'platform/types/filter';
+import { IGrabbedElement } from 'platform/types/content';
 import { getNativeModule } from '../native/native';
 import { EFileOptionsRequirements } from '../api/executors/session.stream.observe.executor';
 import { Type, Source, NativeError } from '../interfaces/errors';
@@ -140,11 +136,6 @@ export abstract class RustSession extends RustSessionRequiered {
     public abstract exportRaw(dest: string, ranges: IRange[], operationUuid: string): Promise<void>;
 
     public abstract isRawExportAvailable(): Promise<boolean>;
-
-    /**
-     * This operation is sync.
-     */
-    public abstract extract(options: IExtractDTFormatOptions): IExtractDTFormatResult | NativeError;
 
     public abstract search(filters: IFilter[], operationUuid: string): Promise<void>;
 
@@ -906,10 +897,6 @@ export class RustSessionWrapper extends RustSession {
                     reject(new NativeError(NativeError.from(err), Type.Other, Source.GetSearchLen));
                 });
         });
-    }
-
-    public extract(options: IExtractDTFormatOptions): IExtractDTFormatResult | NativeError {
-        return new NativeError(new Error('Not implemented yet'), Type.Other, Source.Extract);
     }
 
     public search(filters: IFilter[], operationUuid: string): Promise<void> {

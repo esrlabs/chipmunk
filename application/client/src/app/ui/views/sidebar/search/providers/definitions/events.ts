@@ -16,5 +16,4 @@ export interface ProviderEvents {
     edit: Subject<string | undefined>;
     context: Subject<IContextMenuEvent>;
     doubleclick: Subject<IDoubleclickEvent>;
-    reload: Subject<string>;
 }

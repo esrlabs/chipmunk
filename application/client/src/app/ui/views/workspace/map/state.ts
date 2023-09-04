@@ -1,4 +1,4 @@
-import { ISearchMap } from '@platform/interfaces/interface.rust.api.general';
+import { ISearchMap } from '@platform/types/filter';
 import { Session } from '@service/session';
 import { scheme_color_5, scheme_color_match, scheme_color_2 } from '@styles/colors';
 

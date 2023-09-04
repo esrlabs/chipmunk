@@ -1,5 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { INearest } from '../../../interfaces/interface.rust.api.general';
+import { INearest } from '../../../types/filter';
 
 import * as validator from '../../../env/obj';
 

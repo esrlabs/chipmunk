@@ -1,6 +1,6 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
-import { ISearchMap, INearest } from '@platform/interfaces/interface.rust.api.general';
+import { ISearchMap, INearest } from '@platform/types/filter';
 import { cutUuid } from '@log/index';
 import { IFilter, ISearchUpdated } from '@platform/types/filter';
 import { IRange } from '@platform/types/range';

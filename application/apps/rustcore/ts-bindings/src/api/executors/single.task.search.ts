@@ -2,7 +2,7 @@ import { scope } from 'platform/env/scope';
 import { RustSession } from '../../native/native.session';
 import { ICancelablePromise } from 'platform/env/promise';
 import { EventProvider } from '../../api/session.provider';
-import { IFilter } from '../../interfaces/index';
+import { IFilter } from 'platform/types/filter';
 import { Executors } from './session.stream.executors';
 import { TaskManager } from './single.task';
 

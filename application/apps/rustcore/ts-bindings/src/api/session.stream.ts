@@ -6,17 +6,11 @@ import { SdeRequest, SdeResponse } from 'platform/types/sde';
 import { EventProvider } from '../api/session.provider';
 import { Executors } from './executors/session.stream.executors';
 import { EFileOptionsRequirements } from './executors/session.stream.observe.executor';
-import {
-    IGrabbedElement,
-    IExtractDTFormatOptions,
-    IExtractDTFormatResult,
-} from '../interfaces/index';
+import { IGrabbedElement } from 'platform/types/content';
 import { IRange } from 'platform/types/range';
 import { ISourceLink } from 'platform/types/observe/types';
 import { Attachment, IndexingMode } from 'platform/types/content';
 import { IObserve } from 'platform/types/observe';
-
-export { IExtractDTFormatOptions, IExtractDTFormatResult };
 
 export class SessionStream {
     private readonly _provider: EventProvider;
@@ -114,41 +108,6 @@ export class SessionStream {
 
     public exportRaw(dest: string, ranges: IRange[]): ICancelablePromise<boolean> {
         return Executors.exportRaw(this._session, this._provider, this._logger, { dest, ranges });
-    }
-
-    public extractTimeformat(options: IExtractDTFormatOptions): IExtractDTFormatResult | Error {
-        let results: IExtractDTFormatResult | Error = this._session.extract(options);
-        if (typeof results !== 'object' || results === null) {
-            results = new Error(
-                `Expecting {IExtractDTFormatOptions} as result of "extractTimeformat", but has been gotten: ${typeof results}`,
-            );
-        } else if (
-            typeof results === 'object' &&
-            (typeof (results as IExtractDTFormatResult).format !== 'string' ||
-                typeof (results as IExtractDTFormatResult).reg !== 'string' ||
-                typeof (results as IExtractDTFormatResult).timestamp !== 'number')
-        ) {
-            results = new Error(
-                `Expecting {IExtractDTFormatOptions} as result of "extractTimeformat", but has been gotten: ${JSON.stringify(
-                    results,
-                )}`,
-            );
-        }
-        if (results instanceof Error) {
-            this._logger.warn(
-                `Fail to apply "extractTimeformat", options: ${JSON.stringify(
-                    options,
-                )} due error: ${results.message}`,
-            );
-        }
-        return results;
-    }
-
-    public connect(): {
-        //dlt: (options: IDLTOptions) => Connector<IDLTOptions>,
-        //adb: (options: IADBOptions) => Connector<IADBOptions>,
-    } {
-        return {};
     }
 
     public len(): Promise<number> {

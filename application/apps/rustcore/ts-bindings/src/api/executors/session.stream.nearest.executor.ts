@@ -1,7 +1,7 @@
 import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './executor';
 import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../../api/session.provider';
-import { INearest } from '../../interfaces/index';
+import { INearest } from 'platform/types/filter';
 
 export interface IExecuteNearestOptions {
     positionInStream: number;

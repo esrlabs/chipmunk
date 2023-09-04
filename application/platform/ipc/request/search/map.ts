@@ -1,5 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { ISearchMap } from '../../../interfaces/interface.rust.api.general';
+import { ISearchMap } from '../../../types/filter';
 
 import * as validator from '../../../env/obj';
 
@@ -33,7 +33,7 @@ export class Response extends SignatureRequirement {
     public map: ISearchMap;
     public from: number;
     public to: number;
-    
+
     constructor(input: { session: string; map: ISearchMap; from: number; to: number }) {
         super();
         validator.isObject(input);

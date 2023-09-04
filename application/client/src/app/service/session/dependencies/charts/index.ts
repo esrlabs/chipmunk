@@ -1,11 +1,7 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subject, Subjects, Subscriber } from '@platform/env/subscription';
 import { isDevMode } from '@angular/core';
-import {
-    IValuesMap,
-    IValuesMinMaxMap,
-    ISearchMap,
-} from '@platform/interfaces/interface.rust.api.general';
+import { IValuesMap, IValuesMinMaxMap, ISearchMap } from '@platform/types/filter';
 import { cutUuid } from '@log/index';
 import { IRange } from '@platform/types/range';
 import { Cursor } from './cursor';
