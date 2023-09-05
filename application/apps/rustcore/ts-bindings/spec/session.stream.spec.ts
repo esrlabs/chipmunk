@@ -6,7 +6,7 @@
 import { initLogger } from './logger';
 initLogger();
 import { Session, Factory } from '../src/api/session';
-import { IGrabbedElement } from '../src/interfaces/index';
+import { IGrabbedElement } from 'platform/types/content';
 import { createSampleFile, finish, runner } from './common';
 import { readConfigurationFile } from './config';
 import { utils } from 'platform/log';
@@ -60,7 +60,8 @@ if (process.platform === 'win32') {
                                 cwd: process.cwd(),
                                 envs: process.env as { [key: string]: string },
                             })
-                            .get().sterilized(),
+                            .get()
+                            .sterilized(),
                     )
                     .catch(finish.bind(null, session, done));
                 events.StreamUpdated.subscribe((rows: number) => {
@@ -127,7 +128,8 @@ if (process.platform === 'win32') {
                                 cwd: process.cwd(),
                                 envs: process.env as { [key: string]: string },
                             })
-                            .get().sterilized(),
+                            .get()
+                            .sterilized(),
                     )
                     .on('confirmed', () => {
                         lifeCycleEvents.push('confirmed');
@@ -171,7 +173,8 @@ if (process.platform === 'win32') {
                                 cwd: process.cwd(),
                                 envs: process.env as { [key: string]: string },
                             })
-                            .get().sterilized(),
+                            .get()
+                            .sterilized(),
                     )
                     .on('confirmed', () => {
                         lifeCycleEvents.push('confirmed');
@@ -220,7 +223,8 @@ if (process.platform === 'win32') {
                                 cwd: process.cwd(),
                                 envs: process.env as { [key: string]: string },
                             })
-                            .get().sterilized(),
+                            .get()
+                            .sterilized(),
                     )
                     .catch(finish.bind(null, session, done));
                 const append = () => {
@@ -333,7 +337,8 @@ if (process.platform === 'win32') {
                                 cwd: process.cwd(),
                                 envs: process.env as { [key: string]: string },
                             })
-                            .get().sterilized(),
+                            .get()
+                            .sterilized(),
                     )
                     .catch(finish.bind(null, session, done));
                 const filter = 'match A';
@@ -451,7 +456,8 @@ if (process.platform === 'win32') {
                                 cwd: process.cwd(),
                                 envs: process.env as { [key: string]: string },
                             })
-                            .get().sterilized(),
+                            .get()
+                            .sterilized(),
                     )
                     .catch(finish.bind(null, session, done));
                 events.StreamUpdated.subscribe((rows: number) => {
@@ -510,7 +516,8 @@ if (process.platform === 'win32') {
                                 cwd: process.cwd(),
                                 envs: process.env as { [key: string]: string },
                             })
-                            .get().sterilized(),
+                            .get()
+                            .sterilized(),
                     )
                     .on('processing', (e) => {
                         procceed();
@@ -526,7 +533,8 @@ if (process.platform === 'win32') {
                                 cwd: process.cwd(),
                                 envs: process.env as { [key: string]: string },
                             })
-                            .get().sterilized(),
+                            .get()
+                            .sterilized(),
                     )
                     .on('processing', () => {
                         procceed();

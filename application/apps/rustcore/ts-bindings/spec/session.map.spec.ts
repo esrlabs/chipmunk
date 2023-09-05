@@ -6,7 +6,7 @@
 import { initLogger } from './logger';
 initLogger();
 import { Session, Factory } from '../src/api/session';
-import { ISearchMap } from '../src/interfaces/index';
+import { ISearchMap } from 'platform/types/filter';
 import { finish, createSampleFile, runner } from './common';
 import { readConfigurationFile } from './config';
 
@@ -51,7 +51,9 @@ describe('Map', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get().sterilized(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -137,7 +139,9 @@ describe('Map', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get().sterilized(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -227,7 +231,9 @@ describe('Map', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get().sterilized(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -367,7 +373,9 @@ describe('Map', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get().sterilized(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -457,7 +465,9 @@ describe('Map', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get().sterilized(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -547,7 +557,9 @@ describe('Map', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get().sterilized(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             search
@@ -637,7 +649,9 @@ describe('Map', function () {
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
-                                .file(tmpobj.name).get().sterilized(),
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
                         )
                         .on('confirmed', () => {
                             search

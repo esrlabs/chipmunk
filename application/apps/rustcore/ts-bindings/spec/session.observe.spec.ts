@@ -6,7 +6,7 @@
 import { initLogger } from './logger';
 initLogger();
 import { Session, Factory } from '../src/api/session';
-import { IGrabbedElement } from '../src/interfaces/index';
+import { IGrabbedElement } from 'platform/types/content';
 import { IAttachmentsUpdatedUpdated } from '../src/api/session.provider';
 import { IAttachment } from 'platform/types/content';
 import { createSampleFile, finish, performanceReport, setMeasurement, runner } from './common';
