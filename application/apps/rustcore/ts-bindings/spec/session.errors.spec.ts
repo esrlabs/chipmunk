@@ -2,7 +2,7 @@
 import { initLogger } from './logger';
 initLogger();
 import { Session, SessionStream, Factory } from '../src/api/session';
-import { IGrabbedElement } from '../src/interfaces/index';
+import { IGrabbedElement } from 'platform/types/content';
 import { finish, createSampleFile, runner } from './common';
 import { readConfigurationFile } from './config';
 import { error } from 'platform/log/utils';
