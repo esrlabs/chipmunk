@@ -85,6 +85,7 @@ jobs:
                   CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
                   APPLEID: ${{ secrets.APPLEID }}
                   APPLEIDPASS: ${{ secrets.APPLEIDPASS }}
+                  TEAMID: ${{ secrets.TEAMID }}
                   SIGNING_ID: ${{ secrets.SIGNING_ID }}
                   KEYCHAIN_PWD: ${{ secrets.KEYCHAIN_PWD }}
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
