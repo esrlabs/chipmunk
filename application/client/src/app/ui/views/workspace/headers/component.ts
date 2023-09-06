@@ -13,7 +13,6 @@ import { LimittedValue } from '@ui/env/entities/value.limited';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Direction } from '@directives/resizer';
 import { ViewWorkspaceHeadersMenuComponent } from './menu/component';
-import { v4 as uuidv4 } from 'uuid';
 
 class RenderedHeader {
     public caption: string;
@@ -108,7 +107,6 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
     public ngResize(width: number, header: RenderedHeader) {
         header.resize(width);
         const headerIndex = this.controller.headers.findIndex(h => h.uuid === header.uuid);
-        debugger
         this.markChangesForCheck();
         this.controller.subjects.get().resized.emit(headerIndex);
     }
