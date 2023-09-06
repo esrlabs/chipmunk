@@ -4,7 +4,7 @@
       (contextmenu)="ngOnClick($event, i)"
       [ngStyle]="header.styles">
       {{header.caption}}
-      <mat-icon class="more" (click)="ngOnClick($event, i)">{{ngMore}}</mat-icon>
+      <mat-icon class="more" (click)="ngOnClick($event, i)">more_horiz</mat-icon>
       <span *ngIf="header.width !== undefined"
             class="resizer"
             appResizer
