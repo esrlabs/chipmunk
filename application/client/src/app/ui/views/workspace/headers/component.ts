@@ -55,7 +55,6 @@ class RenderedHeader {
 export class ColumnsHeaders extends ChangesDetector implements AfterContentInit {
     public readonly Direction = Direction;
     public offset: number = 0;
-    public ngMore: string = 'more_horiz';
 
     @Input() public controller!: Columns;
     @Input() public session!: Session;

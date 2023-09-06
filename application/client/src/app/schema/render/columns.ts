@@ -4,7 +4,7 @@ import { Subject, Subjects } from '@platform/env/subscription';
 import { error } from '@platform/log/utils';
 import { bridge } from '@service/bridge';
 import { LimittedValue } from '@ui/env/entities/value.limited';
-import { scheme_color_0 } from '@ui/styles/colors';
+import { scheme_color_0, scheme_color_default } from '@ui/styles/colors';
 import { v4 as uuidv4} from 'uuid';
 
 export interface Header {
@@ -94,7 +94,7 @@ export class Columns {
         if (this.headers[column] === undefined) {
             throw new Error(`Maximum ${this.headers.length} present in the file and tried to set the color of column at #${column}`);
         }
-        this.headers[column].color = (color === 'rgba(0,0,0,0)') ? '#FFF' : color;
+        this.headers[column].color = (color === scheme_color_default) ? scheme_color_0 : color;
         this.subjects.get().colorize.emit(column);
         this.storage().save();
     }
