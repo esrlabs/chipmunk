@@ -25,9 +25,9 @@ export class ViewWorkspaceHeadersMenuComponent extends ChangesDetector {
         super(cdRef);
     }
 
-    public ngOnCheckboxClick(event: MouseEvent, i: number): void {
+    public ngOnCheckboxClick(event: MouseEvent, uuid: string): void {
         event.stopPropagation();
-        this.controller.toggleVisibility(i);
+        this.controller.toggleVisibility(uuid);
         this.detectChanges();
     }
 

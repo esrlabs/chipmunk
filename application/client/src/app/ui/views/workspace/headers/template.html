@@ -1,6 +1,6 @@
 <span class="offset" [ngStyle]="ngGetOffsetStyle()"></span>
 <span class="header"
-      *ngFor="let header of headers; let i = index"
+      *ngFor="let header of headers, let i = index"
       (contextmenu)="ngOnClick($event, i)"
       [ngStyle]="header.styles">
       {{header.caption}}
@@ -13,5 +13,5 @@
             [size]="header.width.value"
             [direction]="Direction.Horizontal"
             [corrector]="-1"
-            (changesize)="ngResize($event, header, i)"></span>
+            (changesize)="ngResize($event, header)"></span>
 </span>
