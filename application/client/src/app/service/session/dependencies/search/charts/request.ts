@@ -85,6 +85,19 @@ export class ChartRequest
         }
     }
 
+    public static fromV2(smth: { [key: string]: unknown }): ChartRequest | Error {
+        try {
+            return new ChartRequest({
+                uuid: obj.getAsString(smth, 'guid'),
+                filter: obj.getAsNotEmptyString(smth, 'request'),
+                color: obj.getAsNotEmptyString(smth, 'color'),
+                active: obj.getAsBool(smth, 'active'),
+            });
+        } catch (e) {
+            return new Error(error(e));
+        }
+    }
+
     public readonly definition: Definition;
     public readonly updated: Subject<UpdateEvent> = new Subject<UpdateEvent>();
 

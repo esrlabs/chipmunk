@@ -7,6 +7,10 @@ import { Subject } from '@platform/env/subscription';
 import { unique } from '@platform/env/sequence';
 import { error } from '@platform/log/utils';
 import { bridge } from '@service/bridge';
+import { lockers, Locker } from '@ui/service/lockers';
+import { scope } from '@platform/env/scope';
+
+import * as obj from '@platform/env/obj';
 
 export class Provider implements EntryConvertable {
     protected collections: Collections[] = [];
@@ -16,6 +20,83 @@ export class Provider implements EntryConvertable {
         collections: StorageCollections;
         definitions: StorageDefinitions;
     };
+    protected importFromC2Version(filename: string, err: Error): Promise<string[]> {
+        const logger = scope.getLogger('ImporterFiltersFromV2');
+        return new Promise((resolve, reject) => {
+            const message = lockers.lock(
+                new Locker(
+                    false,
+                    `Fail to read from file due error: ${err.message.split(/[\n\r]/gi)[0]}`,
+                )
+                    .set()
+                    .buttons([
+                        {
+                            caption: `Try read as Chipmunk v2 filters`,
+                            handler: () => {
+                                message.popup.close();
+                                bridge
+                                    .files()
+                                    .read(filename)
+                                    .then((text: string) => {
+                                        try {
+                                            const parsed = JSON.parse(text);
+                                            obj.isObject(parsed);
+                                            this.collections = [
+                                                Collections.fromV2(
+                                                    parsed,
+                                                    this.storage.collections,
+                                                ),
+                                            ];
+                                            this.definitions = [];
+                                            resolve(this.orderAfterImport());
+                                        } catch (e) {
+                                            logger.error(error(e));
+                                            reject(new Error(error(e)));
+                                        }
+                                    })
+                                    .catch((err: Error) => {
+                                        logger.error(err.message);
+                                        reject(err);
+                                    });
+                            },
+                        },
+                        {
+                            caption: `Cancel`,
+                            handler: () => {
+                                message.popup.close();
+                                resolve([]);
+                            },
+                        },
+                    ])
+                    .end(),
+                {
+                    closable: false,
+                },
+            );
+        });
+    }
+
+    protected orderAfterImport(): string[] {
+        this.collections = this.collections.map((col) => {
+            // Reassign uuids of definitions as soon as it will be diffrent in case
+            // if both users have same source
+            col.relations = col.relations.map((uuid) => {
+                let target = this.definitions.find((d) => d.uuid === uuid);
+                if (target === undefined) {
+                    return uuid;
+                }
+                target = this.storage.definitions.update(target);
+                return target.uuid;
+            });
+            return col;
+        });
+        const uuids: string[] = this.collections.map((collection) => collection.uuid);
+        this.storage.definitions.add(this.definitions);
+        this.storage.collections.add(this.collections);
+        this.collections = [];
+        this.definitions = [];
+        return uuids;
+    }
 
     constructor(collections: StorageCollections, definitions: StorageDefinitions) {
         this.storage = {
@@ -70,25 +151,10 @@ export class Provider implements EntryConvertable {
                 if (error instanceof Error) {
                     return Promise.reject(error);
                 }
-                this.collections = this.collections.map((col) => {
-                    // Reassign uuids of definitions as soon as it will be diffrent in case
-                    // if both users have same source
-                    col.relations = col.relations.map((uuid) => {
-                        let target = this.definitions.find((d) => d.uuid === uuid);
-                        if (target === undefined) {
-                            return uuid;
-                        }
-                        target = this.storage.definitions.update(target);
-                        return target.uuid;
-                    });
-                    return col;
-                });
-                const uuid: string[] = this.collections.map(collection => collection.uuid);
-                this.storage.definitions.add(this.definitions);
-                this.storage.collections.add(this.collections);
-                this.collections = [];
-                this.definitions = [];
-                return uuid;
+                return this.orderAfterImport();
+            })
+            .catch((err: Error) => {
+                return this.importFromC2Version(filename, err);
             });
     }
 
