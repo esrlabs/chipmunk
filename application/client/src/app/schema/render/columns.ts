@@ -4,6 +4,8 @@ import { Subject, Subjects } from '@platform/env/subscription';
 import { error } from '@platform/log/utils';
 import { bridge } from '@service/bridge';
 import { LimittedValue } from '@ui/env/entities/value.limited';
+import { scheme_color_0 } from '@ui/styles/colors';
+import { v4 as uuidv4} from 'uuid';
 
 export interface Header {
     caption: string;
@@ -12,6 +14,7 @@ export interface Header {
     width: LimittedValue | undefined;
     color: string | undefined;
     index: number;
+    uuid: string;
 }
 export class Columns {
     public readonly headers: Header[];
@@ -59,8 +62,9 @@ export class Columns {
                               widths[i],
                           ),
                 visible: headersVisability[i],
-                color: '#FFFFFF',
+                color: scheme_color_0,
                 index: i,
+                uuid: uuidv4(),
             };
         });
         this.styles = this.headers.map((h) => {
@@ -69,12 +73,13 @@ export class Columns {
         this.storage().load();
     }
 
-    public toggleVisibility(column: number): void {
-        if (this.headers[column] === undefined) {
-            throw new Error(`Maximum ${this.headers.length} present in the file and tried to toggle visibility of column at index #${column}`);
+    public toggleVisibility(uuid: string): void {
+        const headerIndex = this.headers.findIndex(header => header.uuid === uuid);
+        if (headerIndex === undefined) {
+            throw new Error(`Header with UUID ${uuid} is not present`);
         }
-        this.headers[column].visible = !this.headers[column].visible;
-        this.subjects.get().visibility.emit(column);
+        this.headers[headerIndex].visible = !this.headers[headerIndex].visible;
+        this.subjects.get().visibility.emit(headerIndex);
         this.storage().save();
     }
 
