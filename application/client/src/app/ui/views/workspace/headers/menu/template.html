@@ -1,8 +1,8 @@
 <div class="wrapper">
     <ul class="columns">
         <li class="column"
-            *ngFor="let header of controller.headers; let i = index;"
-            (click)="ngOnCheckboxClick($event, i)">
+            *ngFor="let header of controller.headers"
+            (click)="ngOnCheckboxClick($event, header.uuid)">
             <mat-checkbox
                 class="material-mofication-mini"
                 [disableRipple]="true"
