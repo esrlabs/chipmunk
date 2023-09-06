@@ -77,6 +77,30 @@ export class FilterRequest
         }
     }
 
+    public static fromV2(smth: { [key: string]: unknown }): FilterRequest | Error {
+        try {
+            const flags = obj.getAsObj(smth, 'flags');
+            return new FilterRequest({
+                uuid: obj.getAsString(smth, 'guid'),
+                filter: {
+                    filter: obj.getAsNotEmptyString(smth, 'request'),
+                    flags: {
+                        cases: obj.getAsBool(flags, 'casesensitive'),
+                        word: obj.getAsBool(flags, 'wholeword'),
+                        reg: obj.getAsBool(flags, 'regexp'),
+                    },
+                },
+                colors: {
+                    color: obj.getAsNotEmptyString(smth, 'color'),
+                    background: obj.getAsNotEmptyString(smth, 'background'),
+                },
+                active: obj.getAsBool(smth, 'active'),
+            });
+        } catch (e) {
+            return new Error(error(e));
+        }
+    }
+
     static isValid(filter: IFilter): boolean {
         return (
             getFilterError(

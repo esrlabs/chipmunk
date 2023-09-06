@@ -123,6 +123,15 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
+                    Requests.File.Read.Request,
+                    RequestHandlers.File.Read.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
                     Requests.File.CopyFile.Request,
                     RequestHandlers.File.CopyFile.handler,
                 ),

@@ -10,7 +10,13 @@ export type Reader = (key: string) => Promise<string>;
 export class Entries {
     static from(str: string, storageKey: string, logger: Logger): Map<string, Entry> {
         const entries = new Map<string, Entry>();
-        (JSON.parse(str) as Entry[]).forEach((entry) => {
+        const parsed = JSON.parse(str) as Entry[];
+        if (!(parsed instanceof Array)) {
+            throw new Error(
+                `Invalid format: expecting an Entry[], but has been gotten: ${typeof parsed}`,
+            );
+        }
+        parsed.forEach((entry) => {
             if (typeof entry['uuid'] !== 'string' || entry['uuid'].trim() === '') {
                 logger.warn(`Storage "${storageKey}" includes entries without valid "uuid"`);
                 return;

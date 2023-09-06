@@ -39,6 +39,7 @@ export class Service extends Implementation {
             });
         return Promise.resolve();
     }
+
     public files(): {
         getByPath(filenames: string[]): Promise<File[]>;
         getByPathWithCache(filenames: string[]): Promise<File[]>;
@@ -57,6 +58,7 @@ export class Service extends Implementation {
         ): Promise<{ name: string; filename: string; parent: string; ext: string }>;
         cp(src: string, dest: string): Promise<void>;
         copy(files: string[], dest: string): Promise<void>;
+        read(filename: string): Promise<string>;
         select: {
             any(): Promise<File[]>;
             dlt(): Promise<File[]>;
@@ -247,6 +249,19 @@ export class Service extends Implementation {
                         return Promise.reject(new Error(response.error));
                     }
                     return Promise.resolve();
+                });
+            },
+            read: (filename: string): Promise<string> => {
+                return Requests.IpcRequest.send(
+                    Requests.File.Read.Response,
+                    new Requests.File.Read.Request({
+                        file: filename,
+                    }),
+                ).then((response) => {
+                    if (response.error !== undefined) {
+                        return Promise.reject(new Error(response.error));
+                    }
+                    return Promise.resolve(response.text as string);
                 });
             },
             select: {

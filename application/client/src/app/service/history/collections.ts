@@ -12,6 +12,9 @@ import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Equal, Empty } from '@platform/types/env/types';
 import { Subject, Subscriber } from '@platform/env/subscription';
 import { StorageCollections } from './storage.collections';
+import { unique } from '@platform/env/sequence';
+import { FilterRequest } from '@service/session/dependencies/search/filters/request';
+import { ChartRequest } from '@service/session/dependencies/search/charts/request';
 
 import * as obj from '@platform/env/obj';
 
@@ -60,6 +63,48 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
                 storage,
             );
         }
+    }
+
+    static fromV2(smth: { [key: string]: any }, storage: StorageCollections): Collections {
+        const uuid = unique();
+        obj.isObject(smth);
+        const filters: FilterRequest[] = [];
+        if (smth['filters'] instanceof Array) {
+            smth['filters'].forEach((smth) => {
+                const validFilter = FilterRequest.fromV2(smth);
+                if (validFilter instanceof Error) {
+                    return;
+                }
+                filters.push(validFilter);
+            });
+        }
+        const charts: ChartRequest[] = [];
+        if (smth['charts'] instanceof Array) {
+            smth['charts'].forEach((smth) => {
+                const validChart = ChartRequest.fromV2(smth);
+                if (validChart instanceof Error) {
+                    return;
+                }
+                charts.push(validChart);
+            });
+        }
+        return new Collections(
+            `Collections:${uuid}`,
+            {
+                name: '-',
+                last: Date.now(),
+                created: Date.now(),
+                used: 1,
+                uuid: uuid,
+                preset: false,
+                relations: [],
+                origin: undefined,
+                entries: filters
+                    .map((f) => f.asJsonField())
+                    .concat(charts.map((d) => d.asJsonField())),
+            },
+            storage,
+        );
     }
 
     static fromMinifiedStr(src: { [key: string]: number | string }): ICollection {
