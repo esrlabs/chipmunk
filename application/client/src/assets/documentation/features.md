@@ -26,5 +26,5 @@ Logs viewing/analyzing application. Give quick access to logs and search/analyze
 - SomeIp on UDP
 
 ## Stream features
-- sending data into serial port
+- sending data into a serial port
 - interacting with running terminal command (writing into `stdin`)
