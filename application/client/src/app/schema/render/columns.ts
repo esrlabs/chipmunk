@@ -90,7 +90,8 @@ export class Columns {
         return this.headers[column].visible;
     }
 
-    public setColor(column: number, color: string): void {
+    public setColor(uuid: string, color: string): void {
+        const column = this.headers.findIndex(h => h.uuid === uuid);
         if (this.headers[column] === undefined) {
             throw new Error(`Maximum ${this.headers.length} present in the file and tried to set the color of column at #${column}`);
         }
