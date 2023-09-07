@@ -1,5 +1,5 @@
 # Charts in streams
 
-As soon as chart has been created, chipmunk updates values and rebuild chart withing new values.
+As soon as the chart has been created, Chipmunk updates values and rebuilds the chart withing new values.
 
 ![Charts in stream](assets/documentation/charts/charts_dynamic.gif)

@@ -23,7 +23,7 @@ Considering technical reasons and with generally limited resources, Chipmunk 3 d
 - [ ] Time measurement
 - [ ] Merging of files by found timestamp
 - [ ] DLT log message details
-- [ ] Setting colors for columns, hide/show columns (related to column based content like DLT)
+- [x] Setting colors for columns, hide/show columns (related to column based content like DLT)
 - [ ] ADB Plugin
 - [x] Serial Plugin
 
