@@ -82,12 +82,12 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
         this.markChangesForCheck();
     }
 
-    public ngOnClick(event: MouseEvent, column: number): void {
+    public ngOnClick(event: MouseEvent, uuid: string): void {
         contextmenu.show({
             component: {
                 factory: ViewWorkspaceHeadersMenuComponent,
                 inputs: {
-                    column,
+                    uuid,
                     controller: this.controller,
                 },
             },

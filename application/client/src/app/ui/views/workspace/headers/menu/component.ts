@@ -19,7 +19,7 @@ export class ViewWorkspaceHeadersMenuComponent extends ChangesDetector {
     public selectedColumn: number | undefined = undefined;
     public colors: string[] = CColors;
 
-    @Input() public column!: number;
+    @Input() public uuid!: string;
     @Input() public controller!: Columns;
 
     constructor(cdRef: ChangeDetectorRef) {
@@ -33,7 +33,7 @@ export class ViewWorkspaceHeadersMenuComponent extends ChangesDetector {
     }
 
     public ngOnColorClick(_event: MouseEvent, color: string): void {
-        this.controller.setColor(this.column, color);
+        this.controller.setColor(this.uuid, color);
         this.detectChanges();
     }
 }
