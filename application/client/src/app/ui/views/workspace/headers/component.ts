@@ -108,7 +108,7 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
         header.resize(width);
         const headerIndex = this.controller.headers.findIndex(h => h.uuid === header.uuid);
         this.markChangesForCheck();
-        this.controller.subjects.get().resized.emit(headerIndex);
+        this.controller.setWidth(headerIndex, width);
     }
 
     public setOffset(left: number): void {
