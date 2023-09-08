@@ -1,8 +1,8 @@
 ## Content
 - [Features](./features.md) 
-- [Search](./search/index.md) 
-- [Charts](./charts/index.md)
-- [Navigation](./navigation/index.md)
+- [Search](./search/create.md) 
+- [Charts](./charts/create.md)
+- [Navigation](./navigation/favorites.md)
 - [About](./about.md)
 
 # Chipmunk
