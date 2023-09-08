@@ -72,7 +72,7 @@ export class Help extends ChangesDetector implements AfterViewInit {
                         }
                         res.text().then((markdown) => {
                             const lines = markdown.split(/[\n\r]/gi);
-                            let indexes: { found: boolean; count: number } = {
+                            const indexes: { found: boolean; count: number } = {
                                 found: false,
                                 count: -1,
                             };
