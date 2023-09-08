@@ -10,4 +10,4 @@ To create a filter:
 As a result, the filter will be saved in a list of filters.
 Chipmunk supports any number of filters/charts, but the performance of a search depends on the number of filters/charts.
 
-![Creating of filters](assets/documentation/search/filters_create.gif)
+![Creating of filters](./filters_create.gif)
