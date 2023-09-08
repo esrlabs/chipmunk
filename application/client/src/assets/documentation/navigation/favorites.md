@@ -1,3 +1,8 @@
+## Content
+- [Favorites](./favorites.md)
+- [Recents](./recents.md)
+- [Home](../features.md)
+
 # Favorites
 
 To have quick access to places, where log files are stored, folder(s) can be added into favorites. On Chipmunk's home screen, all files from the favorites folder(s) will be listed with the possibility to filter them by name.

@@ -71,9 +71,28 @@ export class Help extends ChangesDetector implements AfterViewInit {
                             return;
                         }
                         res.text().then((markdown) => {
+                            const lines = markdown.split(/[\n\r]/gi);
+                            let indexes: { found: boolean; count: number } = {
+                                found: false,
+                                count: -1,
+                            };
+                            lines.forEach((line: string, i: number) => {
+                                if (indexes.found && indexes.count !== -1) {
+                                    return;
+                                }
+                                if (!indexes.found && line.toLowerCase() === '## content') {
+                                    indexes.found = true;
+                                }
+                                if (indexes.found && i > 1 && line.trim().startsWith('#')) {
+                                    indexes.count = i;
+                                }
+                            });
+                            if (indexes.found && indexes.count !== -1) {
+                                lines.splice(0, indexes.count);
+                            }
                             resolve(
                                 this.sanitizer.bypassSecurityTrustHtml(
-                                    this.url().src(micromark(markdown)),
+                                    this.url().src(micromark(lines.join('\n'))),
                                 ),
                             );
                         });
