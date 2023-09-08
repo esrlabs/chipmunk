@@ -17,6 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 const entryComponents = [
     ViewWorkspace,
@@ -42,6 +43,8 @@ const components = [ViewWorkspace, ...entryComponents];
         MatProgressBarModule,
         MatProgressSpinnerModule,
         AttachSourceMenuModule,
+        FormsModule,
+        ReactiveFormsModule,
     ],
     declarations: [...components],
     exports: [...components, ScrollAreaModule],
