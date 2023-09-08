@@ -90,4 +90,8 @@ export class Range {
     public onChange(handler: (ci: ChangesInitiator) => void): Subscription {
         return this._subjects.change.subscribe(handler);
     }
+
+    public hash(): string {
+        return `${this.getTotal()}:${this.get().from}-${this.get().to}`;
+    }
 }
