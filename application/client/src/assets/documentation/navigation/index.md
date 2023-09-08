@@ -1,2 +1,2 @@
-- [Favorites](/navigation/favorites.md)
-- [Recents](/navigation/recents.md)
+- [Favorites](./favorites.md)
+- [Recents](./recents.md)

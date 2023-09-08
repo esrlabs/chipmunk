@@ -1,4 +1,11 @@
-import { Component, ChangeDetectorRef, AfterViewInit, ViewChild, ElementRef, ViewEncapsulation } from '@angular/core';
+import {
+    Component,
+    ChangeDetectorRef,
+    AfterViewInit,
+    ViewChild,
+    ElementRef,
+    ViewEncapsulation,
+} from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -25,12 +32,32 @@ export class Help extends ChangesDetector implements AfterViewInit {
     protected paths: {
         index: string;
         content: string;
+        location: string;
     } = {
         index: '/index.md',
         content: '/features.md',
+        location: '',
     };
     protected history: string[] = [];
 
+    protected url(): {
+        clean(path: string): string;
+        src(html: string): string;
+    } {
+        return {
+            clean: (path: string): string => {
+                return path.replace(/^\./gi, '');
+            },
+            src: (html: string): string => {
+                return html.replace(/src="(.*?)"/gi, (_match: string, url: string) => {
+                    if (typeof url !== 'string') {
+                        return 'src=""';
+                    }
+                    return `src="${PATH}/${this.paths.location}${url}"`;
+                });
+            },
+        };
+    }
     protected fetch(): {
         index(): Promise<void>;
         content(): Promise<void>;
@@ -44,7 +71,11 @@ export class Help extends ChangesDetector implements AfterViewInit {
                             return;
                         }
                         res.text().then((markdown) => {
-                            resolve(this.sanitizer.bypassSecurityTrustHtml(micromark(markdown)));
+                            resolve(
+                                this.sanitizer.bypassSecurityTrustHtml(
+                                    this.url().src(micromark(markdown)),
+                                ),
+                            );
                         });
                     })
                     .catch((err) => {
@@ -54,7 +85,7 @@ export class Help extends ChangesDetector implements AfterViewInit {
         };
         return {
             index: (): Promise<void> => {
-                return load(`${PATH}${this.paths.index}`)
+                return load(`${PATH}${this.url().clean(this.paths.index)}`)
                     .then((html) => {
                         this.html.index = html;
                         this.detectChanges();
@@ -65,7 +96,7 @@ export class Help extends ChangesDetector implements AfterViewInit {
                     });
             },
             content: (): Promise<void> => {
-                return load(`${PATH}${this.paths.content}`)
+                return load(`${PATH}${this.url().clean(this.paths.content)}`)
                     .then((html) => {
                         this.html.content = html;
                         this.detectChanges();
@@ -127,8 +158,9 @@ export class Help extends ChangesDetector implements AfterViewInit {
     }
 
     protected link(url: string, track: boolean = true): void {
-        url = url.replace(`file://`, '');
+        url = `/${url.replace(/^.*\/client\//gi, '')}`;
         if (url.toLowerCase().endsWith(`/index.md`)) {
+            this.paths.location = url.replace(/index\.md$/gi, '');
             track && this.history.push(this.paths.index);
             this.paths.index = url;
             this.unbind().index();
@@ -145,7 +177,7 @@ export class Help extends ChangesDetector implements AfterViewInit {
                     this.log().error(`Fail to update index: ${err.message}`);
                 });
         } else {
-            this.paths.content = url;
+            this.paths.content = `${this.paths.location}${url}`;
             this.unbind().content();
             this.fetch().content();
         }
