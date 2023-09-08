@@ -1,3 +1,10 @@
+## Content
+- [Features](./features.md) 
+- [Search](./search/index.md) 
+- [Charts](./charts/index.md)
+- [Navigation](./navigation/index.md)
+- [About](./about.md)
+
 # Chipmunk
 
 Logs viewing/analyzing application. Give quick access to logs and search/analyze features.

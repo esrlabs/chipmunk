@@ -1,3 +1,10 @@
+## Content
+- [Features](./features.md) 
+- [Search](./search/index.md) 
+- [Charts](./charts/index.md)
+- [Navigation](./navigation/index.md)
+- [About](./about.md)
+
 ## Design & Architecture
 
 The most important change of Chipmunk 3: all stuff related to IO, calculations, parsing etc has been completely moved to the rust core.

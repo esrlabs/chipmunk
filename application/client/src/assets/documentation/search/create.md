@@ -1,3 +1,11 @@
+## Content
+- [Creating filter(s)](./create.md)
+- [Checked / uncheked / disabled](./manipulation.md)
+- [Active search](./active.md)
+- [Import / Export](./importing.md)
+- [Breadcrumbs mode](./breadcrumbs.md)
+- [Home](../features.md)
+
 # Creating of filters
 
 To create a filter:

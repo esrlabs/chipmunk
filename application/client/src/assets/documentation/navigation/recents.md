@@ -1,3 +1,8 @@
+## Content
+- [Favorites](./favorites.md)
+- [Recents](./recents.md)
+- [Home](../features.md)
+
 # Recent actions
 
 Chipmunk tracks not only recently opened files but also recently created streams. 

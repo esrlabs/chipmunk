@@ -1,3 +1,8 @@
+## Content
+- [Creating](./create.md)
+- [Charts in streams](./dynamic.md)
+- [Home](../features.md)
+
 # Creating of filters
 
 To create a chart:
