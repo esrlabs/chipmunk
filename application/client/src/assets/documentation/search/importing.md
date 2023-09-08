@@ -7,4 +7,4 @@ At the same time, there are a couple of ways to export/import filters:
 - via the context menu on the list of filters/charts
 - via tab "History/Profiles" to export/import different collections of filters/charts
 
-![Import/Export](assets/documentation/search/importing.gif)
+![Import/Export](./importing.gif)

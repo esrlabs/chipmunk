@@ -6,4 +6,4 @@ Any saved filter can be quickly converted to active search via:
 - context menu "Show matches"
 - double-click on the filter in a list
 
-![Active filter](assets/documentation/search/filters_show_matches.gif)
+![Active filter](./filters_show_matches.gif)
