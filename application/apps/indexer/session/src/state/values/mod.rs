@@ -10,8 +10,8 @@ use graph::{candled_graph, CandlePoint, Point2D};
 
 #[derive(Error, Debug)]
 pub enum ValuesError {
-    #[error("Invalid frame")]
-    InvalidFrame,
+    #[error("Invalid frame: {0}")]
+    InvalidFrame(String),
 }
 
 #[derive(Debug)]
@@ -130,8 +130,12 @@ impl Values {
         match frame {
             None => Ok(None),
             Some(frame) => {
-                if frame.end() - frame.start() == 0 {
-                    return Err(ValuesError::InvalidFrame);
+                if frame.end() < frame.start() {
+                    return Err(ValuesError::InvalidFrame(format!(
+                        "[{}, {}]",
+                        frame.start(),
+                        frame.end()
+                    )));
                 }
                 let mut excerpt: HashMap<u8, (f64, f64, Vec<CandlePoint>)> = HashMap::new();
                 self.values.iter().for_each(|(k, (min, max, v))| {
