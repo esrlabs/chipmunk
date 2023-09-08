@@ -58,8 +58,13 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
                         new Factroy.Stream().asText().process(this.initial.configuration).get(),
                     )
                     .then(() => {
-                        this.initial.overwrite(Configuration.initial());
+                        const cloned = this.initial.sterilized();
                         this.action.applied();
+                        this.initial.overwrite({
+                            command: '',
+                            cwd: cloned.cwd,
+                            envs: cloned.envs,
+                        });
                     })
                     .catch((err: Error) => {
                         this.log().error(`Fail to apply connection to Process: ${err.message}`);

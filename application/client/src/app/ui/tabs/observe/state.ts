@@ -77,6 +77,7 @@ export class State extends Subscriber {
         if (this.action.disabled) {
             return;
         }
+        this.action.applied();
         this.ref.api.finish(this.observe).catch((err: Error) => {
             this.ref
                 .ilc()
