@@ -8,6 +8,6 @@ To create a chart:
 - click on the chart icon
 - switch to the tab "Charts"
 
-![Creating of charts](assets/documentation/charts/charts_filters.gif)
+![Creating of charts](./charts_filters.gif)
 
 In tab "Charts" also renders a frequency of matches for filters

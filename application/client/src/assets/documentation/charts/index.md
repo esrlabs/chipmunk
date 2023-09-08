@@ -1,2 +1,2 @@
-- [Creating](/charts/create.md)
-- [Charts in streams](/charts/dynamic.md)
+- [Creating](./create.md)
+- [Charts in streams](./dynamic.md)
