@@ -243,10 +243,11 @@ export class Service extends Implementation {
                                 observe,
                                 api: {
                                     finish: (observe: Observe): Promise<void> => {
-                                        return new Promise((_, failed) => {
+                                        return new Promise((success, failed) => {
                                             this.initialize()
                                                 .observe(observe, session)
                                                 .then((session) => {
+                                                    success();
                                                     api?.close();
                                                     resolve(session);
                                                 })

@@ -58,8 +58,8 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
                         new Factroy.Stream().asText().serial(this.initial.configuration).get(),
                     )
                     .then(() => {
-                        this.initial.overwrite(Configuration.initial());
                         this.action.applied();
+                        this.initial.overwrite(Configuration.initial());
                     })
                     .catch((err: Error) => {
                         this.log().error(`Fail to apply connection to Serial: ${err.message}`);
