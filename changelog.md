@@ -5,9 +5,14 @@
 - Allow sending data into serial port with delay
 - Added user manual
 - Added tab with release information
+- Added possibility to import filters/charts from Chipmunk v.2
 
 ## Fixes
 - Fixed scroll bar issue on sticky scrolling
+- Fixed saving of recent terminal commands
+- Fixed respawning new terminal commands
+- Fixed 1 line stream spawning
+- Fixed range error in 1 line streams
 
 # 3.9.7
 
