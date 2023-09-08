@@ -1,3 +1,14 @@
+# 3.9.8
+
+## Features
+- Allow custom path for serial port connections
+- Allow sending data into serial port with delay
+- Added user manual
+- Added tab with release information
+
+## Fixes
+- Fixed scroll bar issue on sticky scrolling
+
 # 3.9.7
 
 ## Features
