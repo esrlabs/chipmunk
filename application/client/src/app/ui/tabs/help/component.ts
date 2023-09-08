@@ -14,7 +14,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 import * as dom from '@ui/env/dom';
 
-const HOME = `/index.md`;
+const HOME = `/readme.md`;
 const PATH = `assets/documentation`;
 
 @Component({
@@ -34,7 +34,7 @@ export class Help extends ChangesDetector implements AfterViewInit {
         content: string;
         location: string;
     } = {
-        index: '/index.md',
+        index: '/readme.md',
         content: '/features.md',
         location: '',
     };
@@ -178,8 +178,8 @@ export class Help extends ChangesDetector implements AfterViewInit {
 
     protected link(url: string, track: boolean = true): void {
         url = `/${url.replace(/^.*\/client\//gi, '')}`;
-        if (url.toLowerCase().endsWith(`/index.md`)) {
-            this.paths.location = url.replace(/index\.md$/gi, '');
+        if (url.toLowerCase().endsWith(`/readme.md`)) {
+            this.paths.location = url.replace(/readme\.md$/gi, '');
             track && this.history.push(this.paths.index);
             this.paths.index = url;
             this.unbind().index();
