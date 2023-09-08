@@ -2,11 +2,13 @@
     <ul class="columns">
         <li class="column"
             *ngFor="let header of controller.headers"
-            (click)="ngOnCheckboxClick($event, header.uuid)">
+            (click)="ngOnContainerClick($event, header.uuid)">
             <mat-checkbox
                 class="material-mofication-mini"
                 [disableRipple]="true"
-                [checked]="header.visible"></mat-checkbox>
+                (click)="ngOnCheckboxClick()"
+                (ngModelChange)="ngOnCheckboxChange($event, header.uuid)"
+                [(ngModel)]="header.visible"></mat-checkbox>
             <span
                 class="label t-normal"
                 [ngStyle]="{'color': header.color}">
