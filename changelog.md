@@ -1,3 +1,8 @@
+# 3.9.9
+
+## Fixes
+- Fix opening DLT files
+
 # 3.9.8
 
 ## Features
