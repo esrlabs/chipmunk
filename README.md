@@ -28,6 +28,10 @@ brew install --cask chipmunk
 
 Unpack chipmunk to a folder of your choosing. Use the `chipmunk.exe` to start chipmunk.
 
+Requirements:
+- should be installed a latest package of [Microsoft Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170)
+
+
 ### Linux
 
 Unpack chipmunk to a folder of your choosing. Use the `chipmunk` executable to start chipmunk.
