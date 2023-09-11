@@ -55,7 +55,11 @@ fn get_valid_file_path(dest: &Path, origin: &str) -> Result<PathBuf, io::Error> 
                 )))
             };
             if let Some(extension) = extension {
-                suggestion = suggestion.with_extension(extension);
+                suggestion = PathBuf::from(format!(
+                    "{}.{}",
+                    suggestion.to_string_lossy(),
+                    extension.to_string_lossy()
+                ));
             }
             if !suggestion.exists() {
                 return Ok(suggestion);
