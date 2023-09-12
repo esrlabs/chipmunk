@@ -342,14 +342,17 @@ export class Selecting {
         ) {
             if (this._selection.focus.row > this._selection.anchor.row) {
                 this._selection.end = asText[asText.length - 1];
-                if (this._frame.get().in(this._selection.anchor.row)) {
+                if (this._selection.start === undefined) {
                     this._selection.start = asText[0];
                 }
             } else if (this._selection.focus.row < this._selection.anchor.row) {
                 this._selection.start = asText[0];
-                if (this._frame.get().in(this._selection.focus.row)) {
+                if (this._selection.end === undefined) {
                     this._selection.end = asText[asText.length - 1];
                 }
+            } else if (this._selection.focus.row === this._selection.anchor.row) {
+                this._selection.start = undefined;
+                this._selection.end = undefined;
             }
         }
     }
