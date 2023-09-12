@@ -233,7 +233,7 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
             this.row.session.bookmarks.subjects.get().updated.subscribe(this.update.bind(this)),
             this.row.session.cursor.subjects.get().updated.subscribe(this.update.bind(this)),
             this.row.change.subscribe(() => {
-                this.markChangesForCheck();
+                this.detectChanges();
             }),
         );
         this.update();
@@ -318,7 +318,7 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
             this.attachment = undefined;
         }
         if (prev !== this.hash) {
-            this.markChangesForCheck();
+            this.detectChanges();
         }
     }
 }

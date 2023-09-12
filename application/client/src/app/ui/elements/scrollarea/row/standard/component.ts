@@ -41,7 +41,7 @@ export class Standard extends ChangesDetector implements AfterContentInit {
         this.env().subscriber.register(
             this.row.change.subscribe(() => {
                 this.update();
-                this.markChangesForCheck();
+                this.detectChanges();
             }),
         );
     }
