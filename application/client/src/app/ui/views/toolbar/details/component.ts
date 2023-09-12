@@ -29,17 +29,29 @@ export class Details extends ChangesDetector implements AfterViewInit {
     }
 
     public ngAfterViewInit(): void {
-        this.env().subscriber.register(this.ilc().channel.session.change(this.bind.bind(this)));
+        this.env().subscriber.register(
+            this.ilc().channel.session.change(this.bind.bind(this)),
+            this.ilc().services.system.hotkeys.listen('Ctrl + C', () => {
+                const selection = document.getSelection();
+                if (selection === null) {
+                    return;
+                }
+                this.copy(selection.toString());
+            }),
+        );
         this.bind().update();
     }
 
-    public copy(): void {
+    public copy(content?: string): void {
         const row = this.row;
         if (row === undefined) {
             return;
         }
         navigator.clipboard.writeText(
             (() => {
+                if (content !== undefined) {
+                    return content;
+                }
                 const parsed = document.querySelector('p[id="parsed_content_holder"]');
                 if (parsed !== null) {
                     return parsed.textContent as string;
