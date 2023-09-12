@@ -8,6 +8,7 @@ import { IButton } from '../../common/title/component';
 import { State } from '../../states/serial';
 import { ListBase } from '../component';
 import { Configuration } from '@platform/types/observe/origin/stream/serial';
+import { notifications, Notification } from '@ui/service/notifications';
 
 import * as Factroy from '@platform/types/observe/factory';
 
@@ -62,6 +63,12 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
                         this.initial.overwrite(Configuration.initial());
                     })
                     .catch((err: Error) => {
+                        notifications.notify(
+                            new Notification({
+                                message: err.message,
+                                actions: [],
+                            }),
+                        );
                         this.log().error(`Fail to apply connection to Serial: ${err.message}`);
                     });
             }),
