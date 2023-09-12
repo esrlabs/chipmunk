@@ -97,6 +97,9 @@ export class Selecting {
                 return 0;
             }
         };
+        if (!this.hasSelection()) {
+            return;
+        }
         const frame = this._frame.get();
         const focus: RestorableNodeInfo | undefined = this._selection.focus.get();
         const anchor: RestorableNodeInfo | undefined = this._selection.anchor.get();
@@ -366,6 +369,10 @@ export class Selecting {
         };
         const selection: Selection | null = document.getSelection();
         selection && selection.removeAllRanges();
+    }
+
+    public hasSelection(): boolean {
+        return this._selection.start !== undefined || this._selection.end !== undefined;
     }
 
     private _onSelectionStarted() {
