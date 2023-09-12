@@ -8,6 +8,7 @@ import { State } from '../../states/process';
 import { ListBase } from '../component';
 import { Provider } from '@service/session/dependencies/observing/implementations/processes';
 import { Configuration } from '@platform/types/observe/origin/stream/process';
+import { notifications, Notification } from '@ui/service/notifications';
 
 import * as Factroy from '@platform/types/observe/factory';
 
@@ -67,6 +68,12 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
                         });
                     })
                     .catch((err: Error) => {
+                        notifications.notify(
+                            new Notification({
+                                message: err.message,
+                                actions: [],
+                            }),
+                        );
                         this.log().error(`Fail to apply connection to Process: ${err.message}`);
                     });
             }),
