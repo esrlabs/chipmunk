@@ -1,3 +1,14 @@
+# 3.9.10
+
+## Fixes
+- Fix scrolling error
+- Fix dialog styling
+- Fix drag and drop files support
+- Show connection errors to the user
+- Fix text selecting
+- Fix copy to clipboard issue
+- Fix Ctrl/Cmd + C on details view
+
 # 3.9.9
 
 ## Fixes
