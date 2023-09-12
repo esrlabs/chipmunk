@@ -53,7 +53,7 @@ export class ScrollAreaVerticalComponent
         }
         const rate = target.scrollTop / (target.scrollHeight - target.offsetHeight);
         const position = Math.round((this._count - this._rowsInView) * rate);
-        this.scrolling.next(position);
+        this.scrolling.next(position > this.service.getLen() ? this.service.getLen() : position);
     }
 
     @HostListener('mousedown') onMouseDown() {
