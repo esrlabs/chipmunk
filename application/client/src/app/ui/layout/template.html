@@ -1,6 +1,6 @@
 <div class="wrapper">
     <div class="main" appResizeObserver (changesize)="ngLayoutResize($event)">
-        <div class="workspace" [ngStyle]="ngWorkspaceStyle()" appMatDragDropFileFeature (dropped)="onDropFile($event)">
+        <div class="workspace" [ngStyle]="ngWorkspaceStyle()">
             <app-layout-workspace></app-layout-workspace>
         </div>
         <div class="toolbar" *ngIf="session !== undefined && session.toolbar() !== undefined" [ngStyle]="ngToolbarStyle()">

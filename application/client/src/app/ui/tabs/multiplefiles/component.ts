@@ -44,16 +44,16 @@ export class TabSourceMultipleFiles implements AfterContentInit, OnDestroy, Afte
             this.filter.filter.subjects.get().change.subscribe((value: string) => {
                 this.state.filter(value);
             }),
-        );
-        this.env().subscriber.register(
             this.filter.filter.subjects.get().drop.subscribe(() => {
                 this.state.filter('');
             }),
         );
+        this.ilc().services.ui.dropfiles.state().disable();
     }
 
     public ngOnDestroy() {
         this.tab.storage<State>().set(this.state);
+        this.ilc().services.ui.dropfiles.state().enable();
     }
 }
 export interface TabSourceMultipleFiles extends IlcInterface {}

@@ -14,6 +14,7 @@ import { hotkeys, Service as HotkeysService } from '@service/hotkeys';
 import { history, Service as HistoryService } from '@service/history';
 import { listener, Service as ListenerService } from '@ui/service/listener';
 import { lockers, Service as LockersService } from '@ui/service/lockers';
+import { dropfiles, Service as DragAndDropFilesService } from '@ui/service/dropfiles';
 import { env, Service as EnvService } from '@service/env';
 import { actions, Service as ActionsService } from '@service/actions';
 import { settings, Service as Settings } from '@service/settings';
@@ -49,6 +50,7 @@ export class Services {
         styles: UIStylesService;
         listener: ListenerService;
         lockers: LockersService;
+        dropfiles: DragAndDropFilesService;
     };
 
     private readonly _owner: string;
@@ -82,6 +84,7 @@ export class Services {
             styles,
             listener,
             lockers,
+            dropfiles,
         };
     }
 }
