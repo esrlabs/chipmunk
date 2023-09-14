@@ -2,7 +2,7 @@ import { Logger as Base, Level, utils, state } from '@platform/log';
 
 import * as Events from '@platform/ipc/event';
 
-const WRITE_TO_BACKEND = [Level.ERROR, Level.WARNING, Level.DEBUG, Level.INFO];
+const WRITE_TO_BACKEND = [Level.ERROR, Level.WARNING, Level.DEBUG, Level.INFO, Level.VERBOS];
 
 export function cutUuid(uuid: string): string {
     return uuid.substring(0, 6);

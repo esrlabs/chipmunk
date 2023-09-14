@@ -16,7 +16,7 @@ import * as Events from 'platform/ipc/event';
 @DependOn(electron)
 @SetupService(services['bridge'])
 export class Service extends Implementation {
-    protected clientLogger: Logger | undefined = new Logger('Client');
+    protected logger: Logger | undefined;
 
     public override ready(): Promise<void> {
         this.register(
@@ -165,8 +165,11 @@ export class Service extends Implementation {
         );
         this.register(
             Events.IpcEvent.subscribe(Events.Logs.Write.Event, (event: Events.Logs.Write.Event) => {
-                this.clientLogger !== undefined &&
-                    this.clientLogger.store(event.message, event.level);
+                if (this.logger === undefined) {
+                    this.logger = new Logger('CLIENT');
+                }
+                Logger.post(`[C]${event.message}`, event.level);
+                this.logger.store(`[C]${event.message}`, event.level);
             }),
         );
         return Promise.resolve();
@@ -174,7 +177,7 @@ export class Service extends Implementation {
 
     public override destroy(): Promise<void> {
         this.unsubscribe();
-        this.clientLogger = undefined;
+        this.logger = undefined;
         return Promise.resolve();
     }
 }
