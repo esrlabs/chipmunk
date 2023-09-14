@@ -129,4 +129,8 @@ export const ui: { [key: string]: Inputs } = {
         name: 'Filters',
         uuid: v4(),
     },
+    dropfiles: {
+        name: 'DragAndDropFiles',
+        uuid: v4(),
+    },
 };
