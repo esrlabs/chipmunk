@@ -111,3 +111,7 @@ export function getFileExtention(filename: string): string {
     FILE_EXT_REG.lastIndex = 0;
     return match[0];
 }
+
+export function appendFileExtention(filename: string, ext: string) {
+    return `${filename}${ext.startsWith('.') || filename.endsWith('.') ? '' : '.'}${ext}`;
+}

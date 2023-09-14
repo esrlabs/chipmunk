@@ -14,6 +14,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Locker } from '@ui/service/lockers';
 import { Notification } from '@ui/service/notifications';
 import { Subject } from '@platform/env/subscription';
+import { getFileExtention, appendFileExtention } from '@platform/types/files';
 
 @Component({
     selector: 'app-views-attachments-preview',
@@ -57,9 +58,16 @@ export class Preview extends ChangesDetector implements AfterContentInit {
 
     public async saveAs(): Promise<void> {
         const bridge = this.ilc().services.system.bridge;
-        const dest = await bridge.files().select.save();
+        let dest = await bridge.files().select.save();
         if (dest === undefined) {
             return;
+        }
+        const ext = {
+            dest: getFileExtention(dest),
+            src: getFileExtention(this.attachment.filepath),
+        };
+        if (ext.dest.toLowerCase() !== ext.src.toLowerCase()) {
+            dest = appendFileExtention(dest, ext.src);
         }
         const message = this.ilc().services.ui.lockers.lock(new Locker(true, `Saving...`), {
             closable: false,

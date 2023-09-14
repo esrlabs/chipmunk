@@ -19,6 +19,7 @@ import { Owner } from '@schema/content/row';
 import { Preview } from './preview/component';
 import { NormalizedBackgroundTask } from '@platform/env/normalized';
 import { IMenuItem } from '@ui/service/contextmenu';
+import { getFileExtention, appendFileExtention } from '@platform/types/files';
 
 import * as dom from '@ui/env/dom';
 
@@ -341,9 +342,16 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
                     }
                     attachment = selected[0];
                 }
-                const dest = await bridge.files().select.save();
+                let dest = await bridge.files().select.save();
                 if (dest === undefined) {
                     return;
+                }
+                const ext = {
+                    dest: getFileExtention(dest),
+                    src: getFileExtention(attachment.filepath),
+                };
+                if (ext.dest.toLowerCase() !== ext.src.toLowerCase()) {
+                    dest = appendFileExtention(dest, ext.src);
                 }
                 const message = this.ilc().services.ui.lockers.lock(new Locker(true, `Saving...`), {
                     closable: false,
