@@ -14,6 +14,7 @@ import { AttachSourceMenuModule } from '@elements/menu.attachsource/module';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -42,6 +43,7 @@ const components = [ViewWorkspace, ...entryComponents];
         MatIconModule,
         MatProgressBarModule,
         MatProgressSpinnerModule,
+        MatButtonModule,
         AttachSourceMenuModule,
         FormsModule,
         ReactiveFormsModule,

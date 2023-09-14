@@ -27,3 +27,13 @@ export function isValidU32(value: string | number): boolean {
     }
     return true;
 }
+
+export function isValid(value: number): boolean {
+    if (typeof value !== 'number') {
+        return false;
+    }
+    if (isNaN(value) || !isFinite(value)) {
+        return false;
+    }
+    return true;
+}

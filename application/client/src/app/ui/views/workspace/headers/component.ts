@@ -19,7 +19,7 @@ class RenderedHeader {
     public styles: { [key: string]: string } = {};
     public width: LimittedValue | undefined;
     public color: string | undefined;
-    public uuid: string;
+    public index: number;
 
     private _ref: Header;
 
@@ -29,7 +29,7 @@ class RenderedHeader {
         this.width = ref.width;
         this.color = ref.color;
         this.width !== undefined && this.resize(this.width.value);
-        this.uuid = ref.uuid;
+        this.index = ref.index;
     }
 
     public resize(width: number) {
@@ -67,27 +67,28 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
     public ngAfterContentInit(): void {
         this.env().subscriber.register(
             this.session.stream.subjects.get().rank.subscribe(() => {
-                this.markChangesForCheck();
+                this.detectChanges();
             }),
             this.controller.subjects.get().visibility.subscribe(() => {
-                this.headers = this.controller.headers
-                .filter((h) => h.visible)
-                .map((h) => new RenderedHeader(h));
-                this.markChangesForCheck();
-            })
+                this.headers = this.controller
+                    .get()
+                    .visible()
+                    .map((h) => new RenderedHeader(h));
+                this.detectChanges();
+            }),
         );
-        this.headers = this.controller.headers
-            .filter((h) => h.visible)
+        this.headers = this.controller
+            .get()
+            .visible()
             .map((h) => new RenderedHeader(h));
-        this.markChangesForCheck();
     }
 
-    public ngOnClick(event: MouseEvent, uuid: string): void {
+    public contextmenu(event: MouseEvent, index: number): void {
         contextmenu.show({
             component: {
                 factory: ViewWorkspaceHeadersMenuComponent,
                 inputs: {
-                    uuid,
+                    index,
                     controller: this.controller,
                 },
             },
@@ -106,9 +107,8 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
 
     public ngResize(width: number, header: RenderedHeader) {
         header.resize(width);
-        const headerIndex = this.controller.headers.findIndex(h => h.uuid === header.uuid);
-        this.markChangesForCheck();
-        this.controller.setWidth(headerIndex, width);
+        this.controller.width(header.index).set(width);
+        this.detectChanges();
     }
 
     public setOffset(left: number): void {

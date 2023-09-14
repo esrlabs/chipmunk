@@ -6,7 +6,6 @@ export const scheme_color_4 = '#555555';
 export const scheme_color_5 = '#333333';
 export const scheme_color_5_75 = '#33333375';
 export const scheme_color_6 = '#111111';
-export const scheme_color_default = 'rgba(0,0,0,0)';
 export const scheme_color_error = 'rgb(253, 21, 21)';
 export const scheme_color_accent = '#74b9ff';
 export const scheme_color_warning = '#fffd71';
