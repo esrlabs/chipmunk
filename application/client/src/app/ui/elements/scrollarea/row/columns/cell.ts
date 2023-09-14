@@ -27,7 +27,7 @@ export class Cell {
     public update(): Update {
         const update = {
             styles: (): Update => {
-                this.styles = this._controller.getStyle(this.index);
+                this.styles = this._controller.style(this.index);
                 return update;
             },
             content: (content: string): Update => {
@@ -39,7 +39,7 @@ export class Cell {
                 return update;
             },
             visability: (): Update => {
-                this.visible = this._controller.visible(this.index);
+                this.visible = this._controller.visibility(this.index).get();
                 return update;
             },
         };

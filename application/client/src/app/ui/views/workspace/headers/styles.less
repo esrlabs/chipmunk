@@ -14,26 +14,14 @@
     max-height: 16px;
     color: @scheme-color-0;
     font-weight: 500;
-    user-select: text;
-    cursor: text;
+    user-select: none;
+    cursor: default;
 	span.header {
         display: block;
         position: relative;
         overflow: hidden;
 		padding: 0 12px;
 		border-left: thin solid @scheme-color-3;
-
-        & mat-icon {
-           display: none;
-        }
-        &:hover {
-            & mat-icon {
-                display: block;
-                position: absolute;
-                right: 1px;
-                top: 18px;
-            }
-        }
     }
     & span:nth-child(2) {
         border-left: none;

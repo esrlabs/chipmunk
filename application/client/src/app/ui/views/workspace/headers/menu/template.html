@@ -1,28 +1,29 @@
-<div class="wrapper">
-    <ul class="columns">
-        <li class="column"
-            *ngFor="let header of controller.headers"
-            (click)="ngOnContainerClick($event, header.uuid)">
-            <mat-checkbox
-                class="material-mofication-mini"
-                [disableRipple]="true"
-                (click)="ngOnCheckboxClick()"
-                (ngModelChange)="ngOnCheckboxChange($event, header.uuid)"
-                [(ngModel)]="header.visible"></mat-checkbox>
-            <span
-                class="label t-normal"
-                [ngStyle]="{'color': header.color}">
-                {{header.caption}}
-            </span>
+<ul class="columns">
+    <li [attr.class]="'column ' + (header.key === index ? 'selected' : '')"
+        *ngFor="let header of controller.headers | keyvalue"
+        (click)="ngOnContainerClick(header.key)">
+        <mat-checkbox
+            class="material-mofication-mini"
+            [disableRipple]="true"
+            (click)="ngOnCheckboxClick()"
+            (ngModelChange)="ngOnCheckboxChange($event, header.key)"
+            [(ngModel)]="header.value.visible"></mat-checkbox>
+        <span
+            class="label t-normal"
+            [ngStyle]="{'color': header.value.color}">
+            {{header.value.caption}}
+        </span>
+    </li>
+</ul>
+<div class="controls">
+    <ul class="colors">
+        <li [attr.class]="'color ' + (c === color ? 'selected' : '')"
+            [ngStyle]="{'background': c}"
+            *ngFor="let c of colors; "
+            (click)="ngOnColorClick(c)">
         </li>
     </ul>
-    <div class="controls">
-        <ul class="colors">
-            <li class="color"
-                [ngStyle]="{'background': color}"
-                *ngFor="let color of colors"
-                (click)="ngOnColorClick($event, color)">
-            </li>
-        </ul>
+    <div class="buttons">
+        <button mat-stroked-button (click)="reset()">Reset</button>
     </div>
 </div>

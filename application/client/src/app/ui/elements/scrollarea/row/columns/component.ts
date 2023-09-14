@@ -11,7 +11,7 @@ import {
 import { DomSanitizer } from '@angular/platform-browser';
 import { Row } from '@schema/content/row';
 import { Ilc, IlcInterface } from '@env/decorators/component';
-import { Columns as ColumnsController } from '@schema/render/columns';
+import { Columns as Controller } from '@schema/render/columns';
 import { Cell } from './cell';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 
@@ -27,7 +27,7 @@ export class Columns extends ChangesDetector implements AfterContentInit {
     @Input() public row!: Row;
 
     public cells: Cell[] = [];
-    public controller!: ColumnsController;
+    public controller!: Controller;
     public visible: Cell[] = [];
 
     private _sanitizer: DomSanitizer;
@@ -46,25 +46,25 @@ export class Columns extends ChangesDetector implements AfterContentInit {
     @HostBinding('style.color') color = '';
 
     public ngAfterContentInit(): void {
-        this.controller = this.row.session.render.getBoundEntity() as ColumnsController;
+        this.controller = this.row.session.render.getBoundEntity() as Controller;
         this.cells = this.row.columns.map((s, i) => {
             return new Cell(this._sanitizer, this.controller, s, i);
         });
         this.visible = this.cells.filter((c) => c.visible);
         this.env().subscriber.register(
-            this.controller.subjects.get().resized.subscribe((column) => {
-                this.cells[column].update().styles();
+            this.controller.subjects.get().resized.subscribe((index: number) => {
+                this.cells[index].update().styles();
                 this.detectChanges();
             }),
-            this.controller.subjects.get().visibility.subscribe((column) => {
-                this.cells[column].update().visability();
+            this.controller.subjects.get().visibility.subscribe((index: number) => {
+                this.cells[index].update().visability();
                 this.visible = this.cells.filter((c) => c.visible);
                 this.detectChanges();
             }),
-            this.controller.subjects.get().colorize.subscribe((column) => {
-                this.cells[column].update().styles();
+            this.controller.subjects.get().colorize.subscribe((index: number) => {
+                this.cells[index].update().styles();
                 this.detectChanges();
-            })
+            }),
         );
         this.env().subscriber.register(
             this.row.change.subscribe(() => {
