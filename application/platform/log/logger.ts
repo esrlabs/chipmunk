@@ -33,7 +33,7 @@ export abstract class Logger {
                         case Level.DEBUG:
                             return 'color: green';
                         case Level.WARNING:
-                            return 'color: yellow';
+                            return 'color: darkorange';
                         case Level.ERROR:
                             return 'color: red';
                         default:
