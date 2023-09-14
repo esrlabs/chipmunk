@@ -181,7 +181,9 @@ function isDebugMode(): boolean {
 }
 
 function check() {
+    logger.write(`CLI checks are started`);
     if (isDebugMode()) {
+        logger.write(`DEBUG MODE. CLI checks are skipped`);
         return;
     }
     // TODO:
