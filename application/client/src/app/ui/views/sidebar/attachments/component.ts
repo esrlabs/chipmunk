@@ -50,9 +50,9 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
     protected readonly runner: NormalizedBackgroundTask = new NormalizedBackgroundTask(20);
     protected readonly attachments: Wrapped[] = [];
     protected readonly selection: {
-        last: number;
+        last: string | undefined;
     } = {
-        last: -1,
+        last: undefined,
     };
     protected readonly holded: {
         ctrl: boolean;
@@ -217,22 +217,25 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
                 } else if (this.holded.ctrl) {
                     target.toggle();
                 } else if (this.holded.shift) {
-                    if (this.selection.last === -1) {
+                    if (this.selection.last === undefined) {
                         return;
                     }
-                    const index = this.attachments.findIndex((a) => a.equal(attachment));
-                    if (index === -1) {
+                    const index = this.filtered.attachments.findIndex((a) => a.equal(attachment));
+                    const lastIndex = this.filtered.attachments.findIndex(
+                        (a) => a.attachment.uuid === this.selection.last,
+                    );
+                    if (index === -1 || lastIndex === -1) {
                         return;
                     }
-                    if (index === this.selection.last) {
+                    if (index === lastIndex) {
                         target.toggle();
-                    } else if (index > this.selection.last) {
-                        for (let i = this.selection.last + 1; i <= index; i += 1) {
-                            this.attachments[i].toggle();
+                    } else if (index > lastIndex) {
+                        for (let i = lastIndex + 1; i <= index; i += 1) {
+                            this.filtered.attachments[i].toggle();
                         }
-                    } else if (index < this.selection.last) {
-                        for (let i = this.selection.last - 1; i >= index; i -= 1) {
-                            this.attachments[i].toggle();
+                    } else if (index < lastIndex) {
+                        for (let i = lastIndex - 1; i >= index; i -= 1) {
+                            this.filtered.attachments[i].toggle();
                         }
                     }
                 }
@@ -246,14 +249,15 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
                     this.preview = undefined;
                 }
                 if (selected.length > 0) {
-                    this.selection.last = this.attachments.findIndex((a) => a.equal(attachment));
+                    this.selection.last = attachment.uuid;
                 } else {
-                    this.selection.last = -1;
+                    this.selection.last = undefined;
                 }
                 this.detectChanges();
             },
             drop: (): void => {
                 this.attachments.map((a) => a.unselect());
+                this.selection.last = undefined;
                 this.preview = undefined;
             },
         };
