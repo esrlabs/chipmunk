@@ -64,7 +64,7 @@ export abstract class Logger {
             process.stdout.write(msg);
         }
     }
-    protected signature;
+    protected signature: string;
 
     public static maxNameLength = 0;
 
