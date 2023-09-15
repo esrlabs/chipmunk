@@ -47,9 +47,10 @@ describe('Extracting', function () {
                                 .asText()
                                 .type(Factory.FileType.Text)
                                 .file(tmpobj.name)
-                                .get().sterilized(),
+                                .get()
+                                .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             const filter = 'cpu=(\\d{1,})';
                             search
                                 .extract([
@@ -142,9 +143,10 @@ describe('Extracting', function () {
                                 .asText()
                                 .type(Factory.FileType.Text)
                                 .file(tmpobj.name)
-                                .get().sterilized(),
+                                .get()
+                                .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             const filterA = 'cpu=(\\d{1,})';
                             const filterB = 'temp=(\\d{1,})';
                             search

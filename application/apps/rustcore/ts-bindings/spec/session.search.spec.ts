@@ -51,7 +51,7 @@ describe('Search', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             search
                                 .search([
                                     {
@@ -245,7 +245,7 @@ describe('Search', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             search
                                 .search([
                                     {
@@ -392,7 +392,7 @@ describe('Search', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             search
                                 .search([
                                     {
@@ -458,7 +458,7 @@ describe('Search', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             search
                                 .search([
                                     {
@@ -609,7 +609,7 @@ describe('Search', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             search
                                 .search([
                                     {
@@ -763,7 +763,7 @@ describe('Search', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             search
                                 .search([
                                     {
@@ -911,7 +911,7 @@ describe('Search', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             const calls = ['match A', 'match D', 'match C', 'match B'];
                             let canceled = 0;
                             calls.forEach((filter) => {

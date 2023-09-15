@@ -180,7 +180,7 @@ describe('Errors', () => {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             search
                                 .search([
                                     {

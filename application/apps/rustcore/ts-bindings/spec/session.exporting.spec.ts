@@ -288,7 +288,7 @@ describe('Exporting', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             search
                                 .search([
                                     {
