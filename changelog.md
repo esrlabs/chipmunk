@@ -1,3 +1,16 @@
+# 3.9.11
+
+## Features
+- Possibility to manage columns styles
+
+## Fixes
+- Move global drag and drop controller into service
+- Fix multiple selecting attachments
+- Append default extension to saved attachments
+- Fix attachments preview styles
+- Correct writing of client logs
+- Addition logs
+
 # 3.9.10
 
 ## Fixes
