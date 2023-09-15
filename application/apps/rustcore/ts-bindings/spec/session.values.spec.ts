@@ -50,7 +50,7 @@ describe('Values', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             search
                                 .values([`CPU=(\\d{1,})`])
                                 .catch(finish.bind(null, session, done));
@@ -125,7 +125,7 @@ describe('Values', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             search
                                 .values([`CPU=(\\d{1,})`])
                                 .catch(finish.bind(null, session, done));

@@ -55,7 +55,7 @@ describe('Map', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             search
                                 .search([
                                     {
@@ -143,7 +143,7 @@ describe('Map', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             search
                                 .search([
                                     {
@@ -235,7 +235,7 @@ describe('Map', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             search
                                 .search([
                                     {
@@ -377,7 +377,7 @@ describe('Map', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             search
                                 .search([
                                     {
@@ -469,7 +469,7 @@ describe('Map', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             search
                                 .search([
                                     {
@@ -561,7 +561,7 @@ describe('Map', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             search
                                 .search([
                                     {
@@ -653,7 +653,7 @@ describe('Map', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .on('confirmed', () => {
+                        .on('processing', () => {
                             search
                                 .search([
                                     {
