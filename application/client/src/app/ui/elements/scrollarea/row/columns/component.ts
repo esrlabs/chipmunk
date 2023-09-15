@@ -65,8 +65,6 @@ export class Columns extends ChangesDetector implements AfterContentInit {
                 this.cells[index].update().styles();
                 this.detectChanges();
             }),
-        );
-        this.env().subscriber.register(
             this.row.change.subscribe(() => {
                 this.row.columns.map((s, i) => {
                     if (this.cells[i] === undefined) {

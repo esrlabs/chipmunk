@@ -4,7 +4,6 @@ import { Subject, Subjects } from '@platform/env/subscription';
 import { error } from '@platform/log/utils';
 import { bridge } from '@service/bridge';
 import { LimittedValue } from '@ui/env/entities/value.limited';
-import { scheme_color_0 } from '@ui/styles/colors';
 
 import * as num from '@platform/env/num';
 
@@ -74,15 +73,14 @@ export class Columns {
                                   this.defaults.widths[index],
                               ),
                     visible: headersVisability[index],
-                    color: scheme_color_0,
+                    color: undefined,
                     index,
                 };
                 this.headers.set(index, header);
-                this.styles.set(index, {
-                    width: `${header.width === undefined ? '' : `${header.width.value}px`}`,
-                });
+                this.styles.set(index, {});
             },
         );
+        this.update().all();
         this.hash = this.getHash();
     }
 
@@ -124,16 +122,13 @@ export class Columns {
                             Array.from(this.headers.values()).forEach(
                                 (header: Header, index: number) => {
                                     if (headers[index].width !== undefined) {
-                                        header.width?.set(headers[index].width);
-                                        this.subjects.get().resized.emit(header.index);
+                                        this.width(index).set(headers[index].width);
                                     }
                                     if (headers[index].color !== undefined) {
-                                        header.color = headers[index].color;
-                                        this.subjects.get().colorize.emit(header.index);
+                                        this.color(index).set(headers[index].color);
                                     }
                                     if (header.visible !== headers[index].visible) {
-                                        header.visible = headers[index].visible;
-                                        this.subjects.get().visibility.emit(header.index);
+                                        this.visibility(index).set(headers[index].visible);
                                     }
                                 },
                             );
@@ -222,19 +217,20 @@ export class Columns {
 
     public color(index: number): {
         get(): string | undefined;
-        set(color: string): void;
+        set(color: string | undefined): void;
     } {
         const header = this.getHeader(index);
         return {
             get: (): string | undefined => {
                 return header === undefined ? undefined : header.color;
             },
-            set: (color: string): void => {
+            set: (color: string | undefined): void => {
                 if (header === undefined) {
                     return;
                 }
                 header.color = color;
                 this.headers.set(index, header);
+                this.update().styles(index);
                 this.subjects.get().colorize.emit(index);
                 this.storage().save();
             },
@@ -260,8 +256,40 @@ export class Columns {
                 }
                 header.width !== undefined && header.width.set(width);
                 this.headers.set(index, header);
+                this.update().styles(index);
                 this.subjects.get().resized.emit(index);
                 this.storage().save();
+            },
+        };
+    }
+
+    public update(): {
+        all(): void;
+        styles(index: number): void;
+    } {
+        return {
+            all: (): void => {
+                this.headers.forEach((_header: Header, index: number) => {
+                    this.update().styles(index);
+                    this.subjects.get().visibility.emit(index);
+                    this.subjects.get().resized.emit(index);
+                    this.subjects.get().colorize.emit(index);
+                });
+            },
+            styles: (index: number): void => {
+                const style = this.styles.get(index);
+                if (style === undefined) {
+                    this.logger.error(`Fail to find styles of column with index=${index}`);
+                    return;
+                }
+                const width = this.width(index).get();
+                if (width === undefined) {
+                    style['width'] = '';
+                } else {
+                    style['width'] = `${width}px`;
+                }
+                const color = this.color(index).get();
+                style['color'] = color !== undefined ? color : '';
             },
         };
     }
@@ -272,14 +300,6 @@ export class Columns {
             this.logger.error(`Fail to find styles of column with index=${index}`);
             return {};
         }
-        const width = this.width(index).get();
-        if (width === undefined) {
-            style['width'] = '';
-        } else {
-            style['width'] = `${width}px`;
-        }
-        const color = this.color(index).get();
-        style['color'] = color !== undefined ? color : '';
         return style;
     }
 
@@ -304,10 +324,5 @@ export class Columns {
     public reset(): void {
         this.setup();
         this.storage().save();
-        this.headers.forEach((_header: Header, index: number) => {
-            this.subjects.get().visibility.emit(index);
-            this.subjects.get().resized.emit(index);
-            this.subjects.get().colorize.emit(index);
-        });
     }
 }
