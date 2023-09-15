@@ -24,7 +24,7 @@ export class ViewWorkspaceHeadersMenuComponent extends ChangesDetector implement
         this.color = header === undefined ? undefined : header.color;
     }
 
-    public colors: string[] = CColors.slice(1);
+    public colors: string[] = CColors;
     public color: string | undefined;
 
     @Input() public index!: number;
@@ -57,15 +57,21 @@ export class ViewWorkspaceHeadersMenuComponent extends ChangesDetector implement
     }
 
     public ngOnColorClick(color: string): void {
-        this.controller.color(this.index).set(color);
+        this.controller.color(this.index).set(color === CColors[0] ? undefined : color);
+        this.switch(this.index);
         this.detectChanges();
     }
 
     public isColorSelected(color: string): boolean {
+        if (this.color === undefined && color === CColors[0]) {
+            return true;
+        }
         return this.color === color;
     }
 
     public reset() {
         this.controller.reset();
+        this.switch(this.index);
+        this.detectChanges();
     }
 }

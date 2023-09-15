@@ -113,7 +113,7 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
 
     public setOffset(left: number): void {
         this.offset = left;
-        this.markChangesForCheck();
+        this.detectChanges();
     }
 }
 export interface ColumnsHeaders extends IlcInterface {}

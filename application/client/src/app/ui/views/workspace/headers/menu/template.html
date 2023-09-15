@@ -17,10 +17,10 @@
 </ul>
 <div class="controls">
     <ul class="colors">
-        <li [attr.class]="'color ' + (c === color ? 'selected' : '')"
-            [ngStyle]="{'background': c}"
-            *ngFor="let c of colors; "
-            (click)="ngOnColorClick(c)">
+        <li [attr.class]="'color ' + (isColorSelected(color) ? 'selected' : '')"
+            [ngStyle]="{'background': color}"
+            *ngFor="let color of colors; "
+            (click)="ngOnColorClick(color)">
         </li>
     </ul>
     <div class="buttons">
