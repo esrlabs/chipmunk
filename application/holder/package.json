@@ -121,5 +121,6 @@
         "build-linux": "node_modules/.bin/electron-builder --linux --dir",
         "build-win": "node_modules/.bin/electron-builder --win --dir",
         "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0"
-    }
+    },
+    "packageManager": "yarn@1.22.19"
 }

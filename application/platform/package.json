@@ -130,5 +130,6 @@
         "./types/unity/mutable": "./dist/types/unity/mutable.js",
         "./types/notification/index": "./dist/types/notification/index.js",
         "./package.json": "./package.json"
-    }
+    },
+    "packageManager": "yarn@1.22.19"
 }
