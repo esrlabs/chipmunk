@@ -1,11 +1,7 @@
-# Remove previous sources #
+# Yarn stuff #
 ###################
-application/client.core
-application/client.libs
-application/node.libs
-application/client.core/**
-application/client.libs/**
-application/node.libs/**
+.yarn
+**/.yarn
 # Compiled source #
 ###################
 *.com
