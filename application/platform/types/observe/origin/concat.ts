@@ -3,7 +3,7 @@ import { Configuration as Base, ConfigurationStaticDesc } from '../configuration
 import { OriginDetails, IOriginDetails, IList, Job, IJob, OriginType } from '../description';
 import { Configuration as ConfigurationFile } from './file';
 import { Context, SourceUuid, IConfiguration as IOriginConfiguration } from './index';
-import { basefolder } from '../../../env/str';
+import { getParentFolder } from '../../files';
 import { Statics } from '../../../env/decorators';
 import { unique } from '../../../env/sequence';
 
@@ -120,7 +120,7 @@ export class Configuration
         const first = this.configuration[0];
         return {
             major: `Concating ${this.configuration.length} files`,
-            minor: first !== undefined ? basefolder(first[2]) : '',
+            minor: first !== undefined ? getParentFolder(first[2]) : '',
             icon: 'insert_drive_file',
             type: OriginType.file,
             action: 'Concat',
