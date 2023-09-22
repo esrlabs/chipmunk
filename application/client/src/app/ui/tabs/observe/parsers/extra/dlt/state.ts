@@ -85,7 +85,7 @@ export class State extends Base {
                         // );
                         this.stat = stat;
                         this.struct().build(this.filters());
-                        this.ref.markChangesForCheck();
+                        this.ref.detectChanges();
                     })
                     .catch((err: Error) => {
                         this.ref.log().error(`Fail to get DLT stat info: ${err.message}`);
