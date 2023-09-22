@@ -18,7 +18,9 @@ export class LimittedValue {
         this._alias = alias;
         this.max = max;
         this.min = min;
-        this.value = value < min ? min : value > max ? max : value;
+        this.value = value;
+        this.min !== -1 && (this.value = this.value < this.min ? this.min : this.value);
+        this.max !== -1 && (this.value = this.value > this.max ? this.max : this.value);
         this._prev = -1;
     }
 
