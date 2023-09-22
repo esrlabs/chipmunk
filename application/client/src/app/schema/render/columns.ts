@@ -105,6 +105,12 @@ export class Columns {
                     .storage(this.hash)
                     .read()
                     .then((content: string) => {
+                        if (typeof content !== 'string' || content.trim() === '') {
+                            this.logger.debug(
+                                `No columns data has been saved from previous sessions`,
+                            );
+                            return;
+                        }
                         try {
                             const headers = JSON.parse(content);
                             if (!(headers instanceof Array)) {
