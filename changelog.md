@@ -1,3 +1,10 @@
+# 3.9.12
+
+## Fixes
+- Fix the path's parser (windows)
+- Fix the default column's sizer
+- Fix DLT statistic collector
+
 # 3.9.11
 
 ## Features
