@@ -93,6 +93,6 @@ class Release
   def release_file_name
     prefix = OS.prefix
     prefix += '64' if prefix == 'win'
-    "chipmunk-next@#{version}-#{prefix}-portable"
+    "chipmunk@#{version}-#{prefix}-portable"
   end
 end

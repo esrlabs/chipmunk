@@ -1,9 +1,11 @@
 name: BuildAndReleaseMaster
 
 on:
-    push:
-        tags:
-            - next-**
+  push:
+    branches:
+      - master
+    tags:
+      - "*"
 jobs:
     create_release:
         name: Create release
