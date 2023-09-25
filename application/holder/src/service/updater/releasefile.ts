@@ -6,10 +6,11 @@ const NAME = 'chipmunk';
 const HOOKS = {
     name: '<name>',
     version: '<version>',
+    prefix: '<prefix>',
     platform: '<platform>',
 };
 
-const PATERN = `${HOOKS.name}-next@${HOOKS.version}-${HOOKS.platform}-portable.tgz`;
+const PATERN = `${HOOKS.name}${HOOKS.prefix}@${HOOKS.version}-${HOOKS.platform}-portable.tgz`;
 
 export class ReleaseFile {
     public readonly filename: string;
@@ -20,7 +21,8 @@ export class ReleaseFile {
             throw new Error(`Fail to detect supported platform for (${os.platform()}).`);
         }
         this.filename = PATERN.replace(HOOKS.name, NAME)
-            .replace(HOOKS.version, version.replace(prefix, ''))
+            .replace(HOOKS.prefix, `${prefix === '' ? '' : `-${prefix}`}`)
+            .replace(HOOKS.version, version)
             .replace(HOOKS.platform, platform);
     }
 

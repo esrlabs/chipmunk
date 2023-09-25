@@ -1,3 +1,8 @@
+# 3.9.13
+
+## Changes
+- Add support of updating from all published versions
+
 # 3.9.12
 
 ## Fixes

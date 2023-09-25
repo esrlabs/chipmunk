@@ -1,9 +1,8 @@
 export class Version {
     public readonly parts: number[];
 
-    constructor(version: string, prefix = '') {
+    constructor(version: string) {
         this.parts = version
-            .replace(prefix, '')
             .split('.')
             .map((part: string) => {
                 return parseInt(part, 10);
