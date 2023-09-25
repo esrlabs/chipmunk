@@ -34,11 +34,21 @@ const UPDATER = 'updater';
 const AUTO = { key: 'autoUpdateCheck', path: 'general' };
 
 export const REPO = 'chipmunk';
-export const TARGET_TAG_STARTS = 'next-';
+
+export function getVersionPrefix(ver: string): string {
+    return ver
+        .toLocaleLowerCase()
+        .replace(/-?\d{1,}\.\d{1,}\.\d{1,}/gi, '')
+        .trim();
+}
+
+export function getCleanVersion(ver: string): string {
+    const prefix = getVersionPrefix(ver);
+    return ver.toLocaleLowerCase().replace(prefix, '').replace(/-/gi, '').trim();
+}
 
 enum LatestReleaseNotFound {
     NoUpdates,
-    NoNextGeneration,
     Skipped,
 }
 
@@ -134,11 +144,8 @@ export class Service extends Implementation {
                 const current: Version = new Version(version.getVersion());
                 let candidate: { release: IReleaseData; version: Version } | undefined;
                 releases.forEach((release: IReleaseData) => {
-                    if (!release.name.toLowerCase().includes(TARGET_TAG_STARTS)) {
-                        return;
-                    }
                     try {
-                        const version = new Version(release.name, TARGET_TAG_STARTS);
+                        const version = new Version(getCleanVersion(release.name));
                         if (current.isGivenGrander(version)) {
                             if (
                                 candidate !== undefined &&
@@ -172,16 +179,16 @@ export class Service extends Implementation {
                 }
                 const github = new GitHubClient();
                 const latest: IReleaseData = await github.getLatestRelease({ repo: REPO });
-                if (!latest.name.toLowerCase().includes(TARGET_TAG_STARTS)) {
-                    this.log().warn(
-                        `Found release "${latest.name} (tag: ${latest.tag_name})", but this is not NEXT-series release`,
+                const prefix: string = getVersionPrefix(latest.name);
+                if (prefix !== '') {
+                    this.log().debug(
+                        `Found release "${latest.name} (tag: ${latest.tag_name})" with prefix "${prefix}"`,
                     );
-                    return LatestReleaseNotFound.NoNextGeneration;
                 }
                 const current: Version = new Version(version.getVersion());
                 let candidate: { release: IReleaseData; version: Version } | undefined;
                 try {
-                    const version = new Version(latest.name, TARGET_TAG_STARTS);
+                    const version = new Version(getCleanVersion(latest.name));
                     if (current.isGivenGrander(version)) {
                         if (candidate !== undefined && !candidate.version.isGivenGrander(version)) {
                             this.log().debug(
@@ -212,22 +219,14 @@ export class Service extends Implementation {
                     return Promise.resolve(`No updates has been found.`);
                 } else if (latest === LatestReleaseNotFound.Skipped) {
                     return Promise.resolve(this.log().debug(`Checking of updates is skipped`));
-                } else if (latest === LatestReleaseNotFound.NoNextGeneration) {
-                    this.log().debug(`Updates aren't found in latest. Will look in pre-releases`);
                 }
-                const prerelease = await this.find(force).night();
-                if (prerelease === undefined) {
-                    this.log().debug(`No updates has been found in pre-releases.`);
-                    return Promise.resolve(`No updates has been found.`);
-                }
-                this.log().debug(`New version has been found: ${prerelease.release.name}`);
                 const release: ReleaseFile = new ReleaseFile(
-                    prerelease.release.name,
-                    TARGET_TAG_STARTS,
+                    getCleanVersion(latest.release.name),
+                    getVersionPrefix(latest.release.name),
                 );
                 this.log().debug(`Looking for: ${release.filename}`);
                 let compressed: string | undefined;
-                prerelease.release.assets.forEach((asset: IReleaseAsset) => {
+                latest.release.assets.forEach((asset: IReleaseAsset) => {
                     if (release.equal(asset.name)) {
                         compressed = asset.name;
                     }
@@ -240,7 +239,11 @@ export class Service extends Implementation {
                         `Fail to find archive-file with release for current platform. `,
                     );
                 }
-                return { release: prerelease.release, version: prerelease.version, compressed };
+                return {
+                    release: latest.release,
+                    version: latest.version,
+                    compressed,
+                };
             },
         };
     }
@@ -251,7 +254,10 @@ export class Service extends Implementation {
             this.log().debug(`No updates has been found.`);
             return Promise.resolve();
         }
-        const release: ReleaseFile = new ReleaseFile(candidate.release.name, TARGET_TAG_STARTS);
+        const release: ReleaseFile = new ReleaseFile(
+            getCleanVersion(candidate.release.name),
+            getVersionPrefix(candidate.release.name),
+        );
         const filename: string = path.resolve(paths.getDownloads(), candidate.compressed);
         if (fs.existsSync(filename)) {
             // File was already downloaded

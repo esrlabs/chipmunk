@@ -3,7 +3,7 @@ import { Logger } from 'platform/log';
 import { version } from '@module/version';
 import { GitHubClient, IReleaseData } from '@module/github';
 import { Version } from '@service/updater/version';
-import { TARGET_TAG_STARTS, REPO } from '@service/updater';
+import { getCleanVersion, REPO } from '@service/updater';
 import { error } from 'platform/log/utils';
 
 import * as Requests from 'platform/ipc/request';
@@ -17,14 +17,11 @@ async function getReleaseInfo(
     const target: Version = new Version(version);
     let candidate: { release: IReleaseData; version: Version } | undefined;
     releases.forEach((release: IReleaseData) => {
-        if (!release.name.toLowerCase().includes(TARGET_TAG_STARTS)) {
-            return;
-        }
         if (candidate !== undefined) {
             return;
         }
         try {
-            const version = new Version(release.name, TARGET_TAG_STARTS);
+            const version = new Version(getCleanVersion(release.name));
             if (target.isGivenSame(version)) {
                 candidate = {
                     release,
