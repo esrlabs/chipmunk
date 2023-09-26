@@ -1,7 +1,7 @@
 import { Define, Implementation, Interface } from 'platform/entity/controller';
 import { services } from '@register/services';
 import { paths } from '@service/paths';
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, Event } from 'electron';
 import { Implementation as ElectronIPCTransport } from './transport';
 import { scope } from 'platform/env/scope';
 import { system } from 'platform/modules/system';
@@ -56,7 +56,6 @@ export class Window extends Implementation {
         this._window.once('close', (event: Event) => {
             this.log().debug(`Closing of browser window is prevented`);
             event.preventDefault();
-            event.returnValue = false;
             global.application
                 .shutdown('onBrowserWindowClose')
                 .close()
@@ -65,6 +64,7 @@ export class Window extends Implementation {
                         `Fail to trigger closing of application; error: ${err.message}`,
                     );
                 });
+            return false;
         });
         scope.setTransport(this._ipc);
         Events.IpcEvent.subscribe(
