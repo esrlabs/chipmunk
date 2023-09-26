@@ -2,8 +2,6 @@ name: BuildAndReleaseMaster
 
 on:
   push:
-    branches:
-      - master
     tags:
       - "*"
 jobs:
