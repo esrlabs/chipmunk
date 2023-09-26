@@ -85,7 +85,7 @@ class Application implements IApplication {
                     .catch((err: Error) => {
                         this.logger.error(`Fail to shutdown on "app:will-quit": ${err.message}`);
                     });
-                event.returnValue = false;
+                return false;
             });
             app.on('before-quit', (event: Event) => {
                 event.preventDefault();
@@ -94,8 +94,8 @@ class Application implements IApplication {
                     .catch((err: Error) => {
                         this.logger.error(`Fail to shutdown on "app:before-quit": ${err.message}`);
                     });
-                event.returnValue = false;
-            });
+                    return false;
+                });
         });
     }
 
