@@ -1,3 +1,8 @@
+# 3.9.15
+
+## Changes
+- Upgrade electron and related dependencies
+
 # 3.9.14
 
 ## Changes
