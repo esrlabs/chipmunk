@@ -186,6 +186,27 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         );
     }
 
+    public copy(): Collections {
+        const uuid = unique();
+        return new Collections(
+            `Collections:${uuid}`,
+            {
+                name: this.name,
+                last: Date.now(),
+                created: Date.now(),
+                used: 1,
+                uuid,
+                preset: false,
+                relations: [],
+                origin: undefined,
+                entries: this.asCollectionsArray()
+                    .map((c) => c.as().jsonSet())
+                    .flat(),
+            },
+            this.storage,
+        );
+    }
+
     public delete() {
         this.storage.delete(this);
     }

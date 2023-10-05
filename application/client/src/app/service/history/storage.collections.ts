@@ -71,6 +71,15 @@ export class StorageCollections {
         return existed.uuid;
     }
 
+    public insert(collections: Collections): void {
+        if (this.collections.has(collections.uuid)) {
+            return this.add([collections]);
+        } else {
+            this.collections.set(collections.uuid, collections);
+            this.save();
+        }
+    }
+
     public add(collections: Collections[]): void {
         collections.forEach((col) => this.update(col));
         this.save();
