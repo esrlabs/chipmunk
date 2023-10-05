@@ -78,18 +78,21 @@ export class HistorySession extends Subscriber {
 
     protected save() {
         if (this.collections.isEmpty()) {
-            return;
-        }
-        Promise.all([
-            this.storage.collections.save().catch((err: Error) => {
+            this.storage.collections.clean().catch((err: Error) => {
                 this.log().error(`Fail to save collections storage: ${err.message}`);
-            }),
-            this.storage.definitions.save().catch((err: Error) => {
-                this.log().error(`Fail to save definitions storage: ${err.message}`);
-            }),
-        ]).catch((err: Error) => {
-            this.log().error(`Fail to save history storage: ${err.message}`);
-        });
+            });
+        } else {
+            Promise.all([
+                this.storage.collections.save().catch((err: Error) => {
+                    this.log().error(`Fail to save collections storage: ${err.message}`);
+                }),
+                this.storage.definitions.save().catch((err: Error) => {
+                    this.log().error(`Fail to save definitions storage: ${err.message}`);
+                }),
+            ]).catch((err: Error) => {
+                this.log().error(`Fail to save history storage: ${err.message}`);
+            });
+        }
     }
 
     protected check(): {

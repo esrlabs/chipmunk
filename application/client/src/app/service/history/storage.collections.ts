@@ -5,12 +5,16 @@ import { error } from '@platform/log/utils';
 import { Definition } from './definition';
 import { StorageDefinitions } from './storage.definitions';
 import { Suitable } from './suitable';
+import { Subject } from '@platform/env/subscription';
 
 @SetupLogger()
 export class StorageCollections {
     static UUID = 'history_collections_storage';
+
     protected collections: Map<string, Collections> = new Map();
     protected definitions: StorageDefinitions;
+
+    public saved: Subject<void> = new Subject();
 
     constructor(definitions: StorageDefinitions) {
         this.setLoggerName(`StorageCollections`);
@@ -41,9 +45,21 @@ export class StorageCollections {
         await bridge
             .entries({ key: StorageCollections.UUID })
             .overwrite(Array.from(this.collections.values()).map((c) => c.entry().to()))
+            .then(() => {
+                this.saved.emit();
+            })
             .catch((err: Error) => {
                 this.log().warn(`Fail to write history collections: ${err.message}`);
             });
+    }
+
+    public async clean(): Promise<void> {
+        this.collections.forEach((collections: Collections, key: string) => {
+            if (collections.isEmpty()) {
+                this.collections.delete(key);
+            }
+        });
+        await this.save();
     }
 
     public update(collections: Collections): string | undefined {
