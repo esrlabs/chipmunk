@@ -1,9 +1,7 @@
 name: BuildAndReleaseMaster
 
-on:
-  push:
-    tags:
-      - "*"
+on: [pull_request]
+
 jobs:
   create_release:
     name: Create release
@@ -91,12 +89,12 @@ jobs:
       - name: list release files
         working-directory: ./application/holder/release
         run: ls
-      - name: upload files
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: AButler/upload-release-assets@v2.0
-        with:
-          files: "./application/holder/release/*.tgz;./application/holder/release/*.zip"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          release-tag: ${{ github.ref_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: upload files
+      #   if: startsWith(github.ref, 'refs/tags/')
+      #   uses: AButler/upload-release-assets@v2.0
+      #   with:
+      #     files: "./application/holder/release/*.tgz;./application/holder/release/*.zip"
+      #     repo-token: ${{ secrets.GITHUB_TOKEN }}
+      #     release-tag: ${{ github.ref_name }}
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
