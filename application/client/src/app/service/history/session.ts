@@ -171,7 +171,11 @@ export class HistorySession extends Subscriber {
     }
 
     public apply(collection: Collections) {
-        this.storage.collections.used(collection.uuid);
+        if (this.storage.collections.get(collection.uuid) === undefined) {
+            this.storage.collections.insert(collection);
+        } else {
+            this.storage.collections.used(collection.uuid);
+        }
         this.setCollection(collection);
         this.definitions.list().forEach((def) => {
             this.collections.bind(def);

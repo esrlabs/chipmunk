@@ -104,7 +104,7 @@ export class History extends ChangesDetector implements AfterContentInit {
     }
 
     public use(collection: Collections) {
-        this.state.history.apply(collection);
+        this.state.history.apply(collection.copy());
     }
 
     public onListFilterChange(_event: MatSelectChange) {
