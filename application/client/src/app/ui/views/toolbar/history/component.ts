@@ -95,6 +95,12 @@ export class History extends ChangesDetector implements AfterContentInit {
 
     public ngAfterContentInit(): void {
         this.state.init(this, this.session);
+        this.env().subscriber.register(
+            this.ilc().services.system.history.collections.saved.subscribe(() => {
+                this.state.update();
+                this.detectChanges();
+            }),
+        );
     }
 
     public use(collection: Collections) {
