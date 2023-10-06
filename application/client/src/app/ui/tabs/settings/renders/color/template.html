@@ -1,0 +1,9 @@
+<p class="t-normal name color-scheme-1">{{entry.desc.name}}</p>
+<p class="t-small desc color-scheme-3">{{entry.desc.desc}}</p>
+<p class="t-normal color-scheme-0 example">
+    This is <span class="match" [ngStyle]="styles()">example</span> of color view
+</p>
+<div class="buttons">
+    <button mat-stroked-button (click)="change()">Change</button>
+    <button mat-stroked-button (click)="drop()">Default</button>
+</div>

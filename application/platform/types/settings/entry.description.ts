@@ -7,6 +7,7 @@ export enum Visibility {
 export enum Render {
     String = 'String',
     Number = 'Number',
+    Color = 'Color',
     Bool = 'Bool',
 }
 
