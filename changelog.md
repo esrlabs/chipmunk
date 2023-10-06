@@ -3,6 +3,7 @@
 ## Changes
 - Set a new active search if the input isn't empty (instead of adding a filter)
 - Change linking profiles on suitable types of files/sources
+- Allow configure default colors for filters, matches and charts
 
 # 3.9.15
 
