@@ -121,7 +121,7 @@ export class ViewSearchInput
     public ngAfterViewInit(): void {
         this.input.bind(this.searchInputRef.nativeElement, this.recentPanelRef);
         this.input.actions.accept.subscribe(() => {
-            if (this.active === undefined) {
+            if (this.active === undefined || this.input.value.trim() !== '') {
                 const filter = this.input.asFilter();
                 this.recent.update(filter.filter);
                 this.session.search
