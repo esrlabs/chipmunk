@@ -21,27 +21,27 @@ export const handler = Requests.InjectLogger<
                     }),
                 );
             }
-            if (request.value === undefined) {
-                if (entry.desc.allowEmpty) {
-                    return resolve(
-                        new Requests.Settings.Set.Response({
-                            error: undefined,
-                        }),
-                    );
-                } else {
-                    return resolve(
-                        new Requests.Settings.Set.Response({
-                            error: `Cannot be empty`,
-                        }),
-                    );
-                }
+            if (request.value === undefined && entry.desc.allowEmpty) {
+                const error = entry.value.delete();
+                resolve(
+                    new Requests.Settings.Set.Response({
+                        error: error instanceof Error ? error.message : undefined,
+                    }),
+                );
+            } else if (request.value === undefined && !entry.desc.allowEmpty) {
+                resolve(
+                    new Requests.Settings.Set.Response({
+                        error: `Cannot be empty`,
+                    }),
+                );
+            } else if (request.value !== undefined) {
+                const error = entry.value.set(request.value);
+                resolve(
+                    new Requests.Settings.Set.Response({
+                        error: error instanceof Error ? error.message : undefined,
+                    }),
+                );
             }
-            const error = entry.value.set(request.value);
-            resolve(
-                new Requests.Settings.Set.Response({
-                    error: error instanceof Error ? error.message : undefined,
-                }),
-            );
         });
     },
 );

@@ -13,6 +13,7 @@ export const scheme_color_match = '#e4e15b';
 export const scheme_search_match = '#AA0000';
 
 const colorsCache: Map<string, string> = new Map();
+const contrastColorsCache: Map<string, string> = new Map();
 
 export function getColorHolder(color: string): (index: number) => string {
     return function (colors: { [key: string]: string }, index: number) {
@@ -63,6 +64,11 @@ export function getContrastColor(hex: string, bw: boolean = false) {
         const zeros = new Array(len).join('0');
         return (zeros + str).slice(-len);
     }
+    const alias = `${hex}:${bw}`;
+    const cached = contrastColorsCache.get(alias);
+    if (cached !== undefined) {
+        return cached;
+    }
     if (hex.toLowerCase().indexOf('rgb') === 0) {
         hex = rgbToHex(hex);
     }
@@ -79,17 +85,21 @@ export function getContrastColor(hex: string, bw: boolean = false) {
     const r = parseInt(hex.slice(0, 2), 16);
     const g = parseInt(hex.slice(2, 4), 16);
     const b = parseInt(hex.slice(4, 6), 16);
-    if (bw) {
-        // http://stackoverflow.com/a/3943023/112731
-        return r * 0.299 + g * 0.587 + b * 0.114 > 186 ? '#000000' : '#FFFFFF';
-    }
-    // pad each with zeros and return
-    return (
-        '#' +
-        padZero((255 - r).toString(16)) +
-        padZero((255 - g).toString(16)) +
-        padZero((255 - b).toString(16))
-    );
+    const color = (() => {
+        if (bw) {
+            // http://stackoverflow.com/a/3943023/112731
+            return r * 0.299 + g * 0.587 + b * 0.114 > 186 ? '#000000' : '#FFFFFF';
+        } else {
+            return (
+                '#' +
+                padZero((255 - r).toString(16)) +
+                padZero((255 - g).toString(16)) +
+                padZero((255 - b).toString(16))
+            );
+        }
+    })();
+    contrastColorsCache.set(alias, color);
+    return color;
     // https://stackoverflow.com/questions/35969656/how-can-i-generate-the-opposite-color-according-to-current-color
 }
 

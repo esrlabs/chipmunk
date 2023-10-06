@@ -12,6 +12,7 @@ import { Updatable } from '../store';
 import { UpdateEvent } from './store.update';
 import { getFilterError } from '@module/util';
 import { serializeHtml } from '@platform/env/str';
+import { settings } from '@service/settings';
 
 import * as regexFilters from '@platform/env/filters';
 import * as obj from '@platform/env/obj';
@@ -149,6 +150,10 @@ export class FilterRequest
 
     constructor(def: OptionalDefinition) {
         super();
+        const defaultMatchColor =
+            settings.defaults['general.colors.default_filter'] === undefined
+                ? scheme_color_match
+                : settings.defaults['general.colors.default_filter'];
         this.definition = {
             filter: {
                 filter: def.filter.filter,
@@ -159,15 +164,15 @@ export class FilterRequest
             colors: {
                 color:
                     def.colors === undefined
-                        ? getContrastColor(scheme_color_match, true)
+                        ? getContrastColor(defaultMatchColor, true)
                         : def.colors.color === undefined
-                        ? getContrastColor(scheme_color_match, true)
+                        ? getContrastColor(defaultMatchColor, true)
                         : def.colors.color,
                 background:
                     def.colors === undefined
-                        ? scheme_color_match
+                        ? defaultMatchColor
                         : def.colors.background === undefined
-                        ? scheme_color_match
+                        ? defaultMatchColor
                         : def.colors.background,
             },
         };

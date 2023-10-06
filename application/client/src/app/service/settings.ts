@@ -2,6 +2,7 @@ import { SetupService, Interface, Implementation, register } from '@platform/ent
 import { services } from '@register/services';
 import { ISettingsEntry } from '@platform/types/settings/entry';
 import { IDescription } from '@platform/types/settings/entry.description';
+import { scheme_color_2, scheme_color_match } from '@styles/colors';
 
 import * as Requests from '@platform/ipc/request/index';
 
@@ -11,38 +12,48 @@ export interface ILocalDefaults {
     'general.colors.default_chart': string;
 }
 export const DEFAULTS: ILocalDefaults = {
-    'general.colors.match': '#c0c0c0',
-    'general.colors.default_filter': '#e4e15b',
-    'general.colors.default_chart': '#e4e15b',
+    'general.colors.match': scheme_color_2,
+    'general.colors.default_filter': scheme_color_match,
+    'general.colors.default_chart': scheme_color_match,
 };
 
 @SetupService(services['settings'])
 export class Service extends Implementation {
-    protected updateLocalSettings(): void {
-        Object.keys(DEFAULTS).forEach((k: string) => {
-            const parts = k.split('.');
-            let path = '';
-            let key = '';
-            if (parts.length === 1) {
-                key = k;
-            } else {
-                path = parts.splice(0, parts.length - 1).join('.');
-                key = parts[0];
-            }
-            this.getByPath(path, key)
-                .then((value) => {
-                    if (value === undefined) {
-                        return;
-                    }
-                    (this.defaults as any)[k] = value;
-                })
-                .catch((err: Error) => {
-                    this.log().error(`Fail to get settings for "${k}": ${err.message}`);
-                });
-        });
+    protected updateLocalSettings(): Promise<void> {
+        return Promise.all(
+            Object.keys(DEFAULTS).map((k) => {
+                const parts = k.split('.');
+                let path = '';
+                let key = '';
+                if (parts.length === 1) {
+                    key = k;
+                } else {
+                    path = parts.splice(0, parts.length - 1).join('.');
+                    key = parts[0];
+                }
+                return this.getByPath(path, key)
+                    .then((value) => {
+                        (this.defaults as any)[k] =
+                            value === undefined ? (DEFAULTS as any)[k] : value;
+                    })
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to get settings for "${k}": ${err.message}`);
+                    });
+            }),
+        )
+            .then(() => undefined)
+            .catch((err: Error) => {
+                this.log().error(`Fail to update defaults local setting: ${err.message}`);
+            });
     }
 
     public defaults: ILocalDefaults = Object.assign({}, DEFAULTS);
+
+    public override ready(): Promise<void> {
+        return this.updateLocalSettings().catch((err: Error) => {
+            this.log().error(`Updating local defaults settings: ${err.message}`);
+        });
+    }
 
     public getDefaultByDesc(desc: IDescription): unknown {
         return (DEFAULTS as { [key: string]: any })[
