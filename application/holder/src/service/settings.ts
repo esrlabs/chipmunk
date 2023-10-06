@@ -57,6 +57,15 @@ export class Service extends Implementation {
                     RequestHandlers.Set.handler,
                 ),
         );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Settings.Get.Request,
+                    RequestHandlers.Get.handler,
+                ),
+        );
         return this.storage.load();
     }
 
@@ -73,6 +82,9 @@ export class Service extends Implementation {
                     this.enroll(initial.network.settings.authorization);
                     this.enroll(initial.network.settings.strictSSL);
                     this.enroll(initial.updater.settings.autoUpdateCheck);
+                    this.enroll(initial.colors.settings.match);
+                    this.enroll(initial.colors.settings.default_filter);
+                    this.enroll(initial.colors.settings.default_chart);
                     resolve();
                 })
                 .catch(reject);

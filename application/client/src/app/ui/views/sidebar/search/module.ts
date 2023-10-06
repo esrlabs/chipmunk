@@ -16,7 +16,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatSliderModule } from '@angular/material/slider';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { ComColorSelectorComponent } from '@elements/color.selector/component';
+import { ColorSelectorModule } from '@elements/color.selector/module';
 import { Filters } from './component';
 import { FilterDetails } from './filters/details/component';
 import { Filter } from './filters/filter/component';
@@ -42,7 +42,6 @@ const entryComponents = [
     ChartsPlaceholder,
     Disabled,
     DisabledList,
-    ComColorSelectorComponent,
     Bin,
 ];
 const components = [...entryComponents];
@@ -67,6 +66,7 @@ const components = [...entryComponents];
         ReactiveFormsModule,
         DragDropModule,
         MatSliderModule,
+        ColorSelectorModule,
     ],
     declarations: [...components],
     exports: [...components],

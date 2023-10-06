@@ -36,6 +36,7 @@ import { NavigatorModule } from '@elements/navigator/module';
         AutocompleteModule,
         FolderInputModule,
         NavigatorModule,
+        ComTooltipComponent,
     ],
     bootstrap: [
         ContainersModule,
