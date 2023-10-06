@@ -1,3 +1,9 @@
+# 3.9.16
+
+## Changes
+- Set a new active search if the input isn't empty (instead of adding a filter)
+- Change linking profiles on suitable types of files/sources
+
 # 3.9.15
 
 ## Changes
