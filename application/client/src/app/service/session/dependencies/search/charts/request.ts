@@ -11,6 +11,7 @@ import { Updatable } from '../store';
 import { UpdateEvent } from './store.update';
 import { getFilterError } from '@module/util';
 import { serializeHtml } from '@platform/env/str';
+import { settings } from '@service/settings';
 
 import * as regexFilters from '@platform/env/filters';
 import * as obj from '@platform/env/obj';
@@ -141,11 +142,15 @@ export class ChartRequest
 
     constructor(def: OptionalDefinition) {
         super();
+        const defaultMatchColor =
+            settings.defaults['general.colors.default_chart'] === undefined
+                ? scheme_color_match
+                : settings.defaults['general.colors.default_chart'];
         this.definition = {
             filter: def.filter,
             uuid: def.uuid === undefined ? unique() : def.uuid,
             active: def.active === undefined ? true : def.active,
-            color: def.color === undefined ? scheme_color_match : def.color,
+            color: def.color === undefined ? defaultMatchColor : def.color,
             type: def.type === undefined ? ChartType.Linear : def.type,
             widths:
                 def.widths === undefined

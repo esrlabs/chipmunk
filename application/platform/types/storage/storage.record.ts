@@ -7,7 +7,7 @@ export abstract class Record<T extends string | number | boolean | undefined> {
     }
     public abstract validate(value: T): Error | undefined;
 
-    protected value: T;
+    protected value: T | undefined;
     protected storage!: Storage;
     public readonly path!: string;
     public readonly key!: string;
@@ -53,7 +53,7 @@ export abstract class Record<T extends string | number | boolean | undefined> {
     }
 
     public get(): T {
-        return this.value;
+        return this.value as T;
     }
 
     public set(value: T): Error | undefined {
@@ -75,6 +75,16 @@ export abstract class Record<T extends string | number | boolean | undefined> {
         if (error instanceof Error) {
             return error;
         }
+        this.storage.write();
+        return undefined;
+    }
+
+    public delete(): Error | undefined {
+        const error = this.storage.delete(this.path, this.key);
+        if (error instanceof Error) {
+            return error;
+        }
+        this.value = undefined;
         this.storage.write();
         return undefined;
     }
