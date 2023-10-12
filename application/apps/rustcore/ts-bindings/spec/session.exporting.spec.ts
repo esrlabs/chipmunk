@@ -423,6 +423,7 @@ describe('Exporting', function () {
                                 fibex_file_paths: [],
                                 filter_config: undefined,
                                 with_storage_header: true,
+                                tz: undefined,
                             })
                             .file(config.regular.files['dlt'][0])
                             .get();
@@ -435,6 +436,7 @@ describe('Exporting', function () {
                                         fibex_file_paths: [],
                                         filter_config: undefined,
                                         with_storage_header: true,
+                                        tz: undefined,
                                     })
                                     .file(config.regular.files['dlt'][0])
                                     .get()
@@ -550,6 +552,7 @@ describe('Exporting', function () {
                                         fibex_file_paths: [],
                                         filter_config: undefined,
                                         with_storage_header: true,
+                                        tz: undefined,
                                     })
                                     .file(config.regular.files['dlt'][0])
                                     .get()
@@ -592,6 +595,8 @@ describe('Exporting', function () {
                                                                                 undefined,
                                                                             with_storage_header:
                                                                                 true,
+                                                                            tz:
+                                                                                undefined,
                                                                         })
                                                                         .file(output)
                                                                         .get()
@@ -773,6 +778,7 @@ describe('Exporting', function () {
                                         fibex_file_paths: [],
                                         filter_config: undefined,
                                         with_storage_header: true,
+                                        tz: undefined,
                                     })
                                     .files([
                                         config.regular.files['dlt'][1],
@@ -893,6 +899,7 @@ describe('Exporting', function () {
                                         fibex_file_paths: [],
                                         filter_config: undefined,
                                         with_storage_header: true,
+                                        tz: undefined,
                                     })
                                     .files([
                                         config.regular.files['dlt'][1],
@@ -940,6 +947,8 @@ describe('Exporting', function () {
                                                                                 undefined,
                                                                             with_storage_header:
                                                                                 true,
+                                                                            tz:
+                                                                                undefined,
                                                                         })
                                                                         .file(output)
                                                                         .get()
@@ -1108,6 +1117,7 @@ describe('Exporting', function () {
                                         fibex_file_paths: [],
                                         filter_config: undefined,
                                         with_storage_header: true,
+                                        tz: undefined,
                                     })
                                     .files([
                                         config.regular.files['dlt'][1],
@@ -1170,6 +1180,8 @@ describe('Exporting', function () {
                                                                                 undefined,
                                                                             with_storage_header:
                                                                                 true,
+                                                                            tz:
+                                                                                undefined,
                                                                         })
                                                                         .file(output)
                                                                         .get()

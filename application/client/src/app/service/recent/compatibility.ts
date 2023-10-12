@@ -36,6 +36,7 @@ export function optionsToParserSettings(
         filter_config,
         fibex_file_paths: options.fibex.length > 0 ? options.fibex : undefined,
         with_storage_header,
+        tz: undefined,
     };
 }
 

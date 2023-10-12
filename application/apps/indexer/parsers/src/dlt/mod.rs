@@ -15,7 +15,7 @@ use dlt_core::{
 use serde::Serialize;
 use std::{io::Write, ops::Range};
 
-use self::attachment::FtScanner;
+use self::{attachment::FtScanner, fmt::FormatOptions};
 
 impl LogMessage for FormattableMessage<'_> {
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
@@ -68,6 +68,7 @@ impl LogMessage for RawMessage {
 pub struct DltParser<'m> {
     pub filter_config: Option<ProcessedDltFilterConfig>,
     pub fibex_metadata: Option<&'m FibexMetadata>,
+    pub fmt_options: Option<&'m FormatOptions>,
     pub with_storage_header: bool,
     ft_scanner: FtScanner,
     offset: usize,
@@ -100,12 +101,14 @@ impl<'m> DltParser<'m> {
     pub fn new(
         filter_config: Option<ProcessedDltFilterConfig>,
         fibex_metadata: Option<&'m FibexMetadata>,
+        fmt_options: Option<&'m FormatOptions>,
         with_storage_header: bool,
     ) -> Self {
         Self {
             filter_config,
             fibex_metadata,
             with_storage_header,
+            fmt_options,
             ft_scanner: FtScanner::new(),
             offset: 0,
         }
@@ -135,10 +138,11 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
                 } else {
                     i.add_storage_header(timestamp.map(dlt::DltTimeStamp::from_ms))
                 };
+
                 let msg = FormattableMessage {
                     message: msg_with_storage_header,
                     fibex_metadata: self.fibex_metadata,
-                    options: None,
+                    options: self.fmt_options,
                 };
                 self.offset += input.len() - rest.len();
                 Ok((

@@ -17,6 +17,7 @@ export class RecentParserDlt implements AfterContentInit {
 
     public logLevel!: string;
     public fibex: string[] = [];
+    public timezone: string | undefined;
 
     public ngAfterContentInit(): void {
         if (
@@ -34,10 +35,7 @@ export class RecentParserDlt implements AfterContentInit {
         } else {
             this.fibex = this.parser.configuration.fibex_file_paths;
         }
+        this.timezone = this.parser.configuration.tz;
     }
-
-    // public getTimezone(): string {
-    //     return this.options.tz === undefined ? 'UTC' : this.options.tz;
-    // }
 }
 export interface RecentParserDlt extends IlcInterface {}
