@@ -44,7 +44,7 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                         tokio::spawn(async move {
                             static RECEIVER: &str = "127.0.0.1:5000";
                             let udp_source = UdpSource::new(RECEIVER, vec![]).await.unwrap();
-                            let dlt_parser = DltParser::new(None, None, false);
+                            let dlt_parser = DltParser::new(None, None, None, false);
                             let mut dlt_msg_producer = MessageProducer::new(dlt_parser, udp_source, None);
                             let msg_stream = dlt_msg_producer.as_stream();
                             pin_mut!(msg_stream);
@@ -85,7 +85,7 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                         start = Instant::now();
                         let uuid = Uuid::new_v4();
                         let file_path = input.clone().expect("input must be present");
-                        let dlt_parser_settings = DltParserSettings { filter_config: None, fibex_file_paths: None, with_storage_header: true, fibex_metadata: None };
+                        let dlt_parser_settings = DltParserSettings { filter_config: None, fibex_file_paths: None, with_storage_header: true, tz: None, fibex_metadata: None };
                         session.observe(uuid, ObserveOptions::file(file_path.clone(), FileFormat::Binary, ParserType::Dlt(dlt_parser_settings))).expect("observe failed");
                         println!("dlt session was destroyed");
                     }

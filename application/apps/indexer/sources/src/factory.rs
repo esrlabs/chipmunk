@@ -17,6 +17,7 @@ pub struct DltParserSettings {
     pub filter_config: Option<dlt::DltFilterConfig>,
     pub fibex_file_paths: Option<Vec<String>>,
     pub with_storage_header: bool,
+    pub tz: Option<String>,
     #[serde(skip)]
     pub fibex_metadata: Option<dlt::FibexMetadata>,
 }
@@ -27,6 +28,7 @@ impl Default for DltParserSettings {
             filter_config: None,
             fibex_file_paths: None,
             with_storage_header: true,
+            tz: None,
             fibex_metadata: None,
         }
     }
@@ -41,6 +43,7 @@ impl DltParserSettings {
             filter_config,
             fibex_file_paths,
             with_storage_header: true,
+            tz: None,
             fibex_metadata: None,
         }
     }

@@ -121,6 +121,7 @@ describe('Observe', function () {
                                     filter_config: undefined,
                                     fibex_file_paths: [],
                                     with_storage_header: false,
+                                    tz: undefined,
                                 })
                                 .get()
                                 .sterilized(),
@@ -204,6 +205,7 @@ describe('Observe', function () {
                                     filter_config: undefined,
                                     fibex_file_paths: [],
                                     with_storage_header: true,
+                                    tz: undefined,
                                 })
                                 .get()
                                 .sterilized(),
@@ -286,6 +288,7 @@ describe('Observe', function () {
                                     filter_config: undefined,
                                     fibex_file_paths: undefined,
                                     with_storage_header: true,
+                                    tz: undefined,
                                 })
                                 .get()
                                 .sterilized(),
@@ -847,6 +850,7 @@ describe('Observe', function () {
                                                         filter_config: undefined,
                                                         fibex_file_paths: [],
                                                         with_storage_header: true,
+                                                        tz: undefined,
                                                     })
                                                     .get()
                                                     .sterilized(),
@@ -863,6 +867,7 @@ describe('Observe', function () {
                                                         filter_config: undefined,
                                                         fibex_file_paths: [],
                                                         with_storage_header: false,
+                                                        tz: undefined,
                                                     })
                                                     .get()
                                                     .sterilized(),

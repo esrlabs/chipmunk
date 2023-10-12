@@ -7,8 +7,10 @@ use crate::{
 };
 use log::trace;
 use parsers::{
-    dlt::DltParser, someip::SomeipParser, text::StringTokenizer, LogMessage, MessageStreamItem,
-    ParseYield, Parser,
+    dlt::{fmt::FormatOptions, DltParser},
+    someip::SomeipParser,
+    text::StringTokenizer,
+    LogMessage, MessageStreamItem, ParseYield, Parser,
 };
 use sources::{
     factory::ParserType,
@@ -59,9 +61,11 @@ pub async fn run_source<S: ByteSource>(
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
         ParserType::Dlt(settings) => {
+            let fmt_options = Some(FormatOptions::from(settings.tz.as_ref()));
             let dlt_parser = DltParser::new(
                 settings.filter_config.as_ref().map(|f| f.into()),
                 settings.fibex_metadata.as_ref(),
+                fmt_options.as_ref(),
                 settings.with_storage_header,
             );
             let producer = MessageProducer::new(dlt_parser, source, rx_sde);

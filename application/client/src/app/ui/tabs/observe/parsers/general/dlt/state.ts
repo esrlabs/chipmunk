@@ -40,6 +40,9 @@ export class State extends Base {
         conf.configuration.filter_config !== undefined &&
             conf.configuration.filter_config.min_log_level !== undefined &&
             (this.logLevel = conf.configuration.filter_config.min_log_level);
+        const timezone =
+            conf.configuration.tz !== undefined ? Timezone.from(conf.configuration.tz) : undefined;
+        this.timezone = timezone instanceof Error ? undefined : timezone;
     }
 
     public update(): State {
@@ -57,6 +60,7 @@ export class State extends Base {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             conf.configuration.filter_config!.min_log_level = this.logLevel;
         }
+        conf.configuration.tz = this.timezone === undefined ? undefined : this.timezone.name;
         return this;
     }
 
@@ -93,7 +97,12 @@ export class State extends Base {
                     factory: components.get('app-elements-timezone-selector'),
                     inputs: {
                         selected: (timezone: Timezone): void => {
-                            this.timezone = timezone;
+                            if (timezone.name.toLowerCase().startsWith('utc')) {
+                                this.timezone = undefined;
+                            } else {
+                                this.timezone = timezone;
+                            }
+                            this.update();
                             this.ref.detectChanges();
                         },
                     },

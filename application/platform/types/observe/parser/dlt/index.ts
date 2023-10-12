@@ -64,6 +64,7 @@ export interface IConfiguration {
     filter_config: IFilters | undefined;
     fibex_file_paths: string[] | undefined;
     with_storage_header: boolean;
+    tz: string | undefined;
 }
 
 @Statics<ConfigurationStaticDesc<IConfiguration, Protocol>>()
@@ -88,6 +89,7 @@ export class Configuration
             obj.getAsBool(configuration, 'with_storage_header');
             obj.getAsNotEmptyStringsArrayOrUndefined(configuration, 'fibex_file_paths');
             obj.getAsObjOrUndefined(configuration, 'filter_config');
+            obj.getAsNotEmptyStringOrAsUndefined(configuration, 'tz');
             const filter_config = configuration.filter_config;
             if (filter_config !== undefined) {
                 obj.getAsValidNumber(filter_config, 'min_log_level');
@@ -109,6 +111,7 @@ export class Configuration
             filter_config: undefined,
             fibex_file_paths: [],
             with_storage_header: true,
+            tz: undefined,
         };
     }
 
@@ -188,9 +191,9 @@ export class Configuration
             `dlt:${(this.configuration.fibex_file_paths === undefined
                 ? []
                 : this.configuration.fibex_file_paths
-            ).join(';')};${this.configuration.with_storage_header};${filters.min_log_level};${
-                filters.ecu_ids?.length
-            };${filters.app_ids?.length};${filters.context_ids?.length}`,
+            ).join(';')};${this.configuration.with_storage_header};${this.configuration.tz};${
+                filters.min_log_level
+            };${filters.ecu_ids?.length};${filters.app_ids?.length};${filters.context_ids?.length}`,
         );
     }
 }

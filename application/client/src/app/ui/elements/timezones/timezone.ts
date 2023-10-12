@@ -18,19 +18,19 @@ export class Timezone extends Matchee {
         this.offset = offset;
     }
 
-    static from(tz: string): Timezone {
+    static from(tz: string): Timezone | Error {
         const now = new Date();
         const utc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth());
         const zone = moment_timezone.tz.zone(tz);
         if (zone === null) {
-            throw new Error(`Fail to create timezone from "${tz}"`);
+            return new Error(`Fail to create timezone from "${tz}"`);
         }
         const offset = zone.utcOffset(utc);
         return new Timezone(
             tz,
             `${offset === 0 ? '' : offset > 0 ? '-' : '+'}${Math.abs(offset) / 60}`,
             offset,
-            Timezone.matcher,
+            Timezone.matcher !== undefined ? Timezone.matcher : wasm.getMatcher().Matcher.new(),
         );
     }
 

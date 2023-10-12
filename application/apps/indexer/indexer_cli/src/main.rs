@@ -860,7 +860,7 @@ pub async fn main() -> Result<()> {
         let in_file = File::open(file_path).unwrap();
         let _reader = BufReader::new(&in_file);
         if ending.to_str() == Some("dlt") {
-            let dlt_parser = DltParser::new(None, None, true);
+            let dlt_parser = DltParser::new(None, None, None, true);
             let reader = BufReader::new(&in_file);
             let source = BinaryByteSource::new(reader);
             let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source, None);
@@ -1680,7 +1680,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
         }
         {
             println!("try pcap dlt parser");
-            let dlt_parser = DltParser::new(None, None, false);
+            let dlt_parser = DltParser::new(None, None, None, false);
             // let buf_reader = BufReader::new(fs::File::open(&input)?);
             match PcapngByteSource::new(fs::File::open(input)?) {
                 Ok(source) => {

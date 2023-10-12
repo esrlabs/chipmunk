@@ -182,9 +182,21 @@ impl<'a> fmt::Display for DltStandardHeader<'a> {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct FormatOptions {
     pub tz: Option<Tz>,
+}
+
+impl From<Option<&String>> for FormatOptions {
+    fn from(value: Option<&String>) -> Self {
+        FormatOptions {
+            tz: if let Some(tz) = value {
+                tz.parse::<Tz>().map_or(None, Option::from)
+            } else {
+                None
+            },
+        }
+    }
 }
 
 /// A dlt message that can be formatted with optional FIBEX data support

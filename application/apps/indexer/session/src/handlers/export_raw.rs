@@ -6,12 +6,16 @@ use crate::{
 use indexer_base::{config::IndexSection, progress::Severity};
 use log::debug;
 use parsers::{
-    dlt::DltParser, someip::SomeipParser, text::StringTokenizer, LogMessage, MessageStreamItem,
+    dlt::{fmt::FormatOptions, DltParser},
+    someip::SomeipParser,
+    text::StringTokenizer,
+    LogMessage, MessageStreamItem,
 };
 use processor::export::{export_raw, ExportError};
 use sources::{
     binary::{
-        pcap::legacy::PcapLegacyByteSource, pcap::ng::PcapngByteSource, raw::BinaryByteSource,
+        pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
+        raw::BinaryByteSource,
     },
     factory::{FileFormat, ParserType},
     producer::MessageProducer,
@@ -150,9 +154,11 @@ async fn export<S: ByteSource>(
             .await
         }
         ParserType::Dlt(settings) => {
+            let fmt_options = Some(FormatOptions::from(settings.tz.as_ref()));
             let parser = DltParser::new(
                 settings.filter_config.as_ref().map(|f| f.into()),
                 settings.fibex_metadata.as_ref(),
+                fmt_options.as_ref(),
                 settings.with_storage_header,
             );
             let mut producer = MessageProducer::new(parser, source, None);
