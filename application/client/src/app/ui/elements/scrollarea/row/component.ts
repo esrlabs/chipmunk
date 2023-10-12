@@ -121,32 +121,40 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         items.push(
             ...[
                 {
-                    caption:
-                        delimiter === undefined
-                            ? 'Copy as Plain Text'
-                            : selection.lines > 1
-                            ? 'Copy as Formated Table'
-                            : 'Copy',
+                    caption: 'Copy',
                     disabled: !selection.exist,
                     shortcut: 'Ctrl + C',
-                    handler: () => {
-                        this.selecting.copyToClipboard(false).catch((err: Error) => {
-                            this.log().error(`Fail to copy selection: ${err.message}`);
-                        });
-                    },
-                },
-                {
-                    caption:
-                        delimiter === undefined
-                            ? 'Copy with Original Formating'
-                            : 'Copy without Formating',
-                    disabled: !selection.exist || (delimiter !== undefined && selection.lines <= 1),
                     handler: () => {
                         this.selecting.copyToClipboard(true).catch((err: Error) => {
                             this.log().error(`Fail to copy selection: ${err.message}`);
                         });
                     },
                 },
+                ...(delimiter !== undefined
+                    ? [
+                          {
+                              caption: 'Copy as Formated Table',
+                              disabled: false,
+                              handler: () => {
+                                  if (selection.lines <= 1) {
+                                      this.selecting
+                                          .copyRowToClipboard(this.row.position, false)
+                                          .catch((err: Error) => {
+                                              this.log().error(
+                                                  `Fail to copy selection: ${err.message}`,
+                                              );
+                                          });
+                                  } else {
+                                      this.selecting.copyToClipboard(false).catch((err: Error) => {
+                                          this.log().error(
+                                              `Fail to copy selection: ${err.message}`,
+                                          );
+                                      });
+                                  }
+                              },
+                          },
+                      ]
+                    : []),
                 {},
                 {
                     caption:
