@@ -52,6 +52,13 @@ class RenderedHeader {
 })
 @Ilc()
 export class ColumnsHeaders extends ChangesDetector implements AfterContentInit {
+    protected load(): void {
+        this.headers = this.controller
+            .get()
+            .visible()
+            .map((h) => new RenderedHeader(h));
+    }
+
     public readonly Direction = Direction;
     public offset: number = 0;
 
@@ -70,17 +77,15 @@ export class ColumnsHeaders extends ChangesDetector implements AfterContentInit 
                 this.detectChanges();
             }),
             this.controller.subjects.get().visibility.subscribe(() => {
-                this.headers = this.controller
-                    .get()
-                    .visible()
-                    .map((h) => new RenderedHeader(h));
+                this.load();
+                this.detectChanges();
+            }),
+            this.controller.subjects.get().restored.subscribe(() => {
+                this.load();
                 this.detectChanges();
             }),
         );
-        this.headers = this.controller
-            .get()
-            .visible()
-            .map((h) => new RenderedHeader(h));
+        this.load();
     }
 
     public contextmenu(event: MouseEvent, index: number): void {
