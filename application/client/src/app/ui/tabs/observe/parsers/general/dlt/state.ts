@@ -24,6 +24,24 @@ export class State extends Base {
         super(observe);
     }
 
+    public async load(): Promise<void> {
+        const conf = this.observe.parser.as<Dlt.Configuration>(Dlt.Configuration);
+        if (conf === undefined) {
+            return;
+        }
+        const stored: string[] | string | undefined = conf.configuration.fibex_file_paths;
+        const paths: string[] =
+            stored === undefined
+                ? []
+                : typeof stored === 'string'
+                ? [stored]
+                : stored.map((p) => p);
+        this.fibex = await bridge.files().getByPath(paths);
+        conf.configuration.filter_config !== undefined &&
+            conf.configuration.filter_config.min_log_level !== undefined &&
+            (this.logLevel = conf.configuration.filter_config.min_log_level);
+    }
+
     public update(): State {
         const conf = this.observe.parser.as<Dlt.Configuration>(Dlt.Configuration);
         if (conf === undefined) {
@@ -76,7 +94,7 @@ export class State extends Base {
                     inputs: {
                         selected: (timezone: Timezone): void => {
                             this.timezone = timezone;
-                            this.ref.markChangesForCheck();
+                            this.ref.detectChanges();
                         },
                     },
                 },
