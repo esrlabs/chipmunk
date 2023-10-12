@@ -64,7 +64,41 @@ export class Selecting {
     };
     private _delimiter: string | undefined;
 
-    bind(holder: HTMLElement, frame: Frame, service: Service) {
+    protected copyRows(rows: string[], original: boolean): void {
+        const delimiter = this._delimiter;
+        if (rows.length === 0) {
+            return;
+        }
+        if (delimiter === undefined) {
+            navigator.clipboard.writeText(rows.join('\n'));
+        } else {
+            const columns = rows.map((r) => r.split(delimiter));
+            const widths = new Array(columns[0].length);
+            columns.forEach((rows: string[]) => {
+                rows.forEach((r, i) => {
+                    if (widths[i] === undefined) {
+                        widths[i] = 0;
+                    }
+                    widths[i] = Math.max(widths[i], r.length);
+                });
+            });
+            const formated = columns.map((rows: string[]) => {
+                if (original) {
+                    return rows.join(';');
+                } else {
+                    return rows
+                        .map((r, i) => {
+                            const repeat = nums.diffUInts([widths[i], r.length], 0);
+                            return `${r}${' '.repeat(repeat < 0 ? 0 : repeat)}`;
+                        })
+                        .join(' | ');
+                }
+            });
+            navigator.clipboard.writeText(formated.join('\n'));
+        }
+    }
+
+    public bind(holder: HTMLElement, frame: Frame, service: Service) {
         this._holder = holder;
         this._frame = frame;
         this._service = service;
@@ -278,6 +312,21 @@ export class Selecting {
         }
     }
 
+    public async copyRowToClipboard(position: number, original: boolean): Promise<void> {
+        const delimiter = this._delimiter;
+        const rows = (await this._service.getRows({ from: position, to: position })).rows.map(
+            (r) => {
+                if (!original && delimiter === undefined) {
+                    const escaped = escapeAnsi(r.content);
+                    return escaped instanceof Error ? r.content : escaped;
+                } else {
+                    return r.content;
+                }
+            },
+        );
+        this.copyRows(rows, original);
+    }
+
     public async copyToClipboard(original: boolean): Promise<void> {
         const selection = this.get();
         if (selection === undefined) {
@@ -304,31 +353,9 @@ export class Selecting {
         if (delimiter === undefined || rows.length === 1) {
             rows[0] = selection.fragments.start;
             rows[rows.length - 1] = selection.fragments.end;
-            navigator.clipboard.writeText(rows.join('\n'));
+            this.copyRows(rows, original);
         } else {
-            const columns = rows.map((r) => r.split(delimiter));
-            const widths = new Array(columns[0].length);
-            columns.forEach((rows: string[]) => {
-                rows.forEach((r, i) => {
-                    if (widths[i] === undefined) {
-                        widths[i] = 0;
-                    }
-                    widths[i] = Math.max(widths[i], r.length);
-                });
-            });
-            const formated = columns.map((rows: string[]) => {
-                if (original) {
-                    return rows.join(';');
-                } else {
-                    return rows
-                        .map((r, i) => {
-                            const repeat = nums.diffUInts([widths[i], r.length], 0);
-                            return `${r}${' '.repeat(repeat < 0 ? 0 : repeat)}`;
-                        })
-                        .join(' | ');
-                }
-            });
-            navigator.clipboard.writeText(formated.join('\n'));
+            this.copyRows(rows, original);
         }
     }
 
