@@ -138,6 +138,7 @@ export class Columns {
                                     }
                                 },
                             );
+                            this.subjects.get().restored.emit();
                         } catch (err) {
                             this.logger.error(`Fail to parse columns data due: ${error(err)}`);
                         }
@@ -173,10 +174,12 @@ export class Columns {
         resized: Subject<number>;
         visibility: Subject<number>;
         colorize: Subject<number>;
+        restored: Subject<void>;
     }> = new Subjects({
         resized: new Subject(),
         visibility: new Subject(),
         colorize: new Subject(),
+        restored: new Subject(),
     });
 
     constructor(
@@ -197,7 +200,9 @@ export class Columns {
             max,
         };
         this.setup();
-        this.storage().load();
+        setTimeout(() => {
+            this.storage().load();
+        }, 1000);
     }
 
     public visibility(index: number): {
