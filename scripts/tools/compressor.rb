@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+require './scripts/tools/shell'
 
 # Create compressed archive of application
 class Compressor
