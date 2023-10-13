@@ -1,0 +1,21 @@
+@import '../../../styles/variables.less';
+
+:host {
+    vertical-align: middle;
+    display: flex;
+    flex-direction: row;
+    & span {
+        position: relative;
+        display: block;
+        color: @scheme-color-1;
+        font-size: 12px;
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-right: 8px;
+        padding-right: 8px;
+        border-right: thin solid @scheme-color-3;
+        height: 100%;
+    }
+    
+}

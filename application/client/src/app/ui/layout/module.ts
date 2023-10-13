@@ -32,8 +32,7 @@ import { LayoutSnackBarMessage } from './snackbar/message/component';
 import { OverlayModule } from '@angular/cdk/overlay';
 import { JobsModule } from '@views/statusbar/jobs/module';
 import { SessionModule } from '@views/statusbar/session/module';
-
-// import { AppsBarStatusModule } from '../statusbar/module';
+import { SessionInfoModule } from '@views/statusbar/info/module';
 
 const entryComponents = [
     Layout,
@@ -67,12 +66,13 @@ const entryComponents = [
         MatMenuModule,
         JobsModule,
         SessionModule,
+        SessionInfoModule,
         RecentActionsModule,
         LayoutHomeModule,
         OverlayModule,
     ],
     declarations: [...entryComponents],
     exports: [...entryComponents, AppDirectiviesModule],
-    bootstrap: [...entryComponents, LayoutHomeModule, ElementsModule]
+    bootstrap: [...entryComponents, LayoutHomeModule, ElementsModule],
 })
 export class LayoutModule {}

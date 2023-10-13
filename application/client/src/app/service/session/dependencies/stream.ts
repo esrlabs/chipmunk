@@ -7,7 +7,7 @@ import { IGrabbedElement } from '@platform/types/content';
 import { Observe } from '@platform/types/observe';
 import { ObserveOperation } from './observing/operation';
 import { ObserveSource } from './observing/source';
-
+import { Info } from './info';
 import { lockers } from '@ui/service/lockers';
 import { Sde } from './observing/sde';
 
@@ -42,6 +42,7 @@ export class Stream extends Subscriber {
     });
     private _len: number = 0;
     private _uuid!: string;
+    private _info!: Info;
 
     public readonly observed: {
         running: Map<string, ObserveOperation>;
@@ -55,10 +56,11 @@ export class Stream extends Subscriber {
     public readonly rank: Rank = new Rank();
     public sde!: Sde;
 
-    public init(uuid: string) {
+    public init(uuid: string, info: Info) {
         this.setLoggerName(`Stream: ${cutUuid(uuid)}`);
         this.sde = new Sde(uuid);
         this._uuid = uuid;
+        this._info = info;
         this.register(
             Events.IpcEvent.subscribe(Events.Stream.Updated.Event, (event) => {
                 if (event.session !== this._uuid) {
@@ -164,6 +166,7 @@ export class Stream extends Subscriber {
                         if (typeof response.error === 'string' && response.error !== '') {
                             return Promise.reject(new Error(response.error));
                         }
+                        this._info.fromObserveInfo(observe);
                         return response.session;
                     })
                     .finally(lockers.progress(`Creating session...`));
