@@ -1,3 +1,15 @@
+# 3.9.17
+
+## Changes
+- Add DLT/SomeIp configuration short info into the status bar
+- Change a way to copy data into the clipboard from a stream
+
+## Fixes
+- Fix the width issue on columns view
+- Fix concat files view
+- Fix supporting of TimeZones on DLT
+- Fix FIBEX files select/unselect
+
 # 3.9.16
 
 ## Changes

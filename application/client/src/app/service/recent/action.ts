@@ -99,12 +99,12 @@ export class Action {
                 caption: ((): string => {
                     switch (nature.type) {
                         case $.Description.OriginType.file:
-                            return 'Open';
+                            return 'Open with recent configuration';
                         case $.Description.OriginType.net:
                         case $.Description.OriginType.serial:
-                            return 'Connect';
+                            return 'Connect with recent configuration';
                         case $.Description.OriginType.command:
-                            return 'Execute';
+                            return 'Execute with recent configuration';
                     }
                 })(),
                 handler: this.apply.bind(this),
@@ -112,7 +112,7 @@ export class Action {
             ...(configurable
                 ? [
                       {
-                          caption: 'Configure',
+                          caption: 'Open with new configuration',
                           handler: () => {
                               session
                                   .initialize()
