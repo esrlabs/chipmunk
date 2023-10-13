@@ -15,6 +15,7 @@ import { Exporter } from './dependencies/exporter';
 import { IRange, fromIndexes } from '@platform/types/range';
 import { Providers } from './dependencies/observing/providers';
 import { Attachments } from './dependencies/attachments';
+import { Info } from './dependencies/info';
 
 import * as ids from '@schema/ids';
 import * as Requests from '@platform/ipc/request';
@@ -34,6 +35,7 @@ export class Session extends Base {
     public readonly render: Render<unknown>;
     public readonly observed: Providers = new Providers();
     public readonly attachments: Attachments = new Attachments();
+    public readonly info: Info = new Info();
 
     private _uuid!: string;
     private _tab!: ITabAPI;
@@ -148,7 +150,7 @@ export class Session extends Base {
                 .then((response) => {
                     this.setLoggerName(`Session: ${cutUuid(response.uuid)}`);
                     this._uuid = response.uuid;
-                    this.stream.init(this._uuid);
+                    this.stream.init(this._uuid, this.info);
                     this.cursor.init(this._uuid);
                     this.indexed.init(this._uuid);
                     this.bookmarks.init(this._uuid, this.stream, this.cursor);
@@ -175,6 +177,7 @@ export class Session extends Base {
         this.observed.destroy();
         this.attachments.destroy();
         this.charts.destroy();
+        this.info.destroy();
         this.unsubscribe();
         if (!this.inited) {
             return Promise.resolve();
