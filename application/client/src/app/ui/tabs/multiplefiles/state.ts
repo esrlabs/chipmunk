@@ -39,6 +39,8 @@ export class State extends Holder {
     };
     private _sortConfig: Sort = { active: '', direction: '' };
 
+    public path: string | undefined;
+
     constructor() {
         super();
     }
@@ -46,10 +48,16 @@ export class State extends Holder {
     public init(ilc: InternalAPI, tab: TabControls, files: File[]): void {
         this._ilc = ilc;
         this._tab = tab;
+        if (files.length > 0) {
+            this.path = files[0].path;
+        }
         files.forEach((file: File) => {
             const color = getUniqueColorTo(this._usedColors);
             this._usedColors.push(color);
             this._files.push(new FileHolder(this.matcher, file, color));
+            if (this.path !== undefined && file.path !== this.path) {
+                this.path = undefined;
+            }
         });
         this._updateSummary();
     }

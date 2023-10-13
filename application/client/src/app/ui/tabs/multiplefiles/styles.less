@@ -113,22 +113,22 @@
         left: 50%;
         transform: translate(-50%, -50%);
     }
-    & td {
-        width: 33%;
-    }
-    & td:nth-child(n+2) {
-        text-align: center;
-    }
-    & td.select-button {
-        text-decoration: underline;
-        cursor: pointer;
-    }
-    & td.yellow {
-        color: yellow;
-        font-weight: 650;
-    }
-    & tr.empty-row {
-        height: 20px;
+    & table {
+        font-size: 13px;
+        & td:nth-child(n+1) {
+            width: 33%;
+        }
+        & td.select-button {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        & td.yellow {
+            color: yellow;
+            font-weight: 650;
+        }
+        & tr.empty-row {
+            height: 20px;
+        }    
     }
     & div.dividing-line {
         position: absolute;
