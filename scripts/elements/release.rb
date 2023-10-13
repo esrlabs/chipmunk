@@ -1,4 +1,6 @@
 # frozen_string_literal: true
+require 'json'
+require './scripts/tools/compressor'
 
 # Needed to get release meta data
 module Release
@@ -65,7 +67,7 @@ end
 def release_file_name
   prefix = OS.prefix
   prefix += '64' if prefix == 'win'
-  "chipmunk@#{version}-#{prefix}-portable"
+  "chipmunk@#{Release.version}-#{prefix}-portable"
 end
 
 namespace :release do
@@ -96,8 +98,8 @@ namespace :release do
   task :bundle do
     Shell.chdir(Paths::ELECTRON) do
       Release.set_envvars
-      Shell.timed_sh Release.build_cmd
-      Reporter.done('release', 'built', '')
+      duration = Shell.timed_sh(Release.build_cmd, 'invoke electron builder')
+      Reporter.done('release', 'built', '', duration)
     end
     Release.snapshot
     Reporter.done('release', "done: #{Paths::RELEASE_BUILD}", '')
