@@ -5,7 +5,9 @@
             <mat-card class="top">
                 <mat-card-title>Multiple files</mat-card-title>
                 <mat-card-content>
-                    <app-tabs-source-multiplefiles-structure [state]="state"></app-tabs-source-multiplefiles-structure>
+                    <app-tabs-source-multiplefiles-structure
+                        [state]="state"
+                    ></app-tabs-source-multiplefiles-structure>
                 </mat-card-content>
             </mat-card>
         </div>
@@ -22,12 +24,19 @@
                             <td>Selected files:</td>
                             <td>{{state.selectedCount}}</td>
                         </tr>
+                        <tr *ngIf="state.path !== undefined">
+                            <td>All files from:</td>
+                            <td>{{state.path}}</td>
+                        </tr>
                         <tr [class]="state.selectedTypes.length >= 2 ? '' : 'hidden'">
                             <td colspan="3">
                                 <div class="dividing-line"></div>
                             </td>
                         </tr>
-                        <tr [class]="state.selectedTypes.length >= 2 ? '' : 'hidden'" *ngFor="let type of state.selectedTypes">
+                        <tr
+                            [class]="state.selectedTypes.length >= 2 ? '' : 'hidden'"
+                            *ngFor="let type of state.selectedTypes"
+                        >
                             <td>{{type}}</td>
                             <td class="yellow">{{state.getTypeCount(type)}}</td>
                             <td class="select-button" (click)="state.selectOnly(type)">Select</td>
@@ -40,25 +49,39 @@
                 <mat-card-content>
                     <p class="none" *ngIf="state.selectedFiles.length === 0">No file(s) selected</p>
                     <div class="overview">
-                        <div *ngFor="let file of state.selectedFiles"
-                                class="color"
-                                [ngStyle]="{ 'background-color': file.color, width: state.overviewColorWidth(file.sizeInByte()) + '%' }">
-                        </div>
+                        <div
+                            *ngFor="let file of state.selectedFiles"
+                            class="color"
+                            [ngStyle]="{ 'background-color': file.color, width: state.overviewColorWidth(file.sizeInByte()) + '%' }"
+                        ></div>
                     </div>
-                    <div *ngIf="state.selectedFiles.length > 0" class="overview-summary">{{state.selectedCount}} / {{state.selectedSize}}</div>
+                    <div *ngIf="state.selectedFiles.length > 0" class="overview-summary">
+                        {{state.selectedCount}} / {{state.selectedSize}}
+                    </div>
                 </mat-card-content>
             </mat-card>
             <mat-card class="hidden">
                 <mat-card-title>Warnings / Errors</mat-card-title>
-                <mat-card-content>
-                </mat-card-content>
+                <mat-card-content> </mat-card-content>
             </mat-card>
             <div class="spacer"></div>
             <mat-card class="controls">
                 <mat-card-title>Actions</mat-card-title>
                 <mat-card-content>
-                    <button mat-stroked-button (click)="state.action().openEach()" [disabled]="state.selectedCount === 0">Open each</button>
-                    <button mat-stroked-button (click)="state.action().concat()" [disabled]="!state.isConcatable() || state.selectedCount <= 1">Concat</button>
+                    <button
+                        mat-stroked-button
+                        (click)="state.action().openEach()"
+                        [disabled]="state.selectedCount === 0"
+                    >
+                        Open each
+                    </button>
+                    <button
+                        mat-stroked-button
+                        (click)="state.action().concat()"
+                        [disabled]="!state.isConcatable() || state.selectedCount <= 1"
+                    >
+                        Concat
+                    </button>
                     <button mat-stroked-button (click)="state.action().cancel()">Cancel</button>
                 </mat-card-content>
             </mat-card>
