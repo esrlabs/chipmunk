@@ -1,3 +1,8 @@
+# 3.9.18
+
+## Fixes
+- Fix DLT header parsing with TZ condition
+
 # 3.9.17
 
 ## Changes
