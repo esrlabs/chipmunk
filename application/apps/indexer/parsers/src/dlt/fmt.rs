@@ -538,7 +538,10 @@ impl<'a> fmt::Display for FormattableMessage<'a> {
         if let Some(h) = &self.message.storage_header {
             let tz = self.options.map(|o| o.tz);
             match tz {
-                Some(Some(tz)) => write_tz_string(f, &h.timestamp, &tz)?,
+                Some(Some(tz)) => {
+                    write_tz_string(f, &h.timestamp, &tz)?;
+                    write!(f, "{DLT_COLUMN_SENTINAL}{}", h.ecu_id)?;
+                }
                 _ => write!(f, "{}", DltStorageHeader(h))?,
             };
         }
