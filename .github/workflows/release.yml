@@ -8,6 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
+    env:
+      PUBLISH_FOR_PULL_REQUEST: true
+      CSC_FOR_PULL_REQUEST: true
     steps:
       - name: Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -23,6 +26,9 @@ jobs:
     name: Build release
     needs: create_release
     runs-on: ${{ matrix.os }}
+    env:
+      PUBLISH_FOR_PULL_REQUEST: 1
+      CSC_FOR_PULL_REQUEST: true
     strategy:
       matrix:
         os: [ubuntu-20.04, windows-latest, macOS-latest]
