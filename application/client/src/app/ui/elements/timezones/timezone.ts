@@ -30,7 +30,7 @@ export class Timezone extends Matchee {
             tz,
             `${offset === 0 ? '' : offset > 0 ? '-' : '+'}${Math.abs(offset) / 60}`,
             offset,
-            Timezone.matcher !== undefined ? Timezone.matcher : wasm.getMatcher().Matcher.new(),
+            Timezone.matcher !== undefined ? Timezone.matcher : wasm.Matcher.new(),
         );
     }
 
