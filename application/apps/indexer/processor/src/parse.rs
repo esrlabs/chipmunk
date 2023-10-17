@@ -111,7 +111,7 @@ pub fn posix_timestamp_as_string(timestamp_ms: i64) -> String {
         (timestamp_ms as f64 % 1000.0) as u32 * 1000,
     ) {
         Some(naive_datetime_max) => {
-            let t: DateTime<Utc> = DateTime::from_utc(naive_datetime_max, Utc);
+            let t: DateTime<Utc> = DateTime::from_naive_utc_and_offset(naive_datetime_max, Utc);
             format!("{t}")
         }
         None => format!("could not parse: {timestamp_ms}"),
@@ -474,7 +474,7 @@ pub(crate) fn scan_lines(
 
 pub fn unix_timestamp_to_utc(timestamp: i64) -> Option<DateTime<Utc>> {
     NaiveDateTime::from_timestamp_opt(timestamp, 0)
-        .map(|naive_datetime| DateTime::from_utc(naive_datetime, Utc))
+        .map(|naive_datetime| DateTime::from_naive_utc_and_offset(naive_datetime, Utc))
 }
 
 /// find out the lower and upper timestamp of a file
