@@ -35,7 +35,6 @@ export class State implements Destroy {
         profiles.forEach((profile) => {
             valid.find((p) => p.path === profile.path) === undefined &&
                 profile.envvars !== undefined &&
-                !profile.symlink &&
                 valid.push(profile);
         });
         this.profiles.all = profiles;
