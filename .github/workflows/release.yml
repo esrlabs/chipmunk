@@ -47,7 +47,7 @@ jobs:
             - name: install node
               uses: actions/setup-node@master
               with:
-                  node-version: "current"
+                  node-version: "lts/*"
             - name: install rust
               uses: hecrj/setup-rust-action@v1
               with:
