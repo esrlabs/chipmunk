@@ -1,15 +1,24 @@
+# 3.9.19 (17.10.2023)
+
+## Updated
+
+- Updated envvar version
+
 # 3.9.18
 
 ## Fixes
+
 - Fix DLT header parsing with TZ condition
 
 # 3.9.17
 
 ## Changes
+
 - Add DLT/SomeIp configuration short info into the status bar
 - Change a way to copy data into the clipboard from a stream
 
 ## Fixes
+
 - Fix the width issue on columns view
 - Fix concat files view
 - Fix supporting of TimeZones on DLT
@@ -18,6 +27,7 @@
 # 3.9.16
 
 ## Changes
+
 - Set a new active search if the input isn't empty (instead of adding a filter)
 - Change linking profiles on suitable types of files/sources
 - Allow configure default colors for filters, matches and charts
@@ -25,21 +35,25 @@
 # 3.9.15
 
 ## Changes
+
 - Upgrade electron and related dependencies
 
 # 3.9.14
 
 ## Changes
+
 - Remove version prefix ("next-")
 
 # 3.9.13
 
 ## Changes
+
 - Add support of updating from all published versions
 
 # 3.9.12
 
 ## Fixes
+
 - Fix the path's parser (windows)
 - Fix the default column's sizer
 - Fix DLT statistic collector
@@ -47,9 +61,11 @@
 # 3.9.11
 
 ## Features
+
 - Possibility to manage columns styles
 
 ## Fixes
+
 - Move global drag and drop controller into service
 - Fix multiple selecting attachments
 - Append default extension to saved attachments
@@ -60,6 +76,7 @@
 # 3.9.10
 
 ## Fixes
+
 - Fix scrolling error
 - Fix dialog styling
 - Fix drag and drop files support
@@ -71,11 +88,13 @@
 # 3.9.9
 
 ## Fixes
+
 - Fix opening DLT files
 
 # 3.9.8
 
 ## Features
+
 - Allow custom path for serial port connections
 - Allow sending data into serial port with delay
 - Added user manual
@@ -83,6 +102,7 @@
 - Added possibility to import filters/charts from Chipmunk v.2
 
 ## Fixes
+
 - Fixed scroll bar issue on sticky scrolling
 - Fixed saving of recent terminal commands
 - Fixed respawning new terminal commands
@@ -92,44 +112,52 @@
 # 3.9.7
 
 ## Features
+
 - Add mixed popup (Ctrl + P / Cmd + P) to show recent action(s) with files from favorites places
-  
+
 # 3.9.6
 
 ## Fixes:
+
 - Remove a screen locker on concat operation
 - Reduce a time of the first feedback on concat
 
 # 3.9.5
 
 ## Fixes:
+
 - Fix scrolling issue for recent actions list
 - Fix opening files from favorites and recent
 - Serialize html on row before apply highlights
 - Correct search export to file
 - Add lock screen on concating files
 - Fix sorting and UI issues on concat
-- Extend max sources number to 65535 (from 255) 
+- Extend max sources number to 65535 (from 255)
 
 ## Features
-- Add support of PCAP file format 
+
+- Add support of PCAP file format
 
 # 3.9.4
 
 ## Fixes:
+
 - Fix issue with same source UUID on restarting source
 
 # 3.9.3
 
 ## Features
+
 - Import / Export filters from context menu on sidebar
 
 ## Fixes:
+
 - Fix quick observe setup
-  
+
 # 3.9.2
 
 ## Fixes
+
 - Creates suitable source for exporting as raw
 - Allows export SomeIp into binary from PcapNg
 - Fixes issue with exporting DLT from PcapNg
@@ -139,22 +167,26 @@
 # 3.9.1
 
 ## Fixes
+
 - fix error related to overwriting configuration of observing (stream/parser)
 
 # 3.9.0
 
 ## UI/UX & Features
+
 - add support of SomeIp in PcapNg files
 - add support of modules for SomeIp
 - reintroduce UI/UX for opening binary files
 - reintroduce UI/UX for connection to the source
 
 ## Developing
+
 - add traces on errors (traces drops into a console and saves into the log file)
 - fix the focus issue on DevTools in the client
 - unlock shortcuts in DevTools
 
 ## Internal
+
 - sync types from rustcore to client in the scope of observing operations
 - remove duplicates of types
 - Angular upgrade to 16.x
@@ -162,5 +194,6 @@
 - Fix timing issue for jobs on ts-binding (unbound session on rustcore)
 
 # 3.8.2
+
 - Prevent executing "empty" command on streaming
 - Unlock mouse on system dialogs (gnome related issue)
