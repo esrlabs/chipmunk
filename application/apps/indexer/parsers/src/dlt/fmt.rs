@@ -143,7 +143,7 @@ impl<'a> fmt::Display for DltDltTimeStamp<'a> {
         );
         match naive {
             Some(n) => {
-                let datetime: DateTime<Utc> = DateTime::from_utc(n, Utc);
+                let datetime: DateTime<Utc> = DateTime::from_naive_utc_and_offset(n, Utc);
                 let system_time: std::time::SystemTime = std::time::SystemTime::from(datetime);
                 write!(f, "{}", humantime::format_rfc3339(system_time))
             }
@@ -579,7 +579,11 @@ fn write_tz_string(
         time_stamp.microseconds * 1000,
     );
     match naive {
-        Some(n) => write!(f, "{}", DateTime::<Utc>::from_utc(n, Utc).with_timezone(tz)),
+        Some(n) => write!(
+            f,
+            "{}",
+            DateTime::<Utc>::from_naive_utc_and_offset(n, Utc).with_timezone(tz)
+        ),
         None => write!(
             f,
             "no valid timestamp for {}s/{}us",
@@ -595,7 +599,7 @@ pub fn utc_string(time_stamp: &DltTimeStamp) -> String {
     );
     match naive {
         Some(n) => {
-            let datetime: DateTime<Utc> = DateTime::from_utc(n, Utc);
+            let datetime: DateTime<Utc> = DateTime::from_naive_utc_and_offset(n, Utc);
             let system_time: std::time::SystemTime = std::time::SystemTime::from(datetime);
             humantime::format_rfc3339(system_time).to_string()
         }
