@@ -13,6 +13,7 @@ import { Service } from './service';
 import { escapeAnsi } from '@module/ansi';
 
 import * as nums from '@platform/env/num';
+import * as dom from '@ui/env/dom';
 
 const DIRECTED_SCROLL_TIMEOUT_MS = 50;
 
@@ -105,16 +106,16 @@ export class Selecting {
         this._onSelectionStarted = this._onSelectionStarted.bind(this);
         this._onSelectionEnded = this._onSelectionEnded.bind(this);
         this._onSelectionChange = this._onSelectionChange.bind(this);
-        this._onMouseDown = this._onMouseDown.bind(this);
+        this._onMouseClick = this._onMouseClick.bind(this);
+        this._holder.addEventListener('click', this._onMouseClick);
         this._holder.addEventListener('selectstart', this._onSelectionStarted);
-        window.addEventListener('mousedown', this._onMouseDown);
         window.addEventListener('mouseup', this._onSelectionEnded);
     }
 
     public destroy() {
         this._holder.removeEventListener('selectstart', this._onSelectionStarted);
+        this._holder.removeEventListener('click', this._onMouseClick);
         window.removeEventListener('mouseup', this._onSelectionEnded);
-        window.removeEventListener('mousedown', this._onMouseDown);
     }
 
     public isInProgress(): boolean {
@@ -410,10 +411,11 @@ export class Selecting {
         this._holder.focus();
     }
 
-    private _onSelectionEnded() {
+    private _onSelectionEnded(event: MouseEvent) {
         if (!this._progress) {
             return;
         }
+        dom.stop(event);
         document.removeEventListener('selectionchange', this._onSelectionChange);
         this._progress = false;
         this._subjects.finish.emit();
@@ -432,7 +434,7 @@ export class Selecting {
         this._detectBorders(selection);
     }
 
-    private _onMouseDown(event: MouseEvent) {
+    private _onMouseClick(event: MouseEvent) {
         if (this._progress) {
             return;
         }
