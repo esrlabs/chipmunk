@@ -22,7 +22,6 @@ extern crate lazy_static;
 mod interactive;
 
 use crate::interactive::handle_interactive_session;
-use addon::{extract_dlt_ft, scan_dlt_ft};
 use anyhow::{anyhow, Result};
 use dlt_core::{
     fibex::FibexConfig,
@@ -30,6 +29,7 @@ use dlt_core::{
     parse::DltParseError,
     statistics::{collect_dlt_stats, count_dlt_messages as count_dlt_messages_old},
 };
+use dlt_tools::{extract_dlt_ft, scan_dlt_ft};
 use env_logger::Env;
 use futures::{pin_mut, stream::StreamExt};
 use indexer_base::config::*;
