@@ -1,3 +1,11 @@
+# 3.9.20 (18.10.2023)
+
+## Fixes
+- Fixed text selection bug
+
+## Changes
+- Updated `envvars` dependency
+
 # 3.9.19 (17.10.2023)
 
 ## Updated
