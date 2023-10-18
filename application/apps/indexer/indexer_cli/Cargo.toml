@@ -15,7 +15,7 @@ indexer_base = { path = "../indexer_base" }
 indicatif = "0.17"
 lazy_static = "1.4"
 log = "0.4"
-addon = { path = "../addon" }
+dlt-tools = { path = "../addons/dlt-tools" }
 parsers = { path = "../parsers" }
 processor = { path = "../processor" }
 session = { path = "../session" }

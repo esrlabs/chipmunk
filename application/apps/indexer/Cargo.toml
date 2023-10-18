@@ -2,7 +2,8 @@
 resolver = "2"
 
 members = [
-    "addon",
+    "addons/dlt-tools",
+    "addons/file-tools",
     "indexer_base",
     "indexer_cli",
     "merging",
