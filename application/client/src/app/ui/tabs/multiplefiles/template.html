@@ -17,16 +17,16 @@
                 <mat-card-content>
                     <table>
                         <tr>
-                            <td>Files in total:</td>
-                            <td>{{state.files.length}}</td>
+                            <td class="caption">Files in total:</td>
+                            <td class="value">{{state.files.length}}</td>
                         </tr>
                         <tr>
-                            <td>Selected files:</td>
-                            <td>{{state.selectedCount}}</td>
+                            <td class="caption">Selected files:</td>
+                            <td class="value">{{state.selectedCount}}</td>
                         </tr>
                         <tr *ngIf="state.path !== undefined">
-                            <td>All files from:</td>
-                            <td>{{state.path}}</td>
+                            <td class="caption">All files from:</td>
+                            <td class="value">{{state.path}}</td>
                         </tr>
                         <tr [class]="state.selectedTypes.length >= 2 ? '' : 'hidden'">
                             <td colspan="3">
