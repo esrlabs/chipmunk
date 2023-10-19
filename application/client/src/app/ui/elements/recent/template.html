@@ -1,9 +1,10 @@
 <app-filter-hidden #filter></app-filter-hidden>
-<div class="action" *ngFor="let action of state.getFilteredActions()" (click)="onDefaultAction(action.action)" (contextmenu)="onAllActions($event, action.action)">
-    <!-- <p class="t-medium nowrap description">
-        <span class="major" [innerHTML]="safeHtml(action.description().major)"></span>
-        <span class="color-scheme-2 minor" [innerHTML]="safeHtml(action.description().minor)"></span>
-    </p> -->
+<div
+    class="action"
+    *ngFor="let action of state.getFilteredActions()"
+    (click)="onDefaultAction(action.action)"
+    (contextmenu)="onAllActions($event, action.action)"
+>
     <div class="column_0">
         <app-recent-nature-icon [observe]="action.action.observe"></app-recent-nature-icon>
     </div>
@@ -12,4 +13,6 @@
         <app-recent-parser [observe]="action.action.observe"></app-recent-parser>
     </div>
 </div>
-<p class="t-medium nowrap description" *ngIf="state.getFilteredActions().length === 0">No recent actions</p>
+<p class="t-medium nowrap description" *ngIf="state.getFilteredActions().length === 0">
+    No recent actions
+</p>

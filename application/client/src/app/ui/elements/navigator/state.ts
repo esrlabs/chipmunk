@@ -9,6 +9,8 @@ import { INoContentActions, IStatistics } from './providers/provider';
 import { IMenuItem } from '@ui/service/contextmenu';
 import { Observe } from '@platform/types/observe';
 
+const MOVE_SELECTION_DELAY = 150;
+
 export type CloseHandler = () => void;
 
 export class State extends Holder {
@@ -21,8 +23,28 @@ export class State extends Holder {
     public loading: boolean = true;
 
     protected close: CloseHandler | undefined;
+    protected readonly movement: {
+        timer: number;
+    } = {
+        timer: -1,
+    };
     protected readonly providers: Providers;
 
+    protected move(event: KeyboardEvent): boolean {
+        clearTimeout(this.movement.timer);
+        if (event.key === 'ArrowDown') {
+            this.entries.move().down();
+        } else if (event.key === 'ArrowUp') {
+            this.entries.move().up();
+        } else {
+            return false;
+        }
+        this.ilc.detectChanges();
+        this.movement.timer = setTimeout(() => {
+            this.move(event);
+        }, MOVE_SELECTION_DELAY) as unknown as number;
+        return true;
+    }
     constructor(
         protected readonly ilc: IlcInterface & ChangesDetector,
         protected readonly filterRefGetter: () => HTMLInputElement | undefined,
@@ -36,22 +58,27 @@ export class State extends Holder {
             ilc
                 .ilc()
                 .services.ui.listener.listen<KeyboardEvent>(
-                    'keyup',
+                    'keydown',
                     window,
                     (event: KeyboardEvent) => {
-                        if (event.key === 'ArrowDown') {
-                            this.entries.move().down();
-                        } else if (event.key === 'ArrowUp') {
-                            this.entries.move().up();
-                        } else if (event.key === 'Enter') {
-                            const target = this.entries.getSelected();
-                            if (target === undefined) {
-                                return true;
-                            }
-                            this.action(target);
+                        if (this.move(event) || event.key !== 'Enter') {
                             return true;
                         }
-                        ilc.detectChanges();
+                        const target = this.entries.getSelected();
+                        if (target === undefined) {
+                            return true;
+                        }
+                        this.action(target);
+                        return true;
+                    },
+                ),
+            ilc
+                .ilc()
+                .services.ui.listener.listen<KeyboardEvent>(
+                    'keyup',
+                    window,
+                    (_event: KeyboardEvent) => {
+                        clearTimeout(this.movement.timer);
                         return true;
                     },
                 ),

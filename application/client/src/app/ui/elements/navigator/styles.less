@@ -86,16 +86,17 @@ app-navigator {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        &.selected {
+        &:hover {
             background: @scheme-color-hover;
             &::before {
                 background: @scheme-color-hover;
             }
         }
-        &:hover {
-            background: @scheme-color-hover;
+        &.selected,
+        &.selected:hover {
+            background: @scheme-color-accent-50;
             &::before {
-                background: @scheme-color-hover;
+                background: @scheme-color-accent-50;
             }
         }
         &::before {

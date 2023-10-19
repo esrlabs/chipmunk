@@ -7,7 +7,7 @@ import { createPassiveMatcheeList } from '@module/matcher';
 
 import * as wasm from '@loader/wasm';
 
-const MAX_VISIBLE_ITEMS = 35;
+const MAX_VISIBLE_ITEMS = 10;
 const ELEMENT_HEIGHT = 28;
 
 export interface ICollection {
