@@ -115,8 +115,11 @@
     }
     & table {
         font-size: 13px;
-        & td:nth-child(n+1) {
-            width: 33%;
+        & td.value {
+            word-break: break-all;
+        }
+        & td.caption {
+            white-space: nowrap;
         }
         & td.select-button {
             text-decoration: underline;
