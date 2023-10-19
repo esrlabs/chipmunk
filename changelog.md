@@ -1,3 +1,8 @@
+# 3.9.21 (19.10.2023)
+
+## Changes
+- Updated `envvars` dependency
+
 # 3.9.20 (18.10.2023)
 
 ## Fixes
