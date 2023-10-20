@@ -1,3 +1,12 @@
+# 3.9.22 (20.10.2023)
+
+## Fixes
+- Fixed concat view style issues
+
+## Changes
+- Updated styles on `Ctrl + P` popup
+- Support for continued movement on `Ctrl + P` popup
+
 # 3.9.21 (19.10.2023)
 
 ## Changes
