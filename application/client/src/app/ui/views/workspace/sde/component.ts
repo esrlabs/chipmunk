@@ -7,6 +7,7 @@ import {
     ViewChild,
     ViewEncapsulation,
     OnDestroy,
+    SkipSelf,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Session } from '@service/session';
@@ -52,8 +53,8 @@ export class ViewSdeComponent extends ChangesDetector implements AfterContentIni
         recent: new Subject<string | undefined>(),
     };
 
-    constructor(cdRef: ChangeDetectorRef) {
-        super(cdRef);
+    constructor(@SkipSelf() selfCdRef: ChangeDetectorRef, cdRef: ChangeDetectorRef) {
+        super([selfCdRef, cdRef]);
     }
 
     public ngOnDestroy(): void {
@@ -67,6 +68,14 @@ export class ViewSdeComponent extends ChangesDetector implements AfterContentIni
         const stored = this.session.storage.get<State>(SDE_STATE);
         this.state = stored !== undefined ? stored : new State();
         this.state.bind(this, this.session);
+        this.env().subscriber.register(
+            this.session.stream.subjects.get().finished.subscribe(() => {
+                this.detectChanges();
+            }),
+            this.session.stream.subjects.get().started.subscribe(() => {
+                this.detectChanges();
+            }),
+        );
     }
 
     public enter(): void {
