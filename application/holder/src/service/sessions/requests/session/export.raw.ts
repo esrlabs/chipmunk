@@ -1,8 +1,10 @@
 import { CancelablePromise } from 'platform/env/promise';
 import { sessions } from '@service/sessions';
 import { Logger } from 'platform/log';
+import { paths } from '@service/paths';
 
 import * as Requests from 'platform/ipc/request';
+import * as path from 'path';
 
 export const handler = Requests.InjectLogger<
     Requests.Session.ExportRaw.Request,
@@ -19,20 +21,42 @@ export const handler = Requests.InjectLogger<
             if (stored === undefined) {
                 return reject(new Error(`Session doesn't exist`));
             }
+            const dest = (() => {
+                if (request.dest !== undefined) {
+                    return request.dest;
+                } else {
+                    const ext = stored.getFileExt();
+                    if (ext instanceof Error) {
+                        return ext;
+                    }
+                    return path.join(
+                        paths.getTmp(),
+                        `export_${new Date().toLocaleTimeString().replace(/[^\d]/gi, '_')}${ext}`,
+                    );
+                }
+            })();
+            if (dest instanceof Error) {
+                return resolve(
+                    new Requests.Session.ExportRaw.Response({
+                        filename: undefined,
+                        error: dest.message,
+                    }),
+                );
+            }
             stored.session
                 .getStream()
-                .exportRaw(request.dest, request.ranges)
+                .exportRaw(dest, request.ranges)
                 .then((complete) => {
                     resolve(
                         new Requests.Session.ExportRaw.Response({
-                            complete,
+                            filename: complete ? dest : undefined,
                         }),
                     );
                 })
                 .catch((err: Error) => {
                     resolve(
                         new Requests.Session.ExportRaw.Response({
-                            complete: false,
+                            filename: undefined,
                             error: err.message,
                         }),
                     );

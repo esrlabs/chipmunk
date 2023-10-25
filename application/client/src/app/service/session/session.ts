@@ -16,9 +16,14 @@ import { IRange, fromIndexes } from '@platform/types/range';
 import { Providers } from './dependencies/observing/providers';
 import { Attachments } from './dependencies/attachments';
 import { Info } from './dependencies/info';
+import { session } from '@service/session';
 
 import * as ids from '@schema/ids';
 import * as Requests from '@platform/ipc/request';
+import * as Origins from '@platform/types/observe/origin/index';
+import * as Factory from '@platform/types/observe/factory';
+import * as Parsers from '@platform/types/observe/parser/index';
+import * as Types from '@platform/types/observe/types/index';
 
 export { Stream };
 
@@ -270,6 +275,57 @@ export class Session extends Base {
                 return this._tab.getTitle();
             },
         };
+    }
+
+    public async searchResultAsNewSession(): Promise<void> {
+        const filepath: string | undefined = await this.exporter.clone();
+        if (filepath === undefined) {
+            return;
+        }
+        const sources = this.stream.observe().sources();
+        if (sources.length === 0) {
+            throw new Error(`Fail to find bound source`);
+        }
+        const current = sources[0].observe.clone();
+        const observe = (() => {
+            const file = current.origin.as<Origins.File.Configuration>(Origins.File.Configuration);
+            const concat = current.origin.as<Origins.Concat.Configuration>(
+                Origins.Concat.Configuration,
+            );
+            if (file !== undefined) {
+                file.set().filename(filepath);
+                return current;
+            } else if (concat !== undefined) {
+                if (concat.filetypes().length === 0) {
+                    throw new Error(`Cannot find type of concated files`);
+                }
+                return new Factory.File().type(concat.filetypes()[0]).file(filepath).asDlt().get();
+            } else {
+                const observe = new Factory.File()
+                    .type(
+                        (() => {
+                            switch (current.parser.alias()) {
+                                case Parsers.Protocol.Text:
+                                    return Types.File.FileType.Text;
+                                case Parsers.Protocol.Dlt:
+                                case Parsers.Protocol.SomeIp:
+                                    throw new Error(
+                                        `Exporting from none-text streams to create new session aren't supported yet`,
+                                    );
+                            }
+                        })(),
+                    )
+                    .file(filepath)
+                    .asText()
+                    .get();
+                observe.parser.overwrite(current.parser.configuration);
+                return observe;
+            }
+        })();
+        return session
+            .initialize()
+            .observe(observe)
+            .then(() => undefined);
     }
 }
 export interface Session extends LoggerInterface {}

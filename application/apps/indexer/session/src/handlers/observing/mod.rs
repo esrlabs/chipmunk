@@ -57,7 +57,7 @@ pub async fn run_source<S: ByteSource>(
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
         ParserType::Text => {
-            let producer = MessageProducer::new(StringTokenizer {}, source, rx_sde);
+            let producer = MessageProducer::new(StringTokenizer::for_reading(), source, rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
         ParserType::Dlt(settings) => {

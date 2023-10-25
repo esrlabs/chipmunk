@@ -6,13 +6,13 @@ import * as validator from '../../../env/obj';
 export class Request extends SignatureRequirement {
     public session: string;
     public ranges: IRange[];
-    public dest: string;
+    public dest: string | undefined;
 
-    constructor(input: { session: string; dest: string; ranges: IRange[] }) {
+    constructor(input: { session: string; dest: string | undefined; ranges: IRange[] }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
-        this.dest = validator.getAsNotEmptyString(input, 'dest');
+        this.dest = validator.getAsNotEmptyStringOrAsUndefined(input, 'dest');
         this.ranges = validator.getAsArray(input, 'ranges');
     }
 }
@@ -21,13 +21,13 @@ export interface Request extends Interface {}
 @Define({ name: 'SessionExportResponse' })
 export class Response extends SignatureRequirement {
     public error?: string;
-    public complete: boolean;
+    public filename: string | undefined;
 
-    constructor(input: { complete: boolean; error?: string }) {
+    constructor(input: { filename: string | undefined; error?: string }) {
         super();
         validator.isObject(input);
         this.error = validator.getAsNotEmptyStringOrAsUndefined(input, 'error');
-        this.complete = validator.getAsBool(input, 'complete');
+        this.filename = validator.getAsNotEmptyStringOrAsUndefined(input, 'filename');
     }
 }
 

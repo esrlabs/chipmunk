@@ -314,14 +314,14 @@ export class Stream extends Subscriber {
     }
 
     public export(): {
-        text(dest: string, ranges: IRange[]): Promise<boolean>;
-        raw(dest: string, ranges: IRange[]): Promise<boolean>;
+        text(ranges: IRange[], dest?: string): Promise<string | undefined>;
+        raw(ranges: IRange[], dest?: string): Promise<string | undefined>;
         isRawAvailable(): Promise<boolean>;
     } {
         return {
-            text: (dest: string, ranges: IRange[]): Promise<boolean> => {
+            text: (ranges: IRange[], dest?: string): Promise<string | undefined> => {
                 if (this._len === 0) {
-                    return Promise.resolve(true);
+                    return Promise.resolve(undefined);
                 }
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(
@@ -336,16 +336,16 @@ export class Stream extends Subscriber {
                             if (response.error !== undefined) {
                                 return reject(new Error(response.error));
                             }
-                            resolve(response.complete);
+                            resolve(response.filename);
                         })
                         .catch((error: Error) => {
                             this.log().error(`Fail to export content: ${error.message}`);
                         });
                 });
             },
-            raw: (dest: string, ranges: IRange[]): Promise<boolean> => {
+            raw: (ranges: IRange[], dest?: string): Promise<string | undefined> => {
                 if (this._len === 0) {
-                    return Promise.resolve(true);
+                    return Promise.resolve(undefined);
                 }
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(
@@ -360,7 +360,7 @@ export class Stream extends Subscriber {
                             if (response.error !== undefined) {
                                 return reject(new Error(response.error));
                             }
-                            resolve(response.complete);
+                            resolve(response.filename);
                         })
                         .catch((error: Error) => {
                             this.log().error(`Fail to export raw: ${error.message}`);

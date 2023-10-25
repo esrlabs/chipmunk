@@ -27,36 +27,47 @@ export class Exporter {
     }
 
     public export(asRaw: boolean): {
-        stream(ranges: IRange[]): Promise<boolean>;
-        search(): Promise<boolean>;
+        stream(ranges: IRange[]): Promise<string | undefined>;
+        search(): Promise<string | undefined>;
     } {
         return {
-            stream: async (ranges: IRange[]): Promise<boolean> => {
+            stream: async (ranges: IRange[]): Promise<string | undefined> => {
                 if (ranges.length === 0) {
-                    return false;
+                    return undefined;
                 }
                 const dest = await bridge.files().select.save();
                 if (dest === undefined) {
-                    return false;
+                    return undefined;
                 }
                 return asRaw
-                    ? this._stream.export().raw(dest, ranges)
-                    : this._stream.export().text(dest, ranges);
+                    ? this._stream.export().raw(ranges, dest)
+                    : this._stream.export().text(ranges, dest);
             },
-            search: async (): Promise<boolean> => {
+            search: async (): Promise<string | undefined> => {
                 if (this._indexed.len() === 0) {
-                    return false;
+                    return undefined;
                 }
                 const dest = await bridge.files().select.save();
                 if (dest === undefined) {
-                    return false;
+                    return undefined;
                 }
                 const ranges = await this._indexed.asRanges();
                 return asRaw
-                    ? this._stream.export().raw(dest, ranges)
-                    : this._stream.export().text(dest, ranges);
+                    ? this._stream.export().raw(ranges, dest)
+                    : this._stream.export().text(ranges, dest);
             },
         };
+    }
+
+    // Clone search results to new file and returns filepath
+    public async clone(): Promise<string | undefined> {
+        if (this._indexed.len() === 0) {
+            return undefined;
+        }
+        const ranges = await this._indexed.asRanges();
+        return (await this.isRawAvailable())
+            ? this._stream.export().raw(ranges)
+            : this._stream.export().text(ranges);
     }
 }
 export interface Exporter extends LoggerInterface {}
