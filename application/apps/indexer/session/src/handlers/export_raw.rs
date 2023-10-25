@@ -172,7 +172,7 @@ async fn export<S: ByteSource>(
             .await
         }
         ParserType::Text => {
-            let mut producer = MessageProducer::new(StringTokenizer {}, source, None);
+            let mut producer = MessageProducer::new(StringTokenizer::for_writing(), source, None);
             export_runner(
                 Box::pin(producer.as_stream()),
                 dest,

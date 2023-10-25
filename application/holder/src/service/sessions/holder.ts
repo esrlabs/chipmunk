@@ -8,6 +8,7 @@ import { ICancelablePromise } from 'platform/env/promise';
 import { $ } from 'rustcore';
 
 import * as Events from 'platform/ipc/event';
+import * as path from 'path';
 
 export enum Jobs {
     search = 'search',
@@ -17,46 +18,51 @@ export enum Jobs {
 export class Holder {
     public readonly session: Session;
     public readonly subscriber: Subscriber;
-    private readonly _jobs: Map<string, JobsTracker> = new Map();
-    private readonly _observers: Map<string, { source: $.Observe; observer: ICancelablePromise }> =
-        new Map();
-    private readonly _logger: Logger;
-    protected _shutdown = false;
+    protected readonly jobs: Map<string, JobsTracker> = new Map();
+    protected readonly observing: {
+        active: Map<string, { source: $.Observe; observer: ICancelablePromise }>;
+        finished: Map<string, $.Observe>;
+    } = {
+        active: new Map(),
+        finished: new Map(),
+    };
+    protected readonly logger: Logger;
+    protected shutdown = false;
 
     constructor(session: Session, subscriber: Subscriber) {
         this.session = session;
         this.subscriber = subscriber;
-        this._logger = scope.getLogger(`[Session: ${this.session.getUUID()}]`);
+        this.logger = scope.getLogger(`[Session: ${this.session.getUUID()}]`);
     }
 
     public register<T, C, EN, EH>(family: Jobs): JobsTracker<T, C, EN, EH> {
-        let jobs = this._jobs.get(family);
+        let jobs = this.jobs.get(family);
         if (jobs === undefined) {
             jobs = new JobsTracker();
-            this._jobs.set(family, jobs);
+            this.jobs.set(family, jobs);
         }
         return jobs as unknown as JobsTracker<T, C, EN, EH>;
     }
 
     public destroy(): Promise<void> {
-        this._shutdown = true;
+        this.shutdown = true;
         return new Promise((resolve, reject) => {
             Promise.allSettled(
-                Array.from(this._jobs.values()).map((jobs) =>
+                Array.from(this.jobs.values()).map((jobs) =>
                     jobs.abort().catch((err: Error) => {
-                        this._logger.error(
+                        this.logger.error(
                             `Fail correctly stop session's jobs; error: ${err.message}`,
                         );
                     }),
                 ),
             )
                 .catch((err: Error) => {
-                    this._logger.error(
+                    this.logger.error(
                         `Fail correctly stop all session's jobs; error: ${err.message}`,
                     );
                 })
                 .finally(() => {
-                    this._observers.clear();
+                    this.observing.active.clear();
                     this.session.destroy().then(resolve).catch(reject);
                 });
         });
@@ -70,12 +76,12 @@ export class Holder {
         return {
             start: (cfg: $.IObserve): Promise<string> => {
                 const observe = new $.Observe(cfg);
-                if (this._shutdown) {
+                if (this.shutdown) {
                     return Promise.reject(new Error(`Session is closing`));
                 }
                 let jobDesc = observe.origin.asJob();
                 if (jobDesc instanceof Error) {
-                    this._logger.error(`Fail to get job description: ${jobDesc.message}`);
+                    this.logger.error(`Fail to get job description: ${jobDesc.message}`);
                     jobDesc = {
                         name: 'unknown',
                         desc: 'unknown',
@@ -107,12 +113,13 @@ export class Holder {
                             resolve(observer.uuid());
                         })
                         .catch((err: Error) => {
-                            this._logger.error(`Fail to call observe. Error: ${err.message}`);
+                            this.logger.error(`Fail to call observe. Error: ${err.message}`);
                             reject(err);
                         })
                         .finally(() => {
                             job.done();
-                            this._observers.delete(observer.uuid());
+                            this.observing.active.delete(observer.uuid());
+                            this.observing.finished.set(observer.uuid(), observe);
                             Events.IpcEvent.emit(
                                 new Events.Observe.Finished.Event({
                                     session: this.session.getUUID(),
@@ -121,11 +128,11 @@ export class Holder {
                                 }),
                             );
                         });
-                    this._observers.set(observer.uuid(), { source: observe, observer });
+                    this.observing.active.set(observer.uuid(), { source: observe, observer });
                 });
             },
             cancel: (uuid: string): Promise<void> => {
-                const operation = this._observers.get(uuid);
+                const operation = this.observing.active.get(uuid);
                 if (operation === undefined) {
                     return Promise.reject(new Error(`Operation isn't found`));
                 }
@@ -139,7 +146,7 @@ export class Holder {
             },
             list: (): { [key: string]: string } => {
                 const list: { [key: string]: string } = {};
-                this._observers.forEach((operation, uuid) => {
+                this.observing.active.forEach((operation, uuid) => {
                     list[uuid] = operation.source.json().to();
                 });
                 return list;
@@ -147,7 +154,48 @@ export class Holder {
         };
     }
 
+    public getFileExt(): string | Error {
+        const all = [
+            Array.from(this.observing.active.values()).map((o) => o.source),
+            Array.from(this.observing.finished.values()),
+        ].flat();
+        const files: Array<string | undefined> = all
+            .map((o) => o.origin.files())
+            .filter((f) => f !== undefined)
+            .flat();
+        if (files.filter((f) => f === undefined).length > 0) {
+            return new Error(`Streams arn't supported yet`);
+        }
+        const parsers: $.Parser.Protocol[] = [];
+        all.forEach((observe) => {
+            if (parsers.includes(observe.parser.alias())) {
+                return;
+            }
+            parsers.push(observe.parser.alias());
+        });
+        if (parsers.length > 1) {
+            return new Error(`Multiple parsers are used`);
+        } else if (parsers.length === 0) {
+            return new Error(`No parsers has been found`);
+        }
+        const exts: string[] = files
+            .map((f) => path.extname(f as string))
+            .filter((ex) => ex.trim() !== '');
+        switch (parsers[0]) {
+            case $.Parser.Protocol.Text:
+                return `.txt`;
+            case $.Parser.Protocol.Dlt:
+            case $.Parser.Protocol.SomeIp:
+                if (files.length === 0) {
+                    return new Error(
+                        `No assigned files are found. Exporting from stream into new session arn't supported`,
+                    );
+                }
+                return exts.length === 0 ? '' : exts[0];
+        }
+    }
+
     public isShutdowning(): boolean {
-        return this._shutdown;
+        return this.shutdown;
     }
 }

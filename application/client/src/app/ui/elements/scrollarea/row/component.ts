@@ -83,13 +83,20 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
             this.row.session.exporter
                 .export(raw)
                 .stream(this.row.session.selection().ranges())
-                .then((saved: boolean) => {
+                .then((filepath: string | undefined) => {
+                    filepath !== undefined && confirmToUser();
+                })
+                .finally(() => {
                     progress.popup.close();
-                    saved && confirmToUser();
                 })
                 .catch((err: Error) => {
                     this.log().error(`Fail to export data${raw ? ' (raw)' : ''}: ${err.message}`);
-                    progress.locker.set().message(err.message).type(Level.error).spinner(false);
+                    this.ilc().services.ui.lockers.lock(
+                        new Locker(false, err.message).set().type(Level.error).end(),
+                        {
+                            closable: true,
+                        },
+                    );
                 });
         };
         const exportSearch = (raw: boolean) => {
@@ -105,13 +112,20 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
             this.row.session.exporter
                 .export(raw)
                 .search()
-                .then((saved: boolean) => {
+                .then((filepath: string | undefined) => {
+                    filepath !== undefined && confirmToUser();
+                })
+                .finally(() => {
                     progress.popup.close();
-                    saved && confirmToUser();
                 })
                 .catch((err: Error) => {
                     this.log().error(`Fail to export data${raw ? ' (raw)' : ''}: ${err.message}`);
-                    progress.locker.set().message(err.message).type(Level.error).spinner(false);
+                    this.ilc().services.ui.lockers.lock(
+                        new Locker(false, err.message).set().type(Level.error).end(),
+                        {
+                            closable: true,
+                        },
+                    );
                 });
         };
         const items: {}[] = [];
@@ -206,6 +220,41 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                               disabled: !isRawAvailable || this.row.session.indexed.len() === 0,
                               handler: () => {
                                   exportSearch(true);
+                              },
+                          },
+                          {},
+                          {
+                              caption: 'Open Search Result as New Tab',
+                              disabled: this.row.session.indexed.len() === 0,
+                              handler: () => {
+                                  const progress = this.ilc().services.ui.lockers.lock(
+                                      new Locker(true, 'preparing new session...')
+                                          .set()
+                                          .group(this.row.session.uuid())
+                                          .end(),
+                                      {
+                                          closable: false,
+                                      },
+                                  );
+                                  this.row.session
+                                      .searchResultAsNewSession()
+                                      .finally(() => {
+                                          progress.popup.close();
+                                      })
+                                      .catch((err: Error) => {
+                                          this.log().error(
+                                              `Fail to open search result as new session: ${err.message}`,
+                                          );
+                                          this.ilc().services.ui.lockers.lock(
+                                              new Locker(false, err.message)
+                                                  .set()
+                                                  .type(Level.error)
+                                                  .end(),
+                                              {
+                                                  closable: true,
+                                              },
+                                          );
+                                      });
                               },
                           },
                       ]
