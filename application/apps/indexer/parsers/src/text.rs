@@ -2,22 +2,7 @@ use crate::{Error, LogMessage, ParseYield, Parser};
 use serde::Serialize;
 use std::{fmt, io::Write};
 
-pub struct StringTokenizer {
-    inject_carret: bool,
-}
-
-impl StringTokenizer {
-    pub fn for_reading() -> Self {
-        StringTokenizer {
-            inject_carret: false,
-        }
-    }
-    pub fn for_writing() -> Self {
-        StringTokenizer {
-            inject_carret: true,
-        }
-    }
-}
+pub struct StringTokenizer {}
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct StringMessage {
@@ -55,11 +40,7 @@ where
         if let Some(msg_size) = memchr(b'\n', input) {
             let content = String::from_utf8_lossy(&input[..msg_size]);
             let string_msg = StringMessage {
-                content: if self.inject_carret {
-                    format!("{}\n", content)
-                } else {
-                    content.to_string()
-                },
+                content: content.to_string(),
             };
             Ok((&input[msg_size + 1..], Some(string_msg.into())))
         } else {
@@ -75,7 +56,7 @@ where
 
 #[test]
 fn test_string_tokenizer() {
-    let mut parser = StringTokenizer::for_reading();
+    let mut parser = StringTokenizer {};
     let content = b"hello\nworld\n";
     let (rest_1, first_msg) = parser.parse(content, None).unwrap();
     match first_msg {

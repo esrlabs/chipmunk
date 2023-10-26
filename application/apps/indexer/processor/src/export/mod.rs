@@ -1,4 +1,7 @@
-use std::{io::BufWriter, path::Path};
+use std::{
+    io::{BufWriter, Write},
+    path::Path,
+};
 
 use futures::StreamExt;
 use indexer_base::config::IndexSection;
@@ -41,6 +44,7 @@ pub async fn export_raw<S, T>(
     destination_path: &Path,
     sections: &Vec<IndexSection>,
     read_to_end: bool,
+    text_file: bool,
     cancel: &CancellationToken,
 ) -> Result<usize, ExportError>
 where
@@ -71,20 +75,23 @@ where
             if cancel.is_cancelled() {
                 return Err(ExportError::Cancelled);
             }
-            match item {
+            let written = match item {
                 MessageStreamItem::Item(ParseYield::Message(msg)) => {
                     msg.to_writer(&mut out_writer)?;
-                    exported += 1;
+                    true
                 }
                 MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _))) => {
                     msg.to_writer(&mut out_writer)?;
-                    exported += 1;
+                    true
                 }
-                MessageStreamItem::Item(ParseYield::Attachment(_)) => {}
-                MessageStreamItem::Skipped => {}
-                MessageStreamItem::Incomplete => {}
-                MessageStreamItem::Empty => {}
                 MessageStreamItem::Done => break,
+                _ => false,
+            };
+            if written && text_file {
+                out_writer.write_all("\n".as_bytes())?;
+            }
+            if written {
+                exported += 1;
             }
         }
         return Ok(exported);

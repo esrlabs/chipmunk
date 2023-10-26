@@ -870,6 +870,7 @@ pub async fn main() -> Result<()> {
                 &out_path,
                 &sections,
                 false,
+                false,
                 &cancel,
             )
             .await
@@ -1733,7 +1734,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
         }
         {
             println!("try text parser");
-            let txt_parser = StringTokenizer::for_reading();
+            let txt_parser = StringTokenizer {};
             let buf_reader = BufReader::new(fs::File::open(input)?);
             let source = BinaryByteSource::new(buf_reader);
             let mut txt_msg_producer = MessageProducer::new(txt_parser, source, None);
