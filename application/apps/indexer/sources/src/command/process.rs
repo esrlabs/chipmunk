@@ -170,10 +170,8 @@ impl ByteSource for ProcessSource {
                     res = self.stderr.next() => {
                         if res.is_none() {
                             closing = true;
-                            self.stdout.next().await
-                        } else {
-                            res
                         }
+                        res
                     },
                 };
                 if !closing {
