@@ -82,6 +82,7 @@ export class Service extends Implementation {
                     this.enroll(initial.network.settings.authorization);
                     this.enroll(initial.network.settings.strictSSL);
                     this.enroll(initial.updater.settings.autoUpdateCheck);
+                    this.enroll(initial.updater.settings.allowUpdateFromPrerelease);
                     this.enroll(initial.colors.settings.match);
                     this.enroll(initial.colors.settings.default_filter);
                     this.enroll(initial.colors.settings.default_chart);
