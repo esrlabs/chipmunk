@@ -149,6 +149,7 @@ async fn export<S: ByteSource>(
                 dest,
                 sections,
                 read_to_end,
+                false,
                 cancel,
             )
             .await
@@ -167,17 +168,19 @@ async fn export<S: ByteSource>(
                 dest,
                 sections,
                 read_to_end,
+                false,
                 cancel,
             )
             .await
         }
         ParserType::Text => {
-            let mut producer = MessageProducer::new(StringTokenizer::for_writing(), source, None);
+            let mut producer = MessageProducer::new(StringTokenizer {}, source, None);
             export_runner(
                 Box::pin(producer.as_stream()),
                 dest,
                 sections,
                 read_to_end,
+                true,
                 cancel,
             )
             .await
@@ -190,13 +193,14 @@ pub async fn export_runner<S, T>(
     dest: &Path,
     sections: &Vec<IndexSection>,
     read_to_end: bool,
+    text_file: bool,
     cancel: &CancellationToken,
 ) -> Result<Option<usize>, NativeError>
 where
     T: LogMessage + Sized,
     S: futures::Stream<Item = (usize, MessageStreamItem<T>)> + Unpin,
 {
-    export_raw(s, dest, sections, read_to_end, cancel)
+    export_raw(s, dest, sections, read_to_end, text_file, cancel)
         .await
         .map_or_else(
             |err| match err {
