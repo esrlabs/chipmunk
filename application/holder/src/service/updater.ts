@@ -32,6 +32,7 @@ declare const global: ChipmunkGlobal;
 
 const UPDATER = 'updater';
 const AUTO = { key: 'autoUpdateCheck', path: 'general' };
+const PRERELEASE = { key: 'allowUpdateFromPrerelease', path: 'general' };
 
 export const REPO = 'chipmunk';
 
@@ -50,6 +51,11 @@ export function getCleanVersion(ver: string): string {
 enum LatestReleaseNotFound {
     NoUpdates,
     Skipped,
+}
+
+interface ICandidate {
+    release: IReleaseData;
+    version: Version;
 }
 
 @DependOn(paths)
@@ -116,8 +122,8 @@ export class Service extends Implementation {
 
     protected find(force: boolean): {
         skiping(): boolean;
-        night(): Promise<{ release: IReleaseData; version: Version } | undefined>;
-        latest(): Promise<{ release: IReleaseData; version: Version } | LatestReleaseNotFound>;
+        night(): Promise<ICandidate | undefined>;
+        latest(): Promise<ICandidate | LatestReleaseNotFound>;
         candidate(): Promise<
             { release: IReleaseData; version: Version; compressed: string } | string
         >;
@@ -135,14 +141,14 @@ export class Service extends Implementation {
                 }
                 return false;
             },
-            night: async (): Promise<{ release: IReleaseData; version: Version } | undefined> => {
+            night: async (): Promise<ICandidate | undefined> => {
                 if (this.find(force).skiping()) {
                     return undefined;
                 }
                 const github = new GitHubClient();
                 const releases: IReleaseData[] = await github.getReleases({ repo: REPO });
                 const current: Version = new Version(version.getVersion());
-                let candidate: { release: IReleaseData; version: Version } | undefined;
+                let candidate: ICandidate | undefined;
                 releases.forEach((release: IReleaseData) => {
                     try {
                         const version = new Version(getCleanVersion(release.name));
@@ -171,9 +177,7 @@ export class Service extends Implementation {
                 });
                 return candidate;
             },
-            latest: async (): Promise<
-                { release: IReleaseData; version: Version } | LatestReleaseNotFound
-            > => {
+            latest: async (): Promise<ICandidate | LatestReleaseNotFound> => {
                 if (this.find(force).skiping()) {
                     return LatestReleaseNotFound.Skipped;
                 }
@@ -186,7 +190,7 @@ export class Service extends Implementation {
                     );
                 }
                 const current: Version = new Version(version.getVersion());
-                let candidate: { release: IReleaseData; version: Version } | undefined;
+                let candidate: ICandidate | undefined;
                 try {
                     const version = new Version(getCleanVersion(latest.name));
                     if (current.isGivenGrander(version)) {
@@ -213,20 +217,34 @@ export class Service extends Implementation {
             candidate: async (): Promise<
                 { release: IReleaseData; version: Version; compressed: string } | string
             > => {
+                let candidate: ICandidate | undefined;
                 const latest = await this.find(force).latest();
                 if (latest === LatestReleaseNotFound.NoUpdates) {
-                    this.log().debug(`No updates has been found in latest release.`);
-                    return Promise.resolve(`No updates has been found.`);
+                    const night = settings.get().value<boolean>(PRERELEASE.path, PRERELEASE.key);
+                    if (!night) {
+                        this.log().debug(`No updates has been found in latest release.`);
+                        return Promise.resolve(`No updates has been found.`);
+                    } else {
+                        this.log().debug(
+                            `No updates has been found in latest release. Checking pre-releases`,
+                        );
+                        candidate = await this.find(force).night();
+                    }
                 } else if (latest === LatestReleaseNotFound.Skipped) {
                     return Promise.resolve(this.log().debug(`Checking of updates is skipped`));
+                } else {
+                    candidate = latest;
+                }
+                if (candidate === undefined) {
+                    return Promise.resolve(this.log().debug(`No updates has been found.`));
                 }
                 const release: ReleaseFile = new ReleaseFile(
-                    getCleanVersion(latest.release.name),
-                    getVersionPrefix(latest.release.name),
+                    getCleanVersion(candidate.release.name),
+                    getVersionPrefix(candidate.release.name),
                 );
                 this.log().debug(`Looking for: ${release.filename}`);
                 let compressed: string | undefined;
-                latest.release.assets.forEach((asset: IReleaseAsset) => {
+                candidate.release.assets.forEach((asset: IReleaseAsset) => {
                     if (release.equal(asset.name)) {
                         compressed = asset.name;
                     }
@@ -240,8 +258,8 @@ export class Service extends Implementation {
                     );
                 }
                 return {
-                    release: latest.release,
-                    version: latest.version,
+                    release: candidate.release,
+                    version: candidate.version,
                     compressed,
                 };
             },

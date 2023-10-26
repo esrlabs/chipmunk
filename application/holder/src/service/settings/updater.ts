@@ -16,4 +16,16 @@ export const settings = {
         }),
         new validators.BoolOrUndefined(true),
     ),
+    allowUpdateFromPrerelease: new Entry(
+        new Description({
+            key: 'allowUpdateFromPrerelease',
+            name: 'Use pre-releases',
+            desc: 'Updates chipmunk also from pre-releases',
+            path: 'general',
+            type: Visibility.standard,
+            allowEmpty: true,
+            render: Render.Bool,
+        }),
+        new validators.BoolOrUndefined(false),
+    ),
 };
