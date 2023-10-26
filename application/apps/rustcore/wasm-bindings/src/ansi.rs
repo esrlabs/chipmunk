@@ -3,7 +3,7 @@ extern crate strip_ansi_escapes;
 extern crate wasm_bindgen;
 
 use std::str;
-use strip_ansi_escapes::strip;
+use strip_ansi_escapes::strip_str;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_test::*;
 
@@ -14,11 +14,7 @@ pub fn convert(input: &str) -> Result<String, String> {
 
 #[wasm_bindgen]
 pub fn escape(input: &str) -> Result<String, String> {
-    let bytes = input.as_bytes();
-    let plain_bytes = strip(bytes).map_err(|e| format!("{e}"))?;
-    Ok(str::from_utf8(&plain_bytes)
-        .map_err(|e| format!("{e}"))?
-        .to_owned())
+    Ok(strip_str(input))
 }
 
 #[wasm_bindgen_test]

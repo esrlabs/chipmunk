@@ -13,6 +13,6 @@ ansi-to-html = { version = "0.1.2", features = ["lazy-init"] }
 fuzzy-matcher = "0.3"
 regex = "1"
 serde_json = "1.0"
-strip-ansi-escapes = "0.1"
+strip-ansi-escapes = "0.2"
 wasm-bindgen = "0.2"
 wasm-bindgen-test = "0.3"
