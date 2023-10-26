@@ -75,7 +75,7 @@ where
 
 #[test]
 fn test_string_tokenizer() {
-    let mut parser = StringTokenizer;
+    let mut parser = StringTokenizer::for_reading();
     let content = b"hello\nworld\n";
     let (rest_1, first_msg) = parser.parse(content, None).unwrap();
     match first_msg {
