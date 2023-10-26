@@ -1,3 +1,14 @@
+# 3.10.0 (26.10.2023)
+
+## Fixes
+- Fix SDE spinner on command spawning
+- Fix white space rendering
+- Fix exporting data from text files 
+
+## Features
+- Allow open search results in a new session
+- Allow download updates from pre-releases (optional)
+
 # 3.9.22 (20.10.2023)
 
 ## Fixes
