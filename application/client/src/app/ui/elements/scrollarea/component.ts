@@ -166,7 +166,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
                 if (!this.service.focus().get()) {
                     return;
                 }
-                this.selecting.copyToClipboard(false).catch((err: Error) => {
+                this.selecting.copyToClipboard(true).catch((err: Error) => {
                     this.log().error(`Fail to copy content into clipboard: ${err.message}`);
                 });
             }),
