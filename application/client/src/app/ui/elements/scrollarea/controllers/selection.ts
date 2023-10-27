@@ -8,7 +8,6 @@ import {
     getAnchorNodeInfo,
 } from './selection.nodeinfo';
 import { SelectionNode } from './selection.node';
-import { findParentByTag } from '@ui/env/dom';
 import { Service } from './service';
 import { escapeAnsi } from '@module/ansi';
 
@@ -106,15 +105,14 @@ export class Selecting {
         this._onSelectionStarted = this._onSelectionStarted.bind(this);
         this._onSelectionEnded = this._onSelectionEnded.bind(this);
         this._onSelectionChange = this._onSelectionChange.bind(this);
-        this._onMouseClick = this._onMouseClick.bind(this);
-        this._holder.addEventListener('click', this._onMouseClick);
+        document.addEventListener('selectionchange', this._onSelectionChange);
         this._holder.addEventListener('selectstart', this._onSelectionStarted);
         window.addEventListener('mouseup', this._onSelectionEnded);
     }
 
     public destroy() {
+        document.removeEventListener('selectionchange', this._onSelectionChange);
         this._holder.removeEventListener('selectstart', this._onSelectionStarted);
-        this._holder.removeEventListener('click', this._onMouseClick);
         window.removeEventListener('mouseup', this._onSelectionEnded);
     }
 
@@ -364,6 +362,21 @@ export class Selecting {
         this._delimiter = delimiter;
     }
 
+    public drop() {
+        this._selection = {
+            focus: getFocusNodeInfo(),
+            anchor: getAnchorNodeInfo(),
+            start: undefined,
+            end: undefined,
+        };
+        const selection: Selection | null = document.getSelection();
+        selection && selection.removeAllRanges();
+    }
+
+    public hasSelection(): boolean {
+        return this._selection.start !== undefined || this._selection.end !== undefined;
+    }
+
     private _detectBorders(selection: Selection): void {
         const asText = selection.toString().split(/[\n\r]/gi);
         if (
@@ -388,35 +401,44 @@ export class Selecting {
         }
     }
 
-    public drop() {
-        this._selection = {
-            focus: getFocusNodeInfo(),
-            anchor: getAnchorNodeInfo(),
-            start: undefined,
-            end: undefined,
-        };
+    private _isOwnSelection(): boolean {
         const selection: Selection | null = document.getSelection();
-        selection && selection.removeAllRanges();
-    }
-
-    public hasSelection(): boolean {
-        return this._selection.start !== undefined || this._selection.end !== undefined;
+        if (selection === null) {
+            return false;
+        }
+        for (let i = 0; i < selection.rangeCount; i += 1) {
+            try {
+                if (
+                    !dom.isParentOf(selection.getRangeAt(i).commonAncestorContainer, this._holder)
+                ) {
+                    return false;
+                }
+            } catch (_e) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private _onSelectionStarted() {
-        document.addEventListener('selectionchange', this._onSelectionChange);
         this.drop();
         this._progress = true;
         this._subjects.from.emit();
         this._holder.focus();
     }
 
-    private _onSelectionEnded(event: MouseEvent) {
+    private _onSelectionEnded(_event: MouseEvent) {
         if (!this._progress) {
+            if (!this._isOwnSelection()) {
+                this._selection = {
+                    focus: getFocusNodeInfo(),
+                    anchor: getAnchorNodeInfo(),
+                    start: undefined,
+                    end: undefined,
+                };
+            }
             return;
         }
-        dom.stop(event);
-        document.removeEventListener('selectionchange', this._onSelectionChange);
         this._progress = false;
         this._subjects.finish.emit();
     }
@@ -432,21 +454,5 @@ export class Selecting {
         this._selection.focus.update(selection);
         this._selection.anchor.update(selection);
         this._detectBorders(selection);
-    }
-
-    private _onMouseClick(event: MouseEvent) {
-        if (this._progress) {
-            return;
-        }
-        if (event.button !== 0) {
-            return;
-        }
-        if (
-            findParentByTag(event.target as HTMLElement, ['app-scrollarea-row', 'input']) ===
-            undefined
-        ) {
-            return;
-        }
-        this.drop();
     }
 }

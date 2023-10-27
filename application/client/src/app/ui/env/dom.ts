@@ -29,6 +29,26 @@ export function findParentByTag(
     return findParentByTag(target.parentNode as HTMLElement, tag);
 }
 
+export function isParentOf(
+    target: HTMLElement | Node | null | undefined,
+    parent: HTMLElement | null | undefined,
+): boolean {
+    if (target === null || target === undefined) {
+        return false;
+    }
+    if (parent === null || parent === undefined) {
+        return false;
+    }
+    if (target.parentElement === undefined || target.parentElement === null) {
+        return false;
+    }
+    if (target.parentElement !== parent) {
+        return isParent(target.parentElement, parent);
+    } else {
+        return true;
+    }
+}
+
 export function isParent(target: HTMLElement, parent: HTMLElement): boolean {
     const candidate = findParentByTag(target, [parent.tagName]);
     return candidate === undefined ? false : candidate === parent;
