@@ -1,3 +1,8 @@
+# 3.10.1 (27.10.2023)
+
+## Fixes
+- Selecting in the scope of one row
+
 # 3.10.0 (26.10.2023)
 
 ## Fixes
