@@ -1,3 +1,8 @@
+# 3.10.2 (30.10.2023)
+
+## Fixes
+- Review/rework the selection procedure
+
 # 3.10.1 (27.10.2023)
 
 ## Fixes

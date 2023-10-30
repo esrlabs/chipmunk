@@ -39,6 +39,9 @@ export function isParentOf(
     if (parent === null || parent === undefined) {
         return false;
     }
+    if (target === parent) {
+        return true;
+    }
     if (target.parentElement === undefined || target.parentElement === null) {
         return false;
     }

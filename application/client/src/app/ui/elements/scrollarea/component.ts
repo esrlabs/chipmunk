@@ -73,6 +73,18 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
         this.keyboard.stop();
     }
 
+    @HostListener('window:mouseup', ['$event']) onMouseUp(event: MouseEvent) {
+        this.selecting.end(event);
+    }
+
+    @HostListener('window:mousedown', ['$event']) onCheckState(event: MouseEvent) {
+        this.selecting.check(event);
+    }
+
+    @HostListener('document:selectionchange') onSelectionChange() {
+        this.selecting.change();
+    }
+
     @HostListener('focus') onFocus() {
         this.keyboard.focus();
         this.service.focus().in();
@@ -201,6 +213,10 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
             this.frame.offsetTo(event.deltaY, ChangesInitiator.Wheel);
             stop(event);
         }
+    }
+
+    public onMouseDown(event: MouseEvent) {
+        this.selecting.start(event);
     }
 
     public showSelectionDetectors(): boolean {
