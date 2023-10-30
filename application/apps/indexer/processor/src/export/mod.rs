@@ -120,27 +120,29 @@ where
                 inside = true;
             }
         }
-        match item {
+        let written = match item {
             MessageStreamItem::Item(ParseYield::Message(msg)) => {
                 if inside {
                     msg.to_writer(&mut out_writer)?;
                 }
                 current_index += 1;
+                inside
             }
             MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _))) => {
                 if inside {
                     msg.to_writer(&mut out_writer)?;
                 }
                 current_index += 1;
+                inside
             }
-            MessageStreamItem::Item(ParseYield::Attachment(_)) => {}
-            MessageStreamItem::Skipped => {}
-            MessageStreamItem::Incomplete => {}
-            MessageStreamItem::Empty => {}
             MessageStreamItem::Done => {
                 debug!("No more messages to export");
                 break;
             }
+            _ => false,
+        };
+        if written && text_file {
+            out_writer.write_all("\n".as_bytes())?;
         }
     }
     if read_to_end {
