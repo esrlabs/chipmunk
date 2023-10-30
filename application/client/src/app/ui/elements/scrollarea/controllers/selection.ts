@@ -102,19 +102,9 @@ export class Selecting {
         this._holder = holder;
         this._frame = frame;
         this._service = service;
-        this._onSelectionStarted = this._onSelectionStarted.bind(this);
-        this._onSelectionEnded = this._onSelectionEnded.bind(this);
-        this._onSelectionChange = this._onSelectionChange.bind(this);
-        document.addEventListener('selectionchange', this._onSelectionChange);
-        this._holder.addEventListener('selectstart', this._onSelectionStarted);
-        window.addEventListener('mouseup', this._onSelectionEnded);
     }
 
-    public destroy() {
-        document.removeEventListener('selectionchange', this._onSelectionChange);
-        this._holder.removeEventListener('selectstart', this._onSelectionStarted);
-        window.removeEventListener('mouseup', this._onSelectionEnded);
-    }
+    public destroy() {}
 
     public isInProgress(): boolean {
         return this._progress;
@@ -374,7 +364,69 @@ export class Selecting {
     }
 
     public hasSelection(): boolean {
-        return this._selection.start !== undefined || this._selection.end !== undefined;
+        return this._selection.focus !== undefined || this._selection.anchor !== undefined;
+    }
+
+    public start(event: MouseEvent) {
+        if (event.button !== undefined && event.button !== 0) {
+            // Context menu call
+            return;
+        }
+        this.drop();
+        this._progress = true;
+        this._holder.focus();
+        this._subjects.from.emit();
+    }
+
+    public change() {
+        if (!this._progress) {
+            return;
+        }
+        const selection: Selection | null = document.getSelection();
+        if (selection === null) {
+            return;
+        }
+        this._selection.focus.update(selection);
+        this._selection.anchor.update(selection);
+        this._detectBorders(selection);
+    }
+
+    public end(event: MouseEvent) {
+        if (event.button !== undefined && event.button !== 0) {
+            // Context menu call
+            return;
+        }
+        if (!this._progress) {
+            if (!this._isOwnSelection()) {
+                this._selection = {
+                    focus: getFocusNodeInfo(),
+                    anchor: getAnchorNodeInfo(),
+                    start: undefined,
+                    end: undefined,
+                };
+            }
+            return;
+        }
+        this._progress = false;
+        this._subjects.finish.emit();
+    }
+
+    public check(event: MouseEvent) {
+        if (!dom.findParentByTag(event.target as HTMLElement, ['app-scrollarea'])) {
+            return this.drop();
+        }
+        if (!dom.isParent(event.target as HTMLElement, this._holder)) {
+            return;
+        }
+        setTimeout(() => {
+            if (this._progress) {
+                return;
+            }
+            if (!this.hasSelection()) {
+                return;
+            }
+            this.restore();
+        }, 10);
     }
 
     private _detectBorders(selection: Selection): void {
@@ -418,41 +470,5 @@ export class Selecting {
             }
         }
         return true;
-    }
-
-    private _onSelectionStarted() {
-        this.drop();
-        this._progress = true;
-        this._subjects.from.emit();
-        this._holder.focus();
-    }
-
-    private _onSelectionEnded(_event: MouseEvent) {
-        if (!this._progress) {
-            if (!this._isOwnSelection()) {
-                this._selection = {
-                    focus: getFocusNodeInfo(),
-                    anchor: getAnchorNodeInfo(),
-                    start: undefined,
-                    end: undefined,
-                };
-            }
-            return;
-        }
-        this._progress = false;
-        this._subjects.finish.emit();
-    }
-
-    private _onSelectionChange() {
-        if (!this._progress) {
-            return;
-        }
-        const selection: Selection | null = document.getSelection();
-        if (selection === null) {
-            return;
-        }
-        this._selection.focus.update(selection);
-        this._selection.anchor.update(selection);
-        this._detectBorders(selection);
     }
 }
