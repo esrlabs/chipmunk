@@ -7,6 +7,24 @@ module Platform
 end
 
 namespace :platform do
+  desc 'check if copied files are synced'
+  task :check_sync do
+    require 'digest'
+    require 'find'
+    path_to_check = "#{Paths::PLATFORM}/ipc/request/file/checksum.ts"
+    reference_checksum = Digest::MD5.file(path_to_check).hexdigest
+    root_p = Pathname.new(Paths::ROOT)
+    puts "compare with reference : #{Pathname.new(path_to_check).relative_path_from(root_p)}"
+    Find.find("#{Paths::ROOT}/application") do |path|
+      if path =~ /request\/file\/checksum.ts/
+        p = Pathname.new(path)
+        p_rel = p.relative_path_from(root_p)
+        checksum = Digest::MD5.file(path).hexdigest
+        puts "path: #{p_rel}: #{checksum == reference_checksum ? 'OK' : 'OUT OF SYNC!'}"
+      end
+    end
+  end
+
   task :clean do
     Platform::TARGETS.each do |path|
       path = "#{path}/.node_integrity" if File.basename(path) == 'node_modules'

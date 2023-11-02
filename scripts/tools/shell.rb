@@ -24,7 +24,7 @@ module Shell
   def self.cp_r(src, dest, desc = nil)
     cmd = "cp_r(#{src}, #{dest})"
     desc = cmd if desc.nil?
-    timed_operation(-> { FileUtils.cp_r src, dest }, desc)
+    timed_operation(-> { FileUtils.cp_r src, dest, verbose: true }, desc)
   end
 
   def self.timed_operation(cmd, tag)

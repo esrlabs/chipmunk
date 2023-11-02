@@ -28,6 +28,7 @@ namespace :electron do
   task reinstall: ['electron:clean_installation', 'electron:install']
 
   task :install do
+    puts 'trying to install electron yarn stuff'
     Shell.chdir(Paths::ELECTRON) do
       Reporter.log 'Installing Electron libraries'
       duration = Shell.timed_sh('yarn install', 'yarn install electron')
@@ -61,8 +62,15 @@ namespace :electron do
     platform_dest = "#{rustcore_dest}/node_modules/platform"
     Shell.rm_rf(platform_dest)
     FileUtils.mkdir_p platform_dest
-    files_to_copy = Dir["#{Paths::PLATFORM}/*"].reject { |f| File.basename(f) == 'node_modules' }
-    duration = Shell.cp_r files_to_copy, platform_dest, 'copy platform to electron'
+    platform_files_to_copy = Dir["#{Paths::PLATFORM}/*"].reject { |f| File.basename(f) == 'node_modules' }
+    duration = Shell.cp_r platform_files_to_copy, platform_dest, 'copy platform rustcore in to electron'
+    Reporter.done('electron', "copy platform to #{short_dest}", '', duration)
+    # update electron dependencies manually since it's a local dependency and update does
+    # not work since we do not change the module versions
+    platform_dest2 = "#{Electron::NODE_MODULES}/platform"
+    Shell.rm_rf(platform_dest2)
+    FileUtils.mkdir_p platform_dest2
+    duration = Shell.cp_r platform_files_to_copy, platform_dest2, 'copy platform to electron'
     Reporter.done('electron', "copy platform to #{short_dest}", '', duration)
   end
 
