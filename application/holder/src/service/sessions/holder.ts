@@ -134,7 +134,7 @@ export class Holder {
             cancel: (uuid: string): Promise<void> => {
                 const operation = this.observing.active.get(uuid);
                 if (operation === undefined) {
-                    return Promise.reject(new Error(`Operation isn't found`));
+                    return Promise.reject(new Error(`AAA Operation isn't found`));
                 }
                 return new Promise((resolve) => {
                     operation.observer
