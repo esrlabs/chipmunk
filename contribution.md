@@ -77,31 +77,33 @@ As mentioned earlier backend is built in Rust which takes care of reading the lo
 and frontend app is built using Electron JS.
 
 When you are running application first time on your local it is good idea to clean everything
-and build the new application.
+and build and start the new application in the development configuration.
 
+```bash
+rake clean
+rake build_dev
+rake run_dev
 ```
-rake developing:clean_rebuild_all
-yarn start electron
-```
+Which will open Chipmunk user interface, Yay!
 
-which will open Chipmunk user interface, Yay!
+To build and start the app in the production configuration you can use
+
+```bash
+rake clean
+rake build_prod
+rake run_prod
+```
 
 Most of the day-to-day task are written using Rake from Ruby. You can list all the tasks by
 
 ```
 rake -T
-# or
-rake # => Opens interactive shell
 ```
 
-### Changes made in Rust backend
-Everytime you change the Rust code you have to compile the binary and
-then start the application using NodeJS script.
+It's recommended to rebuild the app incrementally and run the app after changes using 
 
-```
-cd application/holder
-rake developing:holder_bindings
-yarn start electron
+```bash
+rake run_dev  #or rake run_prod for production configuration
 ```
 
 ### Changes in ElectronJS code
@@ -115,14 +117,7 @@ yarn run electron
 ### Changes in Frontend part
 ```
 cd application/holder
-rake build:client_dev
-yarn run electron
-```
-
-### Changes in both backend and frontend
-```
-cd application/holder
-rake developing:holder_platform_bindings
+rake client:build_dev   #or rake client:build_prod for production configuration
 yarn run electron
 ```
 
@@ -131,9 +126,20 @@ With this you can take a look at the open issues and open a PR to fix them.
 ## Creating your first PR
 Before opening up the PR please fork the repo and check for code smells or any issues using
 
-```
+```bash
 rake lint:all
-rake clippy:all
+```
+
+To run linting for the backend only you can use
+
+```bash
+rake lint:rust
+```
+
+To run linting for the frontend only you can use
+
+```bash
+rake lint:js
 ```
 
 Make sure your changes are covered by valid test cases and check if all test cases are passing
