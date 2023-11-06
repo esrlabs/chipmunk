@@ -45,12 +45,7 @@ namespace :client do
     'wasm:build',
     'environment:check'
   ] do
-    client_build_needed = ChangeChecker.changes?('client_release', Paths::CLIENT)
-    if client_build_needed
-      execute_client_build(:production)
-    else
-      Reporter.skipped('client_release', 'build in production mode', '')
-    end
+    execute_client_build(:production)
   end
 
   desc 'Build client (dev)'
@@ -58,12 +53,7 @@ namespace :client do
     'client:install',
     'wasm:build'
   ] do
-    client_build_needed = ChangeChecker.changes?('client_debug', Paths::CLIENT)
-    if client_build_needed
-      execute_client_build(:debug)
-    else
-      Reporter.skipped('client_debug', 'build in debug mode', '')
-    end
+    execute_client_build(:debug)
   end
 
   desc 'Lint client'

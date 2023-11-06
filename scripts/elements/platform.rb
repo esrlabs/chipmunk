@@ -6,6 +6,23 @@ module Platform
   TARGETS = [DIST, NODE_MODULES].freeze
 end
 
+def check_if_files_are_updated(path_in_platform)
+  require 'digest'
+  require 'find'
+  path_to_check = "#{Paths::PLATFORM}/#{path_in_platform}"
+  reference_checksum = Digest::MD5.file(path_to_check).hexdigest
+  root_p = Pathname.new(Paths::ROOT)
+  puts "compare with reference : #{Pathname.new(path_to_check).relative_path_from(root_p)}"
+  Find.find("#{Paths::ROOT}/application") do |path|
+    if path =~ /request\/file\/checksum.ts/
+      p = Pathname.new(path)
+      p_rel = p.relative_path_from(root_p)
+      checksum = Digest::MD5.file(path).hexdigest
+      puts "path: #{p_rel}: #{checksum == reference_checksum ? 'OK' : 'OUT OF SYNC!'}"
+    end
+  end
+end
+
 namespace :platform do
   desc 'check if copied files are synced'
   task :check_sync do
@@ -17,6 +34,30 @@ namespace :platform do
     puts "compare with reference : #{Pathname.new(path_to_check).relative_path_from(root_p)}"
     Find.find("#{Paths::ROOT}/application") do |path|
       if path =~ /request\/file\/checksum.ts/
+        p = Pathname.new(path)
+        p_rel = p.relative_path_from(root_p)
+        checksum = Digest::MD5.file(path).hexdigest
+        puts "path: #{p_rel}: #{checksum == reference_checksum ? 'OK' : 'OUT OF SYNC!'}"
+      end
+    end
+
+    path_to_check = "#{Paths::ROOT}/application/platform/modules/system.ts"
+    reference_checksum = Digest::MD5.file(path_to_check).hexdigest
+    puts "compare with reference : #{Pathname.new(path_to_check).relative_path_from(root_p)}"
+    Find.find("#{Paths::ROOT}") do |path|
+      if path =~ /platform\/modules\/system.ts/
+        p = Pathname.new(path)
+        p_rel = p.relative_path_from(root_p)
+        checksum = Digest::MD5.file(path).hexdigest
+        puts "path: #{p_rel}: #{checksum == reference_checksum ? 'OK' : 'OUT OF SYNC!'}"
+      end
+    end
+
+    path_to_check = "#{Paths::ROOT}/application/platform/dist/modules/system.js"
+    reference_checksum = Digest::MD5.file(path_to_check).hexdigest
+    puts "compare with reference : #{Pathname.new(path_to_check).relative_path_from(root_p)}"
+    Find.find("#{Paths::ROOT}") do |path|
+      if path =~ /dist\.*\/system.js/
         p = Pathname.new(path)
         p_rel = p.relative_path_from(root_p)
         checksum = Digest::MD5.file(path).hexdigest
