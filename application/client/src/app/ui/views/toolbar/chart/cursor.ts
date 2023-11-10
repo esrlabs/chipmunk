@@ -128,11 +128,10 @@ export class Cursor {
     public rowsRangeByX(x: number): IRange {
         const frame = this.to - this.from;
         const rate = this.width / frame;
+        const from = Math.floor(x / rate) + this.from;
         if (rate < 1) {
-            const from = Math.floor(x / rate) + this.from;
             return { from, to: from + Math.floor(frame / this.width) };
         } else {
-            const from = Math.floor(x / rate);
             return { from, to: from };
         }
     }
