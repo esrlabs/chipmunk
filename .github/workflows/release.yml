@@ -126,4 +126,5 @@ jobs:
           git config user.name "esrlabs"
           git config user.email "esrlabs@gmail.com"
           git remote set-url origin "https://esrlabs:${{secrets.PUSH_TOKEN}}@github.com/itsmesamster/chipmunk-distribution"
+          git tag ${{ github.ref_name }}
           git push origin ${{ github.ref_name }}
