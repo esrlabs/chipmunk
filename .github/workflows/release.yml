@@ -113,6 +113,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   invoke_package_distribution:
     name: Invoke chipmunk package creation and distribution for different package managers
+    needs: build_release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout chipmunk-distribution
@@ -121,7 +122,8 @@ jobs:
           repository: itsmesamster/chipmunk-distribution
           path: './chipmunk-distribution'
           token: ${{secrets.PUSH_TOKEN}}
-      - name: Publish documentation
+      - name: Push tag
+        working-directory: ./chipmunk-distribution
         run: |
           git config user.name "esrlabs"
           git config user.email "esrlabs@gmail.com"
