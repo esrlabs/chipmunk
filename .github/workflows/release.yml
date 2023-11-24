@@ -111,3 +111,19 @@ jobs:
           release-tag: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  invoke_package_distribution:
+    name: Invoke chipmunk package creation and distribution for different package managers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout chipmunk-distribution
+        uses: actions/checkout@v2
+        with:
+          repository: itsmesamster/chipmunk-distribution
+          path: './chipmunk-distribution'
+          token: ${{secrets.PUSH_TOKEN}}
+      - name: Publish documentation
+        run: |
+          git config user.name "esrlabs"
+          git config user.email "esrlabs@gmail.com"
+          git remote set-url origin "https://esrlabs:${{secrets.PUSH_TOKEN}}@github.com/itsmesamster/chipmunk-distribution"
+          git push origin ${{ github.ref_name }}
