@@ -19,7 +19,8 @@ use tracker::Tracker;
 extern crate lazy_static;
 
 lazy_static! {
-    static ref LOCATION: Location = Location::new().expect("Fail to setup location of ICSMW");
+    static ref LOCATION: Location =
+        Location::new().expect("Fail to setup location of root of project");
     static ref TRACKER: Tracker = Tracker::new();
 }
 

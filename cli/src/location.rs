@@ -19,7 +19,7 @@ impl Location {
             if len == 0 {
                 return Err(Error::new(
                     ErrorKind::NotFound,
-                    "Fail to find ICSMW location",
+                    "Fail to find project's root location",
                 ));
             }
             // TODO: better compare folders stucts or some file, like some git config file
