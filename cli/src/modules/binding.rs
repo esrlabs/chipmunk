@@ -29,9 +29,13 @@ impl Manager for Module {
         vec![]
     }
     fn build_cmd(&self, prod: bool) -> Option<String> {
+        let path = Target::Wrapper
+            .get()
+            .cwd()
+            .join("node_modules/.bin/electron-build-env");
         Some(format!(
-            "/{}/node_modules/.bin/electron-build-env nj-cli build{}",
-            Target::Wrapper.get().cwd().to_string_lossy(),
+            "{} nj-cli build{}",
+            path.to_string_lossy(),
             if prod { " --release" } else { "" }
         ))
     }
