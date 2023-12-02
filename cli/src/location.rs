@@ -1,5 +1,6 @@
 use crate::LOCATION;
 use std::ffi::OsStr;
+use std::path::Path;
 use std::{
     env::current_dir,
     io::{Error, ErrorKind},
@@ -35,7 +36,6 @@ impl Location {
     }
 }
 
-pub fn to_relative_path(path: PathBuf) -> String {
-    let path_str = path.to_string_lossy().to_string();
-    path_str.replace(&LOCATION.root.to_string_lossy().to_string(), "")
+pub fn to_relative_path(path: &PathBuf) -> &Path {
+    path.strip_prefix(&LOCATION.root).unwrap_or(path)
 }

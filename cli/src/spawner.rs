@@ -59,7 +59,10 @@ pub async fn spawn(
         cmd
     };
     let sequence = TRACKER
-        .start(&format!("{}: {}", to_relative_path(cwd), job_title), None)
+        .start(
+            &format!("{}: {}", to_relative_path(&cwd).display(), job_title),
+            None,
+        )
         .await?;
     let mut stdout_lines: Vec<String> = vec![];
     let drain_stdout = {
