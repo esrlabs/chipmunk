@@ -42,7 +42,7 @@ impl Manager for Module {
         if !src.exists() {
             return Err(Error::new(
                 ErrorKind::NotFound,
-                format!("Not found: {}", src.to_string_lossy()),
+                format!("Not found: {}", src.display()),
             ));
         }
         if !dest.exists() {

@@ -11,11 +11,7 @@ pub async fn cp_file(src: PathBuf, dest: PathBuf) -> Result<(), Error> {
     TRACKER
         .success(
             sequence,
-            &format!(
-                "copied: {} to {}",
-                src.to_string_lossy(),
-                dest.to_string_lossy()
-            ),
+            &format!("copied: {} to {}", src.display(), dest.display()),
         )
         .await;
     Ok(())
@@ -25,11 +21,7 @@ pub async fn cp_folder(src: PathBuf, dest: PathBuf) -> Result<(), Error> {
     let sequence = TRACKER.start("copy folder", None).await?;
     let options = CopyOptions::new();
     let (tx, rx): (mpsc::Sender<TransitProcess>, mpsc::Receiver<TransitProcess>) = mpsc::channel();
-    let msg = format!(
-        "copied: {} to {}",
-        src.to_string_lossy(),
-        dest.to_string_lossy()
-    );
+    let msg = format!("copied: {} to {}", src.display(), dest.display());
     spawn(async move {
         if let Err(e) = copy_with_progress(src, dest, &options, |info| {
             if tx.send(info).is_err() {
@@ -64,7 +56,7 @@ pub async fn rm_folder(path: PathBuf) -> Result<(), Error> {
     let sequence = TRACKER.start("remove folder", None).await?;
     fs::remove_dir_all(&path)?;
     TRACKER
-        .success(sequence, &format!("removed: {}", path.to_string_lossy(),))
+        .success(sequence, &format!("removed: {}", path.display(),))
         .await;
     Ok(())
 }
