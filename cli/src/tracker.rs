@@ -70,9 +70,8 @@ impl Tracker {
                         bars.insert(sequence, (bar, Instant::now(), job, None));
                         bars.iter_mut().for_each(|(k, (bar, _, job, result))| {
                             bar.set_prefix(format!(
-                                "[{:0seq_width$}/{:0seq_width$}][{}][{job}]",
+                                "[{:seq_width$}/{sequence_txt}][{}][{job}]",
                                 k,
-                                sequence_txt,
                                 result
                                     .as_ref()
                                     .map_or_else(|| String::from("...."), |res| res.to_string()),
@@ -101,9 +100,8 @@ impl Tracker {
                         if let Some((bar, instant, job, res)) = bars.get_mut(&seq) {
                             let sequence_txt = sequence.to_string();
                             bar.set_prefix(format!(
-                                "[{:0seq_width$}/{:0seq_width$}][{}][{job}]",
+                                "[{:seq_width$}/{sequence_txt}][{}][{job}]",
                                 seq,
-                                sequence_txt,
                                 result,
                                 seq_width = sequence_txt.len()
                             ));
