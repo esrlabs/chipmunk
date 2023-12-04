@@ -43,11 +43,6 @@ pub struct Tracker {
     tx: Sender<Tick>,
 }
 
-fn order_offset(num: usize, total: usize) -> String {
-    " ".repeat(format!("[{total}/{total}]").len() - format!("[{num}/{total}]").len())
-        .to_string()
-}
-
 impl Tracker {
     pub fn new() -> Self {
         let (tx, rx): (Sender<Tick>, Receiver<Tick>) = unbounded();
@@ -69,25 +64,20 @@ impl Tracker {
                 match tick {
                     Tick::Started(job, len, tx_response) => {
                         sequence += 1;
-                        let bar = mp.add(ProgressBar::new(if let Some(len) = len {
-                            len
-                        } else {
-                            max
-                        }));
+                        let sequence_txt = sequence.to_string();
+                        let bar = mp.add(ProgressBar::new(len.unwrap_or(max)));
                         bar.set_style(spinner_style.clone());
                         bars.insert(sequence, (bar, Instant::now(), job, None));
                         bars.iter_mut().for_each(|(k, (bar, _, job, result))| {
-                            if let Some(result) = result {
-                                bar.set_prefix(format!(
-                                    "[{k}/{sequence}]{}[{result}][{job}]",
-                                    order_offset(*k, sequence)
-                                ));
-                            } else {
-                                bar.set_prefix(format!(
-                                    "[{k}/{sequence}]{}[....][{job}]",
-                                    order_offset(*k, sequence)
-                                ));
-                            }
+                            bar.set_prefix(format!(
+                                "[{:0seq_width$}/{:0seq_width$}][{}][{job}]",
+                                k,
+                                sequence_txt,
+                                result
+                                    .as_ref()
+                                    .map_or_else(|| String::from("...."), |res| res.to_string()),
+                                seq_width = sequence_txt.len()
+                            ));
                         });
                         if let Err(e) = tx_response.send(sequence).await {
                             let _ = mp.println(format!("Fail to send response: {e}"));
@@ -109,9 +99,13 @@ impl Tracker {
                     }
                     Tick::Finished(seq, result, msg) => {
                         if let Some((bar, instant, job, res)) = bars.get_mut(&seq) {
+                            let sequence_txt = sequence.to_string();
                             bar.set_prefix(format!(
-                                "[{seq}/{sequence}]{}[{result}][{job}]",
-                                order_offset(seq, sequence)
+                                "[{:0seq_width$}/{:0seq_width$}][{}][{job}]",
+                                seq,
+                                sequence_txt,
+                                result,
+                                seq_width = sequence_txt.len()
                             ));
                             bar.finish_with_message(format!(
                                 "Done in {}s. {msg}",
