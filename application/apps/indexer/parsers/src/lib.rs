@@ -1,5 +1,6 @@
 pub mod dlt;
 pub mod someip;
+pub mod mdf;
 pub mod text;
 use serde::Serialize;
 use std::{fmt::Display, io::Write};
@@ -15,6 +16,26 @@ pub enum Error {
     Incomplete,
     #[error("End of file reached")]
     Eof,
+}
+
+impl nom::error::ParseError<&[u8]> for Error {
+    fn from_error_kind(input: &[u8], kind: nom::error::ErrorKind) -> Self {
+        Error::Parse(format!(
+            "Nom error: {:?} ({} bytes left)",
+            kind,
+            input.len()
+        ))
+    }
+
+    fn append(_: &[u8], _: nom::error::ErrorKind, other: Self) -> Self {
+        other
+    }
+}
+
+impl From<nom::Err<Error>> for Error {
+    fn from(err: nom::Err<Error>) -> Self {
+        Error::Parse(format!("{:?}", err))
+    }
 }
 
 #[derive(Debug)]

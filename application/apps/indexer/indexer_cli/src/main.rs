@@ -31,6 +31,12 @@ use dlt_core::{
     parse::DltParseError,
     statistics::{collect_dlt_stats, count_dlt_messages as count_dlt_messages_old},
 };
+use mdf::{
+    meta::MdfMeta,
+    parse::MdfParser,
+    read::{MdfReader, filter::MdfBusFilter},
+    stat::MdfScanner,
+};
 use env_logger::Env;
 use futures::{pin_mut, stream::StreamExt};
 use indexer_base::{config::*, error_reporter::*, progress::IndexingResults};
@@ -38,17 +44,22 @@ use indicatif::{ProgressBar, ProgressStyle};
 use parsers::{
     dlt::{attachment::FileExtractor, DltParser, DltRangeParser},
     someip::SomeipParser,
+    mdf::MdfLogMessageParser,
     text::StringTokenizer,
     LogMessage, MessageStreamItem, ParseYield,
 };
 use processor::{export::export_raw, grabber::GrabError, text_source::TextFileSource};
 use sources::{
-    binary::{pcap::ng::PcapngByteSource, raw::BinaryByteSource},
+    binary::{
+        pcap::ng::PcapngByteSource, 
+        raw::BinaryByteSource, 
+        mdf::MdfRecordByteSource
+    },
     producer::MessageProducer,
 };
 use std::{
-    fs::File,
-    io::BufReader,
+    fs::{File, OpenOptions},
+    io::{BufReader, BufWriter, Write},
     path::{Path, PathBuf},
 };
 use structopt::StructOpt;
@@ -246,6 +257,12 @@ enum Chip {
         output: Option<PathBuf>,
         #[structopt(short, long, name = "FILE", help = "the model file (FIBEX))")]
         model: Option<PathBuf>,
+    },
+    #[structopt(about = "events from mdf files")]
+    #[allow(dead_code)]
+    MdfEvents {
+        #[structopt(help = "the mdf file to parse")]
+        input: PathBuf,
     },
     #[structopt(about = "dlt statistics")]
     DltStats {
@@ -448,6 +465,9 @@ pub async fn main() -> Result<()> {
             output: _,
             model: _,
         } => println!("NYI someip from pcap not available on cli"),
+        Chip::MdfEvents {
+            input,
+        } => handle_mdf_events_subcommand(&input).await,
         Chip::DltStats {
             input,
             legacy,
@@ -1458,6 +1478,91 @@ pub async fn main() -> Result<()> {
         let start_op = Instant::now();
         duration_report(start_op, "detection of file type".to_string());
         println!("res = {res:?}");
+    }
+
+    async fn handle_mdf_events_subcommand(
+        input: &Path
+    ) {
+        println!("handle_mdf_events_subcommand");
+        let overall = Instant::now();
+
+        println!("read: {}", input.display());
+        let time = Instant::now();
+        let file = File::open(input).expect("open");
+        let mut source = BufReader::new(file);
+        let mut parser = MdfParser::new(&mut source);
+        let mdf = parser.parse().expect("parse");
+        println!("..read took: {:?}", time.elapsed());
+
+        let time = Instant::now();
+        mdf.validate().expect("validate");
+        println!("..validate took: {:?}", time.elapsed());
+
+        let time = Instant::now();
+        let meta = MdfMeta::new(&mdf);
+        println!("..analyze took: {:?}", time.elapsed());
+        
+        let time = Instant::now();
+        let mut reader = MdfReader::new(&mut source, &meta);
+        let scanner = MdfScanner::new(&mut reader, &meta);
+        let stat = scanner.scan();
+        println!("events:\n{}", stat);
+        println!("..scan took: {:?}", time.elapsed());
+        
+        for (index, buses) in stat.groups.iter().enumerate() {
+            for (stat, _) in buses.collect() {
+                let bus = &stat.bus;
+                let time = Instant::now();
+                let mut count: usize = 0;
+                let path = input.parent().unwrap().join(format!("{}_{:?}-{}.txt", 
+                    input.file_name().unwrap().to_str().unwrap(), 
+                    bus, index));
+                    
+                println!("write: {}", path.display());
+                let mut writer = BufWriter::new(
+                    OpenOptions::new()
+                    .create(true)
+                    .truncate(true)
+                    .write(true)
+                    .open(path.clone())
+                    .expect("create")
+                );
+
+                let mut reader = MdfReader::new(&mut source, &meta);
+                reader.filter(MdfBusFilter { buses: vec![bus.clone()] });
+                let source = MdfRecordByteSource::new(&mut reader, index);
+                let parser = MdfLogMessageParser::new(&meta.group(index).expect("meta"));
+                let mut producer = MessageProducer::new(parser, source, None);
+                let stream = producer.as_stream();
+                pin_mut!(stream);
+
+                loop {
+                    let msg = stream.next().await;
+                    match msg {
+                        Some((_, MessageStreamItem::Item(ParseYield::Message(message)))) => {
+                            writeln!(writer, "{}", message).expect("write");
+                            count += 1;
+                        },
+                        Some((_, MessageStreamItem::Done)) => {
+                            break
+                        },
+                        None => {
+                            break
+                        },
+                        _ => continue,
+                    }
+                }
+
+                writer.flush().expect("flush");
+                println!("events: {}", count);
+                println!("output: {} MB", 
+                    fs::metadata(path).expect("fs").len() as f32 / (1024 * 1024) as f32
+                );
+                println!("..write took: {:?}", time.elapsed());
+            }
+        }
+
+        println!("overall: {:?}", overall.elapsed());
     }
 
     async fn handle_dlt_stats_subcommand(
