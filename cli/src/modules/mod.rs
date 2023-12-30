@@ -4,6 +4,7 @@ pub mod cli;
 pub mod client;
 pub mod core;
 pub mod shared;
+pub mod wasm;
 pub mod wrapper;
 
 use crate::{

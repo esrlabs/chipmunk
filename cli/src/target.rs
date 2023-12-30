@@ -10,6 +10,7 @@ pub enum Target {
     Shared,
     App,
     Cli,
+    Wasm,
 }
 
 impl std::fmt::Display for Target {
@@ -25,6 +26,7 @@ impl std::fmt::Display for Target {
                 Target::Client => "Client",
                 Target::Shared => "Shared",
                 Target::App => "App",
+                Target::Wasm => "Wasm",
             }
         )
     }
@@ -51,6 +53,7 @@ impl Target {
             Target::Wrapper => Box::new(modules::wrapper::Module::new()),
             Target::Shared => Box::new(modules::shared::Module::new()),
             Target::App => Box::new(modules::app::Module::new()),
+            Target::Wasm => Box::new(modules::wasm::Module::new()),
         }
     }
 }
