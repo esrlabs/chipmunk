@@ -42,6 +42,7 @@ impl Target {
             Box::new(modules::wrapper::Module::new()),
             Box::new(modules::shared::Module::new()),
             Box::new(modules::client::Module::new()),
+            Box::new(modules::wasm::Module::new()),
         ]
     }
     pub fn get(&self) -> Box<dyn Manager + Sync + Send> {
