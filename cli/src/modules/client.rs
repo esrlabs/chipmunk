@@ -26,6 +26,6 @@ impl Manager for Module {
         LOCATION.root.clone().join(PATH)
     }
     fn deps(&self) -> Vec<Target> {
-        vec![Target::Shared]
+        vec![Target::Shared, Target::Wasm]
     }
 }
