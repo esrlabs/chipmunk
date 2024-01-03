@@ -13,6 +13,7 @@ use crate::{
     Target, LOCATION,
 };
 use async_trait::async_trait;
+use futures::future::join_all;
 use std::{io::Error, path::PathBuf};
 
 #[derive(Debug, Clone)]
@@ -42,6 +43,17 @@ impl Kind {
     }
 }
 
+pub(crate) struct TestCommand {
+    command: String,
+    cwd: PathBuf,
+}
+
+impl TestCommand {
+    pub(crate) fn new(command: String, cwd: PathBuf) -> Self {
+        Self { command, cwd }
+    }
+}
+
 #[async_trait]
 pub trait Manager {
     fn kind(&self) -> Kind;
@@ -53,6 +65,9 @@ pub trait Manager {
     }
     fn install_cmd(&self, _prod: bool) -> Option<String> {
         None
+    }
+    fn test_cmds(&self) -> Vec<TestCommand> {
+        Vec::new()
     }
     async fn reset(&self) -> Result<SpawnResult, Error> {
         self.clean().await?;
@@ -158,5 +173,38 @@ pub trait Manager {
             Some("clippy"),
         )
         .await
+    }
+
+    // TODO: After using native rust asnyc traits, we can return a vector of results here and use
+    // flat_map in main() to get rid of the double join calls
+    async fn test(&self) -> Result<SpawnResult, Error> {
+        self.install(false).await?;
+        // TODO: Check if we need to run the dependencies tests too
+
+        let test_cmds = self.test_cmds();
+        if test_cmds.is_empty() {
+            return Ok(SpawnResult::empty());
+        }
+
+        let results = join_all(
+            test_cmds
+                .iter()
+                .map(|cmd| spawn(&cmd.command, Some(cmd.cwd.to_owned()), Some(&cmd.command))),
+        )
+        .await;
+
+        // return the first failed result, or the first one if all was successful
+        let return_pos = results
+            .iter()
+            .position(|res| match res {
+                Ok(result) => !result.status.success(),
+                Err(_) => true,
+            })
+            .unwrap_or(0);
+
+        results
+            .into_iter()
+            .nth(return_pos)
+            .expect("Commands has been checked if they are empty before spawning tasks")
     }
 }

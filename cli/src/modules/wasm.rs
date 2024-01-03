@@ -1,11 +1,7 @@
-use super::{Kind, Manager};
-use crate::{
-    spawner::{spawn, SpawnResult},
-    Target, LOCATION,
-};
+use super::{Kind, Manager, TestCommand};
+use crate::{Target, LOCATION};
 use async_trait::async_trait;
-use futures::future::join_all;
-use std::{io, path::PathBuf};
+use std::path::PathBuf;
 
 const PATH: &str = "application/apps/rustcore/wasm-bindings";
 
@@ -41,22 +37,11 @@ impl Manager for Module {
             "wasm-pack build {env} --target bundler --color always"
         ))
     }
-}
 
-impl Module {
-    // TODO: Use this implementation when testing is implemented in the system
-    #[allow(dead_code)]
-    pub async fn run_tests(&self) -> Vec<Result<SpawnResult, io::Error>> {
-        let path_karma = self.cwd().join("spec");
-
-        join_all([
-            spawn(
-                "wasm-pack test --node",
-                Some(self.cwd()),
-                Some("wasm-pack test wasm-bindings"),
-            ),
-            spawn("npm run test", Some(path_karma), Some("npm test wasm")),
-        ])
-        .await
+    fn test_cmds(&self) -> Vec<TestCommand> {
+        vec![
+            TestCommand::new("wasm-pack test --node --color always".into(), self.cwd()),
+            TestCommand::new("npm run test".into(), self.cwd().join("spec")),
+        ]
     }
 }

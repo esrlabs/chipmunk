@@ -55,6 +55,12 @@ enum Command {
         #[arg(short, long, num_args(0..))]
         target: Option<Vec<Target>>,
     },
+    /// Run tests
+    Test {
+        /// target to test, by default whole application will be tested
+        #[arg(short, long, num_args(0..))]
+        target: Option<Vec<Target>>,
+    },
 }
 
 fn main() -> Result<(), Error> {
@@ -67,6 +73,7 @@ fn main() -> Result<(), Error> {
                     Command::Lint { target } => target,
                     Command::Build { target } => target,
                     Command::Clean { target } => target,
+                    Command::Test { target } => target,
                 } {
                 list.remove_duplicates();
                 list.iter().map(|target| target.get()).collect()
@@ -97,6 +104,15 @@ fn main() -> Result<(), Error> {
                         targets
                             .iter()
                             .map(|module| module.reset())
+                            .collect::<Vec<_>>(),
+                    )
+                    .await
+                }
+                Command::Test { target: _ } => {
+                    join_all(
+                        targets
+                            .iter()
+                            .map(|module| module.test())
                             .collect::<Vec<_>>(),
                     )
                     .await
