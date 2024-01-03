@@ -9,7 +9,7 @@ pub mod wrapper;
 
 use crate::{
     fstools,
-    spawner::{spawn, SpawnResult},
+    spawner::{spawn, SpawnOptions, SpawnResult},
     Target, LOCATION,
 };
 use async_trait::async_trait;
@@ -46,11 +46,16 @@ impl Kind {
 pub(crate) struct TestCommand {
     command: String,
     cwd: PathBuf,
+    spawn_opts: Option<SpawnOptions>,
 }
 
 impl TestCommand {
-    pub(crate) fn new(command: String, cwd: PathBuf) -> Self {
-        Self { command, cwd }
+    pub(crate) fn new(command: String, cwd: PathBuf, spawn_opts: Option<SpawnOptions>) -> Self {
+        Self {
+            command,
+            cwd,
+            spawn_opts,
+        }
     }
 }
 
@@ -92,7 +97,7 @@ pub trait Manager {
             self.kind().install_cmd(prod)
         };
         if let Some(cmd) = cmd {
-            spawn(&cmd, Some(self.cwd()), Some(&cmd)).await
+            spawn(&cmd, Some(self.cwd()), Some(&cmd), None).await
         } else {
             Ok(SpawnResult::empty())
         }
@@ -128,7 +133,7 @@ pub trait Manager {
         } else {
             self.kind().build_cmd(prod)
         };
-        match spawn(&cmd, Some(path), Some(&cmd)).await {
+        match spawn(&cmd, Some(path), Some(&cmd), None).await {
             Ok(status) => {
                 if !status.status.success() {
                     Ok(status)
@@ -159,11 +164,11 @@ pub trait Manager {
     }
     async fn lint(&self) -> Result<SpawnResult, Error> {
         let path = LOCATION.root.clone().join(self.cwd());
-        let status = spawn("yarn run lint", Some(path.clone()), Some("linting")).await?;
+        let status = spawn("yarn run lint", Some(path.clone()), Some("linting"), None).await?;
         if !status.status.success() {
             return Ok(status);
         }
-        spawn("yarn run build", Some(path), Some("TS compilation")).await
+        spawn("yarn run build", Some(path), Some("TS compilation"), None).await
     }
     async fn clippy(&self) -> Result<SpawnResult, Error> {
         let path = LOCATION.root.clone().join(self.cwd());
@@ -171,6 +176,7 @@ pub trait Manager {
             "cargo clippy --color always --all --all-features -- -D warnings",
             Some(path),
             Some("clippy"),
+            None,
         )
         .await
     }
@@ -186,11 +192,14 @@ pub trait Manager {
             return Ok(SpawnResult::empty());
         }
 
-        let results = join_all(
-            test_cmds
-                .iter()
-                .map(|cmd| spawn(&cmd.command, Some(cmd.cwd.to_owned()), Some(&cmd.command))),
-        )
+        let results = join_all(test_cmds.iter().map(|cmd| {
+            spawn(
+                &cmd.command,
+                Some(cmd.cwd.to_owned()),
+                Some(&cmd.command),
+                cmd.spawn_opts.clone(),
+            )
+        }))
         .await;
 
         // return the first failed result, or the first one if all was successful

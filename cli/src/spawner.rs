@@ -27,11 +27,18 @@ impl SpawnResult {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub(crate) struct SpawnOptions {
+    pub suppress_msg: bool,
+}
+
 pub async fn spawn(
     command: &str,
     cwd: Option<PathBuf>,
     caption: Option<&str>,
+    opts: Option<SpawnOptions>,
 ) -> Result<SpawnResult, io::Error> {
+    let opts = opts.unwrap_or_default();
     let cwd = if let Some(cwd) = cwd {
         cwd
     } else {
@@ -76,7 +83,9 @@ pub async fn spawn(
                 if read_lines == 0 {
                     break;
                 } else {
-                    TRACKER.msg(sequence, &line).await;
+                    if !opts.suppress_msg {
+                        TRACKER.msg(sequence, &line).await;
+                    }
                     TRACKER.progress(sequence, None).await;
                     storage.push(line);
                 }

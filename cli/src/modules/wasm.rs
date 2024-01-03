@@ -1,5 +1,5 @@
 use super::{Kind, Manager, TestCommand};
-use crate::{Target, LOCATION};
+use crate::{spawner::SpawnOptions, Target, LOCATION};
 use async_trait::async_trait;
 use std::path::PathBuf;
 
@@ -40,8 +40,16 @@ impl Manager for Module {
 
     fn test_cmds(&self) -> Vec<TestCommand> {
         vec![
-            TestCommand::new("wasm-pack test --node --color always".into(), self.cwd()),
-            TestCommand::new("npm run test".into(), self.cwd().join("spec")),
+            TestCommand::new(
+                "wasm-pack test --node --color always".into(),
+                self.cwd(),
+                None,
+            ),
+            TestCommand::new(
+                "npm run test".into(),
+                self.cwd().join("spec"),
+                Some(SpawnOptions { suppress_msg: true }),
+            ),
         ]
     }
 }
