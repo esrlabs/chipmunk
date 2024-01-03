@@ -31,15 +31,15 @@ impl Manager for Module {
     }
 
     fn deps(&self) -> Vec<Target> {
-        //TODO: Do we have dependencies here?
         vec![]
     }
+
     fn build_cmd(&self, prod: bool) -> Option<String> {
-        //TODO: It's possible to set the environment with wasm-pack, but it wasn't set in the ruby
-        //version. Check if we can set it here.
         let env = if prod { "--release" } else { "--dev" };
 
-        Some(format!("wasm-pack build {env} --target bundler"))
+        Some(format!(
+            "wasm-pack build {env} --target bundler --color always"
+        ))
     }
 }
 
