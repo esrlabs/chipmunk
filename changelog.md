@@ -1,49 +1,65 @@
+# 3.10.4 (05.01.2024)
+
+## Fixes
+
+- Fix shutdown application workflow errors
+
 # 3.10.3 (10.11.2023)
 
 ## Fixes
+
 - Fix labels on chart
 
 # 3.10.2 (30.10.2023)
 
 ## Fixes
+
 - Review/rework the selection procedure
 
 # 3.10.1 (27.10.2023)
 
 ## Fixes
+
 - Selecting in the scope of one row
 
 # 3.10.0 (26.10.2023)
 
 ## Fixes
+
 - Fix SDE spinner on command spawning
 - Fix white space rendering
-- Fix exporting data from text files 
+- Fix exporting data from text files
 
 ## Features
+
 - Allow open search results in a new session
 - Allow download updates from pre-releases (optional)
 
 # 3.9.22 (20.10.2023)
 
 ## Fixes
+
 - Fixed concat view style issues
 
 ## Changes
+
 - Updated styles on `Ctrl + P` popup
 - Support for continued movement on `Ctrl + P` popup
 
 # 3.9.21 (19.10.2023)
 
 ## Changes
+
 - Updated `envvars` dependency
 
 # 3.9.20 (18.10.2023)
 
 ## Fixes
+
 - Fixed text selection bug
 
 ## Changes
+
 - Updated `envvars` dependency
 
 # 3.9.19 (17.10.2023)
