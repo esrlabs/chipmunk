@@ -6,11 +6,12 @@ mod process;
 mod regex;
 mod serial;
 mod shells;
+mod sleep;
 mod someip;
 
 use crate::{events::ComputationError, unbound::commands::someip::get_someip_statistic};
 
-use log::{error, trace};
+use log::{debug, error};
 use processor::search::filter::SearchFilter;
 use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
@@ -41,6 +42,11 @@ impl<T: Serialize> CommandOutcome<T> {
 
 #[derive(Debug)]
 pub enum Command {
+    // This command is used only for testing/debug goals
+    Sleep(
+        u64,
+        oneshot::Sender<Result<CommandOutcome<()>, ComputationError>>,
+    ),
     FolderContent(
         Vec<String>,
         usize,
@@ -86,6 +92,7 @@ impl std::fmt::Display for Command {
             f,
             "{}",
             match self {
+                Command::Sleep(_, _) => "Sleep",
                 Command::CancelTest(_, _, _) => "CancelTest",
                 Command::SpawnProcess(_, _, _) => "Spawning process",
                 Command::FolderContent(_, _, _, _, _, _) => "Getting folder's content",
@@ -103,8 +110,9 @@ impl std::fmt::Display for Command {
 
 pub async fn process(command: Command, signal: Signal) {
     let cmd = command.to_string();
-    trace!("Processing command: {cmd}");
+    debug!("Processing command: {cmd}");
     if match command {
+        Command::Sleep(ms, tx) => tx.send(sleep::sleep(ms, signal).await).is_err(),
         Command::FolderContent(paths, depth, max_len, include_files, include_folders, tx) => tx
             .send(folder::get_folder_content(
                 &paths,
@@ -137,9 +145,10 @@ pub async fn process(command: Command, signal: Signal) {
     }
 }
 
-pub async fn err(command: Command, err: ComputationError) {
+pub fn err(command: Command, err: ComputationError) {
     let cmd = command.to_string();
     if match command {
+        Command::Sleep(_, tx) => tx.send(Err(err)).is_err(),
         Command::FolderContent(_path, _depth, _max_len, _, _, tx) => tx.send(Err(err)).is_err(),
         Command::SpawnProcess(_path, _args, tx) => tx.send(Err(err)).is_err(),
         Command::GetRegexError(_filter, tx) => tx.send(Err(err)).is_err(),

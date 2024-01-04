@@ -410,4 +410,46 @@ describe('Errors', () => {
                 });
         });
     });
+
+    it(config.regular.list[9], function () {
+        return runner(config.regular, 9, async (logger, done, collector) => {
+            Session.create()
+                .then((session: Session) => {
+                    session.debug(true, config.regular.list[9]);
+                    session
+                        .sleep(10000, true)
+                        .then(() => {
+                            finish(session, done, new Error(`Sleeping task should not finish.`));
+                        })
+                        .catch((err: Error) => {
+                            finish(
+                                session,
+                                done,
+                                new Error(`Fail to start sleeping task: ${err.message}`),
+                            );
+                        });
+                    setTimeout(() => {
+                        session
+                            .destroy()
+                            .then(() => {
+                                finish(undefined, done);
+                            })
+                            .catch((err: Error) => {
+                                finish(
+                                    session,
+                                    done,
+                                    new Error(`Fail to destroy session: ${err.message}`),
+                                );
+                            });
+                    }, 500);
+                })
+                .catch((err: Error) => {
+                    finish(
+                        undefined,
+                        done,
+                        new Error(`Fail to create session due error: ${error(err)}`),
+                    );
+                });
+        });
+    });
 });

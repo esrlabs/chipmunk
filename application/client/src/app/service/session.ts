@@ -71,7 +71,7 @@ export class Service extends Implementation {
                 this.log().error(`Fail to close session "${uuid}": ${err.message}`);
             });
         }
-        this.log().debug(`All sessions are be closed`);
+        this.log().debug(`All sessions are closed`);
     }
 
     public kill(uuid: string): Promise<void> {

@@ -12,9 +12,14 @@ use crate::{
 };
 use log::{debug, error, warn};
 use std::collections::HashMap;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tokio::{
+    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    time::{timeout, Duration},
+};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
+
+pub const CANCEL_OPERATIONS_TIMEOUT: u64 = 2000;
 
 pub struct UnboundSession {
     rx: Option<UnboundedReceiver<API>>,
@@ -56,13 +61,12 @@ impl UnboundSession {
                     API::Run(job, id) => {
                         let signal = Signal::new(job.to_string());
                         if jobs.contains_key(&id) {
-                            crate::unbound::commands::err(
+                            commands::err(
                                 job,
                                 ComputationError::InvalidArgs(String::from(
                                     "Job has invalid id. Id already exists.",
                                 )),
-                            )
-                            .await;
+                            );
                             continue;
                         }
                         jobs.insert(id, signal.clone());
@@ -70,7 +74,7 @@ impl UnboundSession {
                         let api = session_api.clone();
                         tokio::spawn(async move {
                             debug!("Job {job} has been called");
-                            crate::unbound::commands::process(job, signal.clone()).await;
+                            commands::process(job, signal.clone()).await;
                             signal.confirm();
                             let _ = api.remove_command(id);
                         });
@@ -87,9 +91,15 @@ impl UnboundSession {
                         jobs.iter().for_each(|(_uuid, signal)| {
                             signal.invoke();
                         });
-                        for (id, signal) in jobs.iter() {
-                            signal.confirmed().await;
-                            UnboundSession::stopped(&progress, &uuids, id);
+                        match timeout(Duration::from_millis(CANCEL_OPERATIONS_TIMEOUT), async {
+                            for (id, signal) in jobs.iter() {
+                                signal.confirmed().await;
+                                UnboundSession::stopped(&progress, &uuids, id);
+                            }
+                        })
+                        .await {
+                            Ok(_) => debug!("All jobs of unbound session are down"),
+                            Err(_) => warn!("Unbound session wasn't shutdown normaly. Force shutdown because timeout {CANCEL_OPERATIONS_TIMEOUT}"),
                         }
                         jobs.clear();
                         if tx.send(()).is_err() {
@@ -105,6 +115,7 @@ impl UnboundSession {
                 }
             }
             finished.cancel();
+            debug!("Unbound session is down");
         });
         Ok(())
     }

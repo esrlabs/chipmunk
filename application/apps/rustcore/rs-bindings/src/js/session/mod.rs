@@ -782,10 +782,19 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    async fn sleep(&self, operation_id: String, ms: i64) -> Result<(), ComputationErrorWrapper> {
+    async fn sleep(
+        &self,
+        operation_id: String,
+        ms: i64,
+        ignore_cancellation: bool,
+    ) -> Result<(), ComputationErrorWrapper> {
         if let Some(ref session) = self.session {
             session
-                .sleep(operations::uuid_from_str(&operation_id)?, ms as u64)
+                .sleep(
+                    operations::uuid_from_str(&operation_id)?,
+                    ms as u64,
+                    ignore_cancellation,
+                )
                 .map_err(ComputationErrorWrapper)
         } else {
             Err(ComputationErrorWrapper(

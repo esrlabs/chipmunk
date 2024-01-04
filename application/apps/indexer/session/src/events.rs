@@ -344,6 +344,8 @@ impl LifecycleTransition {
 pub enum ComputationError {
     #[error("Destination path should be defined to stream from MassageProducer")]
     DestinationPath,
+    #[error("Fail to create session")]
+    SessionCreatingFail,
     #[error("Native communication error ({0})")]
     Communication(String),
     #[error("Operation not supported ({0})")]

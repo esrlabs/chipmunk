@@ -48,9 +48,10 @@ impl UnboundSessionAPI {
         rx_results: oneshot::Receiver<Result<CommandOutcome<T>, ComputationError>>,
         command: Command,
     ) -> Result<CommandOutcome<T>, ComputationError> {
-        self.tx.send(API::Run(command, id)).map_err(|_| {
-            ComputationError::Communication(String::from("Fail to send call Job::SomeJob"))
-        })?;
+        let cmd = command.to_string();
+        self.tx
+            .send(API::Run(command, id))
+            .map_err(|_| ComputationError::Communication(format!("Fail to send call {cmd}")))?;
         rx_results
             .await
             .map_err(|e| ComputationError::Communication(format!("channel error: {e}")))?
@@ -58,7 +59,7 @@ impl UnboundSessionAPI {
 
     pub(crate) fn remove_command(&self, id: u64) -> Result<(), ComputationError> {
         self.tx.send(API::Remove(id)).map_err(|_| {
-            ComputationError::Communication(String::from("Fail to send call Job::SomeJob"))
+            ComputationError::Communication(format!("Fail to remove command id={id}"))
         })?;
         Ok(())
     }
@@ -186,6 +187,12 @@ impl UnboundSessionAPI {
     ) -> Result<CommandOutcome<Option<String>>, ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::GetRegexError(filter, tx_results))
+            .await
+    }
+
+    pub async fn sleep(&self, id: u64, ms: u64) -> Result<CommandOutcome<()>, ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(id, rx_results, Command::Sleep(ms, tx_results))
             .await
     }
 }

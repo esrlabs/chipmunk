@@ -29,6 +29,7 @@ export abstract class JobsNative {
     public abstract getShellProfiles(sequence: number): Promise<string>;
     public abstract getContextEnvvars(sequence: number): Promise<string>;
     public abstract getSerialPortsList(sequence: number): Promise<string[]>;
+    public abstract sleep(sequence: number, ms: number): Promise<undefined>;
     public abstract getRegexError(
         sequence: number,
         filter: {
@@ -76,6 +77,8 @@ enum State {
     created,
 }
 
+const DESTROY_TIMEOUT = 5000;
+
 export class Base {
     protected readonly logger: Logger = scope.getLogger(`Jobs`);
     protected readonly native: JobsNative;
@@ -113,9 +116,16 @@ export class Base {
         this._state = State.destroying;
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
-                this.logger.error(`Timeout error. Session wasn't closed in 5 sec.`);
-                reject(new Error(`Timeout error. Session wasn't closed in 5 sec.`));
-            }, 5000);
+                reject(
+                    new Error(
+                        this.logger.error(
+                            `Timeout error. Session wasn't closed in ${
+                                DESTROY_TIMEOUT / 1000
+                            } sec.`,
+                        ),
+                    ),
+                );
+            }, DESTROY_TIMEOUT);
             this.native
                 .destroy()
                 .then(() => {
@@ -170,8 +180,8 @@ export class Base {
             this.queue.add(sequence, alias);
             refCancel(() => {
                 this.abort(sequence).catch((err: Error) => {
-                    if (self.isCompleted())  {
-                        this.logger.warn("Job was already completed on aborting");
+                    if (self.isCompleted()) {
+                        this.logger.warn('Job was already completed on aborting');
                         return;
                     }
                     this.logger.error(`Fail to cancel ${error(err)}`);
@@ -181,8 +191,8 @@ export class Base {
                 try {
                     const result: JobResult<Input> = JSON.parse(nativeOutput);
                     if (result === 'Cancelled' || self.isCanceling()) {
-                        if (result !== 'Cancelled' && self.isCanceling())  {
-                            this.logger.warn("Job result dropped due canceling");
+                        if (result !== 'Cancelled' && self.isCanceling()) {
+                            this.logger.warn('Job result dropped due canceling');
                         }
                         cancel();
                     } else if (convert === undefined) {

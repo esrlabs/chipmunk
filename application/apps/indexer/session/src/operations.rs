@@ -117,7 +117,7 @@ pub enum OperationKind {
     Cancel {
         target: Uuid,
     },
-    Sleep(u64),
+    Sleep(u64, bool),
     End,
 }
 
@@ -136,7 +136,7 @@ impl std::fmt::Display for OperationKind {
                 OperationKind::Map { .. } => "Mapping",
                 OperationKind::Values { .. } => "Values",
                 OperationKind::Merge { .. } => "Merging",
-                OperationKind::Sleep(_) => "Sleeping",
+                OperationKind::Sleep(_, _) => "Sleeping",
                 OperationKind::Cancel { .. } => "Canceling",
                 OperationKind::GetNearestPosition(_) => "Getting nearest position",
                 OperationKind::End => "End",
@@ -380,9 +380,12 @@ impl OperationAPI {
                 } => {
                     unimplemented!("merging not yet supported");
                 }
-                OperationKind::Sleep(ms) => {
-                    api.finish(handlers::sleep::handle(&api, ms).await, operation_str)
-                        .await;
+                OperationKind::Sleep(ms, ignore_cancellation) => {
+                    api.finish(
+                        handlers::sleep::handle(&api, ms, ignore_cancellation).await,
+                        operation_str,
+                    )
+                    .await;
                 }
                 OperationKind::Cancel { target } => match tracker.cancel_operation(target).await {
                     Ok(canceled) => {
@@ -485,6 +488,9 @@ pub async fn run(
     }
     if let Err(err) = tracker_api.shutdown() {
         error!("Failed to shutdown tracker: {:?}", err);
+    }
+    if let Err(err) = state_api.shutdown() {
+        error!("Fail to shutdown state; error: {:?}", err);
     }
     debug!("operations task finished");
 }

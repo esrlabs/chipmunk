@@ -215,4 +215,17 @@ export class Jobs extends Base {
         );
         return job;
     }
+
+    public sleep(ms: number): CancelablePromise<undefined> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<undefined> = this.execute(
+            (_res: undefined): any | Error => {
+                return undefined;
+            },
+            this.native.sleep(sequence, ms),
+            sequence,
+            'sleep',
+        );
+        return job;
+    }
 }
