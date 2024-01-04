@@ -97,6 +97,36 @@ export class Session {
     }
 
     public destroy(): Promise<void> {
+        const stream = this._stream;
+        const search = this._search;
+        const logger = this._logger;
+        function preparing(): Promise<void> {
+            if (stream === undefined || search === undefined) {
+                logger.error(`Attempt to destroy session while it wasn't inited`);
+            }
+            return Promise.all([
+                // Destroy stream controller
+                stream === undefined
+                    ? Promise.resolve()
+                    : stream.destroy().catch((err: Error) => {
+                          logger.error(
+                              `Fail correctly destroy SessionStream due error: ${
+                                  err instanceof Error ? err.message : err
+                              }`,
+                          );
+                      }),
+                // Destroy search controller
+                search === undefined
+                    ? Promise.resolve()
+                    : search.destroy().catch((err: Error) => {
+                          logger.error(
+                              `Fail correctly destroy SessionSearch due error: ${
+                                  err instanceof Error ? err.message : err
+                              }`,
+                          );
+                      }),
+            ]).then((_) => undefined);
+        }
         return new Promise((resolve, reject) => {
             this.requestNativeDebugStat()
                 .catch((err: Error) => {
@@ -110,24 +140,7 @@ export class Session {
                         return reject(new Error(`Session is already destroyed or destroing`));
                     }
                     this._destroying = true;
-                    Promise.all([
-                        // Destroy stream controller
-                        (this._stream as SessionStream).destroy().catch((err: Error) => {
-                            this._logger.error(
-                                `Fail correctly destroy SessionStream due error: ${
-                                    err instanceof Error ? err.message : err
-                                }`,
-                            );
-                        }),
-                        // Destroy search controller
-                        (this._search as SessionSearch).destroy().catch((err: Error) => {
-                            this._logger.error(
-                                `Fail correctly destroy SessionSearch due error: ${
-                                    err instanceof Error ? err.message : err
-                                }`,
-                            );
-                        }),
-                    ])
+                    preparing()
                         .catch((err: Error) => {
                             this._logger.error(
                                 `Error while destroying: ${
@@ -202,8 +215,11 @@ export class Session {
      * @param duration - duration in ms
      * @returns
      */
-    public sleep(duration: number): ICancelablePromise<ISleepResults> {
-        return Executors.sleep(this._session, this._provider, this._logger, { duration });
+    public sleep(duration: number, ignoreCancellation: boolean): ICancelablePromise<ISleepResults> {
+        return Executors.sleep(this._session, this._provider, this._logger, {
+            duration,
+            ignoreCancellation,
+        });
     }
 
     /**

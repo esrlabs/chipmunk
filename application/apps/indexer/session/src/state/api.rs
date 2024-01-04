@@ -10,6 +10,7 @@ use crate::{
     },
     tracker::OperationTrackerAPI,
 };
+use log::error;
 use parsers;
 use processor::{
     grabber::LineRange,
@@ -235,7 +236,7 @@ impl SessionStateAPI {
         api: Api,
         rx_response: oneshot::Receiver<T>,
     ) -> Result<T, NativeError> {
-        let api_str = format!("{api}");
+        let api_str = api.to_string();
         self.tx_api.send(api).map_err(|e| {
             NativeError::channel(&format!("Failed to send to Api::{api_str}; error: {e}"))
         })?;
@@ -554,7 +555,9 @@ impl SessionStateAPI {
 
     pub async fn close_session(&self) -> Result<(), NativeError> {
         self.closing_token.cancel();
-        self.tracker.cancel_all().await?;
+        if let Err(err) = self.tracker.cancel_all().await {
+            error!("Fail to correctly stop tracker: {err:?}");
+        }
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::CloseSession(tx), rx).await
     }

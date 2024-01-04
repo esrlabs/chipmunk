@@ -4,6 +4,7 @@ import { EventProvider } from '../../api/session.provider';
 
 export interface IExecuteSleepOptions {
     duration: number;
+    ignoreCancellation: boolean;
 }
 export interface ISleepResults {
     sleep_well: boolean;
@@ -25,7 +26,7 @@ export const executor: TExecutor<ISleepResults, IExecuteSleepOptions> = (
             options: IExecuteSleepOptions,
             operationUuid: string,
         ): Promise<void> {
-            return session.sleep(operationUuid, options.duration);
+            return session.sleep(operationUuid, options.duration, options.ignoreCancellation);
         },
         function (data: any, resolve: (res: ISleepResults) => void, reject: (err: Error) => void) {
             try {

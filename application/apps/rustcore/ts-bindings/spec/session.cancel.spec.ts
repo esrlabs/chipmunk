@@ -18,7 +18,7 @@ describe('Cancel', function () {
                 .then((session: Session) => {
                     session.debug(true, config.regular.list[1]);
                     let sleep = session
-                        .sleep(2000)
+                        .sleep(2000, false)
                         .then((results) => {
                             finish(session, done, new Error(`Operation isn't canceled`));
                         })
@@ -51,7 +51,7 @@ describe('Cancel', function () {
                 .then((session: Session) => {
                     session.debug(true, config.regular.list[2]);
                     let sleep = session
-                        .sleep(250)
+                        .sleep(250, false)
                         .then((results) => {
                             finish(session, done);
                         })
@@ -124,7 +124,8 @@ describe('Cancel', function () {
                                 .file(config.regular.files['text'])
                                 .type(Factory.FileType.Text)
                                 .asText()
-                                .get().sterilized(),
+                                .get()
+                                .sterilized(),
                         )
                         .catch(finish.bind(null, session, done));
                     let canceled: number = 0;

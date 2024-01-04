@@ -8,12 +8,17 @@ use indexer_base::progress::Severity;
 use log::{debug, error};
 use sources::producer::SdeSender;
 use std::collections::{hash_map::Entry, HashMap};
-use tokio::sync::{
-    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
-    oneshot,
+use tokio::{
+    sync::{
+        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+        oneshot,
+    },
+    time::{timeout, Duration},
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
+
+const CANCEL_OPERATION_TIMEOUT: u64 = 3000;
 
 pub enum TrackerCommand {
     AddOperation(
@@ -266,8 +271,18 @@ pub async fn run(
                     if !done_token.is_cancelled() {
                         operation_cancalation_token.cancel();
                         debug!("waiting for operation {} would confirm done-state", uuid);
-                        // TODO: add timeout to preven situation with waiting forever. 2-3 sec.
-                        done_token.cancelled().await;
+                        if timeout(
+                            Duration::from_millis(CANCEL_OPERATION_TIMEOUT),
+                            done_token.cancelled(),
+                        )
+                        .await
+                        .is_err()
+                        {
+                            error!(
+                                "timeout {}s to stop opearation {uuid}",
+                                CANCEL_OPERATION_TIMEOUT / 1000
+                            );
+                        }
                         progress.stopped(uuid);
                     }
                 }

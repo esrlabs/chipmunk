@@ -61,14 +61,15 @@
         },
         "jobs": {
             "regular": {
-                "execute_only": [1,2,3,4,5],
+                "execute_only": [1,2,3,4,5,8],
                 "list": {
                     "1": "Test 1. Cancelation testing",
                     "2": "Test 2. Wrong sequence test",
                     "3": "Test 3. Folder content listing",
                     "4": "Test 4. Get profiles",
                     "5": "Test 5. Get envvars",
-                    "6": "Test 6. Get Someip statistic"
+                    "6": "Test 6. Get Someip statistic",
+                    "8": "Test 8. Closing session with running task"
                 },
                 "files": {
                     "someip-pcapng": "../../../../application/developing/resources/someip.pcapng"
@@ -188,7 +189,8 @@
                     "5": "Test 5. Error: Grab lines with negative length",
                     "6": "Test 6. Error: Grab lines with negative start",
                     "7": "Test 7. Error: Unexpected error on session state",
-                    "8": "Test 8. Error: Unexpected error on session tracker"
+                    "8": "Test 8. Error: Unexpected error on session tracker",
+                    "9": "Test 9. Destroy dead session"
                 }
             }
         },

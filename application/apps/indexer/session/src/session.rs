@@ -8,7 +8,7 @@ use crate::{
     tracker::OperationTrackerAPI,
 };
 use indexer_base::progress::Severity;
-use log::{debug, error};
+use log::{debug, error, warn};
 use processor::{grabber::LineRange, search::filter::SearchFilter};
 use serde::Serialize;
 use sources::{factory::ObserveOptions, sde};
@@ -19,17 +19,21 @@ use tokio::{
         mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
         oneshot,
     },
-    task,
+    task::{self, JoinHandle},
+    time,
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 pub type OperationsChannel = (UnboundedSender<Operation>, UnboundedReceiver<Operation>);
 
+pub const SHUTDOWN_TIMEOUT_IN_MS: u64 = 2000;
+
 pub struct Session {
     uuid: Uuid,
     tx_operations: UnboundedSender<Operation>,
     destroyed: CancellationToken,
+    destroying: CancellationToken,
     pub state: SessionStateAPI,
     pub tracker: OperationTrackerAPI,
 }
@@ -57,51 +61,103 @@ impl Session {
             uuid,
             tx_operations: tx_operations.clone(),
             destroyed: CancellationToken::new(),
+            destroying: CancellationToken::new(),
             state: state_api.clone(),
             tracker: tracker_api.clone(),
         };
         let destroyed = session.destroyed.clone();
-        task::spawn(async move {
+        let destroying = session.destroying.clone();
+        let (tx, rx): (
+            oneshot::Sender<JoinHandle<()>>,
+            oneshot::Receiver<JoinHandle<()>>,
+        ) = oneshot::channel();
+        let handle = task::spawn(async move {
+            let self_handle = match rx.await {
+                Ok(handle) => handle,
+                Err(_) => {
+                    error!("Fail to get handle of session task");
+                    return;
+                }
+            };
             debug!("Session is started");
             let tx_callback_events_state = tx_callback_events.clone();
             join!(
                 async {
-                    operations::run(
-                        rx_operations,
-                        state_api.clone(),
-                        tracker_api.clone(),
-                        tx_callback_events.clone(),
+                    destroying.cancelled().await;
+                    if time::timeout(
+                        time::Duration::from_millis(SHUTDOWN_TIMEOUT_IN_MS),
+                        destroyed.cancelled(),
                     )
-                    .await;
-                    if let Err(err) = state_api.shutdown() {
-                        error!("Fail to shutdown state; error: {:?}", err);
-                    }
+                    .await
+                    .is_err()
+                    {
+                        warn!(
+                            "Session isn't shutdown in {}s; forcing termination.",
+                            SHUTDOWN_TIMEOUT_IN_MS / 1000
+                        );
+                        self_handle.abort();
+                        destroyed.cancel();
+                    };
                 },
                 async {
-                    if let Err(err) = state::run(rx_state_api, tx_callback_events_state).await {
-                        error!("State loop exits with error:: {:?}", err);
-                        if let Err(err) =
-                            Session::send_stop_signal(Uuid::new_v4(), &tx_operations, None).await
-                        {
-                            error!("Fail to send stop signal (on state fail):: {:?}", err);
-                        }
-                    }
-                },
-                async {
-                    if let Err(err) = tracker::run(state_api.clone(), rx_tracker_api).await {
-                        error!("Tracker loop exits with error:: {:?}", err);
-                        if let Err(err) =
-                            Session::send_stop_signal(Uuid::new_v4(), &tx_operations, None).await
-                        {
-                            error!("Fail to send stop signal (on tracker fail):: {:?}", err);
-                        }
-                    }
-                },
+                    join!(
+                        async {
+                            operations::run(
+                                rx_operations,
+                                state_api.clone(),
+                                tracker_api.clone(),
+                                tx_callback_events.clone(),
+                            )
+                            .await;
+                        },
+                        async {
+                            if let Err(err) =
+                                state::run(rx_state_api, tx_callback_events_state).await
+                            {
+                                error!("State loop exits with error:: {:?}", err);
+                                if let Err(err) = Session::send_stop_signal(
+                                    Uuid::new_v4(),
+                                    &tx_operations,
+                                    None,
+                                    &destroying,
+                                )
+                                .await
+                                {
+                                    error!("Fail to send stop signal (on state fail):: {:?}", err);
+                                }
+                            }
+                        },
+                        async {
+                            if let Err(err) = tracker::run(state_api.clone(), rx_tracker_api).await
+                            {
+                                error!("Tracker loop exits with error:: {:?}", err);
+                                if let Err(err) = Session::send_stop_signal(
+                                    Uuid::new_v4(),
+                                    &tx_operations,
+                                    None,
+                                    &destroying,
+                                )
+                                .await
+                                {
+                                    error!(
+                                        "Fail to send stop signal (on tracker fail):: {:?}",
+                                        err
+                                    );
+                                }
+                            }
+                        },
+                    );
+                    destroyed.cancel();
+                    debug!("Session is finished");
+                }
             );
-            destroyed.cancel();
-            debug!("Session is finished");
+            debug!("Session task is finished");
         });
-        Ok((session, rx_callback_events))
+        if tx.send(handle).is_err() {
+            Err(ComputationError::SessionCreatingFail)
+        } else {
+            Ok((session, rx_callback_events))
+        }
     }
 
     pub fn get_uuid(&self) -> Uuid {
@@ -254,7 +310,9 @@ impl Session {
         operation_id: Uuid,
         tx_operations: &UnboundedSender<Operation>,
         destroyed: Option<&CancellationToken>,
+        destroying: &CancellationToken,
     ) -> Result<(), ComputationError> {
+        destroying.cancel();
         tx_operations
             .send(Operation::new(operation_id, operations::OperationKind::End))
             .map_err(|e| ComputationError::Communication(e.to_string()))?;
@@ -265,7 +323,13 @@ impl Session {
     }
 
     pub async fn stop(&self, operation_id: Uuid) -> Result<(), ComputationError> {
-        Session::send_stop_signal(operation_id, &self.tx_operations, Some(&self.destroyed)).await
+        Session::send_stop_signal(
+            operation_id,
+            &self.tx_operations,
+            Some(&self.destroyed),
+            &self.destroying,
+        )
+        .await
     }
 
     pub async fn get_stream_len(&self) -> Result<usize, ComputationError> {
@@ -440,11 +504,16 @@ impl Session {
     }
 
     /// Used for debug goals
-    pub fn sleep(&self, operation_id: Uuid, ms: u64) -> Result<(), ComputationError> {
+    pub fn sleep(
+        &self,
+        operation_id: Uuid,
+        ms: u64,
+        ignore_cancellation: bool,
+    ) -> Result<(), ComputationError> {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
-                operations::OperationKind::Sleep(ms),
+                operations::OperationKind::Sleep(ms, ignore_cancellation),
             ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }

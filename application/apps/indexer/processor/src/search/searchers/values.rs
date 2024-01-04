@@ -45,7 +45,7 @@ pub type ValueSearchHolder = BaseSearcher<ValueSearchState>;
 impl ValueSearchHolder {
     pub fn setup(&mut self, terms: Vec<String>) -> Result<(), SearchError> {
         let mut matchers = vec![];
-        for (_pos, filter) in terms.iter().enumerate() {
+        for filter in terms.iter() {
             matchers.push(Regex::from_str(&as_regex(filter)).map_err(|err| {
                 SearchError::Regex(format!("Failed to create regex for {filter}: {err}"))
             })?);

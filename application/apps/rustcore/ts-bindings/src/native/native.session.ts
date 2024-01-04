@@ -179,7 +179,11 @@ export abstract class RustSession extends RustSessionRequiered {
     public abstract getOperationsStat(): Promise<string>;
 
     // Used only for testing and debug
-    public abstract sleep(operationUuid: string, duration: number): Promise<void>;
+    public abstract sleep(
+        operationUuid: string,
+        duration: number,
+        ignoreCancellation: boolean,
+    ): Promise<void>;
 
     // Used only for testing and debug
     public abstract triggerStateError(): Promise<void>;
@@ -299,7 +303,11 @@ export abstract class RustSessionNative {
     public abstract getOperationsStat(): Promise<string>;
 
     // Used only for testing and debug
-    public abstract sleep(operationUuid: string, duration: number): Promise<void>;
+    public abstract sleep(
+        operationUuid: string,
+        duration: number,
+        ignoreCancellation: boolean,
+    ): Promise<void>;
 
     // Used only for testing and debug
     public abstract triggerStateError(): Promise<void>;
@@ -322,6 +330,8 @@ export function rustSessionFactory(
         });
     });
 }
+
+const DESTROY_TIMEOUT = 5000;
 
 export class RustSessionWrapper extends RustSession {
     private readonly _logger: Logger = scope.getLogger(`RustSessionWrapper`);
@@ -360,9 +370,16 @@ export class RustSessionWrapper extends RustSession {
         this._provider.debug().emit.operation('stop', destroyOperationId);
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
-                this._logger.error(`Timeout error. Session wasn't closed in 5 sec.`);
-                reject(new Error(`Timeout error. Session wasn't closed in 5 sec.`));
-            }, 5000);
+                reject(
+                    new Error(
+                        this._logger.error(
+                            `Timeout error. Session wasn't closed in ${
+                                DESTROY_TIMEOUT / 1000
+                            } sec.`,
+                        ),
+                    ),
+                );
+            }, DESTROY_TIMEOUT);
             this._native
                 .stop(destroyOperationId)
                 .then(() => {
@@ -1163,11 +1180,15 @@ export class RustSessionWrapper extends RustSession {
     }
 
     // Used only for testing and debug
-    public sleep(operationUuid: string, duration: number): Promise<void> {
+    public sleep(
+        operationUuid: string,
+        duration: number,
+        ignoreCancellation: boolean,
+    ): Promise<void> {
         return new Promise((resolve, reject) => {
             this._provider.debug().emit.operation('sleep', operationUuid);
             this._native
-                .sleep(operationUuid, duration)
+                .sleep(operationUuid, duration, ignoreCancellation)
                 .then(resolve)
                 .catch((err) => {
                     reject(new NativeError(NativeError.from(err), Type.Other, Source.Sleep));

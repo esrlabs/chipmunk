@@ -239,4 +239,24 @@ describe('Jobs', function () {
                 });
         });
     });
+
+    it(config.regular.list[8], function () {
+        return runner(config.regular, 8, async (logger, done, collector) => {
+            const jobs = collector(await Jobs.create()) as Jobs;
+            // Run sleeping, but do not wait for it
+            jobs.sleep(6000).then(() => {
+                finish(undefined, done, new Error('Get response from destroyed session'));
+            });
+            setTimeout(() => {
+                // Closing session
+                jobs.destroy()
+                    .then(() => {
+                        finish(undefined, done);
+                    })
+                    .catch((err: Error) => {
+                        finish(undefined, done, err);
+                    });
+            }, 500);
+        });
+    });
 });

@@ -35,7 +35,7 @@ impl<T: Serialize> TryIntoJs for CommandOutcomeWrapper<T> {
     }
 }
 
-fn id_from_i64(id: i64) -> Result<u64, ComputationErrorWrapper> {
+fn u64_from_i64(id: i64) -> Result<u64, ComputationErrorWrapper> {
     u64::try_from(id).map_err(|_| {
         ComputationErrorWrapper(ComputationError::InvalidArgs(String::from(
             "ID of job is invalid",
@@ -103,7 +103,7 @@ impl UnboundJobs {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
-            .cancel_job(&id_from_i64(id)?)
+            .cancel_job(&u64_from_i64(id)?)
             .await
             .map_err(ComputationErrorWrapper)
     }
@@ -123,7 +123,7 @@ impl UnboundJobs {
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
             .list_folder_content(
-                id_from_i64(id)?,
+                u64_from_i64(id)?,
                 usize_from_i64(depth)?,
                 usize_from_i64(max_len)?,
                 paths,
@@ -145,7 +145,7 @@ impl UnboundJobs {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
-            .spawn_process(id_from_i64(id)?, path, args)
+            .spawn_process(u64_from_i64(id)?, path, args)
             .await
             .map_err(ComputationErrorWrapper)
             .map(CommandOutcomeWrapper)
@@ -160,7 +160,7 @@ impl UnboundJobs {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
-            .get_file_checksum(id_from_i64(id)?, path)
+            .get_file_checksum(u64_from_i64(id)?, path)
             .await
             .map_err(ComputationErrorWrapper)
             .map(CommandOutcomeWrapper)
@@ -175,7 +175,7 @@ impl UnboundJobs {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
-            .get_dlt_stats(id_from_i64(id)?, files)
+            .get_dlt_stats(u64_from_i64(id)?, files)
             .await
             .map_err(ComputationErrorWrapper)
             .map(CommandOutcomeWrapper)
@@ -190,7 +190,7 @@ impl UnboundJobs {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
-            .get_someip_statistic(id_from_i64(id)?, files)
+            .get_someip_statistic(u64_from_i64(id)?, files)
             .await
             .map_err(ComputationErrorWrapper)
             .map(CommandOutcomeWrapper)
@@ -204,7 +204,7 @@ impl UnboundJobs {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
-            .get_shell_profiles(id_from_i64(id)?)
+            .get_shell_profiles(u64_from_i64(id)?)
             .await
             .map_err(ComputationErrorWrapper)
             .map(CommandOutcomeWrapper)
@@ -218,7 +218,7 @@ impl UnboundJobs {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
-            .get_context_envvars(id_from_i64(id)?)
+            .get_context_envvars(u64_from_i64(id)?)
             .await
             .map_err(ComputationErrorWrapper)
             .map(CommandOutcomeWrapper)
@@ -232,7 +232,7 @@ impl UnboundJobs {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
-            .get_serial_ports_list(id_from_i64(id)?)
+            .get_serial_ports_list(u64_from_i64(id)?)
             .await
             .map_err(ComputationErrorWrapper)
             .map(CommandOutcomeWrapper)
@@ -247,7 +247,7 @@ impl UnboundJobs {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
-            .get_regex_error(id_from_i64(id)?, filter.as_filter())
+            .get_regex_error(u64_from_i64(id)?, filter.as_filter())
             .await
             .map_err(ComputationErrorWrapper)
             .map(CommandOutcomeWrapper)
@@ -263,7 +263,22 @@ impl UnboundJobs {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
-            .cancel_test(id_from_i64(id)?, custom_arg_a, custom_arg_b)
+            .cancel_test(u64_from_i64(id)?, custom_arg_a, custom_arg_b)
+            .await
+            .map_err(ComputationErrorWrapper)
+            .map(CommandOutcomeWrapper)
+    }
+
+    #[node_bindgen]
+    async fn sleep(
+        &self,
+        id: i64,
+        ms: i64,
+    ) -> Result<CommandOutcomeWrapper<()>, ComputationErrorWrapper> {
+        self.api
+            .as_ref()
+            .ok_or(ComputationError::SessionUnavailable)?
+            .sleep(u64_from_i64(id)?, u64_from_i64(ms)?)
             .await
             .map_err(ComputationErrorWrapper)
             .map(CommandOutcomeWrapper)
