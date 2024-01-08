@@ -15,6 +15,7 @@ use session::{
 use std::{convert::TryFrom, thread};
 use tokio::runtime::Runtime;
 use tokio_util::sync::CancellationToken;
+use std::path::Path;
 
 struct UnboundJobs {
     api: Option<UnboundSessionAPI>,
@@ -129,6 +130,23 @@ impl UnboundJobs {
                 paths,
                 include_files,
                 include_folders,
+            )
+            .await
+            .map_err(ComputationErrorWrapper)
+            .map(CommandOutcomeWrapper)
+    }
+
+    async fn is_file_binary(
+        &self,
+        id: i64,
+        file_path: &'static Path,
+    ) -> Result<CommandOutcomeWrapper<bool>, ComputationErrorWrapper> {
+        self.api
+            .as_ref()
+            .ok_or(ComputationError::SessionUnavailable)?
+            .is_file_binary(
+                id_from_i64(id)?,
+                file_path
             )
             .await
             .map_err(ComputationErrorWrapper)
