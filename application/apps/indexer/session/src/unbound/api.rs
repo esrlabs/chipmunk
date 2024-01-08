@@ -1,6 +1,7 @@
 use crate::events::ComputationError;
 use processor::search::filter::SearchFilter;
 use serde::Serialize;
+use std::path::Path;
 use tokio::sync::{mpsc::UnboundedSender, oneshot};
 
 use super::commands::{Command, CommandOutcome};
@@ -100,6 +101,23 @@ impl UnboundSessionAPI {
                 include_folders,
                 tx_results,
             ),
+        )
+        .await
+    }
+
+    pub async fn is_file_binary(
+        &self,
+        id: u64,
+        file_path: &'static Path
+    ) -> Result<CommandOutcome<bool>, ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(
+            id,
+            rx_results,
+            Command::IsFileBinary(
+                file_path,
+                tx_results
+            )
         )
         .await
     }
