@@ -65,6 +65,27 @@ export class Jobs extends Base {
         return job;
     }
 
+    public isFileBinary(options: {
+        filePath: string,
+    }): CancelablePromise<boolean> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<boolean> = this.execute(
+            (res: string): any | Error => {
+                if (typeof res !== 'string') {
+                    return new Error(`[jobs.isFileBinary] Expecting string, but got: ${typeof res}`);
+                }
+                return res;
+            },
+            this.native.isFileBinary(
+                sequence,
+                options.filePath
+            ),
+            sequence,
+            'isFileBinary'
+        );
+        return job;
+    }
+
     public spawnProcess(path: string, args: string[]): CancelablePromise<void> {
         const sequence = this.sequence();
         const job: CancelablePromise<void> = this.execute(
