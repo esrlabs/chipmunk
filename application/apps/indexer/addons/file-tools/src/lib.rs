@@ -8,8 +8,8 @@ use std::{
 
 const BYTES_TO_READ: u64 = 10240;
 
-pub fn is_binary(file_path: &Path) -> Result<bool> {
-    let chunks = fetch_starting_chunk(file_path);
+pub fn is_binary(file_path: String) -> Result<bool> {
+    let chunks = fetch_starting_chunk(Path::new(&file_path));
     let buffer = match chunks {
         Ok(buffer) => buffer,
         Err(err) => return Err(err),
@@ -52,13 +52,13 @@ mod test {
 
     #[test]
     fn test_is_binary_when_file_is_binary() -> Result<()> {
-        assert!(is_binary(Path::new(
+        assert!(is_binary(String::from(
             "../../../../developing/resources/attachments.dlt"
         ))?);
-        assert!(is_binary(Path::new(
+        assert!(is_binary(String::from(
             "../../../../developing/resources/someip.pcap"
         ))?);
-        assert!(is_binary(Path::new(
+        assert!(is_binary(String::from(
             "../../../../developing/resources/someip.pcapng"
         ))?);
         Ok(())
@@ -66,13 +66,13 @@ mod test {
 
     #[test]
     fn test_is_binary_when_file_is_not_binary() -> Result<()> {
-        assert!(!is_binary(Path::new(
+        assert!(!is_binary(String::from(
             "../../../../developing/resources/chinese_poem.txt"
         ))?);
-        assert!(!is_binary(Path::new(
+        assert!(!is_binary(String::from(
             "../../../../developing/resources/sample_utf_8.txt"
         ))?);
-        assert!(!is_binary(Path::new(
+        assert!(!is_binary(String::from(
             "../../../../developing/resources/someip.xml"
         ))?);
         Ok(())

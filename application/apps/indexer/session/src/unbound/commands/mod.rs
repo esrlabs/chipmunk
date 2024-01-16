@@ -10,8 +10,6 @@ mod shells;
 mod sleep;
 mod someip;
 
-use std::path::Path;
-
 use crate::{events::ComputationError, unbound::commands::someip::get_someip_statistic};
 
 use log::{debug, error};
@@ -82,7 +80,10 @@ pub enum Command {
     GetShellProfiles(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
     GetContextEnvvars(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
     SerialPortsList(oneshot::Sender<Result<CommandOutcome<Vec<String>>, ComputationError>>),
-    IsFileBinary(&'static Path, oneshot::Sender<Result<CommandOutcome<bool>, ComputationError>>),
+    IsFileBinary(
+        String,
+        oneshot::Sender<Result<CommandOutcome<bool>, ComputationError>>,
+    ),
     CancelTest(
         i64,
         i64,
