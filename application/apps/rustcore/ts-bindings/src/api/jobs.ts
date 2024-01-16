@@ -70,9 +70,9 @@ export class Jobs extends Base {
     }): CancelablePromise<boolean> {
         const sequence = this.sequence();
         const job: CancelablePromise<boolean> = this.execute(
-            (res: string): any | Error => {
-                if (typeof res !== 'string') {
-                    return new Error(`[jobs.isFileBinary] Expecting string, but got: ${typeof res}`);
+            (res: boolean): any | Error => {
+                if (typeof res !== 'boolean') {
+                    return new Error(`[jobs.isFileBinary] Expecting boolean, but got: ${typeof res}`);
                 }
                 return res;
             },
