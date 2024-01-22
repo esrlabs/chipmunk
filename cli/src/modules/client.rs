@@ -28,4 +28,11 @@ impl Manager for Module {
     fn deps(&self) -> Vec<Target> {
         vec![Target::Shared, Target::Wasm]
     }
+    fn dist_path(&self, prod: bool) -> Option<PathBuf> {
+        Some(LOCATION.root.clone().join(PATH).join(if prod {
+            "dist/release"
+        } else {
+            "dist/debug"
+        }))
+    }
 }

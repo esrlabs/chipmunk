@@ -64,6 +64,9 @@ pub trait Manager {
     fn kind(&self) -> Kind;
     fn owner(&self) -> Target;
     fn cwd(&self) -> PathBuf;
+    fn dist_path(&self, _prod: bool) -> Option<PathBuf> {
+        None
+    }
     fn deps(&self) -> Vec<Target>;
     fn build_cmd(&self, _prod: bool) -> Option<String> {
         None
@@ -114,7 +117,7 @@ pub trait Manager {
             Kind::Rs => Ok(SpawnResult::empty()),
         }
     }
-    async fn after(&self) -> Result<Option<SpawnResult>, Error> {
+    async fn after(&self, _prod: bool) -> Result<Option<SpawnResult>, Error> {
         Ok(None)
     }
     async fn build(&self, prod: bool) -> Result<SpawnResult, Error> {
@@ -138,7 +141,7 @@ pub trait Manager {
                 if !status.status.success() {
                     Ok(status)
                 } else {
-                    let res = self.after().await?;
+                    let res = self.after(prod).await?;
                     if matches!(self.kind(), Kind::Ts) && prod {
                         self.clean().await?;
                         self.install(prod).await?;

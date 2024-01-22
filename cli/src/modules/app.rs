@@ -36,8 +36,11 @@ impl Manager for Module {
         // For app we don't need --production
         Some(String::from("yarn install"))
     }
-    async fn after(&self) -> Result<Option<SpawnResult>, Error> {
-        let src = Target::Client.get().cwd().join("dist/client");
+    async fn after(&self, prod: bool) -> Result<Option<SpawnResult>, Error> {
+        let src = Target::Client.get().dist_path(prod).ok_or(Error::new(
+            ErrorKind::NotFound,
+            "Fail to get client artifacts",
+        ))?;
         let dest = self.cwd().join("dist");
         if !src.exists() {
             return Err(Error::new(
@@ -52,7 +55,14 @@ impl Manager for Module {
         if prev.exists() {
             fstools::rm_folder(prev).await?;
         }
-        fstools::cp_folder(src, dest).await?;
+        fstools::cp_folder(src.clone(), dest.clone()).await?;
+        std::fs::rename(
+            dest.join(src.file_name().ok_or(Error::new(
+                ErrorKind::NotFound,
+                "Fail to parse client artifacts path",
+            ))?),
+            dest.join("client"),
+        )?;
         Ok(None)
     }
 }

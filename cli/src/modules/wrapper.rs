@@ -32,7 +32,7 @@ impl Manager for Module {
     fn deps(&self) -> Vec<Target> {
         vec![Target::Binding, Target::Shared]
     }
-    async fn after(&self) -> Result<Option<SpawnResult>, Error> {
+    async fn after(&self, _prod: bool) -> Result<Option<SpawnResult>, Error> {
         let src = Target::Binding.get().cwd().join("dist/index.node");
         let dest = self.cwd().join("dist/native");
         if !src.exists() {
