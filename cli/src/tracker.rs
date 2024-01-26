@@ -78,36 +78,18 @@ impl Tracker {
             let mut sequence: usize = 0;
             let mut max_time_len = 0;
             let max = u64::MAX;
-            let mut bars: HashMap<usize, JobBarState> =
-                HashMap::new();
+            let mut bars: HashMap<usize, JobBarState> = HashMap::new();
             let mp = MultiProgress::new();
             let start_time = Instant::now();
             while let Ok(tick) = rx.recv().await {
                 match tick {
                     Tick::Started(job, len, tx_response) => {
                         sequence += 1;
-                        let sequence_txt = sequence.to_string();
                         let bar = mp.add(ProgressBar::new(len.unwrap_or(max)));
                         bar.set_style(spinner_style.clone());
                         let job_bar = JobBarState::start_job(job, bar);
                         bars.insert(sequence, job_bar);
-                        bars.iter_mut().for_each(|(k, job_bar)| {
-                            let seq_width = sequence_txt.len();
-                            let job = job_bar.name.as_str();
-                            let line_prefix = match job_bar.result.as_ref() {
-                                None => {
-                                format!(
-                                    "[{k:seq_width$}/{sequence_txt}][{}][{job}]",
-                                    String::from("....")
-                                )
-                                },
-                                Some((res, time)) => {
-                                format!("[{k:seq_width$}/{sequence_txt}][{res}][{time:max_time_len$}s][{job}].")
-                                },
-                            };
-
-                            job_bar.bar.set_prefix(line_prefix);
-                        });
+                        Self::refresh_all_bars(&mut bars, sequence, max_time_len);
                         if let Err(e) = tx_response.send(sequence).await {
                             let _ = mp.println(format!("Fail to send response: {e}"));
                         }
@@ -141,6 +123,8 @@ impl Tracker {
                             ));
                             job_bar.bar.finish_with_message(msg);
                             job_bar.result.replace((result, time));
+
+                            Self::refresh_all_bars(&mut bars, sequence, max_time_len);
                         }
                     }
                     Tick::Print(msg) => {
@@ -176,6 +160,32 @@ impl Tracker {
         }
         .await;
         Ok(())
+    }
+
+    fn refresh_all_bars(
+        bars: &mut HashMap<usize, JobBarState>,
+        sequence: usize,
+        max_time_len: usize,
+    ) {
+        let sequence_txt = sequence.to_string();
+
+        bars.iter_mut().for_each(|(k, job_bar)| {
+            let seq_width = sequence_txt.len();
+            let job = job_bar.name.as_str();
+            let line_prefix = match job_bar.result.as_ref() {
+                None => {
+                    format!(
+                        "[{k:seq_width$}/{sequence_txt}][{}][{job}]",
+                        String::from("....")
+                    )
+                }
+                Some((res, time)) => {
+                    format!("[{k:seq_width$}/{sequence_txt}][{res}][{time:max_time_len$}s][{job}].")
+                }
+            };
+
+            job_bar.bar.set_prefix(line_prefix);
+        });
     }
 
     /// Counts the digits in a number without allocating new string
