@@ -43,9 +43,24 @@ pub struct Tracker {
     tx: Sender<Tick>,
 }
 
-enum TimeIndicator {
-    Running(Instant),
-    Finished(u64),
+struct JobBarState {
+    name: String,
+    bar: ProgressBar,
+    start_time: Instant,
+    result: Option<(OperationResult, u64)>,
+}
+
+impl JobBarState {
+    fn start_job(name: String, bar: ProgressBar) -> Self {
+        let start_time = Instant::now();
+
+        Self {
+            name,
+            bar,
+            start_time,
+            result: None,
+        }
+    }
 }
 
 impl Tracker {
@@ -63,7 +78,7 @@ impl Tracker {
             let mut sequence: usize = 0;
             let mut max_time_len = 0;
             let max = u64::MAX;
-            let mut bars: HashMap<usize, (ProgressBar, TimeIndicator, String, Option<OperationResult>)> =
+            let mut bars: HashMap<usize, JobBarState> =
                 HashMap::new();
             let mp = MultiProgress::new();
             let start_time = Instant::now();
@@ -74,78 +89,71 @@ impl Tracker {
                         let sequence_txt = sequence.to_string();
                         let bar = mp.add(ProgressBar::new(len.unwrap_or(max)));
                         bar.set_style(spinner_style.clone());
-                        bars.insert(sequence, (bar, TimeIndicator::Running(Instant::now()), job, None));
-                        bars.iter_mut().for_each(|(k, (bar, time_indicator, job, result))| {
+                        let job_bar = JobBarState::start_job(job, bar);
+                        bars.insert(sequence, job_bar);
+                        bars.iter_mut().for_each(|(k, job_bar)| {
                             let seq_width = sequence_txt.len();
-                            let line_prefix = match time_indicator {
-                                TimeIndicator::Running(_) => {
+                            let job = job_bar.name.as_str();
+                            let line_prefix = match job_bar.result.as_ref() {
+                                None => {
                                 format!(
-                                    "[{:seq_width$}/{sequence_txt}][{}][{job}]",
-                                    k,
+                                    "[{k:seq_width$}/{sequence_txt}][{}][{job}]",
                                     String::from("....")
                                 )
                                 },
-                                TimeIndicator::Finished(time) => {
-                                format!(
-                                    "[{:seq_width$}/{sequence_txt}][{}][{time:max_time_len$}s][{job}].",
-                                    k,
-                                    result
-                                        .as_ref()
-                                        .expect("Job must be finished here")
-                                )
+                                Some((res, time)) => {
+                                format!("[{k:seq_width$}/{sequence_txt}][{res}][{time:max_time_len$}s][{job}].")
                                 },
                             };
 
-                            bar.set_prefix(line_prefix);
+                            job_bar.bar.set_prefix(line_prefix);
                         });
                         if let Err(e) = tx_response.send(sequence).await {
                             let _ = mp.println(format!("Fail to send response: {e}"));
                         }
                     }
                     Tick::Message(sequence, log) => {
-                        if let Some((bar, _, _, _)) = bars.get(&sequence) {
-                            bar.set_message(log);
+                        if let Some(job_bar) = bars.get(&sequence) {
+                            job_bar.bar.set_message(log);
                         }
                     }
                     Tick::Progress(sequence, pos) => {
-                        if let Some((bar, _, _, _)) = bars.get(&sequence) {
+                        if let Some(job_bar) = bars.get(&sequence) {
                             if let Some(pos) = pos {
-                                bar.set_position(pos);
+                                job_bar.bar.set_position(pos);
                             } else {
-                                bar.inc(1);
+                                job_bar.bar.inc(1);
                             }
                         }
                     }
                     Tick::Finished(seq, result, msg) => {
-                        if let Some((bar, time_indicator, job, res)) = bars.get_mut(&seq) {
+                        if let Some(job_bar) = bars.get_mut(&seq) {
                             let sequence_txt = sequence.to_string();
-                            let TimeIndicator::Running(instant) = time_indicator else {panic!("{job} can finish only once")}; 
                             // It doesn't make sense to show that a job is done in 0 seconds
-                            let time = instant.elapsed().as_secs().max(1);
-                            *time_indicator = TimeIndicator::Finished(time);
+                            let time = job_bar.start_time.elapsed().as_secs().max(1);
 
                             max_time_len = max_time_len.max(Self::count_digits(time));
 
                             let seq_width = sequence_txt.len();
-                            bar.set_prefix(format!(
+                            let job = job_bar.name.as_str();
+                            job_bar.bar.set_prefix(format!(
                                 "[{seq:seq_width$}/{sequence_txt}][{result}][{time:max_time_len$}s][{job}].",
                             ));
-                            bar.finish_with_message(msg);
-                            res.replace(result);
+                            job_bar.bar.finish_with_message(msg);
+                            job_bar.result.replace((result, time));
                         }
                     }
                     Tick::Print(msg) => {
                         let _ = mp.println(msg);
                     }
                     Tick::Shutdown(tx_response) => {
-                        bars.iter_mut().for_each(|(_, (bar, time_indicator, job, _))| {
-                            if !bar.is_finished() {
-                                let TimeIndicator::Running(instant) = time_indicator else {panic!("{job} can finish only once")};
-                                let time = instant.elapsed().as_secs().max(1);
-                                *time_indicator = TimeIndicator::Finished(time);
+                        bars.iter_mut().for_each(|(_, job_bar)| {
+                            if !job_bar.bar.is_finished() {
+                                let time = job_bar.start_time.elapsed().as_secs().max(1);
+                                job_bar.result.replace((OperationResult::Success, time));
                                 max_time_len = max_time_len.max(Self::count_digits(time));
 
-                                bar.finish();
+                                job_bar.bar.finish();
                             }
                         });
 
