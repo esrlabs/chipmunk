@@ -8,6 +8,8 @@ use std::{
     time::Instant,
 };
 
+const TIME_BAR_WIDTH: usize = 5;
+
 #[derive(Clone, Debug)]
 pub enum OperationResult {
     Success,
@@ -89,7 +91,7 @@ impl Tracker {
                         bar.set_style(spinner_style.clone());
                         let job_bar = JobBarState::start_job(job, bar);
                         bars.insert(sequence, job_bar);
-                        Self::refresh_all_bars(&mut bars, sequence, max_time_len);
+                        Self::refresh_all_bars(&mut bars, sequence, max_time_len, None);
                         if let Err(e) = tx_response.send(sequence).await {
                             let _ = mp.println(format!("Fail to send response: {e}"));
                         }
@@ -124,7 +126,7 @@ impl Tracker {
                             job_bar.bar.finish_with_message(msg);
                             job_bar.result.replace((result, time));
 
-                            Self::refresh_all_bars(&mut bars, sequence, max_time_len);
+                            Self::refresh_all_bars(&mut bars, sequence, max_time_len, None);
                         }
                     }
                     Tick::Print(msg) => {
@@ -141,8 +143,11 @@ impl Tracker {
                             }
                         });
 
+                        // Insert graphic bar for the running duration of each bars
+                        let total_time = start_time.elapsed().as_secs().max(1) as usize;
+                        Self::refresh_all_bars(&mut bars, sequence, max_time_len, Some(total_time));
+
                         // Insert total time bar
-                        let total_time = start_time.elapsed().as_secs().max(1);
                         let total_bar = mp.add(ProgressBar::new((bars.len() + 1) as u64));
                         total_bar.set_style(spinner_style.clone());
                         total_bar.set_prefix(format!("[total] done all in {total_time}s."));
@@ -166,6 +171,7 @@ impl Tracker {
         bars: &mut HashMap<usize, JobBarState>,
         sequence: usize,
         max_time_len: usize,
+        total_time: Option<usize>,
     ) {
         let sequence_txt = sequence.to_string();
 
@@ -174,13 +180,16 @@ impl Tracker {
             let job = job_bar.name.as_str();
             let line_prefix = match job_bar.result.as_ref() {
                 None => {
-                    format!(
-                        "[{k:seq_width$}/{sequence_txt}][{}][{job}]",
-                        String::from("....")
-                    )
+                    format!("[{k:seq_width$}/{sequence_txt}][....][{job}]")
                 }
                 Some((res, time)) => {
-                    format!("[{k:seq_width$}/{sequence_txt}][{res}][{time:max_time_len$}s][{job}].")
+                    if let Some(total_time) = total_time {
+                        let finish_limit = (*time as usize * TIME_BAR_WIDTH) / total_time;
+                        let time_bar: String = (0..TIME_BAR_WIDTH).map(|idx| if idx <= finish_limit {'█'}else {'░'}).collect();
+                        format!("[{k:seq_width$}/{sequence_txt}][{res}][{time_bar} {time:max_time_len$}s][{job}].")
+                    }else {
+                        format!("[{k:seq_width$}/{sequence_txt}][{res}][{time:max_time_len$}s][{job}].")
+                    }
                 }
             };
 
