@@ -14,6 +14,7 @@ humantime = "2.1"
 lazy_static = "1.4"
 log = "0.4.17"
 memchr = "2.4"
+nom = "7.1"
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0"
 tokio-util = "0.7"
@@ -22,6 +23,8 @@ rand = "0.8.5"
 someip-messages = { git = "https://github.com/esrlabs/someip" }
 # someip-payload = { path = "../../../../../someip-payload" }
 someip-payload = { git = "https://github.com/esrlabs/someip-payload" }
+mdf = { path = "../../../../../mdf"}
+# mdf = { git = "https://github.com/esrlabs/mdf" }
 
 [dev-dependencies]
 stringreader = "0.1.1"
