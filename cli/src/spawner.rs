@@ -71,54 +71,56 @@ pub async fn spawn(
             None,
         )
         .await?;
+
     let mut stdout_lines: Vec<String> = vec![];
-    let drain_stdout = {
-        let storage = &mut stdout_lines;
+    let mut stderr_lines: Vec<String> = vec![];
+    let drain_stdout_stderr = {
         let stdout = child.stdout.take().unwrap();
+        let stderr = child.stderr.take().unwrap();
+        let storage_out = &mut stdout_lines;
+        let storage_err = &mut stderr_lines;
         async move {
-            let mut buf = BufReader::new(stdout);
+            use futures::{select, FutureExt};
+
+            let mut stdout_buf = BufReader::new(stdout);
+            let mut stderr_buf = BufReader::new(stderr);
             loop {
-                let mut line = String::new();
-                let read_lines = buf.read_line(&mut line).await?;
-                if read_lines == 0 {
-                    break;
-                } else {
-                    if !opts.suppress_msg {
-                        TRACKER.msg(sequence, &line).await;
+                let mut stdout_line = String::new();
+                let mut stderr_line = String::new();
+                select! {
+                    out_lines = stdout_buf.read_line(&mut stdout_line).fuse() => {
+                        let out_lines = out_lines?;
+                        if out_lines == 0 {
+                            break;
+                        } else {
+                            if !opts.suppress_msg {
+                                TRACKER.msg(sequence, &stdout_line).await;
+                            }
+                            TRACKER.progress(sequence, None).await;
+                            storage_out.push(stdout_line);
+                        }
                     }
-                    TRACKER.progress(sequence, None).await;
-                    storage.push(line);
+                    err_lines = stderr_buf.read_line(&mut stderr_line).fuse() => {
+                        let err_lines = err_lines?;
+                        if err_lines == 0 {
+                            break;
+                        } else {
+                            TRACKER.progress(sequence, None).await;
+                            if !stderr_line.trim().is_empty() {
+                                storage_err.push(stderr_line);
+                            }
+                        }
+
+                    }
                 }
             }
+
             future::pending::<()>().await;
             Ok::<Option<ExitStatus>, io::Error>(None)
         }
     };
 
-    let mut stderr_lines: Vec<String> = vec![];
-    let drain_stderr = {
-        let storage = &mut stderr_lines;
-        let stderr = child.stderr.take().unwrap();
-        async move {
-            let mut buf = BufReader::new(stderr);
-            loop {
-                let mut line = String::new();
-                let read_lines = buf.read_line(&mut line).await?;
-                if read_lines == 0 {
-                    break;
-                } else {
-                    TRACKER.progress(sequence, None).await;
-                    if !line.trim().is_empty() {
-                        storage.push(line);
-                    }
-                }
-            }
-            future::pending::<()>().await;
-            Ok::<Option<ExitStatus>, io::Error>(None)
-        }
-    };
-    let status = match drain_stdout
-        .or(drain_stderr)
+    let status = match drain_stdout_stderr
         .or(async move { Ok(Some(child.status().await?)) })
         .await
     {
