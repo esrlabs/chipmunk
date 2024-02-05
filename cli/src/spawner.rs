@@ -77,8 +77,8 @@ pub async fn spawn(
     let drain_stdout_stderr = {
         let stdout = child.stdout.take().unwrap();
         let stderr = child.stderr.take().unwrap();
-        let storage_out = &mut stdout_lines;
-        let storage_err = &mut stderr_lines;
+        let storage_stdout = &mut stdout_lines;
+        let storage_stderr = &mut stderr_lines;
         async move {
             use futures::{select, FutureExt};
 
@@ -88,26 +88,26 @@ pub async fn spawn(
                 let mut stdout_line = String::new();
                 let mut stderr_line = String::new();
                 select! {
-                    out_lines = stdout_buf.read_line(&mut stdout_line).fuse() => {
-                        let out_lines = out_lines?;
-                        if out_lines == 0 {
+                    stdout_read_result = stdout_buf.read_line(&mut stdout_line).fuse() => {
+                        let stdout_read_bytes = stdout_read_result?;
+                        if stdout_read_bytes == 0 {
                             break;
                         } else {
                             if !opts.suppress_msg {
                                 TRACKER.msg(sequence, &stdout_line).await;
                             }
                             TRACKER.progress(sequence, None).await;
-                            storage_out.push(stdout_line);
+                            storage_stdout.push(stdout_line);
                         }
                     }
-                    err_lines = stderr_buf.read_line(&mut stderr_line).fuse() => {
-                        let err_lines = err_lines?;
-                        if err_lines == 0 {
+                    stderr_read_result = stderr_buf.read_line(&mut stderr_line).fuse() => {
+                        let stderr_read_bytes = stderr_read_result?;
+                        if stderr_read_bytes == 0 {
                             break;
                         } else {
                             TRACKER.progress(sequence, None).await;
                             if !stderr_line.trim().is_empty() {
-                                storage_err.push(stderr_line);
+                                storage_stderr.push(stderr_line);
                             }
                         }
 
