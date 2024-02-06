@@ -6,10 +6,11 @@ import { Subject } from '@platform/env/subscription';
 import { EEventType, IEvent } from './structure/component';
 import { Holder } from '@module/matcher';
 import { TabControls } from '@service/session';
-import { InternalAPI } from '@service/ilc';
+import { IlcInterface } from '@service/ilc';
 import { Level, Locker } from '@ui/service/lockers';
 import { getUniqueColorTo } from '@ui/styles/colors';
 import { Sort } from '@angular/material/sort';
+import { ChangesDetector } from '@ui/env/extentions/changes';
 
 import * as Factory from '@platform/types/observe/factory';
 
@@ -20,7 +21,7 @@ export interface IMultifile {
 
 export class State extends Holder {
     private readonly _filesUpdate: Subject<FileHolder[]> = new Subject();
-    private _ilc!: InternalAPI;
+    private _ref!: IlcInterface & ChangesDetector;
     private _tab!: TabControls;
     private _files: FileHolder[] = [];
     private _usedColors: string[] = [];
@@ -45,8 +46,8 @@ export class State extends Holder {
         super();
     }
 
-    public init(ilc: InternalAPI, tab: TabControls, files: File[]): void {
-        this._ilc = ilc;
+    public init(ref: IlcInterface & ChangesDetector, tab: TabControls, files: File[]): void {
+        this._ref = ref;
         this._tab = tab;
         if (files.length > 0) {
             this.path = files[0].path;
@@ -59,11 +60,11 @@ export class State extends Holder {
                 this.path = undefined;
             }
         });
-        this._updateSummary();
+        this.update();
     }
 
-    public restore(ilc: InternalAPI) {
-        this._ilc = ilc;
+    public restore(ref: IlcInterface & ChangesDetector) {
+        this._ref = ref;
     }
 
     public set sortConfig(config: Sort) {
@@ -111,7 +112,7 @@ export class State extends Holder {
                 file.unselect();
             }
         });
-        this._updateSummary();
+        this.update();
     }
 
     public isConcatable(): boolean {
@@ -143,8 +144,9 @@ export class State extends Holder {
                 (() => {
                     switch (fileType) {
                         case FileType.Text:
-                            return this._ilc.services.system.session
-                                .initialize()
+                            return this._ref
+                                .ilc()
+                                .services.system.session.initialize()
                                 .observe(
                                     new Factory.Concat()
                                         .asText()
@@ -153,8 +155,9 @@ export class State extends Holder {
                                         .get(),
                                 );
                         case FileType.PcapNG:
-                            return this._ilc.services.system.session
-                                .initialize()
+                            return this._ref
+                                .ilc()
+                                .services.system.session.initialize()
                                 .configure(
                                     new Factory.Concat()
                                         .asDlt()
@@ -163,8 +166,9 @@ export class State extends Holder {
                                         .get(),
                                 );
                         case FileType.PcapLegacy:
-                            return this._ilc.services.system.session
-                                .initialize()
+                            return this._ref
+                                .ilc()
+                                .services.system.session.initialize()
                                 .configure(
                                     new Factory.Concat()
                                         .asDlt()
@@ -173,8 +177,9 @@ export class State extends Holder {
                                         .get(),
                                 );
                         case FileType.Binary:
-                            return this._ilc.services.system.session
-                                .initialize()
+                            return this._ref
+                                .ilc()
+                                .services.system.session.initialize()
                                 .configure(
                                     new Factory.Concat()
                                         .asDlt()
@@ -192,25 +197,28 @@ export class State extends Holder {
                         this._tab.close();
                     })
                     .catch((err: Error) => {
-                        this._ilc.services.ui.lockers.lock(
-                            new Locker(true, err.message)
-                                .set()
-                                .message(err.message)
-                                .type(Level.error)
-                                .spinner(false)
-                                .end(),
-                            {
-                                closable: true,
-                            },
-                        );
+                        this._ref
+                            .ilc()
+                            .services.ui.lockers.lock(
+                                new Locker(true, err.message)
+                                    .set()
+                                    .message(err.message)
+                                    .type(Level.error)
+                                    .spinner(false)
+                                    .end(),
+                                {
+                                    closable: true,
+                                },
+                            );
                     });
             },
             openEach: (files?: FileHolder[]) => {
                 (files === undefined ? this._selected.files : files).forEach((file: FileHolder) => {
                     switch (file.type) {
                         case FileType.Text:
-                            this._ilc.services.system.session
-                                .initialize()
+                            this._ref
+                                .ilc()
+                                .services.system.session.initialize()
                                 .observe(
                                     new Factory.File()
                                         .asText()
@@ -219,14 +227,17 @@ export class State extends Holder {
                                         .get(),
                                 )
                                 .catch((err: Error) => {
-                                    this._ilc.logger.error(
-                                        `Fail to open text file; error: ${err.message}`,
-                                    );
+                                    this._ref
+                                        .ilc()
+                                        .logger.error(
+                                            `Fail to open text file; error: ${err.message}`,
+                                        );
                                 });
                             break;
                         case FileType.Binary:
-                            this._ilc.services.system.session
-                                .initialize()
+                            this._ref
+                                .ilc()
+                                .services.system.session.initialize()
                                 .configure(
                                     new Factory.File()
                                         .asDlt()
@@ -235,14 +246,17 @@ export class State extends Holder {
                                         .get(),
                                 )
                                 .catch((err: Error) => {
-                                    this._ilc.logger.error(
-                                        `Fail to open dlt file; error: ${err.message}`,
-                                    );
+                                    this._ref
+                                        .ilc()
+                                        .logger.error(
+                                            `Fail to open dlt file; error: ${err.message}`,
+                                        );
                                 });
                             break;
                         case FileType.PcapNG:
-                            this._ilc.services.system.session
-                                .initialize()
+                            this._ref
+                                .ilc()
+                                .services.system.session.initialize()
                                 .configure(
                                     new Factory.File()
                                         .asDlt()
@@ -251,14 +265,17 @@ export class State extends Holder {
                                         .get(),
                                 )
                                 .catch((err: Error) => {
-                                    this._ilc.logger.error(
-                                        `Fail to open dlt file; error: ${err.message}`,
-                                    );
+                                    this._ref
+                                        .ilc()
+                                        .logger.error(
+                                            `Fail to open dlt file; error: ${err.message}`,
+                                        );
                                 });
                             break;
                         case FileType.PcapLegacy:
-                            this._ilc.services.system.session
-                                .initialize()
+                            this._ref
+                                .ilc()
+                                .services.system.session.initialize()
                                 .configure(
                                     new Factory.File()
                                         .asDlt()
@@ -267,9 +284,11 @@ export class State extends Holder {
                                         .get(),
                                 )
                                 .catch((err: Error) => {
-                                    this._ilc.logger.error(
-                                        `Fail to open dlt file; error: ${err.message}`,
-                                    );
+                                    this._ref
+                                        .ilc()
+                                        .logger.error(
+                                            `Fail to open dlt file; error: ${err.message}`,
+                                        );
                                 });
                             break;
                         default:
@@ -293,7 +312,7 @@ export class State extends Holder {
             this._usedColors.push(color);
             this._files.push(new FileHolder(this.matcher, result, color));
             this.filesUpdate.emit(this._files);
-            this._updateSummary();
+            this.update();
         });
     }
 
@@ -303,20 +322,21 @@ export class State extends Holder {
                 this.action().openEach(event.files);
                 break;
             case EEventType.select:
-                this._updateSummary();
+                this.update();
                 break;
             case EEventType.sort:
                 this._files = event.files;
-                this._updateSummary();
+                this.update();
                 break;
             case EEventType.update:
                 this._files =
                     event.files.length === 0
                         ? []
                         : this._files.filter((f: FileHolder) => !event.files.includes(f));
-                this._updateSummary();
+                this.update();
                 break;
         }
+        this._ref !== undefined && this._ref.detectChanges();
     }
 
     public filter(value: string) {
@@ -332,7 +352,7 @@ export class State extends Holder {
         return (size / this._selected.totalSize) * 100;
     }
 
-    private _updateSummary() {
+    protected update() {
         this._selected = {
             count: 0,
             files: [],
