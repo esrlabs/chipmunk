@@ -96,8 +96,6 @@ export class Configuration
 
     public override storable(): IConfiguration {
         const sterilized = this.sterilized();
-        sterilized.envs = {};
-        // Doesn't make sense to store envvars collection.
         return sterilized;
     }
 
