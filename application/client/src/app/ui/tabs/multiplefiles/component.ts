@@ -5,6 +5,7 @@ import {
     OnDestroy,
     AfterViewInit,
     ViewChild,
+    ChangeDetectorRef,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
@@ -12,6 +13,7 @@ import { File } from '@platform/types/files';
 import { State } from './state';
 import { TabControls } from '@service/session';
 import { HiddenFilter } from '@elements/filter.hidden/component';
+import { ChangesDetector } from '@ui/env/extentions/changes';
 
 @Component({
     selector: 'app-tabs-source-multiple-files',
@@ -20,7 +22,10 @@ import { HiddenFilter } from '@elements/filter.hidden/component';
 })
 @Initial()
 @Ilc()
-export class TabSourceMultipleFiles implements AfterContentInit, OnDestroy, AfterViewInit {
+export class TabSourceMultipleFiles
+    extends ChangesDetector
+    implements AfterContentInit, OnDestroy, AfterViewInit
+{
     @Input() files!: File[];
     @Input() tab!: TabControls;
 
@@ -28,14 +33,18 @@ export class TabSourceMultipleFiles implements AfterContentInit, OnDestroy, Afte
 
     public state!: State;
 
+    constructor(cdRef: ChangeDetectorRef) {
+        super(cdRef);
+    }
+
     public ngAfterContentInit() {
         const state: State | undefined = this.tab.storage<State>().get();
         if (state) {
             this.state = state;
-            this.state.restore(this.ilc());
+            this.state.restore(this);
         } else {
             this.state = new State();
-            this.state.init(this.ilc(), this.tab, this.files);
+            this.state.init(this, this.tab, this.files);
         }
     }
 
