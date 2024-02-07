@@ -1,3 +1,4 @@
+// #![deny(unused_crate_dependencies)]
 // Copyright (c) 2019 E.S.R.Labs. All rights reserved.
 //
 // NOTICE:  All information contained herein is, and remains
