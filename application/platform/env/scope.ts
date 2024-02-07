@@ -27,9 +27,8 @@ export class Scope {
     public setLogger(logger: LoggerConstructor<any>) {
         this._logger = logger;
         const border = '='.repeat(75);
-        const regular: Logger = new this._logger('@platform').debug(
-            `logger is up\n${border}\nSession: ${new Date().toUTCString()}\n${border}`,
-        );
+        const regular: Logger = new this._logger('@platform');
+        regular.debug(`logger is up\n${border}\nSession: ${new Date().toUTCString()}\n${border}`);
         const collected = DefaultLogger.getCollectedMessages();
         collected.length !== 0 && regular.push(collected);
     }
