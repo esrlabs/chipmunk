@@ -32,17 +32,4 @@ export function extname(filename: string): string {
     return '';
 }
 
-export function getFileTypeByFilename(filename: string): FileType {
-    switch (extname(filename).toLowerCase()) {
-        case '.dlt':
-            return FileType.Binary;
-        case '.pcapng':
-            return FileType.PcapNG;
-        case '.pcap':
-            return FileType.PcapLegacy;
-        default:
-            return FileType.Text;
-    }
-}
-
 export type FileName = string;

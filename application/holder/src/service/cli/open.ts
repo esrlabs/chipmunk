@@ -34,7 +34,7 @@ export class Action extends CLIAction {
         return this.error;
     }
 
-    public execute(cli: Service): Promise<void> {
+    public async execute(cli: Service): Promise<void> {
         if (this.error.length > 0) {
             return Promise.reject(
                 new Error(
@@ -47,7 +47,7 @@ export class Action extends CLIAction {
         if (!this.defined()) {
             return Promise.resolve();
         }
-        const files = getFileEntities(this.files);
+        const files = await getFileEntities(this.files);
         if (files instanceof Error) {
             return Promise.reject(files);
         }

@@ -4,22 +4,32 @@ import { electron } from '@service/electron';
 import { File } from 'platform/types/files';
 import { FileType } from 'platform/types/observe/types/file';
 import { getFileEntities } from '@env/fs';
+import { scope } from "platform/env/scope";
 
 import * as Requests from 'platform/ipc/request';
 
 function any(ext?: string): Promise<File[]> {
+    const logger = scope.getLogger('SelectFile');
     return new Promise((resolve, reject) => {
         electron
             .dialogs()
             .openFile()
             .any(ext)
             .then((files: string[]) => {
-                const entities = getFileEntities(files);
-                if (entities instanceof Error) {
-                    reject(entities);
-                } else {
-                    resolve(entities);
-                }
+                getFileEntities(files)
+                .then((entities) => {
+                    if (entities instanceof Error) {
+                        reject(entities);
+                    } else {
+                        resolve(entities);
+                    }
+                })
+                // TODO: Add error log
+                .catch((error) => {
+                    logger.error(`Error while opening a file; ${error}`);
+                    throw error;
+                });
+
             })
             .catch(reject);
     });
@@ -32,12 +42,14 @@ function dlt(): Promise<File[]> {
             .openFile()
             .dlt()
             .then((files: string[]) => {
-                const entities = getFileEntities(files);
-                if (entities instanceof Error) {
-                    reject(entities);
-                } else {
-                    resolve(entities);
-                }
+                getFileEntities(files)
+                    .then((entities) => {
+                        if (entities instanceof Error) {
+                            reject(entities);
+                        } else {
+                            resolve(entities);
+                        }
+                    });
             })
             .catch(reject);
     });
@@ -50,12 +62,14 @@ function pcapng(): Promise<File[]> {
             .openFile()
             .pcapng()
             .then((files: string[]) => {
-                const entities = getFileEntities(files);
-                if (entities instanceof Error) {
-                    reject(entities);
-                } else {
-                    resolve(entities);
-                }
+                getFileEntities(files)
+                    .then((entities) => {
+                        if (entities instanceof Error) {
+                            reject(entities);
+                        } else {
+                            resolve(entities);
+                        }
+                    });
             })
             .catch(reject);
     });
@@ -68,12 +82,14 @@ function pcap(): Promise<File[]> {
             .openFile()
             .pcap()
             .then((files: string[]) => {
-                const entities = getFileEntities(files);
-                if (entities instanceof Error) {
-                    reject(entities);
-                } else {
-                    resolve(entities);
-                }
+                getFileEntities(files)
+                    .then((entities) => {
+                        if (entities instanceof Error) {
+                            reject(entities);
+                        } else {
+                            resolve(entities);
+                        }
+                    });
             })
             .catch(reject);
     });

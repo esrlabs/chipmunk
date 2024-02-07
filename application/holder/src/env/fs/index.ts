@@ -1,6 +1,8 @@
 import { File, Stat, getFileExtention } from 'platform/types/files';
-import { getFileTypeByFilename } from 'platform/types/observe/types/file';
+import { FileType, extname } from 'platform/types/observe/types/file';
 import { error } from 'platform/log/utils';
+import { unbound } from '@service/unbound';
+
 
 import * as obj from 'platform/env/obj';
 import * as fs from 'fs';
@@ -74,27 +76,27 @@ export function getFolders(paths: string[]): string[] | Error {
     }
 }
 
-export function getFileEntities(files: string[]): File[] | Error {
+export async function getFileEntities(files: string[]): Promise<File[] | Error> {
     if (files.length === 0) {
         return [];
     } else {
         try {
-            return files
-                .map((filename: string) => {
-                    const entity: File | Error | undefined = getFileEntity(filename);
-                    if (entity instanceof Error) {
-                        throw entity;
-                    }
-                    return entity;
-                })
-                .filter((f) => f !== undefined) as File[];
+            const entities = [];
+            for(let i = 0; i < files.length; i++) {
+                const entity: File | Error | undefined = await getFileEntity(files[i])
+                if (entity instanceof Error) {
+                    throw entity
+                }
+                entities.push(entity);
+            }
+            return entities.filter((f) => f !== undefined) as File[];
         } catch (e) {
             return new Error(error(e));
         }
     }
 }
 
-export function getFileEntity(filename: string): File | undefined | Error {
+export async function getFileEntity(filename: string): Promise<File | undefined | Error> {
     try {
         const stat = fs.statSync(filename);
         if (!stat.isFile()) {
@@ -121,9 +123,27 @@ export function getFileEntity(filename: string): File | undefined | Error {
                 'ctimeMs',
                 'birthtimeMs',
             ]),
-            type: getFileTypeByFilename(filename),
+            type: await getFileTypeByFilename(filename),
         };
     } catch (_) {
         return new Error(`Fail to get stat info for "${filename}"`);
     }
+}
+
+export async function getFileTypeByFilename(filename: string): Promise<FileType> {
+    if (await unbound.jobs.isFileBinary({ filePath: filename })) {
+        switch (extname(filename).toLowerCase()) {
+            case '.dlt':
+                return FileType.Binary;
+            case '.pcapng':
+                return FileType.PcapNG;
+            case '.pcap':
+                return FileType.PcapLegacy;
+            default:
+                return FileType.Text;
+        }
+    } else {
+        return FileType.Text
+    }
+
 }
