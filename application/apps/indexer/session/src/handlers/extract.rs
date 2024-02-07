@@ -1,8 +1,8 @@
 use crate::{
     events::{NativeError, NativeErrorKind},
     operations::OperationResult,
+    progress::Severity,
 };
-use indexer_base::progress::Severity;
 
 use processor::search::{
     extractor::{ExtractedMatchValue, MatchesExtractor},

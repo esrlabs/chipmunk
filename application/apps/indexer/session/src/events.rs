@@ -1,6 +1,8 @@
-use crate::state::AttachmentInfo;
+use crate::{
+    progress::{Progress, Severity, Ticks},
+    state::AttachmentInfo,
+};
 use crossbeam_channel as cc;
-use indexer_base::progress::{Progress, Severity, Ticks};
 use processor::{grabber::GrabError, search::error::SearchError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

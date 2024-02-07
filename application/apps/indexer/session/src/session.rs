@@ -2,13 +2,13 @@ use crate::{
     events::{CallbackEvent, ComputationError},
     operations,
     operations::Operation,
+    progress::Severity,
     state,
     state::{AttachmentInfo, GrabbedElement, IndexesMode, SessionStateAPI, SourceDefinition},
     tracker,
     tracker::OperationTrackerAPI,
 };
 use futures::Future;
-use indexer_base::progress::Severity;
 use log::{debug, error, warn};
 use processor::{grabber::LineRange, search::filter::SearchFilter};
 use serde::Serialize;

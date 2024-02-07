@@ -1,5 +1,4 @@
 use crate::text_source::TextFileSource;
-use indexer_base::progress::ComputationResult;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt, fs,
@@ -30,6 +29,20 @@ pub enum GrabError {
     Unsupported(String),
 }
 
+#[derive(Debug)]
+pub enum ComputationResult<T> {
+    Item(T),
+    Stopped,
+}
+
+impl<T> ComputationResult<T> {
+    pub fn into_option(self) -> Option<T> {
+        match self {
+            Self::Item(i) => Some(i),
+            _ => None,
+        }
+    }
+}
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ByteIdentifier;
 

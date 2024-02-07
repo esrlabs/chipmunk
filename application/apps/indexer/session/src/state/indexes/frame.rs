@@ -1,9 +1,9 @@
 use super::nature::Nature;
 use crate::{
     events::{NativeError, NativeErrorKind},
+    progress::Severity,
     state::GrabbedElement,
 };
-use indexer_base::progress::Severity;
 use std::ops::RangeInclusive;
 
 #[derive(Debug, Default)]

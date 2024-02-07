@@ -1,5 +1,7 @@
-use crate::events::{CallbackEvent, NativeError, NativeErrorKind};
-use indexer_base::progress::Severity;
+use crate::{
+    events::{CallbackEvent, NativeError, NativeErrorKind},
+    progress::Severity,
+};
 use log::{debug, error};
 use parsers;
 use processor::{

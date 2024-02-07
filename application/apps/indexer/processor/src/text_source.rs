@@ -1,8 +1,8 @@
 use crate::grabber::{
-    identify_byte_range, ByteRange, FilePart, GrabError, GrabMetadata, LineRange, Slot,
+    identify_byte_range, ByteRange, ComputationResult, FilePart, GrabError, GrabMetadata,
+    LineRange, Slot,
 };
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
-use indexer_base::progress::ComputationResult;
 use log::{debug, error};
 use std::{
     fs,
