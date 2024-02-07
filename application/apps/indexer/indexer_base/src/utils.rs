@@ -9,8 +9,7 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-use crossbeam_channel as cc;
-use std::{char, fs, path, path::Path, str};
+use std::{char, fs, path, path::Path};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -63,24 +62,5 @@ pub fn get_processed_bytes(append: bool, out: &Path) -> u64 {
         }
     } else {
         0
-    }
-}
-
-pub fn check_if_stop_was_requested(
-    shutdown_receiver: Option<&crossbeam_channel::Receiver<()>>,
-    component: &str,
-) -> bool {
-    match shutdown_receiver.as_ref() {
-        Some(rx) => match rx.try_recv() {
-            // Shutdown if we have received a command or if there is
-            // nothing to send it.
-            Ok(_) | Err(cc::TryRecvError::Disconnected) => {
-                info!("shutdown received in {}", component);
-                true // stop
-            }
-            // No shutdown command, continue
-            Err(cc::TryRecvError::Empty) => false,
-        },
-        None => false,
     }
 }
