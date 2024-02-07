@@ -1,10 +1,9 @@
 use crate::{
     events::{NativeError, NativeErrorKind},
     operations::OperationStat,
-    progress::ProgressProviderAPI,
+    progress::{ProgressProviderAPI, Severity},
     state::SessionStateAPI,
 };
-use indexer_base::progress::Severity;
 use log::{debug, error};
 use sources::producer::SdeSender;
 use std::collections::{hash_map::Entry, HashMap};

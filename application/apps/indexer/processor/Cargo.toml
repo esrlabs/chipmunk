@@ -13,7 +13,6 @@ buf_redux = { git = "https://github.com/DmitryAstafyev/buf_redux.git" }
 
 bytecount = "0.6"
 chrono = "0.4"
-crossbeam-channel = "0.5"
 encoding_rs_io = "0.1.7"
 futures = "0.3"
 grep-matcher = "0.1.4"
@@ -24,7 +23,6 @@ indexer_base = { path = "../indexer_base" }
 itertools = "0.10.0"
 lazy_static = "1.4"
 log = "0.4"
-nom = "7.1"
 parsers = { path = "../parsers" }
 regex = "1"
 serde = { version = "1.0", features = ["derive"] }
@@ -36,7 +34,7 @@ tokio-util = "0.7"
 uuid = { version = "1.3", features = ["serde", "v4"] }
 
 [dev-dependencies]
-criterion = { version = "0.4", features = ["html_reports"]}
+criterion = { version = "0.4", features = ["html_reports"] }
 dirs = "5.0"
 env_logger = "0.10"
 pretty_assertions = "1.3"
@@ -44,12 +42,7 @@ proptest = "1.0"
 proptest-derive = "0.3"
 rand = "0.8"
 tempfile = "3.3"
-test-generator = "0.3"
 
 [[bench]]
 name = "map_benchmarks"
-harness = false
-
-[[bench]]
-name = "parse_benchmarks"
 harness = false

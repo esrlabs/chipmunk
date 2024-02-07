@@ -2,9 +2,9 @@ use crate::{
     events::{NativeError, NativeErrorKind},
     handlers::observing,
     operations::{OperationAPI, OperationResult},
+    progress::Severity,
     state::SessionStateAPI,
 };
-use indexer_base::progress::Severity;
 use sources::{
     command::process::ProcessSource,
     factory::{ParserType, Transport},

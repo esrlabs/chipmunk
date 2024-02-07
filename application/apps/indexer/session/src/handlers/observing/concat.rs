@@ -1,9 +1,9 @@
 use crate::{
     events::{NativeError, NativeErrorKind},
     operations::{OperationAPI, OperationResult},
+    progress::Severity,
     state::SessionStateAPI,
 };
-use indexer_base::progress::Severity;
 use sources::{
     binary::{
         pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},

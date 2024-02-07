@@ -1,9 +1,10 @@
 use crate::{
     events::{NativeError, NativeErrorKind},
     operations::OperationResult,
+    progress::Severity,
     state::SessionStateAPI,
 };
-use indexer_base::{config::IndexSection, progress::Severity};
+use indexer_base::config::IndexSection;
 use log::debug;
 use parsers::{
     dlt::{fmt::FormatOptions, DltParser},

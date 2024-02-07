@@ -11,11 +11,7 @@
 // from E.S.R.Labs.
 use crate::merger::combined_file_size;
 use crossbeam_channel as cc;
-use indexer_base::{
-    chunks::{ChunkFactory, ChunkResults},
-    progress::{IndexingProgress, ProgressReporter},
-    utils,
-};
+use indexer_base::utils;
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
