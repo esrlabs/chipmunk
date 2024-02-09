@@ -100,7 +100,7 @@ impl Arguments {
         Ok(re.replace_all(&str, " ").to_string())
     }
 
-    fn extract_usize(params: &Vec<&str>, alias: &str, index: usize) -> Option<usize> {
+    fn extract_usize(params: &[&str], alias: &str, index: usize) -> Option<usize> {
         if params.len() > index {
             match params[index].parse::<usize>() {
                 Ok(v) => Some(v),

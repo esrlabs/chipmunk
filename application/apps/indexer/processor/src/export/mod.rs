@@ -57,7 +57,6 @@ where
     }
     let out_file = if destination_path.exists() {
         std::fs::OpenOptions::new()
-            .write(true)
             .append(true)
             .open(destination_path)?
     } else {
