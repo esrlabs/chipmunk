@@ -5,7 +5,10 @@ use std::{
     io::{Error, ErrorKind},
     time::Instant,
 };
-use tokio::sync::mpsc::{channel, unbounded_channel, Sender, UnboundedReceiver, UnboundedSender};
+use tokio::sync::{
+    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    oneshot,
+};
 
 const TIME_BAR_WIDTH: usize = 5;
 
@@ -28,15 +31,15 @@ impl std::fmt::Display for OperationResult {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum Tick {
-    Started(String, Option<u64>, Sender<usize>),
+    Started(String, Option<u64>, oneshot::Sender<usize>),
     Progress(usize, Option<u64>),
     Message(usize, String),
     Finished(usize, OperationResult, String),
     #[allow(dead_code)]
     Print(String),
-    Shutdown(Sender<()>),
+    Shutdown(oneshot::Sender<()>),
 }
 
 #[derive(Clone, Debug)]
@@ -91,7 +94,7 @@ impl Tracker {
                         let job_bar = JobBarState::start_job(job, bar);
                         bars.insert(sequence, job_bar);
                         Self::refresh_all_bars(&mut bars, sequence, max_time_len, None);
-                        if let Err(e) = tx_response.send(sequence).await {
+                        if let Err(e) = tx_response.send(sequence) {
                             let _ = mp.println(format!("Fail to send response: {e}"));
                         }
                     }
@@ -154,8 +157,8 @@ impl Tracker {
 
                         bars.clear();
                         // let _ = mp.clear();
-                        if let Err(e) = tx_response.send(()).await {
-                            let _ = mp.println(format!("Fail to send response: {e}"));
+                        if tx_response.send(()).is_err() {
+                            let _ = mp.println("Fail to send response");
                         }
                         break;
                     }
@@ -211,14 +214,13 @@ impl Tracker {
     }
 
     pub async fn start(&self, job: &str, max: Option<u64>) -> Result<usize, Error> {
-        let (tx_response, mut rx_response) = channel(1);
+        let (tx_response, rx_response) = oneshot::channel();
         self.tx
             .send(Tick::Started(job.to_string(), max, tx_response))
             .map_err(|e| Error::new(ErrorKind::Other, format!("Fail to send tick: {e}")))?;
-        rx_response.recv().await.ok_or(Error::new(
-            ErrorKind::NotConnected,
-            "Failed to receive start response",
-        ))
+        rx_response
+            .await
+            .map_err(|err| Error::new(ErrorKind::NotConnected, err.to_string()))
     }
 
     pub async fn progress(&self, sequence: usize, pos: Option<u64>) {
@@ -254,14 +256,13 @@ impl Tracker {
     }
 
     pub async fn shutdown(&self) -> Result<(), Error> {
-        let (tx_response, mut rx_response) = channel(1);
+        let (tx_response, rx_response) = oneshot::channel();
         self.tx
             .send(Tick::Shutdown(tx_response))
             .map_err(|e| Error::new(ErrorKind::Other, format!("Fail to send tick: {e}")))?;
         rx_response
-            .recv()
             .await
-            .ok_or_else(|| Error::new(ErrorKind::NotConnected, "test"))
+            .map_err(|err| Error::new(ErrorKind::NotConnected, err.to_string()))
     }
 
     pub async fn _print(&self, msg: String) {
