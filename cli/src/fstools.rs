@@ -1,6 +1,5 @@
 extern crate fs_extra;
 use crate::TRACKER;
-use async_std::task::spawn;
 use fs_extra::dir::{copy_with_progress, CopyOptions, TransitProcess, TransitProcessResult};
 use std::sync::mpsc;
 use std::{fs, io::Error, path::PathBuf};
@@ -22,7 +21,7 @@ pub async fn cp_folder(src: PathBuf, dest: PathBuf) -> Result<(), Error> {
     let options = CopyOptions::new();
     let (tx, rx): (mpsc::Sender<TransitProcess>, mpsc::Receiver<TransitProcess>) = mpsc::channel();
     let msg = format!("copied: {} to {}", src.display(), dest.display());
-    spawn(async move {
+    let _ = tokio::spawn(async move {
         if let Err(e) = copy_with_progress(src, dest, &options, |info| {
             if tx.send(info).is_err() {
                 eprintln!("Fail to send copying progress");

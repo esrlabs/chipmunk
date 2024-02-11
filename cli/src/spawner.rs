@@ -3,10 +3,17 @@ use crate::{
     location::to_relative_path,
     {LOCATION, TRACKER},
 };
-use async_process::{Command, ExitStatus, Stdio};
-use async_std::{io::BufReader, prelude::*};
 use futures_lite::{future, FutureExt};
-use std::{env::vars, io, path::PathBuf};
+use std::{
+    env::vars,
+    io,
+    path::PathBuf,
+    process::{ExitStatus, Stdio},
+};
+use tokio::{
+    io::{AsyncBufReadExt, BufReader},
+    process::Command,
+};
 
 #[derive(Clone, Debug)]
 pub struct SpawnResult {
@@ -80,15 +87,13 @@ pub async fn spawn(
         let storage_stdout = &mut stdout_lines;
         let storage_stderr = &mut stderr_lines;
         async move {
-            use futures::{select, FutureExt};
-
             let mut stdout_buf = BufReader::new(stdout);
             let mut stderr_buf = BufReader::new(stderr);
             loop {
                 let mut stdout_line = String::new();
                 let mut stderr_line = String::new();
-                select! {
-                    stdout_read_result = stdout_buf.read_line(&mut stdout_line).fuse() => {
+                tokio::select! {
+                    stdout_read_result = stdout_buf.read_line(&mut stdout_line) => {
                         let stdout_read_bytes = stdout_read_result?;
                         if stdout_read_bytes == 0 {
                             break;
@@ -100,7 +105,7 @@ pub async fn spawn(
                             storage_stdout.push(stdout_line);
                         }
                     }
-                    stderr_read_result = stderr_buf.read_line(&mut stderr_line).fuse() => {
+                    stderr_read_result = stderr_buf.read_line(&mut stderr_line) => {
                         let stderr_read_bytes = stderr_read_result?;
                         if stderr_read_bytes == 0 {
                             break;
@@ -121,7 +126,7 @@ pub async fn spawn(
     };
 
     let status = match drain_stdout_stderr
-        .or(async move { Ok(Some(child.status().await?)) })
+        .or(async move { Ok(Some(child.wait().await?)) })
         .await
     {
         Ok(status) => status,

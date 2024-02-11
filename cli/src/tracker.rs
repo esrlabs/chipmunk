@@ -1,5 +1,3 @@
-use async_channel::{bounded, unbounded, Receiver, Sender};
-use async_std::task;
 use console::style;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::{
@@ -7,6 +5,7 @@ use std::{
     io::{Error, ErrorKind},
     time::Instant,
 };
+use tokio::sync::mpsc::{channel, unbounded_channel, Sender, UnboundedReceiver, UnboundedSender};
 
 const TIME_BAR_WIDTH: usize = 5;
 
@@ -42,7 +41,7 @@ pub enum Tick {
 
 #[derive(Clone, Debug)]
 pub struct Tracker {
-    tx: Sender<Tick>,
+    tx: UnboundedSender<Tick>,
 }
 
 struct JobBarState {
@@ -67,12 +66,12 @@ impl JobBarState {
 
 impl Tracker {
     pub fn new() -> Self {
-        let (tx, rx): (Sender<Tick>, Receiver<Tick>) = unbounded();
-        task::spawn(Tracker::run(rx));
+        let (tx, rx): (UnboundedSender<Tick>, UnboundedReceiver<Tick>) = unbounded_channel();
+        tokio::spawn(Tracker::run(rx));
         Self { tx }
     }
 
-    pub async fn run(rx: Receiver<Tick>) -> Result<(), Error> {
+    pub async fn run(mut rx: UnboundedReceiver<Tick>) -> Result<(), Error> {
         let spinner_style = ProgressStyle::with_template("{spinner} {prefix:.bold.dim} {wide_msg}")
             .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?
             .tick_chars("▂▃▅▆▇▆▅▃▂ ");
@@ -83,7 +82,7 @@ impl Tracker {
             let mut bars: HashMap<usize, JobBarState> = HashMap::new();
             let mp = MultiProgress::new();
             let start_time = Instant::now();
-            while let Ok(tick) = rx.recv().await {
+            while let Some(tick) = rx.recv().await {
                 match tick {
                     Tick::Started(job, len, tx_response) => {
                         sequence += 1;
@@ -212,74 +211,63 @@ impl Tracker {
     }
 
     pub async fn start(&self, job: &str, max: Option<u64>) -> Result<usize, Error> {
-        let (tx_response, rx_response) = bounded(1);
+        let (tx_response, mut rx_response) = channel(1);
         self.tx
             .send(Tick::Started(job.to_string(), max, tx_response))
-            .await
             .map_err(|e| Error::new(ErrorKind::Other, format!("Fail to send tick: {e}")))?;
-        rx_response
-            .recv()
-            .await
-            .map_err(|e| Error::new(ErrorKind::NotConnected, e.to_string()))
+        rx_response.recv().await.ok_or(Error::new(
+            ErrorKind::NotConnected,
+            "Failed to receive start response",
+        ))
     }
 
     pub async fn progress(&self, sequence: usize, pos: Option<u64>) {
-        if let Err(e) = self.tx.send(Tick::Progress(sequence, pos)).await {
+        if let Err(e) = self.tx.send(Tick::Progress(sequence, pos)) {
             eprintln!("Fail to communicate with tracker: {e}");
         }
     }
 
     pub async fn msg(&self, sequence: usize, log: &str) {
-        if let Err(e) = self.tx.send(Tick::Message(sequence, log.to_string())).await {
+        if let Err(e) = self.tx.send(Tick::Message(sequence, log.to_string())) {
             eprintln!("Fail to communicate with tracker: {e}");
         }
     }
 
     pub async fn success(&self, sequence: usize, msg: &str) {
-        if let Err(e) = self
-            .tx
-            .send(Tick::Finished(
-                sequence,
-                OperationResult::Success,
-                msg.to_string(),
-            ))
-            .await
-        {
+        if let Err(e) = self.tx.send(Tick::Finished(
+            sequence,
+            OperationResult::Success,
+            msg.to_string(),
+        )) {
             eprintln!("Fail to communicate with tracker: {e}");
         }
     }
 
     pub async fn fail(&self, sequence: usize, msg: &str) {
-        if let Err(e) = self
-            .tx
-            .send(Tick::Finished(
-                sequence,
-                OperationResult::Failed,
-                msg.to_string(),
-            ))
-            .await
-        {
+        if let Err(e) = self.tx.send(Tick::Finished(
+            sequence,
+            OperationResult::Failed,
+            msg.to_string(),
+        )) {
             eprintln!("Fail to communicate with tracker: {e}");
         }
     }
 
     pub async fn shutdown(&self) -> Result<(), Error> {
-        let (tx_response, rx_response) = bounded(1);
+        let (tx_response, mut rx_response) = channel(1);
         self.tx
             .send(Tick::Shutdown(tx_response))
-            .await
             .map_err(|e| Error::new(ErrorKind::Other, format!("Fail to send tick: {e}")))?;
         rx_response
             .recv()
             .await
-            .map_err(|e| Error::new(ErrorKind::NotConnected, e.to_string()))
+            .ok_or_else(|| Error::new(ErrorKind::NotConnected, "test"))
     }
 
     pub async fn _print(&self, msg: String) {
         if let Err(e) = self
             .tx
             .send(Tick::Print(msg))
-            .await
             .map_err(|e| Error::new(ErrorKind::Other, format!("Fail to send tick: {e}")))
         {
             eprintln!("Fail to communicate with tracker: {e}");

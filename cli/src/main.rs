@@ -63,80 +63,79 @@ enum Command {
     },
 }
 
-fn main() -> Result<(), Error> {
-    async_io::block_on(async {
-        let cli = Cli::parse();
-        let production = cli.release > 0;
-        if let Some(ref command) = cli.command {
-            let targets: Vec<Box<dyn Manager + Sync + Send>> = if let Some(mut list) =
-                match command.clone() {
-                    Command::Lint { target } => target,
-                    Command::Build { target } => target,
-                    Command::Clean { target } => target,
-                    Command::Test { target } => target,
-                } {
-                list.remove_duplicates();
-                list.iter().map(|target| target.get()).collect()
-            } else {
-                Target::all()
-            };
-            let results = match command {
-                Command::Lint { target: _ } => {
-                    join_all(
-                        targets
-                            .iter()
-                            .map(|module| module.check())
-                            .collect::<Vec<_>>(),
-                    )
-                    .await
-                }
-                Command::Build { target: _ } => {
-                    join_all(
-                        targets
-                            .iter()
-                            .map(|module| module.build(production))
-                            .collect::<Vec<_>>(),
-                    )
-                    .await
-                }
-                Command::Clean { target: _ } => {
-                    join_all(
-                        targets
-                            .iter()
-                            .map(|module| module.reset())
-                            .collect::<Vec<_>>(),
-                    )
-                    .await
-                }
-                Command::Test { target: _ } => {
-                    join_all(
-                        targets
-                            .iter()
-                            .map(|module| module.test())
-                            .collect::<Vec<_>>(),
-                    )
-                    .await
-                }
-            };
-            TRACKER.shutdown().await?;
-            let mut success: bool = true;
-            results.iter().for_each(|res| match res {
-                Ok(status) => {
-                    if !status.status.success() {
-                        eprintln!("Failed with errors");
-                        println!("{}:\n{}", status.job, status.stderr.join(""));
-                        success = false;
-                    }
-                }
-                Err(err) => {
-                    eprintln!("Builder error: {err}");
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    let cli = Cli::parse();
+    let production = cli.release > 0;
+    if let Some(ref command) = cli.command {
+        let targets: Vec<Box<dyn Manager + Sync + Send>> = if let Some(mut list) =
+            match command.clone() {
+                Command::Lint { target } => target,
+                Command::Build { target } => target,
+                Command::Clean { target } => target,
+                Command::Test { target } => target,
+            } {
+            list.remove_duplicates();
+            list.iter().map(|target| target.get()).collect()
+        } else {
+            Target::all()
+        };
+        let results = match command {
+            Command::Lint { target: _ } => {
+                join_all(
+                    targets
+                        .iter()
+                        .map(|module| module.check())
+                        .collect::<Vec<_>>(),
+                )
+                .await
+            }
+            Command::Build { target: _ } => {
+                join_all(
+                    targets
+                        .iter()
+                        .map(|module| module.build(production))
+                        .collect::<Vec<_>>(),
+                )
+                .await
+            }
+            Command::Clean { target: _ } => {
+                join_all(
+                    targets
+                        .iter()
+                        .map(|module| module.reset())
+                        .collect::<Vec<_>>(),
+                )
+                .await
+            }
+            Command::Test { target: _ } => {
+                join_all(
+                    targets
+                        .iter()
+                        .map(|module| module.test())
+                        .collect::<Vec<_>>(),
+                )
+                .await
+            }
+        };
+        TRACKER.shutdown().await?;
+        let mut success: bool = true;
+        results.iter().for_each(|res| match res {
+            Ok(status) => {
+                if !status.status.success() {
+                    eprintln!("Failed with errors");
+                    println!("{}:\n{}", status.job, status.stderr.join(""));
                     success = false;
                 }
-            });
-            if !success {
-                return Err(Error::new(ErrorKind::Other, "Some task were failed"));
             }
+            Err(err) => {
+                eprintln!("Builder error: {err}");
+                success = false;
+            }
+        });
+        if !success {
+            return Err(Error::new(ErrorKind::Other, "Some task were failed"));
         }
-        Ok(())
-    })
+    }
+    Ok(())
 }
