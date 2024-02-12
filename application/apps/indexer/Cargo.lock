@@ -24,21 +24,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "addon"
-version = "0.1.0"
-dependencies = [
- "dlt-core",
- "futures",
- "indexer_base",
- "log",
- "parsers",
- "sources",
- "tokio",
- "tokio-stream",
- "tokio-util",
-]
-
-[[package]]
 name = "addr2line"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -694,6 +679,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "dlt-tools"
+version = "0.1.0"
+dependencies = [
+ "dlt-core",
+ "futures",
+ "indexer_base",
+ "log",
+ "parsers",
+ "sources",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+]
+
+[[package]]
 name = "either"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -806,6 +806,13 @@ dependencies = [
  "cfg-if",
  "rustix",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "file-tools"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
 ]
 
 [[package]]
@@ -1072,11 +1079,11 @@ dependencies = [
 name = "indexer_cli"
 version = "0.35.2"
 dependencies = [
- "addon",
  "anyhow",
  "chrono",
  "dirs",
  "dlt-core",
+ "dlt-tools",
  "env_logger",
  "futures",
  "indexer_base",
@@ -1994,6 +2001,7 @@ dependencies = [
  "dirs",
  "dlt-core",
  "envvars",
+ "file-tools",
  "futures",
  "indexer_base",
  "lazy_static",
