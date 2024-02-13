@@ -24,7 +24,12 @@ pub fn is_binary(file_path: String) -> Result<bool> {
 
 fn fetch_starting_chunk(file_path: &Path) -> Result<Vec<u8>> {
     let file = File::open(file_path)?;
-    let file_length: u64 = metadata(file_path)?.len() - 1;
+    let file_length: u64 = metadata(file_path)?.len();
+    let file_length: u64 = if file_length == 0 {
+        file_length
+    } else {
+        file_length - 1
+    };
     let file_length = if BYTES_TO_READ < file_length {
         BYTES_TO_READ
     } else {
@@ -47,6 +52,22 @@ mod test {
             "../../../../developing/resources/chinese_poem.txt",
         ))?;
         assert_eq!(chunks[0..5], [32, 32, 32, 32, 229]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_fetch_starting_chunk_when_file_is_missing() -> Result<()> {
+        assert!(
+            fetch_starting_chunk(Path::new("../../developing/resources/chinese_poem.txt")).is_err()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_fetch_starting_chunk_when_file_is_empty() -> Result<()> {
+        let chunks: Vec<u8> =
+            fetch_starting_chunk(Path::new("../../../../developing/resources/empty.txt"))?;
+        assert_eq!(chunks, []);
         Ok(())
     }
 
@@ -74,6 +95,20 @@ mod test {
         ))?);
         assert!(!is_binary(String::from(
             "../../../../developing/resources/someip.xml"
+        ))?);
+        Ok(())
+    }
+
+    #[test]
+    fn test_is_binary_when_wrong_file_path_is_given() -> Result<()> {
+        assert!(is_binary(String::from("../../developing/resources/empty.text")).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_is_binary_when_file_is_empty() -> Result<()> {
+        assert!(!is_binary(String::from(
+            "../../../../developing/resources/empty.txt"
         ))?);
         Ok(())
     }
