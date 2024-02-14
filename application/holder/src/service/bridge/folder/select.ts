@@ -26,7 +26,8 @@ function any(ext?: string): Promise<File[]> {
                         } else {
                             resolve(entities);
                         }
-                    });
+                    })
+                    .catch(reject);
             })
             .catch(reject);
     });
@@ -43,7 +44,8 @@ function dlt(): Promise<File[]> {
                         } else {
                             resolve(entities);
                         }
-                    });
+                    })
+                    .catch(reject);
             })
             .catch(reject);
     });
@@ -60,7 +62,8 @@ function pcapng(): Promise<File[]> {
                         } else {
                             resolve(entities);
                         }
-                    });
+                    })
+                    .catch(reject);
             })
             .catch(reject);
     });
@@ -77,7 +80,8 @@ function pcap(): Promise<File[]> {
                         } else {
                             resolve(entities);
                         }
-                    });
+                    })
+                    .catch(reject);
             })
             .catch(reject);
     });

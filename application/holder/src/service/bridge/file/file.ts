@@ -30,9 +30,7 @@ export const handler = Requests.InjectLogger<
                                 })
                             )
                         })
-                        .catch(error => {
-                            reject(error);
-                        });
+                        .catch(reject);
                 })
                 .catch(reject);
         });

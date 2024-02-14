@@ -15,30 +15,16 @@ pub fn is_binary(file_path: String) -> Result<bool> {
         Err(err) => return Err(err),
     };
 
-    let result = from_utf8(&buffer);
-    match result {
-        Ok(_file_content) => Ok(false),
-        Err(_err) => Ok(true),
-    }
+    Ok(from_utf8(&buffer).map_or(true, |_file_content| false))
 }
 
 fn fetch_starting_chunk(file_path: &Path) -> Result<Vec<u8>> {
-    let file = File::open(file_path)?;
-    let file_length: u64 = metadata(file_path)?.len();
-    let file_length: u64 = if file_length == 0 {
-        file_length
-    } else {
-        file_length - 1
-    };
-    let file_length = if BYTES_TO_READ < file_length {
-        BYTES_TO_READ
-    } else {
-        file_length
-    };
+    let bytes_to_read: u64 = (metadata(file_path)?.len().max(1) - 1).min(BYTES_TO_READ);
 
-    let mut file = file.take(file_length);
     let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)?;
+    File::open(file_path)?
+        .take(bytes_to_read)
+        .read_to_end(&mut buffer)?;
     Ok(buffer)
 }
 
