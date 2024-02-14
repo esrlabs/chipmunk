@@ -36,23 +36,21 @@ export class Action extends CLIAction {
 
     public async execute(cli: Service): Promise<void> {
         if (this.error.length > 0) {
-            return Promise.reject(
-                new Error(
-                    `Handler cannot be executed, because errors: \n${this.error
-                        .map((e) => e.message)
-                        .join('\n')}`,
-                ),
+            throw new Error(
+                `Handler cannot be executed, because errors: \n${this.error
+                    .map((e) => e.message)
+                    .join('\n')}`,
             );
         }
         if (!this.defined()) {
-            return Promise.resolve();
+            return
         }
         const files = await getFileEntities(this.files);
         if (files instanceof Error) {
-            return Promise.reject(files);
+            throw files;
         }
         if (files.length === 0) {
-            return Promise.resolve();
+            return;
         }
         const observe =
             files.length === 1

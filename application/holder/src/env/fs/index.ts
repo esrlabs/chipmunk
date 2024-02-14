@@ -76,14 +76,14 @@ export function getFolders(paths: string[]): string[] | Error {
     }
 }
 
-export async function getFileEntities(files: string[]): Promise<File[] | Error> {
+export async function getFileEntities(files: string[]): Promise<File[]> {
     if (files.length === 0) {
         return [];
     } else {
         try {
             const entities = [];
             for(let i = 0; i < files.length; i++) {
-                const entity: File | Error | undefined = await getFileEntity(files[i])
+                const entity: File | undefined = await getFileEntity(files[i])
                 if (entity instanceof Error) {
                     throw entity
                 }
@@ -91,12 +91,12 @@ export async function getFileEntities(files: string[]): Promise<File[] | Error> 
             }
             return entities.filter((f) => f !== undefined) as File[];
         } catch (e) {
-            return new Error(error(e));
+            return Promise.reject(new Error(error(e)));
         }
     }
 }
 
-export async function getFileEntity(filename: string): Promise<File | undefined | Error> {
+export async function getFileEntity(filename: string): Promise<File | undefined> {
     try {
         const stat = fs.statSync(filename);
         if (!stat.isFile()) {
@@ -126,7 +126,7 @@ export async function getFileEntity(filename: string): Promise<File | undefined 
             type: await getFileTypeByFilename(filename),
         };
     } catch (_) {
-        return new Error(`Fail to get stat info for "${filename}"`);
+        return Promise.reject(new Error(`Fail to get stat info for "${filename}"`));
     }
 }
 

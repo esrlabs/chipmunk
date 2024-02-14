@@ -4,12 +4,10 @@ import { electron } from '@service/electron';
 import { File } from 'platform/types/files';
 import { FileType } from 'platform/types/observe/types/file';
 import { getFileEntities } from '@env/fs';
-import { scope } from "platform/env/scope";
 
 import * as Requests from 'platform/ipc/request';
 
 function any(ext?: string): Promise<File[]> {
-    const logger = scope.getLogger('SelectFile');
     return new Promise((resolve, reject) => {
         electron
             .dialogs()
@@ -24,12 +22,7 @@ function any(ext?: string): Promise<File[]> {
                         resolve(entities);
                     }
                 })
-                // TODO: Add error log
-                .catch((error) => {
-                    logger.error(`Error while opening a file; ${error}`);
-                    throw error;
-                });
-
+                .catch(reject);
             })
             .catch(reject);
     });
@@ -49,7 +42,8 @@ function dlt(): Promise<File[]> {
                         } else {
                             resolve(entities);
                         }
-                    });
+                    })
+                    .catch(reject);
             })
             .catch(reject);
     });
@@ -69,7 +63,8 @@ function pcapng(): Promise<File[]> {
                         } else {
                             resolve(entities);
                         }
-                    });
+                    })
+                    .catch(reject);
             })
             .catch(reject);
     });
@@ -89,7 +84,8 @@ function pcap(): Promise<File[]> {
                         } else {
                             resolve(entities);
                         }
-                    });
+                    })
+                    .catch(reject);
             })
             .catch(reject);
     });

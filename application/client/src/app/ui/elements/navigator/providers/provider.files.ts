@@ -5,7 +5,6 @@ import { bridge } from '@service/bridge';
 import { EntityType, getFileName } from '@platform/types/files';
 import { notifications, Notification } from '@ui/service/notifications';
 
-import { scope } from '@platform/env/scope';
 import * as Factory from '@platform/types/observe/factory';
 import { IMenuItem } from '@ui/service/contextmenu';
 
@@ -15,7 +14,6 @@ const DEFAULT_LEN = 20000;
 export class Provider extends Base<IFileDescription> {
     protected count: number = 0;
     protected roots: string[] = [];
-    protected logger = scope.getLogger('ProviderLogger');
 
     protected async scan(roots: string[], folders: string[]): Promise<IFileDescription[]> {
         if (this.isAborted()) {
@@ -143,7 +141,7 @@ export class Provider extends Base<IFileDescription> {
                 bridge.files().getByPath([item.filename])
                     .then((files) => {
                         if (files.length > 1) {
-                            this.logger.info('More than one file detected')
+                            this.ilc.log().info("More than one file detected");
                             return
                         }
                         const filetype = files[0].type;
@@ -174,8 +172,7 @@ export class Provider extends Base<IFileDescription> {
                         }
                     })
                     .catch((error) => {
-                        this.logger.error(error);
-                        throw error;
+                        this.ilc.log().error(error);
                     });
 
             },
