@@ -284,6 +284,25 @@ export class Selecting {
         };
     }
 
+    public getAsSelection(): ISelection | undefined {
+        if (this._selection.focus.row === undefined || this._selection.anchor.row === undefined) {
+            return undefined;
+        }
+        if (this._selection.start === undefined || this._selection.end === undefined) {
+            return undefined;
+        }
+        return {
+            rows: {
+                start: Math.min(this._selection.focus.row, this._selection.anchor.row),
+                end: Math.max(this._selection.focus.row, this._selection.anchor.row),
+            },
+            fragments: {
+                start: this._selection.start,
+                end: this._selection.end,
+            },
+        };
+    }
+
     public selection(): { exist: boolean; lines: number } {
         const selection = this.get();
         if (selection === undefined) {

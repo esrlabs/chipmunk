@@ -64,13 +64,10 @@ export class Row extends Subscriber {
         this.delimiter = this.session.render.delimiter();
         this.update();
         this.register(
-            this.session.search
-                .highlights()
-                .subjects.get()
-                .update.subscribe(() => {
-                    this.update();
-                    this.change.emit();
-                }),
+            this.session.highlights.subjects.get().update.subscribe(() => {
+                this.update();
+                this.change.emit();
+            }),
         );
     }
 
@@ -173,7 +170,12 @@ export class Row extends Subscriber {
             this.matches.chart = injected[EAlias.Charts];
         };
         if (this.delimiter === undefined) {
-            const parsed = this.session.search.highlights().parse(this.content, this.owner, false);
+            const parsed = this.session.highlights.parse(
+                this.position,
+                this.content,
+                this.owner,
+                false,
+            );
             matches(parsed.injected);
             const ansi = ansiToHtml(parsed.html);
             this.html = ansi instanceof Error ? parsed.html : ansi;
@@ -192,7 +194,7 @@ export class Row extends Subscriber {
                 );
             }
             this.columns = this.columns.map((col) => {
-                const parsed = this.session.search.highlights().parse(col, this.owner, false);
+                const parsed = this.session.highlights.parse(this.position, col, this.owner, false);
                 matches(parsed.injected);
                 if (this.color === undefined && this.background === undefined) {
                     this.color = parsed.color;

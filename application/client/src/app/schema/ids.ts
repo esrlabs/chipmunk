@@ -10,3 +10,4 @@ export const TOOLBAR_TAB_CHART = unique();
 export const SIDEBAR_TAB_OBSERVING = unique();
 export const SIDEBAR_TAB_ATTACHMENTS = unique();
 export const SIDEBAR_TAB_FILTERS = unique();
+export const SIDEBAR_TAB_COMMENTS = unique();

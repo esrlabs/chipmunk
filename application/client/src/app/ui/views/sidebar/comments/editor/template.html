@@ -1,0 +1,29 @@
+<div class="inputs">
+    <mat-form-field class="comment-input">
+        <mat-label>Leave a comment</mat-label>
+        <textarea
+            rows="5"
+            matInput
+            #message
+            maxlength="1024"
+            placeholder="Reply"
+            [(ngModel)]="response"
+            [errorStateMatcher]="ng_input_error"
+            (keydown)="onKeyDown($event)"
+        ></textarea>
+        <mat-hint align="start">
+            <strong *ngIf="ng_input_error.isValid()">Don't disclose personal info</strong>
+            <mat-error *ngIf="!ng_input_error.isValid()"> {{ng_input_error.getError()}} </mat-error>
+        </mat-hint>
+        <mat-hint align="end">{{message.value.length}} / 1024</mat-hint>
+    </mat-form-field>
+</div>
+<div class="controlls">
+    <button mat-stroked-button color="primary" (click)="onAccept()">
+        {{ng_mode === 'edit' ? 'Save' : 'Reply'}}
+    </button>
+    <button *ngIf="ng_mode === 'edit'" mat-stroked-button color="primary" (click)="onRemove()">
+        Remove
+    </button>
+    <button mat-stroked-button color="primary" (click)="onCancel()">Cancel</button>
+</div>

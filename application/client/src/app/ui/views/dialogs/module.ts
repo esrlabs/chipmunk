@@ -5,11 +5,19 @@ import { HotkeysModule } from './hotkeys/module';
 import { LockerMessageModule } from './locker/module';
 import { AboutModule } from './about/module';
 import { ColorSelectorModule } from './colors/module';
+import { CommentModule } from './comment/module';
 
 @NgModule({
-    imports: [CommonModule, HotkeysModule, AboutModule, LockerMessageModule, ColorSelectorModule],
+    imports: [
+        CommonModule,
+        HotkeysModule,
+        AboutModule,
+        LockerMessageModule,
+        ColorSelectorModule,
+        CommentModule,
+    ],
     declarations: [],
-    exports: [HotkeysModule, AboutModule, LockerMessageModule],
-    bootstrap: [HotkeysModule, AboutModule, LockerMessageModule],
+    exports: [HotkeysModule, AboutModule, LockerMessageModule, CommentModule],
+    bootstrap: [HotkeysModule, AboutModule, LockerMessageModule, CommentModule],
 })
 export class DialogsModule {}

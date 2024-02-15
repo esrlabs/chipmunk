@@ -1,0 +1,61 @@
+@import '../../../styles/variables.less';
+
+
+app-sidebar-app-comments {
+    position: absolute;
+    display: block;
+    padding: 0;
+    margin: 0;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    left: 0.5rem;
+    top: 0.5rem;
+    overflow: hidden;
+    & .actions{
+        text-align: right;
+        white-space: nowrap;
+        position: absolute;
+        display: block;
+        height: 32px;
+        width: 100%;
+        left:0;
+    }
+    & .comments {
+        position: absolute;
+        display: block;
+        top: 32px;
+        bottom: 0;
+        width: 100%;
+        left:0;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    & .hidden {
+        margin-top: 8px;
+        & .hidden-comment-wrapper{
+            margin-top: 8px;
+            &:first-child{
+                margin-top: 0;
+            }
+            & .hidden-comment{
+                display: flex;
+                align-items: center;
+                & p {
+                    margin-left: 16px;
+                    margin-top: -2px;
+                }
+                & .mat-mini-fab{
+                    width: 16px;
+                    height: 16px;
+                }
+            }
+        }
+    }
+    p.info {
+        margin: 16px 0;
+    }
+}
+
+button.comment-color-selector {
+    margin: 2px;
+}
