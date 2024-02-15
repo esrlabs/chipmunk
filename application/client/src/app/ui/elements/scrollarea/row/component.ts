@@ -20,6 +20,8 @@ import { popup, Vertical, Horizontal } from '@ui/service/popup';
 import { components } from '@env/decorators/initial';
 import { scheme_color_1 } from '@ui/styles/colors';
 
+import * as dom from '@ui/env/dom';
+
 @Component({
     selector: 'app-scrollarea-row',
     templateUrl: './template.html',
@@ -132,6 +134,7 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         const selectedRowsCount = this.row.session.selection().indexes().length;
         const delimiter = this.row.session.render.delimiter();
         const selection = this.selecting.selection();
+        const selectionInfo = this.selecting.getAsSelection();
         items.push(
             ...[
                 {
@@ -217,6 +220,22 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                                       .catch((err: Error) => {
                                           this.log().error(`Fail export session: ${err.message}`);
                                       });
+                              },
+                          },
+                          {},
+                          {
+                              caption: 'Comment',
+                              disabled: selectionInfo === undefined,
+                              handler: () => {
+                                  if (selectionInfo === undefined) {
+                                      return;
+                                  }
+                                  this.row.session.comments
+                                      .create(selectionInfo)
+                                      .catch((err: Error) => {
+                                          this.log().error(`Fail to add comment: ${err.message}`);
+                                      });
+                                  dom.stop(event);
                               },
                           },
                       ]

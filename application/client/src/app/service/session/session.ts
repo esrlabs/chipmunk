@@ -11,12 +11,14 @@ import { Render } from '@schema/render';
 import { components } from '@env/decorators/initial';
 import { Base } from './base';
 import { Bookmarks } from './dependencies/bookmarks';
+import { Comments } from './dependencies/comments';
 import { Exporter } from './dependencies/exporter';
 import { IRange, fromIndexes } from '@platform/types/range';
 import { Providers } from './dependencies/observing/providers';
 import { Attachments } from './dependencies/attachments';
 import { Info } from './dependencies/info';
 import { session } from '@service/session';
+import { Highlights } from './dependencies/search/highlights';
 
 import * as ids from '@schema/ids';
 import * as Requests from '@platform/ipc/request';
@@ -35,7 +37,9 @@ export class Session extends Base {
     public readonly charts: Charts = new Charts();
     public readonly indexed: Indexed = new Indexed();
     public readonly bookmarks: Bookmarks = new Bookmarks();
+    public readonly comments: Comments = new Comments();
     public readonly cursor: Cursor = new Cursor();
+    public readonly highlights: Highlights = new Highlights();
     public readonly exporter: Exporter = new Exporter();
     public readonly render: Render<unknown>;
     public readonly observed: Providers = new Providers();
@@ -144,6 +148,19 @@ export class Session extends Base {
                 },
             },
         });
+        this._sidebar.add({
+            uuid: ids.SIDEBAR_TAB_COMMENTS,
+            name: 'Comments',
+            active: false,
+            closable: false,
+            uppercaseTitle: true,
+            content: {
+                factory: components.get('app-views-comments'),
+                inputs: {
+                    session: this,
+                },
+            },
+        });
     }
 
     public init(): Promise<string> {
@@ -159,11 +176,13 @@ export class Session extends Base {
                     this.cursor.init(this._uuid);
                     this.indexed.init(this._uuid);
                     this.bookmarks.init(this._uuid, this.stream, this.cursor);
+                    this.comments.init(this);
                     this.search.init(this._uuid);
                     this.exporter.init(this._uuid, this.stream, this.indexed);
                     this.observed.init(this);
                     this.attachments.init(this._uuid);
                     this.charts.init(this._uuid, this.stream, this.search);
+                    this.highlights.init(this);
                     this.inited = true;
                     resolve(this._uuid);
                 })
@@ -172,11 +191,13 @@ export class Session extends Base {
     }
 
     public destroy(): Promise<void> {
+        this.highlights.destroy();
         this.storage.destroy();
         this.search.destroy();
         this.indexed.destroy();
         this.stream.destroy();
         this.bookmarks.destroy();
+        this.comments.destroy();
         this.cursor.destroy();
         this.exporter.destroy();
         this.observed.destroy();
@@ -225,6 +246,14 @@ export class Session extends Base {
         toolbar: {
             search(): void;
             presets(): void;
+            details(): void;
+            charts(): void;
+        };
+        sidebar: {
+            comments(): void;
+            filters(): void;
+            attachments(): void;
+            observing(): void;
         };
     } {
         return {
@@ -234,6 +263,26 @@ export class Session extends Base {
                 },
                 presets: (): void => {
                     this._toolbar.setActive(ids.TOOLBAR_TAB_PRESET);
+                },
+                details: (): void => {
+                    this._toolbar.setActive(ids.TOOLBAR_TAB_DETAILS);
+                },
+                charts: (): void => {
+                    this._toolbar.setActive(ids.TOOLBAR_TAB_CHART);
+                },
+            },
+            sidebar: {
+                comments: (): void => {
+                    this._sidebar.setActive(ids.SIDEBAR_TAB_COMMENTS);
+                },
+                filters: (): void => {
+                    this._sidebar.setActive(ids.SIDEBAR_TAB_FILTERS);
+                },
+                observing: (): void => {
+                    this._sidebar.setActive(ids.SIDEBAR_TAB_OBSERVING);
+                },
+                attachments: (): void => {
+                    this._sidebar.setActive(ids.SIDEBAR_TAB_ATTACHMENTS);
                 },
             },
         };

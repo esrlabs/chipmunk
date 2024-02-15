@@ -27,6 +27,7 @@ export enum EAlias {
     Active = 'active',
     Filters = 'filtres',
     Charts = 'charts',
+    Comments = 'comments',
 }
 
 export interface IHTMLInjection {

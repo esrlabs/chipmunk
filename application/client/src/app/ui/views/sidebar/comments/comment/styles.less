@@ -1,0 +1,49 @@
+@import '../../../../styles/variables.less';
+
+app-sidebar-app-comments-item {
+    display: block;
+    & div.wrapper {
+        &.black {
+            & * {
+                color: #000000!important;
+            }
+            .mat-expansion-indicator::after{
+                color: #000000!important;
+            }
+        }
+        & mat-card {
+            margin-top: 8px;
+            & mat-card-actions {
+                text-align: right;
+                opacity: 0.001;
+                & button {
+                    transition: 250ms ease-in-out all;
+                }
+            }
+            & mat-expansion-panel {
+                margin-left: -16px!important;
+                border-top-left-radius: 0!important;
+                border-top-right-radius: 0!important;
+                margin-right: -16px!important;
+                margin-bottom: -16px!important;
+            }
+            & mat-card-subtitle:hover {
+                cursor: pointer;
+                text-decoration: underline;
+            }
+            & mat-card-content:hover {
+                cursor: pointer;
+            }
+        }
+        &:hover {
+            & mat-card {
+                & mat-card-actions {
+                    opacity: 1;
+                }
+            }
+        }
+    }
+}
+button.comment-color-selector {
+    margin: 2px;
+}

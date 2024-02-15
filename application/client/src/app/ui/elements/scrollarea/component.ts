@@ -25,15 +25,6 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { stop } from '@ui/env/dom';
 import { unique } from '@platform/env/sequence';
 
-export interface IScrollBoxSelection {
-    selection: string;
-    original: string;
-    anchor: number;
-    anchorOffset: number;
-    focus: number;
-    focusOffset: number;
-}
-
 @Component({
     selector: 'app-scrollarea',
     templateUrl: './template.html',

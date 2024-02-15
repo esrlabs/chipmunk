@@ -3,6 +3,7 @@ import { FiltersCollection } from './collection.filters';
 import { ChartsCollection } from './collection.charts';
 import { DisabledCollection } from './collection.disabled';
 import { BookmarksCollection } from './collection.bookmarks';
+// import { CommentsCollection } from './collection.comments.ts_';
 import { Collection } from './collection';
 import { Session } from '@service/session/session';
 import { EntryConvertable, Entry } from '@platform/types/storage/entry';
@@ -137,11 +138,13 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         charts: ChartsCollection;
         disabled: DisabledCollection;
         bookmarks: BookmarksCollection;
+        // comments: CommentsCollection;
     } = {
         filters: new FiltersCollection(),
         charts: new ChartsCollection(),
         disabled: new DisabledCollection(),
         bookmarks: new BookmarksCollection(),
+        // comments: new CommentsCollection(),
     };
     public readonly updated: Subject<void> = new Subject();
 
