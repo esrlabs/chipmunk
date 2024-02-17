@@ -184,7 +184,6 @@ pub trait Manager {
         .await
     }
 
-    // TODO: After using native rust asnyc traits, we can return a vector of results here and use
     // flat_map in main() to get rid of the double join calls
     async fn test(&self) -> Result<SpawnResult, Error> {
         self.install(false).await?;
