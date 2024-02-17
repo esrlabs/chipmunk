@@ -46,11 +46,7 @@ pub async fn spawn(
     opts: Option<SpawnOptions>,
 ) -> Result<SpawnResult, io::Error> {
     let opts = opts.unwrap_or_default();
-    let cwd = if let Some(cwd) = cwd {
-        cwd
-    } else {
-        LOCATION.root.clone()
-    };
+    let cwd = cwd.unwrap_or_else(|| LOCATION.root.clone());
     let mut parts = command.split(' ').collect::<Vec<&str>>();
     let cmd = parts.remove(0);
     #[allow(clippy::useless_vec)]
@@ -67,11 +63,7 @@ pub async fn spawn(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
-    let job_title = if let Some(caption) = caption {
-        caption
-    } else {
-        cmd
-    };
+    let job_title = caption.unwrap_or(cmd);
     let sequence = TRACKER
         .start(
             &format!("{}: {}", to_relative_path(&cwd).display(), job_title),

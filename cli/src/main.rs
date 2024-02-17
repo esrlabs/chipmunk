@@ -75,6 +75,7 @@ async fn main() -> Result<(), Error> {
                 Command::Clean { target } => target,
                 Command::Test { target } => target,
             } {
+            //TODO: Check if we can use dedup() and delete the remove_duplicates() method and trait
             list.remove_duplicates();
             list.iter().map(|target| target.get()).collect()
         } else {

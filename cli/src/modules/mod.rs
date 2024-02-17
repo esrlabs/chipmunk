@@ -131,11 +131,9 @@ pub trait Manager {
             }
         }
         let path = LOCATION.root.clone().join(self.cwd());
-        let cmd = if let Some(cmd) = self.build_cmd(prod) {
-            cmd
-        } else {
-            self.kind().build_cmd(prod)
-        };
+        let cmd = self
+            .build_cmd(prod)
+            .unwrap_or_else(|| self.kind().build_cmd(prod));
         match spawn(&cmd, Some(path), Some(&cmd), None).await {
             Ok(status) => {
                 if !status.status.success() {
@@ -146,11 +144,8 @@ pub trait Manager {
                         self.clean().await?;
                         self.install(prod).await?;
                     }
-                    if let Some(res) = res {
-                        Ok(res)
-                    } else {
-                        Ok(SpawnResult::empty())
-                    }
+
+                    res.map_or(Ok(SpawnResult::empty()), Ok)
                 }
             }
             Err(err) => Err(err),
