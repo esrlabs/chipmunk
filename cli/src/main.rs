@@ -3,7 +3,6 @@ mod location;
 mod modules;
 mod spawner;
 mod target;
-mod tools;
 mod tracker;
 
 use clap::{Parser, Subcommand};
@@ -12,7 +11,6 @@ use location::Location;
 use modules::Manager;
 use std::io::{Error, ErrorKind};
 use target::Target;
-use tools::RemoveDuplicates;
 use tracker::Tracker;
 
 #[macro_use]
@@ -75,8 +73,7 @@ async fn main() -> Result<(), Error> {
                 Command::Clean { target } => target,
                 Command::Test { target } => target,
             } {
-            //TODO: Check if we can use dedup() and delete the remove_duplicates() method and trait
-            list.remove_duplicates();
+            list.dedup();
             list.iter().map(|target| target.get()).collect()
         } else {
             Target::all()
