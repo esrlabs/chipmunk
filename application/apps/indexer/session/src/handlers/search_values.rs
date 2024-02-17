@@ -1,9 +1,9 @@
 use crate::{
     events::{NativeError, NativeErrorKind},
     operations::{OperationAPI, OperationResult},
+    progress::Severity,
     state::SessionStateAPI,
 };
-use indexer_base::progress::Severity;
 use log::debug;
 use processor::search::searchers::{self, values::ValueSearchHolder};
 use std::{collections::HashMap, ops::Range};

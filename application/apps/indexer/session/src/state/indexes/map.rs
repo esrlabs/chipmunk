@@ -1,9 +1,9 @@
 use super::{frame::Frame, keys::Keys, nature::Nature};
 use crate::{
     events::{NativeError, NativeErrorKind},
+    progress::Severity,
     state::GrabbedElement,
 };
-use indexer_base::progress::Severity;
 use log::error;
 use rustc_hash::FxHashMap;
 use std::{cmp, ops::RangeInclusive};

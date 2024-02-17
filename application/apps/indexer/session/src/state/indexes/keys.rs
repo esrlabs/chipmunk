@@ -1,5 +1,7 @@
-use crate::events::{NativeError, NativeErrorKind};
-use indexer_base::progress::Severity;
+use crate::{
+    events::{NativeError, NativeErrorKind},
+    progress::Severity,
+};
 use std::ops::RangeInclusive;
 
 #[derive(Debug)]

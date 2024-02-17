@@ -1,3 +1,4 @@
+// #![deny(unused_crate_dependencies)]
 // Copyright (c) 2019 E.S.R.Labs. All rights reserved.
 //
 // NOTICE:  All information contained herein is, and remains
@@ -10,18 +11,13 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 extern crate indexer_base;
-#[macro_use]
 extern crate lazy_static;
-
 #[macro_use]
 extern crate log;
-
-extern crate crossbeam_channel as cc;
 
 pub mod export;
 pub mod grabber;
 pub mod map;
-pub mod parse;
 pub mod processor;
 pub mod search;
 pub mod text_source;

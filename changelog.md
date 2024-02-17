@@ -1,3 +1,17 @@
+# 3.10.6 (09.02.2024)
+
+## Fixes
+
+- Fix calling recent commands
+- Fix context menu in concat view
+- Fix files list in concat view
+
+# 3.10.5 (02.02.2024)
+
+## Fixes
+
+- Updated `envvars` version to fix flashing of console windows on chipmunk startup via icon on Windows
+
 # 3.10.4 (05.01.2024)
 
 ## Fixes

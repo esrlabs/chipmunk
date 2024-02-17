@@ -1,4 +1,3 @@
-use processor::parse::DateParseError;
 // Copyright (c) 2019 E.S.R.Labs. All rights reserved.
 //
 // NOTICE:  All information contained herein is, and remains
@@ -33,8 +32,6 @@ pub enum MergeError {
     IoProblem(#[from] std::io::Error),
     #[error("JSON possible: {0:?}")]
     JsonProblem(#[from] serde_json::Error),
-    #[error("Could possible: {0:?}")]
-    DateParsingProblem(#[from] DateParseError),
     #[error("Merge problem: {0}")]
     GeneralMergingProblem(String),
 }

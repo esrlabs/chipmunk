@@ -1,6 +1,8 @@
-use crate::events::{NativeError, NativeErrorKind};
+use crate::{
+    events::{NativeError, NativeErrorKind},
+    progress::Severity,
+};
 use dirs;
-use indexer_base::progress::Severity;
 use std::path::PathBuf;
 
 const CHIPMUNK_HOME: &str = ".chipmunk";

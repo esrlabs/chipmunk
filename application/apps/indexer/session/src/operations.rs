@@ -1,10 +1,10 @@
 use crate::{
     events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone},
     handlers,
+    progress::Severity,
     state::SessionStateAPI,
     tracker::OperationTrackerAPI,
 };
-use indexer_base::progress::Severity;
 use log::{debug, error, warn};
 use merging::merger::FileMergeOptions;
 use processor::search::filter::SearchFilter;

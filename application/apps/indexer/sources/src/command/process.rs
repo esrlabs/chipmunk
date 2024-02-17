@@ -259,8 +259,7 @@ async fn test_parsing() -> Result<(), ProcessError> {
     assert_eq!(parsed[1], OsString::from("arg2"));
     assert_eq!(parsed[2], OsString::from("some_path/with space or spaces"));
     assert_eq!(parsed[3], OsString::from("arg3"));
-    let parsed =
-        ProcessSource::parse_command(r#"cmd arg2 some_path/with\ space\ or\ spaces arg3"#)?;
+    let parsed = ProcessSource::parse_command(r"cmd arg2 some_path/with\ space\ or\ spaces arg3")?;
     assert_eq!(parsed.len(), 4);
     assert_eq!(parsed[0], OsString::from("cmd"));
     assert_eq!(parsed[1], OsString::from("arg2"));

@@ -1,7 +1,6 @@
 import {
     Component,
     ViewChild,
-    ChangeDetectorRef,
     AfterContentInit,
     Input,
     ViewEncapsulation,
@@ -9,7 +8,6 @@ import {
     OnDestroy,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
-import { ChangesDetector } from '@ui/env/extentions/changes';
 import { MatSort, Sort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { FileHolder } from '../file.holder';
@@ -17,6 +15,8 @@ import { FileType } from '@platform/types/observe/types/file';
 import { Subscription } from 'rxjs';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { State } from '../state';
+
+import * as dom from '@ui/env/dom';
 
 export interface IEvent {
     type: EEventType;
@@ -46,10 +46,7 @@ export const COLUMNS = {
     encapsulation: ViewEncapsulation.None,
 })
 @Ilc()
-export class TabSourceMultipleFilesStructure
-    extends ChangesDetector
-    implements AfterContentInit, AfterViewInit, OnDestroy
-{
+export class TabSourceMultipleFilesStructure implements AfterContentInit, AfterViewInit, OnDestroy {
     @Input() state!: State;
 
     @ViewChild(MatSort) sort!: MatSort;
@@ -67,10 +64,6 @@ export class TabSourceMultipleFilesStructure
     private _sortConfig: Sort = { active: '', direction: '' };
     private _dataConnect!: Subscription;
     private _sortChange!: Subscription;
-
-    constructor(cdRef: ChangeDetectorRef) {
-        super(cdRef);
-    }
 
     public ngAfterContentInit() {
         this.data = new MatTableDataSource<FileHolder>(this.state.files);
@@ -114,7 +107,7 @@ export class TabSourceMultipleFilesStructure
     }
 
     public ngContextMenu(event: MouseEvent, file?: FileHolder) {
-        event.stopImmediatePropagation();
+        dom.stop(event);
         const items = [];
         if (file !== undefined) {
             items.push({

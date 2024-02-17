@@ -1,3 +1,4 @@
+#![deny(unused_crate_dependencies)]
 // Copyright (c) 2019 E.S.R.Labs. All rights reserved.
 //
 // NOTICE:  All information contained herein is, and remains
@@ -11,13 +12,8 @@
 // from E.S.R.Labs.
 // pub mod chunks;
 pub mod config;
-pub mod error_reporter;
-// pub mod export;
-pub mod progress;
 pub mod timedline;
 pub mod utils;
-
-#[macro_use]
 extern crate log;
 
 #[cfg(test)]

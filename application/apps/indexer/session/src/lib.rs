@@ -1,3 +1,4 @@
+#![deny(unused_crate_dependencies)]
 pub mod events;
 mod handlers;
 pub mod operations;

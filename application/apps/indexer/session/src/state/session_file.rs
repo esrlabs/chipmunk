@@ -2,8 +2,8 @@ use super::source_ids::SourceIDs;
 use crate::{
     events::{NativeError, NativeErrorKind},
     paths,
+    progress::Severity,
 };
-use indexer_base::progress::Severity;
 use log::debug;
 use processor::{
     grabber::{Grabber, LineRange},

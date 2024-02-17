@@ -2,8 +2,8 @@ use crate::{
     events::{ComputationError, LifecycleTransition},
     TRACKER_CHANNEL,
 };
-use indexer_base::progress::Ticks;
 use log::{error, info};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tokio::{
     select,
@@ -13,6 +13,60 @@ use tokio::{
     },
 };
 use uuid::Uuid;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Notification {
+    pub severity: Severity,
+    pub content: String,
+    pub line: Option<usize>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum Progress {
+    Ticks(Ticks),
+    Notification(Notification),
+    Stopped,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct Ticks {
+    pub count: u64,
+    pub state: Option<String>,
+    pub total: Option<u64>,
+}
+impl Ticks {
+    pub fn done(&self) -> bool {
+        match self.total {
+            Some(total) => self.count == total,
+            None => false,
+        }
+    }
+
+    pub fn new() -> Self {
+        Ticks {
+            count: 0,
+            state: None,
+            total: None,
+        }
+    }
+}
+
+#[allow(clippy::upper_case_acronyms)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub enum Severity {
+    WARNING,
+    ERROR,
+}
+
+impl Severity {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Severity::WARNING => "WARNING",
+            Severity::ERROR => "ERROR",
+        }
+    }
+}
 
 /// Commands used to control/query the progress tracking
 #[derive(Debug)]

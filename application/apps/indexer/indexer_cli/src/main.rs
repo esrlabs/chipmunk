@@ -1,3 +1,4 @@
+#![deny(unused_crate_dependencies)]
 // Copyright (c) 2019 E.S.R.Labs. All rights reserved.
 //
 // NOTICE:  All information contained herein is, and remains
@@ -23,8 +24,6 @@ mod interactive;
 use crate::interactive::handle_interactive_session;
 use addon::{extract_dlt_ft, scan_dlt_ft};
 use anyhow::{anyhow, Result};
-use crossbeam_channel as cc;
-use crossbeam_channel::unbounded;
 use dlt_core::{
     fibex::FibexConfig,
     filtering::{read_filter_options, DltFilterConfig},
@@ -33,7 +32,7 @@ use dlt_core::{
 };
 use env_logger::Env;
 use futures::{pin_mut, stream::StreamExt};
-use indexer_base::{config::*, error_reporter::*, progress::IndexingResults};
+use indexer_base::config::*;
 use indicatif::{ProgressBar, ProgressStyle};
 use parsers::{
     dlt::{attachment::FileExtractor, DltParser, DltRangeParser},
@@ -42,6 +41,7 @@ use parsers::{
     LogMessage, MessageStreamItem, ParseYield,
 };
 use processor::{export::export_raw, grabber::GrabError, text_source::TextFileSource};
+use serde::{Deserialize, Serialize};
 use sources::{
     binary::{pcap::ng::PcapngByteSource, raw::BinaryByteSource},
     producer::MessageProducer,
@@ -52,9 +52,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use structopt::StructOpt;
-use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
-pub type VoidResults = std::result::Result<IndexingProgress<()>, Notification>;
 
 lazy_static! {
     static ref EXAMPLE_FIBEX: std::path::PathBuf =
@@ -64,22 +62,27 @@ lazy_static! {
 
 #[macro_use]
 extern crate log;
-use indexer_base::progress::{IndexingProgress, Notification, Severity};
-use processor::{
-    grabber::LineRange,
-    parse::{
-        detect_timestamp_in_string, line_matching_format_expression, match_format_string_in_file,
-        posix_timestamp_as_string, read_format_string_options, timespan_in_files, DiscoverItem,
-        FormatTestOptions, TimestampFormatResult,
-    },
-};
+use processor::grabber::LineRange;
 use std::{fs, io::Read, time::Instant};
-
-use std::thread;
 
 fn init_logging() {
     env_logger::Builder::from_env(Env::default().default_filter_or("warn")).init();
     info!("logging initialized");
+}
+#[derive(Serialize, Deserialize, Debug)]
+pub struct FormatTestOptions {
+    pub file: String,
+    pub lines_to_test: i64,
+    pub format: String,
+}
+pub fn read_format_string_options(f: &mut fs::File) -> Result<FormatTestOptions, String> {
+    let mut contents = String::new();
+    f.read_to_string(&mut contents)
+        .expect("reading from file failed");
+    match serde_json::from_str(&contents) {
+        Ok(v) => Ok(v),
+        Err(e) => Err(format!("could not parse json: {e}")),
+    }
 }
 
 #[derive(StructOpt)]
@@ -142,6 +145,7 @@ enum Chip {
             name = "FORMAT_STR",
             help = "format string to use"
         )]
+        #[allow(dead_code)]
         format_string: Option<String>,
         #[structopt(
             short = "t",
@@ -149,6 +153,7 @@ enum Chip {
             name = "SAMPLE",
             help = "test string to use"
         )]
+        #[allow(dead_code)]
         test_string: Option<String>,
         #[structopt(
             short = "c",
@@ -156,8 +161,10 @@ enum Chip {
             name = "CONFIG",
             help = "test a file using this configuration"
         )]
+        #[allow(dead_code)]
         test_config: Option<PathBuf>,
         #[structopt(short, long, help = "display duration info")]
+        #[allow(dead_code)]
         stdout: bool,
     },
     #[structopt(about = "handling dlt input")]
@@ -271,6 +278,7 @@ enum Chip {
             help = "string to extract date from",
             name = "INPUT"
         )]
+        #[allow(dead_code)]
         input_string: Option<String>,
         #[structopt(
             short,
@@ -278,12 +286,14 @@ enum Chip {
             name = "CONFIG",
             help = "file that contains a list of files to analyze"
         )]
+        #[allow(dead_code)]
         config_file: Option<String>,
         #[structopt(
             short = "f",
             long = "file",
             help = "file where the timeformat should be detected"
         )]
+        #[allow(dead_code)]
         input_file: Option<PathBuf>,
     },
     #[structopt(about = "test date discovery, either from a string or from a file")]
@@ -364,11 +374,11 @@ pub async fn main() -> Result<()> {
     let opt = Chip::from_args();
     match opt {
         Chip::Format {
-            format_string,
-            test_string,
-            test_config,
-            stdout,
-        } => handle_format_subcommand(format_string, test_string, test_config, start, stdout).await,
+            format_string: _,
+            test_string: _,
+            test_config: _,
+            stdout: _,
+        } => println!("handle_format_subcommand not currently implemented"),
         Chip::Grab {
             input,
             start_pos,
@@ -456,10 +466,10 @@ pub async fn main() -> Result<()> {
         } => handle_dlt_stats_subcommand(&input, count, legacy, start, stdout).await,
         Chip::Detect { input } => handle_detect_file_type_subcommand(&input).await,
         Chip::Discover {
-            input_string,
-            config_file,
-            input_file,
-        } => handle_discover_subcommand(input_string, config_file, input_file).await,
+            input_string: _,
+            config_file: _,
+            input_file: _,
+        } => println!("handle_discover_subcommand currently not implemented"),
         Chip::Export {
             file,
             legacy,
@@ -562,7 +572,7 @@ pub async fn main() -> Result<()> {
                 }
             }
             Err(e) => {
-                report_error(format!("Error during line grabbing: {e}"));
+                println!("Error during line grabbing: {e}");
                 std::process::exit(2);
             }
         }
@@ -755,73 +765,6 @@ pub async fn main() -> Result<()> {
         // std::process::exit(0)
     }
 
-    async fn handle_format_subcommand(
-        format_string: Option<String>,
-        test_string: Option<String>,
-        test_config: Option<PathBuf>,
-        start: std::time::Instant,
-        status_updates: bool,
-    ) {
-        match (format_string, test_string, test_config) {
-            (Some(fs), Some(ts), None) => match line_matching_format_expression(&fs, &ts) {
-                Ok(res) => println!("match: {res:?}"),
-                Err(e) => {
-                    report_error(format!("error matching: {e}"));
-                    std::process::exit(2)
-                }
-            },
-            (None, None, Some(config_path)) => {
-                let mut test_config_file = match fs::File::open(&config_path) {
-                    Ok(file) => file,
-                    Err(_) => {
-                        report_error(format!("could not open {config_path:?}"));
-                        std::process::exit(2)
-                    }
-                };
-                let options: FormatTestOptions =
-                    match read_format_string_options(&mut test_config_file) {
-                        Ok(o) => o,
-                        Err(e) => {
-                            report_error(format!("could not parse format config file: {e}"));
-                            std::process::exit(2)
-                        }
-                    };
-                match match_format_string_in_file(
-                    options.format.as_str(),
-                    options.file.as_str(),
-                    options.lines_to_test,
-                ) {
-                    Ok(res) => match serde_json::to_string(&res) {
-                        Ok(v) => {
-                            println!("{v}");
-                            if status_updates {
-                                duration_report(
-                                    start,
-                                    format!(
-                                        "format checking {} lines",
-                                        res.matching_lines + res.nonmatching_lines
-                                    ),
-                                );
-                            }
-                        }
-                        Err(e) => {
-                            report_error(format!("serializing result failed: {e}"));
-                            std::process::exit(2)
-                        }
-                    },
-                    Err(e) => {
-                        report_error(format!("could not match format string file: {e}"));
-                        std::process::exit(2)
-                    }
-                }
-            }
-            _ => {
-                report_error("wrong input config".to_string());
-                std::process::exit(2)
-            }
-        }
-    }
-
     fn to_pair(input: &str) -> Result<IndexSection> {
         let elems: Vec<&str> = input.split(',').collect();
         if elems.len() != 2 {
@@ -928,7 +871,7 @@ pub async fn main() -> Result<()> {
                 let mut cnf_file = match fs::File::open(&config_path) {
                     Ok(file) => file,
                     Err(_) => {
-                        report_error(format!("could not open filter config {config_path:?}"));
+                        println!("could not open filter config {config_path:?}");
                         std::process::exit(2)
                     }
                 };
@@ -1031,53 +974,53 @@ pub async fn main() -> Result<()> {
         std::process::exit(0)
     }
 
-    #[allow(dead_code)]
-    async fn progress_listener(
-        source_file_size: u64,
-        mut rx: mpsc::Receiver<VoidResults>,
-        start: std::time::Instant,
-    ) -> tokio::task::JoinHandle<()> {
-        tokio::spawn(async move {
-            println!("start progress listener for {source_file_size} bytes");
-            while let Some(item) = rx.recv().await {
-                match item {
-                    Ok(IndexingProgress::Finished { .. }) => {
-                        print!("FINISHED!!!!!!!!!!!!!!!!!!!!!");
-                        // progress_bar.finish_and_clear();
+    // #[allow(dead_code)]
+    // async fn progress_listener(
+    //     source_file_size: u64,
+    //     mut rx: mpsc::Receiver<VoidResults>,
+    //     start: std::time::Instant,
+    // ) -> tokio::task::JoinHandle<()> {
+    //     tokio::spawn(async move {
+    //         println!("start progress listener for {source_file_size} bytes");
+    //         while let Some(item) = rx.recv().await {
+    //             match item {
+    //                 Ok(IndexingProgress::Finished { .. }) => {
+    //                     print!("FINISHED!!!!!!!!!!!!!!!!!!!!!");
+    //                     // progress_bar.finish_and_clear();
 
-                        let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
-                        duration_report_throughput(
-                            start,
-                            format!("processing ~{} MB", file_size_in_mb.round()),
-                            file_size_in_mb,
-                            "MB".to_string(),
-                        );
-                        break;
-                    }
-                    Ok(IndexingProgress::Progress { ticks }) => {
-                        let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
-                        println!("progress... ({:.0} %)", progress_fraction * 100.0);
-                        // progress_bar.set_position((progress_fraction * (total as f64)) as u64);
-                    }
-                    Ok(IndexingProgress::GotItem { item: chunk }) => {
-                        println!("Invalid chunk received {chunk:?}");
-                    }
-                    Err(Notification {
-                        severity,
-                        content,
-                        line,
-                    }) => {
-                        if severity == Severity::WARNING {
-                            report_warning_ln(content, line);
-                        } else {
-                            report_error_ln(content, line);
-                        }
-                    }
-                    _ => report_warning("process finished without result"),
-                }
-            }
-        })
-    }
+    //                     let file_size_in_mb = source_file_size as f64 / 1024.0 / 1024.0;
+    //                     duration_report_throughput(
+    //                         start,
+    //                         format!("processing ~{} MB", file_size_in_mb.round()),
+    //                         file_size_in_mb,
+    //                         "MB".to_string(),
+    //                     );
+    //                     break;
+    //                 }
+    //                 Ok(IndexingProgress::Progress { ticks }) => {
+    //                     let progress_fraction = ticks.0 as f64 / ticks.1 as f64;
+    //                     println!("progress... ({:.0} %)", progress_fraction * 100.0);
+    //                     // progress_bar.set_position((progress_fraction * (total as f64)) as u64);
+    //                 }
+    //                 Ok(IndexingProgress::GotItem { item: chunk }) => {
+    //                     println!("Invalid chunk received {chunk:?}");
+    //                 }
+    //                 Err(Notification {
+    //                     severity,
+    //                     content,
+    //                     line,
+    //                 }) => {
+    //                     if severity == Severity::WARNING {
+    //                         report_warning_ln(content, line);
+    //                     } else {
+    //                         report_error_ln(content, line);
+    //                     }
+    //                 }
+    //                 _ => report_warning("process finished without result"),
+    //             }
+    //         }
+    //     })
+    // }
 
     #[allow(clippy::too_many_arguments)]
     async fn handle_dlt_pcap_subcommand(
@@ -1297,161 +1240,6 @@ pub async fn main() -> Result<()> {
         // std::process::exit(0)
     }
 
-    async fn handle_discover_subcommand(
-        test_string: Option<String>,
-        input_file: Option<String>,
-        config_file: Option<PathBuf>,
-    ) {
-        if let Some(test_string) = test_string {
-            match detect_timestamp_in_string(&test_string, None) {
-                Ok((timestamp, _, _)) => println!(
-                    "detected timestamp: {}",
-                    posix_timestamp_as_string(timestamp)
-                ),
-                Err(e) => println!("no timestamp found in {test_string} ({e})"),
-            }
-        } else if let Some(file_name) = input_file {
-            let (tx, rx): (
-                cc::Sender<IndexingResults<TimestampFormatResult>>,
-                cc::Receiver<IndexingResults<TimestampFormatResult>>,
-            ) = unbounded();
-            let items: Vec<DiscoverItem> = vec![DiscoverItem {
-                path: file_name,
-                format_string: None,
-                fallback_year: None,
-            }];
-
-            let progress_bar = initialize_progress_bar(100);
-            thread::spawn(move || {
-                match timespan_in_files(items, &tx) {
-                    Ok(()) => (),
-                    Err(e) => {
-                        report_error(format!("executed with error: {e}"));
-                        std::process::exit(2)
-                    }
-                };
-            });
-            loop {
-                match rx.recv() {
-                    Ok(Ok(IndexingProgress::GotItem { item: res })) => {
-                        match serde_json::to_string(&res) {
-                            Ok(stats) => println!("{stats}"),
-                            Err(e) => {
-                                report_error(format!("serializing result {res:?} failed: {e}"));
-                                std::process::exit(2)
-                            }
-                        }
-                    }
-                    Ok(Ok(IndexingProgress::Progress { ticks: t })) => {
-                        let progress_fraction = t.0 as f64 / t.1 as f64;
-                        trace!("progress... ({:.1} %)", progress_fraction * 100.0);
-                        progress_bar.set_position((progress_fraction * 100.0) as u64);
-                    }
-                    Ok(Ok(IndexingProgress::Finished)) => {
-                        trace!("finished...");
-                        progress_bar.finish_and_clear();
-                        break;
-                    }
-                    Ok(Err(Notification {
-                        severity,
-                        content,
-                        line,
-                    })) => {
-                        if severity == Severity::WARNING {
-                            report_warning_ln(content, line);
-                        } else {
-                            report_error_ln(content, line);
-                        }
-                    }
-                    Ok(Ok(IndexingProgress::Stopped)) => {
-                        trace!("stopped...");
-                        break;
-                    }
-                    Err(e) => {
-                        report_error(format!("couldn't process: {e}"));
-                        std::process::exit(2)
-                    }
-                }
-            }
-        } else if let Some(config_file_path) = config_file {
-            let mut discover_config_file = match fs::File::open(&config_file_path) {
-                Ok(file) => file,
-                Err(_) => {
-                    report_error(format!("could not open {config_file_path:?}"));
-                    std::process::exit(2)
-                }
-            };
-            let mut contents = String::new();
-            discover_config_file
-                .read_to_string(&mut contents)
-                .expect("something went wrong reading the file");
-            println!("discover for: {contents:?}");
-            let items: Vec<DiscoverItem> = match serde_json::from_str(&contents[..]) {
-                Ok(items) => items,
-                Err(e) => {
-                    report_error(format!("could not read discover config {e}"));
-                    std::process::exit(2)
-                }
-            };
-            let mut results: Vec<TimestampFormatResult> = Vec::new();
-            let (tx, rx): (
-                cc::Sender<IndexingResults<TimestampFormatResult>>,
-                cc::Receiver<IndexingResults<TimestampFormatResult>>,
-            ) = unbounded();
-
-            let progress_bar = initialize_progress_bar(100);
-            thread::spawn(move || {
-                match timespan_in_files(items, &tx) {
-                    Ok(()) => (),
-                    Err(e) => {
-                        report_error(format!("executed with error: {e}"));
-                        std::process::exit(2)
-                    }
-                };
-            });
-            loop {
-                match rx.recv() {
-                    Ok(Ok(IndexingProgress::GotItem { item: res })) => {
-                        results.push(res);
-                    }
-                    Ok(Ok(IndexingProgress::Progress { ticks: t })) => {
-                        let progress_fraction = t.0 as f64 / t.1 as f64;
-                        trace!("progress... ({:.1} %)", progress_fraction * 100.0);
-                        progress_bar.set_position((progress_fraction * 100.0) as u64);
-                    }
-                    Ok(Ok(IndexingProgress::Finished)) => {
-                        trace!("finished...");
-                        progress_bar.finish_and_clear();
-                        break;
-                    }
-                    Ok(Err(Notification {
-                        severity,
-                        content,
-                        line,
-                    })) => {
-                        println!("received Notification");
-                        if severity == Severity::WARNING {
-                            report_warning_ln(content, line);
-                        } else {
-                            report_error_ln(content, line);
-                        }
-                    }
-                    Ok(Ok(IndexingProgress::Stopped)) => {
-                        trace!("stopped...");
-                        break;
-                    }
-                    Err(_) => {
-                        report_error("couldn't process");
-                        std::process::exit(2)
-                    }
-                }
-            }
-            let json = serde_json::to_string(&results).unwrap_or_else(|_| "".to_string());
-            println!("printing our results");
-            println!("{json}");
-        }
-    }
-
     async fn handle_detect_file_type_subcommand(file_path: &Path) {
         let res = detect_messages_type(file_path).await;
 
@@ -1483,14 +1271,14 @@ pub async fn main() -> Result<()> {
             let f = match fs::File::open(file_path) {
                 Ok(file) => file,
                 Err(_) => {
-                    report_error(format!("could not open {file_path:?}"));
+                    println!("could not open {file_path:?}");
                     std::process::exit(2)
                 }
             };
             let source_file_size = match f.metadata() {
                 Ok(file_meta) => file_meta.len() as usize,
                 Err(_) => {
-                    report_error("could not find out size of source file");
+                    println!("could not find out size of source file");
                     std::process::exit(2);
                 }
             };
@@ -1503,7 +1291,7 @@ pub async fn main() -> Result<()> {
                     match serde_json::to_string(&res) {
                         Ok(stats) => println!("{stats}"),
                         Err(e) => {
-                            report_error(format!("serializing result {res:?} failed: {e}"));
+                            println!("serializing result {res:?} failed: {e}");
                             std::process::exit(2)
                         }
                     }
@@ -1520,7 +1308,7 @@ pub async fn main() -> Result<()> {
                     }
                 }
                 Err(_) => {
-                    report_error("couldn't process");
+                    println!("couldn't process");
                     std::process::exit(2)
                 }
             }
@@ -1565,7 +1353,7 @@ fn _load_test_fibex() -> FibexConfig {
     }
 }
 
-fn initialize_progress_bar(len: u64) -> ProgressBar {
+fn _initialize_progress_bar(len: u64) -> ProgressBar {
     let progress_bar = ProgressBar::new(len);
     progress_bar.set_style(ProgressStyle::default_bar()
                 .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
