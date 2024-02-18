@@ -35,27 +35,27 @@ struct Cli {
 
 #[derive(Subcommand, Debug, Clone)]
 enum Command {
-    /// runs linting & clippy
+    /// Runs linting & clippy
     Lint {
-        /// target to build, by default whole application will be built
+        /// Target to lint, by default whole application will be linted
         #[arg(short, long, num_args(0..))]
         target: Option<Vec<Target>>,
     },
-    /// build
+    /// Build
     Build {
-        /// target to build, by default whole application will be built
+        /// Target to build, by default whole application will be built
         #[arg(short, long, num_args(0..))]
         target: Option<Vec<Target>>,
     },
     /// Clean
     Clean {
-        /// target to build, by default whole application will be built
+        /// Target to clean, by default whole application will be cleaned
         #[arg(short, long, num_args(0..))]
         target: Option<Vec<Target>>,
     },
     /// Run tests
     Test {
-        /// target to test, by default whole application will be tested
+        /// Target to test, by default whole application will be tested
         #[arg(short, long, num_args(0..))]
         target: Option<Vec<Target>>,
     },
