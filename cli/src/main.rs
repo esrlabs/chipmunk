@@ -26,8 +26,8 @@ lazy_static! {
 #[command(author, version, about, long_about = None)]
 struct Cli {
     /// Build release version
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    release: u8,
+    #[arg(short, long, default_value_t = false)]
+    release: bool,
 
     #[command(subcommand)]
     command: Option<Command>,
@@ -64,7 +64,7 @@ enum Command {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let cli = Cli::parse();
-    let production = cli.release > 0;
+    let production = cli.release;
     if let Some(ref command) = cli.command {
         let targets: Vec<Box<dyn Manager + Sync + Send>> = if let Some(mut list) =
             match command.clone() {
