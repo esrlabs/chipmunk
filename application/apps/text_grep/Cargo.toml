@@ -1,0 +1,17 @@
+[package]
+name = "text_grep"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "text_grep"
+crate-type = ["lib"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+tokio-util = "0.7.10"
+tempfile = "3.10.0"
+rayon = "1.8.1"
+aho-corasick = "1.1.2"
+grep-searcher = "0.1.13"
+grep-regex = "0.1.12"
