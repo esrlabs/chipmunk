@@ -2,7 +2,6 @@ use crate::{
     binary::pcap::debug_block, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
     TransportProtocol,
 };
-use async_trait::async_trait;
 use buf_redux::Buffer;
 use log::{debug, error, trace};
 use pcap_parser::{traits::PcapReaderIterator, PcapBlockOwned, PcapError, PcapNGReader};
@@ -27,7 +26,6 @@ impl<R: Read> PcapngByteSource<R> {
     }
 }
 
-#[async_trait]
 impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
     async fn reload(
         &mut self,

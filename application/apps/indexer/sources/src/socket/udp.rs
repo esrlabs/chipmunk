@@ -1,5 +1,4 @@
 use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
-use async_trait::async_trait;
 use buf_redux::Buffer;
 use indexer_base::config::MulticastInfo;
 use log::trace;
@@ -75,7 +74,6 @@ impl UdpSource {
     }
 }
 
-#[async_trait]
 impl ByteSource for UdpSource {
     async fn reload(
         &mut self,

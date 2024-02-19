@@ -1,7 +1,6 @@
 use crate::{
     factory::SerialTransportConfig, sde, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
 };
-use async_trait::async_trait;
 use buf_redux::Buffer;
 use bytes::{BufMut, BytesMut};
 use futures::{
@@ -129,7 +128,6 @@ impl SerialSource {
     }
 }
 
-#[async_trait]
 impl ByteSource for SerialSource {
     async fn reload(
         &mut self,
