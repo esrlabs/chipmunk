@@ -17,8 +17,7 @@ use tokio::{
 
 #[derive(Clone, Debug)]
 pub struct SpawnResult {
-    pub stdout: Vec<String>,
-    pub stderr: Vec<String>,
+    pub report: Vec<String>,
     pub status: ExitStatus,
     pub job: String,
 }
@@ -26,8 +25,7 @@ pub struct SpawnResult {
 impl SpawnResult {
     pub fn empty() -> Self {
         SpawnResult {
-            stdout: vec![],
-            stderr: vec![],
+            report: Vec::default(),
             status: ExitStatus::default(),
             job: String::new(),
         }
@@ -71,13 +69,11 @@ pub async fn spawn(
         )
         .await?;
 
-    let mut stdout_lines: Vec<String> = vec![];
-    let mut stderr_lines: Vec<String> = vec![];
+    let mut report_lines: Vec<String> = vec![];
     let drain_stdout_stderr = {
         let stdout = child.stdout.take().unwrap();
         let stderr = child.stderr.take().unwrap();
-        let storage_stdout = &mut stdout_lines;
-        let storage_stderr = &mut stderr_lines;
+        let storage_report = &mut report_lines;
         async move {
             let mut stdout_buf = BufReader::new(stdout);
             let mut stderr_buf = BufReader::new(stderr);
@@ -94,7 +90,7 @@ pub async fn spawn(
                                 TRACKER.msg(sequence, &stdout_line).await;
                             }
                             TRACKER.progress(sequence, None).await;
-                            storage_stdout.push(stdout_line);
+                            storage_report.push(stdout_line);
                         }
                     }
                     stderr_read_result = stderr_buf.read_line(&mut stderr_line) => {
@@ -104,7 +100,7 @@ pub async fn spawn(
                         } else {
                             TRACKER.progress(sequence, None).await;
                             if !stderr_line.trim().is_empty() {
-                                storage_stderr.push(stderr_line);
+                                storage_report.push(stderr_line);
                             }
                         }
 
@@ -134,8 +130,7 @@ pub async fn spawn(
             TRACKER.fail(sequence, "finished with errors").await;
         }
         Ok(SpawnResult {
-            stdout: stdout_lines,
-            stderr: stderr_lines,
+            report: report_lines,
             status,
             job: job_title.to_string(),
         })

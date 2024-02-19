@@ -36,6 +36,13 @@ struct Cli {
     command: Command,
 }
 
+#[derive(Debug, Clone)]
+enum ReportOptions {
+    None,
+    Stdout,
+    File(PathBuf),
+}
+
 #[derive(Subcommand, Debug, Clone)]
 enum Command {
     /// Runs linting & clippy
@@ -84,9 +91,10 @@ enum Command {
 async fn main() -> Result<(), Error> {
     let cli = Cli::parse();
     let command = cli.command;
+    let mut report_opt = ReportOptions::None;
     let results = match command {
         Command::Lint { target, report } => {
-            dbg!(report);
+            report_opt = get_report_option(report);
             let targets = get_targets_or_default(target);
             join_all(
                 targets
@@ -112,7 +120,7 @@ async fn main() -> Result<(), Error> {
             .await
         }
         Command::Clean { target, report } => {
-            dbg!(report);
+            report_opt = get_report_option(report);
             let targets = get_targets_or_default(target);
             join_all(
                 targets
@@ -123,7 +131,7 @@ async fn main() -> Result<(), Error> {
             .await
         }
         Command::Test { target, report } => {
-            dbg!(report);
+            report_opt = get_report_option(report);
             let targets = get_targets_or_default(target);
             join_all(
                 targets
@@ -138,9 +146,23 @@ async fn main() -> Result<(), Error> {
     let mut success: bool = true;
     results.iter().for_each(|res| match res {
         Ok(status) => {
+            let print_err = match &report_opt {
+                ReportOptions::None => true,
+                ReportOptions::Stdout => {
+                    //TODO: write to stdout
+                    false
+                }
+                ReportOptions::File(_file_path) => {
+                    // TODO: write to file.
+                    false
+                }
+            };
+
             if !status.status.success() {
-                eprintln!("Failed with errors");
-                println!("{}:\n{}", status.job, status.stderr.join(""));
+                if print_err {
+                    eprintln!("Failed with errors");
+                    eprintln!("{}:\n{}", status.job, status.report.join(""));
+                }
                 success = false;
             }
         }
@@ -161,5 +183,13 @@ fn get_targets_or_default(targets: Option<Vec<Target>>) -> Vec<Box<dyn Manager +
         list.iter().map(|target| target.get()).collect()
     } else {
         Target::all()
+    }
+}
+
+fn get_report_option(report_argument: Option<Option<PathBuf>>) -> ReportOptions {
+    match report_argument {
+        None => ReportOptions::None,
+        Some(None) => ReportOptions::Stdout,
+        Some(Some(path)) => ReportOptions::File(path),
     }
 }
