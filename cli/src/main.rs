@@ -9,8 +9,10 @@ use clap::{Parser, Subcommand};
 use futures::future::join_all;
 use location::Location;
 use modules::Manager;
+use spawner::SpawnResult;
 use std::{
-    io::{Error, ErrorKind},
+    fs::File,
+    io::{self, stdout, Error, ErrorKind, Stdout},
     path::PathBuf,
 };
 use target::Target;
@@ -36,11 +38,11 @@ struct Cli {
     command: Command,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum ReportOptions {
     None,
-    Stdout,
-    File(PathBuf),
+    Stdout(Stdout),
+    File(PathBuf, File),
 }
 
 #[derive(Subcommand, Debug, Clone)]
@@ -94,7 +96,7 @@ async fn main() -> Result<(), Error> {
     let mut report_opt = ReportOptions::None;
     let results = match command {
         Command::Lint { target, report } => {
-            report_opt = get_report_option(report);
+            report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             join_all(
                 targets
@@ -120,7 +122,7 @@ async fn main() -> Result<(), Error> {
             .await
         }
         Command::Clean { target, report } => {
-            report_opt = get_report_option(report);
+            report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             join_all(
                 targets
@@ -131,7 +133,7 @@ async fn main() -> Result<(), Error> {
             .await
         }
         Command::Test { target, report } => {
-            report_opt = get_report_option(report);
+            report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             join_all(
                 targets
@@ -144,33 +146,39 @@ async fn main() -> Result<(), Error> {
     };
     TRACKER.shutdown().await?;
     let mut success: bool = true;
-    results.iter().for_each(|res| match res {
-        Ok(status) => {
-            let print_err = match &report_opt {
-                ReportOptions::None => true,
-                ReportOptions::Stdout => {
-                    //TODO: write to stdout
-                    false
-                }
-                ReportOptions::File(_file_path) => {
-                    // TODO: write to file.
-                    false
-                }
-            };
+    for (idx, res) in results.iter().enumerate() {
+        match res {
+            Ok(status) => {
+                let print_err = match &report_opt {
+                    ReportOptions::None => true,
+                    ReportOptions::Stdout(stdout) => {
+                        write_report(status, stdout)?;
+                        false
+                    }
+                    ReportOptions::File(path, file) => {
+                        write_report(status, file)?;
+                        if idx == results.len() - 1 {
+                            let full_path = path.canonicalize().unwrap_or_else(|_| path.to_owned());
+                            println!("Report is written to '{}'", full_path.display());
+                        }
+                        false
+                    }
+                };
 
-            if !status.status.success() {
-                if print_err {
-                    eprintln!("Failed with errors");
-                    eprintln!("{}:\n{}", status.job, status.report.join(""));
+                if !status.status.success() {
+                    if print_err {
+                        eprintln!("Failed with errors");
+                        eprintln!("{}:\n{}", status.job, status.report.join(""));
+                    }
+                    success = false;
                 }
+            }
+            Err(err) => {
+                eprintln!("Builder error: {err}");
                 success = false;
             }
         }
-        Err(err) => {
-            eprintln!("Builder error: {err}");
-            success = false;
-        }
-    });
+    }
     if !success {
         return Err(Error::new(ErrorKind::Other, "Some task were failed"));
     }
@@ -186,10 +194,34 @@ fn get_targets_or_default(targets: Option<Vec<Target>>) -> Vec<Box<dyn Manager +
     }
 }
 
-fn get_report_option(report_argument: Option<Option<PathBuf>>) -> ReportOptions {
+fn get_report_option(report_argument: Option<Option<PathBuf>>) -> Result<ReportOptions, Error> {
     match report_argument {
-        None => ReportOptions::None,
-        Some(None) => ReportOptions::Stdout,
-        Some(Some(path)) => ReportOptions::File(path),
+        None => Ok(ReportOptions::None),
+        Some(None) => Ok(ReportOptions::Stdout(stdout())),
+        Some(Some(path)) => {
+            let file = File::create(&path)?;
+            Ok(ReportOptions::File(path, file))
+        }
     }
+}
+
+fn write_report(spawn_result: &SpawnResult, mut sink: impl io::Write) -> Result<(), io::Error> {
+    let status = if spawn_result.status.success() {
+        "succeeded"
+    } else {
+        "failed"
+    };
+
+    writeln!(sink, "Job {} has {status}", spawn_result.job)?;
+    writeln!(sink, "Logs:")?;
+
+    for line in spawn_result.report.iter() {
+        sink.write_all(line.as_bytes())?;
+    }
+
+    writeln!(sink)?;
+    writeln!(sink, "====================================================")?;
+    writeln!(sink)?;
+
+    Ok(())
 }
