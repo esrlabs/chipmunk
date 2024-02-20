@@ -5,14 +5,23 @@
     display: block;
     padding: 0.5rem;
     margin: 0;
-    div.controlls {
+    & div.controlls {
         text-align: right;
         padding-top: 8px;
         & button {
             margin-left: 16px;
         }
     }
+    & div.inputs {
+        width: 100%;
+        & mat-form-field {
+            width: 100%;
+        }
+    }
     & mat-error {
         color: @scheme-color-warning;
+    }
+    & mat-hint {
+        color: @scheme-color-2;
     }
 }

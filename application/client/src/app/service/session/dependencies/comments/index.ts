@@ -378,7 +378,7 @@ export class Comments extends Subscriber {
                     crossing[0].selection.end = obj.clone(comment.selection.end);
                 }
                 crossing[0].state = CommentState.pending;
-                return { comment: crossing[0], recover: recover };
+                return { comment: crossing[0], recover };
             } else {
                 return { comment: comment };
             }
@@ -388,7 +388,7 @@ export class Comments extends Subscriber {
         }
         this.comments.set(toBeStored.comment.uuid, toBeStored.comment);
         this.subjects.get().pending.emit(toBeStored.comment);
-        this.edit(toBeStored.comment, toBeStored.recover);
+        this.edit(toBeStored.comment);
         return undefined;
     }
 

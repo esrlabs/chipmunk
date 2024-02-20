@@ -56,20 +56,18 @@ export class Comments
 
     protected onSessionChange(_uuid: string | undefined) {
         this.session = this.ilc().services.system.session.active().session();
-        if (this.session === undefined) {
-            this.ilc().logger.error(`Fail to get reference to active session`);
-            return;
+        if (this.session !== undefined) {
+            this.subscriber.unsubscribe();
+            this.subscriber.register(
+                this.session.comments.subjects.get().added.subscribe(this.reload.bind(this)),
+            );
+            this.subscriber.register(
+                this.session.comments.subjects.get().updated.subscribe(this.reload.bind(this)),
+            );
+            this.subscriber.register(
+                this.session.comments.subjects.get().removed.subscribe(this.reload.bind(this)),
+            );
         }
-        this.subscriber.unsubscribe();
-        this.subscriber.register(
-            this.session.comments.subjects.get().added.subscribe(this.reload.bind(this)),
-        );
-        this.subscriber.register(
-            this.session.comments.subjects.get().updated.subscribe(this.reload.bind(this)),
-        );
-        this.subscriber.register(
-            this.session.comments.subjects.get().removed.subscribe(this.reload.bind(this)),
-        );
         this.reload();
     }
 
@@ -124,10 +122,10 @@ export class Comments
 
     public ngAfterContentInit() {
         this.ilc().channel.session.change(this.onSessionChange.bind(this));
+        this.onSessionChange(undefined);
     }
 
     public ngAfterViewInit() {
-        this.onSessionChange(undefined);
         this.reload();
     }
 
