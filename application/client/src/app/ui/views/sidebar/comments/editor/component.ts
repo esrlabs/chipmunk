@@ -26,11 +26,7 @@ export class InputErrorStateMatcher implements ErrorStateMatcher {
             this.valid = false;
             this.error = `Maximum length of comment is 1024 chars`;
         }
-        return this.valid;
-    }
-
-    public isValid(): boolean {
-        return this.valid;
+        return !this.valid;
     }
 
     public getError(): string | undefined {

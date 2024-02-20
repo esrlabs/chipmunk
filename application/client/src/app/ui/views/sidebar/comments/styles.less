@@ -1,7 +1,7 @@
 @import '../../../styles/variables.less';
 
 
-app-sidebar-app-comments {
+app-views-comments {
     position: absolute;
     display: block;
     padding: 0;
@@ -11,14 +11,31 @@ app-sidebar-app-comments {
     left: 0.5rem;
     top: 0.5rem;
     overflow: hidden;
-    & .actions{
-        text-align: right;
+    & > div.caption {
+        position: sticky !important;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        background: @scheme-color-5;
+        display: flex;
+        padding: 0 22px;
+        margin: 0;
+        text-align: left;
+        align-items: center;
         white-space: nowrap;
-        position: absolute;
-        display: block;
-        height: 32px;
-        width: 100%;
-        left:0;
+        font-size: 0.9rem;
+        font-weight: 400;
+        span.title{
+            color: @scheme-color-2;
+        }
+        span.subtitle{
+            padding-left: 6px;
+            color: @scheme-color-3;
+        }
+        & span.filler {
+            flex: auto;
+        }
+
     }
     & .comments {
         position: absolute;
@@ -33,9 +50,12 @@ app-sidebar-app-comments {
     & .hidden {
         margin-top: 8px;
         & .hidden-comment-wrapper{
-            margin-top: 8px;
+            padding: 8px 18px;
             &:first-child{
-                margin-top: 0;
+                margin-top: 8px;
+            }
+            &:last-child{
+                margin-bottom: 8px;
             }
             & .hidden-comment{
                 display: flex;
@@ -44,7 +64,7 @@ app-sidebar-app-comments {
                     margin-left: 16px;
                     margin-top: -2px;
                 }
-                & .mat-mini-fab{
+                & .mdc-fab--mini{
                     width: 16px;
                     height: 16px;
                 }
@@ -52,10 +72,19 @@ app-sidebar-app-comments {
         }
     }
     p.info {
-        margin: 16px 0;
+        margin: 16px 24px;
     }
 }
 
-button.comment-color-selector {
-    margin: 2px;
+.app-views-comments-colors-wrapper {
+    display: flex;
+    overflow: hidden;
+    flex-direction: row;
+    padding: 4px 8px;
+    & .mdc-fab--mini {
+        height: 24px;
+        width: 24px;
+        padding: 0;
+        margin: 4px;
+    }
 }

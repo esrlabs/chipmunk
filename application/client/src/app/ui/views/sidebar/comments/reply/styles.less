@@ -19,12 +19,12 @@
         }
         & div.title {
             display: flex;
-            align-items: center;
+            flex-direction: row;
             & button {
                 opacity: 0.001;
             }
-            & > span {
-                width: 100%;
+            & span.filler {
+                flex: auto;
             }
             & .datetime {
                 color: @scheme-color-2;

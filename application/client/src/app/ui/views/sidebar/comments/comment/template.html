@@ -7,23 +7,16 @@
         </mat-card-subtitle>
         <mat-card-content (click)="ngOnShow()">{{comment.comment}}</mat-card-content>
         <mat-card-actions>
-            <button mat-icon-button color="primary" [matMenuTriggerFor]="commentCategoryMenu">
-                <mat-icon>color_lens</mat-icon>
-            </button>
-            <button mat-icon-button color="primary" (click)="ngOnEdit()">
-                <mat-icon>edit</mat-icon>
-            </button>
-            <button mat-icon-button color="primary" (click)="ngOnReplay()">
-                <mat-icon>reply</mat-icon>
-            </button>
-            <button
-                mat-icon-button
-                color="primary"
-                aria-label="Available Actions"
+            <span
+                class="small-icon-button codicon codicon-symbol-color"
+                [matMenuTriggerFor]="commentCategoryMenu"
+            ></span>
+            <span class="small-icon-button codicon codicon-edit" (click)="ngOnEdit()"></span>
+            <span class="small-icon-button codicon codicon-reply" (click)="ngOnReplay()"></span>
+            <span
+                class="small-icon-button codicon codicon-menu"
                 [matMenuTriggerFor]="commentActionsMenu"
-            >
-                <mat-icon>more_horiz</mat-icon>
-            </button>
+            ></span>
         </mat-card-actions>
 
         <mat-expansion-panel
@@ -63,7 +56,7 @@
     </mat-menu>
 
     <mat-menu #commentCategoryMenu="matMenu" xPosition="before">
-        <div class="colors-wrapper">
+        <div class="app-views-comments-colors-wrapper">
             <button
                 class="comment-color-selector"
                 mat-mini-fab
