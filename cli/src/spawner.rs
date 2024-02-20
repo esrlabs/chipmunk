@@ -30,6 +30,13 @@ impl SpawnResult {
             job: String::new(),
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.report.is_empty() && 
+        self.job.is_empty() && 
+        // Default status indicates successful completion
+        self.status.success()
+    }
 }
 
 #[derive(Debug, Clone, Default)]

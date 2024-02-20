@@ -152,11 +152,15 @@ async fn main() -> Result<(), Error> {
                 let print_err = match &report_opt {
                     ReportOptions::None => true,
                     ReportOptions::Stdout(stdout) => {
-                        write_report(status, stdout)?;
+                        if !status.is_empty() {
+                            write_report(status, stdout)?;
+                        }
                         false
                     }
                     ReportOptions::File(path, file) => {
-                        write_report(status, file)?;
+                        if !status.is_empty() {
+                            write_report(status, file)?;
+                        }
                         if idx == results.len() - 1 {
                             let full_path = path.canonicalize().unwrap_or_else(|_| path.to_owned());
                             println!("Report is written to '{}'", full_path.display());
@@ -206,6 +210,8 @@ fn get_report_option(report_argument: Option<Option<PathBuf>>) -> Result<ReportO
 }
 
 fn write_report(spawn_result: &SpawnResult, mut sink: impl io::Write) -> Result<(), io::Error> {
+    assert!(!spawn_result.is_empty());
+
     let status = if spawn_result.status.success() {
         "succeeded"
     } else {
