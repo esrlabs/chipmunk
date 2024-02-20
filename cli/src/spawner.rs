@@ -40,6 +40,35 @@ impl SpawnResult {
         // Default status indicates successful completion
         self.status.success() 
     }
+
+    pub fn merge_with(&mut self, other: SpawnResult) {
+        if other.is_empty() {
+            return;
+        }
+
+        if self.is_empty() {
+            *self = other;
+            return;
+        }
+
+        self.report.push(String::from("-------------------------------------------"));
+        self.report.extend(other.report);
+
+        self.job.push_str(" & ");
+        self.job.push_str(other.job.as_str());
+
+        self.cmd.push_str(" & ");
+        self.cmd.push_str(other.cmd.as_str());
+
+        // The failed status is the relevant one.
+        if !self.status.success() {
+            return;
+        }
+
+        if !other.status.success() {
+            self.status = other.status;
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default)]

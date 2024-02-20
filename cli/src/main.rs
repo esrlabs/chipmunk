@@ -93,7 +93,7 @@ enum Command {
 async fn main() -> Result<(), Error> {
     let cli = Cli::parse();
     let command = cli.command;
-    let mut report_opt = ReportOptions::None;
+    let report_opt: ReportOptions;
     let results = match command {
         Command::Lint { target, report } => {
             report_opt = get_report_option(report)?;
@@ -111,7 +111,7 @@ async fn main() -> Result<(), Error> {
             production,
             report,
         } => {
-            dbg!(report);
+            report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             join_all(
                 targets

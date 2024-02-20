@@ -137,7 +137,7 @@ pub trait Manager {
             .unwrap_or_else(|| self.kind().build_cmd(prod));
         let caption = format!("Bulid {}", self.owner());
         match spawn(&cmd, Some(path), caption, None).await {
-            Ok(status) => {
+            Ok(mut status) => {
                 if !status.status.success() {
                     Ok(status)
                 } else {
@@ -147,7 +147,11 @@ pub trait Manager {
                         self.install(prod).await?;
                     }
 
-                    res.map_or(Ok(SpawnResult::empty()), Ok)
+                    if let Some(res_after) = res {
+                        status.merge_with(res_after);
+                    }
+
+                    Ok(status)
                 }
             }
             Err(err) => Err(err),
