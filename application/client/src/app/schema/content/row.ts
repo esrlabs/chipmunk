@@ -10,6 +10,7 @@ export enum Owner {
     Bookmark = 'Bookmark',
     Chart = 'Chart',
     Attachment = 'Attachment',
+    Comment = 'Comment',
 }
 
 export interface RowInputs {

@@ -18,6 +18,7 @@ import { Definition, Response } from '@service/session/dependencies/comments/com
 import { CShortColors, shadeColor } from '@ui/styles/colors';
 import { Subject } from '@platform/env/subscription';
 import { unique } from '@platform/env/sequence';
+import { Owner } from '@schema/content/row';
 
 import * as obj from '@platform/env/obj';
 
@@ -64,9 +65,12 @@ export class Comment extends ChangesDetector implements AfterContentInit, OnChan
     }
 
     public ngOnShow() {
-        // OutputRedirectionsService.select(EParent.comment, this.session.getGuid(), {
-        //     output: this.comment.selection.start.position,
-        // });
+        this.session.cursor.select(
+            this.comment.selection.start.position,
+            Owner.Comment,
+            undefined,
+            undefined,
+        );
     }
 
     public ngOnRemove() {
