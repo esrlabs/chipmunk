@@ -1,15 +1,14 @@
-<div class="actions">
-    <button mat-icon-button color="primary" [matMenuTriggerFor]="commentCategoryMenu">
-        <mat-icon>filter_list</mat-icon>
-    </button>
-    <button
-        mat-icon-button
-        color="primary"
-        aria-label="Available Actions"
-        [matMenuTriggerFor]="commentActionsMenu"
+<div class="caption">
+    <span class="title">Comments</span>
+    <span class="subtitle">({{comments.length}})</span>
+    <span class="filler"></span>
+    <span
+        class="small-icon-button codicon codicon-list-filter"
+        [matMenuTriggerFor]="commentCategoryMenu"
     >
-        <mat-icon>more_horiz</mat-icon>
-    </button>
+    </span>
+    <span class="small-icon-button codicon codicon-menu" [matMenuTriggerFor]="commentActionsMenu">
+    </span>
 </div>
 <div class="comments" *ngIf="session !== undefined">
     <app-views-comments-item
@@ -44,11 +43,9 @@
         </mat-card>
     </div>
     <div class="hidden" *ngIf="comments.length === 0">
-        <mat-card>
-            <p class="t-small color-scheme-1 info">
-                To create new comment: select some text; call context menu and select "Comment"
-            </p>
-        </mat-card>
+        <p class="t-small color-scheme-1 info">
+            To create new comment: select some text; call context menu and select "Comment"
+        </p>
     </div>
 </div>
 
@@ -65,7 +62,7 @@
 </mat-menu>
 
 <mat-menu #commentCategoryMenu="matMenu" xPosition="before">
-    <div class="colors-wrapper">
+    <div class="app-views-comments-colors-wrapper">
         <button
             class="comment-color-selector"
             mat-mini-fab

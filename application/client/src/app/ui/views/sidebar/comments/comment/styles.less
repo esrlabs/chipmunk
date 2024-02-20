@@ -1,31 +1,41 @@
 @import '../../../../styles/variables.less';
 
-app-sidebar-app-comments-item {
+app-views-comments-item {
     display: block;
     & div.wrapper {
         &.black {
             & * {
-                color: #000000!important;
+                color: @scheme-color-7!important;
             }
             .mat-expansion-indicator::after{
-                color: #000000!important;
+                color: @scheme-color-7!important;
             }
         }
         & mat-card {
             margin-top: 8px;
             & mat-card-actions {
-                text-align: right;
+                display: flex;
+                flex-direction: row;
                 opacity: 0.001;
-                & button {
-                    transition: 250ms ease-in-out all;
+                justify-content: end;
+                transition: 250ms ease-in-out all;
+                & span.small-icon-button {
+                    color: @scheme-color-5;
                 }
             }
             & mat-expansion-panel {
-                margin-left: -16px!important;
                 border-top-left-radius: 0!important;
                 border-top-right-radius: 0!important;
-                margin-right: -16px!important;
-                margin-bottom: -16px!important;
+                // margin-bottom: -16px!important;
+                & .mat-expansion-panel-header {
+                    padding: 0 16px;
+                }
+                & .mat-expansion-panel-body {
+                    padding: 0 8px 16px 16px;
+                }
+            }
+            & mat-card-subtitle {
+                color: @scheme-color-5;
             }
             & mat-card-subtitle:hover {
                 cursor: pointer;
@@ -43,7 +53,4 @@ app-sidebar-app-comments-item {
             }
         }
     }
-}
-button.comment-color-selector {
-    margin: 2px;
 }
