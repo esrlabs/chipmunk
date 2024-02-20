@@ -411,6 +411,7 @@ export class Comments extends Subscriber {
                             this.subjects.get().updated.emit(comment);
                         }
                         this.session.switch().sidebar.comments();
+                        this.session.highlights.subjects.get().update.emit();
                         popupHandle.close();
                     },
                     remove: () => {
@@ -418,7 +419,6 @@ export class Comments extends Subscriber {
                         popupHandle.close();
                     },
                     cancel: () => {
-                        this.comments.delete(comment.uuid);
                         popupHandle.close();
                     },
                 },
@@ -453,6 +453,7 @@ export class Comments extends Subscriber {
             this.subjects.get().removed.emit(uuid);
         });
         this.comments.clear();
+        this.session.highlights.subjects.get().update.emit();
     }
 
     public get(): Map<string, Definition> {
