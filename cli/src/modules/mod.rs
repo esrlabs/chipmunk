@@ -100,7 +100,8 @@ pub trait Manager {
             self.kind().install_cmd(prod)
         };
         if let Some(cmd) = cmd {
-            spawn(&cmd, Some(self.cwd()), Some(&cmd), None).await
+            let caption = format!("Install {}", self.owner());
+            spawn(&cmd, Some(self.cwd()), caption, None).await
         } else {
             Ok(SpawnResult::empty())
         }
@@ -134,7 +135,8 @@ pub trait Manager {
         let cmd = self
             .build_cmd(prod)
             .unwrap_or_else(|| self.kind().build_cmd(prod));
-        match spawn(&cmd, Some(path), Some(&cmd), None).await {
+        let caption = format!("Bulid {}", self.owner());
+        match spawn(&cmd, Some(path), caption, None).await {
             Ok(status) => {
                 if !status.status.success() {
                     Ok(status)
@@ -162,18 +164,23 @@ pub trait Manager {
     }
     async fn lint(&self) -> Result<SpawnResult, Error> {
         let path = LOCATION.root.clone().join(self.cwd());
-        let status = spawn("yarn run lint", Some(path.clone()), Some("linting"), None).await?;
+        let caption = format!("TS Lint {}", self.owner());
+        let status = spawn("yarn run lint", Some(path.clone()), caption, None).await?;
         if !status.status.success() {
             return Ok(status);
         }
-        spawn("yarn run build", Some(path), Some("TS compilation"), None).await
+
+        let caption = format!("Build {}", self.owner());
+        spawn("yarn run build", Some(path), caption, None).await
     }
     async fn clippy(&self) -> Result<SpawnResult, Error> {
         let path = LOCATION.root.clone().join(self.cwd());
+
+        let caption = format!("Clippy {}", self.owner());
         spawn(
             "cargo clippy --color always --all --all-features -- -D warnings",
             Some(path),
-            Some("clippy"),
+            caption,
             None,
         )
         .await
@@ -189,11 +196,12 @@ pub trait Manager {
             return Ok(SpawnResult::empty());
         }
 
+        let caption = format!("Test {}", self.owner());
         let results = join_all(test_cmds.iter().map(|cmd| {
             spawn(
                 &cmd.command,
                 Some(cmd.cwd.to_owned()),
-                Some(&cmd.command),
+                caption.clone(),
                 cmd.spawn_opts.clone(),
             )
         }))

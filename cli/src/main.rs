@@ -209,8 +209,15 @@ fn get_report_option(report_argument: Option<Option<PathBuf>>) -> Result<ReportO
     }
 }
 
-fn write_report(spawn_result: &SpawnResult, mut sink: impl io::Write) -> Result<(), io::Error> {
+fn write_report(spawn_result: &SpawnResult, mut writer: impl io::Write) -> Result<(), io::Error> {
     assert!(!spawn_result.is_empty());
+
+    writeln!(writer)?;
+    writeln!(
+        writer,
+        "===================================================="
+    )?;
+    writeln!(writer)?;
 
     let status = if spawn_result.status.success() {
         "succeeded"
@@ -218,16 +225,13 @@ fn write_report(spawn_result: &SpawnResult, mut sink: impl io::Write) -> Result<
         "failed"
     };
 
-    writeln!(sink, "Job {} has {status}", spawn_result.job)?;
-    writeln!(sink, "Logs:")?;
+    writeln!(writer, "Job '{}' has {status}", spawn_result.job)?;
+    writeln!(writer, "Command: {}", spawn_result.cmd)?;
+    writeln!(writer, "Logs:")?;
 
     for line in spawn_result.report.iter() {
-        sink.write_all(line.as_bytes())?;
+        writer.write_all(line.as_bytes())?;
     }
-
-    writeln!(sink)?;
-    writeln!(sink, "====================================================")?;
-    writeln!(sink)?;
 
     Ok(())
 }

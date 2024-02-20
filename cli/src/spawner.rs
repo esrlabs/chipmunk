@@ -20,6 +20,7 @@ pub struct SpawnResult {
     pub report: Vec<String>,
     pub status: ExitStatus,
     pub job: String,
+    pub cmd: String,
 }
 
 impl SpawnResult {
@@ -28,14 +29,16 @@ impl SpawnResult {
             report: Vec::default(),
             status: ExitStatus::default(),
             job: String::new(),
+            cmd: String::default(),
         }
     }
 
     pub fn is_empty(&self) -> bool {
         self.report.is_empty() && 
         self.job.is_empty() && 
+        self.cmd.is_empty() &&
         // Default status indicates successful completion
-        self.status.success()
+        self.status.success() 
     }
 }
 
@@ -47,7 +50,7 @@ pub(crate) struct SpawnOptions {
 pub async fn spawn(
     command: &str,
     cwd: Option<PathBuf>,
-    caption: Option<&str>,
+    caption: String,
     opts: Option<SpawnOptions>,
 ) -> Result<SpawnResult, io::Error> {
     let opts = opts.unwrap_or_default();
@@ -68,7 +71,7 @@ pub async fn spawn(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
-    let job_title = caption.unwrap_or(cmd);
+    let job_title = caption;
     let sequence = TRACKER
         .start(
             &format!("{}: {}", to_relative_path(&cwd).display(), job_title),
@@ -139,7 +142,8 @@ pub async fn spawn(
         Ok(SpawnResult {
             report: report_lines,
             status,
-            job: job_title.to_string(),
+            job: job_title,
+            cmd: command.to_owned(),
         })
     } else {
         TRACKER
