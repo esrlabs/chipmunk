@@ -1,3 +1,5 @@
+use git2::Repository;
+
 use crate::LOCATION;
 use std::path::Path;
 use std::{
@@ -13,18 +15,31 @@ pub struct Location {
 
 impl Location {
     pub fn new() -> Result<Location, Error> {
-        let mut root = current_dir()?;
-        // TODO: better compare folders stucts or some file, like some git config file
-        while !root.ends_with("chipmunk") && !root.ends_with("logviewer") {
-            if !root.pop() {
-                return Err(Error::new(
-                    ErrorKind::NotFound,
-                    "Fail to find project's root location",
-                ));
-            }
-        }
+        let current_dir = current_dir()?;
+        let root: PathBuf = match Repository::discover(current_dir) {
+            Ok(repo) => {
+                let Some(root) = repo.workdir() else {
+                    return Err(Error::new(
+                        ErrorKind::NotFound,
+                        "Fail to find project's root location",
+                    ));
+                };
 
-        Ok(Self { root })
+                root.into()
+            }
+            Err(err) => return Err(Error::new(ErrorKind::NotFound, err)),
+        };
+
+        // Make sure we are in the chipmunk repository
+        // Note: This check will fail if the structure of the repo changes
+        if root.join("application").is_dir() && root.join("developing").is_dir() {
+            Ok(Self { root })
+        } else {
+            Err(Error::new(
+                ErrorKind::NotFound,
+                "Fail to find project's root location",
+            ))
+        }
     }
 }
 
