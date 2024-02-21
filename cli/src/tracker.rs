@@ -7,7 +7,7 @@ use std::{
 };
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
-    oneshot,
+    oneshot, OnceCell,
 };
 
 const TIME_BAR_WIDTH: usize = 5;
@@ -65,6 +65,12 @@ impl JobBarState {
             result: None,
         }
     }
+}
+
+pub async fn get_tracker() -> &'static Tracker {
+    static TRACKER: OnceCell<Tracker> = OnceCell::const_new();
+
+    TRACKER.get_or_init(|| async { Tracker::new() }).await
 }
 
 impl Tracker {

@@ -183,7 +183,6 @@ dependencies = [
  "futures-lite",
  "git2",
  "indicatif",
- "lazy_static",
  "tokio",
 ]
 

@@ -16,14 +16,7 @@ use std::{
     path::PathBuf,
 };
 use target::Target;
-use tracker::Tracker;
-
-#[macro_use]
-extern crate lazy_static;
-
-lazy_static! {
-    static ref TRACKER: Tracker = Tracker::new();
-}
+use tracker::get_tracker;
 
 static REPORT_HELP_TEXT: &str =
     "Write report from command logs to the given file or to stdout if no file is defined";
@@ -145,7 +138,9 @@ async fn main() -> Result<(), Error> {
             .await
         }
     };
-    TRACKER.shutdown().await?;
+
+    let tracker = get_tracker().await;
+    tracker.shutdown().await?;
     let mut success: bool = true;
     for (idx, res) in results.iter().enumerate() {
         match res {

@@ -1,8 +1,5 @@
 // cmd.envs(vec![("PATH", "/bin"), ("TERM", "xterm-256color")]);
-use crate::{
-    location::{to_relative_path, get_root},
-    TRACKER,
-};
+use crate::{ location::{to_relative_path, get_root}, tracker::get_tracker};
 use futures_lite::{future, FutureExt};
 use std::{
     env::vars,
@@ -101,7 +98,8 @@ pub async fn spawn(
         .stderr(Stdio::piped())
         .spawn()?;
     let job_title = caption;
-    let sequence = TRACKER
+    let tracker = get_tracker().await;
+    let sequence = tracker
         .start(
             &format!("{}: {}", to_relative_path(&cwd).display(), job_title),
             None,
@@ -126,9 +124,9 @@ pub async fn spawn(
                             break;
                         } else {
                             if !opts.suppress_msg {
-                                TRACKER.msg(sequence, &stdout_line).await;
+                                tracker.msg(sequence, &stdout_line).await;
                             }
-                            TRACKER.progress(sequence, None).await;
+                            tracker.progress(sequence, None).await;
                             storage_report.push(stdout_line);
                         }
                     }
@@ -137,7 +135,7 @@ pub async fn spawn(
                         if stderr_read_bytes == 0 {
                             break;
                         } else {
-                            TRACKER.progress(sequence, None).await;
+                            tracker.progress(sequence, None).await;
                             if !stderr_line.trim().is_empty() {
                                 storage_report.push(stderr_line);
                             }
@@ -158,15 +156,15 @@ pub async fn spawn(
     {
         Ok(status) => status,
         Err(err) => {
-            TRACKER.fail(sequence, &err.to_string()).await;
+            tracker.fail(sequence, &err.to_string()).await;
             return Err(err);
         }
     };
     if let Some(status) = status {
         if status.success() {
-            TRACKER.success(sequence, "").await;
+            tracker.success(sequence, "").await;
         } else {
-            TRACKER.fail(sequence, "finished with errors").await;
+            tracker.fail(sequence, "finished with errors").await;
         }
         Ok(SpawnResult {
             report: report_lines,
@@ -175,7 +173,7 @@ pub async fn spawn(
             cmd: command.to_owned(),
         })
     } else {
-        TRACKER
+        tracker
             .fail(sequence, "Fail to get exist status of spawned command")
             .await;
         Err(io::Error::new(

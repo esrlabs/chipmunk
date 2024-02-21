@@ -1,13 +1,15 @@
 extern crate fs_extra;
-use crate::TRACKER;
 use fs_extra::dir::{copy_with_progress, CopyOptions, TransitProcess, TransitProcessResult};
 use std::sync::mpsc;
 use std::{fs, io::Error, path::PathBuf};
 
+use crate::tracker::get_tracker;
+
 pub async fn cp_file(src: PathBuf, dest: PathBuf) -> Result<(), Error> {
-    let sequence = TRACKER.start("copy file", None).await?;
+    let tracker = get_tracker().await;
+    let sequence = tracker.start("copy file", None).await?;
     fs::copy(&src, &dest)?;
-    TRACKER
+    tracker
         .success(
             sequence,
             &format!("copied: {} to {}", src.display(), dest.display()),
@@ -17,7 +19,8 @@ pub async fn cp_file(src: PathBuf, dest: PathBuf) -> Result<(), Error> {
 }
 
 pub async fn cp_folder(src: PathBuf, dest: PathBuf) -> Result<(), Error> {
-    let sequence = TRACKER.start("copy folder", None).await?;
+    let tracker = get_tracker().await;
+    let sequence = tracker.start("copy folder", None).await?;
     let options = CopyOptions::new();
     let (tx, rx): (mpsc::Sender<TransitProcess>, mpsc::Receiver<TransitProcess>) = mpsc::channel();
     let msg = format!("copied: {} to {}", src.display(), dest.display());
@@ -33,7 +36,7 @@ pub async fn cp_folder(src: PathBuf, dest: PathBuf) -> Result<(), Error> {
     })
     .await;
     while let Ok(info) = rx.recv() {
-        TRACKER
+        tracker
             .msg(
                 sequence,
                 &format!(
@@ -42,9 +45,9 @@ pub async fn cp_folder(src: PathBuf, dest: PathBuf) -> Result<(), Error> {
                 ),
             )
             .await;
-        TRACKER.progress(sequence, None).await;
+        tracker.progress(sequence, None).await;
     }
-    TRACKER.success(sequence, &msg).await;
+    tracker.success(sequence, &msg).await;
     Ok(())
 }
 
@@ -52,9 +55,10 @@ pub async fn rm_folder(path: PathBuf) -> Result<(), Error> {
     if !path.exists() {
         return Ok(());
     }
-    let sequence = TRACKER.start("remove folder", None).await?;
+    let tracker = get_tracker().await;
+    let sequence = tracker.start("remove folder", None).await?;
     fs::remove_dir_all(&path)?;
-    TRACKER
+    tracker
         .success(sequence, &format!("removed: {}", path.display(),))
         .await;
     Ok(())
