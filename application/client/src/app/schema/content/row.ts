@@ -78,10 +78,8 @@ export class Row extends Subscriber {
     }
 
     public from(row: Row) {
-        if (this.content !== row.content) {
-            this.content = row.content;
-            this.update();
-        }
+        const update = this.content !== row.content || this.position !== row.position;
+        this.content !== row.content && (this.content = row.content);
         this.color !== row.color && (this.color = row.color);
         this.background !== row.background && (this.background = row.background);
         this.position !== row.position && (this.position = row.position);
@@ -91,6 +89,7 @@ export class Row extends Subscriber {
         this.cropped !== row.cropped && (this.cropped = row.cropped);
         this.nature = row.nature;
         this.seporator = this.isSeporator();
+        update && this.update();
         this.change.emit();
     }
 
