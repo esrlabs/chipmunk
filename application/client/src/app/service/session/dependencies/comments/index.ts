@@ -436,6 +436,7 @@ export class Comments extends Subscriber {
     public remove(uuid: string) {
         this.comments.delete(uuid);
         this.subjects.get().removed.emit(uuid);
+        this.session.highlights.subjects.get().update.emit();
     }
 
     public update(comment: Definition) {
@@ -445,6 +446,7 @@ export class Comments extends Subscriber {
         comment.modified = Date.now();
         this.comments.set(comment.uuid, comment);
         this.subjects.get().updated.emit(comment);
+        this.session.highlights.subjects.get().update.emit();
     }
 
     public clear() {
