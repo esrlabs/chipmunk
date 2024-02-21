@@ -1,5 +1,5 @@
 use super::{Kind, Manager};
-use crate::{fstools, spawner::SpawnResult, Target, LOCATION};
+use crate::{fstools, location::get_root, spawner::SpawnResult, Target};
 use async_trait::async_trait;
 use std::{
     fs,
@@ -27,7 +27,7 @@ impl Manager for Module {
         Kind::Ts
     }
     fn cwd(&self) -> PathBuf {
-        LOCATION.root.clone().join(PATH)
+        get_root().join(PATH)
     }
     fn deps(&self) -> Vec<Target> {
         vec![Target::Shared, Target::Wrapper, Target::Client]

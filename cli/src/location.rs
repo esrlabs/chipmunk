@@ -1,12 +1,15 @@
 use git2::Repository;
 
-use crate::LOCATION;
 use std::path::Path;
 use std::{
     env::current_dir,
     io::{Error, ErrorKind},
     path::PathBuf,
 };
+
+use tokio::sync::OnceCell;
+
+pub static LOCATION: OnceCell<Location> = OnceCell::const_new();
 
 #[derive(Clone, Debug)]
 pub struct Location {
@@ -43,6 +46,27 @@ impl Location {
     }
 }
 
+/// Get the path of the root repository
+pub fn get_root() -> &'static PathBuf {
+    &LOCATION
+        .get()
+        .expect("Location is initialized in main function")
+        .root
+}
+
+/// Initial location instance to get the path of the root repository
+/// return `Error` If the program isn't invoked inside chipmunk repository
+pub fn init_location() -> Result<(), Error> {
+    assert!(LOCATION.get().is_none());
+
+    let location = Location::new()?;
+    LOCATION
+        .set(location)
+        .expect("init location can't be called more than once");
+    Ok(())
+}
+
 pub fn to_relative_path(path: &PathBuf) -> &Path {
-    path.strip_prefix(&LOCATION.root).unwrap_or(path)
+    let root = get_root();
+    path.strip_prefix(root).unwrap_or(path)
 }

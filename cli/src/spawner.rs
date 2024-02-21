@@ -1,7 +1,7 @@
 // cmd.envs(vec![("PATH", "/bin"), ("TERM", "xterm-256color")]);
 use crate::{
-    location::to_relative_path,
-    {LOCATION, TRACKER},
+    location::{to_relative_path, get_root},
+    TRACKER,
 };
 use futures_lite::{future, FutureExt};
 use std::{
@@ -83,7 +83,7 @@ pub async fn spawn(
     opts: Option<SpawnOptions>,
 ) -> Result<SpawnResult, io::Error> {
     let opts = opts.unwrap_or_default();
-    let cwd = cwd.unwrap_or_else(|| LOCATION.root.clone());
+    let cwd = cwd.unwrap_or_else(|| get_root().clone());
     let mut parts = command.split(' ').collect::<Vec<&str>>();
     let cmd = parts.remove(0);
     #[allow(clippy::useless_vec)]

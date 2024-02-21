@@ -9,8 +9,9 @@ pub mod wrapper;
 
 use crate::{
     fstools,
+    location::get_root,
     spawner::{spawn, SpawnOptions, SpawnResult},
-    Target, LOCATION,
+    Target,
 };
 use async_trait::async_trait;
 use futures::future::join_all;
@@ -131,7 +132,7 @@ pub trait Manager {
                 return Ok(status);
             }
         }
-        let path = LOCATION.root.clone().join(self.cwd());
+        let path = get_root().join(self.cwd());
         let cmd = self
             .build_cmd(prod)
             .unwrap_or_else(|| self.kind().build_cmd(prod));
@@ -167,7 +168,7 @@ pub trait Manager {
         }
     }
     async fn lint(&self) -> Result<SpawnResult, Error> {
-        let path = LOCATION.root.clone().join(self.cwd());
+        let path = get_root().join(self.cwd());
         let caption = format!("TS Lint {}", self.owner());
         let status = spawn("yarn run lint", Some(path.clone()), caption, None).await?;
         if !status.status.success() {
@@ -178,7 +179,7 @@ pub trait Manager {
         spawn("yarn run build", Some(path), caption, None).await
     }
     async fn clippy(&self) -> Result<SpawnResult, Error> {
-        let path = LOCATION.root.clone().join(self.cwd());
+        let path = get_root().join(self.cwd());
 
         let caption = format!("Clippy {}", self.owner());
         spawn(

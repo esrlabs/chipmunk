@@ -1,5 +1,5 @@
 use super::{Kind, Manager};
-use crate::{Target, LOCATION};
+use crate::{location::get_root, Target};
 use async_trait::async_trait;
 use std::path::PathBuf;
 
@@ -23,7 +23,7 @@ impl Manager for Module {
         Kind::Rs
     }
     fn cwd(&self) -> PathBuf {
-        LOCATION.root.clone().join(PATH)
+        get_root().join(PATH)
     }
     fn deps(&self) -> Vec<Target> {
         vec![]

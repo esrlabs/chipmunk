@@ -7,7 +7,7 @@ mod tracker;
 
 use clap::{Parser, Subcommand};
 use futures::future::join_all;
-use location::Location;
+use location::init_location;
 use modules::Manager;
 use spawner::SpawnResult;
 use std::{
@@ -22,8 +22,6 @@ use tracker::Tracker;
 extern crate lazy_static;
 
 lazy_static! {
-    static ref LOCATION: Location =
-        Location::new().expect("Fail to setup location of root of project");
     static ref TRACKER: Tracker = Tracker::new();
 }
 
@@ -92,6 +90,9 @@ enum Command {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let cli = Cli::parse();
+
+    init_location()?;
+
     let command = cli.command;
     let report_opt: ReportOptions;
     let results = match command {

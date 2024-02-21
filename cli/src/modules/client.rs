@@ -1,5 +1,5 @@
 use super::{Kind, Manager};
-use crate::{Target, LOCATION};
+use crate::{location::get_root, Target};
 use async_trait::async_trait;
 use std::path::PathBuf;
 
@@ -23,16 +23,16 @@ impl Manager for Module {
         Kind::Ts
     }
     fn cwd(&self) -> PathBuf {
-        LOCATION.root.clone().join(PATH)
+        get_root().join(PATH)
     }
     fn deps(&self) -> Vec<Target> {
         vec![Target::Shared, Target::Wasm]
     }
     fn dist_path(&self, prod: bool) -> Option<PathBuf> {
-        Some(LOCATION.root.clone().join(PATH).join(if prod {
-            "dist/release"
-        } else {
-            "dist/debug"
-        }))
+        Some(
+            get_root()
+                .join(PATH)
+                .join(if prod { "dist/release" } else { "dist/debug" }),
+        )
     }
 }
