@@ -1,17 +1,27 @@
 use grep_regex::RegexMatcher;
-use grep_searcher::sinks::UTF8;
-use grep_searcher::Searcher;
 use rayon::prelude::*;
+use regex::Regex;
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::Sender;
-use std::sync::{mpsc, Arc, Mutex};
-use std::thread;
+use std::sync::mpsc::{self, Sender};
 use std::time::Instant;
+use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 
-#[derive(Debug)]
+#[derive(Debug, Error, Clone)]
+pub enum GrepError {
+    #[error("File '{0}' is not a text file")]
+    NotATextFile(String),
+    #[error("Error reading file: {0}")]
+    FileReadError(String),
+    #[error("Error processing file: {0}")]
+    FileProcessingError(String),
+    #[error("Operation cancelled")]
+    OperationCancelled,
+}
+
+#[derive(Debug, Clone)]
 pub struct SearchResult {
     pub file_path: String,
     pub pattern_counts: HashMap<String, usize>,
@@ -36,146 +46,168 @@ impl TextGrep {
         patterns: Vec<&str>,
         file_paths: Vec<&str>,
         chunk_size: usize,
+        case_sensitive: bool,
         cancel_token: CancellationToken,
-    ) -> Result<Vec<SearchResult>, String> {
+    ) -> Result<Vec<Option<SearchResult>>, GrepError> {
         let mut results = Vec::new();
-        let cancel_token_clone = cancel_token.clone();
 
         let (sender, receiver) = mpsc::channel();
         let (error_sender, error_receiver) = mpsc::channel();
 
-        let patterns_arc: Vec<_> = patterns.iter().map(|&p| Arc::from(p)).collect();
-        let file_paths_arc: Vec<_> = file_paths.iter().map(|&fp| Arc::from(fp)).collect();
-
-        let thread_handles: Vec<_> = file_paths_arc
+        let _thread_handles: Vec<_> = file_paths
             .par_iter()
-            .map(|file_path| {
-                let patterns = patterns_arc.clone();
-                let sender = sender.clone();
-                let error_sender_clone = error_sender.clone();
-                let cancel_token = cancel_token_clone.clone();
-                let file_path = Arc::clone(file_path);
-                thread::spawn(move || {
-                    if let Err(err) =
-                        process_file(&file_path, &patterns, chunk_size, &cancel_token, &sender)
-                    {
-                        if error_sender_clone.send(err.to_string()).is_err() {
-                            eprintln!("Error sending error message through channel");
-                        }
-                    }
-                })
+            .map(|&file_path| {
+                if let Err(err) = process_file(
+                    file_path,
+                    &patterns,
+                    chunk_size,
+                    case_sensitive,
+                    &cancel_token.clone(),
+                    &sender,
+                ) {
+                    if error_sender.send(err.clone()).is_err() {}
+                }
             })
             .collect();
 
-        for handle in thread_handles {
-            handle.join().unwrap();
-        }
-
         while let Ok(err_msg) = error_receiver.try_recv() {
-            eprintln!("Error processing file: {:?}", err_msg);
-            results.push(SearchResult {
+            results.push(Some(SearchResult {
                 file_path: "".to_string(),
                 pattern_counts: HashMap::new(),
                 error_message: Some(err_msg.to_string()),
-            });
+            }));
         }
 
         while let Ok(search_result) = receiver.try_recv() {
-            results.push(search_result?);
+            results.push(Some(search_result?));
+        }
+
+        if cancel_token.is_cancelled() {
+            return Ok(vec![None; 0]);
         }
 
         Ok(results)
     }
 }
 
+fn process_chunk(
+    buffer: &[u8],
+    matchers: &HashMap<String, RegexMatcher>,
+    case_sensitive: bool,
+) -> Result<HashMap<String, usize>, GrepError> {
+    let mut local_pattern_counts = HashMap::new();
+
+    for pattern in matchers.keys() {
+        let mut total_count = 0;
+
+        let regex = if case_sensitive {
+            Regex::new(pattern).map_err(|e| GrepError::FileProcessingError(e.to_string()))?
+        } else {
+            Regex::new(&format!("(?i){}", pattern))
+                .map_err(|e| GrepError::FileProcessingError(e.to_string()))?
+        };
+
+        let text = String::from_utf8_lossy(buffer);
+        total_count += regex.find_iter(&text).count();
+
+        local_pattern_counts.insert(pattern.clone(), total_count);
+    }
+
+    Ok(local_pattern_counts)
+}
+
 fn process_file(
-    file_path: &Arc<str>,
-    patterns: &[Arc<str>],
+    file_path: &str,
+    patterns: &[&str],
     chunk_size: usize,
+    case_sensitive: bool,
     cancel_token: &CancellationToken,
-    sender: &Sender<Result<SearchResult, String>>,
-) -> Result<(), String> {
-    let file_path = PathBuf::from(&**file_path);
+    sender: &Sender<Result<SearchResult, GrepError>>,
+) -> Result<(), GrepError> {
+    let file_path = PathBuf::from(file_path);
 
     if !is_text_file(&file_path) {
         let error_msg = format!("File '{}' is not a text file", file_path.display());
-        if sender.send(Err(error_msg.clone())).is_err() {
-            eprintln!("Error sending search result through channel");
-        }
+        let _ = sender
+            .send(Err(GrepError::NotATextFile(error_msg.clone())))
+            .is_err();
         return Ok(());
     }
 
     let start_time = Instant::now();
-    let pattern_counts = HashMap::new();
-
-    let mut file = std::fs::File::open(&file_path).map_err(|e| e.to_string())?;
+    let mut file =
+        std::fs::File::open(&file_path).map_err(|e| GrepError::FileReadError(e.to_string()))?;
     let mut buffer = vec![0; chunk_size]; // define a buffer to read chunks of data
+    let mut incomplete_line = String::new();
 
     // create matchers for each pattern and store them with their corresponding patterns in a hashmap
     let mut matchers = HashMap::new();
     for pattern in patterns {
-        let pattern_string = pattern.as_ref().to_string();
-        let matcher = RegexMatcher::new(&pattern_string).map_err(|e| e.to_string())?;
+        let pattern_string = pattern.to_string();
+        let matcher = RegexMatcher::new(&pattern_string)
+            .map_err(|e| GrepError::FileProcessingError(e.to_string()))?;
         matchers.insert(pattern_string, matcher);
     }
 
-    let pattern_counts_mutex = Arc::new(Mutex::new(pattern_counts));
-
-    let mut threads = vec![];
+    let mut results = Vec::new(); // Vector to collect results from each thread
 
     loop {
         if cancel_token.is_cancelled() {
-            return Err("Operation cancelled".to_string());
+            return Err(GrepError::OperationCancelled);
         }
-        let bytes_read = file.read(&mut buffer).map_err(|e| e.to_string())?;
+        let bytes_read = file
+            .read(&mut buffer)
+            .map_err(|e| GrepError::FileReadError(e.to_string()))?;
         if bytes_read == 0 {
-            break; // Reached EOF
+            // Reached EOF, process incomplete line if any
+            if !incomplete_line.is_empty() {
+                let local_pattern_counts =
+                    process_chunk(incomplete_line.as_bytes(), &matchers, case_sensitive)?;
+                results.push(local_pattern_counts);
+            }
+            break;
         }
 
-        let matchers_clone = matchers.clone();
-        let pattern_counts_mutex_clone = pattern_counts_mutex.clone();
-        let buffer_clone = buffer.clone();
+        // Check if there's an incomplete line from the previous chunk
+        let mut chunk = String::from_utf8_lossy(&buffer[..bytes_read]).to_string();
+        if !incomplete_line.is_empty() {
+            chunk = incomplete_line.clone() + &chunk;
+            incomplete_line.clear();
+        }
 
-        let thread_handle = thread::spawn(move || {
-            let mut local_pattern_counts = HashMap::new();
-
-            for (pattern, matcher) in &matchers_clone {
-                let mut total_count = 0;
-                let mut searcher = Searcher::new();
-
-                searcher
-                    .search_reader(
-                        matcher,
-                        &buffer_clone[..bytes_read],
-                        UTF8(|_, _| {
-                            total_count += 1;
-                            Ok(true)
-                        }),
-                    )
-                    .map_err(|e| e.to_string())
-                    .unwrap();
-
-                local_pattern_counts.insert(pattern.clone(), total_count);
+        // Find the last newline character in the chunk
+        let last_newline_index = match chunk.rfind('\n') {
+            Some(idx) => idx,
+            None => {
+                // If no newline is found, keep the chunk for the next iteration
+                incomplete_line = chunk;
+                continue;
             }
+        };
 
-            let mut pattern_counts_mutex_guard = pattern_counts_mutex_clone.lock().unwrap();
-            for (pattern, count) in local_pattern_counts {
-                *pattern_counts_mutex_guard.entry(pattern).or_insert(0) += count;
-            }
-        });
+        // Split the chunk at the last newline character
+        let (complete_chunk, remainder) = chunk.split_at(last_newline_index + 1);
 
-        threads.push(thread_handle);
+        // Process the complete chunk
+        let local_pattern_counts =
+            process_chunk(complete_chunk.as_bytes(), &matchers, case_sensitive)?;
+        results.push(local_pattern_counts);
+
+        // Store the remainder for the next iteration
+        incomplete_line = remainder.to_string();
     }
 
-    for thread in threads {
-        thread.join().unwrap();
+    let mut aggregated_pattern_counts = HashMap::new();
+    for pattern_count in &results {
+        for (pattern, count) in pattern_count {
+            *aggregated_pattern_counts
+                .entry(pattern.to_string())
+                .or_insert(0) += count;
+        }
     }
 
     let end_time = start_time.elapsed();
     eprintln!("Time taken {:?}", end_time);
-
-    let pattern_counts_mutex_guard = pattern_counts_mutex.lock().unwrap();
-    let aggregated_pattern_counts = pattern_counts_mutex_guard.clone();
 
     sender
         .send(Ok(SearchResult {
@@ -183,7 +215,11 @@ fn process_file(
             pattern_counts: aggregated_pattern_counts,
             error_message: None,
         }))
-        .map_err(|e| e.to_string())?;
+        .map_err(|_| {
+            GrepError::FileProcessingError(
+                "Error sending search result through channel".to_string(),
+            )
+        })?;
 
     Ok(())
 }
