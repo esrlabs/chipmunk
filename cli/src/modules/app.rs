@@ -1,11 +1,8 @@
 use super::{Kind, Manager};
 use crate::{fstools, location::get_root, spawner::SpawnResult, Target};
+use anyhow::{bail, Context, Error};
 use async_trait::async_trait;
-use std::{
-    fs,
-    io::{Error, ErrorKind},
-    path::PathBuf,
-};
+use std::{fs, path::PathBuf};
 
 const PATH: &str = "application/holder";
 
@@ -37,16 +34,13 @@ impl Manager for Module {
         Some(String::from("yarn install"))
     }
     async fn after(&self, prod: bool) -> Result<Option<SpawnResult>, Error> {
-        let src = Target::Client.get().dist_path(prod).ok_or(Error::new(
-            ErrorKind::NotFound,
-            "Fail to get client artifacts",
-        ))?;
+        let src = Target::Client
+            .get()
+            .dist_path(prod)
+            .context("Fail to get client artifacts")?;
         let dest = self.cwd().join("dist");
         if !src.exists() {
-            return Err(Error::new(
-                ErrorKind::NotFound,
-                format!("Not found: {}", src.display()),
-            ));
+            bail!("Not found: {}", src.display());
         }
         if !dest.exists() {
             fs::create_dir(&dest)?;
@@ -57,10 +51,10 @@ impl Manager for Module {
         }
         fstools::cp_folder(src.clone(), dest.clone()).await?;
         std::fs::rename(
-            dest.join(src.file_name().ok_or(Error::new(
-                ErrorKind::NotFound,
-                "Fail to parse client artifacts path",
-            ))?),
+            dest.join(
+                src.file_name()
+                    .context("Fail to parse client artifacts path")?,
+            ),
             dest.join("client"),
         )?;
         Ok(None)

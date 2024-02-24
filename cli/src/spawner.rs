@@ -1,9 +1,9 @@
 // cmd.envs(vec![("PATH", "/bin"), ("TERM", "xterm-256color")]);
 use crate::{ location::{to_relative_path, get_root}, tracker::get_tracker};
+use anyhow::bail;
 use futures_lite::{future, FutureExt};
 use std::{
     env::vars,
-    io,
     path::PathBuf,
     process::{ExitStatus, Stdio},
 };
@@ -78,7 +78,7 @@ pub async fn spawn(
     cwd: Option<PathBuf>,
     caption: String,
     opts: Option<SpawnOptions>,
-) -> Result<SpawnResult, io::Error> {
+) -> Result<SpawnResult, anyhow::Error> {
     let opts = opts.unwrap_or_default();
     let cwd = cwd.unwrap_or_else(|| get_root().clone());
     let mut parts = command.split(' ').collect::<Vec<&str>>();
@@ -146,7 +146,7 @@ pub async fn spawn(
             }
 
             future::pending::<()>().await;
-            Ok::<Option<ExitStatus>, io::Error>(None)
+            Ok::<Option<ExitStatus>, anyhow::Error>(None)
         }
     };
 
@@ -176,9 +176,6 @@ pub async fn spawn(
         tracker
             .fail(sequence, "Fail to get exist status of spawned command")
             .await;
-        Err(io::Error::new(
-            io::ErrorKind::Other,
-            "Fail to get exist status of spawned command",
-        ))
+        bail!( "Fail to get exist status of spawned command")
     }
 }

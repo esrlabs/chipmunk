@@ -5,6 +5,7 @@ mod spawner;
 mod target;
 mod tracker;
 
+use anyhow::{bail, Error};
 use clap::{Parser, Subcommand};
 use futures::future::join_all;
 use location::init_location;
@@ -12,7 +13,7 @@ use modules::Manager;
 use spawner::SpawnResult;
 use std::{
     fs::File,
-    io::{self, stdout, Error, ErrorKind, Stdout},
+    io::{self, stdout, Stdout},
     path::PathBuf,
 };
 use target::Target;
@@ -180,7 +181,7 @@ async fn main() -> Result<(), Error> {
         }
     }
     if !success {
-        return Err(Error::new(ErrorKind::Other, "Some task were failed"));
+        bail!("Some task were failed")
     }
     Ok(())
 }

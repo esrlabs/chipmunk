@@ -1,11 +1,8 @@
 use super::{Kind, Manager};
 use crate::{fstools, location::get_root, spawner::SpawnResult, Target};
+use anyhow::{bail, Error};
 use async_trait::async_trait;
-use std::{
-    fs,
-    io::{Error, ErrorKind},
-    path::PathBuf,
-};
+use std::{fs, path::PathBuf};
 
 const PATH: &str = "application/apps/rustcore/ts-bindings";
 
@@ -36,10 +33,7 @@ impl Manager for Module {
         let src = Target::Binding.get().cwd().join("dist/index.node");
         let dest = self.cwd().join("dist/native");
         if !src.exists() {
-            return Err(Error::new(
-                ErrorKind::NotFound,
-                format!("Not found: {}", src.to_string_lossy()),
-            ));
+            bail!("Not found: {}", src.to_string_lossy());
         }
         if !dest.exists() {
             fs::create_dir(&dest)?;

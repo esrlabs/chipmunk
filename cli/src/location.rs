@@ -1,11 +1,8 @@
+use anyhow::{bail, Context, Error};
 use git2::Repository;
 
 use std::path::Path;
-use std::{
-    env::current_dir,
-    io::{Error, ErrorKind},
-    path::PathBuf,
-};
+use std::{env::current_dir, path::PathBuf};
 
 use tokio::sync::OnceCell;
 
@@ -19,29 +16,18 @@ pub struct Location {
 impl Location {
     pub fn new() -> Result<Location, Error> {
         let current_dir = current_dir()?;
-        let root: PathBuf = match Repository::discover(current_dir) {
-            Ok(repo) => {
-                let Some(root) = repo.workdir() else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
-                        "Fail to find project's root location",
-                    ));
-                };
-
-                root.into()
-            }
-            Err(err) => return Err(Error::new(ErrorKind::NotFound, err)),
+        let repo =
+            Repository::discover(current_dir).context("Fail to find chipmunk root directory")?;
+        let Some(root) = repo.workdir() else {
+            bail!("Fail to find chipmunk root directory")
         };
 
         // Make sure we are in the chipmunk repository
         // Note: This check will fail if the structure of the repo changes
         if root.join("application").is_dir() && root.join("developing").is_dir() {
-            Ok(Self { root })
+            Ok(Self { root: root.into() })
         } else {
-            Err(Error::new(
-                ErrorKind::NotFound,
-                "Fail to find project's root location",
-            ))
+            bail!("Fail to find project's root location")
         }
     }
 }

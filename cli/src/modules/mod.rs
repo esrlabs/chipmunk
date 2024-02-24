@@ -13,9 +13,10 @@ use crate::{
     spawner::{spawn, SpawnOptions, SpawnResult},
     Target,
 };
+use anyhow::Error;
 use async_trait::async_trait;
 use futures::future::join_all;
-use std::{io::Error, path::PathBuf};
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub enum Kind {

@@ -1,10 +1,7 @@
+use anyhow::{anyhow, Context, Error};
 use console::style;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use std::{
-    collections::HashMap,
-    io::{Error, ErrorKind},
-    time::Instant,
-};
+use std::{collections::HashMap, time::Instant};
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot, OnceCell,
@@ -81,9 +78,9 @@ impl Tracker {
     }
 
     pub async fn run(mut rx: UnboundedReceiver<Tick>) -> Result<(), Error> {
-        let spinner_style = ProgressStyle::with_template("{spinner} {prefix:.bold.dim} {wide_msg}")
-            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?
-            .tick_chars("▂▃▅▆▇▆▅▃▂ ");
+        let spinner_style =
+            ProgressStyle::with_template("{spinner} {prefix:.bold.dim} {wide_msg}")?
+                .tick_chars("▂▃▅▆▇▆▅▃▂ ");
         async move {
             let mut sequence: usize = 0;
             let mut max_time_len = 0;
@@ -223,10 +220,8 @@ impl Tracker {
         let (tx_response, rx_response) = oneshot::channel();
         self.tx
             .send(Tick::Started(job.to_string(), max, tx_response))
-            .map_err(|e| Error::new(ErrorKind::Other, format!("Fail to send tick: {e}")))?;
-        rx_response
-            .await
-            .map_err(|err| Error::new(ErrorKind::NotConnected, err.to_string()))
+            .context("Fail to send tick")?;
+        rx_response.await.context("Fail to receive tick")
     }
 
     pub async fn progress(&self, sequence: usize, pos: Option<u64>) {
@@ -265,17 +260,15 @@ impl Tracker {
         let (tx_response, rx_response) = oneshot::channel();
         self.tx
             .send(Tick::Shutdown(tx_response))
-            .map_err(|e| Error::new(ErrorKind::Other, format!("Fail to send tick: {e}")))?;
-        rx_response
-            .await
-            .map_err(|err| Error::new(ErrorKind::NotConnected, err.to_string()))
+            .context("Fail to send tick")?;
+        rx_response.await.context("Fail to receive tick")
     }
 
     pub async fn _print(&self, msg: String) {
         if let Err(e) = self
             .tx
             .send(Tick::Print(msg))
-            .map_err(|e| Error::new(ErrorKind::Other, format!("Fail to send tick: {e}")))
+            .map_err(|e| anyhow!("Fail to send tick: {e}"))
         {
             eprintln!("Fail to communicate with tracker: {e}");
         }

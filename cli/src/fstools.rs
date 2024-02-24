@@ -1,7 +1,8 @@
 extern crate fs_extra;
+use anyhow::Error;
 use fs_extra::dir::{copy_with_progress, CopyOptions, TransitProcess, TransitProcessResult};
 use std::sync::mpsc;
-use std::{fs, io::Error, path::PathBuf};
+use std::{fs, path::PathBuf};
 
 use crate::tracker::get_tracker;
 
