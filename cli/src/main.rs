@@ -229,6 +229,10 @@ fn write_report(spawn_result: &SpawnResult, mut writer: impl io::Write) -> Resul
 
     for line in spawn_result.report.iter() {
         writer.write_all(line.as_bytes())?;
+
+        if !line.ends_with('\n') {
+            writeln!(writer)?;
+        }
     }
 
     Ok(())
