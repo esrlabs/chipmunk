@@ -108,10 +108,11 @@ async fn main() -> Result<(), Error> {
         } => {
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
+            let report = !matches!(report_opt, ReportOptions::None);
             join_all(
                 targets
                     .iter()
-                    .map(|module| module.build(production))
+                    .map(|module| module.build(production, report))
                     .collect::<Vec<_>>(),
             )
             .await

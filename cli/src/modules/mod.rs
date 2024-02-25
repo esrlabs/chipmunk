@@ -120,15 +120,15 @@ pub trait Manager {
             Kind::Rs => Ok(SpawnResult::empty()),
         }
     }
-    async fn after(&self, _prod: bool) -> Result<Option<SpawnResult>, Error> {
+    async fn after(&self, _prod: bool, _report: bool) -> Result<Option<SpawnResult>, Error> {
         Ok(None)
     }
-    async fn build(&self, prod: bool) -> Result<SpawnResult, Error> {
+    async fn build(&self, prod: bool, report: bool) -> Result<SpawnResult, Error> {
         self.install(false).await?;
         let deps: Vec<Box<dyn Manager + Sync + Send>> =
             self.deps().iter().map(|target| target.get()).collect();
         for module in deps {
-            let status = module.build(prod).await?;
+            let status = module.build(prod, report).await?;
             if !status.status.success() {
                 return Ok(status);
             }
@@ -143,7 +143,7 @@ pub trait Manager {
                 if !status.status.success() {
                     Ok(status)
                 } else {
-                    let res = self.after(prod).await?;
+                    let res = self.after(prod, report).await?;
                     if matches!(self.kind(), Kind::Ts) && prod {
                         self.clean().await?;
                         self.install(prod).await?;
