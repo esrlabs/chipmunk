@@ -1,5 +1,8 @@
 // cmd.envs(vec![("PATH", "/bin"), ("TERM", "xterm-256color")]);
-use crate::{ location::{to_relative_path, get_root}, tracker::get_tracker};
+use crate::{
+    location::{get_root, to_relative_path},
+    tracker::get_tracker,
+};
 use anyhow::bail;
 use futures_lite::{future, FutureExt};
 use std::{
@@ -31,39 +34,15 @@ impl SpawnResult {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.report.is_empty() && 
-        self.job.is_empty() && 
-        self.cmd.is_empty() &&
-        // Default status indicates successful completion
-        self.status.success() 
+        self.job.is_empty() && self.cmd.is_empty()
     }
 
-    pub fn merge_with(&mut self, other: SpawnResult) {
-        if other.is_empty() {
-            return;
-        }
-
-        if self.is_empty() {
-            *self = other;
-            return;
-        }
-
-        self.report.push(String::from("-------------------------------------------"));
-        self.report.extend(other.report);
-
-        self.job.push_str(" & ");
-        self.job.push_str(other.job.as_str());
-
-        self.cmd.push_str(" & ");
-        self.cmd.push_str(other.cmd.as_str());
-
-        // The failed status is the relevant one.
-        if !self.status.success() {
-            return;
-        }
-
-        if !other.status.success() {
-            self.status = other.status;
+    pub fn create_for_fs(job: String, report: Vec<String>) -> Self {
+        SpawnResult {
+            report,
+            job,
+            status: ExitStatus::default(),
+            cmd: "Multiple file system commands".into(),
         }
     }
 }
@@ -176,6 +155,6 @@ pub async fn spawn(
         tracker
             .fail(sequence, "Fail to get exist status of spawned command")
             .await;
-        bail!( "Fail to get exist status of spawned command")
+        bail!("Fail to get exist status of spawned command")
     }
 }

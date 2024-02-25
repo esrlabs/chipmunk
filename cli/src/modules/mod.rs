@@ -79,21 +79,38 @@ pub trait Manager {
     fn test_cmds(&self) -> Vec<TestCommand> {
         Vec::new()
     }
-    async fn reset(&self) -> Result<SpawnResult, Error> {
-        self.clean().await?;
-        fstools::rm_folder(self.cwd().join("dist")).await?;
-        Ok(SpawnResult::empty())
+    async fn reset(&self) -> Result<Vec<SpawnResult>, Error> {
+        let mut results = Vec::new();
+        let clean_result = self.clean().await?;
+        results.push(clean_result);
+
+        let dist_path = self.cwd().join("dist");
+
+        let remove_log = format!("removing {}", dist_path.display());
+
+        fstools::rm_folder(dist_path).await?;
+
+        let job = format!("Reset {}", self.owner());
+
+        results.push(SpawnResult::create_for_fs(job, vec![remove_log]));
+
+        Ok(results)
     }
-    async fn clean(&self) -> Result<(), Error> {
-        match self.kind() {
-            Kind::Ts => {
-                fstools::rm_folder(self.cwd().join("node_modules")).await?;
-            }
-            Kind::Rs => {
-                fstools::rm_folder(self.cwd().join("target")).await?;
-            }
-        }
-        Ok(())
+    async fn clean(&self) -> Result<SpawnResult, Error> {
+        let mut logs = Vec::new();
+        let path = match self.kind() {
+            Kind::Ts => self.cwd().join("node_modules"),
+            Kind::Rs => self.cwd().join("target"),
+        };
+
+        let remove_log = format!("removing directory {}", path.display());
+        logs.push(remove_log);
+
+        fstools::rm_folder(path).await?;
+
+        let job = format!("Clean {}", self.owner());
+
+        Ok(SpawnResult::create_for_fs(job, logs))
     }
     async fn install(&self, prod: bool) -> Result<SpawnResult, Error> {
         let cmd = if self.install_cmd(prod).is_some() {
@@ -120,17 +137,20 @@ pub trait Manager {
             Kind::Rs => Ok(SpawnResult::empty()),
         }
     }
-    async fn after(&self, _prod: bool, _report: bool) -> Result<Option<SpawnResult>, Error> {
+    async fn after(&self, _prod: bool) -> Result<Option<SpawnResult>, Error> {
         Ok(None)
     }
-    async fn build(&self, prod: bool, report: bool) -> Result<SpawnResult, Error> {
-        self.install(false).await?;
+    async fn build(&self, prod: bool) -> Result<Vec<SpawnResult>, Error> {
+        let mut results = Vec::new();
+        let install_result = self.install(false).await?;
+        results.push(install_result);
         let deps: Vec<Box<dyn Manager + Sync + Send>> =
             self.deps().iter().map(|target| target.get()).collect();
         for module in deps {
-            let status = module.build(prod, report).await?;
-            if !status.status.success() {
-                return Ok(status);
+            let status = module.build(prod).await?;
+            results.extend(status);
+            if results.iter().any(|res| !res.status.success()) {
+                return Ok(results);
             }
         }
         let path = get_root().join(self.cwd());
@@ -139,34 +159,45 @@ pub trait Manager {
             .unwrap_or_else(|| self.kind().build_cmd(prod));
         let caption = format!("Bulid {}", self.owner());
         match spawn(&cmd, Some(path), caption, None).await {
-            Ok(mut status) => {
+            Ok(status) => {
                 if !status.status.success() {
-                    Ok(status)
+                    results.push(status);
+                    Ok(results)
                 } else {
-                    let res = self.after(prod, report).await?;
+                    results.push(status);
+                    let res = self.after(prod).await?;
+                    if let Some(result) = res {
+                        results.push(result);
+                    }
                     if matches!(self.kind(), Kind::Ts) && prod {
-                        self.clean().await?;
-                        self.install(prod).await?;
+                        let clean_res = self.clean().await?;
+                        results.push(clean_res);
+                        let install_res = self.install(prod).await?;
+                        results.push(install_res);
                     }
 
-                    if let Some(res_after) = res {
-                        status.merge_with(res_after);
-                    }
-
-                    Ok(status)
+                    Ok(results)
                 }
             }
             Err(err) => Err(err),
         }
     }
-    async fn check(&self) -> Result<SpawnResult, Error> {
+    async fn check(&self) -> Result<Vec<SpawnResult>, Error> {
+        let mut results = Vec::new();
         match self.kind() {
             Kind::Ts => {
-                self.install(false).await?;
-                self.lint().await
+                let install_result = self.install(false).await?;
+                let lint_restul = self.lint().await?;
+                results.push(install_result);
+                results.push(lint_restul);
             }
-            Kind::Rs => self.clippy().await,
+            Kind::Rs => {
+                let clippy_result = self.clippy().await?;
+                results.push(clippy_result);
+            }
         }
+
+        Ok(results)
     }
     async fn lint(&self) -> Result<SpawnResult, Error> {
         let path = get_root().join(self.cwd());
@@ -192,18 +223,19 @@ pub trait Manager {
         .await
     }
 
-    // flat_map in main() to get rid of the double join calls
-    async fn test(&self) -> Result<SpawnResult, Error> {
-        self.install(false).await?;
-        // TODO: Check if we need to run the dependencies tests too
-
+    async fn test(&self) -> Result<Vec<SpawnResult>, Error> {
         let test_cmds = self.test_cmds();
         if test_cmds.is_empty() {
-            return Ok(SpawnResult::empty());
+            return Ok(Vec::new());
         }
 
+        let mut results = Vec::new();
+
+        let install_res = self.install(false).await?;
+        results.push(install_res);
+
         let caption = format!("Test {}", self.owner());
-        let results = join_all(test_cmds.iter().map(|cmd| {
+        let spawn_results = join_all(test_cmds.iter().map(|cmd| {
             spawn(
                 &cmd.command,
                 Some(cmd.cwd.to_owned()),
@@ -213,18 +245,13 @@ pub trait Manager {
         }))
         .await;
 
-        // return the first failed result, or the first one if all was successful
-        let return_pos = results
-            .iter()
-            .position(|res| match res {
-                Ok(result) => !result.status.success(),
-                Err(_) => true,
-            })
-            .unwrap_or(0);
+        for res in spawn_results {
+            match res {
+                Ok(spawn_res) => results.push(spawn_res),
+                Err(err) => return Err(err),
+            }
+        }
 
-        results
-            .into_iter()
-            .nth(return_pos)
-            .expect("Commands has been checked if they are empty before spawning tasks")
+        Ok(results)
     }
 }

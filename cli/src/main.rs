@@ -108,11 +108,10 @@ async fn main() -> Result<(), Error> {
         } => {
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
-            let report = !matches!(report_opt, ReportOptions::None);
             join_all(
                 targets
                     .iter()
-                    .map(|module| module.build(production, report))
+                    .map(|module| module.build(production))
                     .collect::<Vec<_>>(),
             )
             .await
@@ -146,33 +145,36 @@ async fn main() -> Result<(), Error> {
     let mut success: bool = true;
     for (idx, res) in results.iter().enumerate() {
         match res {
-            Ok(status) => {
-                let print_err = match &report_opt {
-                    ReportOptions::None => true,
-                    ReportOptions::Stdout(stdout) => {
-                        if !status.is_empty() {
-                            write_report(status, stdout)?;
+            Ok(statuses) => {
+                for status in statuses {
+                    let print_err = match &report_opt {
+                        ReportOptions::None => true,
+                        ReportOptions::Stdout(stdout) => {
+                            if !status.is_empty() {
+                                write_report(status, stdout)?;
+                            }
+                            false
                         }
-                        false
-                    }
-                    ReportOptions::File(path, file) => {
-                        if !status.is_empty() {
-                            write_report(status, file)?;
+                        ReportOptions::File(path, file) => {
+                            if !status.is_empty() {
+                                write_report(status, file)?;
+                            }
+                            if idx == results.len() - 1 {
+                                let full_path =
+                                    path.canonicalize().unwrap_or_else(|_| path.to_owned());
+                                println!("Report is written to '{}'", full_path.display());
+                            }
+                            false
                         }
-                        if idx == results.len() - 1 {
-                            let full_path = path.canonicalize().unwrap_or_else(|_| path.to_owned());
-                            println!("Report is written to '{}'", full_path.display());
-                        }
-                        false
-                    }
-                };
+                    };
 
-                if !status.status.success() {
-                    if print_err {
-                        eprintln!("Failed with errors");
-                        eprintln!("{}:\n{}", status.job, status.report.join(""));
+                    if !status.status.success() {
+                        if print_err {
+                            eprintln!("Failed with errors");
+                            eprintln!("{}:\n{}", status.job, status.report.join(""));
+                        }
+                        success = false;
                     }
-                    success = false;
                 }
             }
             Err(err) => {
