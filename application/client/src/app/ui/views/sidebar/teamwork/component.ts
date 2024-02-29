@@ -16,7 +16,7 @@ import { Locker } from '@ui/service/lockers';
 import { Notification } from '@ui/service/notifications';
 import { Owner } from '@schema/content/row';
 import { NormalizedBackgroundTask } from '@platform/env/normalized';
-import { IMenuItem } from '@ui/service/contextmenu';
+import { IMenuItem, contextmenu } from '@ui/service/contextmenu';
 import { GitHubRepo } from '@platform/types/github';
 
 import * as dom from '@ui/env/dom';
@@ -39,6 +39,38 @@ export class TeamWork extends ChangesDetector implements AfterContentInit {
         super(cdRef);
     }
 
+    public onRepoContextMenu(event: MouseEvent, repo: GitHubRepo) {
+        const items = [
+            {
+                caption: 'Edit',
+                handler: () => {
+                    this.repo().edit(repo);
+                    this.detectChanges();
+                },
+            },
+            {},
+            {
+                caption: 'Remove',
+                handler: () => {
+                    this.repo().delete(repo.uuid);
+                    this.detectChanges();
+                },
+            },
+            {
+                caption: 'Remove All',
+                handler: () => {
+                    this.detectChanges();
+                },
+            },
+        ];
+        this.ilc().emitter.ui.contextmenu.open({
+            items,
+            x: event.x,
+            y: event.y,
+        });
+        dom.stop(event);
+    }
+
     public ngAfterContentInit(): void {
         this.repos = this.session.teamwork.repo().list();
         this.active = this.session.teamwork.repo().getActive();
@@ -48,13 +80,21 @@ export class TeamWork extends ChangesDetector implements AfterContentInit {
                 this.detectChanges();
             }),
         );
+        this.env().subscriber.register(
+            this.session.teamwork.subjects.get().loaded.subscribe(() => {
+                this.repos = this.session.teamwork.repo().list();
+                this.active = this.session.teamwork.repo().getActive();
+                this.detectChanges();
+            }),
+        );
     }
 
     public repo(): {
         create(): void;
-        edit(): void;
+        edit(editable: GitHubRepo): void;
         save(): void;
         cancel(): void;
+        delete(uuid: string): void;
         isPossibleToSave(): boolean;
         setActive(repo: GitHubRepo): void;
         isActive(repo: GitHubRepo): boolean;
@@ -64,11 +104,8 @@ export class TeamWork extends ChangesDetector implements AfterContentInit {
                 this.editable = { uuid: '', repo: '', branch: 'master', owner: '', token: '' };
                 this.detectChanges();
             },
-            edit: (): void => {
-                if (this.active === undefined) {
-                    return;
-                }
-                this.editable = Object.assign({}, this.active);
+            edit: (editable: GitHubRepo): void => {
+                this.editable = Object.assign({}, editable);
                 this.detectChanges();
             },
             save: (): void => {
@@ -112,6 +149,23 @@ export class TeamWork extends ChangesDetector implements AfterContentInit {
             cancel: (): void => {
                 this.editable = undefined;
                 this.detectChanges();
+            },
+            delete: (uuid: string): void => {
+                this.session.teamwork
+                    .repo()
+                    .delete(uuid)
+                    .then(() => {
+                        this.detectChanges();
+                    })
+                    .catch((err: Error) => {
+                        this.ilc().services.ui.notifications.notify(
+                            new Notification({
+                                message: `Fail to delete GitHub Reference: ${err.message}`,
+                                actions: [],
+                                session: this.session.uuid(),
+                            }),
+                        );
+                    });
             },
             isPossibleToSave: (): boolean => {
                 if (this.editable === undefined) {

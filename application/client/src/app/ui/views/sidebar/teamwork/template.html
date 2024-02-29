@@ -18,6 +18,7 @@
     <div class="repos">
         <app-views-teamwork-repository
             *ngFor="let repository of repos"
+            (contextmenu)="onRepoContextMenu($event, repository)"
             [attr.class]="((repo().isActive(repository)) ? 'selected' : '')"
             [repo]="repository"
             (click)="repo().setActive(repository)"
@@ -54,32 +55,14 @@
     </div>
 </mat-expansion-panel>
 
-<!-- <div class="entity">
-    <p class="t-normal info">Used Parser:</p>
-    <mat-form-field class="material-mofication-normal black">
-        <mat-select [(ngModel)]="state.parser" (ngModelChange)="state.change().parser()">
-            <mat-option
-                *ngFor="let parser of state.parsers"
-                [value]="parser.ref.alias()"
-                [disabled]="parser.disabled"
-            >
-                {{parser.ref.desc().major}}
-            </mat-option>
-        </mat-select>
-    </mat-form-field>
-</div> -->
 <mat-menu #menu="matMenu">
     <button mat-menu-item (click)="repo().create()">
         <mat-icon>add</mat-icon>
         <span>Add New GitHub Reference</span>
     </button>
-    <button mat-menu-item>
-        <mat-icon>done_all</mat-icon>
-        <span>Save All</span>
-    </button>
     <mat-divider></mat-divider>
     <button mat-menu-item>
-        <mat-icon>done_all</mat-icon>
-        <span>Remove All</span>
+        <mat-icon>delete</mat-icon>
+        <span>Delete All</span>
     </button>
 </mat-menu>
