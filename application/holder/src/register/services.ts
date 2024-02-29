@@ -3,47 +3,47 @@ import { Inputs } from 'platform/entity/service';
 
 export const services: { [key: string]: Inputs } = {
     electron: {
-        name: 'Electron',
+        name: 'electron',
         uuid: v4(),
     },
     paths: {
-        name: 'Paths',
+        name: 'paths',
         uuid: v4(),
     },
     production: {
-        name: 'Production',
+        name: 'production',
         uuid: v4(),
     },
     sessions: {
-        name: 'Sessions',
+        name: 'sessions',
         uuid: v4(),
     },
     jobs: {
-        name: 'Jobs',
+        name: 'jobs',
         uuid: v4(),
     },
     bridge: {
-        name: 'Bridge',
+        name: 'bridge',
         uuid: v4(),
     },
     unbound: {
-        name: 'Unbound',
+        name: 'unbound',
         uuid: v4(),
     },
     storage: {
-        name: 'Storage',
+        name: 'storage',
         uuid: v4(),
     },
     settings: {
-        name: 'Settings',
+        name: 'settings',
         uuid: v4(),
     },
     updater: {
-        name: 'Updater',
+        name: 'updater',
         uuid: v4(),
     },
     notifications: {
-        name: 'Notifications',
+        name: 'notifications',
         uuid: v4(),
     },
     env: {
@@ -60,6 +60,10 @@ export const services: { [key: string]: Inputs } = {
     },
     menu: {
         name: 'menu',
+        uuid: v4(),
+    },
+    github: {
+        name: 'github',
         uuid: v4(),
     },
 };

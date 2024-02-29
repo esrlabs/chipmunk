@@ -9,6 +9,18 @@ export interface IFilter {
     flags: IFilterFlags;
 }
 
+export interface FilterDefinition {
+    filter: IFilter;
+    colors: FilterStyle;
+    active: boolean;
+    uuid: string;
+}
+
+export interface FilterStyle {
+    color: string;
+    background: string;
+}
+
 export interface ISearchStats {
     stats: { [key: string]: number };
 }
