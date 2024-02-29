@@ -65,6 +65,7 @@ export class TeamWork extends Subscriber {
         getActive(): GitHubRepo | undefined;
         create(repo: GitHubRepo): Promise<void>;
         update(repo: GitHubRepo): Promise<void>;
+        delete(uuid: string): Promise<void>;
         reload(): Promise<void>;
     } {
         return {
@@ -133,6 +134,25 @@ export class TeamWork extends Subscriber {
                         this.repos.set(repo.uuid, repo);
                         this.subjects.get().loaded.emit();
                         return Promise.resolve();
+                    })
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to update GitHub references: ${err.message}`);
+                    });
+            },
+            delete: (uuid: string): Promise<void> => {
+                if (!this.repos.has(uuid)) {
+                    return Promise.reject(new Error(`Github reference doesn't exist`));
+                }
+                return Requests.IpcRequest.send(
+                    Requests.GitHub.RemoveRepo.Response,
+                    new Requests.GitHub.RemoveRepo.Request({ uuid }),
+                )
+                    .then((response: Requests.GitHub.RemoveRepo.Response) => {
+                        if (response.error !== undefined) {
+                            this.log().error(`Fail to remove new repo: ${response.error}`);
+                            return Promise.reject(new Error(response.error));
+                        }
+                        return this.load();
                     })
                     .catch((err: Error) => {
                         this.log().error(`Fail to update GitHub references: ${err.message}`);
