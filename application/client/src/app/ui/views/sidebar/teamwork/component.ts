@@ -1,22 +1,9 @@
-import {
-    Component,
-    Input,
-    ChangeDetectorRef,
-    AfterContentInit,
-    ViewChild,
-    ChangeDetectionStrategy,
-    HostListener,
-} from '@angular/core';
+import { Component, Input, ChangeDetectorRef, AfterContentInit } from '@angular/core';
 import { Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Attachment } from '@platform/types/content';
-import { Locker } from '@ui/service/lockers';
 import { Notification } from '@ui/service/notifications';
-import { Owner } from '@schema/content/row';
-import { NormalizedBackgroundTask } from '@platform/env/normalized';
-import { IMenuItem, contextmenu } from '@ui/service/contextmenu';
 import { GitHubRepo } from '@platform/types/github';
 
 import * as dom from '@ui/env/dom';

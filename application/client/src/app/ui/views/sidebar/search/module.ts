@@ -28,6 +28,7 @@ import { ChartsList } from './charts/list/component';
 import { ChartsPlaceholder } from './charts/placeholder/component';
 import { Disabled } from './disabled/entity/component';
 import { DisabledList } from './disabled/list/component';
+import { TeamworkModule } from './teamwork/module';
 import { Bin } from './bin/component';
 
 const entryComponents = [
@@ -67,6 +68,7 @@ const components = [...entryComponents];
         DragDropModule,
         MatSliderModule,
         ColorSelectorModule,
+        TeamworkModule,
     ],
     declarations: [...components],
     exports: [...components],
