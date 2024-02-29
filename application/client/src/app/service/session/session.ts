@@ -19,6 +19,7 @@ import { Attachments } from './dependencies/attachments';
 import { Info } from './dependencies/info';
 import { session } from '@service/session';
 import { Highlights } from './dependencies/search/highlights';
+import { TeamWork } from './dependencies/teamwork';
 
 import * as ids from '@schema/ids';
 import * as Requests from '@platform/ipc/request';
@@ -45,6 +46,7 @@ export class Session extends Base {
     public readonly observed: Providers = new Providers();
     public readonly attachments: Attachments = new Attachments();
     public readonly info: Info = new Info();
+    public readonly teamwork: TeamWork = new TeamWork();
 
     private _uuid!: string;
     private _tab!: ITabAPI;
@@ -161,6 +163,19 @@ export class Session extends Base {
                 },
             },
         });
+        this._sidebar.add({
+            uuid: ids.SIDEBAR_TAB_TEAMWORK,
+            name: 'Teamwork',
+            active: false,
+            closable: false,
+            uppercaseTitle: true,
+            content: {
+                factory: components.get('app-views-teamwork'),
+                inputs: {
+                    session: this,
+                },
+            },
+        });
     }
 
     public init(): Promise<string> {
@@ -183,6 +198,7 @@ export class Session extends Base {
                     this.attachments.init(this._uuid);
                     this.charts.init(this._uuid, this.stream, this.search);
                     this.highlights.init(this);
+                    this.teamwork.init(this);
                     this.inited = true;
                     resolve(this._uuid);
                 })
@@ -204,6 +220,7 @@ export class Session extends Base {
         this.attachments.destroy();
         this.charts.destroy();
         this.info.destroy();
+        this.teamwork.destroy();
         this.unsubscribe();
         if (!this.inited) {
             return Promise.resolve();

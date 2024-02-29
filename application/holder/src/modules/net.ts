@@ -17,7 +17,13 @@ const PROXY = { key: 'proxy', path: 'general.network' };
 const AUTHORIZATION = { key: 'authorization', path: 'general.network' };
 const STRICTSSL = { key: 'strictSSL', path: 'general.network' };
 const USER_AGENT_HEADER = 'User-Agent';
+const CONTENT_LENGTH = 'Content-Length';
 
+export class NetworkError extends Error {
+    constructor(public readonly code: number | undefined, message: string) {
+        super(message);
+    }
+}
 export class Net extends Module {
     public getName(): string {
         return 'Net';
@@ -83,8 +89,8 @@ export class Net extends Module {
 
     public getRequestOptions(
         uri: url.URL,
-        type = 'GET',
-        headers: { [key: string]: string } = {},
+        type: 'GET' | 'POST' | 'PATCH' = 'GET',
+        headers: { [key: string]: string | number } = {},
     ): http.RequestOptions {
         const config = {
             password: '',
@@ -208,60 +214,113 @@ export class Net extends Module {
 
     public getRaw(uri: string, headers: { [key: string]: string } = {}): Promise<string> {
         return new Promise((resolve, reject) => {
-            const link: url.URL | Error = this.getURL(uri);
-            if (link instanceof Error) {
-                return reject(
-                    new Error(this.logger.warn(`Fail to parse ${uri} due error: ${link.message}`)),
-                );
+            const tools = this.prepare(uri, headers, 'GET');
+            if (tools instanceof NetworkError) {
+                return reject(tools);
             }
-            if (link.protocol === undefined || link.protocol === null) {
-                return reject(new Error(`Not valid url: ${uri}`));
-            }
-            const protocol = link.protocol.slice(0, -1);
-            const transport: { [key: string]: typeof http | typeof https } = {
-                http: http,
-                https: https,
-            };
-            const opt = this.getRequestOptions(link, 'GET', headers);
-            transport[protocol]
-                .get(uri, opt, (response: http.IncomingMessage) => {
-                    if (
-                        response.statusCode !== undefined &&
-                        response.statusCode >= 200 &&
-                        response.statusCode < 300
-                    ) {
-                        this.logger.debug(`Successfully requested: ${uri}`);
-                        response.setEncoding('utf8');
-                        let raw = '';
-                        response.on('data', (chunk) => {
-                            raw += chunk;
-                        });
-                        response.on('end', () => {
-                            this.logger.debug(
-                                `Successfully received from ${uri} ${raw.length} bytes`,
-                            );
-                            resolve(raw);
-                        });
-                    } else if (response.headers.location) {
-                        this.getRaw(response.headers.location).then(resolve).catch(reject);
-                    } else {
-                        reject(
-                            new Error(
-                                this.logger.warn(
-                                    `Fail to connect to ${uri}: code = ${
-                                        response.statusCode
-                                    }; status: ${response.statusMessage}; proxy usage: ${
-                                        opt.agent !== undefined
-                                    }.`,
-                                ),
-                            ),
-                        );
-                    }
+            tools.transport
+                .get(uri, tools.opt, (response: http.IncomingMessage) => {
+                    this.processing(response, uri, tools.opt, resolve, reject);
                 })
-                .on('error', (requestErr: NodeJS.ErrnoException) => {
-                    reject(requestErr);
+                .on('error', (err: NodeJS.ErrnoException) => {
+                    this.logger.warn(
+                        `Fail to connect to ${uri}: code = ${err.code}; status: ${err.message}`,
+                    );
+                    reject(new NetworkError(undefined, err.message));
                 });
         });
+    }
+
+    public post(
+        uri: string,
+        headers: { [key: string]: string | number } = {},
+        content: string,
+        type: 'POST' | 'PATCH' = 'POST',
+    ): Promise<string> {
+        return new Promise((resolve, reject) => {
+            headers[CONTENT_LENGTH] =
+                headers[CONTENT_LENGTH] === undefined ? content.length : headers[CONTENT_LENGTH];
+            const tools = this.prepare(uri, headers, type);
+            if (tools instanceof NetworkError) {
+                return reject(tools);
+            }
+            const request = tools.transport
+                .request(uri, tools.opt, (response: http.IncomingMessage) => {
+                    this.processing(response, uri, tools.opt, resolve, reject);
+                })
+                .on('error', (err: NodeJS.ErrnoException) => {
+                    this.logger.warn(
+                        `Fail to connect to ${uri}: code = ${err.code}; status: ${err.message}`,
+                    );
+                    reject(new NetworkError(undefined, err.message));
+                });
+            request.write(content);
+            request.end();
+        });
+    }
+
+    protected prepare(
+        uri: string,
+        headers: { [key: string]: string | number },
+        type: 'POST' | 'PATCH' | 'GET',
+    ): { transport: typeof http | typeof https; opt: http.RequestOptions } | NetworkError {
+        const link: url.URL | Error = this.getURL(uri);
+        if (link instanceof Error) {
+            return new NetworkError(
+                undefined,
+                this.logger.warn(`Fail to parse ${uri} due error: ${link.message}`),
+            );
+        }
+        if (link.protocol === undefined || link.protocol === null) {
+            return new NetworkError(undefined, `Not valid url: ${uri}`);
+        }
+        const protocol = link.protocol.slice(0, -1);
+        const transport: { [key: string]: typeof http | typeof https } = {
+            http: http,
+            https: https,
+        };
+        return {
+            transport: transport[protocol],
+            opt: this.getRequestOptions(link, type, headers),
+        };
+    }
+
+    protected processing(
+        response: http.IncomingMessage,
+        uri: string,
+        opt: http.RequestOptions,
+        resolve: (res: string) => void,
+        reject: (err: NetworkError) => void,
+    ) {
+        if (
+            response.statusCode !== undefined &&
+            response.statusCode >= 200 &&
+            response.statusCode < 300
+        ) {
+            this.logger.debug(`Successfully requested: ${uri}`);
+            response.setEncoding('utf8');
+            let raw = '';
+            response.on('data', (chunk) => {
+                raw += chunk;
+            });
+            response.on('end', () => {
+                this.logger.debug(`Successfully received from ${uri} ${raw.length} bytes`);
+                resolve(raw);
+            });
+        } else if (response.headers.location) {
+            this.getRaw(response.headers.location).then(resolve).catch(reject);
+        } else {
+            reject(
+                new NetworkError(
+                    response.statusCode,
+                    this.logger.warn(
+                        `Fail to connect to ${uri}: code = ${response.statusCode}; status: ${
+                            response.statusMessage
+                        }; proxy usage: ${opt.agent !== undefined}.`,
+                    ),
+                ),
+            );
+        }
     }
 }
 

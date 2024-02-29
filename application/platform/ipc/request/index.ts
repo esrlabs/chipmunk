@@ -20,3 +20,4 @@ export * as App from './app';
 export * as Settings from './settings';
 export * as System from './system';
 export * as Values from './values';
+export * as GitHub from './github';
