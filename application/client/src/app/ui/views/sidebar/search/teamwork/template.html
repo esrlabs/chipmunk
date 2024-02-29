@@ -1,0 +1,19 @@
+<mat-expansion-panel *ngIf="repos.length > 0" [expanded]="false">
+    <mat-expansion-panel-header>
+        <mat-panel-title>Teamwork</mat-panel-title>
+        <mat-panel-description>Available {{repos.length}} repositories</mat-panel-description>
+    </mat-expansion-panel-header>
+    <div class="content">
+        <mat-form-field class="material-mofication-normal black stretch">
+            <mat-select (selectionChange)="onSelectionChange($event)" [(value)]="selected">
+                <mat-option [value]="0">Do not share; use locally</mat-option>
+                <mat-option *ngFor="let repo of repos" [value]="repo">
+                    {{repo.owner}}/{{repo.repo}}:{{repo.branch}}
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
+        <div class="controlls">
+            <button mat-stroked-button (click)="openManager()">Open Manager</button>
+        </div>
+    </div>
+</mat-expansion-panel>

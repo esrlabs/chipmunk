@@ -265,21 +265,25 @@ export class Service extends Implementation {
                     ): CancelablePromise<Requests.GitHub.SetActive.Response> => {
                         return new CancelablePromise((resolve, _reject) => {
                             const repo = this.repos.get(request.uuid);
-                            if (repo === undefined) {
+                            if (request.uuid === undefined) {
+                                this.active = undefined;
+                                this.storage().save();
+                            } else if (repo !== undefined) {
+                                this.active = repo;
+                                this.storage().save();
+                            } else {
                                 resolve(
                                     new Requests.GitHub.SetActive.Response({
                                         error: 'Does not exist',
                                     }),
                                 );
-                            } else {
-                                this.active = repo;
-                                this.storage().save();
-                                resolve(
-                                    new Requests.GitHub.SetActive.Response({
-                                        error: undefined,
-                                    }),
-                                );
+                                return;
                             }
+                            resolve(
+                                new Requests.GitHub.SetActive.Response({
+                                    error: undefined,
+                                }),
+                            );
                         });
                     },
                 ),

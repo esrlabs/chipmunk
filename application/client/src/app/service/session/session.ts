@@ -271,6 +271,7 @@ export class Session extends Base {
             filters(): void;
             attachments(): void;
             observing(): void;
+            teamwork(): void;
         };
     } {
         return {
@@ -300,6 +301,9 @@ export class Session extends Base {
                 },
                 attachments: (): void => {
                     this._sidebar.setActive(ids.SIDEBAR_TAB_ATTACHMENTS);
+                },
+                teamwork: (): void => {
+                    this._sidebar.setActive(ids.SIDEBAR_TAB_TEAMWORK);
                 },
             },
         };
