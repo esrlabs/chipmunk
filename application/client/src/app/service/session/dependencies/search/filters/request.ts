@@ -128,6 +128,14 @@ export class FilterRequest
         });
     }
 
+    static getHashByDefinition(def: FilterDefinition): string {
+        return `${def.filter.filter}${def.filter.flags.cases ? 'c' : ''}${
+            def.filter.flags.reg ? 'r' : ''
+        }${def.filter.flags.word ? 'w' : ''}${def.colors.color}${def.colors.background}${
+            def.active ? '1' : '0'
+        }`;
+    }
+
     public readonly definition: FilterDefinition;
     public readonly updated: Subject<UpdateEvent> = new Subject<UpdateEvent>();
 

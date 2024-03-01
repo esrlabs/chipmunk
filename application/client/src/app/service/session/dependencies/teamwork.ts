@@ -6,6 +6,9 @@ import { GitHubRepo } from '@platform/types/github';
 import { FileMetaDataDefinition } from '@platform/types/github/filemetadata';
 import { Session } from '@service/session';
 import { FileDesc } from '@service/history/definition.file';
+import { FilterRequest } from '@service/session/dependencies/search/filters/request';
+import { ChartRequest } from '@service/session/dependencies/search/charts/request';
+import { StoredEntity } from '@service/session/dependencies/search/store';
 
 import * as utils from '@platform/log/utils';
 import * as Origins from '@platform/types/observe/origin/index';
@@ -31,6 +34,26 @@ export class TeamWork extends Subscriber {
     // undefined - not set yet
     // null - cannot be set (stream, multiple files, etc.)
     protected checksum: string | undefined | null = undefined;
+    // Last written hash
+    protected previous: string | undefined;
+
+    protected hash(metadata?: FileMetaDataDefinition): string {
+        if (metadata === undefined) {
+            const filters = this.session.search.store().filters().get();
+            const charts = this.session.search.store().charts().get();
+            return `${filters
+                .map((v) => FilterRequest.getHashByDefinition(v.definition))
+                .join(';')}${charts
+                .map((v) => ChartRequest.getHashByDefinition(v.definition))
+                .join(';')}`;
+        } else {
+            return `${metadata.filters
+                .map((v) => FilterRequest.getHashByDefinition(v))
+                .join(';')}${metadata.charts
+                .map((v) => ChartRequest.getHashByDefinition(v))
+                .join(';')}`;
+        }
+    }
 
     protected async load(): Promise<void> {
         try {
@@ -51,9 +74,42 @@ export class TeamWork extends Subscriber {
             }
             this.subjects.get().loaded.emit();
             this.subjects.get().active.emit(this.active);
+            this.file().write();
         } catch (err) {
             this.log().error(`Fail to load available GitHub references: ${utils.error(err)}`);
         }
+    }
+
+    protected metadata(): {
+        import(md: FileMetaDataDefinition): void;
+    } {
+        return {
+            import: (md: FileMetaDataDefinition): void => {
+                const local = this.hash();
+                this.previous = this.hash(md);
+                if (local === this.previous) {
+                    return;
+                }
+                this.session.search
+                    .store()
+                    .filters()
+                    .overwrite(
+                        md.filters.map(
+                            (def) => new FilterRequest(def),
+                        ) as StoredEntity<FilterRequest>[],
+                    );
+                this.session.search
+                    .store()
+                    .charts()
+                    .overwrite(
+                        md.charts.map(
+                            (def) => new ChartRequest(def),
+                        ) as StoredEntity<ChartRequest>[],
+                    );
+                this.session.search.store().filters().refresh();
+                this.subjects.get().metadata.emit(md);
+            },
+        };
     }
 
     protected file(): {
@@ -75,7 +131,7 @@ export class TeamWork extends Subscriber {
                         if (response.error !== undefined) {
                             this.log().error(`Fail to get metadata: ${response.error}`);
                         } else if (response.metadata !== undefined) {
-                            this.subjects.get().metadata.emit(response.metadata);
+                            this.metadata().import(response.metadata);
                         }
                     })
                     .catch((err: Error) => {
@@ -84,6 +140,9 @@ export class TeamWork extends Subscriber {
             },
             write: (): void => {
                 if (typeof this.checksum !== 'string' || this.active === undefined) {
+                    return;
+                }
+                if (this.hash() === this.previous) {
                     return;
                 }
                 const filters = this.session.search.store().filters().get();

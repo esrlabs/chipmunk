@@ -126,6 +126,12 @@ export class ChartRequest
         });
     }
 
+    static getHashByDefinition(def: ChartDefinition): string {
+        return `${def.filter}${def.color}${def.widths.line}${def.widths.point}${def.type}${
+            def.active ? '1' : '0'
+        }`;
+    }
+
     constructor(def: OptionalDefinition) {
         super();
         const defaultMatchColor =
