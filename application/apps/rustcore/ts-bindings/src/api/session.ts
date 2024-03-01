@@ -168,6 +168,10 @@ export class Session {
         return this._uuid;
     }
 
+    public getSessionFile(): Promise<string> {
+        return this._session.getSessionFile();
+    }
+
     public getEvents(): ISessionEvents {
         if (this._provider === undefined) {
             throw new Error(`EventProvider wasn't created`);

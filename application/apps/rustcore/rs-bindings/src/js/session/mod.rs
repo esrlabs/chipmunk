@@ -74,7 +74,7 @@ impl RustSession {
                     Err(e) => {
                         error!("Cannot create session instance: {e}");
                         if tx_session.send(None).is_err() {
-                            error!("Cannot setup session instance");
+                            error!("Cannot setup session filenameinstance");
                         }
                     }
                 }
@@ -127,6 +127,26 @@ impl RustSession {
                 .await
                 .map_err(ComputationErrorWrapper)?;
             Ok(())
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
+    async fn get_session_file(&self) -> Result<String, ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            session
+                .get_state()
+                .get_session_file()
+                .await
+                .map(|p| p.to_string_lossy().to_string())
+                .map_err(|e: NativeError| {
+                    <ComputationError as Into<ComputationErrorWrapper>>::into(
+                        ComputationError::NativeError(e),
+                    )
+                })
         } else {
             Err(ComputationErrorWrapper(
                 ComputationError::SessionUnavailable,
