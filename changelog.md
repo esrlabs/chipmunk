@@ -1,3 +1,13 @@
+# 3.10.7 (01.03.2024)
+
+## Changes
+
+- Change a way of file nature checking (text/binary)
+
+## Features
+
+- Added "Export All" to main output context menu
+
 # 3.10.6 (09.02.2024)
 
 ## Fixes
