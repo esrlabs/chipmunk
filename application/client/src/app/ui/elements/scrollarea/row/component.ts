@@ -205,6 +205,22 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                         exportSelected(true);
                     },
                 },
+                ...(this.row.owner === Owner.Output
+                    ? [
+                          {
+                              caption: 'Export All',
+                              disabled: this.row.session.stream.len() === 0,
+                              handler: () => {
+                                  this.row.session.exporter
+                                      .export(true)
+                                      .all()
+                                      .catch((err: Error) => {
+                                          this.log().error(`Fail export session: ${err.message}`);
+                                      });
+                              },
+                          },
+                      ]
+                    : []),
                 ...(this.row.owner === Owner.Search
                     ? [
                           {},
