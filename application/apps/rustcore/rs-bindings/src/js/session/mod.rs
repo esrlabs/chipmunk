@@ -74,7 +74,7 @@ impl RustSession {
                     Err(e) => {
                         error!("Cannot create session instance: {e}");
                         if tx_session.send(None).is_err() {
-                            error!("Cannot setup session filenameinstance");
+                            error!("Cannot setup session instance");
                         }
                     }
                 }
