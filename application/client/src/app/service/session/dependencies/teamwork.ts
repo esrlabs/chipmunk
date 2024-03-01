@@ -1,11 +1,14 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { cutUuid } from '@log/index';
-import { lockers } from '@ui/service/lockers';
+import { Observe } from '@platform/types/observe';
 import { GitHubRepo } from '@platform/types/github';
+import { FileMetaDataDefinition } from '@platform/types/github/filemetadata';
 import { Session } from '@service/session';
-import * as utils from '@platform/log/utils';
+import { FileDesc } from '@service/history/definition.file';
 
+import * as utils from '@platform/log/utils';
+import * as Origins from '@platform/types/observe/origin/index';
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
 
@@ -14,13 +17,20 @@ export class TeamWork extends Subscriber {
     public readonly subjects: Subjects<{
         loaded: Subject<void>;
         active: Subject<GitHubRepo | undefined>;
+        metadata: Subject<FileMetaDataDefinition>;
     }> = new Subjects({
         loaded: new Subject<void>(),
         active: new Subject<GitHubRepo | undefined>(),
+        metadata: new Subject<FileMetaDataDefinition>(),
     });
     protected repos: Map<string, GitHubRepo> = new Map();
     protected active: GitHubRepo | undefined;
     protected session!: Session;
+    // checksum of opened file
+    // string - checksum
+    // undefined - not set yet
+    // null - cannot be set (stream, multiple files, etc.)
+    protected checksum: string | undefined | null = undefined;
 
     protected async load(): Promise<void> {
         try {
@@ -46,12 +56,104 @@ export class TeamWork extends Subscriber {
         }
     }
 
+    protected file(): {
+        check(): void;
+        write(): void;
+    } {
+        return {
+            check: (): void => {
+                if (typeof this.checksum !== 'string' || this.active === undefined) {
+                    return;
+                }
+                Requests.IpcRequest.send(
+                    Requests.GitHub.GetFileMeta.Response,
+                    new Requests.GitHub.GetFileMeta.Request({
+                        checksum: this.checksum,
+                    }),
+                )
+                    .then((response) => {
+                        if (response.error !== undefined) {
+                            this.log().error(`Fail to get metadata: ${response.error}`);
+                        } else if (response.metadata !== undefined) {
+                            this.subjects.get().metadata.emit(response.metadata);
+                        }
+                    })
+                    .catch((err: Error) => {
+                        this.log().error(`Request error: fail to get metadata: ${err.message}`);
+                    });
+            },
+            write: (): void => {
+                if (typeof this.checksum !== 'string' || this.active === undefined) {
+                    return;
+                }
+                const filters = this.session.search.store().filters().get();
+                const charts = this.session.search.store().charts().get();
+                Requests.IpcRequest.send(
+                    Requests.GitHub.SetFileMeta.Response,
+                    new Requests.GitHub.SetFileMeta.Request({
+                        checksum: this.checksum,
+                        metadata: {
+                            protocol: '0.0.1',
+                            filters: filters.map((filter) => filter.definition),
+                            charts: charts.map((chart) => chart.definition),
+                            bookmarks: [],
+                        },
+                    }),
+                )
+                    .then((response) => {
+                        if (response.error !== undefined) {
+                            this.log().error(`Fail to save metadata: ${response.error}`);
+                        }
+                    })
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to set active repo: ${err.message}`);
+                    });
+            },
+        };
+    }
+
     public init(session: Session) {
         this.setLoggerName(`TeamWork: ${cutUuid(session.uuid())}`);
         this.session = session;
         this.load().catch((err: Error) => {
             this.log().error(`Loading error: ${err.message}`);
         });
+        this.register(
+            this.session.stream.subjects.get().started.subscribe((observe: Observe) => {
+                if (this.checksum === null) {
+                    return;
+                }
+                FileDesc.fromDataSource(observe)
+                    .then((desc) => {
+                        if (desc === undefined) {
+                            this.checksum = null;
+                        } else if (this.checksum === undefined) {
+                            this.checksum = desc.checksum;
+                            this.file().check();
+                        } else {
+                            this.checksum = null;
+                        }
+                    })
+                    .catch((err: Error) => {
+                        this.checksum = null;
+                        this.log().error(`Fail get chechsum of file: ${err.message}`);
+                    });
+            }),
+            session.search
+                .store()
+                .filters()
+                .subjects.get()
+                .any.subscribe(() => {
+                    this.file().write();
+                }),
+            session.search
+                .store()
+                .charts()
+                .subjects.get()
+                .any.subscribe(() => {
+                    this.file().write();
+                }),
+        );
     }
 
     public destroy() {
@@ -85,6 +187,7 @@ export class TeamWork extends Subscriber {
                         } else {
                             this.active = repo;
                             this.subjects.get().active.emit(undefined);
+                            this.file().check();
                         }
                     })
                     .catch((err: Error) => {

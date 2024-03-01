@@ -29,7 +29,7 @@ export class Request extends Base<string> {
                 this.getHeaders(),
                 JSON.stringify({
                     base_tree: this.baseTreeSha,
-                    tree: this.tree,
+                    tree: [this.tree],
                 }),
             )
                 .then((raw: string) => {
