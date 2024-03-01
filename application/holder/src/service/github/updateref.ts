@@ -18,7 +18,7 @@ export class Request extends Base<string> {
     public send(): Promise<string> {
         return new Promise((resolve, reject) => {
             net.post(
-                `https://api.github.com/repos/${this.options.owner}/${this.options.repo}/git/refs/${this.options.branch}`,
+                `https://api.github.com/repos/${this.options.owner}/${this.options.repo}/git/refs/heads/${this.options.branch}`,
                 this.getHeaders(),
                 JSON.stringify(this.update),
                 'PATCH',
@@ -27,7 +27,6 @@ export class Request extends Base<string> {
                     try {
                         const response = JSON.parse(raw);
                         validator.isObject(response);
-                        validator.getAsNotEmptyString(response, 'sha');
                         validator.getAsObj(response, 'object');
                         validator.getAsNotEmptyString(response.object, 'sha');
                         resolve(response.object.sha);
