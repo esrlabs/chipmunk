@@ -1,4 +1,4 @@
-use super::{Kind, Manager};
+use super::{Kind, Manager, TestCommand};
 use crate::{location::get_root, Target};
 use async_trait::async_trait;
 use std::path::PathBuf;
@@ -27,5 +27,13 @@ impl Manager for Module {
     }
     fn deps(&self) -> Vec<Target> {
         vec![]
+    }
+
+    fn test_cmds(&self) -> Vec<TestCommand> {
+        vec![TestCommand::new(
+            "cargo +stable test --color always".into(),
+            self.cwd(),
+            None,
+        )]
     }
 }
