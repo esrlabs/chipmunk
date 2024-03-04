@@ -16,7 +16,7 @@ use crate::{
 use anyhow::Error;
 use async_trait::async_trait;
 use futures::future::join_all;
-use std::path::PathBuf;
+use std::{iter, path::PathBuf};
 
 #[derive(Debug, Clone)]
 pub enum Kind {
@@ -120,7 +120,7 @@ pub trait Manager {
         };
         if let Some(cmd) = cmd {
             let caption = format!("Install {}", self.owner());
-            spawn(&cmd, Some(self.cwd()), caption, None).await
+            spawn(cmd, Some(self.cwd()), caption, iter::empty(), None).await
         } else {
             Ok(SpawnResult::empty())
         }
@@ -157,8 +157,8 @@ pub trait Manager {
         let cmd = self
             .build_cmd(prod)
             .unwrap_or_else(|| self.kind().build_cmd(prod));
-        let caption = format!("Bulid {}", self.owner());
-        match spawn(&cmd, Some(path), caption, None).await {
+        let caption = format!("Build {}", self.owner());
+        match spawn(cmd, Some(path), caption, iter::empty(), None).await {
             Ok(status) => {
                 if !status.status.success() {
                     results.push(status);
@@ -202,22 +202,37 @@ pub trait Manager {
     async fn lint(&self) -> Result<SpawnResult, Error> {
         let path = get_root().join(self.cwd());
         let caption = format!("TS Lint {}", self.owner());
-        let status = spawn("yarn run lint", Some(path.clone()), caption, None).await?;
+        let status = spawn(
+            "yarn run lint".into(),
+            Some(path.clone()),
+            caption,
+            iter::empty(),
+            None,
+        )
+        .await?;
         if !status.status.success() {
             return Ok(status);
         }
 
         let caption = format!("Build {}", self.owner());
-        spawn("yarn run build", Some(path), caption, None).await
+        spawn(
+            "yarn run build".into(),
+            Some(path),
+            caption,
+            iter::empty(),
+            None,
+        )
+        .await
     }
     async fn clippy(&self) -> Result<SpawnResult, Error> {
         let path = get_root().join(self.cwd());
 
         let caption = format!("Clippy {}", self.owner());
         spawn(
-            "cargo clippy --color always --all --all-features -- -D warnings",
+            "cargo clippy --color always --all --all-features -- -D warnings".into(),
             Some(path),
             caption,
+            iter::empty(),
             None,
         )
         .await
@@ -231,16 +246,18 @@ pub trait Manager {
 
         let mut results = Vec::new();
 
-        let install_res = self.install(false).await?;
-        results.push(install_res);
+        // build method calls install
+        let build_results = self.build(false).await?;
+        results.extend(build_results);
 
         let caption = format!("Test {}", self.owner());
-        let spawn_results = join_all(test_cmds.iter().map(|cmd| {
+        let spawn_results = join_all(test_cmds.into_iter().map(|cmd| {
             spawn(
-                &cmd.command,
-                Some(cmd.cwd.to_owned()),
+                cmd.command,
+                Some(cmd.cwd),
                 caption.clone(),
-                cmd.spawn_opts.clone(),
+                iter::empty(),
+                cmd.spawn_opts,
             )
         }))
         .await;

@@ -4,9 +4,10 @@ use crate::{
     tracker::get_tracker,
 };
 use anyhow::bail;
+use core::panic;
 use futures_lite::{future, FutureExt};
 use std::{
-    env::vars,
+    env,
     path::PathBuf,
     process::{ExitStatus, Stdio},
 };
@@ -53,26 +54,23 @@ pub(crate) struct SpawnOptions {
 }
 
 pub async fn spawn(
-    command: &str,
+    command: String,
     cwd: Option<PathBuf>,
     caption: String,
+    environment_vars: impl IntoIterator<Item = (String, String)>,
     opts: Option<SpawnOptions>,
 ) -> Result<SpawnResult, anyhow::Error> {
     let opts = opts.unwrap_or_default();
     let cwd = cwd.unwrap_or_else(|| get_root().clone());
     let mut parts = command.split(' ').collect::<Vec<&str>>();
     let cmd = parts.remove(0);
-    #[allow(clippy::useless_vec)]
+    let mut env_vars: Vec<_> = env::vars().chain(environment_vars).collect();
+    env_vars.push((String::from("TERM"), String::from("xterm-256color")));
+
     let mut child = Command::new(cmd)
         .current_dir(&cwd)
         .args(parts)
-        .envs(
-            vec![
-                vars().collect::<Vec<(String, String)>>(),
-                vec![(String::from("TERM"), String::from("xterm-256color"))],
-            ]
-            .concat(),
-        )
+        .envs(env_vars)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
@@ -149,7 +147,7 @@ pub async fn spawn(
             report: report_lines,
             status,
             job: job_title,
-            cmd: command.to_owned(),
+            cmd: command,
         })
     } else {
         tracker
