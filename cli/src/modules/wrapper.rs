@@ -72,6 +72,8 @@ impl Manager for Module {
         results.extend(build_results);
 
         let build_spec_path = self.cwd().join("spec");
+        //TODO: Make sure we should put this check here. This check exists in rake implementation
+        // but it could lead to wrong test values when the changes in the tests aren't built.
         if !build_spec_path.join("build").exists() {
             let build_spec_cmd = format!(
                 "{}/node_modules/.bin/tsc -p tsconfig.json",
@@ -81,7 +83,7 @@ impl Manager for Module {
             let spec_res = spawn(
                 build_spec_cmd,
                 Some(build_spec_path),
-                "bulid spec".into(),
+                "Build Specs".into(),
                 iter::empty(),
                 None,
             )
@@ -120,7 +122,13 @@ impl Manager for Module {
             // TODO:
             // Running "jobs" here causes the program to receive SIGTRAP from OS because of an
             // out-of-memory error in electron app, even if only this job was running (by
-            // commenting out the other specs)
+            // commenting out the other specs).
+            //
+            // The error happens while executing  line 137 from  the file `session.jobs.spec.ts` when
+            // we spawn the command using Stdio::piped() in the spawn command (line 74 in file
+            // `spawner.rs`). Either Commenting out the line from `session.jobs.spec.ts` file or
+            // using Stdio::inherit() in `spawner.rs` prevent this error from happening.
+            //
             // "jobs" is commented out temporally until the SIGTRAP problem is solved.
             // "jobs",
             "search",
