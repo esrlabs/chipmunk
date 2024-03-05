@@ -1,11 +1,4 @@
-import {
-    Component,
-    OnDestroy,
-    Input,
-    AfterContentInit,
-    ChangeDetectorRef,
-    SimpleChange,
-} from '@angular/core';
+import { Component, OnDestroy, Input, AfterContentInit, ChangeDetectorRef } from '@angular/core';
 import { Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';

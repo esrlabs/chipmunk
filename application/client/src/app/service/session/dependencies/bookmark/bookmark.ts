@@ -2,6 +2,7 @@ import { Recognizable } from '@platform/types/storage/entry';
 import { error } from '@platform/log/utils';
 import { Json } from '@platform/types/storage/json';
 import { Equal } from '@platform/types/env/types';
+import { BookmarkDefinition } from '@platform/types/bookmark';
 
 import * as obj from '@platform/env/obj';
 
@@ -27,6 +28,10 @@ export class Bookmark extends Json<Bookmark> implements Recognizable, Equal<Book
 
     public uuid(): string {
         return this.position.toString();
+    }
+
+    public asDef(): BookmarkDefinition {
+        return { position: this.position };
     }
 
     public isSame(bookmark: Bookmark): boolean {

@@ -1,4 +1,4 @@
-import { Component, Input, AfterContentInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { GitHubRepo } from '@platform/types/github';
 

@@ -2,11 +2,7 @@ import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { ISelection } from '@ui/elements/scrollarea/controllers/selection';
 import { Modifier } from '@service/session/dependencies/search/highlights/modifier';
 import { CommentsModifier } from '@service/session/dependencies/search/highlights/modifiers/comments';
-import {
-    Definition,
-    ActualSelectionData,
-    CommentState,
-} from '@service/session/dependencies/comments/comment';
+import { CommentDefinition, CommentState } from '@platform/types/comment';
 import { Subscriber, Subject, Subjects } from '@platform/env/subscription';
 import { unique } from '@platform/env/sequence';
 import { popup } from '@ui/service/popup';
@@ -18,6 +14,11 @@ import { Session } from '@service/session/session';
 import * as regex from '@platform/env/regex';
 import * as obj from '@platform/env/obj';
 
+export interface ActualSelectionData {
+    selection: string;
+    start: number;
+    end: number;
+}
 /**
  
  export interface IScrollBoxSelection {
@@ -36,7 +37,7 @@ import * as obj from '@platform/env/obj';
  */
 @SetupLogger()
 export class Comments extends Subscriber {
-    protected readonly comments: Map<string, Definition> = new Map();
+    protected readonly comments: Map<string, CommentDefinition> = new Map();
     protected session!: Session;
 
     protected getSelectedText(): string | undefined {
@@ -44,9 +45,9 @@ export class Comments extends Subscriber {
         return selection === null ? undefined : selection.toString();
     }
 
-    protected getRelevantComment(position: number): Definition[] {
-        const comments: Definition[] = [];
-        this.comments.forEach((comment: Definition) => {
+    protected getRelevantComment(position: number): CommentDefinition[] {
+        const comments: CommentDefinition[] = [];
+        this.comments.forEach((comment: CommentDefinition) => {
             if (position < comment.selection.start.position) {
                 return;
             }
@@ -150,16 +151,16 @@ export class Comments extends Subscriber {
     }
 
     public subjects: Subjects<{
-        added: Subject<Definition>;
-        updated: Subject<Definition>;
-        pending: Subject<Definition>;
+        added: Subject<CommentDefinition>;
+        updated: Subject<CommentDefinition>;
+        pending: Subject<CommentDefinition>;
         removed: Subject<string>;
         selected: Subject<string>;
         export: Subject<void>;
     }> = new Subjects({
-        added: new Subject<Definition>(),
-        updated: new Subject<Definition>(),
-        pending: new Subject<Definition>(),
+        added: new Subject<CommentDefinition>(),
+        updated: new Subject<CommentDefinition>(),
+        pending: new Subject<CommentDefinition>(),
         removed: new Subject<string>(),
         selected: new Subject<string>(),
         export: new Subject<void>(),
@@ -232,7 +233,7 @@ export class Comments extends Subscriber {
             { from: selection.rows.end, to: selection.rows.end },
         ]);
         stored !== undefined && restore(stored);
-        const comment: Definition | Error = (() => {
+        const comment: CommentDefinition | Error = (() => {
             if (selection.rows.start === selection.rows.end) {
                 const sel: ActualSelectionData | Error = this.getActualSelectionData(
                     origin[0].content,
@@ -317,8 +318,8 @@ export class Comments extends Subscriber {
         if (comment instanceof Error) {
             throw comment;
         }
-        const crossing: Definition[] = [];
-        this.comments.forEach((com: Definition) => {
+        const crossing: CommentDefinition[] = [];
+        this.comments.forEach((com: CommentDefinition) => {
             if (
                 com.selection.start.position === com.selection.end.position &&
                 com.selection.start.position === comment.selection.start.position &&
@@ -357,32 +358,33 @@ export class Comments extends Subscriber {
                 crossing.push(com);
             }
         });
-        const toBeStored: { comment: Definition; recover?: Definition } | undefined = (() => {
-            if (crossing.length > 1) {
-                // Here should be notification
-                return;
-            } else if (crossing.length === 1) {
-                const recover = obj.clone(crossing[0]);
-                if (
-                    crossing[0].selection.start.position > comment.selection.start.position ||
-                    (crossing[0].selection.start.position >= comment.selection.start.position &&
-                        crossing[0].selection.start.offset > comment.selection.start.offset)
-                ) {
-                    crossing[0].selection.start = obj.clone(comment.selection.start);
+        const toBeStored: { comment: CommentDefinition; recover?: CommentDefinition } | undefined =
+            (() => {
+                if (crossing.length > 1) {
+                    // Here should be notification
+                    return;
+                } else if (crossing.length === 1) {
+                    const recover = obj.clone(crossing[0]);
+                    if (
+                        crossing[0].selection.start.position > comment.selection.start.position ||
+                        (crossing[0].selection.start.position >= comment.selection.start.position &&
+                            crossing[0].selection.start.offset > comment.selection.start.offset)
+                    ) {
+                        crossing[0].selection.start = obj.clone(comment.selection.start);
+                    }
+                    if (
+                        crossing[0].selection.end.position < comment.selection.end.position ||
+                        (crossing[0].selection.end.position <= comment.selection.end.position &&
+                            crossing[0].selection.end.offset < comment.selection.end.offset)
+                    ) {
+                        crossing[0].selection.end = obj.clone(comment.selection.end);
+                    }
+                    crossing[0].state = CommentState.pending;
+                    return { comment: crossing[0], recover };
+                } else {
+                    return { comment: comment };
                 }
-                if (
-                    crossing[0].selection.end.position < comment.selection.end.position ||
-                    (crossing[0].selection.end.position <= comment.selection.end.position &&
-                        crossing[0].selection.end.offset < comment.selection.end.offset)
-                ) {
-                    crossing[0].selection.end = obj.clone(comment.selection.end);
-                }
-                crossing[0].state = CommentState.pending;
-                return { comment: crossing[0], recover };
-            } else {
-                return { comment: comment };
-            }
-        })();
+            })();
         if (toBeStored === undefined) {
             return;
         }
@@ -392,7 +394,7 @@ export class Comments extends Subscriber {
         return undefined;
     }
 
-    public edit(comment: Definition) {
+    public edit(comment: CommentDefinition) {
         const creating: boolean = comment.comment === '';
         comment.state = CommentState.pending;
         const popupHandle = popup.open({
@@ -439,7 +441,7 @@ export class Comments extends Subscriber {
         this.session.highlights.subjects.get().update.emit();
     }
 
-    public update(comment: Definition) {
+    public update(comment: CommentDefinition) {
         if (!this.comments.has(comment.uuid)) {
             return;
         }
@@ -450,7 +452,7 @@ export class Comments extends Subscriber {
     }
 
     public clear() {
-        this.comments.forEach((comment: Definition, uuid: string) => {
+        this.comments.forEach((comment: CommentDefinition, uuid: string) => {
             this.comments.delete(uuid);
             this.subjects.get().removed.emit(uuid);
         });
@@ -458,17 +460,17 @@ export class Comments extends Subscriber {
         this.session.highlights.subjects.get().update.emit();
     }
 
-    public get(): Map<string, Definition> {
+    public get(): Map<string, CommentDefinition> {
         return this.comments;
     }
 
-    public getAsArray(): Definition[] {
+    public getAsArray(): CommentDefinition[] {
         return Array.from(this.comments.values());
     }
 
     public isRowCommented(position: number) {
         try {
-            this.comments.forEach((comment: Definition) => {
+            this.comments.forEach((comment: CommentDefinition) => {
                 if (position < comment.selection.start.position) {
                     return;
                 }
@@ -484,8 +486,8 @@ export class Comments extends Subscriber {
     }
 
     public getModifiers(position: number, str: string): Modifier[] {
-        const comments: Definition[] = this.getRelevantComment(position);
-        return comments.map((comment: Definition) => {
+        const comments: CommentDefinition[] = this.getRelevantComment(position);
+        return comments.map((comment: CommentDefinition) => {
             return new CommentsModifier(comment, position, str);
         });
     }

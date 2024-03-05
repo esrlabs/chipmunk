@@ -11,23 +11,29 @@ import { ChartRequest } from '@service/session/dependencies/search/charts/reques
 import { StoredEntity } from '@service/session/dependencies/search/store';
 
 import * as utils from '@platform/log/utils';
-import * as Origins from '@platform/types/observe/origin/index';
 import * as Requests from '@platform/ipc/request';
-import * as Events from '@platform/ipc/event';
 
 @SetupLogger()
 export class TeamWork extends Subscriber {
     public readonly subjects: Subjects<{
         loaded: Subject<void>;
         active: Subject<GitHubRepo | undefined>;
+        username: Subject<string | undefined>;
         metadata: Subject<FileMetaDataDefinition>;
     }> = new Subjects({
         loaded: new Subject<void>(),
         active: new Subject<GitHubRepo | undefined>(),
+        username: new Subject<string | undefined>(),
         metadata: new Subject<FileMetaDataDefinition>(),
     });
     protected repos: Map<string, GitHubRepo> = new Map();
-    protected active: GitHubRepo | undefined;
+    protected active: {
+        repo: GitHubRepo | undefined;
+        username: string | undefined;
+    } = {
+        repo: undefined,
+        username: undefined,
+    };
     protected session!: Session;
     // checksum of opened file
     // string - checksum
@@ -70,14 +76,52 @@ export class TeamWork extends Subscriber {
                 this.repos.set(repo.uuid, repo);
             });
             if (active.uuid !== undefined) {
-                this.active = this.repos.get(active.uuid);
+                this.active.repo = this.repos.get(active.uuid);
+            }
+            if (this.active.repo !== undefined) {
+                this.user().username();
             }
             this.subjects.get().loaded.emit();
-            this.subjects.get().active.emit(this.active);
+            this.subjects.get().active.emit(this.active.repo);
             this.file().write();
         } catch (err) {
             this.log().error(`Fail to load available GitHub references: ${utils.error(err)}`);
         }
+    }
+
+    protected user(): {
+        username(): void;
+    } {
+        return {
+            username: (): void => {
+                if (this.active.repo === undefined) {
+                    return;
+                }
+                Requests.IpcRequest.send(
+                    Requests.GitHub.GetUserName.Response,
+                    new Requests.GitHub.GetUserName.Request(),
+                )
+                    .then((response) => {
+                        if (response.error !== undefined || response.username === undefined) {
+                            this.log().error(
+                                `Fail to get username: ${
+                                    response.error === undefined ? '' : response.error
+                                }`,
+                            );
+                            this.active.username = undefined;
+                        } else if (response.username !== undefined) {
+                            this.active.username = response.username;
+                        }
+                    })
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to get username: ${err.message}`);
+                        this.active.username = undefined;
+                    })
+                    .finally(() => {
+                        this.subjects.get().username.emit(this.active.username);
+                    });
+            },
+        };
     }
 
     protected metadata(): {
@@ -118,7 +162,7 @@ export class TeamWork extends Subscriber {
     } {
         return {
             check: (): void => {
-                if (typeof this.checksum !== 'string' || this.active === undefined) {
+                if (typeof this.checksum !== 'string' || this.active.repo === undefined) {
                     return;
                 }
                 Requests.IpcRequest.send(
@@ -139,7 +183,7 @@ export class TeamWork extends Subscriber {
                     });
             },
             write: (): void => {
-                if (typeof this.checksum !== 'string' || this.active === undefined) {
+                if (typeof this.checksum !== 'string' || this.active.repo === undefined) {
                     return;
                 }
                 if (this.hash() === this.previous) {
@@ -147,6 +191,8 @@ export class TeamWork extends Subscriber {
                 }
                 const filters = this.session.search.store().filters().get();
                 const charts = this.session.search.store().charts().get();
+                const bookmarks = this.session.bookmarks.get().map((b) => b.asDef());
+                const comments = this.session.comments.getAsArray();
                 Requests.IpcRequest.send(
                     Requests.GitHub.SetFileMeta.Response,
                     new Requests.GitHub.SetFileMeta.Request({
@@ -155,7 +201,8 @@ export class TeamWork extends Subscriber {
                             protocol: '0.0.1',
                             filters: filters.map((filter) => filter.definition),
                             charts: charts.map((chart) => chart.definition),
-                            bookmarks: [],
+                            bookmarks: bookmarks,
+                            comments: comments,
                         },
                     }),
                 )
@@ -244,9 +291,10 @@ export class TeamWork extends Subscriber {
                         if (response.error !== undefined) {
                             this.log().error(`Fail to save active: ${response.error}`);
                         } else {
-                            this.active = repo;
+                            this.active.repo = repo;
                             this.subjects.get().active.emit(undefined);
                             this.file().check();
+                            this.user().username();
                         }
                     })
                     .catch((err: Error) => {
@@ -254,7 +302,7 @@ export class TeamWork extends Subscriber {
                     });
             },
             getActive: (): GitHubRepo | undefined => {
-                return this.active;
+                return this.active.repo;
             },
             create: (repo: GitHubRepo): Promise<void> => {
                 return Requests.IpcRequest.send(
@@ -270,10 +318,10 @@ export class TeamWork extends Subscriber {
                             return Promise.reject(new Error(`No uuid for added repo`));
                         }
                         repo.uuid = response.uuid;
-                        this.active = repo;
+                        this.active.repo = repo;
                         this.repos.set(repo.uuid, repo);
                         this.subjects.get().loaded.emit();
-                        this.subjects.get().active.emit(this.active);
+                        this.subjects.get().active.emit(this.active.repo);
                         return Promise.resolve();
                     })
                     .catch((err: Error) => {

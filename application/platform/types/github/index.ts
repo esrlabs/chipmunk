@@ -1,5 +1,3 @@
-import { IFilter } from '../filter';
-
 import * as validator from '../../env/obj';
 
 export interface GitHubRepo {
@@ -8,16 +6,6 @@ export interface GitHubRepo {
     repo: string;
     owner: string;
     branch: string;
-}
-
-export class CommentEntity {}
-
-export class ChartEntity {
-    constructor(public readonly filter: IFilter) {}
-}
-
-export class FilterEntity {
-    constructor(public readonly filter: IFilter) {}
 }
 
 export function validateGitHubRepo(repo: GitHubRepo): GitHubRepo {

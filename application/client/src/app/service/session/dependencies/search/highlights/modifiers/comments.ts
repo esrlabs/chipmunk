@@ -10,13 +10,13 @@ import {
 
 import * as ModifiersTools from '../tools';
 
-import { CommentState, Definition } from '@service/session/dependencies/comments/comment';
+import { CommentState, CommentDefinition } from '@platform/types/comment';
 
 export class CommentsModifier extends Modifier {
     private _ranges: IModifierRange[] = [];
-    private _comment: Definition | undefined;
+    private _comment: CommentDefinition | undefined;
 
-    constructor(comment: Definition | undefined, position: number, row: string) {
+    constructor(comment: CommentDefinition | undefined, position: number, row: string) {
         super();
         if (comment !== undefined) {
             this._comment = comment;
@@ -86,7 +86,7 @@ export class CommentsModifier extends Modifier {
         return EApplyTo.output;
     }
 
-    private _map(comment: Definition, position: number, str: string) {
+    private _map(comment: CommentDefinition, position: number, str: string) {
         if (
             position === comment.selection.start.position &&
             position === comment.selection.end.position
