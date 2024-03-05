@@ -7,7 +7,7 @@ import {
     ViewChild,
 } from '@angular/core';
 import { MatInput } from '@angular/material/input';
-import { Definition } from '@service/session/dependencies/comments/comment';
+import { CommentDefinition } from '@platform/types/comment';
 import { FormControl } from '@angular/forms';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -56,7 +56,7 @@ export class Comment extends ChangesDetector implements AfterViewInit, AfterCont
 
     @ViewChild(MatInput, { static: true }) ng_inputComRef!: MatInput;
 
-    @Input() comment!: Definition;
+    @Input() comment!: CommentDefinition;
 
     public ng_mode: 'edit' | 'create' = 'edit';
 

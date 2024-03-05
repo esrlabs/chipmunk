@@ -2,56 +2,15 @@ import { Recognizable } from '@platform/types/storage/entry';
 import { error } from '@platform/log/utils';
 import { Json } from '@platform/types/storage/json';
 import { Equal } from '@platform/types/env/types';
-
+import { CommentDefinition } from '@platform/types/comment';
 import * as obj from '@platform/env/obj';
-
-export interface SelectionPoint {
-    position: number;
-    offset: number;
-    text: string;
-}
-
-export interface CommentedSelection {
-    start: SelectionPoint;
-    end: SelectionPoint;
-    text: string;
-}
-
-export enum CommentState {
-    done = 'done',
-    pending = 'pending',
-}
-
-export interface Response {
-    uuid: string;
-    comment: string;
-    created: number;
-    modified: number;
-}
-
-export interface Definition {
-    uuid: string;
-    state: CommentState;
-    comment: string;
-    created: number;
-    modified: number;
-    responses: Response[];
-    color: string | undefined;
-    selection: CommentedSelection;
-}
-
-export interface ActualSelectionData {
-    selection: string;
-    start: number;
-    end: number;
-}
 
 export class Comment extends Json<Comment> implements Recognizable, Equal<Comment> {
     public static KEY: string = 'comment';
 
     public static fromJson(json: string): Comment | Error {
         try {
-            const def: Definition = JSON.parse(json);
+            const def: CommentDefinition = JSON.parse(json);
             def.uuid = obj.getAsString(def, 'uuid');
             def.selection = obj.getAsObj(def, 'selection');
             def.selection.start = obj.getAsObj(def.selection, 'start');
@@ -79,7 +38,7 @@ export class Comment extends Json<Comment> implements Recognizable, Equal<Commen
         }
     }
 
-    constructor(public readonly definition: Definition) {
+    constructor(public readonly definition: CommentDefinition) {
         super();
     }
 

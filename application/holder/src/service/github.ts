@@ -15,10 +15,8 @@ import { FileObject } from './github/getfilecontent';
 import { error } from 'platform/log/utils';
 
 import * as GitHubAPI from './github/index';
-import * as Events from 'platform/ipc/event';
 import * as Requests from 'platform/ipc/request';
 import * as md from 'platform/types/github/filemetadata';
-import * as validator from 'platform/env/obj';
 
 const STORAGE_KEY = 'github_teamwork';
 const STORAGE_REPOS = 'repos';
@@ -95,7 +93,7 @@ export class Service extends Implementation {
                                         `List of repos isn't an Array. Expecting GitHubRepo[]; found: ${typeof parsed}`,
                                     );
                                 }
-                                parsed.forEach((repo: any) => {
+                                parsed.forEach((repo: GitHubRepo) => {
                                     const checked = validateGitHubRepo(repo);
                                     this.repos.set(checked.uuid, checked);
                                 });
@@ -189,8 +187,6 @@ export class Service extends Implementation {
                         });
                     },
                 ),
-        );
-        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -199,7 +195,7 @@ export class Service extends Implementation {
                     (
                         request: Requests.GitHub.RemoveRepo.Request,
                     ): CancelablePromise<Requests.GitHub.RemoveRepo.Response> => {
-                        return new CancelablePromise((resolve, _reject) => {
+                        return new CancelablePromise((resolve) => {
                             if (!this.repos.has(request.uuid)) {
                                 resolve(
                                     new Requests.GitHub.RemoveRepo.Response({
@@ -218,8 +214,6 @@ export class Service extends Implementation {
                         });
                     },
                 ),
-        );
-        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -228,7 +222,7 @@ export class Service extends Implementation {
                     (
                         request: Requests.GitHub.UpdateRepo.Request,
                     ): CancelablePromise<Requests.GitHub.UpdateRepo.Response> => {
-                        return new CancelablePromise((resolve, _reject) => {
+                        return new CancelablePromise((resolve) => {
                             if (!this.repos.has(request.uuid)) {
                                 resolve(
                                     new Requests.GitHub.UpdateRepo.Response({
@@ -253,8 +247,6 @@ export class Service extends Implementation {
                         });
                     },
                 ),
-        );
-        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -263,7 +255,7 @@ export class Service extends Implementation {
                     (
                         request: Requests.GitHub.SetActive.Request,
                     ): CancelablePromise<Requests.GitHub.SetActive.Response> => {
-                        return new CancelablePromise((resolve, _reject) => {
+                        return new CancelablePromise((resolve) => {
                             const repo = this.repos.get(request.uuid);
                             if (request.uuid === undefined) {
                                 this.active = undefined;
@@ -287,8 +279,6 @@ export class Service extends Implementation {
                         });
                     },
                 ),
-        );
-        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -297,7 +287,7 @@ export class Service extends Implementation {
                     (
                         _request: Requests.GitHub.GetActive.Request,
                     ): CancelablePromise<Requests.GitHub.GetActive.Response> => {
-                        return new CancelablePromise((resolve, _reject) => {
+                        return new CancelablePromise((resolve) => {
                             resolve(
                                 new Requests.GitHub.GetActive.Response({
                                     uuid: this.active === undefined ? undefined : this.active.uuid,
@@ -306,8 +296,6 @@ export class Service extends Implementation {
                         });
                     },
                 ),
-        );
-        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -316,7 +304,7 @@ export class Service extends Implementation {
                     (
                         _request: Requests.GitHub.GetRepos.Request,
                     ): CancelablePromise<Requests.GitHub.GetRepos.Response> => {
-                        return new CancelablePromise((resolve, _reject) => {
+                        return new CancelablePromise((resolve) => {
                             resolve(
                                 new Requests.GitHub.GetRepos.Response({
                                     repos: Array.from(this.repos.values()),
@@ -325,8 +313,6 @@ export class Service extends Implementation {
                         });
                     },
                 ),
-        );
-        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -335,7 +321,7 @@ export class Service extends Implementation {
                     (
                         request: Requests.GitHub.GetFileMeta.Request,
                     ): CancelablePromise<Requests.GitHub.GetFileMeta.Response> => {
-                        return new CancelablePromise((resolve, reject) => {
+                        return new CancelablePromise((resolve) => {
                             this.getFileMetaData(request.checksum)
                                 .then((metadata: md.FileMetaDataDefinition | undefined) => {
                                     resolve(
@@ -364,8 +350,6 @@ export class Service extends Implementation {
                         });
                     },
                 ),
-        );
-        this.register(
             electron
                 .ipc()
                 .respondent(
@@ -374,7 +358,7 @@ export class Service extends Implementation {
                     (
                         request: Requests.GitHub.SetFileMeta.Request,
                     ): CancelablePromise<Requests.GitHub.SetFileMeta.Response> => {
-                        return new CancelablePromise((resolve, reject) => {
+                        return new CancelablePromise((resolve) => {
                             this.setFileMetaData(request.checksum, request.metadata)
                                 .then(() => {
                                     resolve(new Requests.GitHub.SetFileMeta.Response({}));
@@ -382,6 +366,41 @@ export class Service extends Implementation {
                                 .catch((err: Error) => {
                                     resolve(
                                         new Requests.GitHub.SetFileMeta.Response({
+                                            error: err.message,
+                                        }),
+                                    );
+                                });
+                        });
+                    },
+                ),
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.GitHub.GetUserName.Request,
+                    (
+                        _request: Requests.GitHub.GetUserName.Request,
+                    ): CancelablePromise<Requests.GitHub.GetUserName.Response> => {
+                        return new CancelablePromise((resolve, _reject) => {
+                            if (this.active === undefined) {
+                                return resolve(
+                                    new Requests.GitHub.GetUserName.Response({
+                                        error: `No active profile selected`,
+                                    }),
+                                );
+                            }
+                            new GitHubAPI.GetUserName.Request(this.active)
+                                .send()
+                                .then((username: string) => {
+                                    resolve(
+                                        new Requests.GitHub.GetUserName.Response({
+                                            username,
+                                        }),
+                                    );
+                                })
+                                .catch((err: Error) => {
+                                    resolve(
+                                        new Requests.GitHub.GetUserName.Response({
                                             error: err.message,
                                         }),
                                     );

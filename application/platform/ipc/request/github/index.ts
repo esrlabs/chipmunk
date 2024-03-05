@@ -6,3 +6,4 @@ export * as GetActive from './getactive';
 export * as GetRepos from './getrepos';
 export * as GetFileMeta from './getfilemeta';
 export * as SetFileMeta from './setfilemeta';
+export * as GetUserName from './getusername';

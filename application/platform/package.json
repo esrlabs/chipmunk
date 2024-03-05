@@ -88,6 +88,8 @@
         "./types/content": "./dist/types/content.js",
         "./types/filter": "./dist/types/filter.js",
         "./types/chart": "./dist/types/chart.js",
+        "./types/comment": "./dist/types/comment.js",
+        "./types/bookmark": "./dist/types/bookmark.js",
         "./types/observe": "./dist/types/observe/index.js",
         "./types/observe/factory": "./dist/types/observe/factory.js",
         "./types/observe/description": "./dist/types/observe/description.js",

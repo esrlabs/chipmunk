@@ -4,3 +4,4 @@ export * as GetFileContent from './getfilecontent';
 export * as CreateTree from './createtree';
 export * as CreateCommit from './createcommit';
 export * as UpdateRef from './updateref';
+export * as GetUserName from './getusername';

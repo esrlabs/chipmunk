@@ -9,7 +9,7 @@ import {
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Response } from '@service/session/dependencies/comments/comment';
+import { Response } from '@platform/types/comment';
 
 function getDateTimeStr(datetime: Date | number): string {
     function fill(num: number): string {

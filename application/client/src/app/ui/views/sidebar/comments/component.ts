@@ -12,7 +12,7 @@ import { Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Definition } from '@service/session/dependencies/comments/comment';
+import { CommentDefinition } from '@platform/types/comment';
 import { CShortColors } from '@ui/styles/colors';
 import { Subscriber, Subject } from '@platform/env/subscription';
 
@@ -43,7 +43,7 @@ export class Comments
         this.hidden = [];
         this.origin
             .filter((c) => this.filter !== undefined && this.filter !== c.color)
-            .map((comment: Definition) => {
+            .map((comment: CommentDefinition) => {
                 const index: number = this.hidden.findIndex((d) => d.color === comment.color);
                 if (index === -1) {
                     this.hidden.push({ count: 1, color: comment.color });
@@ -77,22 +77,22 @@ export class Comments
             this.update();
             return;
         }
-        let comments: Definition[] = [];
-        const all: Definition[] = this.session.comments.getAsArray();
+        let comments: CommentDefinition[] = [];
+        const all: CommentDefinition[] = this.session.comments.getAsArray();
         switch (this.ordring) {
             case ECommentsOrdering.colors:
                 (CShortColors.slice() as Array<string | undefined>)
                     .concat([undefined] as Array<string | undefined>)
                     .forEach((color: string | undefined) => {
-                        const group: Definition[] = all.filter((c) => c.color === color);
-                        group.sort((a: Definition, b: Definition) => {
+                        const group: CommentDefinition[] = all.filter((c) => c.color === color);
+                        group.sort((a: CommentDefinition, b: CommentDefinition) => {
                             return a.selection.start.position > b.selection.start.position ? 1 : -1;
                         });
                         comments = comments.concat(group);
                     });
                 break;
             case ECommentsOrdering.position:
-                all.sort((a: Definition, b: Definition) => {
+                all.sort((a: CommentDefinition, b: CommentDefinition) => {
                     return a.selection.start.position > b.selection.start.position ? 1 : -1;
                 });
                 comments = all;
@@ -104,9 +104,9 @@ export class Comments
 
     protected readonly subscriber: Subscriber = new Subscriber();
     protected filter: string | undefined;
-    protected origin: Definition[] = [];
+    protected origin: CommentDefinition[] = [];
 
-    public comments: Definition[] = [];
+    public comments: CommentDefinition[] = [];
     public hidden: { count: number; color: string | undefined }[] = [];
     public broadcastEditorUsage: Subject<string> = new Subject<string>();
     public colors: string[] = CShortColors.slice();

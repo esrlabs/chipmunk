@@ -14,7 +14,7 @@ import { Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Definition, Response } from '@service/session/dependencies/comments/comment';
+import { CommentDefinition, Response } from '@platform/types/comment';
 import { CShortColors, shadeColor } from '@ui/styles/colors';
 import { Subject } from '@platform/env/subscription';
 import { unique } from '@platform/env/sequence';
@@ -32,7 +32,7 @@ import * as obj from '@platform/env/obj';
 @Initial()
 @Ilc()
 export class Comment extends ChangesDetector implements AfterContentInit, OnChanges {
-    @Input() comment!: Definition;
+    @Input() comment!: CommentDefinition;
     @Input() session!: Session;
     @Input() broadcastEditorUsage!: Subject<string>;
 
@@ -78,7 +78,7 @@ export class Comment extends ChangesDetector implements AfterContentInit, OnChan
     }
 
     public ngOnChanges(changes: SimpleChanges) {
-        const change = changes as unknown as { comment: { currentValue: Definition } };
+        const change = changes as unknown as { comment: { currentValue: CommentDefinition } };
         if (change.comment === undefined) {
             return;
         }
