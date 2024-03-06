@@ -17,6 +17,11 @@
     </mat-expansion-panel-header>
     <div class="repos">
         <app-views-teamwork-repository
+            [repo]="undefined"
+            [attr.class]="(active === undefined ? 'selected' : '')"
+            (click)="repo().setActive(undefined)"
+        ></app-views-teamwork-repository>
+        <app-views-teamwork-repository
             *ngFor="let repository of repos"
             (contextmenu)="onRepoContextMenu($event, repository)"
             [attr.class]="((repo().isActive(repository)) ? 'selected' : '')"
