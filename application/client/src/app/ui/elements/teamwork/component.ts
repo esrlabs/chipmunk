@@ -7,7 +7,7 @@ import { GitHubRepo } from '@platform/types/github';
 import { MatSelectChange } from '@angular/material/select';
 
 @Component({
-    selector: 'app-views-filters-teamwork',
+    selector: 'app-views-teamwork-applet',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })

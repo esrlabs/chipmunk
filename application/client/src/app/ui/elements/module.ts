@@ -11,6 +11,7 @@ import { AutocompleteModule } from '@elements/autocomplete/module';
 import { ComTooltipComponent } from '@elements/tooltip/component';
 import { FolderInputModule } from '@elements/folderinput/module';
 import { NavigatorModule } from '@elements/navigator/module';
+import { TeamworkAppletModule } from '@elements/teamwork/module';
 
 @NgModule({
     imports: [
@@ -24,6 +25,7 @@ import { NavigatorModule } from '@elements/navigator/module';
         AutocompleteModule,
         FolderInputModule,
         NavigatorModule,
+        TeamworkAppletModule,
     ],
     declarations: [ComTooltipComponent],
     exports: [

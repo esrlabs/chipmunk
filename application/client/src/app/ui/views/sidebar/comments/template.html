@@ -42,10 +42,18 @@
             </div>
         </mat-card>
     </div>
-    <div class="hidden" *ngIf="comments.length === 0">
+    <div class="hidden" *ngIf="comments.length === 0 && isAvailable()">
         <p class="t-small color-scheme-1 info">
             To create new comment: select some text; call context menu and select "Comment"
         </p>
+    </div>
+    <div class="hidden" *ngIf="!isAvailable() && session !== undefined">
+        <p class="t-small color-scheme-1 info">
+            Creating comments is possible as soon as you are assigned to some GitHub repository. If
+            you want to use a comments feature, please associate the session with some GitHub
+            repository.
+        </p>
+        <app-views-teamwork-applet [session]="session"></app-views-teamwork-applet>
     </div>
 </div>
 

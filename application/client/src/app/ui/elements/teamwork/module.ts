@@ -25,4 +25,4 @@ const components = [...entryComponents];
     declarations: [...components],
     exports: [...components],
 })
-export class TeamworkModule {}
+export class TeamworkAppletModule {}
