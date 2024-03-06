@@ -5,7 +5,6 @@ import {
     ChangeDetectorRef,
     AfterContentInit,
     AfterViewInit,
-    ChangeDetectionStrategy,
     ViewEncapsulation,
 } from '@angular/core';
 import { Session } from '@service/session';
@@ -26,7 +25,6 @@ export enum ECommentsOrdering {
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 @Initial()
 @Ilc()
@@ -60,12 +58,9 @@ export class Comments
             this.subscriber.unsubscribe();
             this.subscriber.register(
                 this.session.comments.subjects.get().added.subscribe(this.reload.bind(this)),
-            );
-            this.subscriber.register(
                 this.session.comments.subjects.get().updated.subscribe(this.reload.bind(this)),
-            );
-            this.subscriber.register(
                 this.session.comments.subjects.get().removed.subscribe(this.reload.bind(this)),
+                this.session.comments.subjects.get().reload.subscribe(this.reload.bind(this)),
             );
         }
         this.reload();
