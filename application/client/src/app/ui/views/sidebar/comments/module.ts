@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ScrollingModule } from '@angular/cdk/scrolling';
+import { TeamworkAppletModule } from '@elements/teamwork/module';
 
 import { Comments } from './component';
 import { Comment } from './comment/component';
@@ -36,6 +37,7 @@ const components = [...entryComponents];
         MatCardModule,
         MatMenuModule,
         MatDividerModule,
+        TeamworkAppletModule,
     ],
     declarations: [...components],
     exports: [...components],

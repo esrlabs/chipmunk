@@ -123,6 +123,12 @@ export class Comments
     public ngAfterContentInit() {
         this.ilc().channel.session.change(this.onSessionChange.bind(this));
         this.onSessionChange(undefined);
+        this.session !== undefined &&
+            this.subscriber.register(
+                this.session.teamwork.subjects.get().active.subscribe(() => {
+                    this.detectChanges();
+                }),
+            );
     }
 
     public ngAfterViewInit() {
@@ -144,6 +150,16 @@ export class Comments
                 ? ECommentsOrdering.position
                 : ECommentsOrdering.colors;
         this.reload();
+    }
+
+    public isAvailable(): boolean {
+        if (this.session === undefined) {
+            return false;
+        }
+        return (
+            this.session.teamwork.repo().getActive() !== undefined &&
+            this.session.teamwork.user().get() !== undefined
+        );
     }
 }
 export interface Comments extends IlcInterface {}
