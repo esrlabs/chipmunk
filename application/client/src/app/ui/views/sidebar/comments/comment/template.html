@@ -4,14 +4,23 @@
             <span class="position-label"
                 >{{comment.selection.start.position}} - {{comment.selection.end.position}}</span
             >
+            <div class="signature">
+                <p class="username t-small">{{comment.username}}</p>
+                <p class="date t-small">{{created()}}</p>
+            </div>
         </mat-card-subtitle>
         <mat-card-content (click)="ngOnShow()">{{comment.comment}}</mat-card-content>
         <mat-card-actions>
             <span
                 class="small-icon-button codicon codicon-symbol-color"
                 [matMenuTriggerFor]="commentCategoryMenu"
+                *ngIf="isEditable()"
             ></span>
-            <span class="small-icon-button codicon codicon-edit" (click)="ngOnEdit()"></span>
+            <span
+                class="small-icon-button codicon codicon-edit"
+                *ngIf="isEditable()"
+                (click)="ngOnEdit()"
+            ></span>
             <span class="small-icon-button codicon codicon-reply" (click)="ngOnReplay()"></span>
             <span
                 class="small-icon-button codicon codicon-menu"
@@ -31,6 +40,7 @@
             <app-views-comments-reply
                 *ngFor="let response of comment.responses; let i = index"
                 [response]="response"
+                [editable]="isResponseEditable(response)"
                 [color]="ngGetResponseColor()"
                 [edit]="ngGetResponseEditCallback(response)"
                 [remove]="ngGetResponseRemoveCallback(response.uuid)"
@@ -40,7 +50,7 @@
     </mat-card>
 
     <mat-menu #commentActionsMenu="matMenu" xPosition="before">
-        <button mat-menu-item (click)="ngOnEdit()">
+        <button *ngIf="isEditable()" mat-menu-item (click)="ngOnEdit()">
             <mat-icon>edit</mat-icon>
             <span>Edit</span>
         </button>
@@ -49,7 +59,7 @@
             <span>Show</span>
         </button>
         <mat-divider></mat-divider>
-        <button mat-menu-item (click)="ngOnRemove()">
+        <button mat-menu-item *ngIf="isEditable()" (click)="ngOnRemove()">
             <mat-icon>delete</mat-icon>
             <span>Remove</span>
         </button>

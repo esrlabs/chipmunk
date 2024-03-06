@@ -1,16 +1,17 @@
 import { net, NetworkError } from '@module/net';
-import { Request as Base } from './request';
+import { Request as Base } from '../request';
 import { GitHubRepo } from 'platform/types/github';
 import { error } from 'platform/log/utils';
+import { Queue } from '../queue';
 
 import * as validator from 'platform/env/obj';
 
 export class Request extends Base<string> {
-    constructor(options: GitHubRepo) {
-        super(options);
+    constructor(queue: Queue, options: GitHubRepo) {
+        super(queue, options);
     }
 
-    public send(): Promise<string> {
+    public executor(): Promise<string> {
         return new Promise((resolve, reject) => {
             net.getRaw(`https://api.github.com/user`, this.getHeaders())
                 .then((raw: string) => {

@@ -7,6 +7,7 @@ import { Range } from '@platform/types/range';
 import { Cursor } from './cursor';
 import { hotkeys } from '@service/hotkeys';
 import { Stream } from './stream';
+import { BookmarkDefinition } from '@platform/types/bookmark';
 
 import * as Requests from '@platform/ipc/request';
 
@@ -61,6 +62,12 @@ export class Bookmarks extends Subscriber {
             .catch((err: Error) => {
                 this.log().error(`Fail set bookmarks: ${err.message}`);
             });
+    }
+
+    public overwriteFromDefs(bookmarks: BookmarkDefinition[]) {
+        this.overwrite(bookmarks.map((def) => new Bookmark(def.position))).catch((err: Error) => {
+            this.log().error(`Fail overwrite bookmarks: ${err.message}`);
+        });
     }
 
     public bookmark(row: Row) {

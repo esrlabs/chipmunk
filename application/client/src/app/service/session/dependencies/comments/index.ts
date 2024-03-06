@@ -156,6 +156,7 @@ export class Comments extends Subscriber {
         pending: Subject<CommentDefinition>;
         removed: Subject<string>;
         selected: Subject<string>;
+        reload: Subject<void>;
         export: Subject<void>;
     }> = new Subjects({
         added: new Subject<CommentDefinition>(),
@@ -163,6 +164,7 @@ export class Comments extends Subscriber {
         pending: new Subject<CommentDefinition>(),
         removed: new Subject<string>(),
         selected: new Subject<string>(),
+        reload: new Subject<void>(),
         export: new Subject<void>(),
     });
 
@@ -227,6 +229,10 @@ export class Comments extends Subscriber {
         if (selected === undefined) {
             throw new Error(`No selected text`);
         }
+        const username = this.session.teamwork.user().get();
+        if (username === undefined) {
+            throw new Error(`No username available; github profile should be activated`);
+        }
         const stored = remember();
         const origin = await this.session.stream.grab([
             { from: selection.rows.start, to: selection.rows.start },
@@ -246,6 +252,7 @@ export class Comments extends Subscriber {
                 return {
                     uuid,
                     state: CommentState.pending,
+                    username,
                     comment: '',
                     color: CShortColors[0],
                     created: Date.now(),
@@ -294,6 +301,7 @@ export class Comments extends Subscriber {
                 return {
                     uuid: uuid,
                     state: CommentState.pending,
+                    username,
                     comment: '',
                     color: CShortColors[0],
                     created: Date.now(),
@@ -460,12 +468,32 @@ export class Comments extends Subscriber {
         this.session.highlights.subjects.get().update.emit();
     }
 
+    public set(comments: CommentDefinition[]): void {
+        this.comments.clear();
+        comments.forEach((comment: CommentDefinition) => {
+            this.comments.set(comment.uuid, comment);
+        });
+        this.subjects.get().reload.emit();
+        this.session.highlights.subjects.get().update.emit();
+    }
+
     public get(): Map<string, CommentDefinition> {
         return this.comments;
     }
 
     public getAsArray(): CommentDefinition[] {
         return Array.from(this.comments.values());
+    }
+
+    public isCreatingAvailable(): boolean {
+        return this.session.teamwork.user().get() !== undefined;
+    }
+
+    public isEditable(comment: CommentDefinition): boolean {
+        return (
+            this.session.teamwork.user().get() !== undefined &&
+            this.session.teamwork.user().get() === comment.username
+        );
     }
 
     public isRowCommented(position: number) {

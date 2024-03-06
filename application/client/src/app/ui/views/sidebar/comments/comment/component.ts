@@ -20,6 +20,7 @@ import { Subject } from '@platform/env/subscription';
 import { unique } from '@platform/env/sequence';
 import { Owner } from '@schema/content/row';
 
+import * as moment from 'moment';
 import * as obj from '@platform/env/obj';
 
 @Component({
@@ -48,6 +49,21 @@ export class Comment extends ChangesDetector implements AfterContentInit, OnChan
         this.ngOnResponseRemove = this.ngOnResponseRemove.bind(this);
     }
 
+    public created(): string {
+        return moment.unix(this.comment.created / 1000).format('MM/DD/YYYY hh:mm:ss');
+    }
+
+    public isEditable(): boolean {
+        return this.session.comments.isEditable(this.comment);
+    }
+
+    public isResponseEditable(response: Response): boolean {
+        return (
+            this.session.teamwork.user().get() !== undefined &&
+            response.username === this.session.teamwork.user().get()
+        );
+    }
+
     public ngAfterContentInit() {
         this.env().subscriber.register(
             this.broadcastEditorUsage.subscribe((uuid: string) => {
@@ -61,6 +77,9 @@ export class Comment extends ChangesDetector implements AfterContentInit, OnChan
     }
 
     public ngOnEdit() {
+        if (!this.isEditable()) {
+            return;
+        }
         this.session.comments.edit(this.comment);
     }
 
@@ -74,6 +93,9 @@ export class Comment extends ChangesDetector implements AfterContentInit, OnChan
     }
 
     public ngOnRemove() {
+        if (!this.isEditable()) {
+            return;
+        }
         this.session.comments.remove(this.comment.uuid);
     }
 
@@ -87,14 +109,22 @@ export class Comment extends ChangesDetector implements AfterContentInit, OnChan
     }
 
     public ngOnSetColor(color: string | undefined) {
+        if (!this.isEditable()) {
+            return;
+        }
         this.comment.color = color;
         this.session.comments.update(this.comment);
         this.detectChanges();
     }
 
     public ngOnReplay() {
+        const username = this.session.teamwork.user().get();
+        if (username === undefined) {
+            return;
+        }
         this.response = {
             uuid: '',
+            username,
             created: Date.now(),
             modified: Date.now(),
             comment: '',
@@ -133,6 +163,9 @@ export class Comment extends ChangesDetector implements AfterContentInit, OnChan
 
     public ngOnResponseRemove() {
         if (this.response === undefined) {
+            return;
+        }
+        if (!this.isResponseEditable(this.response)) {
             return;
         }
         this.comment.responses = this.comment.responses.filter(

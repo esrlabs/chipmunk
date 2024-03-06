@@ -11,10 +11,11 @@ import { storage } from '@service/storage';
 import { CancelablePromise } from 'platform/env/promise';
 import { unique } from 'platform/env/sequence';
 import { GitHubRepo, validateGitHubRepo } from 'platform/types/github';
-import { FileObject } from './github/getfilecontent';
+import { FileObject } from './github/requests/getfilecontent';
 import { error } from 'platform/log/utils';
+import { Queue } from './github/queue';
 
-import * as GitHubAPI from './github/index';
+import * as GitHubAPI from './github/requests/index';
 import * as Requests from 'platform/ipc/request';
 import * as md from 'platform/types/github/filemetadata';
 
@@ -28,6 +29,30 @@ const STORAGE_ACTIVE = 'active_repo';
 export class Service extends Implementation {
     protected readonly repos: Map<string, GitHubRepo> = new Map();
     protected active: GitHubRepo | undefined;
+    protected previous: string | undefined;
+    protected queue: Queue = new Queue();
+
+    protected hash(): {
+        isSame(md: md.FileMetaDataDefinition): boolean;
+        setFrom(md: md.FileMetaDataDefinition): void;
+        drop(): void;
+    } {
+        return {
+            isSame: (md: md.FileMetaDataDefinition): boolean => {
+                if (this.previous === undefined) {
+                    return false;
+                }
+                const hash = `${JSON.stringify(md)}:${JSON.stringify(this.active)}`;
+                return hash === this.previous;
+            },
+            setFrom: (md: md.FileMetaDataDefinition): void => {
+                this.previous = `${JSON.stringify(md)}:${JSON.stringify(this.active)}`;
+            },
+            drop: (): void => {
+                this.previous = undefined;
+            },
+        };
+    }
 
     protected async getFileMetaData(
         filename: string,
@@ -35,7 +60,8 @@ export class Service extends Implementation {
         if (this.active === undefined) {
             throw new Error('No active repo selected');
         }
-        const rest = new GitHubAPI.GetFileContent.Request(this.active, filename);
+        const active = Object.assign({}, this.active);
+        const rest = new GitHubAPI.GetFileContent.Request(this.queue, active, filename);
         const file: FileObject | undefined = await rest.send();
         if (file === undefined) {
             return undefined;
@@ -53,21 +79,27 @@ export class Service extends Implementation {
         if (this.active === undefined) {
             throw new Error('No active repo selected');
         }
-        const branchSha = await new GitHubAPI.GetBrachSHA.Request(this.active).send();
-        const baseTreeSha = (await new GitHubAPI.GetCommit.Request(this.active, branchSha).send())
-            .tree.sha;
-        const newTreeSha = await new GitHubAPI.CreateTree.Request(this.active, baseTreeSha, {
+        if (this.hash().isSame(metadata)) {
+            return Promise.resolve();
+        }
+        const active = Object.assign({}, this.active);
+        this.hash().setFrom(metadata);
+        const branchSha = await new GitHubAPI.GetBrachSHA.Request(this.queue, active).send();
+        const baseTreeSha = (
+            await new GitHubAPI.GetCommit.Request(this.queue, active, branchSha).send()
+        ).tree.sha;
+        const newTreeSha = await new GitHubAPI.CreateTree.Request(this.queue, active, baseTreeSha, {
             path: filename,
             type: 'blob',
             mode: '100644',
             content: JSON.stringify(metadata),
         }).send();
-        const newCommitSha = await new GitHubAPI.CreateCommit.Request(this.active, {
+        const newCommitSha = await new GitHubAPI.CreateCommit.Request(this.queue, active, {
             message: new Date().toUTCString(),
             tree: newTreeSha,
             parents: [branchSha],
         }).send();
-        await new GitHubAPI.UpdateRef.Request(this.active, {
+        await new GitHubAPI.UpdateRef.Request(this.queue, active, {
             sha: newCommitSha,
             force: true,
         }).send();
@@ -364,6 +396,7 @@ export class Service extends Implementation {
                                     resolve(new Requests.GitHub.SetFileMeta.Response({}));
                                 })
                                 .catch((err: Error) => {
+                                    this.hash().drop();
                                     resolve(
                                         new Requests.GitHub.SetFileMeta.Response({
                                             error: err.message,
@@ -389,7 +422,8 @@ export class Service extends Implementation {
                                     }),
                                 );
                             }
-                            new GitHubAPI.GetUserName.Request(this.active)
+                            const active = Object.assign({}, this.active);
+                            new GitHubAPI.GetUserName.Request(this.queue, active)
                                 .send()
                                 .then((username: string) => {
                                     resolve(

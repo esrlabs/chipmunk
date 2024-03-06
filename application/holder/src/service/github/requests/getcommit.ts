@@ -1,7 +1,8 @@
 import { net, NetworkError } from '@module/net';
-import { Request as Base } from './request';
+import { Request as Base } from '../request';
 import { GitHubRepo } from 'platform/types/github';
 import { error } from 'platform/log/utils';
+import { Queue } from '../queue';
 
 import * as validator from 'platform/env/obj';
 
@@ -13,11 +14,11 @@ export interface CommitObject {
 }
 
 export class Request extends Base<CommitObject> {
-    constructor(options: GitHubRepo, protected readonly sha: string) {
-        super(options);
+    constructor(queue: Queue, options: GitHubRepo, protected readonly sha: string) {
+        super(queue, options);
     }
 
-    public send(): Promise<CommitObject> {
+    public executor(): Promise<CommitObject> {
         return new Promise((resolve, reject) => {
             net.getRaw(
                 `https://api.github.com/repos/${this.options.owner}/${this.options.repo}/git/commits/${this.sha}`,

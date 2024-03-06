@@ -15,19 +15,9 @@ import * as Requests from '@platform/ipc/request';
 
 @SetupLogger()
 export class TeamWork extends Subscriber {
-    public readonly subjects: Subjects<{
-        loaded: Subject<void>;
-        active: Subject<GitHubRepo | undefined>;
-        username: Subject<string | undefined>;
-        metadata: Subject<FileMetaDataDefinition>;
-    }> = new Subjects({
-        loaded: new Subject<void>(),
-        active: new Subject<GitHubRepo | undefined>(),
-        username: new Subject<string | undefined>(),
-        metadata: new Subject<FileMetaDataDefinition>(),
-    });
-    protected repos: Map<string, GitHubRepo> = new Map();
-    protected active: {
+    protected readonly subs: Subscriber = new Subscriber();
+    protected readonly repos: Map<string, GitHubRepo> = new Map();
+    protected readonly active: {
         repo: GitHubRepo | undefined;
         username: string | undefined;
     } = {
@@ -41,23 +31,30 @@ export class TeamWork extends Subscriber {
     // null - cannot be set (stream, multiple files, etc.)
     protected checksum: string | undefined | null = undefined;
     // Last written hash
-    protected previous: string | undefined;
+    // string - hash
+    // undefined - not loaded
+    // null - no related profile on github repo
+    protected previous: string | undefined | null;
 
     protected hash(metadata?: FileMetaDataDefinition): string {
         if (metadata === undefined) {
             const filters = this.session.search.store().filters().get();
             const charts = this.session.search.store().charts().get();
+            const comments = this.session.comments.getAsArray();
+            const bookmarks = this.session.bookmarks.get();
             return `${filters
                 .map((v) => FilterRequest.getHashByDefinition(v.definition))
                 .join(';')}${charts
                 .map((v) => ChartRequest.getHashByDefinition(v.definition))
-                .join(';')}`;
+                .join(';')};${JSON.stringify(comments)};${JSON.stringify(bookmarks)}`;
         } else {
             return `${metadata.filters
                 .map((v) => FilterRequest.getHashByDefinition(v))
                 .join(';')}${metadata.charts
                 .map((v) => ChartRequest.getHashByDefinition(v))
-                .join(';')}`;
+                .join(';')};${JSON.stringify(metadata.comments)};${JSON.stringify(
+                metadata.bookmarks,
+            )}`;
         }
     }
 
@@ -79,49 +76,14 @@ export class TeamWork extends Subscriber {
                 this.active.repo = this.repos.get(active.uuid);
             }
             if (this.active.repo !== undefined) {
-                this.user().username();
+                this.user().reload();
             }
             this.subjects.get().loaded.emit();
             this.subjects.get().active.emit(this.active.repo);
-            this.file().write();
+            this.file().check();
         } catch (err) {
             this.log().error(`Fail to load available GitHub references: ${utils.error(err)}`);
         }
-    }
-
-    protected user(): {
-        username(): void;
-    } {
-        return {
-            username: (): void => {
-                if (this.active.repo === undefined) {
-                    return;
-                }
-                Requests.IpcRequest.send(
-                    Requests.GitHub.GetUserName.Response,
-                    new Requests.GitHub.GetUserName.Request(),
-                )
-                    .then((response) => {
-                        if (response.error !== undefined || response.username === undefined) {
-                            this.log().error(
-                                `Fail to get username: ${
-                                    response.error === undefined ? '' : response.error
-                                }`,
-                            );
-                            this.active.username = undefined;
-                        } else if (response.username !== undefined) {
-                            this.active.username = response.username;
-                        }
-                    })
-                    .catch((err: Error) => {
-                        this.log().error(`Fail to get username: ${err.message}`);
-                        this.active.username = undefined;
-                    })
-                    .finally(() => {
-                        this.subjects.get().username.emit(this.active.username);
-                    });
-            },
-        };
     }
 
     protected metadata(): {
@@ -134,6 +96,7 @@ export class TeamWork extends Subscriber {
                 if (local === this.previous) {
                     return;
                 }
+                this.events().unsubscribe();
                 this.session.search
                     .store()
                     .filters()
@@ -151,7 +114,12 @@ export class TeamWork extends Subscriber {
                         ) as StoredEntity<ChartRequest>[],
                     );
                 this.session.search.store().filters().refresh();
-                this.subjects.get().metadata.emit(md);
+                this.session.comments.set(md.comments);
+                this.session.bookmarks.overwriteFromDefs(md.bookmarks);
+                setTimeout(() => {
+                    this.subjects.get().metadata.emit(md);
+                    this.events().subscribe();
+                }, 500);
             },
         };
     }
@@ -176,6 +144,8 @@ export class TeamWork extends Subscriber {
                             this.log().error(`Fail to get metadata: ${response.error}`);
                         } else if (response.metadata !== undefined) {
                             this.metadata().import(response.metadata);
+                        } else {
+                            this.previous = null;
                         }
                     })
                     .catch((err: Error) => {
@@ -184,6 +154,10 @@ export class TeamWork extends Subscriber {
             },
             write: (): void => {
                 if (typeof this.checksum !== 'string' || this.active.repo === undefined) {
+                    return;
+                }
+                if (this.previous === undefined) {
+                    // Profile wasn't loaded yet
                     return;
                 }
                 if (this.hash() === this.previous) {
@@ -218,6 +192,59 @@ export class TeamWork extends Subscriber {
         };
     }
 
+    protected events(): {
+        subscribe(): void;
+        unsubscribe(): void;
+    } {
+        return {
+            subscribe: (): void => {
+                this.subs.register(
+                    this.session.search
+                        .store()
+                        .filters()
+                        .subjects.get()
+                        .any.subscribe(() => {
+                            this.file().write();
+                        }),
+                    this.session.search
+                        .store()
+                        .charts()
+                        .subjects.get()
+                        .any.subscribe(() => {
+                            this.file().write();
+                        }),
+                    this.session.bookmarks.subjects.get().updated.subscribe(() => {
+                        this.file().write();
+                    }),
+                    this.session.comments.subjects.get().updated.subscribe(() => {
+                        this.file().write();
+                    }),
+                    this.session.comments.subjects.get().added.subscribe(() => {
+                        this.file().write();
+                    }),
+                    this.session.comments.subjects.get().removed.subscribe(() => {
+                        this.file().write();
+                    }),
+                );
+            },
+            unsubscribe: (): void => {
+                this.subs.unsubscribe();
+            },
+        };
+    }
+
+    public readonly subjects: Subjects<{
+        loaded: Subject<void>;
+        active: Subject<GitHubRepo | undefined>;
+        username: Subject<string | undefined>;
+        metadata: Subject<FileMetaDataDefinition>;
+    }> = new Subjects({
+        loaded: new Subject<void>(),
+        active: new Subject<GitHubRepo | undefined>(),
+        username: new Subject<string | undefined>(),
+        metadata: new Subject<FileMetaDataDefinition>(),
+    });
+
     public init(session: Session) {
         this.setLoggerName(`TeamWork: ${cutUuid(session.uuid())}`);
         this.session = session;
@@ -245,25 +272,13 @@ export class TeamWork extends Subscriber {
                         this.log().error(`Fail get chechsum of file: ${err.message}`);
                     });
             }),
-            session.search
-                .store()
-                .filters()
-                .subjects.get()
-                .any.subscribe(() => {
-                    this.file().write();
-                }),
-            session.search
-                .store()
-                .charts()
-                .subjects.get()
-                .any.subscribe(() => {
-                    this.file().write();
-                }),
         );
+        this.events().subscribe();
     }
 
     public destroy() {
         this.unsubscribe();
+        this.events().unsubscribe();
         this.subjects.destroy();
     }
 
@@ -292,9 +307,9 @@ export class TeamWork extends Subscriber {
                             this.log().error(`Fail to save active: ${response.error}`);
                         } else {
                             this.active.repo = repo;
-                            this.subjects.get().active.emit(undefined);
+                            this.subjects.get().active.emit(repo);
                             this.file().check();
-                            this.user().username();
+                            this.user().reload();
                         }
                     })
                     .catch((err: Error) => {
@@ -322,6 +337,7 @@ export class TeamWork extends Subscriber {
                         this.repos.set(repo.uuid, repo);
                         this.subjects.get().loaded.emit();
                         this.subjects.get().active.emit(this.active.repo);
+                        this.file().check();
                         return Promise.resolve();
                     })
                     .catch((err: Error) => {
@@ -370,6 +386,45 @@ export class TeamWork extends Subscriber {
             },
             reload: (): Promise<void> => {
                 return this.load();
+            },
+        };
+    }
+
+    public user(): {
+        reload(): void;
+        get(): string | undefined;
+    } {
+        return {
+            reload: (): void => {
+                if (this.active.repo === undefined) {
+                    return;
+                }
+                Requests.IpcRequest.send(
+                    Requests.GitHub.GetUserName.Response,
+                    new Requests.GitHub.GetUserName.Request(),
+                )
+                    .then((response) => {
+                        if (response.error !== undefined || response.username === undefined) {
+                            this.log().error(
+                                `Fail to get username: ${
+                                    response.error === undefined ? '' : response.error
+                                }`,
+                            );
+                            this.active.username = undefined;
+                        } else if (response.username !== undefined) {
+                            this.active.username = response.username;
+                        }
+                    })
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to get username: ${err.message}`);
+                        this.active.username = undefined;
+                    })
+                    .finally(() => {
+                        this.subjects.get().username.emit(this.active.username);
+                    });
+            },
+            get: (): string | undefined => {
+                return this.active.username;
             },
         };
     }

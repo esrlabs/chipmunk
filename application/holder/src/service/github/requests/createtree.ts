@@ -1,7 +1,8 @@
 import { net, NetworkError } from '@module/net';
-import { Request as Base } from './request';
+import { Request as Base } from '../request';
 import { GitHubRepo } from 'platform/types/github';
 import { error } from 'platform/log/utils';
+import { Queue } from '../queue';
 
 import * as validator from 'platform/env/obj';
 
@@ -15,14 +16,15 @@ export interface TreeElement {
 
 export class Request extends Base<string> {
     constructor(
+        queue: Queue,
         options: GitHubRepo,
         protected readonly baseTreeSha: string,
         protected tree: TreeElement,
     ) {
-        super(options);
+        super(queue, options);
     }
 
-    public send(): Promise<string> {
+    public executor(): Promise<string> {
         return new Promise((resolve, reject) => {
             net.post(
                 `https://api.github.com/repos/${this.options.owner}/${this.options.repo}/git/trees`,
