@@ -12,6 +12,7 @@ import { StoredEntity } from '@service/session/dependencies/search/store';
 
 import * as utils from '@platform/log/utils';
 import * as Requests from '@platform/ipc/request';
+import * as Events from '@platform/ipc/event';
 
 @SetupLogger()
 export class TeamWork extends Subscriber {
@@ -124,11 +125,12 @@ export class TeamWork extends Subscriber {
     }
 
     protected file(): {
-        check(): void;
+        check(sha?: string): void;
+        checkUpdates(): void;
         write(): void;
     } {
         return {
-            check: (): void => {
+            check: (sha?: string): void => {
                 if (typeof this.checksum !== 'string' || this.active.repo === undefined) {
                     return;
                 }
@@ -136,6 +138,7 @@ export class TeamWork extends Subscriber {
                     Requests.GitHub.GetFileMeta.Response,
                     new Requests.GitHub.GetFileMeta.Request({
                         checksum: this.checksum,
+                        sha,
                     }),
                 )
                     .then((response) => {
@@ -149,6 +152,29 @@ export class TeamWork extends Subscriber {
                     })
                     .catch((err: Error) => {
                         this.log().error(`Request error: fail to get metadata: ${err.message}`);
+                    });
+            },
+            checkUpdates: (): void => {
+                if (typeof this.checksum !== 'string' || this.active.repo === undefined) {
+                    return;
+                }
+                Requests.IpcRequest.send(
+                    Requests.GitHub.CheckUpdates.Response,
+                    new Requests.GitHub.CheckUpdates.Request({
+                        checksum: this.checksum,
+                    }),
+                )
+                    .then((response) => {
+                        if (response.error !== undefined) {
+                            this.log().error(
+                                `Fail to check for updates of metadata: ${response.error}`,
+                            );
+                        }
+                    })
+                    .catch((err: Error) => {
+                        this.log().error(
+                            `Request error: fail to check for updates of metadata: ${err.message}`,
+                        );
                     });
             },
             write: (): void => {
@@ -251,6 +277,12 @@ export class TeamWork extends Subscriber {
             this.log().error(`Loading error: ${err.message}`);
         });
         this.register(
+            Events.IpcEvent.subscribe(
+                Events.GitHub.FileUpdated.Event,
+                (event: Events.GitHub.FileUpdated.Event) => {
+                    this.file().check(event.sha);
+                },
+            ),
             this.session.stream.subjects.get().started.subscribe((observe: Observe) => {
                 if (this.checksum === null) {
                     return;
@@ -426,6 +458,10 @@ export class TeamWork extends Subscriber {
                 return this.active.username;
             },
         };
+    }
+
+    public update() {
+        this.file().checkUpdates();
     }
 }
 export interface TeamWork extends LoggerInterface {}

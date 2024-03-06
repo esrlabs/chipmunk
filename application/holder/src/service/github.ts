@@ -18,10 +18,16 @@ import { Queue } from './github/queue';
 import * as GitHubAPI from './github/requests/index';
 import * as Requests from 'platform/ipc/request';
 import * as md from 'platform/types/github/filemetadata';
+import * as Events from 'platform/ipc/event';
 
 const STORAGE_KEY = 'github_teamwork';
 const STORAGE_REPOS = 'repos';
 const STORAGE_ACTIVE = 'active_repo';
+
+interface MetaDataResponse {
+    metadata: md.FileMetaDataDefinition;
+    file: FileObject;
+}
 
 @DependOn(electron)
 @DependOn(storage)
@@ -31,6 +37,7 @@ export class Service extends Implementation {
     protected active: GitHubRepo | undefined;
     protected previous: string | undefined;
     protected queue: Queue = new Queue();
+    protected files: Map<string, MetaDataResponse> = new Map();
 
     protected hash(): {
         isSame(md: md.FileMetaDataDefinition): boolean;
@@ -54,9 +61,7 @@ export class Service extends Implementation {
         };
     }
 
-    protected async getFileMetaData(
-        filename: string,
-    ): Promise<md.FileMetaDataDefinition | undefined> {
+    protected async getFileMetaData(filename: string): Promise<MetaDataResponse | undefined> {
         if (this.active === undefined) {
             throw new Error('No active repo selected');
         }
@@ -70,7 +75,8 @@ export class Service extends Implementation {
         if (metadata instanceof md.ProtocolError || metadata instanceof Error) {
             throw metadata;
         }
-        return metadata;
+        this.files.set(filename, { file, metadata });
+        return { metadata, file };
     }
     protected async setFileMetaData(
         filename: string,
@@ -185,6 +191,62 @@ export class Service extends Implementation {
     public override ready(): Promise<void> {
         this.storage().load();
         this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.GitHub.CheckUpdates.Request,
+                    (
+                        request: Requests.GitHub.CheckUpdates.Request,
+                    ): CancelablePromise<Requests.GitHub.CheckUpdates.Response> => {
+                        return new CancelablePromise((resolve, _reject) => {
+                            const current = this.files.get(request.checksum);
+                            this.getFileMetaData(request.checksum)
+                                .then((response: MetaDataResponse | undefined) => {
+                                    if (response === undefined) {
+                                        resolve(
+                                            new Requests.GitHub.CheckUpdates.Response({
+                                                exists: false,
+                                                updated: false,
+                                            }),
+                                        );
+                                    } else if (
+                                        current === undefined ||
+                                        current.file.sha !== response.file.sha
+                                    ) {
+                                        Events.IpcEvent.emit(
+                                            new Events.GitHub.FileUpdated.Event({
+                                                checksum: request.checksum,
+                                                sha: response.file.sha,
+                                            }),
+                                        );
+                                        resolve(
+                                            new Requests.GitHub.CheckUpdates.Response({
+                                                updated: true,
+                                                exists: true,
+                                            }),
+                                        );
+                                    } else {
+                                        resolve(
+                                            new Requests.GitHub.CheckUpdates.Response({
+                                                updated: false,
+                                                exists: true,
+                                            }),
+                                        );
+                                    }
+                                })
+                                .catch((err: Error) => {
+                                    resolve(
+                                        new Requests.GitHub.CheckUpdates.Response({
+                                            error: `Fail to get file's metadata: ${err.message}`,
+                                            exists: false,
+                                            updated: false,
+                                        }),
+                                    );
+                                });
+                        });
+                    },
+                ),
             electron
                 .ipc()
                 .respondent(
@@ -354,12 +416,33 @@ export class Service extends Implementation {
                         request: Requests.GitHub.GetFileMeta.Request,
                     ): CancelablePromise<Requests.GitHub.GetFileMeta.Response> => {
                         return new CancelablePromise((resolve) => {
+                            const data = this.files.get(request.checksum);
+                            if (
+                                request.sha !== undefined &&
+                                data !== undefined &&
+                                request.sha === data.file.sha
+                            ) {
+                                return resolve(
+                                    new Requests.GitHub.GetFileMeta.Response({
+                                        metadata: data.metadata,
+                                        sha: data.file.sha,
+                                        exists: true,
+                                    }),
+                                );
+                            }
                             this.getFileMetaData(request.checksum)
-                                .then((metadata: md.FileMetaDataDefinition | undefined) => {
+                                .then((response: MetaDataResponse | undefined) => {
                                     resolve(
                                         new Requests.GitHub.GetFileMeta.Response({
-                                            metadata,
-                                            exists: metadata !== undefined,
+                                            metadata:
+                                                response === undefined
+                                                    ? undefined
+                                                    : response.metadata,
+                                            sha:
+                                                response === undefined
+                                                    ? undefined
+                                                    : response.file.sha,
+                                            exists: response !== undefined,
                                         }),
                                     );
                                 })

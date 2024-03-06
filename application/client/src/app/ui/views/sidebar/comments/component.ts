@@ -144,6 +144,10 @@ export class Comments
         this.session !== undefined && this.session.comments.clear();
     }
 
+    public ngOnCheckUpdates() {
+        this.session !== undefined && this.session.teamwork.update();
+    }
+
     public ngOnOrderingSwitch() {
         this.ordring =
             this.ordring === ECommentsOrdering.colors

@@ -460,11 +460,17 @@ export class Comments extends Subscriber {
     }
 
     public clear() {
+        const user = this.session.teamwork.user().get();
+        if (user === undefined) {
+            return;
+        }
         this.comments.forEach((comment: CommentDefinition, uuid: string) => {
+            if (comment.username !== user) {
+                return;
+            }
             this.comments.delete(uuid);
             this.subjects.get().removed.emit(uuid);
         });
-        this.comments.clear();
         this.session.highlights.subjects.get().update.emit();
     }
 

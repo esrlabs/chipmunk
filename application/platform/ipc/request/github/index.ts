@@ -7,3 +7,4 @@ export * as GetRepos from './getrepos';
 export * as GetFileMeta from './getfilemeta';
 export * as SetFileMeta from './setfilemeta';
 export * as GetUserName from './getusername';
+export * as CheckUpdates from './checkupdates';
