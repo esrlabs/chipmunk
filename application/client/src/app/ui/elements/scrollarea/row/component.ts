@@ -225,7 +225,9 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                           {},
                           {
                               caption: 'Comment',
-                              disabled: selectionInfo === undefined,
+                              disabled:
+                                  selectionInfo === undefined ||
+                                  !this.row.session.comments.isCreatingAvailable(),
                               handler: () => {
                                   if (selectionInfo === undefined) {
                                       return;

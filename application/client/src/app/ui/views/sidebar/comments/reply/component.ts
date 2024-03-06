@@ -11,17 +11,7 @@ import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Response } from '@platform/types/comment';
 
-function getDateTimeStr(datetime: Date | number): string {
-    function fill(num: number): string {
-        return num >= 10 ? num.toString() : `0${num}`;
-    }
-    if (typeof datetime === 'number') {
-        datetime = new Date(datetime);
-    }
-    return `${fill(datetime.getDate())}.${fill(datetime.getMonth() + 1)} ${fill(
-        datetime.getHours(),
-    )}:${fill(datetime.getMinutes())}`;
-}
+import * as moment from 'moment';
 
 @Component({
     selector: 'app-views-comments-reply',
@@ -37,6 +27,7 @@ export class Reply extends ChangesDetector implements OnChanges {
     @Input() edit!: () => void;
     @Input() remove!: () => void;
     @Input() icon!: boolean;
+    @Input() editable!: boolean;
 
     constructor(private cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -59,14 +50,8 @@ export class Reply extends ChangesDetector implements OnChanges {
         this.detectChanges();
     }
 
-    public ngGetDateTime(): string {
-        if (this.response.created === this.response.modified) {
-            return getDateTimeStr(this.response.created);
-        } else {
-            return `${getDateTimeStr(this.response.created)} / ${getDateTimeStr(
-                this.response.modified,
-            )}`;
-        }
+    public created(): string {
+        return moment.unix(this.response.created / 1000).format('MM/DD hh:mm:ss');
     }
 }
 export interface Reply extends IlcInterface {}

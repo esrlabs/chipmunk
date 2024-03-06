@@ -18,12 +18,14 @@ export enum CommentState {
 export interface Response {
     uuid: string;
     comment: string;
+    username: string;
     created: number;
     modified: number;
 }
 
 export interface CommentDefinition {
     uuid: string;
+    username: string;
     state: CommentState;
     comment: string;
     created: number;

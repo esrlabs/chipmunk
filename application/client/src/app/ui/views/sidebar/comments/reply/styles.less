@@ -20,15 +20,20 @@
         & div.title {
             display: flex;
             flex-direction: row;
-            & button {
-                opacity: 0.001;
-            }
-            & span.filler {
-                flex: auto;
-            }
             & .datetime {
+                text-align: right;
                 color: @scheme-color-2;
-                font-size: 12px;
+                flex: 100%;
+            }
+        }
+        & div.controls {
+            display: flex;
+            flex-direction: row;
+            & span.small-icon-button {
+                opacity: 0.05;
+            }
+            & .filler {
+                flex: 100%;
             }
         }
         & div.content {
@@ -36,8 +41,8 @@
         }
 
         &:hover {
-            & div.title {
-                & button {
+            & div.controls {
+                & span.small-icon-button {
                     opacity: 1;
                 }
             }

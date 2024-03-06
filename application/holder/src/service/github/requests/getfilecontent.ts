@@ -1,7 +1,8 @@
 import { net, NetworkError } from '@module/net';
-import { Request as Base } from './request';
+import { Request as Base } from '../request';
 import { GitHubRepo } from 'platform/types/github';
 import { error } from 'platform/log/utils';
+import { Queue } from '../queue';
 
 import * as validator from 'platform/env/obj';
 
@@ -19,11 +20,11 @@ export interface FileObject {
 }
 
 export class Request extends Base<FileObject | undefined> {
-    constructor(options: GitHubRepo, protected readonly path: string) {
-        super(options);
+    constructor(queue: Queue, options: GitHubRepo, protected readonly path: string) {
+        super(queue, options);
     }
 
-    public send(): Promise<FileObject | undefined> {
+    public executor(): Promise<FileObject | undefined> {
         return new Promise((resolve, reject) => {
             net.getRaw(
                 `https://api.github.com/repos/${this.options.owner}/${this.options.repo}/contents/${this.path}`,

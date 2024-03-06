@@ -11,6 +11,14 @@ app-views-comments-item {
                 color: @scheme-color-7!important;
             }
         }
+        & div.signature {
+            display: flex;
+            flex-direction: row;
+            & p.date {
+                flex:100%;
+                text-align: right;
+            }
+        }
         & mat-card {
             margin-top: 8px;
             & mat-card-actions {
@@ -36,10 +44,10 @@ app-views-comments-item {
             }
             & mat-card-subtitle {
                 color: @scheme-color-5;
-            }
-            & mat-card-subtitle:hover {
-                cursor: pointer;
-                text-decoration: underline;
+                & span.position-label:hover {
+                    cursor: pointer;
+                    text-decoration: underline;
+                }
             }
             & mat-card-content:hover {
                 cursor: pointer;

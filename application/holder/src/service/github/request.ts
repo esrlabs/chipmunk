@@ -1,8 +1,13 @@
 import { GitHubRepo } from 'platform/types/github';
+import { Queue } from './queue';
 
 export abstract class Request<T> {
-    constructor(protected readonly options: GitHubRepo) {}
-    public abstract send(): Promise<T>;
+    protected abstract executor(): Promise<T>;
+
+    constructor(protected readonly queue: Queue, protected readonly options: GitHubRepo) {}
+    public send(): Promise<T> {
+        return this.queue.wait<T>(this.executor.bind(this));
+    }
     public getHeaders(): { [key: string]: string } {
         return {
             Accept: 'application/vnd.github+json',
