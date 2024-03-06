@@ -115,11 +115,10 @@ export class TeamWork extends Subscriber {
                     );
                 this.session.search.store().filters().refresh();
                 this.session.comments.set(md.comments);
-                this.session.bookmarks.overwriteFromDefs(md.bookmarks);
-                setTimeout(() => {
+                this.session.bookmarks.overwriteFromDefs(md.bookmarks).finally(() => {
                     this.subjects.get().metadata.emit(md);
                     this.events().subscribe();
-                }, 500);
+                });
             },
         };
     }

@@ -64,10 +64,12 @@ export class Bookmarks extends Subscriber {
             });
     }
 
-    public overwriteFromDefs(bookmarks: BookmarkDefinition[]) {
-        this.overwrite(bookmarks.map((def) => new Bookmark(def.position))).catch((err: Error) => {
-            this.log().error(`Fail overwrite bookmarks: ${err.message}`);
-        });
+    public overwriteFromDefs(bookmarks: BookmarkDefinition[]): Promise<void> {
+        return this.overwrite(bookmarks.map((def) => new Bookmark(def.position))).catch(
+            (err: Error) => {
+                this.log().error(`Fail overwrite bookmarks: ${err.message}`);
+            },
+        );
     }
 
     public bookmark(row: Row) {

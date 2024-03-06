@@ -9,6 +9,6 @@ import { GitHubRepo } from '@platform/types/github';
 })
 @Ilc()
 export class Repository {
-    @Input() repo!: GitHubRepo;
+    @Input() repo!: GitHubRepo | undefined;
 }
 export interface Repository extends IlcInterface {}

@@ -83,7 +83,7 @@ export class TeamWork extends ChangesDetector implements AfterContentInit {
         cancel(): void;
         delete(uuid: string): void;
         isPossibleToSave(): boolean;
-        setActive(repo: GitHubRepo): void;
+        setActive(repo: GitHubRepo | undefined): void;
         isActive(repo: GitHubRepo): boolean;
     } {
         return {
