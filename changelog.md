@@ -1,3 +1,9 @@
+# 3.10.8 (01.08.2024)
+
+## Changes
+
+- Change closed chunk char for sending into serialport
+
 # 3.10.7 (01.03.2024)
 
 ## Changes
