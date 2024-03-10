@@ -48,7 +48,7 @@ export class ObserveOperation {
                     );
                 }
                 return send({
-                    WriteText: `${data}\n`,
+                    WriteText: `${data}\n\r`,
                 });
             },
             bytes: (data: number[]): Promise<SdeResponse> => {

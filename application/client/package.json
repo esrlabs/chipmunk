@@ -1,6 +1,6 @@
 {
   "name": "chipmunk",
-  "version": "3.10.6",
+  "version": "3.10.8",
   "description": "Logs analyzer tool",
   "author": "Dmitry Astafyev",
   "scripts": {
@@ -26,8 +26,8 @@
     "@angular/platform-browser-dynamic": "^16.1.6",
     "@angular/router": "^16.1.6",
     "micromark": "^4.0.0",
-    "moment": "^2.29.1",
-    "moment-timezone": "^0.5.43",
+    "moment": "^2.30.1",
+    "moment-timezone": "^0.5.45",
     "rxjs": "^7.8.0",
     "tslib": "^2.6.0",
     "uuid": "^9.0.0",

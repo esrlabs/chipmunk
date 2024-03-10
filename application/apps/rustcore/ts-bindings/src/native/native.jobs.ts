@@ -11,6 +11,8 @@ export abstract class JobsNative {
 
     public abstract destroy(): Promise<void>;
 
+    public abstract isFileBinary(sequence: number, filePath: string): Promise<boolean>;
+
     public abstract jobCancelTest(sequence: number, num_a: number, num_b: number): Promise<string>;
 
     public abstract listFolderContent(

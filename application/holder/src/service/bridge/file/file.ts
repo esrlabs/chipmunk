@@ -19,15 +19,18 @@ export const handler = Requests.InjectLogger<
             }
             getFilesFromFolder(folders, [])
                 .then((paths: string[]) => {
-                    const files = getFileEntities(request.filename.concat(paths));
-                    if (files instanceof Error) {
-                        return reject(files);
-                    }
-                    resolve(
-                        new Requests.File.File.Response({
-                            files,
-                        }),
-                    );
+                    getFileEntities(request.filename.concat(paths))
+                        .then(files => {
+                            if (files instanceof Error) {
+                                return reject(files);
+                            }
+                            resolve(
+                                new Requests.File.File.Response({
+                                    files
+                                })
+                            )
+                        })
+                        .catch(reject);
                 })
                 .catch(reject);
         });

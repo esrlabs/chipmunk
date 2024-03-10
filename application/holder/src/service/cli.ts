@@ -258,15 +258,19 @@ export class Service extends Implementation {
 
     protected async check(): Promise<void> {
         const actions = getActions();
-        const runner = async (actions: Actions.CLIAction[]): Promise<void> => {
-            for (const action of actions) {
-                await action.execute(this);
-            }
-        };
-        await runner(actions.filter((a) => a.type() === Actions.Type.StateModifier));
-        await runner(actions.filter((a) => a.type() === Actions.Type.Action));
-        await runner(actions.filter((a) => a.type() === Actions.Type.AfterActions));
-        Events.IpcEvent.emit(new Events.Cli.Done.Event());
+        try {
+            const runner = async (actions: Actions.CLIAction[]): Promise<void> => {
+                for (const action of actions) {
+                    await action.execute(this);
+                }
+            };
+            await runner(actions.filter((a) => a.type() === Actions.Type.StateModifier));
+            await runner(actions.filter((a) => a.type() === Actions.Type.Action));
+            await runner(actions.filter((a) => a.type() === Actions.Type.AfterActions));
+            Events.IpcEvent.emit(new Events.Cli.Done.Event());
+        } catch (e) {
+            return Promise.reject(e);
+        }
     }
 }
 export interface Service extends Interface {}

@@ -1,6 +1,6 @@
 {
     "name": "chipmunk",
-    "version": "3.10.6",
+    "version": "3.10.8",
     "chipmunk": {
         "versions": {}
     },
@@ -84,7 +84,7 @@
         "http-proxy-agent": "^5.0.0",
         "https-proxy-agent": "^5.0.1",
         "module-alias": "^2.2.3",
-        "moment-timezone": "^0.5.43",
+        "moment-timezone": "^0.5.45",
         "platform": "file:../platform",
         "rustcore": "file:../apps/rustcore/ts-bindings",
         "semver": "^7.5.2",

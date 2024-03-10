@@ -135,6 +135,26 @@ impl RustSession {
     }
 
     #[node_bindgen]
+    async fn get_session_file(&self) -> Result<String, ComputationErrorWrapper> {
+        if let Some(ref session) = self.session {
+            session
+                .get_state()
+                .get_session_file()
+                .await
+                .map(|p| p.to_string_lossy().to_string())
+                .map_err(|e: NativeError| {
+                    <ComputationError as Into<ComputationErrorWrapper>>::into(
+                        ComputationError::NativeError(e),
+                    )
+                })
+        } else {
+            Err(ComputationErrorWrapper(
+                ComputationError::SessionUnavailable,
+            ))
+        }
+    }
+
+    #[node_bindgen]
     async fn get_stream_len(&self) -> Result<i64, ComputationErrorWrapper> {
         if let Some(ref session) = self.session {
             session

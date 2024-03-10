@@ -19,12 +19,15 @@ function any(ext?: string): Promise<File[]> {
     return new Promise((resolve, reject) => {
         collect(ext !== undefined ? ext.split(',') : [])
             .then((files: string[]) => {
-                const entities = getFileEntities(files);
-                if (entities instanceof Error) {
-                    reject(entities);
-                } else {
-                    resolve(entities);
-                }
+                getFileEntities(files)
+                    .then((entities) => {
+                        if (entities instanceof Error) {
+                            reject(entities);
+                        } else {
+                            resolve(entities);
+                        }
+                    })
+                    .catch(reject);
             })
             .catch(reject);
     });
@@ -34,12 +37,15 @@ function dlt(): Promise<File[]> {
     return new Promise((resolve, reject) => {
         collect(['dlt'])
             .then((files: string[]) => {
-                const entities = getFileEntities(files);
-                if (entities instanceof Error) {
-                    reject(entities);
-                } else {
-                    resolve(entities);
-                }
+                getFileEntities(files)
+                    .then((entities) => {
+                        if (entities instanceof Error) {
+                            reject(entities);
+                        } else {
+                            resolve(entities);
+                        }
+                    })
+                    .catch(reject);
             })
             .catch(reject);
     });
@@ -49,12 +55,15 @@ function pcapng(): Promise<File[]> {
     return new Promise((resolve, reject) => {
         collect(['pcapng'])
             .then((files: string[]) => {
-                const entities = getFileEntities(files);
-                if (entities instanceof Error) {
-                    reject(entities);
-                } else {
-                    resolve(entities);
-                }
+                getFileEntities(files)
+                    .then((entities) => {
+                        if (entities instanceof Error) {
+                            reject(entities);
+                        } else {
+                            resolve(entities);
+                        }
+                    })
+                    .catch(reject);
             })
             .catch(reject);
     });
@@ -64,12 +73,15 @@ function pcap(): Promise<File[]> {
     return new Promise((resolve, reject) => {
         collect(['pcap'])
             .then((files: string[]) => {
-                const entities = getFileEntities(files);
-                if (entities instanceof Error) {
-                    reject(entities);
-                } else {
-                    resolve(entities);
-                }
+                getFileEntities(files)
+                    .then((entities) => {
+                        if (entities instanceof Error) {
+                            reject(entities);
+                        } else {
+                            resolve(entities);
+                        }
+                    })
+                    .catch(reject);
             })
             .catch(reject);
     });

@@ -136,6 +136,21 @@ impl UnboundJobs {
     }
 
     #[node_bindgen]
+    async fn is_file_binary(
+        &self,
+        id: i64,
+        file_path: String,
+    ) -> Result<CommandOutcomeWrapper<bool>, ComputationErrorWrapper> {
+        self.api
+            .as_ref()
+            .ok_or(ComputationError::SessionUnavailable)?
+            .is_file_binary(u64_from_i64(id)?, file_path)
+            .await
+            .map_err(ComputationErrorWrapper)
+            .map(CommandOutcomeWrapper)
+    }
+
+    #[node_bindgen]
     async fn spawn_process(
         &self,
         id: i64,

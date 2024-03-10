@@ -5,6 +5,8 @@ import { Indexed } from './indexed';
 import { IRange } from '@platform/types/range';
 import { bridge } from '@service/bridge';
 
+import * as Requests from '@platform/ipc/request/index';
+
 @SetupLogger()
 export class Exporter {
     private _uuid!: string;
@@ -27,10 +29,22 @@ export class Exporter {
     }
 
     public export(asRaw: boolean): {
+        all(): Promise<void>;
         stream(ranges: IRange[]): Promise<string | undefined>;
         search(): Promise<string | undefined>;
     } {
+        const uuid = this._uuid;
         return {
+            all(): Promise<void> {
+                return Requests.IpcRequest.send(
+                    Requests.File.ExportSession.Response,
+                    new Requests.File.ExportSession.Request({
+                        uuid,
+                    }),
+                ).then(() => {
+                    return Promise.resolve(undefined);
+                });
+            },
             stream: async (ranges: IRange[]): Promise<string | undefined> => {
                 if (ranges.length === 0) {
                     return undefined;

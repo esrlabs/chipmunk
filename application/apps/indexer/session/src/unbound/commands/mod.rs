@@ -1,6 +1,7 @@
 mod cancel_test;
 mod checksum;
 mod dlt;
+mod file;
 mod folder;
 mod process;
 mod regex;
@@ -79,6 +80,10 @@ pub enum Command {
     GetShellProfiles(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
     GetContextEnvvars(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
     SerialPortsList(oneshot::Sender<Result<CommandOutcome<Vec<String>>, ComputationError>>),
+    IsFileBinary(
+        String,
+        oneshot::Sender<Result<CommandOutcome<bool>, ComputationError>>,
+    ),
     CancelTest(
         i64,
         i64,
@@ -103,6 +108,7 @@ impl std::fmt::Display for Command {
                 Command::GetDltStats(_, _) => "Getting dlt stats",
                 Command::GetSomeipStatistic(_, _) => "Getting someip statistic",
                 Command::GetRegexError(_, _) => "Checking regex",
+                Command::IsFileBinary(_, _) => "Checking if file is binary",
             }
         )
     }
@@ -137,6 +143,7 @@ pub async fn process(command: Command, signal: Signal) {
         Command::GetShellProfiles(tx) => tx.send(shells::get_valid_profiles(signal)).is_err(),
         Command::GetContextEnvvars(tx) => tx.send(shells::get_context_envvars(signal)).is_err(),
         Command::SerialPortsList(tx) => tx.send(serial::available_ports(signal)).is_err(),
+        Command::IsFileBinary(file_path, tx) => tx.send(file::is_file_binary(file_path)).is_err(),
         Command::CancelTest(a, b, tx) => tx
             .send(cancel_test::cancel_test(a, b, signal).await)
             .is_err(),
@@ -158,6 +165,7 @@ pub fn err(command: Command, err: ComputationError) {
         Command::GetShellProfiles(tx) => tx.send(Err(err)).is_err(),
         Command::GetContextEnvvars(tx) => tx.send(Err(err)).is_err(),
         Command::SerialPortsList(tx) => tx.send(Err(err)).is_err(),
+        Command::IsFileBinary(_filepath, tx) => tx.send(Err(err)).is_err(),
         Command::CancelTest(_a, _b, tx) => tx.send(Err(err)).is_err(),
     } {
         error!("Fail to send error response for command: {cmd}");

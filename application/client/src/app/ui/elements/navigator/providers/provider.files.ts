@@ -4,7 +4,6 @@ import { favorites } from '@service/favorites';
 import { bridge } from '@service/bridge';
 import { EntityType, getFileName } from '@platform/types/files';
 import { notifications, Notification } from '@ui/service/notifications';
-import { getFileTypeByFilename } from '@platform/types/observe/types/file';
 
 import * as Factory from '@platform/types/observe/factory';
 import { IMenuItem } from '@ui/service/contextmenu';
@@ -139,32 +138,43 @@ export class Provider extends Base<IFileDescription> {
                     });
             },
             auto: (): void => {
-                const filetype = getFileTypeByFilename(item.filename);
-                if (filetype === Factory.FileType.Text) {
-                    this.ilc
-                        .ilc()
-                        .services.system.session.initialize()
-                        .observe(
-                            new Factory.File().asText().type(filetype).file(item.filename).get(),
-                        )
-                        .catch((err: Error) => {
-                            this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
-                        });
-                } else {
-                    this.ilc
-                        .ilc()
-                        .services.system.session.initialize()
-                        .configure(
-                            new Factory.File()
-                                .type(filetype)
-                                .file(item.filename)
-                                .guessParser()
-                                .get(),
-                        )
-                        .catch((err: Error) => {
-                            this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
-                        });
-                }
+                bridge.files().getByPath([item.filename])
+                    .then((files) => {
+                        if (files.length > 1) {
+                            this.ilc.log().info("More than one file detected");
+                            return
+                        }
+                        const filetype = files[0].type;
+                        if (filetype === Factory.FileType.Text) {
+                            this.ilc
+                                .ilc()
+                                .services.system.session.initialize()
+                                .observe(
+                                    new Factory.File().asText().type(filetype).file(item.filename).get(),
+                                )
+                                .catch((err: Error) => {
+                                    this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
+                                });
+                        } else {
+                            this.ilc
+                                .ilc()
+                                .services.system.session.initialize()
+                                .configure(
+                                    new Factory.File()
+                                        .type(filetype)
+                                        .file(item.filename)
+                                        .guessParser()
+                                        .get(),
+                                )
+                                .catch((err: Error) => {
+                                    this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
+                                });
+                        }
+                    })
+                    .catch((error) => {
+                        this.ilc.log().error(error);
+                    });
+
             },
         };
     }

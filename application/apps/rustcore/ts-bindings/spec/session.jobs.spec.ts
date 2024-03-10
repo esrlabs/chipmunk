@@ -241,6 +241,24 @@ describe('Jobs', function () {
         });
     });
 
+    it(config.regular.list[7], function () {
+        return runner(config.regular, 7, async (logger, done, collector) => {
+            const jobs = collector(await Jobs.create()) as Jobs;
+            const path = config.regular.files['sample-txt'];
+            jobs.isFileBinary({
+                filePath: path,
+            })
+                .then((isBinary) => {
+                    expect(typeof isBinary).toEqual('boolean');
+                    expect(isBinary).toEqual(false);
+                    finish(jobs, done);
+                })
+                .catch((err: Error) => {
+                    finish(jobs, done, err);
+                })
+        })
+    });
+
     it(config.regular.list[8], function () {
         return runner(config.regular, 8, async (logger, done, collector) => {
             const jobs = collector(await Jobs.create()) as Jobs;

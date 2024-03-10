@@ -61,7 +61,7 @@
         },
         "jobs": {
             "regular": {
-                "execute_only": [1,2,3,4,5,8],
+                "execute_only": [1,2,3,4,5,7,8],
                 "list": {
                     "1": "Test 1. Cancelation testing",
                     "2": "Test 2. Wrong sequence test",
@@ -69,10 +69,12 @@
                     "4": "Test 4. Get profiles",
                     "5": "Test 5. Get envvars",
                     "6": "Test 6. Get Someip statistic",
+                    "7": "Test 7. Check if file is binary",
                     "8": "Test 8. Closing session with running task"
                 },
                 "files": {
-                    "someip-pcapng": "../../../../application/developing/resources/someip.pcapng"
+                    "someip-pcapng": "../../../../application/developing/resources/someip.pcapng",
+                    "sample-txt": "../../../../application/developing/resources/sample_utf_8.txt"
                 }
             }
         },
