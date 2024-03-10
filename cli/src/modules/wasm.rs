@@ -3,8 +3,6 @@ use crate::{location::get_root, spawner::SpawnOptions, Target};
 use async_trait::async_trait;
 use std::path::PathBuf;
 
-const PATH: &str = "application/apps/rustcore/wasm-bindings";
-
 #[derive(Clone, Debug)]
 pub struct Module {}
 
@@ -23,7 +21,11 @@ impl Manager for Module {
         Kind::Rs
     }
     fn cwd(&self) -> PathBuf {
-        get_root().join(PATH)
+        get_root()
+            .join("application")
+            .join("apps")
+            .join("rustcore")
+            .join("wasm-bindings")
     }
 
     fn deps(&self) -> Vec<Target> {

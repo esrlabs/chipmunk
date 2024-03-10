@@ -9,8 +9,6 @@ use anyhow::{bail, Error};
 use async_trait::async_trait;
 use std::{fs, iter, path::PathBuf};
 
-const PATH: &str = "application/apps/rustcore/ts-bindings";
-
 const TEST_SPECS: [&str; 14] = [
     // TODO:
     // Running "jobs" here causes the program to receive SIGTRAP from OS because of an
@@ -58,7 +56,11 @@ impl Manager for Module {
         Kind::Ts
     }
     fn cwd(&self) -> PathBuf {
-        get_root().join(PATH)
+        get_root()
+            .join("application")
+            .join("apps")
+            .join("rustcore")
+            .join("ts-bindings")
     }
     fn deps(&self) -> Vec<Target> {
         vec![Target::Binding, Target::Shared]

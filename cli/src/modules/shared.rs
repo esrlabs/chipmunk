@@ -3,8 +3,6 @@ use crate::{location::get_root, Target};
 use async_trait::async_trait;
 use std::path::PathBuf;
 
-const PATH: &str = "application/platform";
-
 #[derive(Clone, Debug)]
 pub struct Module {}
 
@@ -23,7 +21,7 @@ impl Manager for Module {
         Kind::Ts
     }
     fn cwd(&self) -> PathBuf {
-        get_root().join(PATH)
+        get_root().join("application").join("platform")
     }
     fn deps(&self) -> Vec<Target> {
         vec![]

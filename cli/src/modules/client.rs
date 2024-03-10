@@ -3,8 +3,6 @@ use crate::{location::get_root, Target};
 use async_trait::async_trait;
 use std::path::PathBuf;
 
-const PATH: &str = "application/client";
-
 #[derive(Clone, Debug)]
 pub struct Module {}
 
@@ -23,16 +21,16 @@ impl Manager for Module {
         Kind::Ts
     }
     fn cwd(&self) -> PathBuf {
-        get_root().join(PATH)
+        get_root().join("application").join("client")
     }
     fn deps(&self) -> Vec<Target> {
         vec![Target::Shared, Target::Wasm]
     }
     fn dist_path(&self, prod: bool) -> Option<PathBuf> {
         Some(
-            get_root()
-                .join(PATH)
-                .join(if prod { "dist/release" } else { "dist/debug" }),
+            self.cwd()
+                .join("dist")
+                .join(if prod { "release" } else { "debug" }),
         )
     }
 }
