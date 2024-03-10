@@ -156,3 +156,53 @@ pub async fn spawn(
         bail!("Fail to get exist status of spawned command")
     }
 }
+
+/// Suspend the progress bars and run the giving blocking command using `Stdio::inherit()`
+/// This is used with commands that doesn't work with `Stdio::piped()`
+pub async fn spawn_blocking(
+    command: String,
+    cwd: Option<PathBuf>,
+    caption: String,
+    environment_vars: impl IntoIterator<Item = (String, String)>,
+) -> Result<SpawnResult, anyhow::Error> {
+    let cwd = cwd.unwrap_or_else(|| get_root().clone());
+    let mut parts = command.split(' ').collect::<Vec<&str>>();
+    let cmd = parts.remove(0);
+    let mut env_vars: Vec<_> = env::vars().chain(environment_vars).collect();
+    env_vars.push((String::from("TERM"), String::from("xterm-256color")));
+
+    let mut child = std::process::Command::new(cmd);
+    child.current_dir(&cwd);
+    child.args(parts);
+    child.envs(env_vars);
+
+    let tracker = get_tracker().await;
+
+    let sequence = tracker
+        .start(
+            &format!("{}: {}", to_relative_path(&cwd).display(), caption),
+            None,
+        )
+        .await?;
+
+    let status = match tracker.suspend_and_run(child).await {
+        Ok(status) => status,
+        Err(err) => {
+            tracker.fail(sequence, &err.to_string()).await;
+            return Err(err);
+        }
+    };
+
+    if status.success() {
+        tracker.success(sequence, "").await;
+    } else {
+        tracker.fail(sequence, "finished with errors").await;
+    }
+
+    Ok(SpawnResult {
+        report: Vec::new(),
+        status,
+        job: caption,
+        cmd: command,
+    })
+}

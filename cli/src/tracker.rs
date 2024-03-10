@@ -1,7 +1,11 @@
 use anyhow::{anyhow, Context, Error};
 use console::style;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use std::{collections::HashMap, time::Instant};
+use std::{
+    collections::HashMap,
+    process::{Command, ExitStatus},
+    time::Instant,
+};
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot, OnceCell,
@@ -37,6 +41,8 @@ pub enum Tick {
     #[allow(dead_code)]
     Print(String),
     Shutdown(oneshot::Sender<()>),
+    /// Suspends the progress bars and execute the giving blocking command
+    SuspendAndRun(Command, oneshot::Sender<anyhow::Result<ExitStatus>>),
 }
 
 #[derive(Clone, Debug)]
@@ -165,6 +171,12 @@ impl Tracker {
                         }
                         break;
                     }
+                    Tick::SuspendAndRun(mut command, tx_response ) => {
+                       let status = mp.suspend(|| {command.status()}).context("Error while executing command");
+                        if tx_response.send(status).is_err() {
+                            let _ = mp.println("Fail to send response");
+                        }
+                    },
                 }
             }
         }
@@ -272,5 +284,18 @@ impl Tracker {
         {
             eprintln!("Fail to communicate with tracker: {e}");
         }
+    }
+
+    /// Suspend the progress bars and run the giving blocking command returning its exit status
+    pub async fn suspend_and_run(
+        &self,
+        cmd: std::process::Command,
+    ) -> Result<ExitStatus, anyhow::Error> {
+        let (tx_response, rx_response) = oneshot::channel();
+        self.tx
+            .send(Tick::SuspendAndRun(cmd, tx_response))
+            .context("Fail to send tick")?;
+
+        rx_response.await.context("Fail to receive tick")?
     }
 }
