@@ -4,9 +4,10 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Notification } from '@ui/service/notifications';
-import { GitHubRepo } from '@platform/types/github';
+import { GitHubRepo, getDefaultSharingSettings } from '@platform/types/github';
 
 import * as dom from '@ui/env/dom';
+import * as obj from '@platform/env/obj';
 
 @Component({
     selector: 'app-views-teamwork',
@@ -76,6 +77,23 @@ export class TeamWork extends ChangesDetector implements AfterContentInit {
         );
     }
 
+    public onSharingSettingsChange(value: boolean, target: string) {
+        if (this.active === undefined) {
+            return;
+        }
+        if ((this.active.settings as unknown as { [key: string]: boolean })[target] === undefined) {
+            return;
+        }
+        (this.active.settings as unknown as { [key: string]: boolean })[target] = value;
+        this.session.teamwork
+            .repo()
+            .update(obj.clone(this.active))
+            .catch((err: Error) => {
+                this.log().error(`Fail to save settings: ${err.message}`);
+            });
+        this.detectChanges();
+    }
+
     public repo(): {
         create(): void;
         edit(editable: GitHubRepo): void;
@@ -88,7 +106,14 @@ export class TeamWork extends ChangesDetector implements AfterContentInit {
     } {
         return {
             create: (): void => {
-                this.editable = { uuid: '', repo: '', branch: 'master', owner: '', token: '' };
+                this.editable = {
+                    uuid: '',
+                    repo: '',
+                    branch: 'master',
+                    owner: '',
+                    token: '',
+                    settings: getDefaultSharingSettings(),
+                };
                 this.detectChanges();
             },
             edit: (editable: GitHubRepo): void => {

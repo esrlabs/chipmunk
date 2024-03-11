@@ -1,4 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
+import { SharingSettings } from '../../../types/github';
 
 import * as validator from '../../../env/obj';
 
@@ -9,6 +10,7 @@ export class Request extends SignatureRequirement {
     public repo: string;
     public token: string;
     public branch: string;
+    public settings: SharingSettings;
 
     constructor(input: {
         branch: string;
@@ -16,6 +18,7 @@ export class Request extends SignatureRequirement {
         token: string;
         repo: string;
         owner: string;
+        settings: SharingSettings;
     }) {
         super();
         validator.isObject(input);
@@ -24,6 +27,11 @@ export class Request extends SignatureRequirement {
         this.repo = validator.getAsNotEmptyString(input, 'repo');
         this.owner = validator.getAsNotEmptyString(input, 'owner');
         this.branch = validator.getAsNotEmptyString(input, 'branch');
+        this.settings = validator.getAsObj(input, 'settings');
+        this.settings.bookmarks = validator.getAsBool(input.settings, 'bookmarks');
+        this.settings.charts = validator.getAsBool(input.settings, 'charts');
+        this.settings.filters = validator.getAsBool(input.settings, 'filters');
+        this.settings.comments = validator.getAsBool(input.settings, 'comments');
     }
 }
 export interface Request extends Interface {}
