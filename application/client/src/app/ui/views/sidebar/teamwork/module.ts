@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ContainersModule } from '@elements/containers/module';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { TeamWork } from './component';
 import { MatCardModule } from '@angular/material/card';
@@ -29,6 +30,7 @@ const components = [...entryComponents];
         MatSelectModule,
         RepositoryModule,
         MatInputModule,
+        MatCheckboxModule,
         FormsModule,
         ReactiveFormsModule,
     ],

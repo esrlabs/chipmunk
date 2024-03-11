@@ -30,6 +30,59 @@
         ></app-views-teamwork-repository>
     </div>
 </mat-expansion-panel>
+<mat-expansion-panel
+    *ngIf="repos.length > 0 && editable === undefined && active !== undefined"
+    [expanded]="false"
+>
+    <mat-expansion-panel-header>
+        <mat-panel-title>Sharing Settings</mat-panel-title>
+    </mat-expansion-panel-header>
+    <div class="fields">
+        <p class="t-small">
+            Checked entities will be synchronized with the selected GitHub repository. Unselected
+            entities will be stored only locally and will not be downloaded from the GitHub
+            repository. Comments are available only with the linked GitHub repository.
+        </p>
+        <div class="field">
+            <mat-checkbox
+                class="material-mofication-mini"
+                [disableRipple]="true"
+                (ngModelChange)="onSharingSettingsChange($event, 'filters')"
+                [(ngModel)]="active.settings.filters"
+            ></mat-checkbox>
+            <span class="label t-normal">Filters</span>
+        </div>
+        <div class="field">
+            <mat-checkbox
+                class="material-mofication-mini"
+                [disableRipple]="true"
+                (ngModelChange)="onSharingSettingsChange($event, 'charts')"
+                [(ngModel)]="active.settings.charts"
+            ></mat-checkbox>
+            <span class="label t-normal">Charts</span>
+        </div>
+        <div class="field">
+            <mat-checkbox
+                class="material-mofication-mini"
+                [disableRipple]="true"
+                (ngModelChange)="onSharingSettingsChange($event, 'bookmarks')"
+                [(ngModel)]="active.settings.bookmarks"
+            ></mat-checkbox>
+            <span class="label t-normal">Bookmarks</span>
+        </div>
+        <div class="field">
+            <mat-checkbox
+                class="material-mofication-mini"
+                [disableRipple]="true"
+                [disabled]="true"
+                (ngModelChange)="onSharingSettingsChange($event, 'comments')"
+                [(ngModel)]="active.settings.comments"
+            ></mat-checkbox>
+            <span class="label t-normal">Comments</span>
+        </div>
+    </div>
+</mat-expansion-panel>
+
 <mat-expansion-panel *ngIf="editable !== undefined" [hideToggle]="true" [expanded]="true">
     <mat-expansion-panel-header>
         <mat-panel-title>New GitHub Reference</mat-panel-title>

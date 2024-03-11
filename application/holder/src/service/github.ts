@@ -274,6 +274,7 @@ export class Service extends Implementation {
                                     owner: request.owner,
                                     token: request.token,
                                     branch: request.branch,
+                                    settings: request.settings,
                                 });
                                 this.storage().save();
                                 resolve(new Requests.GitHub.AddRepo.Response({ uuid }));
@@ -330,6 +331,7 @@ export class Service extends Implementation {
                                     owner: request.owner,
                                     token: request.token,
                                     branch: request.branch,
+                                    settings: request.settings,
                                 });
                                 this.storage().save();
                                 resolve(
