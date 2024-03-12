@@ -13,6 +13,7 @@ import { HistorySession } from './history/session';
 import { StorageCollections } from './history/storage.collections';
 import { StorageDefinitions } from './history/storage.definitions';
 import { Provider } from './history/provider';
+import { Subjects, Subject } from '@platform/env/subscription';
 
 @DependOn(bridge)
 @SetupService(services['history'])
@@ -23,7 +24,13 @@ export class Service extends Implementation {
     public readonly collections: StorageCollections;
     public readonly definitions: StorageDefinitions;
     public readonly sessions: Map<string, HistorySession> = new Map();
-
+    public readonly subjects: Subjects<{
+        created: Subject<string>;
+        destroyed: Subject<string>;
+    }> = new Subjects({
+        created: new Subject<string>(),
+        destroyed: new Subject<string>(),
+    });
     constructor() {
         super();
         this.definitions = new StorageDefinitions();
@@ -35,6 +42,7 @@ export class Service extends Implementation {
         await this.collections.load();
         await this.definitions.load();
         this.channel = ilc.channel(`History`, this.log());
+        this.emitter = ilc.emitter(`History`, this.log());
         this.channel.session.created((session) => {
             this.sessions.set(
                 session.uuid(),
@@ -43,6 +51,7 @@ export class Service extends Implementation {
                     definitions: this.definitions,
                 }),
             );
+            this.subjects.get().created.emit(session.uuid());
         });
         this.channel.session.closing((session) => {
             if (!(session instanceof Session)) {
@@ -57,6 +66,7 @@ export class Service extends Implementation {
                     }
                     history.destroy();
                     this.sessions.delete(session.uuid());
+                    this.subjects.get().destroyed.emit(session.uuid());
                 });
         });
         return Promise.resolve();

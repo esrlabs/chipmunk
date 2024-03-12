@@ -19,8 +19,12 @@ export class Task<T> {
                 .then((res: T) => {
                     this.success(res);
                 })
-                .catch(this.fail)
-                .finally(() => resolve());
+                .catch((err: Error) => {
+                    this.fail(err);
+                })
+                .finally(() => {
+                    resolve();
+                });
         });
     }
 }

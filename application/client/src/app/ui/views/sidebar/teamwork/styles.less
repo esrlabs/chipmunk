@@ -56,6 +56,21 @@
         align-items: center;
         margin: 4px 0;
     }
+    & ul.errors {
+        max-height: 300px;
+        overflow-x: hidden;
+        list-style: none;
+        overflow-y: auto;
+        & li.error {
+            border-bottom: dashed thin @scheme-color-3;
+            & > p.t-small {
+                color: @scheme-color-3;
+            }
+            & > p {
+                word-break: break-all;
+            }
+        }
+    }
     & mat-expansion-panel {
         margin: 6px 0!important;
     }

@@ -1,9 +1,13 @@
+import { hash } from '../../env/hash';
+import { SharingSettings } from './index';
+
 import * as filters from './filter';
 import * as charts from './chart';
 import * as comments from './comment';
 import * as bookmarks from './bookmarks';
 import * as validator from '../../env/obj';
 import * as utils from '../../log/utils';
+import * as obj from '../../env/obj';
 
 export class ProtocolError extends Error {
     constructor(
@@ -20,6 +24,58 @@ export interface FileMetaDataDefinition {
     charts: charts.ChartDefinition[];
     bookmarks: bookmarks.BookmarkDefinition[];
     comments: comments.CommentDefinition[];
+}
+
+export class FileMetaData {
+    constructor(public readonly def: FileMetaDataDefinition) {}
+
+    public get(): FileMetaDataDefinition {
+        return obj.clone(this.def);
+    }
+    public stringify(): string {
+        return JSON.stringify(this.def);
+    }
+    public hash(): {
+        full(): number;
+        filters(): number;
+        charts(): number;
+        bookmarks(): number;
+        comments(): number;
+        equal(settings: SharingSettings, target: FileMetaData): boolean;
+    } {
+        return {
+            full: (): number => {
+                return hash(JSON.stringify(this.def));
+            },
+            filters: (): number => {
+                return hash(JSON.stringify(this.def.filters));
+            },
+            charts: (): number => {
+                return hash(JSON.stringify(this.def.charts));
+            },
+            bookmarks: (): number => {
+                return hash(JSON.stringify(this.def.bookmarks));
+            },
+            comments: (): number => {
+                return hash(JSON.stringify(this.def.comments));
+            },
+            equal: (settings: SharingSettings, target: FileMetaData): boolean => {
+                if (settings.filters && this.hash().filters() !== target.hash().filters()) {
+                    return false;
+                }
+                if (settings.charts && this.hash().charts() !== target.hash().charts()) {
+                    return false;
+                }
+                if (settings.bookmarks && this.hash().bookmarks() !== target.hash().bookmarks()) {
+                    return false;
+                }
+                if (settings.comments && this.hash().comments() !== target.hash().comments()) {
+                    return false;
+                }
+                return true;
+            },
+        };
+    }
 }
 
 export function fromJson(str: string): FileMetaDataDefinition | Error | ProtocolError {
