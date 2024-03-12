@@ -257,13 +257,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
             entities.length !== 0
                 ? () => {
                       if (entities.length === self.entities().length) {
-                          this.session.search
-                              .store()
-                              .filters()
-                              .clear()
-                              .catch((error: Error) => {
-                                  this.logger.error(`Fail to clear store: ${error.message}`);
-                              });
+                          this.session.search.store().filters().clear();
                           self.change();
                       } else {
                           entities.forEach((entity: Entity<FilterRequest>) => {

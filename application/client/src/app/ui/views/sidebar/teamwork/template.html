@@ -82,6 +82,17 @@
         </div>
     </div>
 </mat-expansion-panel>
+<mat-expansion-panel *ngIf="errors.length > 0 && editable === undefined" [expanded]="true">
+    <mat-expansion-panel-header>
+        <mat-panel-title>Errors</mat-panel-title>
+    </mat-expansion-panel-header>
+    <ul class="errors" (contextmenu)="onErrorsContextMenu($event)">
+        <li class="error" *ngFor="let error of errors">
+            <p class="t-small">{{error.time}}</p>
+            <p class="t-medium">{{error.msg}}</p>
+        </li>
+    </ul>
+</mat-expansion-panel>
 
 <mat-expansion-panel *ngIf="editable !== undefined" [hideToggle]="true" [expanded]="true">
     <mat-expansion-panel-header>

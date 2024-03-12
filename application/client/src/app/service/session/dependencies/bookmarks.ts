@@ -8,15 +8,16 @@ import { Cursor } from './cursor';
 import { hotkeys } from '@service/hotkeys';
 import { Stream } from './stream';
 import { BookmarkDefinition } from '@platform/types/bookmark';
+import { unique } from '@platform/env/sequence';
 
 import * as Requests from '@platform/ipc/request';
 
 @SetupLogger()
 export class Bookmarks extends Subscriber {
     public readonly subjects: Subjects<{
-        updated: Subject<void>;
+        updated: Subject<string>;
     }> = new Subjects({
-        updated: new Subject<void>(),
+        updated: new Subject<string>(),
     });
     private _uuid!: string;
     protected bookmarks: Bookmark[] = [];
@@ -120,8 +121,10 @@ export class Bookmarks extends Subscriber {
         return this.getRowsPositions().join(',');
     }
 
-    public update(): void {
-        this.subjects.get().updated.emit();
+    public update(): string {
+        const sequence = unique();
+        this.subjects.get().updated.emit(sequence);
+        return sequence;
     }
 
     protected recheck() {

@@ -3,16 +3,24 @@ import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { cutUuid } from '@log/index';
 import { Observe } from '@platform/types/observe';
 import { GitHubRepo } from '@platform/types/github';
-import { FileMetaDataDefinition } from '@platform/types/github/filemetadata';
+import { FileMetaDataDefinition, FileMetaData } from '@platform/types/github/filemetadata';
 import { Session } from '@service/session';
 import { FileDesc } from '@service/history/definition.file';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { ChartRequest } from '@service/session/dependencies/search/charts/request';
-import { StoredEntity } from '@service/session/dependencies/search/store';
+import { ChangeEvent, StoredEntity } from '@service/session/dependencies/search/store';
+import { history } from '@service/history';
+import { LockToken } from '@platform/env/lock.token';
 
 import * as utils from '@platform/log/utils';
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
+import * as moment from 'moment';
+
+export interface GitHubError {
+    time: string;
+    msg: string;
+}
 
 @SetupLogger()
 export class TeamWork extends Subscriber {
@@ -33,32 +41,26 @@ export class TeamWork extends Subscriber {
     protected checksum: string | undefined | null = undefined;
     // Last written hash
     // string - hash
-    // undefined - not loaded
-    // null - no related profile on github repo
-    protected previous: string | undefined | null;
+    // undefined - not loaded or no related profile on github repo
+    protected recent: FileMetaData | undefined;
+    protected errors: GitHubError[] = [];
+    protected destroyed: boolean = false;
+    protected blocked: string[] = [];
+    protected history: LockToken = new LockToken(true);
 
-    protected hash(metadata?: FileMetaDataDefinition): string {
-        if (metadata === undefined) {
-            const filters = this.session.search.store().filters().get();
-            const charts = this.session.search.store().charts().get();
-            const comments = this.session.comments.getAsArray();
-            const bookmarks = this.session.bookmarks.get();
-            return `${filters
-                .map((v) => FilterRequest.getHashByDefinition(v.definition))
-                .join(';')}${charts
-                .map((v) => ChartRequest.getHashByDefinition(v.definition))
-                .join(';')};${JSON.stringify(comments)};${JSON.stringify(bookmarks)}`;
-        } else {
-            return `${metadata.filters
-                .map((v) => FilterRequest.getHashByDefinition(v))
-                .join(';')}${metadata.charts
-                .map((v) => ChartRequest.getHashByDefinition(v))
-                .join(';')};${JSON.stringify(metadata.comments)};${JSON.stringify(
-                metadata.bookmarks,
-            )}`;
-        }
+    protected getLocalMetadata(): FileMetaData {
+        const filters = this.session.search.store().filters().get();
+        const charts = this.session.search.store().charts().get();
+        const bookmarks = this.session.bookmarks.get().map((b) => b.asDef());
+        const comments = this.session.comments.getAsArray();
+        return new FileMetaData({
+            protocol: '0.0.1',
+            filters: filters.map((filter) => filter.definition),
+            charts: charts.map((chart) => chart.definition),
+            bookmarks: bookmarks,
+            comments: comments,
+        });
     }
-
     protected async load(): Promise<void> {
         try {
             const repos = await Requests.IpcRequest.send(
@@ -83,7 +85,7 @@ export class TeamWork extends Subscriber {
             this.subjects.get().active.emit(this.active.repo);
             this.file().check();
         } catch (err) {
-            this.log().error(`Fail to load available GitHub references: ${utils.error(err)}`);
+            this.error().add(`Fail to load available GitHub references: ${utils.error(err)}`);
         }
     }
 
@@ -92,34 +94,54 @@ export class TeamWork extends Subscriber {
     } {
         return {
             import: (md: FileMetaDataDefinition): void => {
-                const local = this.hash();
-                this.previous = this.hash(md);
-                if (local === this.previous) {
+                if (this.active.repo === undefined || this.destroyed) {
                     return;
                 }
-                this.events().unsubscribe();
-                this.session.search
-                    .store()
-                    .filters()
-                    .overwrite(
-                        md.filters.map(
-                            (def) => new FilterRequest(def),
-                        ) as StoredEntity<FilterRequest>[],
+                const local = this.recent;
+                const recent = new FileMetaData(md);
+                this.recent = recent;
+                if (
+                    local !== undefined &&
+                    local !== null &&
+                    local.hash().equal(this.active.repo.settings, recent)
+                ) {
+                    return;
+                }
+                this.active.repo.settings.filters &&
+                    this.events().wait(
+                        this.session.search
+                            .store()
+                            .filters()
+                            .overwrite(
+                                md.filters.map(
+                                    (def) => new FilterRequest(def),
+                                ) as StoredEntity<FilterRequest>[],
+                            ),
                     );
-                this.session.search
-                    .store()
-                    .charts()
-                    .overwrite(
-                        md.charts.map(
-                            (def) => new ChartRequest(def),
-                        ) as StoredEntity<ChartRequest>[],
+                this.active.repo.settings.charts &&
+                    this.events().wait(
+                        this.session.search
+                            .store()
+                            .charts()
+                            .overwrite(
+                                md.charts.map(
+                                    (def) => new ChartRequest(def),
+                                ) as StoredEntity<ChartRequest>[],
+                            ),
                     );
-                this.session.search.store().filters().refresh();
-                this.session.comments.set(md.comments);
-                this.session.bookmarks.overwriteFromDefs(md.bookmarks).finally(() => {
+                this.active.repo.settings.comments && this.session.comments.set(md.comments);
+                if (this.active.repo.settings.bookmarks) {
+                    this.session.bookmarks
+                        .overwriteFromDefs(md.bookmarks)
+                        .catch((err: Error) => {
+                            this.log().error(`Fail update bookmarks due: ${err.message}`);
+                        })
+                        .finally(() => {
+                            this.subjects.get().metadata.emit(md);
+                        });
+                } else {
                     this.subjects.get().metadata.emit(md);
-                    this.events().subscribe();
-                });
+                }
             },
         };
     }
@@ -131,7 +153,11 @@ export class TeamWork extends Subscriber {
     } {
         return {
             check: (sha?: string): void => {
-                if (typeof this.checksum !== 'string' || this.active.repo === undefined) {
+                if (
+                    typeof this.checksum !== 'string' ||
+                    this.active.repo === undefined ||
+                    this.destroyed
+                ) {
                     return;
                 }
                 Requests.IpcRequest.send(
@@ -143,19 +169,23 @@ export class TeamWork extends Subscriber {
                 )
                     .then((response) => {
                         if (response.error !== undefined) {
-                            this.log().error(`Fail to get metadata: ${response.error}`);
+                            this.error().add(`Fail to get metadata: ${response.error}`);
                         } else if (response.metadata !== undefined) {
                             this.metadata().import(response.metadata);
                         } else {
-                            this.previous = null;
+                            this.recent = undefined;
                         }
                     })
                     .catch((err: Error) => {
-                        this.log().error(`Request error: fail to get metadata: ${err.message}`);
+                        this.error().add(`Request error: fail to get metadata: ${err.message}`);
                     });
             },
             checkUpdates: (): void => {
-                if (typeof this.checksum !== 'string' || this.active.repo === undefined) {
+                if (
+                    typeof this.checksum !== 'string' ||
+                    this.active.repo === undefined ||
+                    this.destroyed
+                ) {
                     return;
                 }
                 Requests.IpcRequest.send(
@@ -166,94 +196,67 @@ export class TeamWork extends Subscriber {
                 )
                     .then((response) => {
                         if (response.error !== undefined) {
-                            this.log().error(
+                            this.error().add(
                                 `Fail to check for updates of metadata: ${response.error}`,
                             );
                         }
                     })
                     .catch((err: Error) => {
-                        this.log().error(
+                        this.error().add(
                             `Request error: fail to check for updates of metadata: ${err.message}`,
                         );
                     });
             },
             write: (): void => {
-                if (typeof this.checksum !== 'string' || this.active.repo === undefined) {
+                if (
+                    typeof this.checksum !== 'string' ||
+                    this.active.repo === undefined ||
+                    this.destroyed
+                ) {
                     return;
                 }
-                if (this.previous === undefined) {
-                    // Profile wasn't loaded yet
+                const metadata = this.getLocalMetadata();
+                if (
+                    this.recent !== undefined &&
+                    metadata.hash().equal(this.active.repo.settings, this.recent)
+                ) {
+                    // Last time was written same metadata object
                     return;
                 }
-                if (this.hash() === this.previous) {
-                    return;
-                }
-                const filters = this.session.search.store().filters().get();
-                const charts = this.session.search.store().charts().get();
-                const bookmarks = this.session.bookmarks.get().map((b) => b.asDef());
-                const comments = this.session.comments.getAsArray();
+                console.log(metadata);
                 Requests.IpcRequest.send(
                     Requests.GitHub.SetFileMeta.Response,
                     new Requests.GitHub.SetFileMeta.Request({
                         checksum: this.checksum,
-                        metadata: {
-                            protocol: '0.0.1',
-                            filters: filters.map((filter) => filter.definition),
-                            charts: charts.map((chart) => chart.definition),
-                            bookmarks: bookmarks,
-                            comments: comments,
-                        },
+                        metadata: metadata.def,
                     }),
                 )
                     .then((response) => {
                         if (response.error !== undefined) {
-                            this.log().error(`Fail to save metadata: ${response.error}`);
+                            this.error().add(`Fail to save metadata: ${response.error}`);
                         }
                     })
                     .catch((err: Error) => {
-                        this.log().error(`Fail to set active repo: ${err.message}`);
+                        this.error().add(`Fail to set active repo: ${err.message}`);
                     });
             },
         };
     }
 
     protected events(): {
-        subscribe(): void;
-        unsubscribe(): void;
+        ignored(sequence: string): boolean;
+        wait(sequence: string): void;
     } {
         return {
-            subscribe: (): void => {
-                this.subs.register(
-                    this.session.search
-                        .store()
-                        .filters()
-                        .subjects.get()
-                        .any.subscribe(() => {
-                            this.file().write();
-                        }),
-                    this.session.search
-                        .store()
-                        .charts()
-                        .subjects.get()
-                        .any.subscribe(() => {
-                            this.file().write();
-                        }),
-                    this.session.bookmarks.subjects.get().updated.subscribe(() => {
-                        this.file().write();
-                    }),
-                    this.session.comments.subjects.get().updated.subscribe(() => {
-                        this.file().write();
-                    }),
-                    this.session.comments.subjects.get().added.subscribe(() => {
-                        this.file().write();
-                    }),
-                    this.session.comments.subjects.get().removed.subscribe(() => {
-                        this.file().write();
-                    }),
-                );
+            ignored: (sequence: string): boolean => {
+                if (this.blocked.includes(sequence)) {
+                    this.blocked = this.blocked.filter((s) => s !== sequence);
+                    return true;
+                }
+                return false;
             },
-            unsubscribe: (): void => {
-                this.subs.unsubscribe();
+            wait: (sequence: string): void => {
+                this.blocked.push(sequence);
             },
         };
     }
@@ -263,19 +266,22 @@ export class TeamWork extends Subscriber {
         active: Subject<GitHubRepo | undefined>;
         username: Subject<string | undefined>;
         metadata: Subject<FileMetaDataDefinition>;
+        error: Subject<void>;
     }> = new Subjects({
         loaded: new Subject<void>(),
         active: new Subject<GitHubRepo | undefined>(),
         username: new Subject<string | undefined>(),
         metadata: new Subject<FileMetaDataDefinition>(),
+        error: new Subject<void>(),
     });
 
     public init(session: Session) {
         this.setLoggerName(`TeamWork: ${cutUuid(session.uuid())}`);
         this.session = session;
         this.load().catch((err: Error) => {
-            this.log().error(`Loading error: ${err.message}`);
+            this.error().add(`Loading error: ${err.message}`);
         });
+
         this.register(
             Events.IpcEvent.subscribe(
                 Events.GitHub.FileUpdated.Event,
@@ -300,17 +306,67 @@ export class TeamWork extends Subscriber {
                     })
                     .catch((err: Error) => {
                         this.checksum = null;
-                        this.log().error(`Fail get chechsum of file: ${err.message}`);
+                        this.error().add(`Fail get chechsum of file: ${err.message}`);
                     });
             }),
+            history.subjects.get().created.subscribe((uuid: string) => {
+                const session = history.get(uuid);
+                if (session === undefined) {
+                    this.log().error(`Fail to get access to history session`);
+                    return;
+                }
+                if (session.check().done()) {
+                    this.history.unlock();
+                } else {
+                    this.register(
+                        session.subjects.get().checked.subscribe(() => {
+                            this.history.unlock();
+                        }),
+                    );
+                }
+            }),
+            this.session.search
+                .store()
+                .filters()
+                .subjects.get()
+                .any.subscribe((event: ChangeEvent<FilterRequest>) => {
+                    if (this.history.isLocked() || this.events().ignored(event.sequence)) {
+                        return;
+                    }
+                    this.file().write();
+                }),
+            this.session.search
+                .store()
+                .charts()
+                .subjects.get()
+                .any.subscribe((event: ChangeEvent<ChartRequest>) => {
+                    if (this.history.isLocked() || this.events().ignored(event.sequence)) {
+                        return;
+                    }
+                    this.file().write();
+                }),
+            this.session.bookmarks.subjects.get().updated.subscribe((sequence: string) => {
+                if (this.history.isLocked() || this.events().ignored(sequence)) {
+                    return;
+                }
+                this.file().write();
+            }),
+            this.session.comments.subjects.get().updated.subscribe(() => {
+                this.file().write();
+            }),
+            this.session.comments.subjects.get().added.subscribe(() => {
+                this.file().write();
+            }),
+            this.session.comments.subjects.get().removed.subscribe(() => {
+                this.file().write();
+            }),
         );
-        this.events().subscribe();
     }
 
     public destroy() {
         this.unsubscribe();
-        this.events().unsubscribe();
         this.subjects.destroy();
+        this.destroyed = true;
     }
 
     public repo(): {
@@ -335,7 +391,7 @@ export class TeamWork extends Subscriber {
                 )
                     .then((response) => {
                         if (response.error !== undefined) {
-                            this.log().error(`Fail to save active: ${response.error}`);
+                            this.error().add(`Fail to save active: ${response.error}`);
                         } else {
                             this.active.repo = repo;
                             this.subjects.get().active.emit(repo);
@@ -344,7 +400,7 @@ export class TeamWork extends Subscriber {
                         }
                     })
                     .catch((err: Error) => {
-                        this.log().error(`Fail to set active repo: ${err.message}`);
+                        this.error().add(`Fail to set active repo: ${err.message}`);
                     });
             },
             getActive: (): GitHubRepo | undefined => {
@@ -357,7 +413,7 @@ export class TeamWork extends Subscriber {
                 )
                     .then((response: Requests.GitHub.AddRepo.Response) => {
                         if (response.error !== undefined) {
-                            this.log().error(`Fail to add new repo: ${response.error}`);
+                            this.error().add(`Fail to add new repo: ${response.error}`);
                             return Promise.reject(new Error(response.error));
                         }
                         if (response.uuid === undefined) {
@@ -372,7 +428,7 @@ export class TeamWork extends Subscriber {
                         return Promise.resolve();
                     })
                     .catch((err: Error) => {
-                        this.log().error(`Fail to add new GitHub references: ${err.message}`);
+                        this.error().add(`Fail to add new GitHub references: ${err.message}`);
                     });
             },
             update: (repo: GitHubRepo): Promise<void> => {
@@ -385,20 +441,24 @@ export class TeamWork extends Subscriber {
                 )
                     .then((response: Requests.GitHub.UpdateRepo.Response) => {
                         if (response.error !== undefined) {
-                            this.log().error(`Fail to update new repo: ${response.error}`);
+                            this.error().add(`Fail to update new repo: ${response.error}`);
                             return Promise.reject(new Error(response.error));
                         }
+                        this.recent = undefined;
                         this.repos.set(repo.uuid, repo);
                         this.subjects.get().loaded.emit();
                         return Promise.resolve();
                     })
                     .catch((err: Error) => {
-                        this.log().error(`Fail to update GitHub references: ${err.message}`);
+                        this.error().add(`Fail to update GitHub references: ${err.message}`);
                     });
             },
-            delete: (uuid: string): Promise<void> => {
+            delete: async (uuid: string): Promise<void> => {
                 if (!this.repos.has(uuid)) {
                     return Promise.reject(new Error(`Github reference doesn't exist`));
+                }
+                if (this.active.repo !== undefined && this.active.repo.uuid === uuid) {
+                    await this.repo().setActive(undefined);
                 }
                 return Requests.IpcRequest.send(
                     Requests.GitHub.RemoveRepo.Response,
@@ -406,13 +466,13 @@ export class TeamWork extends Subscriber {
                 )
                     .then((response: Requests.GitHub.RemoveRepo.Response) => {
                         if (response.error !== undefined) {
-                            this.log().error(`Fail to remove new repo: ${response.error}`);
+                            this.error().add(`Fail to remove new repo: ${response.error}`);
                             return Promise.reject(new Error(response.error));
                         }
                         return this.load();
                     })
                     .catch((err: Error) => {
-                        this.log().error(`Fail to update GitHub references: ${err.message}`);
+                        this.error().add(`Fail to update GitHub references: ${err.message}`);
                     });
             },
             reload: (): Promise<void> => {
@@ -427,7 +487,7 @@ export class TeamWork extends Subscriber {
     } {
         return {
             reload: (): void => {
-                if (this.active.repo === undefined) {
+                if (this.active.repo === undefined || this.destroyed) {
                     return;
                 }
                 Requests.IpcRequest.send(
@@ -436,7 +496,7 @@ export class TeamWork extends Subscriber {
                 )
                     .then((response) => {
                         if (response.error !== undefined || response.username === undefined) {
-                            this.log().error(
+                            this.error().add(
                                 `Fail to get username: ${
                                     response.error === undefined ? '' : response.error
                                 }`,
@@ -447,7 +507,7 @@ export class TeamWork extends Subscriber {
                         }
                     })
                     .catch((err: Error) => {
-                        this.log().error(`Fail to get username: ${err.message}`);
+                        this.error().add(`Fail to get username: ${err.message}`);
                         this.active.username = undefined;
                     })
                     .finally(() => {
@@ -456,6 +516,31 @@ export class TeamWork extends Subscriber {
             },
             get: (): string | undefined => {
                 return this.active.username;
+            },
+        };
+    }
+
+    public error(): {
+        add(msg: string): void;
+        get(): GitHubError[];
+        clear(): void;
+    } {
+        return {
+            add: (msg: string): void => {
+                this.log().error(msg);
+                this.errors.push({
+                    time: moment.unix(Date.now() / 1000).format('MM/DD/YYYY hh:mm:ss'),
+                    msg,
+                });
+                this.subjects.get().error.emit();
+                this.session.switch().sidebar.teamwork();
+            },
+            get: (): GitHubError[] => {
+                return this.errors;
+            },
+            clear: (): void => {
+                this.errors = [];
+                this.subjects.get().error.emit();
             },
         };
     }

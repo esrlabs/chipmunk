@@ -5,6 +5,7 @@ import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Notification } from '@ui/service/notifications';
 import { GitHubRepo, getDefaultSharingSettings } from '@platform/types/github';
+import { GitHubError } from '@service/session/dependencies/teamwork';
 
 import * as dom from '@ui/env/dom';
 import * as obj from '@platform/env/obj';
@@ -22,6 +23,7 @@ export class TeamWork extends ChangesDetector implements AfterContentInit {
     public repos: GitHubRepo[] = [];
     public active: GitHubRepo | undefined;
     public editable: GitHubRepo | undefined;
+    public errors: GitHubError[] = [];
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -44,9 +46,21 @@ export class TeamWork extends ChangesDetector implements AfterContentInit {
                     this.detectChanges();
                 },
             },
+        ];
+        this.ilc().emitter.ui.contextmenu.open({
+            items,
+            x: event.x,
+            y: event.y,
+        });
+        dom.stop(event);
+    }
+
+    public onErrorsContextMenu(event: MouseEvent) {
+        const items = [
             {
-                caption: 'Remove All',
+                caption: 'Clear All',
                 handler: () => {
+                    this.session.teamwork.error().clear();
                     this.detectChanges();
                 },
             },
@@ -62,6 +76,7 @@ export class TeamWork extends ChangesDetector implements AfterContentInit {
     public ngAfterContentInit(): void {
         this.repos = this.session.teamwork.repo().list();
         this.active = this.session.teamwork.repo().getActive();
+        this.errors = this.session.teamwork.error().get().reverse();
         this.env().subscriber.register(
             this.session.teamwork.subjects.get().active.subscribe(() => {
                 this.active = this.session.teamwork.repo().getActive();
@@ -72,6 +87,12 @@ export class TeamWork extends ChangesDetector implements AfterContentInit {
             this.session.teamwork.subjects.get().loaded.subscribe(() => {
                 this.repos = this.session.teamwork.repo().list();
                 this.active = this.session.teamwork.repo().getActive();
+                this.detectChanges();
+            }),
+        );
+        this.env().subscriber.register(
+            this.session.teamwork.subjects.get().error.subscribe(() => {
+                this.errors = this.session.teamwork.error().get().reverse();
                 this.detectChanges();
             }),
         );
@@ -179,6 +200,7 @@ export class TeamWork extends ChangesDetector implements AfterContentInit {
                         );
                     });
             },
+
             isPossibleToSave: (): boolean => {
                 if (this.editable === undefined) {
                     return false;
