@@ -7,6 +7,7 @@ import {
 } from 'platform/entity/service';
 import { services } from '@register/services';
 import { electron } from '@service/electron';
+import { jobs } from '@service/jobs';
 import { storage } from '@service/storage';
 import { CancelablePromise } from 'platform/env/promise';
 import { unique } from 'platform/env/sequence';
@@ -33,6 +34,7 @@ interface MetaDataLink {
 
 @DependOn(electron)
 @DependOn(storage)
+@DependOn(jobs)
 @SetupService(services['github'])
 export class Service extends Implementation {
     protected readonly repos: Map<string, GitHubRepo> = new Map();
@@ -200,6 +202,13 @@ export class Service extends Implementation {
                     ): CancelablePromise<Requests.GitHub.CheckUpdates.Response> => {
                         return new CancelablePromise((resolve, _reject) => {
                             const current = this.files.get(request.checksum);
+                            const job = jobs
+                                .create({
+                                    name: 'github: loading file updates',
+                                    icon: 'compare_arrows',
+                                    spinner: true,
+                                })
+                                .start();
                             this.getFileMetaData(request.checksum)
                                 .then((response: MetaDataLink | undefined) => {
                                     if (response === undefined) {
@@ -242,6 +251,9 @@ export class Service extends Implementation {
                                             updated: false,
                                         }),
                                     );
+                                })
+                                .finally(() => {
+                                    job.done();
                                 });
                         });
                     },
@@ -444,6 +456,13 @@ export class Service extends Implementation {
                                     }),
                                 );
                             }
+                            const job = jobs
+                                .create({
+                                    name: 'github: loading file data',
+                                    icon: 'compare_arrows',
+                                    spinner: true,
+                                })
+                                .start();
                             this.getFileMetaData(request.checksum)
                                 .then((response: MetaDataLink | undefined) => {
                                     resolve(
@@ -475,6 +494,9 @@ export class Service extends Implementation {
                                                     : err.message,
                                         }),
                                     );
+                                })
+                                .finally(() => {
+                                    job.done();
                                 });
                         });
                     },
@@ -488,6 +510,13 @@ export class Service extends Implementation {
                         request: Requests.GitHub.SetFileMeta.Request,
                     ): CancelablePromise<Requests.GitHub.SetFileMeta.Response> => {
                         return new CancelablePromise((resolve) => {
+                            const job = jobs
+                                .create({
+                                    name: 'github: writing file data',
+                                    icon: 'compare_arrows',
+                                    spinner: true,
+                                })
+                                .start();
                             this.setFileMetaData(
                                 request.checksum,
                                 new md.FileMetaData(request.metadata),
@@ -501,6 +530,9 @@ export class Service extends Implementation {
                                             error: err.message,
                                         }),
                                     );
+                                })
+                                .finally(() => {
+                                    job.done();
                                 });
                         });
                     },
