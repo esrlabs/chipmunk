@@ -223,7 +223,6 @@ export class TeamWork extends Subscriber {
                     // Last time was written same metadata object
                     return;
                 }
-                console.log(metadata);
                 Requests.IpcRequest.send(
                     Requests.GitHub.SetFileMeta.Response,
                     new Requests.GitHub.SetFileMeta.Request({

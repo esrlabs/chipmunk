@@ -42,7 +42,6 @@ export class Service extends Implementation {
         await this.collections.load();
         await this.definitions.load();
         this.channel = ilc.channel(`History`, this.log());
-        this.emitter = ilc.emitter(`History`, this.log());
         this.channel.session.created((session) => {
             this.sessions.set(
                 session.uuid(),
