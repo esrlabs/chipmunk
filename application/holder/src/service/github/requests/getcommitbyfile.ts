@@ -8,33 +8,35 @@ import * as validator from 'platform/env/obj';
 
 export interface CommitObject {
     sha: string;
-    tree: {
-        sha: string;
-    };
-    author: {
-        login: string;
-    };
+    login: string;
 }
 
 export class Request extends Base<CommitObject> {
-    constructor(queue: Queue, options: GitHubRepo, protected readonly sha: string) {
+    constructor(queue: Queue, options: GitHubRepo, protected readonly filename: string) {
         super(queue, options);
     }
 
     public executor(): Promise<CommitObject> {
         return new Promise((resolve, reject) => {
             net.getRaw(
-                `https://api.github.com/repos/${this.options.owner}/${this.options.repo}/git/commits/${this.sha}`,
+                `https://api.github.com/repos/${this.options.owner}/${this.options.repo}/commits?path=${this.filename}&per_page=1`,
                 this.getHeaders(),
             )
                 .then((raw: string) => {
                     try {
-                        const response = JSON.parse(raw);
-                        validator.isObject(response);
-                        validator.getAsNotEmptyString(response, 'sha');
-                        validator.getAsObj(response, 'tree');
-                        validator.getAsNotEmptyString(response.tree, 'sha');
-                        resolve(response);
+                        const response: { sha: string; author: { login: string } }[] =
+                            JSON.parse(raw);
+                        if (!(response instanceof Array)) {
+                            throw new Error(`Expecting an array of commits data`);
+                        }
+                        if (response.length === 0) {
+                            throw new Error(`No commits related to file`);
+                        }
+                        validator.getAsObj(response[0], 'author');
+                        resolve({
+                            sha: validator.getAsNotEmptyString(response[0], 'sha'),
+                            login: validator.getAsNotEmptyString(response[0].author, 'login'),
+                        });
                     } catch (err) {
                         reject(new Error(`Parsing error: ${error(err)}`));
                     }
