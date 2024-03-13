@@ -1,18 +1,26 @@
 <div class="globals pinned" *ngIf="actual.globals.length > 0">
     <span class="pinned-job" *ngFor="let job of actual.globals">
-        <span class="indicator" *ngIf="job.icon === undefined"></span>
-        <mat-icon *ngIf="job.icon !== undefined">{{job.icon}}</mat-icon>
+        <span class="indicator" *ngIf="!job.spinner && job.icon === undefined"></span>
+        <mat-spinner *ngIf="job.spinner" [diameter]="16"></mat-spinner>
+        <mat-icon *ngIf="!job.spinner && job.icon !== undefined">{{job.icon}}</mat-icon>
         <span class="name">{{job.name}}</span>
     </span>
 </div>
 <div class="session pinned" *ngIf="actual.session.length > 0">
     <span class="pinned-job" *ngFor="let job of actual.session">
-        <span class="indicator" *ngIf="job.icon === undefined"></span>
-        <mat-icon *ngIf="job.icon !== undefined">{{job.icon}}</mat-icon>
+        <span class="indicator" *ngIf="!job.spinner && job.icon === undefined"></span>
+        <mat-spinner *ngIf="job.spinner" [diameter]="16"></mat-spinner>
+        <mat-icon *ngIf="!job.spinner && job.icon !== undefined">{{job.icon}}</mat-icon>
         <span class="name">{{job.name}}</span>
     </span>
 </div>
-<button class="tray-icon" *ngIf="done.globals.length + done.session.length > 0" mat-icon-button color="accent" [matMenuTriggerFor]="menu">
+<button
+    class="tray-icon"
+    *ngIf="done.globals.length + done.session.length > 0"
+    mat-icon-button
+    color="accent"
+    [matMenuTriggerFor]="menu"
+>
     <mat-icon>menu</mat-icon>
 </button>
 <mat-menu #menu="matMenu">

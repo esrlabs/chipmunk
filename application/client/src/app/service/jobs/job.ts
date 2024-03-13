@@ -13,6 +13,7 @@ export class Job {
 
     public uuid: string;
     public progress = 0;
+    public spinner: boolean;
     public session: string;
     public name?: string;
     public desc?: string;
@@ -25,6 +26,7 @@ export class Job {
         desc?: string;
         progress?: number;
         icon?: string;
+        spinner?: boolean;
     }) {
         this.uuid = job.uuid !== undefined ? job.uuid : unique();
         this.session = validator.getAsNotEmptyStringOrAsUndefined(job, 'session');
@@ -36,6 +38,7 @@ export class Job {
             max: 100,
             min: 0,
         });
+        this.spinner = typeof job.spinner === 'boolean' ? job.spinner : false;
         this.session = this.session === undefined ? Job.GLOBAL_JOBS : this.session;
     }
 

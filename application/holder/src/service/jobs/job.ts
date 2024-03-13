@@ -18,6 +18,7 @@ export class Job {
     public name?: string;
     public desc?: string;
     public icon?: string;
+    public spinner: boolean;
 
     private _canceled = false;
     private _created: number = Date.now();
@@ -29,6 +30,7 @@ export class Job {
         name?: string;
         desc?: string;
         progress?: number;
+        spinner?: boolean;
         icon?: string;
         done: (job: Job) => void;
     }) {
@@ -42,6 +44,7 @@ export class Job {
             max: 100,
             min: 0,
         });
+        this.spinner = typeof job.spinner === 'boolean' ? job.spinner : false;
         this.session = this.session === undefined ? GLOBAL_JOBS : this.session;
         this._done = job.done;
     }
@@ -62,6 +65,7 @@ export class Job {
                 desc: this.desc,
                 progress: this.progress,
                 icon: this.icon,
+                spinner: this.spinner,
             }),
         );
         return this;

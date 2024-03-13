@@ -32,6 +32,7 @@ export class Service extends Implementation {
         name?: string;
         desc?: string;
         icon?: string;
+        spinner?: boolean;
     }): Job {
         const job = new Job({
             uuid: inputs.uuid,
@@ -39,6 +40,7 @@ export class Service extends Implementation {
             name: inputs.name,
             desc: inputs.desc,
             icon: inputs.icon,
+            spinner: inputs.spinner,
             done: (job: Job) => {
                 const jobs = this._jobs.get(job.session);
                 if (jobs === undefined) {

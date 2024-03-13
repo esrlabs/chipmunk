@@ -24,6 +24,7 @@ export class Service extends Implementation {
                         name: event.name,
                         desc: event.desc,
                         progress: event.progress,
+                        spinner: event.spinner,
                     });
                 } else {
                     job.update(event);
