@@ -30,6 +30,7 @@ const STORAGE_ACTIVE = 'active_repo';
 interface MetaDataLink {
     metadata: md.FileMetaData;
     file: FileObject;
+    sha: string;
     username: string;
 }
 
@@ -40,7 +41,6 @@ interface MetaDataLink {
 export class Service extends Implementation {
     protected readonly repos: Map<string, GitHubRepo> = new Map();
     protected active: GitHubRepo | undefined;
-    protected username: string | undefined;
     protected queue: Queue = new Queue();
     protected files: Map<string, MetaDataLink> = new Map();
 
@@ -71,41 +71,47 @@ export class Service extends Implementation {
             throw metasrc;
         }
         const metadata = new md.FileMetaData(metasrc);
-        this.files.set(filename, { file, metadata, username: commit.login });
-        return { metadata, file, username: commit.login };
+        const link = { file, metadata, username: commit.login, sha: commit.sha };
+        this.files.set(filename, link);
+        return link;
     }
     protected async checkFileMetaData(
         filename: string,
         candidate: md.FileMetaData,
-    ): Promise<md.FileMetaData | undefined> {
+        sha: string | undefined,
+    ): Promise<md.FileMetaData | string> {
         if (this.active === undefined) {
-            return Promise.resolve(undefined);
+            return Promise.reject(new Error(`No active repository selected`));
         }
         const recent: MetaDataLink | undefined = await this.getFileMetaData(filename);
         if (recent === undefined) {
             // No data on remote
             return Promise.resolve(candidate);
+        } else if (sha !== recent.sha) {
+            return Promise.reject(
+                new Error(`Changes rejected. File was updated by "${recent.username}"`),
+            );
         }
         if (!tools.hasChanges(candidate, this.getRecent(filename), this.active.settings)) {
             // Same data on remote. No needs for updates
-            return Promise.resolve(undefined);
-            // } else if (this.username !== recent.username) {
-            //     return Promise.reject(
-            //         new Error(`Changes rejected. File was updated by "${recent.username}"`),
-            //     );
+            return Promise.resolve(recent.sha);
         } else {
             return Promise.resolve(
                 tools.serialize(candidate, recent.metadata, this.active.settings),
             );
         }
     }
-    protected async setFileMetaData(filename: string, metadata: md.FileMetaData): Promise<void> {
+    protected async setFileMetaData(
+        filename: string,
+        metadata: md.FileMetaData,
+        sha: string | undefined,
+    ): Promise<string> {
         if (this.active === undefined) {
             throw new Error('No active repo selected');
         }
-        const candidate = await this.checkFileMetaData(filename, metadata);
-        if (candidate === undefined) {
-            return Promise.resolve();
+        const candidate = await this.checkFileMetaData(filename, metadata, sha);
+        if (typeof candidate === 'string') {
+            return Promise.resolve(candidate);
         }
         const active = Object.assign({}, this.active);
         const branchSha = await new GitHubAPI.GetBrachSHA.Request(this.queue, active).send();
@@ -127,6 +133,7 @@ export class Service extends Implementation {
             sha: newCommitSha,
             force: true,
         }).send();
+        return Promise.resolve(newCommitSha);
     }
     protected storage(): {
         load(): void;
@@ -181,17 +188,6 @@ export class Service extends Implementation {
                                 this.log().warn(
                                     `Saved active repo isn't found in a list. Reference will be removed from storage.`,
                                 );
-                            } else {
-                                const active = this.active;
-                                this.getUserName(this.active)
-                                    .then((username: string) => {
-                                        this.username = username;
-                                    })
-                                    .catch((err: Error) => {
-                                        this.log().error(
-                                            `Fail get username for ${active.owner}/${active.branch}: ${err.message}`,
-                                        );
-                                    });
                             }
                         }
                     })
@@ -217,9 +213,7 @@ export class Service extends Implementation {
             },
         };
     }
-    protected getUserName(repo: GitHubRepo): Promise<string> {
-        return new GitHubAPI.GetUserName.Request(this.queue, repo).send();
-    }
+
     public override ready(): Promise<void> {
         this.storage().load();
         this.register(
@@ -251,12 +245,12 @@ export class Service extends Implementation {
                                         );
                                     } else if (
                                         current === undefined ||
-                                        current.file.sha !== response.file.sha
+                                        current.sha !== response.sha
                                     ) {
                                         Events.IpcEvent.emit(
                                             new Events.GitHub.FileUpdated.Event({
                                                 checksum: request.checksum,
-                                                sha: response.file.sha,
+                                                sha: response.sha,
                                             }),
                                         );
                                         resolve(
@@ -410,7 +404,6 @@ export class Service extends Implementation {
                             const repo = this.repos.get(request.uuid);
                             if (request.uuid === undefined) {
                                 this.active = undefined;
-                                this.username = undefined;
                                 this.storage().save();
                                 resolve(
                                     new Requests.GitHub.SetActive.Response({
@@ -419,25 +412,12 @@ export class Service extends Implementation {
                                 );
                             } else if (repo !== undefined) {
                                 this.active = repo;
-                                this.getUserName(repo)
-                                    .then((username: string) => {
-                                        this.username = username;
-                                        this.storage().save();
-                                        resolve(
-                                            new Requests.GitHub.SetActive.Response({
-                                                error: undefined,
-                                            }),
-                                        );
-                                    })
-                                    .catch((err: Error) => {
-                                        this.active = undefined;
-                                        this.username = undefined;
-                                        resolve(
-                                            new Requests.GitHub.SetActive.Response({
-                                                error: `Fail get username: ${err.message}`,
-                                            }),
-                                        );
-                                    });
+                                this.storage().save();
+                                resolve(
+                                    new Requests.GitHub.SetActive.Response({
+                                        error: undefined,
+                                    }),
+                                );
                             } else {
                                 resolve(
                                     new Requests.GitHub.SetActive.Response({
@@ -495,12 +475,12 @@ export class Service extends Implementation {
                             if (
                                 request.sha !== undefined &&
                                 metadata !== undefined &&
-                                request.sha === metadata.file.sha
+                                request.sha === metadata.sha
                             ) {
                                 return resolve(
                                     new Requests.GitHub.GetFileMeta.Response({
                                         metadata: metadata.metadata.def,
-                                        sha: metadata.file.sha,
+                                        sha: metadata.sha,
                                         exists: true,
                                     }),
                                 );
@@ -520,10 +500,7 @@ export class Service extends Implementation {
                                                 response === undefined
                                                     ? undefined
                                                     : response.metadata.def,
-                                            sha:
-                                                response === undefined
-                                                    ? undefined
-                                                    : response.file.sha,
+                                            sha: response === undefined ? undefined : response.sha,
                                             exists: response !== undefined,
                                         }),
                                     );
@@ -569,14 +546,16 @@ export class Service extends Implementation {
                             this.setFileMetaData(
                                 request.checksum,
                                 new md.FileMetaData(request.metadata),
+                                request.sha,
                             )
-                                .then(() => {
-                                    resolve(new Requests.GitHub.SetFileMeta.Response({}));
+                                .then((sha: string) => {
+                                    resolve(new Requests.GitHub.SetFileMeta.Response({ sha }));
                                 })
                                 .catch((err: Error) => {
                                     resolve(
                                         new Requests.GitHub.SetFileMeta.Response({
                                             error: err.message,
+                                            sha: undefined,
                                         }),
                                     );
                                 })
@@ -603,7 +582,8 @@ export class Service extends Implementation {
                                 );
                             }
                             const active = Object.assign({}, this.active);
-                            this.getUserName(active)
+                            new GitHubAPI.GetUserName.Request(this.queue, active)
+                                .send()
                                 .then((username: string) => {
                                     resolve(
                                         new Requests.GitHub.GetUserName.Response({
