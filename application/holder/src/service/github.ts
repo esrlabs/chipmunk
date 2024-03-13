@@ -30,6 +30,7 @@ const STORAGE_ACTIVE = 'active_repo';
 interface MetaDataLink {
     metadata: md.FileMetaData;
     file: FileObject;
+    username: string;
 }
 
 @DependOn(electron)
@@ -39,6 +40,7 @@ interface MetaDataLink {
 export class Service extends Implementation {
     protected readonly repos: Map<string, GitHubRepo> = new Map();
     protected active: GitHubRepo | undefined;
+    protected username: string | undefined;
     protected queue: Queue = new Queue();
     protected files: Map<string, MetaDataLink> = new Map();
 
@@ -51,18 +53,26 @@ export class Service extends Implementation {
             throw new Error('No active repo selected');
         }
         const active = Object.assign({}, this.active);
-        const rest = new GitHubAPI.GetFileContent.Request(this.queue, active, filename);
-        const file: FileObject | undefined = await rest.send();
+        const file: FileObject | undefined = await new GitHubAPI.GetFileContent.Request(
+            this.queue,
+            active,
+            filename,
+        ).send();
         if (file === undefined) {
             return undefined;
         }
+        const commit = await new GitHubAPI.GetCommitByFile.Request(
+            this.queue,
+            active,
+            filename,
+        ).send();
         const metasrc = md.fromJson(file.content);
         if (metasrc instanceof md.ProtocolError || metasrc instanceof Error) {
             throw metasrc;
         }
         const metadata = new md.FileMetaData(metasrc);
-        this.files.set(filename, { file, metadata });
-        return { metadata, file };
+        this.files.set(filename, { file, metadata, username: commit.login });
+        return { metadata, file, username: commit.login };
     }
     protected async checkFileMetaData(
         filename: string,
@@ -79,8 +89,15 @@ export class Service extends Implementation {
         if (!tools.hasChanges(candidate, this.getRecent(filename), this.active.settings)) {
             // Same data on remote. No needs for updates
             return Promise.resolve(undefined);
+        } else if (this.username !== recent.username) {
+            return Promise.reject(
+                new Error(`Changes rejected. File was updated by "${recent.username}"`),
+            );
+        } else {
+            return Promise.resolve(
+                tools.serialize(candidate, recent.metadata, this.active.settings),
+            );
         }
-        return Promise.resolve(tools.serialize(candidate, recent.metadata, this.active.settings));
     }
     protected async setFileMetaData(filename: string, metadata: md.FileMetaData): Promise<void> {
         if (this.active === undefined) {
@@ -164,6 +181,17 @@ export class Service extends Implementation {
                                 this.log().warn(
                                     `Saved active repo isn't found in a list. Reference will be removed from storage.`,
                                 );
+                            } else {
+                                const active = this.active;
+                                this.getUserName(this.active)
+                                    .then((username: string) => {
+                                        this.username = username;
+                                    })
+                                    .catch((err: Error) => {
+                                        this.log().error(
+                                            `Fail get username for ${active.owner}/${active.branch}: ${err.message}`,
+                                        );
+                                    });
                             }
                         }
                     })
@@ -188,6 +216,9 @@ export class Service extends Implementation {
                     });
             },
         };
+    }
+    protected getUserName(repo: GitHubRepo): Promise<string> {
+        return new GitHubAPI.GetUserName.Request(this.queue, repo).send();
     }
     public override ready(): Promise<void> {
         this.storage().load();
@@ -379,23 +410,41 @@ export class Service extends Implementation {
                             const repo = this.repos.get(request.uuid);
                             if (request.uuid === undefined) {
                                 this.active = undefined;
+                                this.username = undefined;
                                 this.storage().save();
+                                resolve(
+                                    new Requests.GitHub.SetActive.Response({
+                                        error: undefined,
+                                    }),
+                                );
                             } else if (repo !== undefined) {
                                 this.active = repo;
-                                this.storage().save();
+                                this.getUserName(repo)
+                                    .then((username: string) => {
+                                        this.username = username;
+                                        this.storage().save();
+                                        resolve(
+                                            new Requests.GitHub.SetActive.Response({
+                                                error: undefined,
+                                            }),
+                                        );
+                                    })
+                                    .catch((err: Error) => {
+                                        this.active = undefined;
+                                        this.username = undefined;
+                                        resolve(
+                                            new Requests.GitHub.SetActive.Response({
+                                                error: `Fail get username: ${err.message}`,
+                                            }),
+                                        );
+                                    });
                             } else {
                                 resolve(
                                     new Requests.GitHub.SetActive.Response({
                                         error: 'Does not exist',
                                     }),
                                 );
-                                return;
                             }
-                            resolve(
-                                new Requests.GitHub.SetActive.Response({
-                                    error: undefined,
-                                }),
-                            );
                         });
                     },
                 ),
@@ -554,8 +603,7 @@ export class Service extends Implementation {
                                 );
                             }
                             const active = Object.assign({}, this.active);
-                            new GitHubAPI.GetUserName.Request(this.queue, active)
-                                .send()
+                            this.getUserName(active)
                                 .then((username: string) => {
                                     resolve(
                                         new Requests.GitHub.GetUserName.Response({
