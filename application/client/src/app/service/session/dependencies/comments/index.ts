@@ -10,6 +10,7 @@ import { components } from '@env/decorators/initial';
 import { Vertical, Horizontal } from '@ui/service/popup';
 import { CShortColors } from '@styles/colors';
 import { Session } from '@service/session/session';
+import { notifications, Notification } from '@ui/service/notifications';
 
 import * as regex from '@platform/env/regex';
 import * as obj from '@platform/env/obj';
@@ -19,22 +20,7 @@ export interface ActualSelectionData {
     start: number;
     end: number;
 }
-/**
- 
- export interface IScrollBoxSelection {
-    // Cleaned from table delimiters and number delimiter (not actual)
-    selection: string;
-    // original selection
-    original: string;
-    // start row
-    anchor: number;
-    anchorOffset: number;
-    // end row
-    focus: number;
-    focusOffset: number;
-}
 
- */
 @SetupLogger()
 export class Comments extends Subscriber {
     protected readonly comments: Map<string, CommentDefinition> = new Map();
@@ -368,10 +354,22 @@ export class Comments extends Subscriber {
         });
         const toBeStored: { comment: CommentDefinition; recover?: CommentDefinition } | undefined =
             (() => {
-                if (crossing.length > 1) {
-                    // Here should be notification
+                if (
+                    crossing.length > 1 ||
+                    (crossing.length === 1 && crossing[0].username !== username)
+                ) {
+                    notifications.notify(
+                        new Notification({
+                            message:
+                                crossing.length === 1
+                                    ? `Cannot change comment of user "${crossing[0].username}"`
+                                    : `Cannot change multiple comments`,
+                            actions: [],
+                        }),
+                    );
                     return;
-                } else if (crossing.length === 1) {
+                }
+                if (crossing.length === 1) {
                     const recover = obj.clone(crossing[0]);
                     if (
                         crossing[0].selection.start.position > comment.selection.start.position ||
