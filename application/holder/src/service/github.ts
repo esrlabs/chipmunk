@@ -89,10 +89,10 @@ export class Service extends Implementation {
         if (!tools.hasChanges(candidate, this.getRecent(filename), this.active.settings)) {
             // Same data on remote. No needs for updates
             return Promise.resolve(undefined);
-        } else if (this.username !== recent.username) {
-            return Promise.reject(
-                new Error(`Changes rejected. File was updated by "${recent.username}"`),
-            );
+            // } else if (this.username !== recent.username) {
+            //     return Promise.reject(
+            //         new Error(`Changes rejected. File was updated by "${recent.username}"`),
+            //     );
         } else {
             return Promise.resolve(
                 tools.serialize(candidate, recent.metadata, this.active.settings),
