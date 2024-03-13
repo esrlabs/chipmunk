@@ -68,8 +68,8 @@ impl Manager for Module {
     async fn after(&self, _prod: bool) -> Result<Option<SpawnResult>, Error> {
         let mut report_logs = Vec::new();
 
-        let src = Target::Binding.get().cwd().join("dist/index.node");
-        let dest = self.cwd().join("dist/native");
+        let src = Target::Binding.get().cwd().join("dist").join("index.node");
+        let dest = self.cwd().join("dist").join("native");
         if !src.exists() {
             bail!("Not found: {}", src.to_string_lossy());
         }
@@ -102,13 +102,12 @@ impl Manager for Module {
         results.extend(build_results);
 
         let build_spec_path = self.cwd().join("spec");
-        //TODO: Make sure we should put this check here. This check exists in rake implementation
-        // but it could lead to wrong test values when the changes in the tests aren't built.
+        //TODO: This check exists in rake implementation but it need to be improved.
+        // The check should cover if the test themselves or the code under the tests has been changed.
         if !build_spec_path.join("build").exists() {
-            let build_spec_cmd = format!(
-                "{}/node_modules/.bin/tsc -p tsconfig.json",
-                self.cwd().to_string_lossy()
-            );
+            let test_builder_path = self.cwd().join("node_modules").join(".bin").join("tsc");
+            let build_spec_cmd =
+                format!("{} -p tsconfig.json", test_builder_path.to_string_lossy());
 
             let spec_res = spawn(
                 build_spec_cmd,
@@ -124,9 +123,24 @@ impl Manager for Module {
 
         let cwd = self.cwd();
 
+        let electron_path: PathBuf = [".", "node_modules", ".bin", "electron"].iter().collect();
+        let electron_path = electron_path.to_string_lossy();
+
+        let jasmine_path: PathBuf = [".", "node_modules", "jasmine", "bin", "jasmine.js"]
+            .iter()
+            .collect();
+        let jasmine_path = jasmine_path.to_string_lossy();
+
+        let specs_dir_path: PathBuf = ["spec", "build", "spec"].iter().collect();
+
         for spec in TEST_SPECS {
             let caption = format!("Test {}: {}", self.owner(), spec);
-            let command = format!("./node_modules/.bin/electron ./node_modules/jasmine/bin/jasmine.js spec/build/spec/session.{spec}.spec.js");
+            let spec_file_name = format!("session.{spec}.spec.js");
+            let spec_file_path = specs_dir_path.join(spec_file_name);
+            let command = format!(
+                "{electron_path} {jasmine_path} {}",
+                spec_file_path.to_string_lossy()
+            );
             let res = spawn_blocking(
                 command,
                 Some(cwd.clone()),
