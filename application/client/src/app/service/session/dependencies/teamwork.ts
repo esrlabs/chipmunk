@@ -42,7 +42,13 @@ export class TeamWork extends Subscriber {
     // Last written hash
     // string - hash
     // undefined - not loaded or no related profile on github repo
-    protected recent: FileMetaData | undefined;
+    protected recent: {
+        metadata: FileMetaData | undefined;
+        sha: string | undefined;
+    } = {
+        metadata: undefined,
+        sha: undefined,
+    };
     protected errors: GitHubError[] = [];
     protected destroyed: boolean = false;
     protected blocked: string[] = [];
@@ -90,16 +96,17 @@ export class TeamWork extends Subscriber {
     }
 
     protected metadata(): {
-        import(md: FileMetaDataDefinition): void;
+        import(md: FileMetaDataDefinition, sha: string): void;
     } {
         return {
-            import: (md: FileMetaDataDefinition): void => {
+            import: (md: FileMetaDataDefinition, sha: string): void => {
                 if (this.active.repo === undefined || this.destroyed) {
                     return;
                 }
-                const local = this.recent;
+                const local = this.recent.metadata;
                 const recent = new FileMetaData(md);
-                this.recent = recent;
+                this.recent.metadata = recent;
+                this.recent.sha = sha;
                 if (
                     local !== undefined &&
                     local !== null &&
@@ -170,10 +177,11 @@ export class TeamWork extends Subscriber {
                     .then((response) => {
                         if (response.error !== undefined) {
                             this.error().add(`Fail to get metadata: ${response.error}`);
-                        } else if (response.metadata !== undefined) {
-                            this.metadata().import(response.metadata);
+                        } else if (response.metadata !== undefined && response.sha !== undefined) {
+                            this.metadata().import(response.metadata, response.sha);
                         } else {
-                            this.recent = undefined;
+                            this.recent.metadata = undefined;
+                            this.recent.sha = undefined;
                         }
                     })
                     .catch((err: Error) => {
@@ -217,8 +225,8 @@ export class TeamWork extends Subscriber {
                 }
                 const metadata = this.getLocalMetadata();
                 if (
-                    this.recent !== undefined &&
-                    metadata.hash().equal(this.active.repo.settings, this.recent)
+                    this.recent.metadata !== undefined &&
+                    metadata.hash().equal(this.active.repo.settings, this.recent.metadata)
                 ) {
                     // Last time was written same metadata object
                     return;
@@ -228,11 +236,14 @@ export class TeamWork extends Subscriber {
                     new Requests.GitHub.SetFileMeta.Request({
                         checksum: this.checksum,
                         metadata: metadata.def,
+                        sha: this.recent.sha,
                     }),
                 )
                     .then((response) => {
                         if (response.error !== undefined) {
                             this.error().add(`Fail to save metadata: ${response.error}`);
+                        } else {
+                            this.recent.sha = response.sha;
                         }
                     })
                     .catch((err: Error) => {
@@ -443,9 +454,11 @@ export class TeamWork extends Subscriber {
                             this.error().add(`Fail to update new repo: ${response.error}`);
                             return Promise.reject(new Error(response.error));
                         }
-                        this.recent = undefined;
+                        this.recent.metadata = undefined;
+                        this.recent.sha = undefined;
                         this.repos.set(repo.uuid, repo);
                         this.subjects.get().loaded.emit();
+                        //TODO: change workflow here; we should reload metadata
                         return Promise.resolve();
                     })
                     .catch((err: Error) => {
