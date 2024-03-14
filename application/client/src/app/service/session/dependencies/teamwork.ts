@@ -115,6 +115,7 @@ export class TeamWork extends Subscriber {
                     return;
                 }
                 this.active.repo.settings.filters &&
+                    !this.active.repo.settings.readonly &&
                     this.events().wait(
                         this.session.search
                             .store()
@@ -126,6 +127,7 @@ export class TeamWork extends Subscriber {
                             ),
                     );
                 this.active.repo.settings.charts &&
+                    !this.active.repo.settings.readonly &&
                     this.events().wait(
                         this.session.search
                             .store()
@@ -137,7 +139,7 @@ export class TeamWork extends Subscriber {
                             ),
                     );
                 this.active.repo.settings.comments && this.session.comments.set(md.comments);
-                if (this.active.repo.settings.bookmarks) {
+                if (this.active.repo.settings.bookmarks && !this.active.repo.settings.readonly) {
                     this.session.bookmarks
                         .overwriteFromDefs(md.bookmarks)
                         .catch((err: Error) => {
@@ -222,6 +224,9 @@ export class TeamWork extends Subscriber {
                     this.recent.sha === undefined ||
                     this.destroyed
                 ) {
+                    return;
+                }
+                if (this.active.repo.settings.readonly) {
                     return;
                 }
                 const metadata = this.getLocalMetadata();
@@ -455,11 +460,12 @@ export class TeamWork extends Subscriber {
                             this.error().add(`Fail to update new repo: ${response.error}`);
                             return Promise.reject(new Error(response.error));
                         }
-                        this.recent.metadata = undefined;
-                        this.recent.sha = undefined;
                         this.repos.set(repo.uuid, repo);
+                        if (this.active.repo !== undefined && this.active.repo.uuid !== undefined) {
+                            this.active.repo = repo;
+                            this.user().reload();
+                        }
                         this.subjects.get().loaded.emit();
-                        //TODO: change workflow here; we should reload metadata
                         return Promise.resolve();
                     })
                     .catch((err: Error) => {
@@ -554,6 +560,64 @@ export class TeamWork extends Subscriber {
             clear: (): void => {
                 this.errors = [];
                 this.subjects.get().error.emit();
+            },
+        };
+    }
+
+    public md(): {
+        getIfDifferentToLocal(): FileMetaData | undefined;
+        importFromRemote(): Promise<void>;
+    } {
+        return {
+            getIfDifferentToLocal: (): FileMetaData | undefined => {
+                const remote = this.recent.metadata;
+                if (remote === undefined) {
+                    return undefined;
+                }
+                const local = this.getLocalMetadata();
+                if (
+                    local.hash().filters() !== remote.hash().filters() ||
+                    local.hash().charts() !== remote.hash().charts() ||
+                    local.hash().bookmarks() !== remote.hash().bookmarks()
+                ) {
+                    return remote;
+                }
+                return undefined;
+            },
+            importFromRemote: (): Promise<void> => {
+                const remote = this.recent.metadata;
+                if (remote === undefined) {
+                    return Promise.resolve(undefined);
+                }
+                this.events().wait(
+                    this.session.search
+                        .store()
+                        .filters()
+                        .overwrite(
+                            remote.def.filters.map(
+                                (def) => new FilterRequest(def),
+                            ) as StoredEntity<FilterRequest>[],
+                        ),
+                );
+                this.events().wait(
+                    this.session.search
+                        .store()
+                        .charts()
+                        .overwrite(
+                            remote.def.charts.map(
+                                (def) => new ChartRequest(def),
+                            ) as StoredEntity<ChartRequest>[],
+                        ),
+                );
+                this.session.comments.set(remote.def.comments);
+                return new Promise((resolve) => {
+                    this.session.bookmarks
+                        .overwriteFromDefs(remote.def.bookmarks)
+                        .catch((err: Error) => {
+                            this.log().error(`Fail update bookmarks due: ${err.message}`);
+                        })
+                        .finally(resolve);
+                });
             },
         };
     }

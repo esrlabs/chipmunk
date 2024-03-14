@@ -74,11 +74,24 @@
             <mat-checkbox
                 class="material-mofication-mini"
                 [disableRipple]="true"
-                [disabled]="true"
                 (ngModelChange)="onSharingSettingsChange($event, 'comments')"
+                [disabled]="true"
                 [(ngModel)]="active.settings.comments"
             ></mat-checkbox>
             <span class="label t-normal">Comments</span>
+        </div>
+        <p class="t-small">
+            Read-only Mode allows to read a remote repository, but not modify it. Local changes will
+            be available only during the session.
+        </p>
+        <div class="field">
+            <mat-checkbox
+                class="material-mofication-mini"
+                [disableRipple]="true"
+                (ngModelChange)="onSharingSettingsChange($event, 'readonly')"
+                [(ngModel)]="active.settings.readonly"
+            ></mat-checkbox>
+            <span class="label t-normal">Read-only Mode</span>
         </div>
     </div>
 </mat-expansion-panel>

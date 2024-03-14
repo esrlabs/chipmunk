@@ -7,11 +7,39 @@
     margin: 0 0 24px 0;
     overflow: hidden;
     outline: none;
+    & div.remote {
+        max-height: 250px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        & ul {
+            list-style: none;
+            margin: 4px 0 8px 0;
+            & > li {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                & > span.color {
+                    position: relative;
+                    display: block;
+                    height: 16px;
+                    width: 8px;
+                }
+                & > span.label {
+                    padding-left: 8px;
+                }
+            }
+        }
+    }
     & div.controlls{
         position: relative;
         width: 100%;
         overflow: hidden;
         text-align: right;
+        white-space: nowrap;
+        height: auto;
+        & button {
+            margin-left: 8px;
+        }
     }
 
 }
