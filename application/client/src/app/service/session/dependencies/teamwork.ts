@@ -52,7 +52,7 @@ export class TeamWork extends Subscriber {
     protected errors: GitHubError[] = [];
     protected destroyed: boolean = false;
     protected blocked: string[] = [];
-    protected history: LockToken = new LockToken(true);
+    protected listener: LockToken = new LockToken(true);
 
     protected getLocalMetadata(): FileMetaData {
         const filters = this.session.search.store().filters().get();
@@ -219,6 +219,7 @@ export class TeamWork extends Subscriber {
                 if (
                     typeof this.checksum !== 'string' ||
                     this.active.repo === undefined ||
+                    this.recent.sha === undefined ||
                     this.destroyed
                 ) {
                     return;
@@ -326,11 +327,11 @@ export class TeamWork extends Subscriber {
                     return;
                 }
                 if (session.check().done()) {
-                    this.history.unlock();
+                    this.listener.unlock();
                 } else {
                     this.register(
                         session.subjects.get().checked.subscribe(() => {
-                            this.history.unlock();
+                            this.listener.unlock();
                         }),
                     );
                 }
@@ -340,7 +341,7 @@ export class TeamWork extends Subscriber {
                 .filters()
                 .subjects.get()
                 .any.subscribe((event: ChangeEvent<FilterRequest>) => {
-                    if (this.history.isLocked() || this.events().ignored(event.sequence)) {
+                    if (this.listener.isLocked() || this.events().ignored(event.sequence)) {
                         return;
                     }
                     this.file().write();
@@ -350,13 +351,13 @@ export class TeamWork extends Subscriber {
                 .charts()
                 .subjects.get()
                 .any.subscribe((event: ChangeEvent<ChartRequest>) => {
-                    if (this.history.isLocked() || this.events().ignored(event.sequence)) {
+                    if (this.listener.isLocked() || this.events().ignored(event.sequence)) {
                         return;
                     }
                     this.file().write();
                 }),
             this.session.bookmarks.subjects.get().updated.subscribe((sequence: string) => {
-                if (this.history.isLocked() || this.events().ignored(sequence)) {
+                if (this.listener.isLocked() || this.events().ignored(sequence)) {
                     return;
                 }
                 this.file().write();
