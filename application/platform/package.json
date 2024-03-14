@@ -58,6 +58,7 @@
         "./env/obj": "./dist/env/obj.js",
         "./env/promise": "./dist/env/promise.js",
         "./env/queue": "./dist/env/queue.js",
+        "./env/runner": "./dist/env/runner.js",
         "./env/regex": "./dist/env/regex.js",
         "./env/scope": "./dist/env/scope.js",
         "./env/sequence": "./dist/env/sequence.js",
