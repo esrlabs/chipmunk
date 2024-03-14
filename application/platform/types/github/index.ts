@@ -5,6 +5,7 @@ export interface SharingSettings {
     charts: boolean;
     comments: boolean;
     bookmarks: boolean;
+    readonly: boolean;
 }
 
 export interface GitHubRepo {
@@ -17,7 +18,7 @@ export interface GitHubRepo {
 }
 
 export function getDefaultSharingSettings(): SharingSettings {
-    return { filters: true, charts: true, comments: true, bookmarks: true };
+    return { filters: true, charts: true, comments: true, bookmarks: true, readonly: false };
 }
 
 export function validateGitHubRepo(repo: GitHubRepo): GitHubRepo {
@@ -34,6 +35,8 @@ export function validateGitHubRepo(repo: GitHubRepo): GitHubRepo {
         repo.settings.charts = validator.getAsBool(repo.settings, 'charts');
         repo.settings.filters = validator.getAsBool(repo.settings, 'filters');
         repo.settings.comments = validator.getAsBool(repo.settings, 'comments');
+        repo.settings.readonly =
+            typeof repo.settings.readonly === 'boolean' ? repo.settings.readonly : false;
     }
     return repo;
 }
