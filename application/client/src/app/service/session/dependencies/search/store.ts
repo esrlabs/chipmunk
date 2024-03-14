@@ -111,15 +111,11 @@ export abstract class Store<T> extends Subscriber {
     }
 
     private _update(sequence: string): void {
-        const prev = this._hash;
-        this._hash = Array.from(this._entities.keys()).join('_');
-        if (prev !== this._hash) {
-            const entities = Array.from(this._entities.values());
-            this.subjects.get().value.emit({ entities, sequence });
-            this.subjects.get().any.emit({ entities, sequence });
-            this.subjects.get().highlights.emit({ entities, sequence });
-        }
         this.unsubscribe();
+        const entities = Array.from(this._entities.values());
+        this.subjects.get().value.emit({ entities, sequence });
+        this.subjects.get().any.emit({ entities, sequence });
+        this.subjects.get().highlights.emit({ entities, sequence });
         this._entities.forEach((entity) => {
             let hash = entity.hash();
             entity.updated !== undefined &&
