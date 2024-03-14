@@ -14,7 +14,7 @@ import { unique } from 'platform/env/sequence';
 import { GitHubRepo, validateGitHubRepo } from 'platform/types/github';
 import { FileObject } from './github/requests/getfilecontent';
 import { error } from 'platform/log/utils';
-import { Queue } from './github/queue';
+import { Queue } from 'platform/env/runner';
 
 import * as GitHubAPI from './github/requests/index';
 import * as Requests from 'platform/ipc/request';
@@ -34,6 +34,13 @@ interface MetaDataLink {
     username: string;
 }
 
+interface CommitTask {
+    request: Requests.GitHub.SetFileMeta.Request;
+    resolver: (response: Requests.GitHub.SetFileMeta.Response) => void;
+    uuid: string;
+    pending: string | undefined;
+}
+
 @DependOn(electron)
 @DependOn(storage)
 @DependOn(jobs)
@@ -41,8 +48,17 @@ interface MetaDataLink {
 export class Service extends Implementation {
     protected readonly repos: Map<string, GitHubRepo> = new Map();
     protected active: GitHubRepo | undefined;
-    protected queue: Queue = new Queue();
+    protected queue: Queue = new Queue(50);
     protected files: Map<string, MetaDataLink> = new Map();
+    // List of pending write tasks. Client can send multiple write tasks.
+    // Doesn't make sense to write each considering time of writing in 3-5s
+    protected tasks: {
+        list: Map<string, CommitTask[]>;
+        progress: Set<string>;
+    } = {
+        list: new Map(),
+        progress: new Set(),
+    };
 
     protected getRecent(filename: string): md.FileMetaData | undefined {
         const recent = this.files.get(filename);
@@ -135,6 +151,7 @@ export class Service extends Implementation {
         }).send();
         return Promise.resolve(newCommitSha);
     }
+
     protected storage(): {
         load(): void;
         save(): void;
@@ -210,6 +227,121 @@ export class Service extends Implementation {
                     .catch((err: Error) => {
                         this.log().error(`Fail save data on a disc: ${err.message}`);
                     });
+            },
+        };
+    }
+
+    protected commit(): {
+        schedule(
+            request: Requests.GitHub.SetFileMeta.Request,
+            resolve: (response: Requests.GitHub.SetFileMeta.Response) => void,
+        ): void;
+        next(checksum: string, sha: string | undefined): void;
+        procceed(checksum: string, task: CommitTask): void;
+        success(checksum: string, task: CommitTask, sha: string): void;
+        fail(chechsum: string, task: CommitTask, err: Error): void;
+    } {
+        return {
+            schedule: (
+                request: Requests.GitHub.SetFileMeta.Request,
+                resolver: (response: Requests.GitHub.SetFileMeta.Response) => void,
+            ): void => {
+                let queue = this.tasks.list.get(request.checksum);
+                if (queue === undefined) {
+                    this.tasks.list.set(request.checksum, []);
+                    queue = [];
+                }
+                queue.push({
+                    request,
+                    resolver,
+                    uuid: unique(),
+                    pending: undefined,
+                });
+                this.tasks.list.set(request.checksum, queue);
+                this.commit().next(request.checksum, undefined);
+            },
+            next: (checksum: string, sha: string | undefined): void => {
+                if (this.tasks.progress.has(checksum)) {
+                    return;
+                }
+                const queue = this.tasks.list.get(checksum);
+                if (queue === undefined) {
+                    return;
+                }
+                const last = queue.pop();
+                if (last === undefined) {
+                    return;
+                }
+                for (const task of queue) {
+                    task.pending === undefined && (task.pending = last.uuid);
+                }
+                this.tasks.list.set(checksum, queue);
+                last.request.sha = sha !== undefined ? sha : last.request.sha;
+                this.commit().procceed(checksum, last);
+            },
+            procceed: (checksum: string, task: CommitTask): void => {
+                this.tasks.progress.add(checksum);
+                const job = jobs
+                    .create({
+                        name: 'github: writing file data',
+                        icon: 'compare_arrows',
+                        spinner: true,
+                    })
+                    .start();
+                this.setFileMetaData(
+                    task.request.checksum,
+                    new md.FileMetaData(task.request.metadata),
+                    task.request.sha,
+                )
+                    .then((sha: string) => {
+                        this.commit().success(checksum, task, sha);
+                    })
+                    .catch((err: Error) => {
+                        this.commit().fail(checksum, task, err);
+                    })
+                    .finally(() => {
+                        job.done();
+                    });
+            },
+            success: (checksum: string, done: CommitTask, sha: string): void => {
+                const queue = this.tasks.list.get(checksum);
+                if (queue !== undefined) {
+                    this.tasks.list.set(
+                        checksum,
+                        queue.filter((task: CommitTask) => {
+                            if (task.pending === done.uuid) {
+                                task.resolver(new Requests.GitHub.SetFileMeta.Response({ sha }));
+                                return false;
+                            } else {
+                                return true;
+                            }
+                        }),
+                    );
+                }
+                done.resolver(new Requests.GitHub.SetFileMeta.Response({ sha }));
+                this.tasks.progress.delete(checksum);
+                this.commit().next(checksum, sha);
+            },
+            fail: (checksum: string, done: CommitTask, err: Error): void => {
+                const queue = this.tasks.list.get(checksum);
+                if (queue !== undefined) {
+                    queue.forEach((task: CommitTask) => {
+                        task.resolver(
+                            new Requests.GitHub.SetFileMeta.Response({
+                                error: err.message,
+                                sha: undefined,
+                            }),
+                        );
+                    });
+                    this.tasks.list.clear();
+                }
+                done.resolver(
+                    new Requests.GitHub.SetFileMeta.Response({
+                        error: err.message,
+                        sha: undefined,
+                    }),
+                );
+                this.tasks.progress.delete(checksum);
             },
         };
     }
@@ -536,32 +668,7 @@ export class Service extends Implementation {
                         request: Requests.GitHub.SetFileMeta.Request,
                     ): CancelablePromise<Requests.GitHub.SetFileMeta.Response> => {
                         return new CancelablePromise((resolve) => {
-                            const job = jobs
-                                .create({
-                                    name: 'github: writing file data',
-                                    icon: 'compare_arrows',
-                                    spinner: true,
-                                })
-                                .start();
-                            this.setFileMetaData(
-                                request.checksum,
-                                new md.FileMetaData(request.metadata),
-                                request.sha,
-                            )
-                                .then((sha: string) => {
-                                    resolve(new Requests.GitHub.SetFileMeta.Response({ sha }));
-                                })
-                                .catch((err: Error) => {
-                                    resolve(
-                                        new Requests.GitHub.SetFileMeta.Response({
-                                            error: err.message,
-                                            sha: undefined,
-                                        }),
-                                    );
-                                })
-                                .finally(() => {
-                                    job.done();
-                                });
+                            this.commit().schedule(request, resolve);
                         });
                     },
                 ),

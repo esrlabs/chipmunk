@@ -1,10 +1,8 @@
-import { unique } from 'platform/env/sequence';
+import { unique } from './sequence';
 
 type TaskExecutor<T> = () => Promise<T>;
 type Resolver<T> = (res: T) => void;
 type Rejector = (err: Error) => void;
-
-const DELAY_BETWEEN_REQUESTS_MS = 100;
 
 export class Task<T> {
     constructor(
@@ -49,9 +47,11 @@ export class Queue {
                 setTimeout(() => {
                     this.working = false;
                     this.proceed();
-                }, DELAY_BETWEEN_REQUESTS_MS);
+                }, this.delay);
             });
     }
+
+    constructor(protected readonly delay: number) {}
 
     public wait<T>(executor: TaskExecutor<T>): Promise<T> {
         return new Promise((resolve: Resolver<T>, reject: Rejector) => {

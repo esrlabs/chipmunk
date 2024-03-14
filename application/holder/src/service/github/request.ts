@@ -1,5 +1,5 @@
 import { GitHubRepo } from 'platform/types/github';
-import { Queue } from './queue';
+import { Queue } from 'platform/env/runner';
 
 export abstract class Request<T> {
     protected abstract executor(): Promise<T>;

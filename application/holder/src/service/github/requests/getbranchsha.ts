@@ -2,7 +2,7 @@ import { net, NetworkError } from '@module/net';
 import { Request as Base } from '../request';
 import { GitHubRepo } from 'platform/types/github';
 import { error } from 'platform/log/utils';
-import { Queue } from '../queue';
+import { Queue } from 'platform/env/runner';
 
 import * as validator from 'platform/env/obj';
 
