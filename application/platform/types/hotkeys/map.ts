@@ -176,8 +176,8 @@ export const KeysMap: KeyDescription[] = [
     },
     {
         alias: 'Ctrl + F',
-        shortkeys: { darwin: ['Cmd + F', '/'], others: ['Ctrl + F', '/'] },
-        display: { darwin: ['⌘ + F', '/'], others: ['Ctrl + F', '/'] },
+        shortkeys: { darwin: ['Cmd + F'], others: ['Ctrl + F'] },
+        display: { darwin: ['⌘ + F'], others: ['Ctrl + F'] },
         description: 'Focus on search input',
         category: Category.Focus,
         required: [Requirement.Session],
