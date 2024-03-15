@@ -306,11 +306,15 @@ export class Service extends Implementation {
         ) {
             return path.resolve(path.dirname(require.main.filename));
         }
-        if (
-            typeof require.resolve('../main') === 'string' &&
-            require.resolve('../main').trim() === ''
-        ) {
-            return path.dirname(require.resolve('../main'));
+        try {
+            if (
+                typeof require.resolve('../main') === 'string' &&
+                require.resolve('../main').trim() === ''
+            ) {
+                return path.dirname(require.resolve('../main'));
+            }
+        } catch (e) {
+            // We are developing mode; app is running with `yarn run electron`
         }
         if (process.argv instanceof Array && process.argv.length > 0) {
             let sourceFile = '';
