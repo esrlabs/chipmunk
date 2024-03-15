@@ -1,4 +1,14 @@
-# 3.10.8 (01.08.2024)
+# 3.10.9 (15.03.2024)
+
+## Fixes
+
+- Fix 7-key issue
+
+## Changes
+
+- Upgrade electron to 29.x
+
+# 3.10.8 (01.03.2024)
 
 ## Changes
 
