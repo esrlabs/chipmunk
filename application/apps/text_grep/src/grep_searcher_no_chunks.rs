@@ -1,9 +1,9 @@
+use buf_redux::BufReader;
 use grep_regex::RegexMatcherBuilder;
 use grep_searcher::{sinks::UTF8, Searcher};
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Sender};
 use thiserror::Error;
@@ -25,6 +25,7 @@ pub enum GrepError {
 pub struct SearchResult {
     pub file_path: String,
     pub pattern_counts: HashMap<String, usize>,
+    pub pattern_locations: HashMap<String, Vec<(u64, usize)>>,
     pub error_message: Option<String>,
 }
 
@@ -72,6 +73,7 @@ impl TextGrep {
             results.push(Some(SearchResult {
                 file_path: "".to_string(),
                 pattern_counts: HashMap::new(),
+                pattern_locations: HashMap::new(),
                 error_message: Some(err_msg.to_string()),
             }));
         }
@@ -106,7 +108,6 @@ fn process_file(
     }
 
     let start_time = std::time::Instant::now();
-    // let pattern_counts: HashMap<String, usize> = HashMap::new();
 
     let mut matchers = HashMap::new();
     for pattern in patterns {
@@ -125,23 +126,26 @@ fn process_file(
     }
 
     let mut local_pattern_counts = HashMap::new();
+    let mut local_pattern_locations = HashMap::new(); // New: Track pattern locations
 
     for (pattern, matcher) in &matchers {
         if cancel_token.is_cancelled() {
             return Err(GrepError::OperationCancelled);
         }
         let mut total_count = 0;
+        let mut locations = Vec::new();
         let mut searcher = Searcher::new();
 
         // Reset reader position for each pattern search
         let file = File::open(&file_path).map_err(|e| GrepError::FileReadError(e.to_string()))?;
-        let reader = BufReader::new(file);
+        let reader = BufReader::new(file); // BufReader::with_capacity(64*1024*1024, file); // buf_redux's BufReader
 
         searcher
             .search_reader(
                 matcher,
                 reader,
-                UTF8(|_, line| {
+                UTF8(|line_index, line| {
+                    // line_number += 1;
                     // Convert both line and pattern to lowercase (or uppercase) for case-insensitive matching
                     let line_to_match = if case_sensitive {
                         line.to_string()
@@ -154,12 +158,18 @@ fn process_file(
                         pattern.to_lowercase()
                     };
                     total_count += line_to_match.matches(&pattern_to_match).count();
+
+                    // Track positions of pattern occurrences
+                    for mat in line_to_match.match_indices(&pattern_to_match) {
+                        locations.push((line_index, mat.0)); // Record the position of the match
+                    }
                     Ok(true)
                 }),
             )
             .map_err(|e| GrepError::FileProcessingError(e.to_string()))?;
 
         local_pattern_counts.insert(pattern.clone(), total_count);
+        local_pattern_locations.insert(pattern.clone(), locations); // Save pattern locations
     }
 
     let end_time = start_time.elapsed();
@@ -169,6 +179,7 @@ fn process_file(
         .send(Ok(SearchResult {
             file_path: file_path.to_string_lossy().into_owned(),
             pattern_counts: local_pattern_counts,
+            pattern_locations: local_pattern_locations,
             error_message: None,
         }))
         .map_err(|_| {
