@@ -25,6 +25,10 @@ export interface RowInputs {
 const MAX_ROW_LENGTH_LIMIT = 10000;
 
 export class Row extends Subscriber {
+    static removeMarkerSymbols(str: string): string {
+        // eslint-disable-next-line no-control-regex
+        return str.replaceAll(/\u0004/gi, '').replaceAll(/\u0005/gi, '');
+    }
     public content: string;
     public position: number;
     public owner: Owner;
@@ -172,7 +176,7 @@ export class Row extends Subscriber {
         if (this.delimiter === undefined) {
             const parsed = this.session.highlights.parse(
                 this.position,
-                this.content,
+                Row.removeMarkerSymbols(this.content),
                 this.owner,
                 false,
             );
@@ -184,7 +188,13 @@ export class Row extends Subscriber {
         } else {
             this.color = undefined;
             this.background = undefined;
-            this.columns = this.content.split(this.delimiter);
+            const columnsMap: [number, number][] = [];
+            let cursor = 0;
+            this.columns = this.content.split(this.delimiter).map((str) => {
+                columnsMap.push([cursor, str.length]);
+                cursor += str.length;
+                return Row.removeMarkerSymbols(str);
+            });
             const expected = this.session.render.columns();
             if (this.columns.length > expected) {
                 this.columns.splice(expected - 1, this.columns.length - expected);
@@ -193,8 +203,14 @@ export class Row extends Subscriber {
                     Array.from({ length: expected - this.columns.length }, () => ''),
                 );
             }
-            this.columns = this.columns.map((col) => {
-                const parsed = this.session.highlights.parse(this.position, col, this.owner, false);
+            this.columns = this.columns.map((col, i) => {
+                const parsed = this.session.highlights.parse(
+                    this.position,
+                    col,
+                    this.owner,
+                    false,
+                    { column: i, map: columnsMap },
+                );
                 matches(parsed.injected);
                 if (this.color === undefined && this.background === undefined) {
                     this.color = parsed.color;

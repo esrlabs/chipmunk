@@ -288,6 +288,14 @@ export class Selecting {
         if (this._selection.focus.row === undefined || this._selection.anchor.row === undefined) {
             return undefined;
         }
+        const selection: Selection | null = document.getSelection();
+        if (
+            (this._selection.start === undefined || this._selection.end === undefined) &&
+            selection !== null
+        ) {
+            this._selection.start = selection.toString();
+            this._selection.end = selection.toString();
+        }
         if (this._selection.start === undefined || this._selection.end === undefined) {
             return undefined;
         }

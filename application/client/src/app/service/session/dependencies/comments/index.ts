@@ -11,6 +11,7 @@ import { Vertical, Horizontal } from '@ui/service/popup';
 import { CShortColors } from '@styles/colors';
 import { Session } from '@service/session/session';
 import { notifications, Notification } from '@ui/service/notifications';
+import { Row } from '@schema/content/row';
 
 import * as regex from '@platform/env/regex';
 import * as obj from '@platform/env/obj';
@@ -228,7 +229,7 @@ export class Comments extends Subscriber {
         const comment: CommentDefinition | Error = (() => {
             if (selection.rows.start === selection.rows.end) {
                 const sel: ActualSelectionData | Error = this.getActualSelectionData(
-                    origin[0].content,
+                    Row.removeMarkerSymbols(origin[0].content),
                     selected,
                     false,
                 );
@@ -259,7 +260,10 @@ export class Comments extends Subscriber {
                     },
                 };
             } else {
-                const rows = selected.split(/[\n\r]/gi);
+                const rows = selected
+                    .split(/[\n\r]/gi)
+                    // eslint-disable-next-line no-control-regex
+                    .filter((r) => r.replace(/\d*\u0006$/gi, '').trim() !== '');
                 const stored = remember();
                 if (stored === undefined) {
                     return new Error(`Fail save selection`);
@@ -268,13 +272,13 @@ export class Comments extends Subscriber {
                     return new Error(`Fail split rows correctly`);
                 }
                 const selStart: ActualSelectionData | Error = this.getActualSelectionData(
-                    origin[0].content,
+                    Row.removeMarkerSymbols(origin[0].content),
                     rows[0],
                     false,
                 );
                 restore(stored);
                 const selEnd: ActualSelectionData | Error = this.getActualSelectionData(
-                    origin[1].content,
+                    Row.removeMarkerSymbols(origin[1].content),
                     rows[rows.length - 1],
                     true,
                 );
@@ -517,10 +521,14 @@ export class Comments extends Subscriber {
         return false;
     }
 
-    public getModifiers(position: number, str: string): Modifier[] {
+    public getModifiers(
+        position: number,
+        str: string,
+        columns?: { column: number; map: [number, number][] },
+    ): Modifier[] {
         const comments: CommentDefinition[] = this.getRelevantComment(position);
         return comments.map((comment: CommentDefinition) => {
-            return new CommentsModifier(comment, position, str);
+            return new CommentsModifier(comment, position, str, columns);
         });
     }
 }
