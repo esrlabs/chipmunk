@@ -73,6 +73,7 @@ export class Highlights extends Subscriber {
         row: string,
         parent: Owner,
         hasOwnStyles: boolean,
+        columns?: { column: number; map: [number, number][] },
     ): {
         html: string;
         color: string | undefined;
@@ -89,7 +90,7 @@ export class Highlights extends Subscriber {
         const processor = new ModifierProcessor([
             filtres,
             new Modifiers.ChartsModifier(this.session.search.store().charts().get(), serializeRow),
-            ...this.session.comments.getModifiers(position, serializeRow),
+            ...this.session.comments.getModifiers(position, serializeRow, columns),
             ...(active !== undefined
                 ? [
                       new Modifiers.ActiveFilterModifier(

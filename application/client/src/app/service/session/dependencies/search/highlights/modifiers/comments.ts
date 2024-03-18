@@ -13,14 +13,108 @@ import * as ModifiersTools from '../tools';
 import { CommentState, CommentDefinition } from '@platform/types/comment';
 
 export class CommentsModifier extends Modifier {
-    private _ranges: IModifierRange[] = [];
-    private _comment: CommentDefinition | undefined;
+    protected ranges: IModifierRange[] = [];
+    protected readonly comment: CommentDefinition | undefined;
 
-    constructor(comment: CommentDefinition | undefined, position: number, row: string) {
+    protected setRange(
+        comment: CommentDefinition,
+        position: number,
+        str: string,
+        columns?: { column: number; map: [number, number][] },
+    ) {
+        const from = columns !== undefined ? columns.map[columns.column][0] : 0;
+        const to =
+            columns !== undefined
+                ? columns.map[columns.column][0] + columns.map[columns.column][1]
+                : str.length;
+        if (
+            position === comment.selection.start.position &&
+            position === comment.selection.end.position
+        ) {
+            let start = comment.selection.start.offset;
+            let end = comment.selection.end.offset;
+            if (from < comment.selection.start.offset && to < comment.selection.start.offset) {
+                return;
+            }
+            if (from > comment.selection.end.offset && to > comment.selection.end.offset) {
+                return;
+            }
+            if (from <= comment.selection.start.offset && comment.selection.start.offset <= to) {
+                start = comment.selection.start.offset - from;
+            } else {
+                start = 0;
+            }
+            if (from <= comment.selection.end.offset && comment.selection.end.offset <= to) {
+                end = comment.selection.end.offset - from;
+            } else {
+                end = str.length;
+            }
+            // if (from > comment.selection.start.offset && to > comment.selection.start.offset) {
+            //     start = 0;
+            // }
+            console.log(`>>>>>>>>>> target range`);
+            this.ranges.push({
+                start: start < 0 ? 0 : start,
+                end: end < 0 ? 0 : end,
+            });
+        }
+        if (
+            position === comment.selection.start.position &&
+            position !== comment.selection.end.position
+        ) {
+            let start = comment.selection.start.offset;
+            if (from < comment.selection.start.offset && to < comment.selection.start.offset) {
+                return;
+            }
+            if (from <= comment.selection.start.offset && comment.selection.start.offset <= to) {
+                start = comment.selection.start.offset - from;
+            } else {
+                start = 0;
+            }
+            this.ranges.push({
+                start: start < 0 ? 0 : start,
+                end: str.length,
+            });
+        }
+        if (
+            position !== comment.selection.start.position &&
+            position === comment.selection.end.position
+        ) {
+            let end = comment.selection.end.offset;
+            if (from > comment.selection.end.offset && to > comment.selection.end.offset) {
+                return;
+            }
+            if (from <= comment.selection.end.offset && comment.selection.end.offset <= to) {
+                end = comment.selection.end.offset - from;
+            } else {
+                end = str.length;
+            }
+            this.ranges.push({
+                start: 0,
+                end: end < 0 ? 0 : end,
+            });
+        }
+        if (
+            position > comment.selection.start.position &&
+            position < comment.selection.end.position
+        ) {
+            this.ranges.push({
+                start: 0,
+                end: str.length,
+            });
+        }
+    }
+
+    constructor(
+        comment: CommentDefinition | undefined,
+        position: number,
+        row: string,
+        columns?: { column: number; map: [number, number][] },
+    ) {
         super();
         if (comment !== undefined) {
-            this._comment = comment;
-            this._map(comment, position, row);
+            this.comment = comment;
+            this.setRange(comment, position, row, columns);
         }
     }
 
@@ -29,19 +123,19 @@ export class CommentsModifier extends Modifier {
     }
 
     public getInjections(): IHTMLInjection[] {
-        if (this._comment === undefined) {
+        if (this.comment === undefined) {
             return [];
         }
         const injections: IHTMLInjection[] = [];
-        this._ranges.forEach((range: IModifierRange) => {
+        this.ranges.forEach((range: IModifierRange) => {
             injections.push(
                 ...[
                     {
                         offset: range.start,
                         injection: `<span class="injected-row-comment ${
-                            this._comment === undefined
+                            this.comment === undefined
                                 ? ''
-                                : this._comment.uuid === CommentState.pending
+                                : this.comment.uuid === CommentState.pending
                                 ? 'pending'
                                 : ''
                         }">`,
@@ -63,11 +157,11 @@ export class CommentsModifier extends Modifier {
     }
 
     public obey(ranges: Array<Required<IModifierRange>>) {
-        this._ranges = ModifiersTools.obey(ranges, this._ranges);
+        this.ranges = ModifiersTools.obey(ranges, this.ranges);
     }
 
     public getRanges(): Array<Required<IModifierRange>> {
-        return this._ranges;
+        return this.ranges;
     }
 
     public getGroupPriority(): number {
@@ -84,44 +178,5 @@ export class CommentsModifier extends Modifier {
 
     public override applyTo(): EApplyTo {
         return EApplyTo.output;
-    }
-
-    private _map(comment: CommentDefinition, position: number, str: string) {
-        if (
-            position === comment.selection.start.position &&
-            position === comment.selection.end.position
-        ) {
-            this._ranges.push({
-                start: comment.selection.start.offset,
-                end: comment.selection.end.offset,
-            });
-        }
-        if (
-            position === comment.selection.start.position &&
-            position !== comment.selection.end.position
-        ) {
-            this._ranges.push({
-                start: comment.selection.start.offset,
-                end: str.length,
-            });
-        }
-        if (
-            position !== comment.selection.start.position &&
-            position === comment.selection.end.position
-        ) {
-            this._ranges.push({
-                start: 0,
-                end: comment.selection.end.offset,
-            });
-        }
-        if (
-            position > comment.selection.start.position &&
-            position < comment.selection.end.position
-        ) {
-            this._ranges.push({
-                start: 0,
-                end: str.length,
-            });
-        }
     }
 }
