@@ -5,6 +5,7 @@ import { ModifierProcessor } from './highlights/processor';
 import { Owner } from '@schema/content/row';
 import { Session } from '@service/session';
 import { serializeHtml } from '@platform/env/str';
+import { safeEscapeAnsi } from '@module/ansi';
 
 import * as Modifiers from './highlights/modifiers/index';
 
@@ -81,27 +82,30 @@ export class Highlights extends Subscriber {
         injected: { [key: string]: boolean };
     } {
         // Get rid of original HTML in logs
-        const serializeRow = serializeHtml(row);
+        const serialized = serializeHtml(row);
+        const asci = new Modifiers.AsciModifier(serialized);
+        const escaped = safeEscapeAnsi(serialized);
         const filtres = new Modifiers.FiltersModifier(
             this.session.search.store().filters().get(),
-            serializeRow,
+            escaped,
         );
         const active = this.session.search.state().getActive();
         const processor = new ModifierProcessor([
+            asci,
             filtres,
-            new Modifiers.ChartsModifier(this.session.search.store().charts().get(), serializeRow),
-            ...this.session.comments.getModifiers(position, serializeRow, columns),
+            new Modifiers.ChartsModifier(this.session.search.store().charts().get(), escaped),
+            ...this.session.comments.getModifiers(position, escaped, columns),
             ...(active !== undefined
                 ? [
                       new Modifiers.ActiveFilterModifier(
                           [new FilterRequest({ filter: active })],
-                          serializeRow,
+                          escaped,
                       ),
                   ]
                 : []),
         ]);
         const matched = filtres.matched();
-        const processed = processor.parse(serializeRow, parent, hasOwnStyles);
+        const processed = processor.parse(escaped, parent, hasOwnStyles);
         return {
             html: processed.row,
             color: matched === undefined ? undefined : matched.definition.colors.color,

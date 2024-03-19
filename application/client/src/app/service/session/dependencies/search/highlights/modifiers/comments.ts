@@ -49,10 +49,6 @@ export class CommentsModifier extends Modifier {
             } else {
                 end = str.length;
             }
-            // if (from > comment.selection.start.offset && to > comment.selection.start.offset) {
-            //     start = 0;
-            // }
-            console.log(`>>>>>>>>>> target range`);
             this.ranges.push({
                 start: start < 0 ? 0 : start,
                 end: end < 0 ? 0 : end,

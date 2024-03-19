@@ -2,7 +2,6 @@ import { Session } from '@service/session/session';
 import { Subject, Subscriber } from '@platform/env/subscription';
 import { IGrabbedElement, Nature } from '@platform/types/content';
 import { EAlias } from '@service/session/dependencies/search/highlights/modifier';
-import { ansiToHtml } from '@module/ansi';
 
 export enum Owner {
     Output = 'Output',
@@ -181,8 +180,7 @@ export class Row extends Subscriber {
                 false,
             );
             matches(parsed.injected);
-            const ansi = ansiToHtml(parsed.html);
-            this.html = ansi instanceof Error ? parsed.html : ansi;
+            this.html = parsed.html;
             this.color = parsed.color;
             this.background = parsed.background;
         } else {
