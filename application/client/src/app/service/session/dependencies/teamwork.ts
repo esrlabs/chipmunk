@@ -146,6 +146,7 @@ export class TeamWork extends Subscriber {
                             this.log().error(`Fail update bookmarks due: ${err.message}`);
                         })
                         .finally(() => {
+                            this.events().wait(this.session.bookmarks.update());
                             this.subjects.get().metadata.emit(md);
                         });
                 } else {
@@ -616,7 +617,10 @@ export class TeamWork extends Subscriber {
                         .catch((err: Error) => {
                             this.log().error(`Fail update bookmarks due: ${err.message}`);
                         })
-                        .finally(resolve);
+                        .finally(() => {
+                            this.events().wait(this.session.bookmarks.update());
+                            resolve();
+                        });
                 });
             },
         };

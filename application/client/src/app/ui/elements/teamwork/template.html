@@ -19,11 +19,11 @@
                 <p class="t-small">Filters ({{remote.def.filters.length}}):</p>
                 <ul class="list">
                     <li *ngFor="let filter of remote.def.filters">
+                        <span class="color" [ngStyle]="{'background': filter.colors.color}"></span>
                         <span
                             class="color"
                             [ngStyle]="{'background': filter.colors.background}"
                         ></span>
-                        <span class="color" [ngStyle]="{'background': filter.colors.color}"></span>
                         <span class="label">{{filter.filter.filter}}</span>
                     </li>
                 </ul>
