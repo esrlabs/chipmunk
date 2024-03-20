@@ -91,7 +91,6 @@ export class Highlights extends Subscriber {
         );
         const active = this.session.search.state().getActive();
         const processor = new ModifierProcessor([
-            asci,
             filtres,
             new Modifiers.ChartsModifier(this.session.search.store().charts().get(), escaped),
             ...this.session.comments.getModifiers(position, escaped, columns),
@@ -103,6 +102,7 @@ export class Highlights extends Subscriber {
                       ),
                   ]
                 : []),
+            asci,
         ]);
         const matched = filtres.matched();
         const processed = processor.parse(escaped, parent, hasOwnStyles);

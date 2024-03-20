@@ -12,6 +12,7 @@ import { CShortColors } from '@styles/colors';
 import { Session } from '@service/session/session';
 import { notifications, Notification } from '@ui/service/notifications';
 import { Row } from '@schema/content/row';
+import { safeEscapeAnsi } from '@module/ansi';
 
 import * as regex from '@platform/env/regex';
 import * as obj from '@platform/env/obj';
@@ -60,17 +61,6 @@ export class Comments extends Subscriber {
             }
             return getHolder(node.parentNode as HTMLElement);
         }
-        function getRegExpWithASCI(str: string): RegExp {
-            let regStr: string = '';
-            for (let i = 0; i < str.length; i += 1) {
-                regStr += `[\\u0000-\\u001f]?(\\u001b\\[[\\d;]*[HfABCDsuJKmhIp])?${regex.serialize(
-                    str[i],
-                )}`;
-                //         all notprintalbe | possible ASCII codes               | single char, which we are looking for
-                //         symbols          |                                    |
-            }
-            return new RegExp(regStr);
-        }
         // Collapse selection to start. We need it because anchor and focus nodes can be in any order (depends
         // on how user did selection
         const selection = window.getSelection();
@@ -104,7 +94,7 @@ export class Comments extends Subscriber {
         let selStartOffset: number = 0;
         let after: string = original;
         if (before.length !== 0) {
-            const regBefore = getRegExpWithASCI(before);
+            const regBefore = regex.serialize(before);
             const matchBefore = original.match(regBefore);
             if (
                 matchBefore === null ||
@@ -117,7 +107,7 @@ export class Comments extends Subscriber {
             after = original.substring(selStartOffset, original.length);
         }
         if (!readFromEnd) {
-            const regAfter = getRegExpWithASCI(selected);
+            const regAfter = regex.serialize(selected);
             const matchAfter = after.match(regAfter);
             if (matchAfter === null || matchAfter.length === 0 || after.search(regAfter) === -1) {
                 return new Error(`Fail to catch end of selection`);
@@ -221,10 +211,15 @@ export class Comments extends Subscriber {
             throw new Error(`No username available; github profile should be activated`);
         }
         const stored = remember();
-        const origin = await this.session.stream.grab([
-            { from: selection.rows.start, to: selection.rows.start },
-            { from: selection.rows.end, to: selection.rows.end },
-        ]);
+        const origin = (
+            await this.session.stream.grab([
+                { from: selection.rows.start, to: selection.rows.start },
+                { from: selection.rows.end, to: selection.rows.end },
+            ])
+        ).map((el) => {
+            el.content = safeEscapeAnsi(el.content);
+            return el;
+        });
         stored !== undefined && restore(stored);
         const comment: CommentDefinition | Error = (() => {
             if (selection.rows.start === selection.rows.end) {
