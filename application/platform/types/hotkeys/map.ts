@@ -185,6 +185,16 @@ export const KeysMap: KeyDescription[] = [
         client: undefined,
     },
     {
+        alias: '/',
+        shortkeys: { others: ['/'] },
+        display: { others: ['/'] },
+        description: 'Focus on search input',
+        category: Category.Focus,
+        required: [Requirement.Session, Requirement.NoInput],
+        uuid: '/',
+        client: { key: '/' },
+    },
+    {
         alias: 'Ctrl + 1',
         shortkeys: { darwin: ['Cmd + 1'], others: ['Ctrl + 1'] },
         display: { darwin: ['⌘ + 1'], others: ['Ctrl + 1'] },

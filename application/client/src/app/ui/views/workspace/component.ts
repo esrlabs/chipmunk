@@ -62,6 +62,9 @@ export class ViewWorkspace implements AfterContentInit, OnDestroy {
             this.ilc().services.system.hotkeys.listen('Ctrl + F', () => {
                 this.session.switch().toolbar.search();
             }),
+            this.ilc().services.system.hotkeys.listen('/', () => {
+                this.session.switch().toolbar.search();
+            }),
         );
         this.env().subscriber.register(
             this.ilc().services.system.hotkeys.listen('Shift + Ctrl + P', () => {
