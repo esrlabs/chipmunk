@@ -115,6 +115,9 @@ export class ViewSearchInput
             this.ilc().services.system.hotkeys.listen('Ctrl + F', () => {
                 this.input.focus();
             }),
+            this.ilc().services.system.hotkeys.listen('/', () => {
+                this.input.focus();
+            }),
         );
     }
 
