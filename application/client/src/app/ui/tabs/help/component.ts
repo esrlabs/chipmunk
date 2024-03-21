@@ -5,6 +5,7 @@ import {
     ViewChild,
     ElementRef,
     ViewEncapsulation,
+    Input,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
@@ -26,6 +27,7 @@ const PATH = `assets/documentation`;
 @Initial()
 @Ilc()
 export class Help extends ChangesDetector implements AfterViewInit {
+    @Input() location: string | undefined;
     @ViewChild('content') contentRef!: ElementRef<HTMLElement>;
     @ViewChild('index') indexRef!: ElementRef<HTMLElement>;
 
@@ -126,11 +128,15 @@ export class Help extends ChangesDetector implements AfterViewInit {
                     });
             },
             all: (): void => {
-                Promise.allSettled([this.fetch().index(), this.fetch().content()]).catch(
-                    (err: Error) => {
+                Promise.allSettled([this.fetch().index(), this.fetch().content()])
+                    .catch((err: Error) => {
                         this.log().error(`Fail to get HTML: ${err.message}`);
-                    },
-                );
+                    })
+                    .finally(() => {
+                        if (this.location !== undefined) {
+                            this.link(this.location, false);
+                        }
+                    });
             },
         };
     }
