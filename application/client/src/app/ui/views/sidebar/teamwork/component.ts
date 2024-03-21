@@ -6,9 +6,12 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Notification } from '@ui/service/notifications';
 import { GitHubRepo, getDefaultSharingSettings } from '@platform/types/github';
 import { GitHubError } from '@service/session/dependencies/teamwork';
+import { session } from '@service/session';
+import { Help } from '@tabs/help/component';
 
 import * as dom from '@ui/env/dom';
 import * as obj from '@platform/env/obj';
+import { unique } from '@platform/env/sequence';
 
 @Component({
     selector: 'app-views-teamwork',
@@ -221,6 +224,21 @@ export class TeamWork extends ChangesDetector implements AfterContentInit {
                 return this.active === undefined ? false : this.active.uuid === repo.uuid;
             },
         };
+    }
+
+    public help() {
+        session.add().tab({
+            name: 'Documentation',
+            active: true,
+            closable: true,
+            content: {
+                factory: Help,
+                inputs: {
+                    location: '/teamwork/readme.md',
+                },
+            },
+            uuid: unique(),
+        });
     }
 }
 export interface TeamWork extends IlcInterface {}
