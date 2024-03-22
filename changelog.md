@@ -1,4 +1,4 @@
-# 3.11.0
+# 3.11.0 (22.03.2024)
 
 ## Fixes
 - Fixed bookmarks update event
