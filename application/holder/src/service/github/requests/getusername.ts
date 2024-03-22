@@ -13,7 +13,7 @@ export class Request extends Base<string> {
 
     public executor(): Promise<string> {
         return new Promise((resolve, reject) => {
-            net.getRaw(`https://api.github.com/user`, this.getHeaders())
+            net.getRaw(`${this.options.entry}/user`, this.getHeaders())
                 .then((raw: string) => {
                     try {
                         const response = JSON.parse(raw);

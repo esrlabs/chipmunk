@@ -19,7 +19,7 @@ export class Request extends Base<string> {
     public executor(): Promise<string> {
         return new Promise((resolve, reject) => {
             net.post(
-                `https://api.github.com/repos/${this.options.owner}/${this.options.repo}/git/refs/heads/${this.options.branch}`,
+                `${this.options.entry}/repos/${this.options.owner}/${this.options.repo}/git/refs/heads/${this.options.branch}`,
                 this.getHeaders(),
                 JSON.stringify(this.update),
                 'PATCH',

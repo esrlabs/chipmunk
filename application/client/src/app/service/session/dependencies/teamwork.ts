@@ -22,6 +22,8 @@ export interface GitHubError {
     msg: string;
 }
 
+export const DEFAULT_ENTRY = 'https://api.github.com';
+
 @SetupLogger()
 export class TeamWork extends Subscriber {
     protected readonly subs: Subscriber = new Subscriber();

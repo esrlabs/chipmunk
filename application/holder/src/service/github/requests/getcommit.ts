@@ -24,7 +24,7 @@ export class Request extends Base<CommitObject> {
     public executor(): Promise<CommitObject> {
         return new Promise((resolve, reject) => {
             net.getRaw(
-                `https://api.github.com/repos/${this.options.owner}/${this.options.repo}/git/commits/${this.sha}`,
+                `${this.options.entry}/repos/${this.options.owner}/${this.options.repo}/git/commits/${this.sha}`,
                 this.getHeaders(),
             )
                 .then((raw: string) => {

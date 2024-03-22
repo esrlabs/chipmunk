@@ -10,12 +10,14 @@ export class Request extends SignatureRequirement {
     public token: string;
     public branch: string;
     public settings: SharingSettings;
+    public entry: string | undefined;
 
     constructor(input: {
         branch: string;
         token: string;
         repo: string;
         owner: string;
+        entry: string | undefined;
         settings: SharingSettings;
     }) {
         super();
@@ -24,6 +26,7 @@ export class Request extends SignatureRequirement {
         this.repo = validator.getAsNotEmptyString(input, 'repo');
         this.owner = validator.getAsNotEmptyString(input, 'owner');
         this.branch = validator.getAsNotEmptyString(input, 'branch');
+        this.entry = validator.getAsNotEmptyStringOrAsUndefined(input, 'entry');
         this.settings = validator.getAsObj(input, 'settings');
         this.settings.bookmarks = validator.getAsBool(input.settings, 'bookmarks');
         this.settings.charts = validator.getAsBool(input.settings, 'charts');

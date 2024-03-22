@@ -19,7 +19,7 @@ export class Request extends Base<CommitObject> {
     public executor(): Promise<CommitObject> {
         return new Promise((resolve, reject) => {
             net.getRaw(
-                `https://api.github.com/repos/${this.options.owner}/${this.options.repo}/commits?path=${this.filename}&per_page=1`,
+                `${this.options.entry}/repos/${this.options.owner}/${this.options.repo}/commits?path=${this.filename}&per_page=1`,
                 this.getHeaders(),
             )
                 .then((raw: string) => {
