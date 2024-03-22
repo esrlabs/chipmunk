@@ -436,15 +436,17 @@ export class Service extends Implementation {
                                 );
                             } else {
                                 const uuid = unique();
-                                this.repos.set(uuid, {
+                                const repo = {
                                     uuid,
                                     repo: request.repo,
                                     owner: request.owner,
                                     token: request.token,
                                     branch: request.branch,
                                     settings: request.settings,
-                                });
+                                };
+                                this.repos.set(uuid, repo);
                                 this.storage().save();
+                                this.active = repo;
                                 resolve(new Requests.GitHub.AddRepo.Response({ uuid }));
                             }
                         });
