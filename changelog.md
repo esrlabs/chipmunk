@@ -1,3 +1,13 @@
+# 3.11.2 (22.03.2024)
+
+## Changes
+- Allow custom entry-point for teamwork
+
+## Fixes
+- Fix loading metadata for teamwork for new files
+- Suggest action on merge conflicts (teamwork)
+
+
 # 3.11.1 (22.03.2024)
 
 ## Fixes
