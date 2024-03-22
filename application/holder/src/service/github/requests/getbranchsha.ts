@@ -14,7 +14,7 @@ export class Request extends Base<string> {
     public executor(): Promise<string> {
         return new Promise((resolve, reject) => {
             net.getRaw(
-                `https://api.github.com/repos/${this.options.owner}/${this.options.repo}/git/ref/heads/${this.options.branch}`,
+                `${this.options.entry}/repos/${this.options.owner}/${this.options.repo}/git/ref/heads/${this.options.branch}`,
                 this.getHeaders(),
             )
                 .then((raw: string) => {

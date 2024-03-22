@@ -27,7 +27,7 @@ export class Request extends Base<FileObject | undefined> {
     public executor(): Promise<FileObject | undefined> {
         return new Promise((resolve, reject) => {
             net.getRaw(
-                `https://api.github.com/repos/${this.options.owner}/${this.options.repo}/contents/${this.path}`,
+                `${this.options.entry}/repos/${this.options.owner}/${this.options.repo}/contents/${this.path}`,
                 this.getHeaders(),
             )
                 .then((raw: string) => {

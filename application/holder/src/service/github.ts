@@ -26,6 +26,7 @@ import * as obj from 'platform/env/obj';
 const STORAGE_KEY = 'github_teamwork';
 const STORAGE_REPOS = 'repos';
 const STORAGE_ACTIVE = 'active_repo';
+const DEFAULT_ENTRY = 'https://api.github.com';
 
 interface MetaDataLink {
     metadata: md.FileMetaData;
@@ -60,6 +61,16 @@ export class Service extends Implementation {
         progress: new Set(),
     };
 
+    protected setActive(repo: GitHubRepo | undefined) {
+        if (repo === undefined) {
+            this.active = undefined;
+        } else {
+            if (typeof repo.entry !== 'string' || repo.entry.trim() === '') {
+                repo.entry = DEFAULT_ENTRY;
+            }
+            this.active = repo;
+        }
+    }
     protected getRecent(filename: string): md.FileMetaData | undefined {
         const recent = this.files.get(filename);
         return recent === undefined ? undefined : recent.metadata;
@@ -151,7 +162,6 @@ export class Service extends Implementation {
         }).send();
         return Promise.resolve(newCommitSha);
     }
-
     protected storage(): {
         load(): void;
         save(): void;
@@ -162,7 +172,7 @@ export class Service extends Implementation {
                     .get(STORAGE_KEY)
                     .then((entry) => {
                         this.repos.clear();
-                        this.active = undefined;
+                        this.setActive(undefined);
                         const repos = entry.get(STORAGE_REPOS);
                         const active = entry.get(STORAGE_ACTIVE);
                         if (repos !== undefined) {
@@ -193,7 +203,7 @@ export class Service extends Implementation {
                             }
                         }
                         if (active !== undefined && active.content.trim() !== '') {
-                            this.active = this.repos.get(active.content);
+                            this.setActive(this.repos.get(active.content));
                             if (this.active === undefined) {
                                 storage.entries
                                     .delete(STORAGE_KEY, [STORAGE_ACTIVE])
@@ -436,17 +446,18 @@ export class Service extends Implementation {
                                 );
                             } else {
                                 const uuid = unique();
-                                const repo = {
+                                const repo: GitHubRepo = {
                                     uuid,
                                     repo: request.repo,
                                     owner: request.owner,
                                     token: request.token,
                                     branch: request.branch,
                                     settings: request.settings,
+                                    entry: request.entry,
                                 };
                                 this.repos.set(uuid, repo);
                                 this.storage().save();
-                                this.active = repo;
+                                this.setActive(repo);
                                 resolve(new Requests.GitHub.AddRepo.Response({ uuid }));
                             }
                         });
@@ -473,7 +484,7 @@ export class Service extends Implementation {
                                     this.active !== undefined &&
                                     this.active.uuid === request.uuid
                                 ) {
-                                    this.active = undefined;
+                                    this.setActive(undefined);
                                 }
                                 this.storage().save();
                                 resolve(
@@ -501,12 +512,13 @@ export class Service extends Implementation {
                                     }),
                                 );
                             } else {
-                                const repo = {
+                                const repo: GitHubRepo = {
                                     uuid: request.uuid,
                                     repo: request.repo,
                                     owner: request.owner,
                                     token: request.token,
                                     branch: request.branch,
+                                    entry: request.entry,
                                     settings: request.settings,
                                 };
                                 this.repos.set(request.uuid, obj.clone(repo));
@@ -514,7 +526,7 @@ export class Service extends Implementation {
                                     this.active !== undefined &&
                                     this.active.uuid === request.uuid
                                 ) {
-                                    this.active = repo;
+                                    this.setActive(repo);
                                 }
                                 this.storage().save();
                                 resolve(
@@ -537,7 +549,7 @@ export class Service extends Implementation {
                         return new CancelablePromise((resolve) => {
                             const repo = this.repos.get(request.uuid);
                             if (request.uuid === undefined) {
-                                this.active = undefined;
+                                this.setActive(undefined);
                                 this.storage().save();
                                 resolve(
                                     new Requests.GitHub.SetActive.Response({
@@ -545,7 +557,7 @@ export class Service extends Implementation {
                                     }),
                                 );
                             } else if (repo !== undefined) {
-                                this.active = repo;
+                                this.setActive(repo);
                                 this.storage().save();
                                 resolve(
                                     new Requests.GitHub.SetActive.Response({

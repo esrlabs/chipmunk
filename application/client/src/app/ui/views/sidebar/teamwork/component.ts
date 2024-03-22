@@ -8,6 +8,7 @@ import { GitHubRepo, getDefaultSharingSettings } from '@platform/types/github';
 import { GitHubError } from '@service/session/dependencies/teamwork';
 import { session } from '@service/session';
 import { Help } from '@tabs/help/component';
+import { DEFAULT_ENTRY } from '@service/session/dependencies/teamwork';
 
 import * as dom from '@ui/env/dom';
 import * as obj from '@platform/env/obj';
@@ -137,11 +138,15 @@ export class TeamWork extends ChangesDetector implements AfterContentInit {
                     owner: '',
                     token: '',
                     settings: getDefaultSharingSettings(),
+                    entry: DEFAULT_ENTRY,
                 };
                 this.detectChanges();
             },
             edit: (editable: GitHubRepo): void => {
                 this.editable = Object.assign({}, editable);
+                if (typeof this.editable.entry !== 'string' || this.editable.entry.trim() === '') {
+                    this.editable.entry = DEFAULT_ENTRY;
+                }
                 this.detectChanges();
             },
             save: (): void => {

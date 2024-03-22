@@ -14,6 +14,7 @@ export interface GitHubRepo {
     repo: string;
     owner: string;
     branch: string;
+    entry: string | undefined;
     settings: SharingSettings;
 }
 
@@ -27,6 +28,7 @@ export function validateGitHubRepo(repo: GitHubRepo): GitHubRepo {
     repo.repo = validator.getAsNotEmptyString(repo, 'repo');
     repo.owner = validator.getAsNotEmptyString(repo, 'owner');
     repo.uuid = validator.getAsNotEmptyString(repo, 'uuid');
+    repo.entry = validator.getAsNotEmptyStringOrAsUndefined(repo, 'entry');
     if (repo.settings === undefined) {
         repo.settings = getDefaultSharingSettings();
     } else {

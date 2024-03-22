@@ -26,7 +26,7 @@ export class Request extends Base<string> {
     public executor(): Promise<string> {
         return new Promise((resolve, reject) => {
             net.post(
-                `https://api.github.com/repos/${this.options.owner}/${this.options.repo}/git/commits`,
+                `${this.options.entry}/repos/${this.options.owner}/${this.options.repo}/git/commits`,
                 this.getHeaders(),
                 JSON.stringify(this.commit),
             )
