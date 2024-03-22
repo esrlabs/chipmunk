@@ -1,3 +1,13 @@
+# 3.11.0
+
+## Fixes
+- Fixed bookmarks update event
+- Fixed "/" shortcut
+
+## Features
+- Add feature "teamwork" for sharing session data between users
+- Add feature "comments" to comment content of file
+
 # 3.10.9 (15.03.2024)
 
 ## Fixes
