@@ -45,9 +45,11 @@ export class TeamWork extends Subscriber {
     protected recent: {
         metadata: FileMetaData | undefined;
         sha: string | undefined;
+        checked: boolean;
     } = {
         metadata: undefined,
         sha: undefined,
+        checked: false,
     };
     protected errors: GitHubError[] = [];
     protected destroyed: boolean = false;
@@ -216,6 +218,7 @@ export class TeamWork extends Subscriber {
                             this.recent.metadata = undefined;
                             this.recent.sha = undefined;
                         }
+                        this.recent.checked = true;
                     })
                     .catch((err: Error) => {
                         this.error().add(`Request error: fail to get metadata: ${err.message}`);
@@ -252,7 +255,7 @@ export class TeamWork extends Subscriber {
                 if (
                     typeof this.checksum !== 'string' ||
                     this.active.repo === undefined ||
-                    this.recent.sha === undefined ||
+                    !this.recent.checked ||
                     this.destroyed
                 ) {
                     return;
