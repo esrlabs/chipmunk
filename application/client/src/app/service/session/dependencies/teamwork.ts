@@ -67,32 +67,62 @@ export class TeamWork extends Subscriber {
             comments: comments,
         });
     }
-    protected async load(): Promise<void> {
-        try {
-            const repos = await Requests.IpcRequest.send(
-                Requests.GitHub.GetRepos.Response,
-                new Requests.GitHub.GetRepos.Request(),
-            );
-            const active = await Requests.IpcRequest.send(
-                Requests.GitHub.GetActive.Response,
-                new Requests.GitHub.GetActive.Request(),
-            );
-            this.repos.clear();
-            repos.repos.forEach((repo: GitHubRepo) => {
-                this.repos.set(repo.uuid, repo);
-            });
-            if (active.uuid !== undefined) {
-                this.active.repo = this.repos.get(active.uuid);
-            }
-            if (this.active.repo !== undefined) {
-                this.user().reload();
-            }
-            this.subjects.get().loaded.emit();
-            this.subjects.get().active.emit(this.active.repo);
-            this.file().check();
-        } catch (err) {
-            this.error().add(`Fail to load available GitHub references: ${utils.error(err)}`);
-        }
+    protected loading(): {
+        repos(): Promise<void>;
+        active(): Promise<void>;
+    } {
+        return {
+            repos: async (): Promise<void> => {
+                try {
+                    const repos = await Requests.IpcRequest.send(
+                        Requests.GitHub.GetRepos.Response,
+                        new Requests.GitHub.GetRepos.Request(),
+                    );
+                    const active = await Requests.IpcRequest.send(
+                        Requests.GitHub.GetActive.Response,
+                        new Requests.GitHub.GetActive.Request(),
+                    );
+                    this.repos.clear();
+                    repos.repos.forEach((repo: GitHubRepo) => {
+                        this.repos.set(repo.uuid, repo);
+                    });
+                    if (active.uuid !== undefined) {
+                        this.active.repo = this.repos.get(active.uuid);
+                    }
+                    await this.loading().active();
+                } catch (err) {
+                    this.error().add(
+                        `Fail to load available GitHub references: ${utils.error(err)}`,
+                    );
+                }
+            },
+            active: (): Promise<void> => {
+                return new Promise((resolve) => {
+                    const active = this.active.repo;
+                    if (active === undefined) {
+                        this.active.username = undefined;
+                        this.subjects.get().loaded.emit();
+                        this.subjects.get().username.emit(this.active.username);
+                        this.subjects.get().active.emit(active);
+                        return resolve();
+                    }
+                    this.user()
+                        .reload()
+                        .catch((err: Error) => {
+                            this.log().error(`Fail to reload user: ${err}`);
+                            this.error().add(`Fail to reload user: ${err}`);
+                        })
+                        .then(() => {
+                            this.file().check();
+                        })
+                        .finally(() => {
+                            this.subjects.get().loaded.emit();
+                            this.subjects.get().active.emit(active);
+                            resolve();
+                        });
+                });
+            },
+        };
     }
 
     protected metadata(): {
@@ -295,9 +325,11 @@ export class TeamWork extends Subscriber {
     public init(session: Session) {
         this.setLoggerName(`TeamWork: ${cutUuid(session.uuid())}`);
         this.session = session;
-        this.load().catch((err: Error) => {
-            this.error().add(`Loading error: ${err.message}`);
-        });
+        this.loading()
+            .repos()
+            .catch((err: Error) => {
+                this.error().add(`Loading error: ${err.message}`);
+            });
 
         this.register(
             Events.IpcEvent.subscribe(
@@ -411,9 +443,7 @@ export class TeamWork extends Subscriber {
                             this.error().add(`Fail to save active: ${response.error}`);
                         } else {
                             this.active.repo = repo;
-                            this.subjects.get().active.emit(repo);
-                            this.file().check();
-                            this.user().reload();
+                            this.loading().active();
                         }
                     })
                     .catch((err: Error) => {
@@ -424,29 +454,29 @@ export class TeamWork extends Subscriber {
                 return this.active.repo;
             },
             create: (repo: GitHubRepo): Promise<void> => {
-                return Requests.IpcRequest.send(
-                    Requests.GitHub.AddRepo.Response,
-                    new Requests.GitHub.AddRepo.Request(repo),
-                )
-                    .then((response: Requests.GitHub.AddRepo.Response) => {
-                        if (response.error !== undefined) {
-                            this.error().add(`Fail to add new repo: ${response.error}`);
-                            return Promise.reject(new Error(response.error));
-                        }
-                        if (response.uuid === undefined) {
-                            return Promise.reject(new Error(`No uuid for added repo`));
-                        }
-                        repo.uuid = response.uuid;
-                        this.active.repo = repo;
-                        this.repos.set(repo.uuid, repo);
-                        this.subjects.get().loaded.emit();
-                        this.subjects.get().active.emit(this.active.repo);
-                        this.file().check();
-                        return Promise.resolve();
-                    })
-                    .catch((err: Error) => {
-                        this.error().add(`Fail to add new GitHub references: ${err.message}`);
-                    });
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.GitHub.AddRepo.Response,
+                        new Requests.GitHub.AddRepo.Request(repo),
+                    )
+                        .then((response: Requests.GitHub.AddRepo.Response) => {
+                            if (response.error !== undefined) {
+                                this.error().add(`Fail to add new repo: ${response.error}`);
+                                return reject(new Error(response.error));
+                            }
+                            if (response.uuid === undefined) {
+                                return reject(new Error(`No uuid for added repo`));
+                            }
+                            repo.uuid = response.uuid;
+                            this.active.repo = repo;
+                            this.repos.set(repo.uuid, repo);
+                            this.loading().active().finally(resolve);
+                        })
+                        .catch((err: Error) => {
+                            this.error().add(`Fail to add new GitHub references: ${err.message}`);
+                            reject(err);
+                        });
+                });
             },
             update: (repo: GitHubRepo): Promise<void> => {
                 if (!this.repos.has(repo.uuid)) {
@@ -464,10 +494,11 @@ export class TeamWork extends Subscriber {
                         this.repos.set(repo.uuid, repo);
                         if (this.active.repo !== undefined && this.active.repo.uuid !== undefined) {
                             this.active.repo = repo;
-                            this.user().reload();
+                            return this.loading().active();
+                        } else {
+                            this.subjects.get().loaded.emit();
+                            return Promise.resolve();
                         }
-                        this.subjects.get().loaded.emit();
-                        return Promise.resolve();
                     })
                     .catch((err: Error) => {
                         this.error().add(`Fail to update GitHub references: ${err.message}`);
@@ -489,28 +520,28 @@ export class TeamWork extends Subscriber {
                             this.error().add(`Fail to remove new repo: ${response.error}`);
                             return Promise.reject(new Error(response.error));
                         }
-                        return this.load();
+                        return this.loading().repos();
                     })
                     .catch((err: Error) => {
                         this.error().add(`Fail to update GitHub references: ${err.message}`);
                     });
             },
             reload: (): Promise<void> => {
-                return this.load();
+                return this.loading().repos();
             },
         };
     }
 
     public user(): {
-        reload(): void;
+        reload(): Promise<void>;
         get(): string | undefined;
     } {
         return {
-            reload: (): void => {
+            reload: (): Promise<void> => {
                 if (this.active.repo === undefined || this.destroyed) {
-                    return;
+                    return Promise.reject(new Error(`No active repo selected`));
                 }
-                Requests.IpcRequest.send(
+                return Requests.IpcRequest.send(
                     Requests.GitHub.GetUserName.Response,
                     new Requests.GitHub.GetUserName.Request(),
                 )
