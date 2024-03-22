@@ -1,4 +1,3 @@
-
 describe('test', function () {
     let wasm: typeof import('../pkg');
 
@@ -10,7 +9,9 @@ describe('test', function () {
         const { convert } = wasm;
         const input = '<h1> \x1b[1m Hello \x1b[31m world! </h1>';
         const result = convert(input);
-        expect(result).toBe("<h1> <b> Hello <span style='color:#a00'> world! </h1></span></b>");
+        expect(result).toBe(
+            "&lt;h1&gt; <b> Hello <span style='color:var(--red,#a00)'> world! &lt;/h1&gt;</span></b>",
+        );
         done();
     });
 
