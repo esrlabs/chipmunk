@@ -115,6 +115,14 @@ export class Service extends Implementation {
             // No data on remote
             return Promise.resolve(candidate);
         } else if (sha !== recent.sha) {
+            Events.IpcEvent.emit(
+                new Events.GitHub.Conflict.Event({
+                    username: recent.username,
+                    sha: recent.sha,
+                    checksum: filename,
+                    md: recent.metadata.def,
+                }),
+            );
             return Promise.reject(
                 new Error(`Changes rejected. File was updated by "${recent.username}"`),
             );

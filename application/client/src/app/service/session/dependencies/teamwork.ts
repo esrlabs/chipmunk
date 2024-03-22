@@ -11,6 +11,7 @@ import { ChartRequest } from '@service/session/dependencies/search/charts/reques
 import { ChangeEvent, StoredEntity } from '@service/session/dependencies/search/store';
 import { history } from '@service/history';
 import { LockToken } from '@platform/env/lock.token';
+import { lockers, Locker } from '@ui/service/lockers';
 
 import * as utils from '@platform/log/utils';
 import * as Requests from '@platform/ipc/request';
@@ -341,6 +342,48 @@ export class TeamWork extends Subscriber {
                 Events.GitHub.FileUpdated.Event,
                 (event: Events.GitHub.FileUpdated.Event) => {
                     this.file().check(event.sha);
+                },
+            ),
+            Events.IpcEvent.subscribe(
+                Events.GitHub.Conflict.Event,
+                (event: Events.GitHub.Conflict.Event) => {
+                    const message = lockers.lock(
+                        new Locker(
+                            false,
+                            `The GitHub repository has been updated by ${event.username}. Your local version is mismatched with the remote. To continue you can drop your local changes to remote or switch to ReadOnly mode and continue with local session data.`,
+                        )
+                            .set()
+                            .buttons([
+                                {
+                                    caption: `Drop to Remote`,
+                                    handler: () => {
+                                        message.popup.close();
+                                        this.file().check();
+                                    },
+                                },
+                                {
+                                    caption: `ReadOnly Mode`,
+                                    handler: () => {
+                                        message.popup.close();
+                                        if (this.active.repo === undefined) {
+                                            return;
+                                        }
+                                        this.active.repo.settings.readonly = true;
+                                        this.repo()
+                                            .update(this.active.repo)
+                                            .catch((err: Error) => {
+                                                this.log().error(
+                                                    `Fail to update repo settings: ${err.message}`,
+                                                );
+                                            });
+                                    },
+                                },
+                            ])
+                            .end(),
+                        {
+                            closable: false,
+                        },
+                    );
                 },
             ),
             this.session.stream.subjects.get().started.subscribe((observe: Observe) => {
