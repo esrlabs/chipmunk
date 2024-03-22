@@ -1,3 +1,8 @@
+# 3.11.1 (22.03.2024)
+
+## Fixes
+- Fix create/update/change repo issue in context of Teamwork feature
+
 # 3.11.0 (22.03.2024)
 
 ## Fixes
