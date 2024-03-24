@@ -4,6 +4,7 @@ mod tests {
     use std::io::Write;
     use std::path::PathBuf;
     use tempfile::tempdir;
+    use text_grep::GrepError;
     use text_grep::TextGrep;
     use tokio;
     use tokio::runtime::Runtime;
@@ -35,7 +36,6 @@ mod tests {
         let result = runtime.block_on(grep.count_occurrences(
             patterns.iter().map(|&p| p).collect(),
             vec![file_path.to_str().unwrap()],
-            1024,
             false,
             CancellationToken::new(),
         ));
@@ -65,7 +65,6 @@ mod tests {
         let result = runtime.block_on(grep.count_occurrences(
             patterns.iter().map(|&p| p).collect(),
             vec![file_path.to_str().unwrap()],
-            1024,
             false,
             CancellationToken::new(),
         ));
@@ -97,14 +96,11 @@ mod tests {
         let result = runtime.block_on(grep.count_occurrences(
             patterns.iter().map(|&p| p).collect(),
             vec![file_path.to_str().unwrap()],
-            1024,
             false,
             cancel_token,
         ));
 
         // Asserting the result
-        assert!(result.is_ok());
-        let result = result.unwrap();
-        assert!(result.is_empty());
+        assert!(matches!(result, Err(GrepError::OperationCancelled)));
     }
 }

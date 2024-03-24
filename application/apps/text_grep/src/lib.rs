@@ -1,11 +1,11 @@
-use grep_regex::RegexMatcher;
-use rayon::prelude::*;
-use regex::Regex;
+pub mod buffer;
+use crate::buffer::{CancallableMinBuffered, REDUX_MIN_BUFFER_SPACE, REDUX_READER_CAPACITY};
+use buf_redux::BufReader;
+use grep_regex::RegexMatcherBuilder;
+use grep_searcher::{sinks::UTF8, Searcher};
 use std::collections::HashMap;
-use std::io::Read;
+use std::fs::File;
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::{self, Sender};
-use std::time::Instant;
 use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 
@@ -45,183 +45,118 @@ impl TextGrep {
         &self,
         patterns: Vec<&str>,
         file_paths: Vec<&str>,
-        chunk_size: usize,
         case_sensitive: bool,
         cancel_token: CancellationToken,
-    ) -> Result<Vec<Option<SearchResult>>, GrepError> {
+    ) -> Result<Vec<Result<SearchResult, GrepError>>, GrepError> {
         let mut results = Vec::new();
 
-        let (sender, receiver) = mpsc::channel();
-        let (error_sender, error_receiver) = mpsc::channel();
-
-        let _thread_handles: Vec<_> = file_paths
-            .par_iter()
-            .map(|&file_path| {
-                if let Err(err) = process_file(
-                    file_path,
-                    &patterns,
-                    chunk_size,
-                    case_sensitive,
-                    &cancel_token.clone(),
-                    &sender,
-                ) {
-                    if error_sender.send(err.clone()).is_err() {}
-                }
-            })
-            .collect();
-
-        while let Ok(err_msg) = error_receiver.try_recv() {
-            results.push(Some(SearchResult {
-                file_path: "".to_string(),
-                pattern_counts: HashMap::new(),
-                error_message: Some(err_msg.to_string()),
-            }));
-        }
-
-        while let Ok(search_result) = receiver.try_recv() {
-            results.push(Some(search_result?));
-        }
-
-        if cancel_token.is_cancelled() {
-            return Ok(vec![None; 0]);
+        for file_path in file_paths {
+            if cancel_token.is_cancelled() {
+                return Err(GrepError::OperationCancelled); // Return early if cancellation requested
+            }
+            match process_file(file_path, &patterns, case_sensitive, &cancel_token) {
+                Ok(result) => results.push(Ok(result)),
+                Err(err) => results.push(Err(err)),
+            }
         }
 
         Ok(results)
     }
 }
 
-fn process_chunk(
-    buffer: &[u8],
-    matchers: &HashMap<String, RegexMatcher>,
-    case_sensitive: bool,
-) -> Result<HashMap<String, usize>, GrepError> {
-    let mut local_pattern_counts = HashMap::new();
-
-    for pattern in matchers.keys() {
-        let mut total_count = 0;
-
-        let regex = if case_sensitive {
-            Regex::new(pattern).map_err(|e| GrepError::FileProcessingError(e.to_string()))?
-        } else {
-            Regex::new(&format!("(?i){}", pattern))
-                .map_err(|e| GrepError::FileProcessingError(e.to_string()))?
-        };
-
-        let text = String::from_utf8_lossy(buffer);
-        total_count += regex.find_iter(&text).count();
-
-        local_pattern_counts.insert(pattern.clone(), total_count);
-    }
-
-    Ok(local_pattern_counts)
-}
-
 fn process_file(
     file_path: &str,
     patterns: &[&str],
-    chunk_size: usize,
     case_sensitive: bool,
     cancel_token: &CancellationToken,
-    sender: &Sender<Result<SearchResult, GrepError>>,
-) -> Result<(), GrepError> {
-    let file_path = PathBuf::from(file_path);
+) -> Result<SearchResult, GrepError> {
+    let file_path = PathBuf::from(&file_path);
 
     if !is_text_file(&file_path) {
         let error_msg = format!("File '{}' is not a text file", file_path.display());
-        let _ = sender
-            .send(Err(GrepError::NotATextFile(error_msg.clone())))
-            .is_err();
-        return Ok(());
+        return Ok(SearchResult {
+            file_path: file_path.to_string_lossy().into_owned(),
+            pattern_counts: HashMap::new(),
+            error_message: Some(error_msg),
+        });
     }
 
-    let start_time = Instant::now();
-    let mut file =
-        std::fs::File::open(&file_path).map_err(|e| GrepError::FileReadError(e.to_string()))?;
-    let mut buffer = vec![0; chunk_size]; // define a buffer to read chunks of data
-    let mut incomplete_line = String::new();
+    let start_time = std::time::Instant::now();
 
-    // create matchers for each pattern and store them with their corresponding patterns in a hashmap
-    let mut matchers = HashMap::new();
-    for pattern in patterns {
-        let pattern_string = pattern.to_string();
-        let matcher = RegexMatcher::new(&pattern_string)
-            .map_err(|e| GrepError::FileProcessingError(e.to_string()))?;
-        matchers.insert(pattern_string, matcher);
-    }
-
-    let mut results = Vec::new(); // Vector to collect results from each thread
-
-    loop {
-        if cancel_token.is_cancelled() {
-            return Err(GrepError::OperationCancelled);
+    let combined_regex_pattern = patterns.join("|");
+    let combined_regex = match RegexMatcherBuilder::new().build(&combined_regex_pattern) {
+        Ok(regex) => regex,
+        Err(e) => {
+            return Err(GrepError::FileProcessingError(format!(
+                "Error building regex: {}",
+                e
+            )));
         }
-        let bytes_read = file
-            .read(&mut buffer)
-            .map_err(|e| GrepError::FileReadError(e.to_string()))?;
-        if bytes_read == 0 {
-            // Reached EOF, process incomplete line if any
-            if !incomplete_line.is_empty() {
-                let local_pattern_counts =
-                    process_chunk(incomplete_line.as_bytes(), &matchers, case_sensitive)?;
-                results.push(local_pattern_counts);
+    };
+
+    let mut local_pattern_counts = HashMap::new();
+
+    match File::open(&file_path) {
+        Ok(file) => {
+            let reader = BufReader::with_capacity(REDUX_READER_CAPACITY, file).set_policy(
+                CancallableMinBuffered((REDUX_MIN_BUFFER_SPACE, cancel_token.clone())),
+            );
+
+            let mut searcher = Searcher::new();
+            if let Err(e) = searcher.search_reader(
+                &combined_regex,
+                reader,
+                UTF8(|_, line| {
+                    let line_to_match = if case_sensitive {
+                        line.to_string()
+                    } else {
+                        line.to_lowercase()
+                    };
+
+                    for pattern in patterns {
+                        if cancel_token.is_cancelled() {
+                            return Ok(false);
+                        }
+
+                        let pattern_to_match = if case_sensitive {
+                            pattern.to_string()
+                        } else {
+                            pattern.to_lowercase()
+                        };
+
+                        let mut total_count = 0;
+                        total_count += line_to_match.matches(&pattern_to_match).count();
+
+                        let count_entry = local_pattern_counts
+                            .entry((*pattern).to_string())
+                            .or_insert(0);
+                        *count_entry += total_count;
+                    }
+                    Ok(true)
+                }),
+            ) {
+                return Err(GrepError::FileProcessingError(format!(
+                    "Error processing file: {}",
+                    e
+                )));
             }
-            break;
         }
-
-        // Check if there's an incomplete line from the previous chunk
-        let mut chunk = String::from_utf8_lossy(&buffer[..bytes_read]).to_string();
-        if !incomplete_line.is_empty() {
-            chunk = incomplete_line.clone() + &chunk;
-            incomplete_line.clear();
-        }
-
-        // Find the last newline character in the chunk
-        let last_newline_index = match chunk.rfind('\n') {
-            Some(idx) => idx,
-            None => {
-                // If no newline is found, keep the chunk for the next iteration
-                incomplete_line = chunk;
-                continue;
-            }
-        };
-
-        // Split the chunk at the last newline character
-        let (complete_chunk, remainder) = chunk.split_at(last_newline_index + 1);
-
-        // Process the complete chunk
-        let local_pattern_counts =
-            process_chunk(complete_chunk.as_bytes(), &matchers, case_sensitive)?;
-        results.push(local_pattern_counts);
-
-        // Store the remainder for the next iteration
-        incomplete_line = remainder.to_string();
-    }
-
-    let mut aggregated_pattern_counts = HashMap::new();
-    for pattern_count in &results {
-        for (pattern, count) in pattern_count {
-            *aggregated_pattern_counts
-                .entry(pattern.to_string())
-                .or_insert(0) += count;
+        Err(e) => {
+            return Err(GrepError::FileReadError(format!(
+                "Error reading file: {}",
+                e
+            )));
         }
     }
 
     let end_time = start_time.elapsed();
     eprintln!("Time taken {:?}", end_time);
 
-    sender
-        .send(Ok(SearchResult {
-            file_path: file_path.to_string_lossy().into_owned(),
-            pattern_counts: aggregated_pattern_counts,
-            error_message: None,
-        }))
-        .map_err(|_| {
-            GrepError::FileProcessingError(
-                "Error sending search result through channel".to_string(),
-            )
-        })?;
-
-    Ok(())
+    Ok(SearchResult {
+        file_path: file_path.to_string_lossy().into_owned(),
+        pattern_counts: local_pattern_counts,
+        error_message: None,
+    })
 }
 
 fn is_text_file(_file_path: &Path) -> bool {
