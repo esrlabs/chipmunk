@@ -11,6 +11,7 @@ members = [
     "processor",
     "session",
     "sources",
+    "text_grep",
 ]
 
 # only uncomment when profiling
