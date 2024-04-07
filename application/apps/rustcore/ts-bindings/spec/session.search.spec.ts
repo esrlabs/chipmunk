@@ -7,8 +7,11 @@ import { initLogger } from './logger';
 initLogger();
 import { Session, Factory } from '../src/api/session';
 import { IGrabbedElement } from 'platform/types/content';
-import { finish, createSampleFile, runner } from './common';
+import { finish, createSampleFile, performanceReport, setMeasurement, runner } from './common';
 import { readConfigurationFile } from './config';
+
+import * as os from 'os';
+import * as path from 'path';
 
 const config = readConfigurationFile().get().tests.search;
 
@@ -999,4 +1002,145 @@ describe('Search', function () {
                 });
         });
     });
+
+    config.performance.run &&
+        Object.keys(config.regular.execute_only).length > 0 &&
+        Object.keys(config.performance.tests).forEach((alias: string, index: number) => {
+            const test = (config.performance.tests as any)[alias];
+            const testName = `${test.alias}`;
+            if (test.ignore) {
+                console.log(`Test "${testName}" has been ignored`);
+                return;
+            }
+            it(testName, function () {
+                return runner(
+                    {
+                        list: { 1: testName },
+                        execute_only: [],
+                        files: {},
+                    },
+                    1,
+                    async (logger, done, collector) => {
+                        const measurement = setMeasurement();
+                        Session.create()
+                            .then((session: Session) => {
+                                // Set provider into debug mode
+                                session.debug(true, testName);
+                                const stream = session.getStream();
+                                if (stream instanceof Error) {
+                                    finish(session, done, stream);
+                                    return;
+                                }
+                                const events = session.getEvents();
+                                if (events instanceof Error) {
+                                    finish(session, done, events);
+                                    return;
+                                }
+                                const search = session.getSearch();
+                                if (search instanceof Error) {
+                                    finish(session, done, search);
+                                    return;
+                                }
+                                let home_dir = (process.env as any)['SH_HOME_DIR'];
+                                switch (index+1) {
+                                    case 1:
+                                        stream
+                                            .observe(
+                                                new Factory.File()
+                                                    .asText()
+                                                    .type(Factory.FileType.Text)
+                                                    .file(`${home_dir}/${test.file}`)
+                                                    .get()
+                                                    .sterilized(),
+                                            )
+                                            .on('processing', () => {
+                                                search
+                                                    .search([
+                                                        {
+                                                            filter: 'http',
+                                                            flags: { reg: true, word: false, cases: false },
+                                                        },
+                                                    ])
+                                                    .catch(finish.bind(null, session, done));
+                                            })
+                                            .catch(finish.bind(null, session, done));
+                                        break;
+                                    case 2:
+                                        stream
+                                            .observe(
+                                                new Factory.File()
+                                                    .asText()
+                                                    .type(Factory.FileType.Text)
+                                                    .file(`${home_dir}/${test.file}`)
+                                                    .get()
+                                                    .sterilized(),
+                                            )
+                                            .on('processing', () => {
+                                                search
+                                                    .search([
+                                                        {
+                                                            filter: 'http://www.almhuette-raith.at',
+                                                            flags: { reg: true, word: false, cases: false },
+                                                        },
+                                                        {
+                                                            filter: 'com.apple.hiservices-xpcservice',
+                                                            flags: { reg: true, word: false, cases: false },
+                                                        },
+                                                        {
+                                                            filter: 'Google Chrome Helper',
+                                                            flags: { reg: true, word: false, cases: false },
+                                                        },
+                                                    ])
+                                                    .catch(finish.bind(null, session, done));
+                                                })
+                                            .catch(finish.bind(null, session, done));
+                                        break;
+                                    default:
+                                        finish(
+                                            undefined,
+                                            done,
+                                            new Error(`Unsupported format: ${test.open_as}`),
+                                        );
+                                        return;
+                                }
+                                events.FileRead.subscribe(() => {
+                                    const measurement = setMeasurement();
+                                    const search = session.getSearch();
+                                    if (search instanceof Error) {
+                                        finish(session, done, search);
+                                        return;
+                                    }
+                                    search.search([]).then((_maches: number) => {
+                                        const results = measurement();
+                                        finish(
+                                            session,
+                                            done,
+                                            performanceReport(
+                                                testName,
+                                                results.ms,
+                                                test.expectation_ms,
+                                                `${home_dir}/${test.file}`,
+                                            )
+                                                ? undefined
+                                                : new Error(`${testName} is fail`),
+                                        );
+                                    });
+                                });
+                            })
+                            .catch((err: Error) => {
+                                finish(
+                                    undefined,
+                                    done,
+                                    new Error(
+                                        `Fail to create session due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                );
+                            });
+                    },
+                );
+            });
+        });
+
 });

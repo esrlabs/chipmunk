@@ -1,0 +1,138 @@
+/* NOTE: in this JSON can be used comments placed between stars */
+{
+    "log_level": 1,
+    "tests": {
+        "observe": {
+            "regular": {
+                /* With numbers you can define, which tests should be executed. "execute_only": [1, 3] will run ONLY tests 1 and 3*/
+                /* If "execute_only" isn't empty, all performance tests will be ignored*/
+                "execute_only": [-1],
+                "list": {
+                    "1": "Test 1. Observe and grab content (text)",
+                    "2": "Test 2. Observe and grab content (pcapng)",
+                    "3": "Test 3. Observe and grab content (dlt)",
+                    "4": "Test 4. Observe and grab content (attachments)",
+                    "5": "Test 5. Observe and grab content (someip from pcapng)",
+                    "6": "Test 6. Observe and grab content (someip from pcapng with fibex)",
+                    "7": "Test 7. Observe and grab content (someip from pcap)",
+                    "8": "Test 8. Observe and grab content (someip from pcap with fibex)"
+                },
+                "files": {
+                }
+            },
+            "performance": {
+                /* In false will prevent running performance tests */
+                "run": true,
+                "tests": {
+                    "test1": {
+                        "alias": "Observe - grab content (text)",
+                        "open_as": "text",
+                        "file": "test_files/temp_readings3.txt",
+                        "expectation_ms": 10000
+                    },
+                    "test2": {
+                        "alias": "Observe - grab content (pcapng)",
+                        "open_as": "dlt",
+                        "file": "test_files/FzgProg_SP21.dlt",
+                        "expectation_ms": 60000
+                    },
+                    "test3": {
+                        "alias": "Observe - grab content (dlt)",
+                        "open_as": "pcapng",
+                        "file": "test_files/someip.pcapng",
+                        "expectation_ms": 1000
+                    }
+                }
+            }
+        },
+        "stream": {
+            "regular": {
+                "execute_only": [-1],
+                "list": {
+                    "1": "Test 1. Observe and grab",
+                    "2": "Test 2. Life cycle",
+                    "3": "Test 3. Invalid data source",
+                    "4": "Test 4. Updated stream",
+                    "5": "Test 5. Updated stream search",
+                    "6": "Test 6. Aborting stream",
+                    "7": "Test 7. Multiple stream & SDE test"
+                },
+                "files": {
+                }
+            },
+            "performance": {
+                "run": true,
+                "tests": {
+                    "test1": {
+                        "alias": "Stream - startup measurement",
+                        "file": "",
+                        "expectation_ms": 1000
+                    },
+                    "test2": {
+                        "alias": "Stream - shutdown measurement",
+                        "file": "",
+                        "expectation_ms": 10000
+                    },
+                    "test3": {
+                        "alias": "Stream - Open 50 sessions",
+                        "file": "",
+                        "expectation_ms": 10000
+                    }
+                }
+            }
+        },
+        "indexes": {
+            "regular": {
+                "execute_only": [-1],
+                "list": {
+                    "1": "Test 1. Switch to breadcrumb mode"
+                },
+                "files": {
+                }
+            },
+            "performance": {
+                /* In false will prevent running performance tests */
+                "run": true,
+                "tests": {
+                    "test1": {
+                        "alias": "Indexes - Switch to breadcrumb mode",
+                        "file": "test_files/indexing_access_huge.log",
+                        "expectation_ms": 15000
+                    }
+                }
+            }
+        },
+        "search": {
+            "regular": {
+                "execute_only": [-1],
+                "list": {
+                    "1": "Test 1. Assign & single search",
+                    "2": "Test 2. Assign & multiple search",
+                    "3": "Test 3. Assign & zero search",
+                    "4": "Test 4. Assign & single not case sensitive search",
+                    "5": "Test 5. Assign & single word search",
+                    "6": "Test 6. Assign & single search with crossing terms",
+                    "7": "Test 7. Assign & repeated search"
+                },
+                "files": {
+                }
+            },
+            "performance": {
+                /* In false will prevent running performance tests */
+                "run": true,
+                "tests": {
+                    "test1": {
+                        "alias": "Assign & single search",
+                        "file": "test_files/indexing_access_huge.log",
+                        "expectation_ms": 1000
+                    },
+                    "test2": {
+                        "alias": "Assign & multiple search",
+                        "file": "test_files/indexing_access_huge.log",
+                        "expectation_ms": 10000
+                    }
+                }
+            }
+        }
+    }
+}
