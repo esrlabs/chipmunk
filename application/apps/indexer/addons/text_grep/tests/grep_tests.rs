@@ -4,7 +4,7 @@ mod tests {
     use std::io::Write;
     use std::path::PathBuf;
     use tempfile::tempdir;
-    use text_grep::{count_occurrences, GrepError};
+    use text_grep::{count_occurrences, GrepError, GrepError::RegExError};
     use tokio_util::sync::CancellationToken;
 
     // Function to create a temporary test file with given content
@@ -120,6 +120,24 @@ mod tests {
         assert!(
             matches!(result, Err(GrepError::OperationCancelled)),
             "Result is not Err(OperationCancelled)"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_invalid_patterns() {
+        let content = "This is a test file\n\
+                       with multiple lines\n\
+                       to test pattern matching";
+        let (file_path, _) = create_temp_file(content);
+
+        let patterns = vec!["(unclosed group", "[invalid character class"];
+        let cancel_token = CancellationToken::new();
+        let result = count_occurrences(&patterns, &[&file_path], false, cancel_token.clone()).await;
+
+        // Asserting the result
+        assert!(
+            matches!(result, Err(RegExError(_error))),
+            "Result is not Err(RegExError)"
         );
     }
 }

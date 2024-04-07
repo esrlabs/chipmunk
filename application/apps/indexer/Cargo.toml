@@ -4,6 +4,7 @@ resolver = "2"
 members = [
     "addons/dlt-tools",
     "addons/file-tools",
+    "addons/text_grep",
     "indexer_base",
     "indexer_cli",
     "merging",
@@ -11,7 +12,6 @@ members = [
     "processor",
     "session",
     "sources",
-    "text_grep",
 ]
 
 # only uncomment when profiling
