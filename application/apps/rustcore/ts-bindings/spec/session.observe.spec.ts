@@ -12,6 +12,8 @@ import { IAttachment } from 'platform/types/content';
 import { createSampleFile, finish, performanceReport, setMeasurement, runner } from './common';
 import { readConfigurationFile } from './config';
 import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 
 const config = readConfigurationFile().get().tests.observe;
 
@@ -795,10 +797,10 @@ describe('Observe', function () {
     });
 
     config.performance.run &&
-        Object.keys(config.regular.execute_only).length === 0 &&
+        Object.keys(config.regular.execute_only).length > 0 &&
         Object.keys(config.performance.tests).forEach((alias: string, index: number) => {
             const test = (config.performance.tests as any)[alias];
-            const testName = `Performance test #${index + 1} (${test.alias})`;
+            const testName = `${test.alias}`;
             if (test.ignore) {
                 console.log(`Test "${testName}" has been ignored`);
                 return;
@@ -827,6 +829,7 @@ describe('Observe', function () {
                                     finish(session, done, events);
                                     return;
                                 }
+                                let home_dir = (process.env as any)['SH_HOME_DIR'];
                                 switch (test.open_as) {
                                     case 'text':
                                         stream
@@ -834,7 +837,7 @@ describe('Observe', function () {
                                                 new Factory.File()
                                                     .asText()
                                                     .type(Factory.FileType.Text)
-                                                    .file(test.file)
+                                                    .file(`${home_dir}/${test.file}`)
                                                     .get()
                                                     .sterilized(),
                                             )
@@ -845,7 +848,7 @@ describe('Observe', function () {
                                             .observe(
                                                 new Factory.File()
                                                     .type(Factory.FileType.Binary)
-                                                    .file(test.file)
+                                                    .file(`${home_dir}/${test.file}`)
                                                     .asDlt({
                                                         filter_config: undefined,
                                                         fibex_file_paths: [],
@@ -862,12 +865,32 @@ describe('Observe', function () {
                                             .observe(
                                                 new Factory.File()
                                                     .type(Factory.FileType.PcapNG)
-                                                    .file(test.file)
+                                                    .file(`${home_dir}/${test.file}`)
                                                     .asDlt({
                                                         filter_config: undefined,
                                                         fibex_file_paths: [],
                                                         with_storage_header: false,
                                                         tz: undefined,
+                                                    })
+                                                    .get()
+                                                    .sterilized(),
+                                            )
+                                            .catch(finish.bind(null, session, done));
+                                        break;
+                                    case 'startup_measurement':
+                                        const tmpobj = createSampleFile(
+                                            5000,
+                                            logger,
+                                            (i: number) => `some line data: ${i}\n`,
+                                        );
+                                        stream
+                                            .observe(
+                                                new Factory.Stream()
+                                                    .asText()
+                                                    .process({
+                                                        command: `less ${tmpobj.name}`,
+                                                        cwd: process.cwd(),
+                                                        envs: process.env as { [key: string]: string },
                                                     })
                                                     .get()
                                                     .sterilized(),
@@ -891,7 +914,7 @@ describe('Observe', function () {
                                             testName,
                                             results.ms,
                                             test.expectation_ms,
-                                            test.file,
+                                            `${home_dir}/${test.file}`,
                                         )
                                             ? undefined
                                             : new Error(`${testName} is fail`),
@@ -913,4 +936,5 @@ describe('Observe', function () {
                 );
             });
         });
+
 });

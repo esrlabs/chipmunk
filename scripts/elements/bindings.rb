@@ -14,9 +14,20 @@ module Bindings
   TARGETS = [DIST, TS_NODE_MODULES, TARGET, DIST_RS, SPEC, TS_BINDINGS_LIB].freeze
 
   def self.run_jasmine_spec(spec)
+    run_benchmarks = ENV['JASMIN_TEST_CONFIGURATION'] && ENV['JASMIN_TEST_CONFIGURATION'].include?('benchmarks.json') ? true : false
     ENV['ELECTRON_RUN_AS_NODE'] = '1'
     Shell.chdir(Paths::TS_BINDINGS) do
-      Shell.sh "#{Paths::JASMINE} spec/build/spec/session.#{spec}.spec.js"
+      if run_benchmarks
+        for i in 1..6 do
+          begin
+            Shell.sh "#{Paths::JASMINE} spec/build/spec/session.#{spec}.spec.js"
+          rescue
+            next
+          end
+        end
+      else
+        Shell.sh "#{Paths::JASMINE} spec/build/spec/session.#{spec}.spec.js"
+      end
     end
   end
 end
@@ -60,6 +71,7 @@ namespace :bindings do
       errors
       stream
       promises
+      benchmark
     ]
     test_specs.each do |spec|
       desc "run jasmine #{spec}-spec"

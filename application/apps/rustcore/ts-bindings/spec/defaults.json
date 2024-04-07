@@ -18,8 +18,8 @@
                     "8": "Test 8. Observe and grab content (someip from pcap with fibex)"
                 },
                 "files": {
-                    "pcapng": "/storage/projects/esrlabs/logs-examples/test.pcapng",
-                    "dlt": "/storage/projects/esrlabs/logs-examples/dlt_receive_2.dlt",
+                    "pcapng": "../../../../application/developing/resources/many_interfaces.pcapng",
+                    "dlt": "../../../../application/developing/resources/DTC_SP21.dlt",
                     "attachments": "../../../../application/developing/resources/attachments.dlt",
                     "someip-pcapng": "../../../../application/developing/resources/someip.pcapng",
                     "someip-pcap": "../../../../application/developing/resources/someip.pcap",
@@ -28,8 +28,26 @@
             },
             "performance": {
                 /* In false will prevent running performance tests */
-                "run": false,
+                "run": true,
                 "tests": {
+                    "test1": {
+                        "alias": "Performance Test 1",
+                        "open_as": "text",
+                        "file": "../../../../application/developing/resources/temp_readings3.txt",
+                        "expectation_ms": 1000
+                    },
+                    "test2": {
+                        "alias": "Performance Test 2",
+                        "open_as": "dlt",
+                        "file": "../../../../application/developing/resources/FzgProg_SP21.dlt",
+                        "expectation_ms": 10000
+                    },
+                    "test3": {
+                        "alias": "Performance Test you 3",
+                        "open_as": "pcapng",
+                        "file": "../../../../application/developing/resources/many_interfaces.pcapng",
+                        "expectation_ms": 500
+                    }
                 }
             }
         },
@@ -70,7 +88,8 @@
                     "5": "Test 5. Get envvars",
                     "6": "Test 6. Get Someip statistic",
                     "7": "Test 7. Check if file is binary",
-                    "8": "Test 8. Closing session with running task"
+                    "8": "Test 8. Closing session with running task",
+                    "9": "Test 6. Get DLT statistic"
                 },
                 "files": {
                     "someip-pcapng": "../../../../application/developing/resources/someip.pcapng",
@@ -111,6 +130,29 @@
                     "5": "Test 5. Assign & single word search",
                     "6": "Test 6. Assign & single search with crossing terms",
                     "7": "Test 7. Assign & repeated search"
+                },
+                "files": {
+                }
+            },
+            "performance": {
+                /* In false will prevent running performance tests */
+                "run": true,
+                "tests": {
+                    "test1": {
+                        "alias": "Assign & single search",
+                        "file": "../../../../application/developing/resources/indexing_access_huge.log",
+                        "expectation_ms": 100
+                    },
+                    "test2": {
+                        "alias": "Assign & multiple search",
+                        "file": "../../../../application/developing/resources/indexing_access_huge.log",
+                        "expectation_ms": 100
+                    },
+                    "test3": {
+                        "alias": "Assign & zero search",
+                        "file": "../../../../application/developing/resources/indexing_access_huge.log",
+                        "expectation_ms": 100
+                    }
                 }
             }
         },
