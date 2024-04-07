@@ -3,6 +3,8 @@
 //! This crate provides functionality to search for multiple patterns within multiple files concurrently.
 //! It supports both case-sensitive and case-insensitive search modes.
 //!
+//! The crate assumes that the files passed to the function count_occurrences are text files only.
+//!
 //! # Examples
 //!
 //! ```rust
@@ -13,13 +15,13 @@
 //! #[tokio::main]
 //! async fn main() {
 //!     // Patterns to search for
-//!     let patterns = ["text", "administrator", "HTTP"];
+//!     let patterns = ["pattern1", "pattern2", "PATTERN3"];
 //!
 //!     // File paths to search within
 //!     let file_paths = [
-//!         PathBuf::from("indexing_access_huge.log"),
-//!         PathBuf::from("indexing_access_huge.log"),
-//!         PathBuf::from("Cargo.toml"),
+//!         PathBuf::from("first_text_file.log"),
+//!         PathBuf::from("second_text_file.txt"),
+//!         PathBuf::from("third_text_file.txt"),
 //!     ];
 //!
 //!     // Create a cancellation token
@@ -56,35 +58,6 @@
 //! }
 //! ```
 //!
-//! # Public Functions
-//!
-//! - `count_occurrences`: Asynchronously searches for multiple patterns within multiple files.
-//!   - Parameters:
-//!     - `patterns`: An array of string slices representing patterns to search for.
-//!     - `file_paths`: An array of `PathBuf` representing paths to files to search within.
-//!     - `case_sensitive`: A boolean indicating whether the search should be case-sensitive or not.
-//!     - `cancel_token`: A `CancellationToken` used for cancellation of the operation.
-//!   - Returns:
-//!     - `Result<Vec<Result<SearchResult, GrepError>>, GrepError>`: A vector of results containing either `SearchResult` or `GrepError`.
-//!
-//! # Error Handling
-//!
-//! - `GrepError` represents various errors that may occur during the search process.
-//!   - `NotATextFile`: Indicates that a file is not a text file.
-//!   - `FileReadError`: Indicates an error occurred while reading a file.
-//!   - `FileProcessingError`: Indicates an error occurred while processing a file.
-//!   - `OperationCancelled`: Indicates that the operation was cancelled.
-//!   - `BuilingRegExError`: Indicates an error occurred while building a regular expression for searching.
-//!   - `RegExError`: Indicates an error occurred with a regular expression.
-//!   - `IOError`: Indicates an I/O error occurred.
-//!
-//! # Types
-//!
-//! - `SearchResult`: Represents the result of searching within a file.
-//!   - `file_path`: A `String` representing the path of the file.
-//!   - `pattern_counts`: A `HashMap` containing the counts of occurrences of each pattern within the file.
-//!   - `error_message`: An optional `String` containing an error message if any error occurred during the search.
-//!
 //! # Modules
 //!
 //! - `buffer`: Module for handling buffered I/O.
@@ -113,29 +86,29 @@ use buf_redux::BufReader;
 use grep_regex::{RegexMatcher, RegexMatcherBuilder};
 use grep_searcher::{sinks::UTF8, Searcher};
 use regex::Regex;
-use std::{
-    collections::HashMap,
-    fs::File,
-    io,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, fs::File, io, path::PathBuf};
 use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 
+/// An enumeration of possible errors that can occur during the grep operation.
 #[derive(Debug, Error, Clone)]
 pub enum GrepError {
-    #[error("File '{0}' is not a text file")]
-    NotATextFile(String),
+    /// Error reading a file.
     #[error("Error reading file: {0}")]
     FileReadError(String),
+    /// Error processing a file.
     #[error("Error processing file: {0}")]
     FileProcessingError(String),
+    /// Operation was cancelled.
     #[error("Operation cancelled")]
     OperationCancelled,
+    /// Error building a regular expression matcher.
     #[error("Error building regex: {0}")]
     BuilingRegExError(grep_regex::Error),
+    /// Error building a regular expression.
     #[error("Error building regex: {0}")]
     RegExError(regex::Error),
+    /// IO error.
     #[error("IO error: {0}")]
     IOError(String),
 }
@@ -158,13 +131,27 @@ impl From<io::Error> for GrepError {
     }
 }
 
+/// Represents the result of searching for patterns in a file.
 #[derive(Debug, Clone)]
 pub struct SearchResult {
+    /// Path of the file.
     pub file_path: String,
+    /// Counts of occurrences for each pattern.
     pub pattern_counts: HashMap<String, usize>,
+    /// Optional error message.
     pub error_message: Option<String>,
 }
 
+/// Constructs a `RegexMatcher` based on the provided patterns and case sensitivity flag.
+///
+/// # Arguments
+///
+/// * `patterns` - An array of patterns to search for.
+/// * `case_sensitive` - A flag indicating whether the search should be case-sensitive.
+///
+/// # Returns
+///
+/// A `RegexMatcher` instance.
 fn get_matcher(patterns: &[&str], case_sensitive: bool) -> Result<RegexMatcher, GrepError> {
     Ok(RegexMatcherBuilder::new()
         .case_insensitive(!case_sensitive)
@@ -177,32 +164,54 @@ fn get_matcher(patterns: &[&str], case_sensitive: bool) -> Result<RegexMatcher, 
         )?)
 }
 
+/// Builds a vector of `Regex` instances from the input patterns, handling case sensitivity appropriately.
+///
+/// # Arguments
+///
+/// * `patterns` - An array of patterns to search for.
+/// * `case_sensitive` - A flag indicating whether the search should be case-sensitive.
+///
+/// # Returns
+///
+/// A vector of `Regex` instances.
 fn get_patterns_as_regs(patterns: &[&str], case_sensitive: bool) -> Result<Vec<Regex>, GrepError> {
-    let mut regs: Vec<Regex> = Vec::new();
-    for pattern in patterns.iter() {
-        let regex_builder = if case_sensitive {
-            Regex::new(pattern)?
-        } else {
-            Regex::new(&format!("(?i){}", regex::escape(pattern)))?
-        };
-        regs.push(regex_builder);
-    }
-    Ok(regs)
+    let regs: Result<Vec<Regex>, GrepError> = patterns
+        .iter()
+        .map(|&pattern| {
+            // Validate the pattern
+            let regex = Regex::new(pattern).map_err(GrepError::RegExError)?;
+
+            // Format the pattern if case-insensitive search is required
+            if !case_sensitive {
+                let formatted_pattern = format!("(?i){}", regex.as_str());
+                Regex::new(&formatted_pattern).map_err(GrepError::RegExError)
+            } else {
+                Ok(regex)
+            }
+        })
+        .collect();
+
+    regs
 }
 
+/// Processes a single file, searching for patterns using a `Searcher` and updating the pattern counts accordingly.
+///
+/// # Arguments
+///
+/// * `file_path` - Path to the file.
+/// * `matcher` - A `RegexMatcher` to use for matching patterns.
+/// * `patterns` - A vector of `Regex` instances representing the patterns to search for.
+/// * `cancel_token` - A cancellation token to cancel the operation.
+///
+/// # Returns
+///
+/// A `SearchResult` containing pattern counts for the file.
 fn process_file(
     file_path: &PathBuf,
     matcher: &RegexMatcher,
     patterns: &[Regex],
     cancel_token: &CancellationToken,
 ) -> Result<SearchResult, GrepError> {
-    if !is_text_file(file_path) {
-        return Ok(SearchResult {
-            file_path: file_path.to_string_lossy().into_owned(),
-            pattern_counts: HashMap::new(),
-            error_message: Some(format!("File '{}' is not a text file", file_path.display())),
-        });
-    }
     let mut pattern_counts = HashMap::new();
     let file = File::open(file_path)?;
     let reader = BufReader::with_capacity(REDUX_READER_CAPACITY, file).set_policy(
@@ -237,6 +246,15 @@ fn process_file(
     })
 }
 
+/// Removes the case-insensitivity flag from a pattern, if present.
+///
+/// # Arguments
+///
+/// * `pattern` - The pattern to process.
+///
+/// # Returns
+///
+/// A string with the case-insensitivity flag removed.
 fn unset_case_insensitivity_flag(pattern: &str) -> String {
     if pattern.starts_with("(?i)") {
         pattern.chars().skip(4).collect()
@@ -245,10 +263,18 @@ fn unset_case_insensitivity_flag(pattern: &str) -> String {
     }
 }
 
-fn is_text_file(_file_path: &Path) -> bool {
-    true
-}
-
+/// Asynchronously counts pattern occurrences in multiple files.
+///
+/// # Arguments
+///
+/// * `patterns` - An array of patterns to search for.
+/// * `file_paths` - An array of file paths to search within.
+/// * `case_sensitive` - A flag indicating whether the search should be case-sensitive.
+/// * `cancel_token` - A cancellation token to cancel the operation.
+///
+/// # Returns
+///
+/// A vector of search results, each corresponding to a file.
 pub async fn count_occurrences(
     patterns: &[&str],
     file_paths: &[&PathBuf],
