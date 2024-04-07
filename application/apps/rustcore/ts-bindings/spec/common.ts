@@ -12,6 +12,8 @@ import { IRegularTests } from './config';
 
 import * as tmp from 'tmp';
 import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 const NS_PER_SEC = 1e9;
 const NS_PER_MS = 1000000;
@@ -208,6 +210,44 @@ export function performanceReport(
         ),
     );
     output(`└${'─'.repeat(LEN)}┘`);
+
+    const result = {
+        name,
+        actual,
+        expectation,
+        passed: actual <= expectation,
+    };
+
+    let performance_results_folder = (process.env as any)['PERFORMANCE_RESULTS_FOLDER'];
+    let performance_results = (process.env as any)['PERFORMANCE_RESULTS'];
+    let home_dir = (process.env as any)['SH_HOME_DIR'];
+    if (home_dir && performance_results_folder) {
+        const folderPath = path.join(home_dir, performance_results_folder);
+        const filePath = path.join(folderPath, performance_results);
+        // Ensure filePath is a real path
+        if (!fs.existsSync(folderPath)) {
+            // Create directory if it doesn't exist
+            fs.mkdirSync(folderPath, { recursive: true });
+            output(`Created directory: ${folderPath}`);
+        }
+
+        let results = [];
+        if (fs.existsSync(filePath)) {
+            let existingData = fs.readFileSync(filePath, 'utf-8');
+            try {
+                results = JSON.parse(existingData);
+            } catch (error) {
+                output('Error parsing existing JSON data:');
+            }
+        }
+        results.push(result);
+        const data = JSON.stringify(results, null, 2); // JSON format with indentation
+        fs.writeFileSync(filePath, data);
+    } else {
+        output(`Missing necessary environment variables for file path.`);
+    }
+
+
     return actual <= expectation;
 }
 
@@ -230,4 +270,8 @@ export function setMeasurement(): () => ITimeMeasurement {
             sec_str: (ms / MS_PER_SEC).toFixed(2),
         };
     };
+}
+
+export function helloWorld() {
+  return 'Hello, World!';
 }
