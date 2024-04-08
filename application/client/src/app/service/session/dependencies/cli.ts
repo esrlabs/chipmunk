@@ -53,13 +53,13 @@ export class Cli extends Subscriber {
                 }
             },
             file: (file: $.Origin.File.Configuration): string | undefined => {
-                return `--open ${this.filename(file.get().filename())}`;
+                return `-o ${this.filename(file.get().filename())}`;
             },
             concat: (concat: $.Origin.Concat.Configuration): string | undefined => {
-                return `--concat ${concat
+                return concat
                     .files()
-                    .map((f) => this.filename(f))
-                    .join(' ')}`;
+                    .map((f) => `-o ${this.filename(f)}`)
+                    .join(' ');
             },
             from: (observe: $.Observe): string | undefined => {
                 const stream = observe.origin.as<$.Origin.Stream.Configuration>(
