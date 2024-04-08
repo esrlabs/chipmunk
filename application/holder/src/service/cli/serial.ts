@@ -6,22 +6,6 @@ import * as Factory from 'platform/types/observe/factory';
 import * as $ from 'platform/types/observe';
 
 export class Action extends CLIAction {
-    // static help(): {
-    //     keys: string;
-    //     desc: string;
-    //     examples: string[];
-    // } {
-    //     return {
-    //         keys: ARGS.join(' '),
-    //         desc: `Will connect to serial port using given settings. If argument -p (--parser) isn't used, would be used plaint text parser.`,
-    //         examples: [
-    //             `syntaxt: cm --serial "path;baud_rate;data_bits;flow_control;parity;stop_bits"`,
-    //             `cm --serial "0.0.0.0:8888|234.2.2.2,0.0.0.0"`,
-    //             `cm --serial "0.0.0.0:8888|234.2.2.2,0.0.0.0;234.2.2.3,0.0.0.0" -S "error"`,
-    //         ],
-    //     };
-    // }
-
     protected settings: $.Origin.Stream.Stream.Serial.IConfiguration | undefined;
     protected error: Error[] = [];
 

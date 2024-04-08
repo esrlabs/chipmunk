@@ -20,6 +20,7 @@ import { Info } from './dependencies/info';
 import { session } from '@service/session';
 import { Highlights } from './dependencies/search/highlights';
 import { TeamWork } from './dependencies/teamwork';
+import { Cli } from './dependencies/cli';
 
 import * as ids from '@schema/ids';
 import * as Requests from '@platform/ipc/request';
@@ -47,6 +48,7 @@ export class Session extends Base {
     public readonly attachments: Attachments = new Attachments();
     public readonly info: Info = new Info();
     public readonly teamwork: TeamWork = new TeamWork();
+    public readonly cli: Cli = new Cli();
 
     private _uuid!: string;
     private _tab!: ITabAPI;
@@ -199,6 +201,7 @@ export class Session extends Base {
                     this.charts.init(this._uuid, this.stream, this.search);
                     this.highlights.init(this);
                     this.teamwork.init(this);
+                    this.cli.init(this);
                     this.inited = true;
                     resolve(this._uuid);
                 })
@@ -221,6 +224,7 @@ export class Session extends Base {
         this.charts.destroy();
         this.info.destroy();
         this.teamwork.destroy();
+        this.cli.destroy();
         this.unsubscribe();
         if (!this.inited) {
             return Promise.resolve();
@@ -345,6 +349,10 @@ export class Session extends Base {
                 return this._tab.getTitle();
             },
         };
+    }
+
+    public getTabAPI(): ITabAPI {
+        return this._tab;
     }
 
     public async searchResultAsNewSession(): Promise<void> {

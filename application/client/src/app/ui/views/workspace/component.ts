@@ -8,6 +8,7 @@ import { getScrollAreaService, setScrollAreaService } from './backing';
 import { Columns } from '@schema/render/columns';
 import { Owner } from '@schema/content/row';
 import { ColumnsHeaders } from './headers/component';
+import { Notification } from '@ui/service/notifications';
 
 @Component({
     selector: 'app-views-workspace',
@@ -30,21 +31,59 @@ export class ViewWorkspace implements AfterContentInit, OnDestroy {
     }
 
     public ngAfterContentInit(): void {
+        this.service = getScrollAreaService(this.session);
+        const bound = this.session.render.getBoundEntity();
+        this.columns = bound instanceof Columns ? bound : undefined;
         this.env().subscriber.register(
+            this.session.getTabAPI().subjects.onTitleContextMenu.subscribe((event: MouseEvent) => {
+                this.ilc().emitter.ui.contextmenu.open({
+                    items: [
+                        {
+                            caption: 'Generate CLI command',
+                            disabled: !this.session.cli.isSupported(),
+                            handler: () => {
+                                const command = this.session.cli.generate();
+                                if (command === undefined) {
+                                    this.ilc().services.ui.notifications.notify(
+                                        new Notification({
+                                            message:
+                                                'Fail to generate CLI command for this session',
+                                            actions: [],
+                                        }),
+                                    );
+                                } else {
+                                    navigator.clipboard.writeText(command);
+                                    this.ilc().services.ui.notifications.notify(
+                                        new Notification({
+                                            message: 'CLI command has been copied into clipboard',
+                                            actions: [],
+                                        }),
+                                    );
+                                }
+                            },
+                        },
+                        {},
+                        {
+                            caption: 'Close',
+                            disabled: false,
+                            handler: () => {
+                                this.session.close();
+                            },
+                        },
+                    ],
+                    x: event.x,
+                    y: event.y,
+                });
+            }),
             this.session.stream.subjects.get().updated.subscribe((len: number) => {
                 this.service.setLen(len);
             }),
-        );
-        this.env().subscriber.register(
             this.session.cursor.subjects.get().selected.subscribe((event) => {
                 if (event.initiator === Owner.Output) {
                     return;
                 }
                 this.service.scrollTo(event.row);
             }),
-        );
-        this.service = getScrollAreaService(this.session);
-        this.env().subscriber.register(
             this.service.onBound(() => {
                 this.env().subscriber.register(
                     this.ilc().services.system.hotkeys.listen('Ctrl + 1', () => {
@@ -52,32 +91,22 @@ export class ViewWorkspace implements AfterContentInit, OnDestroy {
                     }),
                 );
             }),
-        );
-        this.env().subscriber.register(
             this.ilc().services.system.hotkeys.listen('Ctrl + W', () => {
                 this.session.close();
             }),
-        );
-        this.env().subscriber.register(
             this.ilc().services.system.hotkeys.listen('Ctrl + F', () => {
                 this.session.switch().toolbar.search();
             }),
             this.ilc().services.system.hotkeys.listen('/', () => {
                 this.session.switch().toolbar.search();
             }),
-        );
-        this.env().subscriber.register(
             this.ilc().services.system.hotkeys.listen('Shift + Ctrl + P', () => {
                 this.session.switch().toolbar.presets();
             }),
-        );
-        this.env().subscriber.register(
             this.ilc().services.system.hotkeys.listen('Ctrl + 2', () => {
                 this.session.switch().toolbar.search();
             }),
         );
-        const bound = this.session.render.getBoundEntity();
-        this.columns = bound instanceof Columns ? bound : undefined;
     }
 
     public onHorizontalScrolling(offset: number): void {
