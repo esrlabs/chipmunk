@@ -89,34 +89,42 @@ export class Action extends CLIAction {
             );
         }
         let error: Error | undefined;
-        const multicast = parts[1].split(';').map((pair) => {
-            if (error !== undefined) {
+        const multicast = parts[1]
+            .split(';')
+            .map((pair) => {
+                if (pair.trim().length === 0) {
+                    return undefined;
+                }
+                if (error !== undefined) {
+                    return {
+                        multiaddr: '',
+                        interface: undefined,
+                    };
+                }
+                const pairs = pair.split(',');
+                if (pairs.length !== 1 && pairs.length !== 2) {
+                    error = new Error(
+                        `Each multicast defenition should include address and interface (or at least mutlicast address). Use -h (--help) for more details `,
+                    );
+                }
+                if (pairs.length === 1 && pairs[0].length === 0) {
+                    error = new Error(
+                        `Each multicast defenition should include at least address. Use -h (--help) for more details `,
+                    );
+                }
+                if (pairs.length === 2 && pairs[0].length === 0 && pairs[1].length === 0) {
+                    error = new Error(
+                        `Each multicast defenition should include address and interface. Use -h (--help) for more details `,
+                    );
+                }
                 return {
-                    multiaddr: '',
-                    interface: undefined,
+                    multiaddr: pairs[0],
+                    interface: pairs.length === 1 ? undefined : pairs[1],
                 };
-            }
-            const pairs = pair.split(',');
-            if (pairs.length !== 1 && pairs.length !== 2) {
-                error = new Error(
-                    `Each multicast defenition should include address and interface (or at least mutlicast address). Use -h (--help) for more details `,
-                );
-            }
-            if (pairs.length === 1 && pairs[0].length === 0) {
-                error = new Error(
-                    `Each multicast defenition should include at least address. Use -h (--help) for more details `,
-                );
-            }
-            if (pairs.length === 2 && pairs[0].length === 0 && pairs[1].length === 0) {
-                error = new Error(
-                    `Each multicast defenition should include address and interface. Use -h (--help) for more details `,
-                );
-            }
-            return {
-                multiaddr: pairs[0],
-                interface: pairs.length === 1 ? undefined : pairs[1],
-            };
-        });
+            })
+            .filter(
+                (m: $.Origin.Stream.Stream.UDP.Multicast | undefined) => m !== undefined,
+            ) as $.Origin.Stream.Stream.UDP.Multicast[];
         if (error instanceof Error) {
             return error;
         }

@@ -33,19 +33,19 @@ export class Cli extends Subscriber {
                 );
                 if (serial !== undefined) {
                     return `streams --serial "\
-                        ${serial.configuration.path};\
-                        ${serial.configuration.baud_rate};\
-                        ${serial.configuration.data_bits};\
-                        ${serial.configuration.flow_control};\
-                        ${serial.configuration.parity};\
-                        ${serial.configuration.stop_bits}"`;
+${serial.configuration.path};\
+${serial.configuration.baud_rate};\
+${serial.configuration.data_bits};\
+${serial.configuration.flow_control};\
+${serial.configuration.parity};\
+${serial.configuration.stop_bits}"`;
                 } else if (tcp !== undefined) {
                     return `streams --tcp "${tcp.configuration.bind_addr}"`;
                 } else if (udp !== undefined) {
                     return `streams --udp "\
-                        ${udp.configuration.bind_addr}|\
-                        ${udp.configuration.multicast[0].multiaddr},\
-                        ${udp.configuration.multicast[0].interface};"`;
+${udp.configuration.bind_addr}|\
+${udp.configuration.multicast[0].multiaddr},\
+${udp.configuration.multicast[0].interface};"`;
                 } else if (process !== undefined) {
                     return `streams --stdout "${process.configuration.command}"`;
                 } else {
