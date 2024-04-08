@@ -91,7 +91,7 @@ function setup() {
         });
     files.option(
         '-o, --open <filename...>',
-        'Opens file(s) in separated sessions (tabs). Ex: cm -o /path/file_name_a /path/file_name_b',
+        'Opens file(s) in separated sessions (tabs). Ex: cm -o /path/file_name_a',
         parser(CLI_HANDLERS['open']),
     );
     files.option(
