@@ -9,6 +9,7 @@ import { Subscriber } from '@platform/env/subscription';
 import { Subjects, Subject } from '@platform/env/subscription';
 import { Suitable, SuitableGroup } from './suitable';
 import { LockToken } from '@platform/env/lock.token';
+import { cli } from '@service/cli';
 
 import * as $ from '@platform/types/observe';
 
@@ -71,6 +72,11 @@ export class HistorySession extends Subscriber {
                 definition = this.storage.definitions.update(definition);
                 this.definitions.add(definition);
                 this.collections.bind(definition);
+                if (cli.isFiltersImported(this.session.uuid())) {
+                    // Filters are imported from CLI. Recent filters/charts should not
+                    // be applied
+                    return;
+                }
                 this.save();
                 this.check().all();
             })

@@ -16,6 +16,11 @@ import * as handlers from './cli/index';
 @DependOn(api)
 @SetupService(services['cli'])
 export class Service extends Implementation {
+    protected filters: Set<string> = new Set();
+
+    public isFiltersImported(uuid: string): boolean {
+        return this.filters.has(uuid);
+    }
     public override init(): Promise<void> {
         this.register(
             api
@@ -37,6 +42,9 @@ export class Service extends Implementation {
                     (
                         request: Requests.Cli.Search.Request,
                     ): CancelablePromise<Requests.Cli.Search.Response> => {
+                        if (request.filters.length > 0) {
+                            request.sessions.forEach((uuid: string) => this.filters.add(uuid));
+                        }
                         return handlers.search(this, request);
                     },
                 ),
