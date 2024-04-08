@@ -1,4 +1,4 @@
-import { Observable, Subject } from 'rxjs';
+import { Subject, Subjects } from '@platform/env/subscription';
 import { TabsOptions, ITabsOptions } from './options';
 import { IComponentDesc } from '../containers/dynamic/component';
 import { ControllerSessionsHistroy } from './controller.histroy';
@@ -46,37 +46,21 @@ export interface ITabAPI {
 }
 
 export class TabsService {
-    private _subjects: {
+    public readonly subjects: Subjects<{
         new: Subject<ITabInternal>;
         removed: Subject<string>;
         clear: Subject<void>;
         active: Subject<ITabInternal>;
         updated: Subject<ITabInternal>;
         options: Subject<TabsOptions>;
-    } = {
+    }> = new Subjects({
         new: new Subject<ITabInternal>(),
         removed: new Subject<string>(),
         clear: new Subject<void>(),
         active: new Subject<ITabInternal>(),
         updated: new Subject<ITabInternal>(),
         options: new Subject<TabsOptions>(),
-    };
-
-    private _observable: {
-        new: Observable<ITabInternal>;
-        removed: Observable<string>;
-        clear: Observable<void>;
-        active: Observable<ITabInternal>;
-        updated: Observable<ITabInternal>;
-        options: Observable<TabsOptions>;
-    } = {
-        new: this._subjects.new.asObservable(),
-        removed: this._subjects.removed.asObservable(),
-        clear: this._subjects.clear.asObservable(),
-        active: this._subjects.active.asObservable(),
-        updated: this._subjects.updated.asObservable(),
-        options: this._subjects.options.asObservable(),
-    };
+    });
 
     private _tabs: Map<string, ITabInternal> = new Map();
     private _options: TabsOptions = new TabsOptions();
@@ -101,28 +85,11 @@ export class TabsService {
     }
 
     public destroy() {
-        // Looks like unsubscription from subject gives exeptions
-        // unsubscribing should be done from observable
-        /*
-        Object.keys(this._subjects).forEach((key: string) => {
-            this._subjects[key].unsubscribe();
-        });
-        */
+        this.subjects.destroy();
     }
 
     public getUuid(): string {
         return this._uuid;
-    }
-
-    public getObservable(): {
-        new: Observable<ITabInternal>;
-        removed: Observable<string>;
-        clear: Observable<void>;
-        active: Observable<ITabInternal>;
-        updated: Observable<ITabInternal>;
-        options: Observable<TabsOptions>;
-    } {
-        return this._observable;
     }
 
     public setActive(uuid: string) {
@@ -132,7 +99,7 @@ export class TabsService {
         }
         tab.active = true;
         this._tabs.set(uuid, tab);
-        this._subjects.active.next(tab);
+        this.subjects.get().active.emit(tab);
         this._history.add(uuid);
     }
 
@@ -174,7 +141,7 @@ export class TabsService {
             throw new Error(`Fail to create tab`);
         }
         this._tabs.set(_tab.uuid, _tab);
-        this._subjects.new.next(_tab);
+        this.subjects.get().new.emit(_tab);
         if (_tab.active) {
             this.setActive(_tab.uuid);
         }
@@ -200,7 +167,7 @@ export class TabsService {
             tabs.set(k, t);
         });
         this._tabs = tabs;
-        this._subjects.new.next(_tab);
+        this.subjects.get().new.emit(_tab);
         if (_tab.active) {
             this.setActive(_tab.uuid);
         }
@@ -216,11 +183,11 @@ export class TabsService {
             tab.content.inputs !== undefined &&
             tab.content.inputs.onBeforeTabRemove !== undefined
         ) {
-            (tab.content.inputs.onBeforeTabRemove as Subject<void>).next();
+            (tab.content.inputs.onBeforeTabRemove as Subject<void>).emit();
         }
         this._tabs.delete(uuid);
         this._history.remove(uuid);
-        this._subjects.removed.next(uuid);
+        this.subjects.get().removed.emit(uuid);
         if (tab.active && this._tabs.size > 0) {
             const last: string | undefined = this._history.getLast();
             if (last === undefined) {
@@ -252,7 +219,7 @@ export class TabsService {
 
     public setOptions(options: TabsOptions): void {
         this._options = options;
-        this._subjects.options.next(this._options);
+        this.subjects.get().options.emit(this._options);
     }
 
     public updateOptions(options: ITabsOptions): boolean {
@@ -262,7 +229,7 @@ export class TabsService {
         Object.keys(options).forEach((key: string) => {
             setProp(this._options, key, getProp(options, key));
         });
-        this._subjects.options.next(this._options);
+        this.subjects.get().options.emit(this._options);
         return true;
     }
 
@@ -281,7 +248,7 @@ export class TabsService {
 
     public clear() {
         this._tabs.clear();
-        this._subjects.clear.next();
+        this.subjects.get().clear.emit();
     }
 
     public setTitle(uuid: string, title: string): Error | undefined {
@@ -291,7 +258,7 @@ export class TabsService {
         }
         tab.name = title;
         this._tabs.set(uuid, tab);
-        this._subjects.updated.next(tab);
+        this.subjects.get().updated.emit(tab);
         return undefined;
     }
 
@@ -330,8 +297,7 @@ export class TabsService {
                 _tab.content.inputs = {};
             }
             _tab.content.inputs.onBeforeTabRemove = _tab.subjects.onBeforeTabRemove;
-            _tab.content.inputs.onTitleContextMenu =
-                _tab.subjects.onTitleContextMenu.asObservable();
+            _tab.content.inputs.onTitleContextMenu = _tab.subjects.onTitleContextMenu;
         }
         return _tab;
     }

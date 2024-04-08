@@ -7,10 +7,10 @@ import {
     OnChanges,
     ChangeDetectionStrategy,
 } from '@angular/core';
-import { Subscription } from 'rxjs';
 import { TabsService } from './service';
 import { TabsOptions } from './options';
 import { ChangesDetector } from '@ui/env/extentions/changes';
+import { Subscriber } from '@platform/env/subscription';
 
 @Component({
     selector: 'element-tabs',
@@ -21,7 +21,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 export class TabsComponent extends ChangesDetector implements OnDestroy, AfterViewInit, OnChanges {
     @Input() public service: TabsService | undefined;
 
-    private _subscriptions: Map<string, Subscription> = new Map();
+    private _subscriber: Subscriber = new Subscriber();
 
     public _options: TabsOptions = new TabsOptions();
 
@@ -35,7 +35,7 @@ export class TabsComponent extends ChangesDetector implements OnDestroy, AfterVi
     }
 
     ngOnDestroy() {
-        this._unsubscribe();
+        this._subscriber.unsubscribe();
     }
 
     ngOnChanges() {
@@ -45,20 +45,13 @@ export class TabsComponent extends ChangesDetector implements OnDestroy, AfterVi
     }
 
     private _subscribe() {
-        this._unsubscribe();
+        this._subscriber.unsubscribe();
         if (this.service === undefined) {
             return;
         }
-        this._subscriptions.set(
-            'options',
-            this.service.getObservable().options.subscribe(this._onOptionsUpdated.bind(this)),
+        this._subscriber.register(
+            this.service.subjects.get().options.subscribe(this._onOptionsUpdated.bind(this)),
         );
-    }
-
-    private _unsubscribe() {
-        this._subscriptions.forEach((subscription) => {
-            subscription.unsubscribe();
-        });
     }
 
     private async _getDefaultOptions() {

@@ -8,9 +8,9 @@ import {
     ChangeDetectionStrategy,
 } from '@angular/core';
 import { ITab, TabsService } from '../service';
-import { Subscription } from 'rxjs';
 import { IComponentDesc } from '../../containers/dynamic/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
+import { Subscriber } from '@platform/env/subscription';
 
 @Component({
     selector: 'lib-complex-tab-content',
@@ -27,7 +27,7 @@ export class TabContentComponent
     public _ng_tab: ITab | undefined = undefined;
     public _ng_noTabContent: IComponentDesc | undefined;
 
-    private _subscriptions: Map<string, Subscription> = new Map();
+    private _subscriber: Subscriber = new Subscriber();
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -38,7 +38,7 @@ export class TabContentComponent
     }
 
     ngOnDestroy() {
-        this._unsubscribe();
+        this._subscriber.unsubscribe();
     }
 
     ngOnChanges() {
@@ -46,21 +46,11 @@ export class TabContentComponent
     }
 
     private _subscribe() {
-        this._unsubscribe();
-        this._subscriptions.set(
-            'active',
-            this.service.getObservable().active.subscribe(this.onActiveTabChange.bind(this)),
+        this._subscriber.unsubscribe();
+        this._subscriber.register(
+            this.service.subjects.get().active.subscribe(this.onActiveTabChange.bind(this)),
+            this.service.subjects.get().removed.subscribe(this.onRemoveTab.bind(this)),
         );
-        this._subscriptions.set(
-            'removed',
-            this.service.getObservable().removed.subscribe(this.onRemoveTab.bind(this)),
-        );
-    }
-
-    private _unsubscribe() {
-        this._subscriptions.forEach((subscription) => {
-            subscription.unsubscribe();
-        });
     }
 
     private _apply() {
