@@ -42,13 +42,13 @@ export class Service extends Implementation {
             this.log().debug(`Session is unlocked`);
             this._locker.unlock();
         });
-        this._tabs.getObservable().active.subscribe((next) => {
+        this._tabs.subjects.get().active.subscribe((next) => {
             this._active = this._sessions.get(next.uuid);
             this._emitter.session.change(
                 this._active === undefined ? undefined : this._active.uuid(),
             );
         });
-        this._tabs.getObservable().removed.subscribe(this.kill.bind(this));
+        this._tabs.subjects.get().removed.subscribe(this.kill.bind(this));
         return Promise.resolve();
     }
 
