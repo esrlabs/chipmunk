@@ -67,13 +67,13 @@ function setup() {
             '-p, --parser <parser>',
             'Setup defaul parser, which would be used for all stream session.',
         )
-            .choices(['dlt', 'text'])
+            .choices(['dlt', 'someip', 'text'])
             .argParser(parser(CLI_HANDLERS['parser'])),
     );
     cli.addOption(
         new Option(
-            '-s, --search <regexp...>',
-            'Collection of filters, which would be applied to each opened session (tab). Ex: cm files -o /path/file_name -s "error" "warning"',
+            '-s, --search "<regexp>"',
+            'Collection of filters, which would be applied to each opened session (tab). Ex: cm files -o /path/file_name -s "error" -s "warning"',
         ).argParser(parser(CLI_HANDLERS['search'])),
     );
     cli.addOption(new Option(RESTARTING_FLAG, 'Hidden option to manage CLI usage').hideHelp());
@@ -110,13 +110,13 @@ function setup() {
     );
     streams.addOption(
         new Option(
-            '--udp <addr:port|multicast,interface;>',
+            '--udp "<addr:port|multicast,interface;>"',
             'Creates UDP connection with given address and multicasts. Ex: cm --udp "0.0.0.0:8888|234.2.2.2,0.0.0.0"',
         ).argParser(parser(CLI_HANDLERS['udp'])),
     );
     streams.addOption(
         new Option(
-            '--serial <path;baud_rate;data_bits;flow_control;parity;stop_bits>',
+            '--serial "<path;baud_rate;data_bits;flow_control;parity;stop_bits>"',
             'Creates serial port connection with given parameters. Ex: cm --serial "/dev/port_a;960000;8;1;0;1"',
         ).argParser(parser(CLI_HANDLERS['serial'])),
     );
@@ -186,9 +186,6 @@ function check() {
         logger.write(`DEBUG MODE. CLI checks are skipped`);
         return;
     }
-    // TODO:
-    // - send as argument PID of current process
-    // - check and kill previous process by given PID
     setup();
     if (isRestartedAlready()) {
         return;

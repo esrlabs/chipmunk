@@ -6,22 +6,6 @@ import * as Factory from 'platform/types/observe/factory';
 import * as $ from 'platform/types/observe';
 
 export class Action extends CLIAction {
-    // static help(): {
-    //     keys: string;
-    //     desc: string;
-    //     examples: string[];
-    // } {
-    //     return {
-    //         keys: ARGS.join(' '),
-    //         desc: `Will connect by TCP to given address. If argument -p (--parser) isn't used, would be used plaint text parser.`,
-    //         examples: [
-    //             `syntaxt: cm --tcp "addr"`,
-    //             `cm --tcp "0.0.0.0:8888"`,
-    //             `cm --tcp "0.0.0.0:8888" -S "error"`,
-    //         ],
-    //     };
-    // }
-
     protected settings: $.Origin.Stream.Stream.TCP.IConfiguration | undefined;
     protected error: Error[] = [];
 

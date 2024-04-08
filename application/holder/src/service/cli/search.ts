@@ -5,23 +5,6 @@ import { fromStr } from 'platform/env/regex';
 import * as Requests from 'platform/ipc/request';
 
 export class Action extends CLIAction {
-    // static help(): {
-    //     keys: string;
-    //     desc: string;
-    //     examples: string[];
-    // } {
-    //     return {
-    //         keys: ARGS.join(' '),
-    //         desc: `Will set up filters for opened tab(s). A search would be applied to each opened file(s). Search can be used with -O, -C. Values of filters should be separated with space. As soon as values of filters will be converted into regular expressions to define space in the filter's value could be used \\s`,
-    //         examples: [
-    //             `cm -O /path/file_name -S "error" "warning"`,
-    //             `cm -O ./file_name_a ./file_name_b -S "error" "warning"`,
-    //             `cm -C /path/file_name_a /path/file_name_b -S "error" "warning"`,
-    //             `cm -C ./*.log -S "error" "warning"`,
-    //         ],
-    //     };
-    // }
-
     protected filters: string[] = [];
     protected error: Error[] = [];
 
