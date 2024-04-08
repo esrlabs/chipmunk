@@ -89,7 +89,7 @@ function setup() {
             parser(CLI_HANDLERS['open'])(args[0], '');
         });
     files.option(
-        '-o, --open <filename...>',
+        '-o, --open <filename | glob pattern...>',
         'Opens file. Ex: cm -o /path/file_name_a. In case of multiple files, concat operation will be done. Ex: cm -o file_a -o file_b; cm -o "**/*.logs"; cm -o "**/*.{logs,txt}"',
         parser(CLI_HANDLERS['open']),
     );
@@ -98,7 +98,7 @@ function setup() {
         .description('Listens diffrent sources of data and posts its output');
     streams.addOption(
         new Option(
-            '--tcp <addr:port>',
+            '--tcp "<addr:port>"',
             'Creates TCP connection with given address. Ex: cm --tcp "0.0.0.0:8888"',
         ).argParser(parser(CLI_HANDLERS['tcp'])),
     );
@@ -116,7 +116,7 @@ function setup() {
     );
     streams.addOption(
         new Option(
-            '--stdout <command...>',
+            '--stdout "<command...>"',
             'Executes given commands in the scope of one session (tab) and shows mixed output. Ex: cm --stdout "journalctl -r" "adb logcat"',
         ).argParser(parser(CLI_HANDLERS['stdout'])),
     );
