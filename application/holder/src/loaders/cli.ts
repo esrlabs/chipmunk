@@ -26,7 +26,6 @@ export function isDevelopingExecuting(path: string): boolean {
 
 const CLI_HANDLERS: { [key: string]: CLIAction } = {
     open: new handlers.OpenFile(),
-    concat: new handlers.ConcatFiles(),
     stdout: new handlers.Stdout(),
     tcp: new handlers.Tcp(),
     udp: new handlers.Udp(),
@@ -91,13 +90,8 @@ function setup() {
         });
     files.option(
         '-o, --open <filename...>',
-        'Opens file(s) in separated sessions (tabs). Ex: cm -o /path/file_name_a',
+        'Opens file. Ex: cm -o /path/file_name_a. In case of multiple files, concat operation will be done. Ex: cm -o file_a -o file_b; cm -o "**/*.logs"; cm -o "**/*.{logs,txt}"',
         parser(CLI_HANDLERS['open']),
-    );
-    files.option(
-        '-c, --concat <filename...>',
-        'Concat file(s). Files will be grouped by type and each type would be opened in separated sessions (tabs)',
-        parser(CLI_HANDLERS['concat']),
     );
     const streams = cli
         .command('streams')

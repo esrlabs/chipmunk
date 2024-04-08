@@ -1,5 +1,4 @@
 export { Action as OpenFile } from './open';
-export { Action as ConcatFiles } from './concat';
 export { Action as Search } from './search';
 export { Action as Stdout } from './stdout';
 export { Action as Udp } from './udp';
