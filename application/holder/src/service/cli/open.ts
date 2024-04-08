@@ -2,6 +2,8 @@ import { CLIAction, Type } from './action';
 import { Service } from '@service/cli';
 import { getFileEntities } from '@env/fs';
 import { FileType } from 'platform/types/observe/types/file';
+import { globSync } from 'glob';
+import { error } from 'platform/log/utils';
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -26,8 +28,20 @@ export class Action extends CLIAction {
             this.files.push(path.resolve(cwd, arg));
             return path.resolve(cwd, arg);
         }
-        this.error.push(new Error(`Fail to find file: ${arg} or ${path.resolve(cwd, arg)}`));
-        return '';
+        try {
+            const files = globSync(arg);
+            if (files.length === 0) {
+                this.error.push(
+                    new Error(`Fail to find file: ${arg} or ${path.resolve(cwd, arg)}`),
+                );
+                return '';
+            }
+            this.files = files;
+            return arg;
+        } catch (e) {
+            this.error.push(new Error(`Fail to parse glob pattern: ${error(e)}`));
+            return '';
+        }
     }
 
     public errors(): Error[] {
@@ -43,7 +57,7 @@ export class Action extends CLIAction {
             );
         }
         if (!this.defined()) {
-            return
+            return;
         }
         const files = await getFileEntities(this.files);
         if (files instanceof Error) {
