@@ -120,9 +120,11 @@ pub struct MulticastInfo {
 
 impl MulticastInfo {
     pub fn multicast_addr(&self) -> Result<IpAddr, Error> {
-        self.multiaddr
-            .to_string()
-            .parse()
-            .map_err(|e| Error::Configuration(format!("Could not parse mulitcast address: {e}")))
+        self.multiaddr.to_string().parse().map_err(|e| {
+            Error::Configuration(format!(
+                "Could not parse multicast address \"{}\": {e}",
+                self.multiaddr
+            ))
+        })
     }
 }
