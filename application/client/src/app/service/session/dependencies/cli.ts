@@ -2,7 +2,7 @@ import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber } from '@platform/env/subscription';
 import { cutUuid } from '@log/index';
 import { Session } from '@service/session';
-import { getFileName } from '@platform/types/files';
+import { getFileName, getParentFolder } from '@platform/types/files';
 import { env } from '@service/env';
 
 import * as $ from '@platform/types/observe';
@@ -57,9 +57,11 @@ ${udp.configuration.multicast[0].interface};"`;
                 return `-o ${this.filename(file.get().filename())}`;
             },
             concat: (concat: $.Origin.Concat.Configuration): string | undefined => {
+                const relative =
+                    Array.from(new Set(concat.files().map((f) => getParentFolder(f)))).length === 1;
                 return concat
                     .files()
-                    .map((f) => `-o ${this.filename(f)}`)
+                    .map((f) => `-o ${relative ? this.filename(f) : f}`)
                     .join(' ');
             },
             from: (observed: $.Observe[]): string | undefined => {
