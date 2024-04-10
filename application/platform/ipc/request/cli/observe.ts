@@ -5,15 +5,17 @@ import * as validator from '../../../env/obj';
 
 @Define({ name: 'ObserveCLICommandRequest' })
 export class Request extends SignatureRequirement {
-    public observe: IObserve;
+    public observe: IObserve[];
 
-    constructor(input: { observe: IObserve }) {
+    constructor(input: { observe: IObserve[] }) {
         super();
         validator.isObject(input);
         this.observe = validator.getAsObj(input, 'observe');
-        const error = Observe.validate(this.observe);
-        if (error instanceof Error) {
-            throw error;
+        for (const obsv of this.observe) {
+            const error = Observe.validate(obsv);
+            if (error instanceof Error) {
+                throw error;
+            }
         }
     }
 }

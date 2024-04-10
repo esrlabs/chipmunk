@@ -88,7 +88,7 @@ export class Action extends CLIAction {
             Requests.IpcRequest.send(
                 Requests.Cli.Observe.Response,
                 new Requests.Cli.Observe.Request({
-                    observe: observe.sterilized(),
+                    observe: [observe.sterilized()],
                 }),
             )
                 .then((response) => {

@@ -43,19 +43,20 @@ export class Action extends CLIAction {
             return Promise.resolve();
         }
         return new Promise((resolve, _reject) => {
-            // TODO: Add support of multiple commands at once
             Requests.IpcRequest.send(
                 Requests.Cli.Observe.Response,
                 new Requests.Cli.Observe.Request({
-                    observe: new Factory.Stream()
-                        .process({
-                            command: this.commands[0],
-                            cwd: this.cwd,
-                            envs: {},
-                        })
-                        .protocol(cli.state().parser())
-                        .get()
-                        .sterilized(),
+                    observe: this.commands.map((command) =>
+                        new Factory.Stream()
+                            .process({
+                                command,
+                                cwd: this.cwd,
+                                envs: {},
+                            })
+                            .protocol(cli.state().parser())
+                            .get()
+                            .sterilized(),
+                    ),
                 }),
             )
                 .then((response) => {

@@ -44,11 +44,13 @@ export class Action extends CLIAction {
             Requests.IpcRequest.send(
                 Requests.Cli.Observe.Response,
                 new Requests.Cli.Observe.Request({
-                    observe: new Factory.Stream()
-                        .serial(this.settings)
-                        .protocol(cli.state().parser())
-                        .get()
-                        .sterilized(),
+                    observe: [
+                        new Factory.Stream()
+                            .serial(this.settings)
+                            .protocol(cli.state().parser())
+                            .get()
+                            .sterilized(),
+                    ],
                 }),
             )
                 .then((response) => {

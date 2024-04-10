@@ -25,11 +25,31 @@ export async function action(
     cli: Service,
     request: Requests.Cli.Observe.Request,
 ): Promise<string | undefined> {
-    return session
-        .initialize()
-        .auto(new Observe(request.observe).locker().guess())
-        .catch((err: Error) => {
-            cli.log().warn(`Fail to apply action (Events.Cli.Observe.Event): ${err.message}`);
-            return undefined;
-        });
+    if (request.observe.length === 0) {
+        return Promise.resolve(undefined);
+    }
+    let uuid: string | undefined = undefined;
+    for (const observe of request.observe) {
+        if (uuid === undefined) {
+            uuid = await session
+                .initialize()
+                .auto(new Observe(observe).locker().guess())
+                .catch((err: Error) => {
+                    cli.log().warn(
+                        `Fail to apply action (Events.Cli.Observe.Event): ${err.message}`,
+                    );
+                    return undefined;
+                });
+            if (uuid === undefined) {
+                return Promise.resolve(undefined);
+            }
+        } else {
+            const instance = session.get(uuid);
+            if (instance === undefined) {
+                return Promise.resolve(undefined);
+            }
+            await instance.stream.observe().start(new Observe(observe).locker().guess());
+        }
+    }
+    return Promise.resolve(uuid);
 }
