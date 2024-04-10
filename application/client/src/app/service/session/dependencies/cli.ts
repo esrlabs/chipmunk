@@ -15,7 +15,8 @@ export class Cli extends Subscriber {
         stream(stream: $.Origin.Stream.Configuration): string | undefined;
         file(file: $.Origin.File.Configuration): string | undefined;
         concat(concat: $.Origin.Concat.Configuration): string | undefined;
-        from(observe: $.Observe): string | undefined;
+        from(observed: $.Observe[]): string | undefined;
+        cx(observed: $.Observe[]): $.Origin.Context | undefined;
     } {
         return {
             stream: (stream: $.Origin.Stream.Configuration): string | undefined => {
@@ -61,25 +62,74 @@ ${udp.configuration.multicast[0].interface};"`;
                     .map((f) => `-o ${this.filename(f)}`)
                     .join(' ');
             },
-            from: (observe: $.Observe): string | undefined => {
-                const stream = observe.origin.as<$.Origin.Stream.Configuration>(
-                    $.Origin.Stream.Configuration,
-                );
-                const file = observe.origin.as<$.Origin.File.Configuration>(
-                    $.Origin.File.Configuration,
-                );
-                const concat = observe.origin.as<$.Origin.Concat.Configuration>(
-                    $.Origin.Concat.Configuration,
-                );
-                if (stream !== undefined) {
-                    return this.source().stream(stream);
-                } else if (file !== undefined) {
-                    return this.source().file(file);
-                } else if (concat !== undefined) {
-                    return this.source().concat(concat);
-                } else {
+            from: (observed: $.Observe[]): string | undefined => {
+                const get = (observe: $.Observe): string | undefined => {
+                    const stream = observe.origin.as<$.Origin.Stream.Configuration>(
+                        $.Origin.Stream.Configuration,
+                    );
+                    const file = observe.origin.as<$.Origin.File.Configuration>(
+                        $.Origin.File.Configuration,
+                    );
+                    const concat = observe.origin.as<$.Origin.Concat.Configuration>(
+                        $.Origin.Concat.Configuration,
+                    );
+                    if (stream !== undefined) {
+                        return this.source().stream(stream);
+                    } else if (file !== undefined) {
+                        return this.source().file(file);
+                    } else if (concat !== undefined) {
+                        return this.source().concat(concat);
+                    } else {
+                        return undefined;
+                    }
+                };
+                if (observed.length === 0) {
                     return undefined;
                 }
+                let args = '';
+                for (const observe of observed) {
+                    const arg = get(observe);
+                    if (arg === undefined) {
+                        return undefined;
+                    }
+                    args = `${args}${args.length === 0 ? '' : ' '}${arg}`;
+                }
+                return args;
+            },
+            cx(observed: $.Observe[]): $.Origin.Context | undefined {
+                function get(observe: $.Observe): $.Origin.Context | undefined {
+                    if (
+                        observe.origin.as<$.Origin.Stream.Configuration>(
+                            $.Origin.Stream.Configuration,
+                        ) !== undefined
+                    ) {
+                        return $.Origin.Context.Stream;
+                    } else if (
+                        observe.origin.as<$.Origin.File.Configuration>(
+                            $.Origin.File.Configuration,
+                        ) !== undefined
+                    ) {
+                        return $.Origin.Context.File;
+                    } else if (
+                        observe.origin.as<$.Origin.Concat.Configuration>(
+                            $.Origin.Concat.Configuration,
+                        ) !== undefined
+                    ) {
+                        return $.Origin.Context.Concat;
+                    } else {
+                        return undefined;
+                    }
+                }
+                if (observed.length === 0 || get(observed[0]) === undefined) {
+                    return undefined;
+                }
+                const first: $.Origin.Context = get(observed[0]) as unknown as $.Origin.Context;
+                for (const observe of observed) {
+                    if (first !== get(observe)) {
+                        return undefined;
+                    }
+                }
+                return first;
             },
         };
     }
@@ -159,16 +209,22 @@ ${udp.configuration.multicast[0].interface};"`;
     }
 
     public generate() {
-        const sources = this.session.stream.observe().sources();
-        if (sources.length !== 1) {
+        const observed = this.session.stream
+            .observe()
+            .sources()
+            .map((s) => s.observe);
+        if (observed.length === 0) {
             return;
         }
-        const observe = sources[0].observe;
-        const source = this.source().from(observe);
+        if (this.source().cx(observed) === undefined) {
+            // Not the same origin
+            return;
+        }
+        const source = this.source().from(observed);
         if (source === undefined) {
             return undefined;
         }
-        const parser = this.parser().from(observe);
+        const parser = this.parser().from(observed[0]);
         if (parser === undefined) {
             return undefined;
         }
