@@ -48,7 +48,15 @@ export async function action(
             if (instance === undefined) {
                 return Promise.resolve(undefined);
             }
-            await instance.stream.observe().start(new Observe(observe).locker().guess());
+            await session
+                .initialize()
+                .auto(new Observe(observe).locker().guess(), instance)
+                .catch((err: Error) => {
+                    cli.log().warn(
+                        `Fail to apply action (Events.Cli.Observe.Event): ${err.message}`,
+                    );
+                    return undefined;
+                });
         }
     }
     return Promise.resolve(uuid);

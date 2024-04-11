@@ -15,11 +15,7 @@ export class Action extends CLIAction {
     protected files: string[] = [];
     protected error: Error[] = [];
 
-    public name(): string {
-        return 'Opening file(s)';
-    }
-
-    public argument(cwd: string, arg: string): string {
+    public argument(_target: string | undefined, cwd: string, arg: string): string {
         if (fs.existsSync(arg)) {
             this.files.push(arg);
             return arg;
@@ -98,7 +94,7 @@ export class Action extends CLIAction {
                     cli.state().sessions([response.session]);
                 })
                 .catch((err: Error) => {
-                    cli.log().error(`Fail apply ${this.name()}: ${err.message}`);
+                    cli.log().error(`Fail apply open-action: ${err.message}`);
                 })
                 .finally(resolve);
         });

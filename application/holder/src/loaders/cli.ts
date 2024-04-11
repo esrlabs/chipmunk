@@ -26,10 +26,7 @@ export function isDevelopingExecuting(path: string): boolean {
 
 const CLI_HANDLERS: { [key: string]: CLIAction } = {
     open: new handlers.OpenFile(),
-    stdout: new handlers.Stdout(),
-    tcp: new handlers.Tcp(),
-    udp: new handlers.Udp(),
-    serial: new handlers.Serial(),
+    stream: new handlers.Stream(),
     search: new handlers.Search(),
     parser: new handlers.Parser(),
 };
@@ -46,8 +43,11 @@ function collectErrors(): Error[] {
     return errors;
 }
 
-function parser(handler: CLIAction): (value: string, prev: string) => string {
-    return handler.argument.bind(handler, process.cwd()) as unknown as (
+function parser(
+    handler: CLIAction,
+    argument: string | undefined,
+): (value: string, prev: string) => string {
+    return handler.argument.bind(handler, argument, process.cwd()) as unknown as (
         value: string,
         prev: string,
     ) => string;
@@ -67,13 +67,13 @@ function setup() {
             'Setup defaul parser, which would be used for all stream session.',
         )
             .choices(['dlt', 'someip', 'text'])
-            .argParser(parser(CLI_HANDLERS['parser'])),
+            .argParser(parser(CLI_HANDLERS['parser'], undefined)),
     );
     cli.addOption(
         new Option(
             '-s, --search "<regexp>"',
             'Collection of filters, which would be applied to each opened session (tab). Ex: cm files -o /path/file_name -s "error" -s "warning"',
-        ).argParser(parser(CLI_HANDLERS['search'])),
+        ).argParser(parser(CLI_HANDLERS['search'], undefined)),
     );
     cli.addOption(new Option(RESTARTING_FLAG, 'Hidden option to manage CLI usage').hideHelp());
     const files = cli
@@ -86,12 +86,12 @@ function setup() {
             // Opening file as defualt option for "files" command.
             // Note, "files" command also is a default command.
             // It makes "./chipmunk file_name" to open a file
-            parser(CLI_HANDLERS['open'])(args[0], '');
+            parser(CLI_HANDLERS['open'], undefined)(args[0], '');
         });
     files.option(
         '-o, --open <filename | glob pattern...>',
         'Opens file. Ex: cm -o /path/file_name_a. In case of multiple files, concat operation will be done. Ex: cm -o file_a -o file_b; cm -o "**/*.logs"; cm -o "**/*.{logs,txt}"',
-        parser(CLI_HANDLERS['open']),
+        parser(CLI_HANDLERS['open'], undefined),
     );
     const streams = cli
         .command('streams')
@@ -100,25 +100,25 @@ function setup() {
         new Option(
             '--tcp "<addr:port>"',
             'Creates TCP connection with given address. Ex: cm --tcp "0.0.0.0:8888"',
-        ).argParser(parser(CLI_HANDLERS['tcp'])),
+        ).argParser(parser(CLI_HANDLERS['stream'], 'tcp')),
     );
     streams.addOption(
         new Option(
             '--udp "<addr:port|multicast,interface;>"',
             'Creates UDP connection with given address and multicasts. Ex: cm --udp "0.0.0.0:8888|234.2.2.2,0.0.0.0"',
-        ).argParser(parser(CLI_HANDLERS['udp'])),
+        ).argParser(parser(CLI_HANDLERS['stream'], 'udp')),
     );
     streams.addOption(
         new Option(
             '--serial "<path;baud_rate;data_bits;flow_control;parity;stop_bits>"',
             'Creates serial port connection with given parameters. Ex: cm --serial "/dev/port_a;960000;8;1;0;1"',
-        ).argParser(parser(CLI_HANDLERS['serial'])),
+        ).argParser(parser(CLI_HANDLERS['stream'], 'serial')),
     );
     streams.addOption(
         new Option(
             '--stdout "<command...>"',
             'Executes given commands in the scope of one session (tab) and shows mixed output. Ex: cm --stdout "journalctl -r" "adb logcat"',
-        ).argParser(parser(CLI_HANDLERS['stdout'])),
+        ).argParser(parser(CLI_HANDLERS['stream'], 'stdout')),
     );
     cli.parse();
     logger.write(`setup CLI: done and parsered`);
