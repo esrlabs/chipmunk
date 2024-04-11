@@ -26,15 +26,12 @@ export abstract class CLIAction {
      */
     public abstract type(): Type;
     /**
-     * Returns name of action
-     */
-    public abstract name(): string;
-    /**
      * Parsing incoming argument
+     * @param argument possible argument of command, like `tcp`, `udp` etc
      * @param cwd current working folder
-     * @param arg argument to parse
+     * @param params argument to parse
      */
-    public abstract argument(cwd: string, arg: string): string;
+    public abstract argument(argument: string | undefined, cwd: string, params: string): string;
     /**
      * Returns list of parsing errors
      */

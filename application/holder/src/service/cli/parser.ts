@@ -6,11 +6,7 @@ export class Action extends CLIAction {
     protected parser: Protocol | undefined;
     protected error: Error[] = [];
 
-    public name(): string {
-        return 'Definition of parser';
-    }
-
-    public argument(_cwd: string, arg: string): string {
+    public argument(_target: string | undefined, _cwd: string, arg: string): string {
         switch (arg.toLowerCase()) {
             case Protocol.Dlt.toLowerCase():
                 this.parser = Protocol.Dlt;

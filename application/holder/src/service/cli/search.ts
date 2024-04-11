@@ -8,11 +8,7 @@ export class Action extends CLIAction {
     protected filters: string[] = [];
     protected error: Error[] = [];
 
-    public name(): string {
-        return 'Search setup';
-    }
-
-    public argument(_cwd: string, arg: string): string {
+    public argument(_target: string | undefined, _cwd: string, arg: string): string {
         const filter = fromStr(arg);
         if (!(filter instanceof Error)) {
             this.filters.push(arg);
