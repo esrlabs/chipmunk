@@ -4,12 +4,14 @@ import { cutUuid } from '@log/index';
 import { Session } from '@service/session';
 import { getFileName, getParentFolder } from '@platform/types/files';
 import { env } from '@service/env';
+import { cli } from '@service/cli';
 
 import * as $ from '@platform/types/observe';
 
 @SetupLogger()
 export class Cli extends Subscriber {
     protected session!: Session;
+    protected _cmd: string = './chipmunk';
 
     protected source(): {
         stream(stream: $.Origin.Stream.Configuration): string | undefined;
@@ -185,12 +187,34 @@ ${udp.configuration.multicast[0].interface};"`;
             .join(' ')}`;
     }
 
-    protected cmd(): string {
-        if (env.platform().windows()) {
-            return `chipmunk.exe`;
-        } else {
-            return `chipmunk`;
-        }
+    protected cmd(): {
+        update(): Promise<void>;
+        get(): string;
+        defaults(): void;
+    } {
+        return {
+            update: (): Promise<void> => {
+                return cli
+                    .getCommand()
+                    .then((cmd) => {
+                        this._cmd = cmd;
+                    })
+                    .catch((err: Error) => {
+                        this.log().error(`Fail to get CLI command/executor value: ${err.message}`);
+                        this.cmd().defaults();
+                    });
+            },
+            get: (): string => {
+                return this._cmd;
+            },
+            defaults: (): void => {
+                if (env.platform().windows()) {
+                    this._cmd = `chipmunk.exe`;
+                } else {
+                    this._cmd = `./chipmunk`;
+                }
+            },
+        };
     }
 
     protected filename(fullpath: string): string {
@@ -199,6 +223,29 @@ ${udp.configuration.multicast[0].interface};"`;
         } else {
             return `./${getFileName(fullpath)}`;
         }
+    }
+
+    protected arguments(): string | undefined {
+        const observed = this.session.stream
+            .observe()
+            .sources()
+            .map((s) => s.observe);
+        if (observed.length === 0) {
+            return undefined;
+        }
+        if (this.source().cx(observed) === undefined) {
+            // Not the same origin
+            return undefined;
+        }
+        const source = this.source().from(observed);
+        if (source === undefined) {
+            return undefined;
+        }
+        const parser = this.parser().from(observed[0]);
+        if (parser === undefined) {
+            return undefined;
+        }
+        return `${source} ${parser} ${this.filters()}`;
     }
 
     public init(session: Session) {
@@ -210,31 +257,17 @@ ${udp.configuration.multicast[0].interface};"`;
         this.unsubscribe();
     }
 
-    public generate() {
-        const observed = this.session.stream
-            .observe()
-            .sources()
-            .map((s) => s.observe);
-        if (observed.length === 0) {
-            return;
-        }
-        if (this.source().cx(observed) === undefined) {
-            // Not the same origin
-            return;
-        }
-        const source = this.source().from(observed);
-        if (source === undefined) {
+    public async generate(): Promise<string | undefined> {
+        await this.cmd().update();
+        const args = this.arguments();
+        if (args === undefined) {
             return undefined;
         }
-        const parser = this.parser().from(observed[0]);
-        if (parser === undefined) {
-            return undefined;
-        }
-        return `${this.cmd()} ${source} ${parser} ${this.filters()}`;
+        return `${this.cmd().get()} ${args}`;
     }
 
     public isSupported(): boolean {
-        return this.generate() !== undefined;
+        return this.arguments() !== undefined;
     }
 }
 export interface Cli extends LoggerInterface {}

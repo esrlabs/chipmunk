@@ -41,8 +41,8 @@ export class ViewWorkspace implements AfterContentInit, OnDestroy {
                         {
                             caption: 'Generate CLI command',
                             disabled: !this.session.cli.isSupported(),
-                            handler: () => {
-                                const command = this.session.cli.generate();
+                            handler: async () => {
+                                const command = await this.session.cli.generate();
                                 if (command === undefined) {
                                     this.ilc().services.ui.notifications.notify(
                                         new Notification({

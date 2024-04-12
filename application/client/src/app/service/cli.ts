@@ -56,6 +56,14 @@ export class Service extends Implementation {
         });
         return Promise.resolve();
     }
+    public getCommand(): Promise<string> {
+        return Requests.IpcRequest.send(
+            Requests.Cli.GetCommand.Response,
+            new Requests.Cli.GetCommand.Request(),
+        ).then((response: Requests.Cli.GetCommand.Response) => {
+            return Promise.resolve(response.command);
+        });
+    }
 }
 export interface Service extends Interface {}
 export const cli = register(new Service());
