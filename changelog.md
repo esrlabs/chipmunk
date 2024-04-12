@@ -1,3 +1,11 @@
+# 3.12.0 (12.04.2024)
+
+## Features
+- Allow export a session state as CLI command
+
+## Changes
+- Update UI related to tabs
+
 # 3.11.2 (22.03.2024)
 
 ## Changes
