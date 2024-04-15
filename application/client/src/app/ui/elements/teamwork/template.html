@@ -1,0 +1,57 @@
+<mat-expansion-panel *ngIf="repos.length > 0" [expanded]="remote !== undefined">
+    <mat-expansion-panel-header>
+        <mat-panel-title>Teamwork</mat-panel-title>
+        <mat-panel-description>Available {{repos.length}} repositories</mat-panel-description>
+    </mat-expansion-panel-header>
+    <div class="content">
+        <p class="t-normal">List of remotes</p>
+        <mat-form-field class="material-mofication-normal black stretch">
+            <mat-select (selectionChange)="onSelectionChange($event)" [(value)]="selected">
+                <mat-option [value]="0">Do not share; use locally</mat-option>
+                <mat-option *ngFor="let repo of repos" [value]="repo">
+                    {{repo.owner}}/{{repo.repo}}:{{repo.branch}}
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
+        <div class="remote" *ngIf="remote !== undefined">
+            <p class="t-normal">Available on remote</p>
+            <ng-container *ngIf="remote.def.filters.length > 0">
+                <p class="t-small">Filters ({{remote.def.filters.length}}):</p>
+                <ul class="list">
+                    <li *ngFor="let filter of remote.def.filters">
+                        <span class="color" [ngStyle]="{'background': filter.colors.color}"></span>
+                        <span
+                            class="color"
+                            [ngStyle]="{'background': filter.colors.background}"
+                        ></span>
+                        <span class="label">{{filter.filter.filter}}</span>
+                    </li>
+                </ul>
+            </ng-container>
+            <ng-container *ngIf="remote.def.charts.length > 0">
+                <p class="t-small">Charts ({{remote.def.charts.length}}):</p>
+                <ul class="list">
+                    <li *ngFor="let chart of remote.def.charts">
+                        <span class="color" [ngStyle]="{'background': chart.color}"></span>
+                        <span class="label">{{chart.filter}}</span>
+                    </li>
+                </ul>
+            </ng-container>
+            <ng-container *ngIf="remote.def.bookmarks.length > 0">
+                <p class="t-small">Bookmarks ({{remote.def.bookmarks.length}}):</p>
+                <ul class="list">
+                    <li *ngFor="let bookmark of remote.def.bookmarks">
+                        line: {{bookmark.position}}
+                    </li>
+                </ul>
+            </ng-container>
+        </div>
+        <div class="controlls">
+            <button mat-stroked-button *ngIf="remote !== undefined" (click)="importRemote()">
+                Import
+            </button>
+            <button mat-stroked-button (click)="reloadRemote()">Reload</button>
+            <button mat-stroked-button (click)="openManager()">Manager</button>
+        </div>
+    </div>
+</mat-expansion-panel>

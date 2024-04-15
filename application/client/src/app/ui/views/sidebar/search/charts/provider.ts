@@ -243,13 +243,7 @@ export class ProviderCharts extends Provider<ChartRequest> {
             entities.length !== 0
                 ? () => {
                       if (entities.length === self.entities().length) {
-                          this.session.search
-                              .store()
-                              .charts()
-                              .clear()
-                              .catch((error: Error) => {
-                                  this.logger.error(`Fail to clear store: ${error.message}`);
-                              });
+                          this.session.search.store().charts().clear();
                           self.change();
                       } else {
                           entities.forEach((entity: Entity<ChartRequest>) => {

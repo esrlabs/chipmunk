@@ -6,27 +6,7 @@ export class Action extends CLIAction {
     protected parser: Protocol | undefined;
     protected error: Error[] = [];
 
-    // static help(): {
-    //     keys: string;
-    //     desc: string;
-    //     examples: string[];
-    // } {
-    //     return {
-    //         keys: ARGS.join(' '),
-    //         desc: `Will apply setup parser, which would be used to decode content. By default would be used plaint text parser (no decoding).`,
-    //         examples: [
-    //             `syntaxt: cm --parser dlt|text|pcap`,
-    //             `cm --parser dlt --tcp "0.0.0.0:8888"`,
-    //             `cm -P dlt --tcp "0.0.0.0:8888" -S "error"`,
-    //         ],
-    //     };
-    // }
-
-    public name(): string {
-        return 'Definition of parser';
-    }
-
-    public argument(_cwd: string, arg: string): string {
+    public argument(_target: string | undefined, _cwd: string, arg: string): string {
         switch (arg.toLowerCase()) {
             case Protocol.Dlt.toLowerCase():
                 this.parser = Protocol.Dlt;

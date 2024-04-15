@@ -1,4 +1,47 @@
-# 3.10.8 (01.08.2024)
+# 3.12.0 (12.04.2024)
+
+## Features
+- Allow export a session state as CLI command
+
+## Changes
+- Update UI related to tabs
+
+# 3.11.2 (22.03.2024)
+
+## Changes
+- Allow custom entry-point for teamwork
+
+## Fixes
+- Fix loading metadata for teamwork for new files
+- Suggest action on merge conflicts (teamwork)
+
+
+# 3.11.1 (22.03.2024)
+
+## Fixes
+- Fix create/update/change repo issue in context of Teamwork feature
+
+# 3.11.0 (22.03.2024)
+
+## Fixes
+- Fixed bookmarks update event
+- Fixed "/" shortcut
+
+## Features
+- Add feature "teamwork" for sharing session data between users
+- Add feature "comments" to comment content of file
+
+# 3.10.9 (15.03.2024)
+
+## Fixes
+
+- Fix 7-key issue
+
+## Changes
+
+- Upgrade electron to 29.x
+
+# 3.10.8 (01.03.2024)
 
 ## Changes
 

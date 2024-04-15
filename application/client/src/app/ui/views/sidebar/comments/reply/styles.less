@@ -1,0 +1,57 @@
+@import '../../../../styles/variables.less';
+
+
+:host {
+    display: block;
+    & div.wrapper {
+        display: block;
+        width: 100%;
+        &.black {
+            & * {
+                color: #000000;
+            }
+            & .datetime {
+                color: #444444!important;
+            }
+            & .mat-divider {
+                border-top-color: rgba(0,0,0,0.2);
+            }
+        }
+        & div.title {
+            display: flex;
+            flex-direction: row;
+            & .datetime {
+                text-align: right;
+                color: @scheme-color-2;
+                flex: 100%;
+            }
+        }
+        & div.controls {
+            display: flex;
+            flex-direction: row;
+            & span.small-icon-button {
+                opacity: 0.05;
+            }
+            & .filler {
+                flex: 100%;
+            }
+        }
+        & div.content {
+            margin-bottom: 12px;
+        }
+
+        &:hover {
+            & div.controls {
+                & span.small-icon-button {
+                    opacity: 1;
+                }
+            }
+        }
+    }
+    &:last-child{
+        & mat-divider {
+            display: none;
+        }
+    }
+}
+

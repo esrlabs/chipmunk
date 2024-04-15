@@ -59,6 +59,7 @@
         "./env/obj": "./dist/env/obj.js",
         "./env/promise": "./dist/env/promise.js",
         "./env/queue": "./dist/env/queue.js",
+        "./env/runner": "./dist/env/runner.js",
         "./env/regex": "./dist/env/regex.js",
         "./env/scope": "./dist/env/scope.js",
         "./env/sequence": "./dist/env/sequence.js",
@@ -88,6 +89,9 @@
         "./types/files": "./dist/types/files.js",
         "./types/content": "./dist/types/content.js",
         "./types/filter": "./dist/types/filter.js",
+        "./types/chart": "./dist/types/chart.js",
+        "./types/comment": "./dist/types/comment.js",
+        "./types/bookmark": "./dist/types/bookmark.js",
         "./types/observe": "./dist/types/observe/index.js",
         "./types/observe/factory": "./dist/types/observe/factory.js",
         "./types/observe/description": "./dist/types/observe/description.js",
@@ -131,6 +135,10 @@
         "./types/life/destroyable": "./dist/types/life/destroyable.js",
         "./types/unity/mutable": "./dist/types/unity/mutable.js",
         "./types/notification/index": "./dist/types/notification/index.js",
+        "./types/github": "./dist/types/github/index.js",
+        "./types/github/chart": "./dist/types/github/chart.js",
+        "./types/github/filemetadata": "./dist/types/github/filemetadata.js",
+        "./types/github/filter": "./dist/types/github/filter.js",
         "./package.json": "./package.json"
     },
     "packageManager": "yarn@1.22.19"

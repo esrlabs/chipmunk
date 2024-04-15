@@ -1,0 +1,14 @@
+<ng-container *ngIf="repo === undefined">
+    <span class="extention">local</span>
+    <div class="desc">
+        <p class="name">Do not use remote repository.</p>
+        <p class="size">Data will be saved locally</p>
+    </div>
+</ng-container>
+<ng-container *ngIf="repo !== undefined">
+    <span class="extention">{{repo.branch}}</span>
+    <div class="desc">
+        <p class="name">{{repo.owner}}</p>
+        <p class="size">{{repo.repo}}</p>
+    </div>
+</ng-container>

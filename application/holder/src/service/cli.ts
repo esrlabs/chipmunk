@@ -12,9 +12,11 @@ import { envvars } from '@loader/envvars';
 import { isDevelopingExecuting } from '@loader/cli';
 import { exec } from 'sudo-prompt';
 import { getActions } from '@loader/cli';
+import { CancelablePromise } from 'platform/env/promise';
 
 import * as Actions from './cli/index';
 import * as Events from 'platform/ipc/event';
+import * as Requests from 'platform/ipc/request';
 import * as fs from 'fs';
 import * as $ from 'platform/types/observe';
 
@@ -83,6 +85,23 @@ export class Service extends Implementation {
                     });
                 },
             ),
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Cli.GetCommand.Request,
+                    (
+                        _request: Requests.Cli.GetCommand.Request,
+                    ): CancelablePromise<Requests.Cli.GetCommand.Response> => {
+                        return new CancelablePromise(async (resolve, _reject) => {
+                            resolve(
+                                new Requests.Cli.GetCommand.Response({
+                                    command: await this.support().command(),
+                                }),
+                            );
+                        });
+                    },
+                ),
         );
         return Promise.resolve();
     }
@@ -113,6 +132,7 @@ export class Service extends Implementation {
         toggle(): Promise<void>;
         exists(): Promise<boolean>;
         available(): Promise<boolean>;
+        command(): Promise<string>;
     } {
         return {
             install: async (): Promise<void> => {
@@ -252,6 +272,19 @@ export class Service extends Implementation {
                 }
                 this._available = fs.existsSync(UNIX_LOCAL_BIN);
                 return Promise.resolve(this._available);
+            },
+            command: async (): Promise<string> => {
+                const exists = await this.support().exists();
+                if (exists) {
+                    switch (process.platform) {
+                        case 'win32':
+                            return `chipmunk`;
+                        default:
+                            return `cm`;
+                    }
+                } else {
+                    return paths.getExec();
+                }
             },
         };
     }

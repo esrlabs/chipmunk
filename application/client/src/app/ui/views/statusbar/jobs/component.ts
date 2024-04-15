@@ -55,11 +55,23 @@ export class Jobs extends ChangesDetector implements AfterViewInit {
             this.actual.session = [];
         } else {
             const all = this.ilc().services.system.jobs.session(this._session);
-            this.actual.session = all.filter((j) => !j.isDone());
+            this.actual.session = [];
+            all.filter((j) => !j.isDone()).forEach((job: Job) => {
+                if (this.actual.session.find((j) => j.name === job.name)) {
+                    return;
+                }
+                this.actual.session.push(job);
+            });
             this.done.session = all.filter((j) => j.isDone());
         }
         const all = this.ilc().services.system.jobs.globals();
-        this.actual.globals = all.filter((j) => !j.isDone());
+        this.actual.globals = [];
+        all.filter((j) => !j.isDone()).forEach((job: Job) => {
+            if (this.actual.globals.find((j) => j.name === job.name)) {
+                return;
+            }
+            this.actual.globals.push(job);
+        });
         this.done.globals = all.filter((j) => j.isDone());
         this.detectChanges();
     }

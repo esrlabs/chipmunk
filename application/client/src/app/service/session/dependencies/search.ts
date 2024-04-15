@@ -7,7 +7,6 @@ import { IRange } from '@platform/types/range';
 import { FiltersStore } from './search/filters/store';
 import { DisableStore } from './search/disabled/store';
 import { ChartsStore } from './search/charts/store';
-import { Highlights } from './search/highlights';
 import { State } from './search/state';
 
 import * as Requests from '@platform/ipc/request';
@@ -29,7 +28,6 @@ export class Search extends Subscriber {
         charts: ChartsStore;
         disabled: DisableStore;
     };
-    private _highlights!: Highlights;
     private _state!: State;
 
     public init(uuid: string) {
@@ -76,7 +74,6 @@ export class Search extends Subscriber {
             }),
         );
         this._state = new State(this);
-        this._highlights = new Highlights(this);
     }
 
     public destroy() {
@@ -84,7 +81,6 @@ export class Search extends Subscriber {
         this._store.filters.destroy();
         this._store.charts.destroy();
         this._store.disabled.destroy();
-        this._highlights.destroy();
         this._state.destroy();
         this.subjects.destroy();
     }
@@ -204,10 +200,6 @@ export class Search extends Subscriber {
 
     public state(): State {
         return this._state;
-    }
-
-    public highlights(): Highlights {
-        return this._highlights;
     }
 }
 export interface Search extends LoggerInterface {}

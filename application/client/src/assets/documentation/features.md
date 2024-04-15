@@ -3,6 +3,7 @@
 - [Search](./search/create.md) 
 - [Charts](./charts/create.md)
 - [Navigation](./navigation/favorites.md)
+- [Teamwork](./teamwork/readme.md)
 - [About](./about.md)
 
 # Chipmunk

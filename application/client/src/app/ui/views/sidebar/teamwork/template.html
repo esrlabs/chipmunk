@@ -1,0 +1,155 @@
+<div class="caption">
+    <span class="title">Teamwork</span>
+    <span class="filler"></span>
+    <span class="small-icon-button codicon codicon-menu" [matMenuTriggerFor]="menu"></span>
+</div>
+<p class="info" *ngIf="repos.length === 0">
+    GitHub repository can be assigned with filters/charts/comments
+</p>
+<mat-expansion-panel
+    *ngIf="repos.length > 0 && editable === undefined"
+    [hideToggle]="true"
+    [expanded]="true"
+    class="list"
+>
+    <mat-expansion-panel-header>
+        <mat-panel-title>GitHub References</mat-panel-title>
+    </mat-expansion-panel-header>
+    <div class="repos">
+        <app-views-teamwork-repository
+            [repo]="undefined"
+            [attr.class]="(active === undefined ? 'selected' : '')"
+            (click)="repo().setActive(undefined)"
+        ></app-views-teamwork-repository>
+        <app-views-teamwork-repository
+            *ngFor="let repository of repos"
+            (contextmenu)="onRepoContextMenu($event, repository)"
+            [attr.class]="((repo().isActive(repository)) ? 'selected' : '')"
+            [repo]="repository"
+            (click)="repo().setActive(repository)"
+        ></app-views-teamwork-repository>
+    </div>
+</mat-expansion-panel>
+<mat-expansion-panel
+    *ngIf="repos.length > 0 && editable === undefined && active !== undefined"
+    [expanded]="false"
+>
+    <mat-expansion-panel-header>
+        <mat-panel-title>Sharing Settings</mat-panel-title>
+    </mat-expansion-panel-header>
+    <div class="fields">
+        <p class="t-small">
+            Checked entities will be synchronized with the selected GitHub repository. Unselected
+            entities will be stored only locally and will not be downloaded from the GitHub
+            repository. Comments are available only with the linked GitHub repository.
+        </p>
+        <div class="field">
+            <mat-checkbox
+                class="material-mofication-mini"
+                [disableRipple]="true"
+                (ngModelChange)="onSharingSettingsChange($event, 'filters')"
+                [(ngModel)]="active.settings.filters"
+            ></mat-checkbox>
+            <span class="label t-normal">Filters</span>
+        </div>
+        <div class="field">
+            <mat-checkbox
+                class="material-mofication-mini"
+                [disableRipple]="true"
+                (ngModelChange)="onSharingSettingsChange($event, 'charts')"
+                [(ngModel)]="active.settings.charts"
+            ></mat-checkbox>
+            <span class="label t-normal">Charts</span>
+        </div>
+        <div class="field">
+            <mat-checkbox
+                class="material-mofication-mini"
+                [disableRipple]="true"
+                (ngModelChange)="onSharingSettingsChange($event, 'bookmarks')"
+                [(ngModel)]="active.settings.bookmarks"
+            ></mat-checkbox>
+            <span class="label t-normal">Bookmarks</span>
+        </div>
+        <div class="field">
+            <mat-checkbox
+                class="material-mofication-mini"
+                [disableRipple]="true"
+                (ngModelChange)="onSharingSettingsChange($event, 'comments')"
+                [disabled]="true"
+                [(ngModel)]="active.settings.comments"
+            ></mat-checkbox>
+            <span class="label t-normal">Comments</span>
+        </div>
+        <p class="t-small">
+            Read-only Mode allows to read a remote repository, but not modify it. Local changes will
+            be available only during the session.
+        </p>
+        <div class="field">
+            <mat-checkbox
+                class="material-mofication-mini"
+                [disableRipple]="true"
+                (ngModelChange)="onSharingSettingsChange($event, 'readonly')"
+                [(ngModel)]="active.settings.readonly"
+            ></mat-checkbox>
+            <span class="label t-normal">Read-only Mode</span>
+        </div>
+    </div>
+</mat-expansion-panel>
+<mat-expansion-panel *ngIf="errors.length > 0 && editable === undefined" [expanded]="true">
+    <mat-expansion-panel-header>
+        <mat-panel-title>Errors</mat-panel-title>
+    </mat-expansion-panel-header>
+    <ul class="errors" (contextmenu)="onErrorsContextMenu($event)">
+        <li class="error" *ngFor="let error of errors">
+            <p class="t-small">{{error.time}}</p>
+            <p class="t-medium">{{error.msg}}</p>
+        </li>
+    </ul>
+</mat-expansion-panel>
+
+<mat-expansion-panel *ngIf="editable !== undefined" [hideToggle]="true" [expanded]="true">
+    <mat-expansion-panel-header>
+        <mat-panel-title>New GitHub Reference</mat-panel-title>
+    </mat-expansion-panel-header>
+    <div class="fields">
+        <mat-form-field class="material-mofication-normal stretch">
+            <mat-label>Owner</mat-label>
+            <input matInput [(ngModel)]="editable.owner" />
+        </mat-form-field>
+        <mat-form-field class="material-mofication-normal stretch">
+            <mat-label>Repositary</mat-label>
+            <input matInput [(ngModel)]="editable.repo" />
+        </mat-form-field>
+        <mat-form-field class="material-mofication-normal stretch">
+            <mat-label>Branch</mat-label>
+            <input matInput [(ngModel)]="editable.branch" />
+        </mat-form-field>
+        <mat-form-field class="material-mofication-normal stretch">
+            <mat-label>GitHub Token</mat-label>
+            <input matInput [(ngModel)]="editable.token" />
+        </mat-form-field>
+        <p class="t-small">Optionally can be defined a custom entry point for private networks.</p>
+        <mat-form-field class="material-mofication-normal stretch">
+            <mat-label>Custom entry point</mat-label>
+            <input matInput [(ngModel)]="editable.entry" />
+        </mat-form-field>
+    </div>
+    <div class="controls">
+        <button mat-stroked-button [disabled]="!repo().isPossibleToSave()" (click)="repo().save()">
+            Save
+        </button>
+        <button mat-stroked-button (click)="repo().cancel()">Cancel</button>
+    </div>
+</mat-expansion-panel>
+
+<mat-menu #menu="matMenu">
+    <button mat-menu-item (click)="repo().create()">
+        <mat-icon>add</mat-icon>
+        <span>Add New GitHub Reference</span>
+    </button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="help()">
+        <mat-icon>help</mat-icon>
+        <span>Help / Documentation</span>
+    </button>
+</mat-menu>

@@ -7,15 +7,17 @@ import { Range } from '@platform/types/range';
 import { Cursor } from './cursor';
 import { hotkeys } from '@service/hotkeys';
 import { Stream } from './stream';
+import { BookmarkDefinition } from '@platform/types/bookmark';
+import { unique } from '@platform/env/sequence';
 
 import * as Requests from '@platform/ipc/request';
 
 @SetupLogger()
 export class Bookmarks extends Subscriber {
     public readonly subjects: Subjects<{
-        updated: Subject<void>;
+        updated: Subject<string>;
     }> = new Subjects({
-        updated: new Subject<void>(),
+        updated: new Subject<string>(),
     });
     private _uuid!: string;
     protected bookmarks: Bookmark[] = [];
@@ -61,6 +63,14 @@ export class Bookmarks extends Subscriber {
             .catch((err: Error) => {
                 this.log().error(`Fail set bookmarks: ${err.message}`);
             });
+    }
+
+    public overwriteFromDefs(bookmarks: BookmarkDefinition[]): Promise<void> {
+        return this.overwrite(bookmarks.map((def) => new Bookmark(def.position))).catch(
+            (err: Error) => {
+                this.log().error(`Fail overwrite bookmarks: ${err.message}`);
+            },
+        );
     }
 
     public bookmark(row: Row) {
@@ -111,8 +121,10 @@ export class Bookmarks extends Subscriber {
         return this.getRowsPositions().join(',');
     }
 
-    public update(): void {
-        this.subjects.get().updated.emit();
+    public update(): string {
+        const sequence = unique();
+        this.subjects.get().updated.emit(sequence);
+        return sequence;
     }
 
     protected recheck() {

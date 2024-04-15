@@ -10,6 +10,7 @@ export class Event extends SignatureRequirement {
     public name?: string;
     public desc?: string;
     public icon?: string;
+    public spinner?: boolean;
 
     constructor(input: {
         uuid: string;
@@ -18,6 +19,7 @@ export class Event extends SignatureRequirement {
         name?: string;
         desc?: string;
         icon?: string;
+        spinner?: boolean;
     }) {
         super();
         validator.isObject(input);
@@ -27,6 +29,7 @@ export class Event extends SignatureRequirement {
         this.name = validator.getAsNotEmptyStringOrAsUndefined(input, 'name');
         this.desc = validator.getAsNotEmptyStringOrAsUndefined(input, 'desc');
         this.icon = validator.getAsNotEmptyStringOrAsUndefined(input, 'icon');
+        this.spinner = typeof input.spinner === 'boolean' ? input.spinner : undefined;
     }
 }
 

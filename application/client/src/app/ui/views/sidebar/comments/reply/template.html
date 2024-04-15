@@ -1,0 +1,30 @@
+<div
+    [attr.class]="'wrapper ' + (color !== undefined ? 'black' : 'white') + ' ' + (icon ? '' : 'offsetted')"
+>
+    <div class="title">
+        <span class="username t-small">{{response.username}}</span>
+        <span class="datetime t-small">{{created()}}</span>
+    </div>
+    <div class="content">{{response.comment}}</div>
+    <div class="controls">
+        <span class="filler"></span>
+        <span
+            *ngIf="editable"
+            class="small-icon-button codicon codicon-menu"
+            [matMenuTriggerFor]="commentActionsMenu"
+        ></span>
+    </div>
+    <mat-divider></mat-divider>
+</div>
+
+<mat-menu #commentActionsMenu="matMenu" xPosition="before">
+    <button mat-menu-item (click)="ngOnEdit()" *ngIf="editable">
+        <mat-icon>edit</mat-icon>
+        <span>Edit</span>
+    </button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="ngOnRemove()" *ngIf="editable">
+        <mat-icon>delete</mat-icon>
+        <span>Remove</span>
+    </button>
+</mat-menu>

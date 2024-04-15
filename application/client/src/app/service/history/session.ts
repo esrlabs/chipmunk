@@ -9,6 +9,7 @@ import { Subscriber } from '@platform/env/subscription';
 import { Subjects, Subject } from '@platform/env/subscription';
 import { Suitable, SuitableGroup } from './suitable';
 import { LockToken } from '@platform/env/lock.token';
+import { cli } from '@service/cli';
 
 import * as $ from '@platform/types/observe';
 
@@ -25,13 +26,16 @@ export class HistorySession extends Subscriber {
     protected readonly globals: Subscriber = new Subscriber();
     protected readonly locker: LockToken = new LockToken(true);
     protected readonly pendings: $.Observe[] = [];
+    protected checked: boolean = false;
 
     public readonly definitions: Definitions;
     public collections: Collections;
     public readonly subjects: Subjects<{
         suitable: Subject<Suitable>;
+        checked: Subject<void>;
     }> = new Subjects({
         suitable: new Subject<Suitable>(),
+        checked: new Subject<void>(),
     });
 
     constructor(
@@ -68,6 +72,11 @@ export class HistorySession extends Subscriber {
                 definition = this.storage.definitions.update(definition);
                 this.definitions.add(definition);
                 this.collections.bind(definition);
+                if (cli.isFiltersImported(this.session.uuid())) {
+                    // Filters are imported from CLI. Recent filters/charts should not
+                    // be applied
+                    return;
+                }
                 this.save();
                 this.check().all();
             })
@@ -95,10 +104,12 @@ export class HistorySession extends Subscriber {
         }
     }
 
-    protected check(): {
+    public check(): {
         related(): boolean;
         suitable(): void;
         all(): void;
+        done(): boolean;
+        confirm(): void;
     } {
         return {
             related: (): boolean => {
@@ -109,6 +120,9 @@ export class HistorySession extends Subscriber {
                         .applyTo(this.session, this.definitions.list())
                         .catch((err: Error) => {
                             this.log().warn(`Fail to apply collection: ${err.message}`);
+                        })
+                        .finally(() => {
+                            this.check().confirm();
                         });
                 } else {
                     this.subjects.get().suitable.emit(new Suitable());
@@ -117,12 +131,20 @@ export class HistorySession extends Subscriber {
             },
             suitable: (): void => {
                 this.subjects.get().suitable.emit(this.find().suitable());
+                this.check().confirm();
             },
             all: (): void => {
                 if (this.check().related()) {
                     return;
                 }
                 this.check().suitable();
+            },
+            done: (): boolean => {
+                return this.checked;
+            },
+            confirm: (): void => {
+                this.checked = true;
+                this.subjects.get().checked.emit();
             },
         };
     }

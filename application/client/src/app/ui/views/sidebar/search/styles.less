@@ -2,7 +2,8 @@
 
 app-views-filters {
     position: absolute;
-    display: block;
+    display: flex;
+    flex-direction: column;
     padding: 0;
     margin: 0;
     bottom: 0.5rem;
@@ -12,8 +13,14 @@ app-views-filters {
     overflow-x: hidden;
     overflow-y: hidden;
     outline: none;
+    & app-views-teamwork-applet {
+        & div.content {
+            padding: 16px 21px;
+        }    
+    }
     & div.holder {
-        position: absolute;
+        position: relative;
+        flex: auto;
         left:0;
         width: 100%;;
         overflow-y: auto;

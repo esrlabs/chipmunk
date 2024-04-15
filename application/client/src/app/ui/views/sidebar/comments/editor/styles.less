@@ -1,0 +1,34 @@
+@import '../../../../styles/variables.less';
+
+
+:host {
+    position: relative;
+    display: block;
+    padding: 0.5rem;
+    margin: 0;
+    & div.inputs {
+        width: 100%;
+        & mat-form-field {
+            width: 100%;
+        }
+    }
+    div.controlls {
+        text-align: right;
+        padding-top: 8px;
+        overflow: hidden;
+        white-space: nowrap;
+        & button {
+            margin-left: 16px;
+        }
+    }
+    & mat-hint {
+        color: @scheme-color-2;
+        white-space: nowrap;
+    }
+    & mat-error {
+        color: @scheme-color-warning;
+    }
+    & textarea {
+        color: @scheme-color-1;
+    }
+}

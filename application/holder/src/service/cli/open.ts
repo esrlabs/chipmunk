@@ -2,6 +2,8 @@ import { CLIAction, Type } from './action';
 import { Service } from '@service/cli';
 import { getFileEntities } from '@env/fs';
 import { FileType } from 'platform/types/observe/types/file';
+import { globSync } from 'glob';
+import { error } from 'platform/log/utils';
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -13,11 +15,7 @@ export class Action extends CLIAction {
     protected files: string[] = [];
     protected error: Error[] = [];
 
-    public name(): string {
-        return 'Opening file(s)';
-    }
-
-    public argument(cwd: string, arg: string): string {
+    public argument(_target: string | undefined, cwd: string, arg: string): string {
         if (fs.existsSync(arg)) {
             this.files.push(arg);
             return arg;
@@ -26,8 +24,20 @@ export class Action extends CLIAction {
             this.files.push(path.resolve(cwd, arg));
             return path.resolve(cwd, arg);
         }
-        this.error.push(new Error(`Fail to find file: ${arg} or ${path.resolve(cwd, arg)}`));
-        return '';
+        try {
+            const files = globSync(arg);
+            if (files.length === 0) {
+                this.error.push(
+                    new Error(`Fail to find file: ${arg} or ${path.resolve(cwd, arg)}`),
+                );
+                return '';
+            }
+            this.files = files;
+            return arg;
+        } catch (e) {
+            this.error.push(new Error(`Fail to parse glob pattern: ${error(e)}`));
+            return '';
+        }
     }
 
     public errors(): Error[] {
@@ -43,7 +53,7 @@ export class Action extends CLIAction {
             );
         }
         if (!this.defined()) {
-            return
+            return;
         }
         const files = await getFileEntities(this.files);
         if (files instanceof Error) {
@@ -74,7 +84,7 @@ export class Action extends CLIAction {
             Requests.IpcRequest.send(
                 Requests.Cli.Observe.Response,
                 new Requests.Cli.Observe.Request({
-                    observe: observe.sterilized(),
+                    observe: [observe.sterilized()],
                 }),
             )
                 .then((response) => {
@@ -84,7 +94,7 @@ export class Action extends CLIAction {
                     cli.state().sessions([response.session]);
                 })
                 .catch((err: Error) => {
-                    cli.log().error(`Fail apply ${this.name()}: ${err.message}`);
+                    cli.log().error(`Fail apply open-action: ${err.message}`);
                 })
                 .finally(resolve);
         });

@@ -13,9 +13,9 @@ import {
 import type { QueryList } from '@angular/core';
 import { ITabInternal, TabsService } from '../service';
 import { TabsOptions } from '../options';
-import { Subscription } from 'rxjs';
 import { stop } from '@ui/env/dom';
 import { ChangesDetector } from '@ui/env/extentions/changes';
+import { Subscriber } from '@platform/env/subscription';
 
 @Component({
     selector: 'element-tabs-list',
@@ -38,7 +38,7 @@ export class TabsListComponent
     public _ng_offset: number = 0;
     public tabs: ITabInternal[] = [];
 
-    private _subscriptions: Map<string, Subscription> = new Map();
+    private _subscriber: Subscriber = new Subscriber();
     private _tabs: Map<string, ITabInternal> = new Map();
     private _sizes: {
         space: number;
@@ -63,7 +63,7 @@ export class TabsListComponent
     }
 
     ngOnDestroy() {
-        this._unsubscribe();
+        this._subscriber.unsubscribe();
         this._unsubscribeToWinEvents();
     }
 
@@ -130,41 +130,18 @@ export class TabsListComponent
     }
 
     public _ng_onContextMenu(event: MouseEvent, tab: ITabInternal) {
-        tab.subjects.onTitleContextMenu.next(event);
-    }
-
-    private _subscribe() {
-        this._unsubscribe();
-        this._subscriptions.set(
-            'new',
-            this.service.getObservable().new.subscribe(this.onNewTab.bind(this)),
-        );
-        this._subscriptions.set(
-            'removed',
-            this.service.getObservable().removed.subscribe(this.onRemoveTab.bind(this)),
-        );
-        this._subscriptions.set(
-            'active',
-            this.service.getObservable().active.subscribe(this.onActiveTabChange.bind(this)),
-        );
-        this._subscriptions.set(
-            'options',
-            this.service.getObservable().options.subscribe(this._onOptionsUpdated.bind(this)),
-        );
-        this._subscriptions.set(
-            'updated',
-            this.service.getObservable().updated.subscribe(this._onTabUpdated.bind(this)),
-        );
-    }
-
-    private _unsubscribe() {
-        this._subscriptions.forEach((subscription) => {
-            subscription.unsubscribe();
-        });
+        tab.subjects.onTitleContextMenu.emit(event);
     }
 
     private _apply() {
-        this._subscribe();
+        this._subscriber.unsubscribe();
+        this._subscriber.register(
+            this.service.subjects.get().new.subscribe(this.onNewTab.bind(this)),
+            this.service.subjects.get().removed.subscribe(this.onRemoveTab.bind(this)),
+            this.service.subjects.get().active.subscribe(this.onActiveTabChange.bind(this)),
+            this.service.subjects.get().options.subscribe(this._onOptionsUpdated.bind(this)),
+            this.service.subjects.get().updated.subscribe(this._onTabUpdated.bind(this)),
+        );
         this._tabs = this.service.getTabs();
         this.tabs = Array.from(this._tabs.values());
         this._getDefaultOptions();

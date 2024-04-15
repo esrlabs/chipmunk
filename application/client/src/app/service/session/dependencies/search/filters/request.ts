@@ -1,7 +1,7 @@
 import { Subject } from '@platform/env/subscription';
 import { getContrastColor, scheme_color_match, getNextColor } from '@styles/colors';
 import { DisableConvertable } from '../disabled/converting';
-import { IFilter, IFilterFlags } from '@platform/types/filter';
+import { IFilter, IFilterFlags, FilterDefinition, FilterStyle } from '@platform/types/filter';
 import { Hash, Recognizable } from '@platform/types/storage/entry';
 import { Json } from '@platform/types/storage/json';
 import { unique } from '@platform/env/sequence';
@@ -17,21 +17,9 @@ import { settings } from '@service/settings';
 import * as regexFilters from '@platform/env/filters';
 import * as obj from '@platform/env/obj';
 
-export interface Definition {
-    filter: IFilter;
-    colors: Colors;
-    active: boolean;
-    uuid: string;
-}
-
-export interface Colors {
-    color: string;
-    background: string;
-}
-
 export interface OptionalDefinition {
     filter: IFilter;
-    colors?: Colors;
+    colors?: FilterStyle;
     active?: boolean;
     uuid?: string;
 }
@@ -63,7 +51,7 @@ export class FilterRequest
 
     public static fromJson(json: string): FilterRequest | Error {
         try {
-            const def: Definition = JSON.parse(json);
+            const def: FilterDefinition = JSON.parse(json);
             def.uuid = obj.getAsString(def, 'uuid');
             def.filter = obj.getAsObj(def, 'filter');
             def.filter.flags = obj.getAsObj(def.filter, 'flags');
@@ -140,7 +128,15 @@ export class FilterRequest
         });
     }
 
-    public readonly definition: Definition;
+    static getHashByDefinition(def: FilterDefinition): string {
+        return `${def.filter.filter}${def.filter.flags.cases ? 'c' : ''}${
+            def.filter.flags.reg ? 'r' : ''
+        }${def.filter.flags.word ? 'w' : ''}${def.colors.color}${def.colors.background}${
+            def.active ? '1' : '0'
+        }`;
+    }
+
+    public readonly definition: FilterDefinition;
     public readonly updated: Subject<UpdateEvent> = new Subject<UpdateEvent>();
 
     private _regex!: RegExp;

@@ -2,6 +2,8 @@ import { Subject } from '@platform/env/subscription';
 import { scheme_color_match, getNextColor } from '@styles/colors';
 import { DisableConvertable } from '../disabled/converting';
 import { Hash, Recognizable } from '@platform/types/storage/entry';
+import { ChartDefinition, ChartType } from '@platform/types/chart';
+
 import { Json } from '@platform/types/storage/json';
 import { unique } from '@platform/env/sequence';
 import { error } from '@platform/log/utils';
@@ -16,23 +18,7 @@ import { settings } from '@service/settings';
 import * as regexFilters from '@platform/env/filters';
 import * as obj from '@platform/env/obj';
 
-export enum ChartType {
-    Linear = 'Linear',
-    Stepper = 'Stepper',
-    Temperature = 'Temperature',
-}
-
-export interface Definition {
-    filter: string;
-    color: string;
-    widths: {
-        line: number;
-        point: number;
-    };
-    active: boolean;
-    type: ChartType;
-    uuid: string;
-}
+export { ChartType };
 
 export interface OptionalDefinition {
     filter: string;
@@ -70,7 +56,7 @@ export class ChartRequest
 
     public static fromJson(json: string): ChartRequest | Error {
         try {
-            const def: Definition = JSON.parse(json);
+            const def: ChartDefinition = JSON.parse(json);
             def.uuid = obj.getAsString(def, 'uuid');
             def.filter = obj.getAsNotEmptyString(def, 'filter');
             def.color = obj.getAsNotEmptyString(def, 'color');
@@ -99,7 +85,7 @@ export class ChartRequest
         }
     }
 
-    public readonly definition: Definition;
+    public readonly definition: ChartDefinition;
     public readonly updated: Subject<UpdateEvent> = new Subject<UpdateEvent>();
 
     private _regex!: RegExp;
@@ -138,6 +124,12 @@ export class ChartRequest
             },
             type: ChartType.Linear,
         });
+    }
+
+    static getHashByDefinition(def: ChartDefinition): string {
+        return `${def.filter}${def.color}${def.widths.line}${def.widths.point}${def.type}${
+            def.active ? '1' : '0'
+        }`;
     }
 
     constructor(def: OptionalDefinition) {

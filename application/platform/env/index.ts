@@ -13,3 +13,4 @@ export * as str from './str';
 export * as subscription from './subscription';
 export * as togglers from './togglers';
 export * as observer from './observer';
+export * as runner from './runner';

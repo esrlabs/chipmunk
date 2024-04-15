@@ -1,0 +1,98 @@
+<div [attr.class]="'wrapper ' + (comment.color !== undefined ? 'black' : 'white')">
+    <mat-card [ngStyle]="{'background': comment.color}">
+        <mat-card-subtitle (click)="ngOnShow()">
+            <span class="position-label"
+                >{{comment.selection.start.position}} - {{comment.selection.end.position}}</span
+            >
+            <div class="signature">
+                <p class="username t-small">{{comment.username}}</p>
+                <p class="date t-small">{{created()}}</p>
+            </div>
+        </mat-card-subtitle>
+        <mat-card-content (click)="ngOnShow()">{{comment.comment}}</mat-card-content>
+        <mat-card-actions>
+            <span
+                class="small-icon-button codicon codicon-symbol-color"
+                [matMenuTriggerFor]="commentCategoryMenu"
+                *ngIf="isEditable()"
+            ></span>
+            <span
+                class="small-icon-button codicon codicon-edit"
+                *ngIf="isEditable()"
+                (click)="ngOnEdit()"
+            ></span>
+            <span class="small-icon-button codicon codicon-reply" (click)="ngOnReplay()"></span>
+            <span
+                class="small-icon-button codicon codicon-menu"
+                [matMenuTriggerFor]="commentActionsMenu"
+            ></span>
+        </mat-card-actions>
+
+        <mat-expansion-panel
+            *ngIf="comment.responses.length > 0"
+            [ngStyle]="{'background-color': ngGetResponseColor()}"
+        >
+            <mat-expansion-panel-header>
+                <mat-panel-title>
+                    {{comment.responses.length}} response{{comment.responses.length > 1 ? 's' : ''}}
+                </mat-panel-title>
+            </mat-expansion-panel-header>
+            <app-views-comments-reply
+                *ngFor="let response of comment.responses; let i = index"
+                [response]="response"
+                [editable]="isResponseEditable(response)"
+                [color]="ngGetResponseColor()"
+                [edit]="ngGetResponseEditCallback(response)"
+                [remove]="ngGetResponseRemoveCallback(response.uuid)"
+                [icon]="i === 0"
+            ></app-views-comments-reply>
+        </mat-expansion-panel>
+    </mat-card>
+
+    <mat-menu #commentActionsMenu="matMenu" xPosition="before">
+        <button *ngIf="isEditable()" mat-menu-item (click)="ngOnEdit()">
+            <mat-icon>edit</mat-icon>
+            <span>Edit</span>
+        </button>
+        <button mat-menu-item (click)="ngOnShow()">
+            <mat-icon>search</mat-icon>
+            <span>Show</span>
+        </button>
+        <mat-divider></mat-divider>
+        <button mat-menu-item *ngIf="isEditable()" (click)="ngOnRemove()">
+            <mat-icon>delete</mat-icon>
+            <span>Remove</span>
+        </button>
+    </mat-menu>
+
+    <mat-menu #commentCategoryMenu="matMenu" xPosition="before">
+        <div class="app-views-comments-colors-wrapper">
+            <button
+                class="comment-color-selector"
+                mat-mini-fab
+                color="primary"
+                aria-label="Category"
+                (click)="ngOnSetColor(undefined)"
+            >
+                <mat-icon>remove</mat-icon>
+            </button>
+            <button
+                *ngFor="let color of colors"
+                class="comment-color-selector"
+                mat-mini-fab
+                color="primary"
+                (click)="ngOnSetColor(color)"
+                [ngStyle]="{'background': color}"
+            ></button>
+        </div>
+    </mat-menu>
+</div>
+
+<div class="replay-editor" *ngIf="response !== undefined">
+    <app-views-comments-editor
+        [response]="response"
+        [save]="ngOnResponseSave"
+        [cancel]="ngOnResponseCancel"
+        [remove]="ngOnResponseRemove"
+    ></app-views-comments-editor>
+</div>

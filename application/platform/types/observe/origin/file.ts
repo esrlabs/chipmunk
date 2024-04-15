@@ -85,6 +85,24 @@ export class Configuration
         };
     }
 
+    public get(): {
+        filename(): string;
+        type(): Types.File.FileType;
+        alias(): string;
+    } {
+        return {
+            filename: (): string => {
+                return this.configuration[2];
+            },
+            type: (): Types.File.FileType => {
+                return this.configuration[1];
+            },
+            alias: (): string => {
+                return this.configuration[0];
+            },
+        };
+    }
+
     public filename(): string {
         return this.configuration[2];
     }

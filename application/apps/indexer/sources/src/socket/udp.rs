@@ -9,8 +9,10 @@ use tokio::net::{ToSocketAddrs, UdpSocket};
 
 #[derive(Error, Debug)]
 pub enum UdpSourceError {
-    #[error("Io: {0}")]
+    #[error("IO Error: {0}")]
     Io(std::io::Error),
+    #[error("Fail joining multicast group: {0}")]
+    Join(String),
     #[error("Invalid address: {0}")]
     ParseAddr(std::net::AddrParseError),
     #[error("Invalid number: {0}")]
@@ -44,9 +46,8 @@ impl UdpSource {
                         None => Ipv4Addr::new(0, 0, 0, 0),
                     };
                     if let Err(e) = socket.join_multicast_v4(addr, inter) {
-                        let msg = format!("error joining multicast group: {e}");
-                        warn!("{}", msg);
-                        return Err(UdpSourceError::Io(e));
+                        warn!("error joining multicast group: {e}");
+                        return Err(UdpSourceError::Join(e.to_string()));
                     }
                     debug!(
                         "Joining UDP multicast group: socket.join_multicast_v4({}, {})",
@@ -59,9 +60,8 @@ impl UdpSource {
                         None => 0,
                     };
                     if let Err(e) = socket.join_multicast_v6(&addr, inter) {
-                        let msg = format!("error joining multicast group: {e}");
-                        warn!("{}", msg);
-                        return Err(UdpSourceError::Io(e));
+                        warn!("error joining multicast group: {e}");
+                        return Err(UdpSourceError::Join(e.to_string()));
                     }
                 }
             };

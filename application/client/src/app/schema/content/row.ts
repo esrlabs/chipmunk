@@ -2,7 +2,6 @@ import { Session } from '@service/session/session';
 import { Subject, Subscriber } from '@platform/env/subscription';
 import { IGrabbedElement, Nature } from '@platform/types/content';
 import { EAlias } from '@service/session/dependencies/search/highlights/modifier';
-import { ansiToHtml } from '@module/ansi';
 
 export enum Owner {
     Output = 'Output',
@@ -10,6 +9,7 @@ export enum Owner {
     Bookmark = 'Bookmark',
     Chart = 'Chart',
     Attachment = 'Attachment',
+    Comment = 'Comment',
 }
 
 export interface RowInputs {
@@ -24,6 +24,10 @@ export interface RowInputs {
 const MAX_ROW_LENGTH_LIMIT = 10000;
 
 export class Row extends Subscriber {
+    static removeMarkerSymbols(str: string): string {
+        // eslint-disable-next-line no-control-regex
+        return str.replaceAll(/\u0004/gi, '').replaceAll(/\u0005/gi, '');
+    }
     public content: string;
     public position: number;
     public owner: Owner;
@@ -64,13 +68,10 @@ export class Row extends Subscriber {
         this.delimiter = this.session.render.delimiter();
         this.update();
         this.register(
-            this.session.search
-                .highlights()
-                .subjects.get()
-                .update.subscribe(() => {
-                    this.update();
-                    this.change.emit();
-                }),
+            this.session.highlights.subjects.get().update.subscribe(() => {
+                this.update();
+                this.change.emit();
+            }),
         );
     }
 
@@ -80,10 +81,8 @@ export class Row extends Subscriber {
     }
 
     public from(row: Row) {
-        if (this.content !== row.content) {
-            this.content = row.content;
-            this.update();
-        }
+        const update = this.content !== row.content || this.position !== row.position;
+        this.content !== row.content && (this.content = row.content);
         this.color !== row.color && (this.color = row.color);
         this.background !== row.background && (this.background = row.background);
         this.position !== row.position && (this.position = row.position);
@@ -93,6 +92,7 @@ export class Row extends Subscriber {
         this.cropped !== row.cropped && (this.cropped = row.cropped);
         this.nature = row.nature;
         this.seporator = this.isSeporator();
+        update && this.update();
         this.change.emit();
     }
 
@@ -173,16 +173,26 @@ export class Row extends Subscriber {
             this.matches.chart = injected[EAlias.Charts];
         };
         if (this.delimiter === undefined) {
-            const parsed = this.session.search.highlights().parse(this.content, this.owner, false);
+            const parsed = this.session.highlights.parse(
+                this.position,
+                Row.removeMarkerSymbols(this.content),
+                this.owner,
+                false,
+            );
             matches(parsed.injected);
-            const ansi = ansiToHtml(parsed.html);
-            this.html = ansi instanceof Error ? parsed.html : ansi;
+            this.html = parsed.html;
             this.color = parsed.color;
             this.background = parsed.background;
         } else {
             this.color = undefined;
             this.background = undefined;
-            this.columns = this.content.split(this.delimiter);
+            const columnsMap: [number, number][] = [];
+            let cursor = 0;
+            this.columns = this.content.split(this.delimiter).map((str) => {
+                columnsMap.push([cursor, str.length]);
+                cursor += str.length;
+                return Row.removeMarkerSymbols(str);
+            });
             const expected = this.session.render.columns();
             if (this.columns.length > expected) {
                 this.columns.splice(expected - 1, this.columns.length - expected);
@@ -191,8 +201,14 @@ export class Row extends Subscriber {
                     Array.from({ length: expected - this.columns.length }, () => ''),
                 );
             }
-            this.columns = this.columns.map((col) => {
-                const parsed = this.session.search.highlights().parse(col, this.owner, false);
+            this.columns = this.columns.map((col, i) => {
+                const parsed = this.session.highlights.parse(
+                    this.position,
+                    col,
+                    this.owner,
+                    false,
+                    { column: i, map: columnsMap },
+                );
                 matches(parsed.injected);
                 if (this.color === undefined && this.background === undefined) {
                     this.color = parsed.color;

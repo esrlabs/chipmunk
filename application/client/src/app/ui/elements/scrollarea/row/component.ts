@@ -20,6 +20,8 @@ import { popup, Vertical, Horizontal } from '@ui/service/popup';
 import { components } from '@env/decorators/initial';
 import { scheme_color_1 } from '@ui/styles/colors';
 
+import * as dom from '@ui/env/dom';
+
 @Component({
     selector: 'app-scrollarea-row',
     templateUrl: './template.html',
@@ -132,6 +134,7 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         const selectedRowsCount = this.row.session.selection().indexes().length;
         const delimiter = this.row.session.render.delimiter();
         const selection = this.selecting.selection();
+        const selectionInfo = this.selecting.getAsSelection();
         items.push(
             ...[
                 {
@@ -219,6 +222,24 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                                       });
                               },
                           },
+                          {},
+                          {
+                              caption: 'Comment',
+                              disabled:
+                                  selectionInfo === undefined ||
+                                  !this.row.session.comments.isCreatingAvailable(),
+                              handler: () => {
+                                  if (selectionInfo === undefined) {
+                                      return;
+                                  }
+                                  this.row.session.comments
+                                      .create(selectionInfo)
+                                      .catch((err: Error) => {
+                                          this.log().error(`Fail to add comment: ${err.message}`);
+                                      });
+                                  dom.stop(event);
+                              },
+                          },
                       ]
                     : []),
                 ...(this.row.owner === Owner.Search
@@ -303,7 +324,10 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                 this.update();
             }),
             this.row.change.subscribe(this.update.bind(this)),
-            this.row.session.bookmarks.subjects.get().updated.subscribe(this.update.bind(this)),
+            this.row.session.bookmarks.subjects.get().updated.subscribe(() => {
+                this.bookmarked = this.row.bookmark().is();
+                this.update();
+            }),
             this.row.session.cursor.subjects.get().updated.subscribe(this.update.bind(this)),
             this.row.change.subscribe(() => {
                 this.detectChanges();

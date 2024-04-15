@@ -23,16 +23,10 @@
         </mat-expansion-panel>
     </div>
     <div class="wrapper" *ngIf="selected && selected.panels.details.comp !== undefined">
-        <mat-expansion-panel
-            [disabled]="true"
-            [hideToggle]="true"
-            [expanded]="true"
-        >
+        <mat-expansion-panel [disabled]="true" [hideToggle]="true" [expanded]="true">
             <mat-expansion-panel-header>
                 <mat-panel-title>{{selected.panels.details.name}}</mat-panel-title>
-                <mat-panel-description
-                    >{{selected.panels.details.desc}}</mat-panel-description
-                >
+                <mat-panel-description>{{selected.panels.details.desc}}</mat-panel-description>
             </mat-expansion-panel-header>
             <lib-containers-dynamic
                 [component]="selected.panels.details.comp"
@@ -40,6 +34,7 @@
         </mat-expansion-panel>
     </div>
 </div>
+<app-views-teamwork-applet [session]="session"></app-views-teamwork-applet>
 <div class="controlls">
     <button mat-icon-button color="primary" (click)="onShowPresets($event)">
         <mat-icon>menu_open</mat-icon>
