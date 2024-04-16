@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use std::{fs, path::PathBuf};
 
 #[derive(Clone, Debug)]
+/// Represents the path `application/holder`
 pub struct Module {}
 
 impl Module {

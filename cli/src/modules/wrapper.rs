@@ -39,6 +39,7 @@ const TEST_SPECS: [&str; 14] = [
 ];
 
 #[derive(Clone, Debug)]
+/// Represents the path `application/apps/rustcore/ts-bindings`
 pub struct Module {}
 
 impl Module {

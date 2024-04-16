@@ -20,7 +20,9 @@ use std::{iter, path::PathBuf};
 
 #[derive(Debug, Clone)]
 pub enum Kind {
+    /// TypeScript
     Ts,
+    /// Rust
     Rs,
 }
 

@@ -3,13 +3,21 @@ use clap::ValueEnum;
 
 #[derive(ValueEnum, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum Target {
+    /// Represents the path `application/apps/indexer`
     Core,
+    /// Represents the path `application/apps/rustcore/rs-bindings`
     Binding,
+    /// Represents the path `application/apps/rustcore/ts-bindings`
     Wrapper,
+    /// Represents the path `application/client`
     Client,
+    /// Represents the path `application/platform`
     Shared,
+    /// Represents the path `application/holder`
     App,
+    /// Represents the path `cli`
     Cli,
+    /// Represents the path `application/apps/rustcore/wasm-bindings`
     Wasm,
 }
 

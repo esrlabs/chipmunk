@@ -87,6 +87,7 @@ async fn main() -> Result<(), Error> {
 
     init_location()?;
 
+    // Run the given command
     let command = cli.command;
     let report_opt: ReportOptions;
     let results = match command {
@@ -140,6 +141,7 @@ async fn main() -> Result<(), Error> {
         }
     };
 
+    // Shutdown and show results & report
     let tracker = get_tracker().await;
     tracker.shutdown().await?;
     let mut success: bool = true;

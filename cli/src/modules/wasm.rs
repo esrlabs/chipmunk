@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
+/// Represents the path `application/apps/rustcore/wasm-bindings`
 pub struct Module {}
 
 impl Module {

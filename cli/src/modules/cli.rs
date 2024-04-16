@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
+/// Represents the path `cli`
 pub struct Module {}
 
 impl Module {
