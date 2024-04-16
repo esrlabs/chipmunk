@@ -23,7 +23,13 @@ static REPORT_HELP_TEXT: &str =
     "Write report from command logs to the given file or to stdout if no file is defined";
 static REPORT_VALUE_NAME: &str = "FILE-PATH";
 
-#[derive(Parser, Debug)]
+#[derive(Parser)]
+#[command(name = "cargo", bin_name = "cargo")]
+enum CargoCli {
+    Chipmunk(Cli),
+}
+
+#[derive(clap::Args, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
     #[command(subcommand)]
@@ -83,7 +89,7 @@ enum Command {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let cli = Cli::parse();
+    let CargoCli::Chipmunk(cli) = CargoCli::parse();
 
     init_location()?;
 
