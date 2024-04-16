@@ -1,3 +1,4 @@
+mod check_env;
 mod fstools;
 mod location;
 mod modules;
@@ -6,6 +7,7 @@ mod target;
 mod tracker;
 
 use anyhow::{bail, Error};
+use check_env::check_env;
 use clap::{Parser, Subcommand};
 use futures::future::join_all;
 use location::init_location;
@@ -90,6 +92,8 @@ enum Command {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let CargoCli::Chipmunk(cli) = CargoCli::parse();
+
+    check_env()?;
 
     init_location()?;
 
