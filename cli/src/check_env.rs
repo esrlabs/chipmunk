@@ -1,4 +1,7 @@
-use std::process::{Command, Stdio};
+use std::{
+    fmt::Write,
+    process::{Command, Stdio},
+};
 
 use anyhow::bail;
 
@@ -42,6 +45,7 @@ impl EnvCheck {
 
 /// Checks if all the needed dependencies for the build environment are available
 pub fn check_env() -> anyhow::Result<()> {
+    let mut errors = None;
     for check in ENV_CHECKS.iter() {
         let success = match Command::new(check.command)
             .arg(check.arg)
@@ -54,15 +58,32 @@ pub fn check_env() -> anyhow::Result<()> {
         };
 
         if !success {
-            let mut err_msg = format!("Required dependency '{}' is not installed.", check.app_name);
+            let error_lines =
+                errors.get_or_insert(String::from("Following dependencies are missing:\n"));
+            writeln!(
+                error_lines,
+                "Required dependency '{}' is not installed.",
+                check.app_name
+            )
+            .expect("Writing to string never fail");
             if let Some(install_hint) = check.install_hint {
-                err_msg.push_str(
-                    format!("\nConsider installing it using the command '{install_hint}'").as_str(),
-                );
+                writeln!(
+                    error_lines,
+                    "Consider installing it using the command '{install_hint}'"
+                )
+                .expect("Writing to string never fail");
             }
-            bail!(err_msg);
+
+            writeln!(
+                error_lines,
+                "------------------------------------------------------------------"
+            )
+            .expect("Writing to string never fail");
         }
     }
 
-    Ok(())
+    match errors {
+        Some(err_text) => bail!("{}", err_text.trim()),
+        None => Ok(()),
+    }
 }

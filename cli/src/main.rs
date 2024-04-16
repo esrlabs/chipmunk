@@ -47,6 +47,9 @@ enum ReportOptions {
 
 #[derive(Subcommand, Debug, Clone)]
 enum Command {
+    /// Checks that all needed tools for the development are installed
+    #[clap(visible_alias = "env")]
+    Environment,
     /// Runs linting & clippy
     Lint {
         /// Target to lint, by default whole application will be linted
@@ -101,6 +104,11 @@ async fn main() -> Result<(), Error> {
     let command = cli.command;
     let report_opt: ReportOptions;
     let results = match command {
+        Command::Environment => {
+            // Check for dependencies is already called before calling any command
+            println!("All needed tools for development are installed");
+            return Ok(());
+        }
         Command::Lint { target, report } => {
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
