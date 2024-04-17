@@ -11,10 +11,7 @@
 // from E.S.R.Labs.
 
 //! # Formatting dlt messages as text
-use chrono::{
-    prelude::{DateTime, Utc},
-    NaiveDateTime,
-};
+use chrono::prelude::{DateTime, Utc};
 use chrono_tz::Tz;
 use dlt_core::{
     dlt::{
@@ -137,14 +134,11 @@ struct DltDltTimeStamp<'a>(&'a DltTimeStamp);
 
 impl<'a> fmt::Display for DltDltTimeStamp<'a> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-        let naive: Option<NaiveDateTime> = NaiveDateTime::from_timestamp_opt(
-            i64::from(self.0.seconds),
-            self.0.microseconds * 1000,
-        );
-        match naive {
-            Some(n) => {
-                let datetime: DateTime<Utc> = DateTime::from_naive_utc_and_offset(n, Utc);
-                let system_time: std::time::SystemTime = std::time::SystemTime::from(datetime);
+        let dt: Option<DateTime<Utc>> =
+            DateTime::from_timestamp(i64::from(self.0.seconds), self.0.microseconds * 1000);
+        match dt {
+            Some(dt) => {
+                let system_time: std::time::SystemTime = std::time::SystemTime::from(dt);
                 write!(f, "{}", humantime::format_rfc3339(system_time))
             }
             None => write!(
@@ -574,16 +568,12 @@ fn write_tz_string(
     time_stamp: &DltTimeStamp,
     tz: &Tz,
 ) -> Result<(), fmt::Error> {
-    let naive: Option<NaiveDateTime> = NaiveDateTime::from_timestamp_opt(
+    let dt: Option<DateTime<Utc>> = DateTime::from_timestamp(
         i64::from(time_stamp.seconds),
         time_stamp.microseconds * 1000,
     );
-    match naive {
-        Some(n) => write!(
-            f,
-            "{}",
-            DateTime::<Utc>::from_naive_utc_and_offset(n, Utc).with_timezone(tz)
-        ),
+    match dt {
+        Some(dt) => write!(f, "{}", dt.with_timezone(tz)),
         None => write!(
             f,
             "no valid timestamp for {}s/{}us",
@@ -593,14 +583,13 @@ fn write_tz_string(
 }
 
 pub fn utc_string(time_stamp: &DltTimeStamp) -> String {
-    let naive: Option<NaiveDateTime> = NaiveDateTime::from_timestamp_opt(
+    let dt: Option<DateTime<Utc>> = DateTime::from_timestamp(
         i64::from(time_stamp.seconds),
         time_stamp.microseconds * 1000,
     );
-    match naive {
-        Some(n) => {
-            let datetime: DateTime<Utc> = DateTime::from_naive_utc_and_offset(n, Utc);
-            let system_time: std::time::SystemTime = std::time::SystemTime::from(datetime);
+    match dt {
+        Some(dt) => {
+            let system_time: std::time::SystemTime = std::time::SystemTime::from(dt);
             humantime::format_rfc3339(system_time).to_string()
         }
         None => format!(
