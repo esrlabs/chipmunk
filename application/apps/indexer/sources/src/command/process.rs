@@ -91,6 +91,7 @@ impl ProcessSource {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .stdin(Stdio::piped())
+            .kill_on_drop(true)
             .spawn()
             .map_err(|e| ProcessError::Setup(format!("{e}")))
     }
