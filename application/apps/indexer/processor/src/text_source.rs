@@ -249,18 +249,20 @@ impl TextFileSource {
         Ok((read_buf, file_part))
     }
 
-    pub fn clear_lines<'a>(
+    /// Current gen of chipmunk doesn't include support of none UTF-8 coding.
+    /// Before sending data to client we should make sure, data will include
+    /// only valid UTF8 or/and Unicode.
+    pub fn clear_lines(
         &self,
-        read_buf: &'a [u8],
+        read_buf: &[u8],
         file_part: &FilePart,
-    ) -> Result<Vec<&'a str>, GrabError> {
-        let s = unsafe { std::str::from_utf8_unchecked(read_buf) };
-        let all_lines = s.split(|c| c == '\n');
-        let lines_minus_end = all_lines.take(file_part.total_lines - file_part.lines_to_drop);
-        let pure_lines = lines_minus_end
+    ) -> Result<Vec<String>, GrabError> {
+        Ok(String::from_utf8_lossy(read_buf)
+            .split(|c| c == '\n')
+            .take(file_part.total_lines - file_part.lines_to_drop)
             .skip(file_part.lines_to_skip)
-            .collect::<Vec<&str>>();
-        Ok(pure_lines)
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>())
     }
 
     /// Calling this function is only possible when the metadata already has been
@@ -276,11 +278,7 @@ impl TextFileSource {
         line_range: &LineRange,
     ) -> Result<Vec<String>, GrabError> {
         let (read_buf, file_part) = self.read_file_segment(metadata, line_range)?;
-        Ok(self
-            .clear_lines(&read_buf, &file_part)?
-            .iter()
-            .map(|s| s.to_string())
-            .collect::<Vec<String>>())
+        self.clear_lines(&read_buf, &file_part)
     }
 
     pub fn write_to<W: std::io::Write>(

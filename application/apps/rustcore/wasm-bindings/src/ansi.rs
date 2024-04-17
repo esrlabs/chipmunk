@@ -93,7 +93,13 @@ impl AnsiMapper {
         let mut clean_length = 0;
         let mut i = 0;
         while i < input.len() {
-            let current = &input[i..];
+            // call of input[i..] unfriendly to Unicode, so we should make sure we are
+            // taking completed sequences
+            let Some(current) = input.get(i..) else {
+                clean_length += 1;
+                i += 1;
+                continue;
+            };
             if input[i..].starts_with('<') && !input[i..].starts_with("</") {
                 if let Some(pos) = current.find('>') {
                     let tag = &current[..=pos];
