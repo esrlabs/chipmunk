@@ -8,15 +8,17 @@ pub mod wasm;
 pub mod wrapper;
 
 use crate::{
+    build_state::{BuildState, BuildStatesTracker},
     fstools,
     location::get_root,
     spawner::{spawn, SpawnOptions, SpawnResult},
     Target,
 };
-use anyhow::Error;
+use anyhow::{bail, Context, Error};
 use async_trait::async_trait;
 use futures::future::join_all;
 use std::{iter, path::PathBuf};
+use tokio::sync::oneshot;
 
 #[derive(Debug, Clone)]
 pub enum Kind {
@@ -142,7 +144,75 @@ pub trait Manager {
     async fn after(&self, _prod: bool) -> Result<Option<SpawnResult>, Error> {
         Ok(None)
     }
+
+    /// Runs build considering the currently running builds and already finished ones as well.
     async fn build(&self, prod: bool) -> Result<Vec<SpawnResult>, Error> {
+        let build_states = BuildStatesTracker::get().await;
+        let (tx_result, rx_result) = oneshot::channel();
+
+        let target = self.owner();
+        let mut run_build = false;
+        // Check the current build state
+        {
+            let mut states = build_states.states_map.lock().unwrap();
+            match states.get_mut(&target) {
+                Some(BuildState::Running(senders)) => {
+                    // If the build is currently running, add the sender to senders list so it get
+                    // the results when the job is done;
+                    senders.push(tx_result);
+                }
+                Some(BuildState::Finished(build_result)) => {
+                    // If Build is already finished, then return the results directly
+                    match build_result {
+                        Ok(res) => return Ok(res.clone()),
+                        Err(err) => bail!(err.to_string()),
+                    }
+                }
+                None => {
+                    // Run the build and add the sender to the list.
+                    run_build = true;
+                    states.insert(target.clone(), BuildState::Running(vec![tx_result]));
+                }
+            }
+        }
+
+        if run_build {
+            // Run the build
+            let build_result = self.perform_build(prod).await;
+            // Update the build state and notify all the senders
+            {
+                let mut states = build_states.states_map.lock().unwrap();
+
+                let res_clone = match &build_result {
+                    Ok(spawn_res) => Ok(spawn_res.clone()),
+                    Err(err) => Err(anyhow::anyhow!("{}", err)),
+                };
+
+                let Some(BuildState::Running(senders)) =
+                    states.insert(target, BuildState::Finished(build_result))
+                else {
+                    unreachable!("State after calling build must be renning");
+                };
+
+                for sender in senders {
+                    let res_clone = match &res_clone {
+                        Ok(spawn_res) => Ok(spawn_res.clone()),
+                        Err(err) => Err(anyhow::anyhow!("{}", err)),
+                    };
+                    if sender.send(res_clone).is_err() {
+                        bail!("Fail to communicate with builder");
+                    }
+                }
+            }
+        }
+
+        rx_result
+            .await
+            .context("Fail to communicate with builder")?
+    }
+
+    /// Performs build process without checking the current builds states
+    async fn perform_build(&self, prod: bool) -> Result<Vec<SpawnResult>, Error> {
         let mut results = Vec::new();
         let install_result = self.install(false).await?;
         results.push(install_result);
@@ -184,6 +254,7 @@ pub trait Manager {
             Err(err) => Err(err),
         }
     }
+
     async fn check(&self) -> Result<Vec<SpawnResult>, Error> {
         let mut results = Vec::new();
         match self.kind() {
