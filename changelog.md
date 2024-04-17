@@ -1,3 +1,8 @@
+# 3.12.1 (16.04.2024)
+
+## Fixes
+- Fix issue related to invalid UTF-8 and Unicode
+
 # 3.12.0 (12.04.2024)
 
 ## Features
