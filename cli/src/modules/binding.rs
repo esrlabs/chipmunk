@@ -29,7 +29,7 @@ impl Manager for Module {
             .join("rs-bindings")
     }
     fn deps(&self) -> Vec<Target> {
-        vec![]
+        vec![Target::Shared]
     }
     fn build_cmd(&self, prod: bool) -> Option<String> {
         let mut path = Target::Wrapper.get().cwd();
