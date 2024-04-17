@@ -109,6 +109,7 @@ impl ProcessSource {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .stdin(Stdio::piped())
+            .kill_on_drop(true)
             .spawn()
             .map_err(|e| ProcessError::Setup(format!("{e}")))
     }
@@ -239,12 +240,10 @@ async fn test_process() -> Result<(), ProcessError> {
                 .is_some()
             {
                 assert!(!process_source.current_slice().is_empty());
-                // println!(
-                //     "{}",
-                //     std::str::from_utf8(process_source.current_slice()).unwrap()
-                // );
                 process_source.consume(process_source.current_slice().len());
             }
+            // By some reasons during test sometimes process stay alive and as result
+            let _ = process_source.process.kill().await;
             Ok(())
         }
         Err(err) => Err(err),
