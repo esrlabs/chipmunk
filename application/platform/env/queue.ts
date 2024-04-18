@@ -8,43 +8,43 @@ export type Handler = () => void;
 
 export interface Task {
     uuid: string;
-    alias: string;
+    alias: string | undefined;
     task: TaskExecutor;
 }
+
+const WARN_DURATION_MS = 1000;
 
 export class Queue {
     private readonly _tasks: Map<string, Task> = new Map();
     private _destroy: Handler | undefined;
-    private readonly _locker: LockToken = LockToken.simple(false);
+    private readonly _shutdown: LockToken = LockToken.simple(false);
     private readonly _logger: Logger;
+    private readonly _processing: LockToken = LockToken.simple(false);
 
     constructor(logger: Logger) {
         this._logger = logger;
     }
 
     public add(task: TaskExecutor, uuid?: string, alias?: string) {
-        if (this._locker.isLocked()) {
-            this._logger.warn(`Queue is locked.`);
+        if (this._shutdown.isLocked()) {
+            this._logger.warn(`Attempt to add task in queue, but it's shutdown already.`);
             return;
         }
         const _uuid = typeof uuid !== 'string' ? unique() : uuid;
-        const _alias = typeof alias !== 'string' ? `no_name` : alias;
         this._tasks.set(_uuid, {
             uuid: _uuid,
-            alias: _alias,
+            alias: typeof alias !== 'string' ? undefined : alias,
             task: task,
         });
-        if (this._tasks.size === 1) {
-            return this._proceed();
-        }
+        this._proceed();
     }
 
     public destroy(): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (this._locker.isLocked()) {
-                return reject(new Error(this._logger.warn(`Queue is already locked.`)));
+            if (this._shutdown.isLocked()) {
+                return reject(new Error(this._logger.warn(`Queue is already shutdown.`)));
             }
-            this._locker.lock();
+            this._shutdown.lock();
             if (this._tasks.size === 0) {
                 resolve();
             } else {
@@ -58,7 +58,7 @@ export class Queue {
     }
 
     public isLocked(): boolean {
-        return this._locker.isLocked();
+        return this._shutdown.isLocked();
     }
 
     private _proceed() {
@@ -69,10 +69,22 @@ export class Queue {
             }
             return;
         }
+        if (this._processing.isLocked()) {
+            return;
+        }
+        this._processing.lock();
         const next: Task = this._tasks.values().next().value;
+        const ts = Date.now();
         next.task().finally(() => {
-            this._logger.verbose(`Tasks "${next.alias}/${next.uuid}" is done`);
+            const duration = Date.now() - ts;
+            const alias = next.alias === undefined ? next.uuid : next.alias;
+            if (duration > WARN_DURATION_MS) {
+                this._logger.warn(`Task "${alias}" took much time to be done: ${duration}ms`);
+            } else {
+                this._logger.verbose(`Task "${alias}" is done in ${duration}ms`);
+            }
             this._tasks.delete(next.uuid);
+            this._processing.unlock();
             this._proceed();
         });
     }
