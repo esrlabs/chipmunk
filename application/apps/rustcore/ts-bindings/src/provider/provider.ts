@@ -243,7 +243,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
             };
         }
         const logs = dataAsStr(data);
-        this.logger.debug(`Event from rust:\n\t${logs.debug}`);
+        this.logger.verbose(`Event from rust:\n\t${logs.debug}`);
         logs.verb !== undefined && this.logger.verbose(`Event from rust:\n\t${logs.verb}`);
         let event: Required<IEventData>;
         if (typeof data === 'string') {
@@ -325,7 +325,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                         );
                     }
                     (this.getEvents() as any)[event].emit(converted);
-                    this.logger.debug(`Event "${event}" is processed`);
+                    this.logger.verbose(`Event "${event}" is processed`);
                 }
             }
         }, 0);
