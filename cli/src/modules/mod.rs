@@ -92,7 +92,7 @@ pub trait Manager {
 
         let remove_log = format!("removing {}", dist_path.display());
 
-        fstools::rm_folder(dist_path).await?;
+        fstools::rm_folder(&dist_path).await?;
 
         let job = format!("Reset {}", self.owner());
 
@@ -110,7 +110,7 @@ pub trait Manager {
         let remove_log = format!("removing directory {}", path.display());
         logs.push(remove_log);
 
-        fstools::rm_folder(path).await?;
+        fstools::rm_folder(&path).await?;
 
         let job = format!("Clean {}", self.owner());
 

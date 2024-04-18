@@ -53,7 +53,7 @@ impl Manager for Module {
             let msg = format!("removig directory: {}", prev.display());
             report_logs.push(msg);
 
-            fstools::rm_folder(prev).await?;
+            fstools::rm_folder(&prev).await?;
         }
 
         let msg = format!(
