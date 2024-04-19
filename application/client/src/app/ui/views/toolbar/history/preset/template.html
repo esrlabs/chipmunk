@@ -4,20 +4,57 @@
             (changed)="onRename($event)"
             [value]="getValue()"
             [caption]="getName()"
-            [placeholder]="'Preset name'"></app-editable-field>
+            [placeholder]="'Preset name'"
+        ></app-editable-field>
     </mat-card-title>
     <mat-card-content>
         <div class="section" *ngIf="filters.length > 0">
             <p class="t-small color-scheme-2">Filters</p>
-            <app-toolbar-history-filter-preview *ngFor="let filter of filters" [filter]="filter"></app-toolbar-history-filter-preview>    
+            <app-toolbar-history-filter-preview
+                *ngFor="let filter of filters"
+                [filter]="filter"
+            ></app-toolbar-history-filter-preview>
+            <div class="more" *ngIf="filters.length < origin.filters.length">
+                <span class="small-link-button" (click)="more($event, Target.Filters)"
+                    >show more ({{origin.filters.length - filters.length}})</span
+                >
+            </div>
         </div>
         <div class="section" *ngIf="charts.length > 0">
             <p class="t-small color-scheme-2">Charts</p>
-            <app-toolbar-history-chart-preview *ngFor="let chart of charts" [chart]="chart"></app-toolbar-history-chart-preview>    
+            <app-toolbar-history-chart-preview
+                *ngFor="let chart of charts"
+                [chart]="chart"
+            ></app-toolbar-history-chart-preview>
+            <div class="more" *ngIf="charts.length < origin.charts.length">
+                <span class="small-link-button" (click)="more($event, Target.Charts)"
+                    >show more ({{origin.charts.length - charts.length}})</span
+                >
+            </div>
         </div>
         <div class="section" *ngIf="disabled.filters.length > 0">
             <p class="t-small color-scheme-2">Disabled filters</p>
-            <app-toolbar-history-filter-preview *ngFor="let filter of disabled.filters" [filter]="filter"></app-toolbar-history-filter-preview>
+            <app-toolbar-history-filter-preview
+                *ngFor="let filter of disabled.filters"
+                [filter]="filter"
+            ></app-toolbar-history-filter-preview>
+            <div class="more" *ngIf="disabled.filters.length < origin.disabled.filters.length">
+                <span class="small-link-button" (click)="more($event, Target.DisabledFilters)"
+                    >show more ({{origin.disabled.filters.length - disabled.filters.length}})</span
+                >
+            </div>
+        </div>
+        <div class="section" *ngIf="disabled.charts.length > 0">
+            <p class="t-small color-scheme-2">Disabled charts</p>
+            <app-toolbar-history-chart-preview
+                *ngFor="let chart of disabled.charts"
+                [chart]="chart"
+            ></app-toolbar-history-chart-preview>
+            <div class="more" *ngIf="disabled.charts.length < origin.disabled.charts.length">
+                <span class="small-link-button" (click)="more($event, Target.DisabledCharts)"
+                    >show more ({{origin.disabled.charts.length - disabled.charts.length}})</span
+                >
+            </div>
         </div>
     </mat-card-content>
 </mat-card>
