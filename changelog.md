@@ -1,3 +1,8 @@
+# 3.12.4 (19.04.2024)
+
+## Fixes
+- Fix parsing disabled entities (filters/charts)
+
 # 3.12.3 (19.04.2024)
 
 ## Changes
