@@ -165,7 +165,11 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
 
     public subscribe(subscriber: Subscriber, session: Session): void {
         this.asCollectionsArray().forEach((c) => {
-            subscriber.register(c.updated.subscribe(() => this.updated.emit()));
+            subscriber.register(
+                c.updated.subscribe(() => {
+                    this.updated.emit();
+                }),
+            );
             c.subscribe(subscriber, session);
         });
     }

@@ -5,6 +5,7 @@ import { FileType } from '@platform/types/observe/types/file';
 import { ShellProfile } from '@platform/types/shells';
 import { StatisticInfo } from '@platform/types/observe/parser/dlt';
 import { Entry } from '@platform/types/storage/entry';
+import { error } from '@platform/log/utils';
 
 import * as Requests from '@platform/ipc/request/index';
 
@@ -685,7 +686,7 @@ export class Service extends Implementation {
                     new Requests.Storage.EntriesSet.Request({
                         key: dest.key,
                         file: dest.file,
-                        entries,
+                        entries: JSON.stringify(entries),
                         mode,
                     }),
                 )
@@ -706,7 +707,15 @@ export class Service extends Implementation {
                         }),
                     )
                         .then((response) => {
-                            resolve(response.entries);
+                            try {
+                                const entries: Entry[] = JSON.parse(response.entries);
+                                if (!(entries instanceof Array)) {
+                                    throw new Error(`Expecting entries will be {Entry[]}`);
+                                }
+                                resolve(entries);
+                            } catch (e) {
+                                reject(new Error(this.log().error(error(e))));
+                            }
                         })
                         .catch(reject);
                 });
