@@ -8,9 +8,17 @@ use std::{fs, path::PathBuf};
 
 use crate::tracker::get_tracker;
 
-pub async fn cp_file(src: PathBuf, dest: PathBuf) -> Result<(), Error> {
+pub async fn cp_file(
+    src: PathBuf,
+    dest: PathBuf,
+    report_logs: &mut Vec<String>,
+) -> Result<(), Error> {
     let tracker = get_tracker().await;
     let sequence = tracker.start("copy file", None).await?;
+
+    let msg = format!("copying file: '{}' to '{}'", src.display(), dest.display());
+    report_logs.push(msg);
+
     fs::copy(&src, &dest)?;
     tracker
         .success(
@@ -21,12 +29,25 @@ pub async fn cp_file(src: PathBuf, dest: PathBuf) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn cp_folder(src: PathBuf, dest: PathBuf) -> Result<(), Error> {
+pub async fn cp_folder(
+    src: PathBuf,
+    dest: PathBuf,
+    report_logs: &mut Vec<String>,
+) -> Result<(), Error> {
     let tracker = get_tracker().await;
     let sequence = tracker.start("copy folder", None).await?;
     let options = CopyOptions::new();
     let (tx, rx): (mpsc::Sender<TransitProcess>, mpsc::Receiver<TransitProcess>) = mpsc::channel();
+
+    let msg = format!(
+        "copying directory: '{}' to '{}'",
+        src.display(),
+        dest.display()
+    );
+    report_logs.push(msg);
+
     let msg = format!("copied: {} to {}", src.display(), dest.display());
+
     let _ = tokio::spawn(async move {
         if let Err(e) = copy_with_progress(src, dest, &options, |info| {
             if tx.send(info).is_err() {

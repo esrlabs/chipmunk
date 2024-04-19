@@ -81,14 +81,7 @@ impl Manager for Module {
             fs::create_dir(&dest)?;
         }
 
-        let msg = format!(
-            "copying directory: '{}' to '{}'",
-            src.display(),
-            dest.display()
-        );
-        report_logs.push(msg);
-
-        fstools::cp_file(src, dest.join("index.node")).await?;
+        fstools::cp_file(src, dest.join("index.node"), &mut report_logs).await?;
 
         // TODO: This part is taken from from `copy_tsbindings_and_platform` in ruby.
         // - We still need to make sure that it fits well with the current implementation and

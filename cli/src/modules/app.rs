@@ -56,14 +56,7 @@ impl Manager for Module {
             fstools::rm_folder(&prev).await?;
         }
 
-        let msg = format!(
-            "copying directory: '{}' to '{}'",
-            src.display(),
-            dest.display()
-        );
-        report_logs.push(msg);
-
-        fstools::cp_folder(src.clone(), dest.clone()).await?;
+        fstools::cp_folder(src.clone(), dest.clone(), &mut report_logs).await?;
 
         let rename_from = dest.join(
             src.file_name()
