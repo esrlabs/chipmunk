@@ -316,7 +316,8 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
                 this.collections.disabled
                     .as()
                     .elements()
-                    .filter((entity) => entity.as().filter()) as unknown as FilterRequest[]
+                    .map((entity) => entity.as().filter())
+                    .filter((entity) => entity !== undefined) as unknown as FilterRequest[]
             )
                 .map((request: FilterRequest) => {
                     const def = request.definition;
@@ -327,7 +328,8 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
                 this.collections.disabled
                     .as()
                     .elements()
-                    .filter((entity) => entity.as().chart()) as unknown as ChartRequest[]
+                    .map((entity) => entity.as().chart())
+                    .filter((entity) => entity !== undefined) as unknown as ChartRequest[]
             )
                 .map((request) => {
                     const def = request.definition;
