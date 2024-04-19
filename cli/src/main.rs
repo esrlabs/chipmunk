@@ -1,5 +1,6 @@
 mod build_state;
 mod check_env;
+mod cli_args;
 mod fstools;
 mod location;
 mod modules;
@@ -9,7 +10,8 @@ mod tracker;
 
 use anyhow::{bail, Error};
 use check_env::check_env;
-use clap::{Parser, Subcommand};
+use clap::Parser;
+use cli_args::{CargoCli, Command};
 use futures::future::join_all;
 use location::init_location;
 use modules::Manager;
@@ -22,75 +24,11 @@ use std::{
 use target::Target;
 use tracker::get_tracker;
 
-static REPORT_HELP_TEXT: &str =
-    "Write report from command logs to the given file or to stdout if no file is defined";
-static REPORT_VALUE_NAME: &str = "FILE-PATH";
-
-#[derive(Parser)]
-#[command(name = "cargo", bin_name = "cargo")]
-enum CargoCli {
-    Chipmunk(Cli),
-}
-
-#[derive(clap::Args, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Cli {
-    #[command(subcommand)]
-    command: Command,
-}
-
 #[derive(Debug)]
-enum ReportOptions {
+pub enum ReportOptions {
     None,
     Stdout(Stdout),
     File(PathBuf, File),
-}
-
-#[derive(Subcommand, Debug, Clone)]
-enum Command {
-    /// Checks that all needed tools for the development are installed
-    #[clap(visible_alias = "env")]
-    Environment,
-    /// Runs linting & clippy
-    Lint {
-        /// Target to lint, by default whole application will be linted
-        #[arg(index = 1)]
-        target: Option<Vec<Target>>,
-
-        #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
-        report: Option<Option<PathBuf>>,
-    },
-    /// Build
-    Build {
-        /// Target to build, by default whole application will be built
-        #[arg(index = 1)]
-        target: Option<Vec<Target>>,
-
-        /// Build release version
-        #[arg(short, long, default_value_t = false)]
-        production: bool,
-
-        #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
-        report: Option<Option<PathBuf>>,
-    },
-    /// Clean
-    Clean {
-        /// Target to clean, by default whole application will be cleaned
-        #[arg(index = 1)]
-        target: Option<Vec<Target>>,
-
-        #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
-        report: Option<Option<PathBuf>>,
-    },
-    /// Run tests
-    Test {
-        /// Target to test, by default whole application will be tested
-        #[arg(index = 1)]
-        target: Option<Vec<Target>>,
-
-        #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
-        report: Option<Option<PathBuf>>,
-    },
 }
 
 #[tokio::main]
