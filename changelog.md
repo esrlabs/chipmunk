@@ -1,3 +1,8 @@
+# 3.12.2 (19.04.2024)
+
+## Changes
+- Optimization for "History/Presets" tab
+
 # 3.12.1 (16.04.2024)
 
 ## Fixes
