@@ -1,5 +1,4 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { Entry } from '../../../types/storage/entry';
 
 import * as validator from '../../../env/obj';
 
@@ -9,15 +8,15 @@ export type Mode = 'overwrite' | 'update' | 'append';
 export class Request extends SignatureRequirement {
     public key?: string;
     public file?: string;
-    public entries: Entry[];
+    public entries: string;
     public mode: Mode;
-    constructor(input: { key?: string; file?: string; entries: Entry[]; mode: Mode }) {
+    constructor(input: { key?: string; file?: string; entries: string; mode: Mode }) {
         super();
         validator.isObject(input);
         this.key = validator.getAsNotEmptyStringOrAsUndefined(input, 'key');
         this.file = validator.getAsNotEmptyStringOrAsUndefined(input, 'file');
         this.mode = validator.getAsNotEmptyString(input, 'mode') as Mode;
-        this.entries = validator.getAsArray(input, 'entries');
+        this.entries = validator.getAsNotEmptyString(input, 'entries');
         if (this.key === undefined && this.file === undefined) {
             throw new Error(`For EntriesSetRequest should be defined "file" or "key"`);
         }

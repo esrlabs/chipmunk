@@ -42,15 +42,17 @@ export class StorageCollections {
     }
 
     public async save(): Promise<void> {
-        await bridge
-            .entries({ key: StorageCollections.UUID })
-            .overwrite(Array.from(this.collections.values()).map((c) => c.entry().to()))
-            .then(() => {
-                this.saved.emit();
-            })
-            .catch((err: Error) => {
-                this.log().warn(`Fail to write history collections: ${err.message}`);
-            });
+        setTimeout(() => {
+            bridge
+                .entries({ key: StorageCollections.UUID })
+                .overwrite(Array.from(this.collections.values()).map((c) => c.entry().to()))
+                .then(() => {
+                    this.saved.emit();
+                })
+                .catch((err: Error) => {
+                    this.log().warn(`Fail to write history collections: ${err.message}`);
+                });
+        });
     }
 
     public async clean(): Promise<void> {

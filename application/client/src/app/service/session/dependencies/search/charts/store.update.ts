@@ -84,6 +84,7 @@ export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartReques
         highlights: boolean;
         value: boolean;
         inner: boolean;
+        storable: boolean;
     } {
         return {
             highlights: this.event.line || this.event.point || this.event.color || this.event.type,
@@ -94,6 +95,13 @@ export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, ChartReques
                 this.event.color ||
                 this.event.filter ||
                 this.event.stat ||
+                this.event.state ||
+                this.event.type,
+            storable:
+                this.event.line ||
+                this.event.point ||
+                this.event.color ||
+                this.event.filter ||
                 this.event.state ||
                 this.event.type,
         };

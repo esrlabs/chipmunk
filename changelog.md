@@ -1,3 +1,8 @@
+# 3.12.3 (19.04.2024)
+
+## Changes
+- Optimization of the events life cycle of filters/charts/disabled
+
 # 3.12.2 (19.04.2024)
 
 ## Changes

@@ -11,6 +11,8 @@ import { electron } from '@service/electron';
 import { FileController } from '@env/fs/accessor';
 import { CancelablePromise } from 'platform/env/promise';
 import { Entries } from './storage/entries';
+import { error } from 'platform/log/utils';
+import { Entry } from 'platform/types/storage/entry';
 
 import * as path from 'path';
 import * as Requests from 'platform/ipc/request';
@@ -109,7 +111,9 @@ export class Service extends Implementation {
                                         resolve(
                                             new Requests.Storage.EntriesGet.Response({
                                                 key,
-                                                entries: Array.from(entries.values()),
+                                                entries: JSON.stringify(
+                                                    Array.from(entries.values()),
+                                                ),
                                             }),
                                         );
                                     })
@@ -123,7 +127,9 @@ export class Service extends Implementation {
                                         resolve(
                                             new Requests.Storage.EntriesGet.Response({
                                                 key: filename,
-                                                entries: Array.from(entries.values()),
+                                                entries: JSON.stringify(
+                                                    Array.from(entries.values()),
+                                                ),
                                             }),
                                         );
                                     })
@@ -149,24 +155,29 @@ export class Service extends Implementation {
                         request: Requests.Storage.EntriesSet.Request,
                     ): CancelablePromise<Requests.Storage.EntriesSet.Response> => {
                         return new CancelablePromise((resolve, reject) => {
+                            const entries: Entry[] | Error = (() => {
+                                try {
+                                    const entries: Entry[] = JSON.parse(request.entries);
+                                    if (!(entries instanceof Array)) {
+                                        throw new Error(`Expecting entries will be {Entry[]}`);
+                                    }
+                                    return entries;
+                                } catch (e) {
+                                    return new Error(this.log().error(error(e)));
+                                }
+                            })();
                             ((): Promise<void> => {
+                                if (entries instanceof Error) {
+                                    return Promise.reject(entries);
+                                }
                                 if (request.key !== undefined) {
                                     switch (request.mode) {
                                         case 'overwrite':
-                                            return this.entries.overwrite(
-                                                request.key,
-                                                request.entries,
-                                            );
+                                            return this.entries.overwrite(request.key, entries);
                                         case 'append':
-                                            return this.entries.append(
-                                                request.key,
-                                                request.entries,
-                                            );
+                                            return this.entries.append(request.key, entries);
                                         case 'update':
-                                            return this.entries.update(
-                                                request.key,
-                                                request.entries,
-                                            );
+                                            return this.entries.update(request.key, entries);
                                     }
                                 } else if (request.file !== undefined) {
                                     const file = new FileController(request.file).init();
