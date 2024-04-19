@@ -3,7 +3,7 @@ use crate::{
     location::{get_root, to_relative_path},
     tracker::get_tracker,
 };
-use anyhow::bail;
+use anyhow::{bail, Context};
 use core::panic;
 use futures_lite::{future, FutureExt};
 use std::{
@@ -69,11 +69,17 @@ pub async fn spawn(
 
     let mut child = Command::new(cmd)
         .current_dir(&cwd)
-        .args(parts)
+        .args(&parts)
         .envs(env_vars)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .spawn()?;
+        .spawn()
+        .with_context(|| {
+            format!(
+                "Error While running the command '{cmd}'\nwith arguments: {parts:?}\ncwd: {}",
+                cwd.display()
+            )
+        })?;
     let job_title = caption;
     let tracker = get_tracker().await;
     let sequence = tracker
@@ -173,7 +179,7 @@ pub async fn spawn_blocking(
 
     let mut child = std::process::Command::new(cmd);
     child.current_dir(&cwd);
-    child.args(parts);
+    child.args(&parts);
     child.envs(env_vars);
 
     let tracker = get_tracker().await;
@@ -189,7 +195,7 @@ pub async fn spawn_blocking(
         Ok(status) => status,
         Err(err) => {
             tracker.fail(sequence, &err.to_string()).await;
-            return Err(err);
+            bail!("Error While running the command '{cmd}'\nwith arguments: {parts:?}\ncwd: {}\n Error Info: {err}", cwd.display());
         }
     };
 

@@ -46,11 +46,12 @@ impl Manager for Module {
             let msg = format!("creating directory: {}", dest.display());
             report_logs.push(msg);
 
-            fs::create_dir(&dest)?;
+            fs::create_dir(&dest)
+                .with_context(|| format!("Error while creating directory: {}", dest.display()))?;
         }
         let prev = dest.join("client");
         if prev.exists() {
-            let msg = format!("removig directory: {}", prev.display());
+            let msg = format!("removing directory: {}", prev.display());
             report_logs.push(msg);
 
             fstools::rm_folder(&prev).await?;
@@ -71,7 +72,8 @@ impl Manager for Module {
         );
         report_logs.push(msg);
 
-        std::fs::rename(rename_from, rename_to)?;
+        std::fs::rename(&rename_from, &rename_to)
+            .with_context(|| format!("Error while renaming {}", rename_from.display()))?;
 
         Ok(Some(SpawnResult::create_for_fs(
             "Copy App Build Artifacts".into(),

@@ -5,7 +5,7 @@ use crate::{
     spawner::{spawn, spawn_blocking, SpawnResult},
     Target,
 };
-use anyhow::{bail, Error};
+use anyhow::{bail, Context, Error};
 use async_trait::async_trait;
 use std::{fs, iter, path::PathBuf};
 
@@ -78,7 +78,8 @@ impl Manager for Module {
             let msg = format!("creating directory: {}", dest.display());
             report_logs.push(msg);
 
-            fs::create_dir(&dest)?;
+            fs::create_dir(&dest)
+                .with_context(|| format!("Error while creating directory: {}", dest.display()))?;
         }
 
         fstools::cp_file(src, dest.join("index.node"), &mut report_logs).await?;
@@ -100,11 +101,21 @@ impl Manager for Module {
         let msg = format!("Removing directory: '{}'", rustcore_dest.display());
         report_logs.push(msg);
 
-        tokio::fs::create_dir_all(&rustcore_dest).await?;
+        tokio::fs::create_dir_all(&rustcore_dest)
+            .await
+            .with_context(|| {
+                format!("Error while creating directory {}", rustcore_dest.display())
+            })?;
 
         // This part to get all the needed files and folders to copy
         let ts_source = self.cwd();
-        let ts_entries_to_copy: Vec<_> = fs::read_dir(&ts_source)?
+        let ts_entries_to_copy: Vec<_> = fs::read_dir(&ts_source)
+            .with_context(|| {
+                format!(
+                    "Error while reading directory content: {}",
+                    ts_source.display()
+                )
+            })?
             .filter_map(|entry_res| entry_res.ok().map(|entry| entry.path()))
             .filter(|path| {
                 path.file_name().is_some_and(|file_name| {
@@ -135,11 +146,24 @@ impl Manager for Module {
         let platform_dest = rustcore_dest.join("node_modules").join("platform");
 
         fstools::rm_folder(&platform_dest).await?;
-        tokio::fs::create_dir_all(&platform_dest).await?;
+        tokio::fs::create_dir_all(&platform_dest)
+            .await
+            .with_context(|| {
+                format!(
+                    "Error while creating directory: {}",
+                    platform_dest.display()
+                )
+            })?;
 
         let platform_src = Target::Shared.get().cwd();
 
-        let platform_entries_to_copy: Vec<_> = fs::read_dir(&platform_src)?
+        let platform_entries_to_copy: Vec<_> = fs::read_dir(&platform_src)
+            .with_context(|| {
+                format!(
+                    "Error while reading directory content: {}",
+                    platform_src.display()
+                )
+            })?
             .filter_map(|entry_res| entry_res.ok().map(|entry| entry.path()))
             .filter(|path| {
                 path.file_name().is_some_and(|file_name| {
@@ -165,7 +189,14 @@ impl Manager for Module {
             .join("platform");
 
         fstools::rm_folder(&platform_dest2).await?;
-        tokio::fs::create_dir_all(&platform_dest2).await?;
+        tokio::fs::create_dir_all(&platform_dest2)
+            .await
+            .with_context(|| {
+                format!(
+                    "Error while creating directory: {}",
+                    platform_dest2.display()
+                )
+            })?;
 
         fstools::cp_many(
             platform_entries_to_copy,

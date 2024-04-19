@@ -1,5 +1,5 @@
 extern crate fs_extra;
-use anyhow::Error;
+use anyhow::{Context, Error};
 use fs_extra::copy_items_with_progress;
 use fs_extra::dir::{copy_with_progress, CopyOptions, TransitProcess, TransitProcessResult};
 use std::fmt::Display;
@@ -19,7 +19,13 @@ pub async fn cp_file(
     let msg = format!("copying file: '{}' to '{}'", src.display(), dest.display());
     report_logs.push(msg);
 
-    fs::copy(&src, &dest)?;
+    fs::copy(&src, &dest).with_context(|| {
+        format!(
+            "Error while copying file '{}' to '{}'",
+            src.display(),
+            dest.display()
+        )
+    })?;
     tracker
         .success(
             sequence,
@@ -39,26 +45,21 @@ pub async fn cp_folder(
     let options = CopyOptions::new();
     let (tx, rx): (mpsc::Sender<TransitProcess>, mpsc::Receiver<TransitProcess>) = mpsc::channel();
 
-    let msg = format!(
-        "copying directory: '{}' to '{}'",
-        src.display(),
-        dest.display()
-    );
-    report_logs.push(msg);
+    let path_display = format!("'{}' to '{}'", src.display(), dest.display());
 
-    let msg = format!("copied: {} to {}", src.display(), dest.display());
+    let report_msg = format!("copying directory: {path_display}");
+    report_logs.push(report_msg);
 
     let _ = tokio::spawn(async move {
-        if let Err(e) = copy_with_progress(src, dest, &options, |info| {
+        copy_with_progress(src, dest, &options, |info| {
             if tx.send(info).is_err() {
                 eprintln!("Fail to send copying progress");
             }
             TransitProcessResult::ContinueOrAbort
-        }) {
-            panic!("Fail to copy: {e}")
-        }
+        })
     })
-    .await;
+    .await
+    .with_context(|| format!("Error while copying directory: {path_display}"))?;
     while let Ok(info) = rx.recv() {
         tracker
             .msg(
@@ -71,6 +72,8 @@ pub async fn cp_folder(
             .await;
         tracker.progress(sequence, None).await;
     }
+
+    let msg = format!("copied: {path_display}");
     tracker.success(sequence, &msg).await;
     Ok(())
 }
@@ -86,11 +89,7 @@ pub async fn cp_many(
     let sequence = tracker.start("copy file and folders", None).await?;
     let options = CopyOptions::new();
     let (tx, rx) = mpsc::channel();
-    let msg = format!(
-        "copied files: from {} to {}",
-        general_source,
-        dest.display()
-    );
+    let path_display = format!("from '{}' to '{}'", general_source, dest.display());
 
     logs.extend(
         items
@@ -99,16 +98,15 @@ pub async fn cp_many(
     );
 
     let _ = tokio::spawn(async move {
-        if let Err(e) = copy_items_with_progress(&items, dest, &options, |info| {
+        copy_items_with_progress(&items, dest, &options, |info| {
             if tx.send(info).is_err() {
                 eprintln!("Fail to send copying progress");
             }
             TransitProcessResult::ContinueOrAbort
-        }) {
-            panic!("Fail to copy: {e}")
-        }
+        })
     })
-    .await;
+    .await
+    .with_context(|| format!("Error while copying: {path_display}"))?;
     while let Ok(info) = rx.recv() {
         tracker
             .msg(
@@ -121,6 +119,8 @@ pub async fn cp_many(
             .await;
         tracker.progress(sequence, None).await;
     }
+
+    let msg = format!("copied files: {path_display}");
     tracker.success(sequence, &msg).await;
     Ok(())
 }
