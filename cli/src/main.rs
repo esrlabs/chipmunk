@@ -1,3 +1,4 @@
+mod app_runner;
 mod build_state;
 mod check_env;
 mod cli_args;
@@ -42,6 +43,7 @@ async fn main() -> Result<(), Error> {
     // Run the given command
     let command = cli.command;
     let report_opt: ReportOptions;
+    let mut run_app = false;
     let results = match command {
         Command::Environment => {
             // Check for dependencies is already called before calling any command
@@ -96,6 +98,17 @@ async fn main() -> Result<(), Error> {
             )
             .await
         }
+        Command::Run { production } => {
+            report_opt = ReportOptions::None;
+            run_app = true;
+            join_all(
+                Target::all()
+                    .iter()
+                    .map(|module| module.build(production))
+                    .collect::<Vec<_>>(),
+            )
+            .await
+        }
     };
 
     // Shutdown and show results & report
@@ -144,6 +157,12 @@ async fn main() -> Result<(), Error> {
     }
     if !success {
         bail!("Some task were failed")
+    } else if run_app {
+        println!("Starting chipmunk...");
+        let status = app_runner::run_app().await?;
+        if !status.success() {
+            bail!("Error: Chipmunk Exited with the Code {status}");
+        }
     }
     Ok(())
 }

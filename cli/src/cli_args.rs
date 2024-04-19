@@ -66,4 +66,10 @@ pub enum Command {
         #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
         report: Option<Option<PathBuf>>,
     },
+    /// Build and Run the application
+    Run {
+        /// Run release version
+        #[arg(short, long, default_value_t = false)]
+        production: bool,
+    },
 }
