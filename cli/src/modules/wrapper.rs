@@ -69,6 +69,7 @@ impl Manager for Module {
     async fn after(&self, _prod: bool) -> Result<Option<SpawnResult>, Error> {
         let mut report_logs = Vec::new();
 
+        // *** Copy `index.node` from rs to ts bindings ***
         let src = Target::Binding.get().cwd().join("dist").join("index.node");
         let dest = self.cwd().join("dist").join("native");
         if !src.exists() {
@@ -83,10 +84,6 @@ impl Manager for Module {
         }
 
         fstools::cp_file(src, dest.join("index.node"), &mut report_logs).await?;
-
-        // TODO: This part is taken from from `copy_tsbindings_and_platform` in ruby.
-        // - We still need to make sure that it fits well with the current implementation and
-        // remove the not needed parts and add the missing parts if any
 
         // *** Copying TS Bindings ***
         report_logs.push(String::from("Copying ts-bindings to electron..."));
