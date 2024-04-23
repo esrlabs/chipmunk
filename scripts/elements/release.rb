@@ -67,6 +67,7 @@ end
 def release_file_name
   prefix = OS.prefix
   prefix += '64' if prefix == 'win'
+  prefix += '-arm64' if OS.arm64?
   "chipmunk@#{Release.version}-#{prefix}-portable"
 end
 
