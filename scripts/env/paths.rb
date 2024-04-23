@@ -7,8 +7,12 @@ module Paths
   def self.release_build_folder
     if OS.windows?
       'win-unpacked'
+    elsif OS.linux? && OS.arm64?
+      'linux-arm64-unpacked'
     elsif OS.linux?
       'linux-unpacked'
+    elsif OS.arm64?
+      'mac-arm64'
     else
       'mac'
     end
@@ -17,8 +21,12 @@ module Paths
   def self.release_bin_folder
     if OS.windows?
       'win-unpacked'
+    elsif OS.linux? && OS.arm64?
+      'linux-arm64-unpacked'
     elsif OS.linux?
       'linux-unpacked'
+    elsif OS.arm64?
+      'mac-arm64/chipmunk.app/Contents/MacOS'
     else
       'mac/chipmunk.app/Contents/MacOS'
     end
@@ -27,8 +35,12 @@ module Paths
   def self.release_resources_folder
     if OS.windows?
       'win-unpacked/Resources'
+    elsif OS.linux? && OS.arm64?
+      'linux-arm64-unpacked'
     elsif OS.linux?
       'linux-unpacked/Resources'
+    elsif OS.arm64?
+      'mac-arm64/chipmunk.app/Contents/Resources'
     else
       'mac/chipmunk.app/Contents/Resources'
     end
