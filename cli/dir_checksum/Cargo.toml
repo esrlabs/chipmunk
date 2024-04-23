@@ -11,3 +11,7 @@ ignore = "0.4"
 memmap2 = "0.9"
 rayon = "1"
 thiserror = "1"
+
+[dev-dependencies]
+tempdir.workspace = true
+anyhow.workspace = true
