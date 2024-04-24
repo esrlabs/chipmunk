@@ -75,7 +75,7 @@ where
 
     let thread_pool = ThreadPoolBuilder::new()
         .build()
-        .map_err(|e| HashError::Unrecoverable(format!("Threadpool can't be created: {e}")))?;
+        .map_err(|e| HashError::Environment(format!("Threadpool can't be created: {e}")))?;
 
     thread_pool.install(|| calc_fn(dir_path, &mut hasher))
 }
