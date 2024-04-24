@@ -1,6 +1,7 @@
 mod app_runner;
 mod build_state;
 mod check_env;
+mod checksum_records;
 mod cli_args;
 mod fstools;
 mod location;

@@ -1,7 +1,10 @@
+use std::str::FromStr;
+
 use crate::{modules, modules::Manager};
+use anyhow::bail;
 use clap::ValueEnum;
 
-#[derive(ValueEnum, Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(ValueEnum, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Target {
     /// Represents the path `application/apps/indexer`
     Core,
@@ -40,7 +43,54 @@ impl std::fmt::Display for Target {
     }
 }
 
+impl FromStr for Target {
+    type Err = anyhow::Error;
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        type T = Target;
+
+        match input {
+            "Core" => Ok(T::Core),
+            "Wrapper" => Ok(T::Wrapper),
+            "Binding" => Ok(T::Binding),
+            "Cli" => Ok(T::Cli),
+            "Client" => Ok(T::Client),
+            "Shared" => Ok(T::Shared),
+            "App" => Ok(T::App),
+            "Wasm" => Ok(T::Wasm),
+            invalid => bail!("Invalid input: {invalid}"),
+        }
+    }
+}
+
 impl Target {
+    pub fn all_enums() -> Vec<Target> {
+        if cfg!(debug_assertions) {
+            // This check to remember to add the newly added enums to this function
+            let _ = match Target::App {
+                Target::Core => (),
+                Target::Binding => (),
+                Target::Wrapper => (),
+                Target::Client => (),
+                Target::Shared => (),
+                Target::App => (),
+                Target::Cli => (),
+                Target::Wasm => (),
+            };
+        }
+
+        vec![
+            Target::Core,
+            Target::Binding,
+            Target::Wrapper,
+            Target::Client,
+            Target::Shared,
+            Target::App,
+            Target::Cli,
+            Target::Wasm,
+        ]
+    }
+
     pub fn all() -> Vec<Box<dyn Manager + Sync + Send>> {
         vec![
             Box::new(modules::binding::Module::new()),

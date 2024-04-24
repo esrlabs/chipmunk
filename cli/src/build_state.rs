@@ -6,11 +6,13 @@ use crate::{spawner::SpawnResult, target::Target};
 
 type BuildResult = Result<Vec<SpawnResult>, anyhow::Error>;
 
+#[derive(Debug)]
 pub enum BuildState {
     Running(Vec<oneshot::Sender<BuildResult>>),
     Finished(BuildResult),
 }
 
+#[derive(Debug)]
 pub struct BuildStatesTracker {
     pub states_map: Mutex<HashMap<Target, BuildState>>,
 }
