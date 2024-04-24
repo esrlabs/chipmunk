@@ -12,8 +12,8 @@ use tokio::sync::OnceCell;
 
 use crate::{location::get_root, target::Target};
 
-const FILE_NAME_DEV: &'static str = ".build_chksum_dev";
-const FILE_NAME_PROD: &'static str = ".build_chksum_prod";
+const FILE_NAME_DEV: &str = ".build_chksum_dev";
+const FILE_NAME_PROD: &str = ".build_chksum_prod";
 
 #[derive(Debug)]
 pub struct ChecksumRecords {
@@ -42,10 +42,10 @@ impl ChecksumRecords {
             BTreeMap::new()
         };
 
-        return Ok(Self {
+        Ok(Self {
             items: Mutex::new(items),
             production,
-        });
+        })
     }
 
     fn get_file_path(production: bool) -> PathBuf {

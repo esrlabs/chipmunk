@@ -67,7 +67,7 @@ impl Target {
     pub fn all_enums() -> Vec<Target> {
         if cfg!(debug_assertions) {
             // This check to remember to add the newly added enums to this function
-            let _ = match Target::App {
+            match Target::App {
                 Target::Core => (),
                 Target::Binding => (),
                 Target::Wrapper => (),
