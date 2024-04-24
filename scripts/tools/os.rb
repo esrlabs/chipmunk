@@ -19,7 +19,7 @@ module OS
   end
 
   def self.arm64?
-    arch = `uname -m`.chomp
+    arch = (OS.unix? || OS.mac?) ? `uname -m`.chomp : ""
     arch=='arm64' || arch=='aarch64'
   end
 

@@ -89,7 +89,6 @@ jobs:
       - name: build release
         working-directory: ./application/holder
         run: |
-          uname -m
           rake release:prod --trace
         env:
           KEYCHAIN_NAME: "build.keychain"
