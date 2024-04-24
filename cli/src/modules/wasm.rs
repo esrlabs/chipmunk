@@ -41,7 +41,7 @@ impl Manager for Module {
         ))
     }
 
-    fn test_cmds(&self) -> Vec<TestCommand> {
+    fn test_cmds(&self, _production: bool) -> Vec<TestCommand> {
         vec![
             TestCommand::new(
                 "wasm-pack test --node --color always".into(),

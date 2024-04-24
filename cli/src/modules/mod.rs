@@ -9,6 +9,7 @@ pub mod wrapper;
 
 use crate::{
     build_state::{BuildState, BuildStatesTracker},
+    checksum_records::ChecksumRecords,
     fstools,
     location::get_root,
     spawner::{spawn, SpawnOptions, SpawnResult},
@@ -80,10 +81,12 @@ pub trait Manager {
     fn install_cmd(&self, _prod: bool) -> Option<String> {
         None
     }
-    fn test_cmds(&self) -> Vec<TestCommand> {
+    fn test_cmds(&self, _production: bool) -> Vec<TestCommand> {
         Vec::new()
     }
-    async fn reset(&self) -> Result<Vec<SpawnResult>, Error> {
+    async fn reset(&self, production: bool) -> anyhow::Result<Vec<SpawnResult>> {
+        let checksum = ChecksumRecords::get(production).await?;
+        checksum.remove_hash_if_exist(&self.owner());
         let mut results = Vec::new();
         let clean_result = self.clean().await?;
         results.push(clean_result);
@@ -311,8 +314,8 @@ pub trait Manager {
         .await
     }
 
-    async fn test(&self) -> Result<Vec<SpawnResult>, Error> {
-        let test_cmds = self.test_cmds();
+    async fn test(&self, production: bool) -> Result<Vec<SpawnResult>, Error> {
+        let test_cmds = self.test_cmds(production);
         if test_cmds.is_empty() {
             return Ok(Vec::new());
         }

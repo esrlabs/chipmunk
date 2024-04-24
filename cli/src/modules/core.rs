@@ -28,11 +28,12 @@ impl Manager for Module {
         vec![]
     }
 
-    fn test_cmds(&self) -> Vec<TestCommand> {
-        vec![TestCommand::new(
-            "cargo +stable test --color always".into(),
-            self.cwd(),
-            None,
-        )]
+    fn test_cmds(&self, production: bool) -> Vec<TestCommand> {
+        let cmd = format!(
+            "cargo +stable test{} --color always",
+            if production { " -r" } else { "" }
+        );
+
+        vec![TestCommand::new(cmd, self.cwd(), None)]
     }
 }

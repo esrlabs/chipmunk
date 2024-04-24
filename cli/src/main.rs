@@ -12,6 +12,7 @@ mod tracker;
 
 use anyhow::{bail, Error};
 use check_env::check_env;
+use checksum_records::ChecksumRecords;
 use clap::Parser;
 use cli_args::{CargoCli, Command};
 use futures::future::join_all;
@@ -33,6 +34,11 @@ pub enum ReportOptions {
     File(PathBuf, File),
 }
 
+enum ChecksumOptions {
+    Update { production: bool },
+    None,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let CargoCli::Chipmunk(cli) = CargoCli::parse();
@@ -44,6 +50,7 @@ async fn main() -> Result<(), Error> {
     // Run the given command
     let command = cli.command;
     let report_opt: ReportOptions;
+    let mut checksum_option = ChecksumOptions::None;
     let mut run_app = false;
     let results = match command {
         Command::Environment => {
@@ -67,6 +74,7 @@ async fn main() -> Result<(), Error> {
             production,
             report,
         } => {
+            checksum_option = ChecksumOptions::Update { production };
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             join_all(
@@ -77,29 +85,40 @@ async fn main() -> Result<(), Error> {
             )
             .await
         }
-        Command::Clean { target, report } => {
+        Command::Clean {
+            target,
+            production,
+            report,
+        } => {
+            checksum_option = ChecksumOptions::Update { production };
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             join_all(
                 targets
                     .iter()
-                    .map(|module| module.reset())
+                    .map(|module| module.reset(production))
                     .collect::<Vec<_>>(),
             )
             .await
         }
-        Command::Test { target, report } => {
+        Command::Test {
+            target,
+            production,
+            report,
+        } => {
+            checksum_option = ChecksumOptions::Update { production };
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             join_all(
                 targets
                     .iter()
-                    .map(|module| module.test())
+                    .map(|module| module.test(production))
                     .collect::<Vec<_>>(),
             )
             .await
         }
         Command::Run { production } => {
+            checksum_option = ChecksumOptions::Update { production };
             report_opt = ReportOptions::None;
             run_app = true;
             join_all(
@@ -115,6 +134,10 @@ async fn main() -> Result<(), Error> {
     // Shutdown and show results & report
     let tracker = get_tracker().await;
     tracker.shutdown().await?;
+    if let ChecksumOptions::Update { production } = checksum_option {
+        let checksum = ChecksumRecords::get(production).await?;
+        checksum.update_and_save()?;
+    }
     let mut success: bool = true;
     for (idx, res) in results.iter().enumerate() {
         match res {

@@ -72,3 +72,7 @@ sandbox
 sandbox.backup
 **/holder/release
 scripts/tools/file_checklists/*.*
+
+# CLI build tool files #
+########################
+.build_chksum_*

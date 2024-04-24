@@ -209,7 +209,7 @@ impl Manager for Module {
         )))
     }
 
-    async fn test(&self) -> Result<Vec<SpawnResult>, Error> {
+    async fn test(&self, _production: bool) -> Result<Vec<SpawnResult>, Error> {
         let mut results = Vec::new();
 
         let build_results = self.build(false).await?;

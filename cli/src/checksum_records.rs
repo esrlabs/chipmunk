@@ -12,8 +12,8 @@ use tokio::sync::OnceCell;
 
 use crate::{location::get_root, target::Target};
 
-const FILE_NAME_DEV: &'static str = "build_chksum_dev.txt";
-const FILE_NAME_PROD: &'static str = "build_chksum_prod.txt";
+const FILE_NAME_DEV: &'static str = ".build_chksum_dev";
+const FILE_NAME_PROD: &'static str = ".build_chksum_prod";
 
 #[derive(Debug)]
 pub struct ChecksumRecords {
@@ -22,12 +22,14 @@ pub struct ChecksumRecords {
 }
 
 impl ChecksumRecords {
-    pub async fn get(production: bool) -> &'static anyhow::Result<ChecksumRecords> {
+    pub async fn get(production: bool) -> anyhow::Result<&'static ChecksumRecords> {
         static CHECKSUM_RECORDS: OnceCell<anyhow::Result<ChecksumRecords>> = OnceCell::const_new();
 
         CHECKSUM_RECORDS
             .get_or_init(|| async { ChecksumRecords::load(production) })
             .await
+            .as_ref()
+            .map_err(|err| anyhow!("{err}"))
     }
 
     fn load(production: bool) -> anyhow::Result<Self> {
@@ -68,7 +70,7 @@ impl ChecksumRecords {
         Ok(hashes)
     }
 
-    pub fn check_changed(&self, target: &Target) -> anyhow::Result<bool> {
+    pub fn _check_changed(&self, target: &Target) -> anyhow::Result<bool> {
         let items = self.items.lock().unwrap();
         let saved_hash = match items.get(target) {
             Some(hash) => hash,
@@ -80,12 +82,24 @@ impl ChecksumRecords {
         Ok(current_hash != *saved_hash)
     }
 
+    fn calc_hash_for_target(target: &Target) -> anyhow::Result<HashDigest> {
+        let path = target.get().cwd();
+        calc_combined_checksum(path).with_context(|| {
+            format!("Error while calculating the current hash for target: {target}",)
+        })
+    }
+
     pub fn update_and_save(&self) -> anyhow::Result<()> {
         self.calculate_hashes()?;
         self.persist_hashes()
             .context("Error while saving the updated hashes")?;
 
         Ok(())
+    }
+
+    pub fn remove_hash_if_exist(&self, target: &Target) {
+        let mut items = self.items.lock().unwrap();
+        _ = items.remove(target);
     }
 
     fn calculate_hashes(&self) -> anyhow::Result<()> {
@@ -108,16 +122,9 @@ impl ChecksumRecords {
         let items = self.items.lock().unwrap();
 
         for (target, hash) in items.iter() {
-            write!(file, "{}:{}", target, hash)?;
+            writeln!(file, "{}:{}", target, hash)?;
         }
 
         Ok(())
-    }
-
-    fn calc_hash_for_target(target: &Target) -> anyhow::Result<HashDigest> {
-        let path = target.get().cwd();
-        calc_combined_checksum(path).with_context(|| {
-            format!("Error while calculating the current hash for target: {target}",)
-        })
     }
 }
