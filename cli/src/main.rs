@@ -129,7 +129,6 @@ async fn main() -> Result<(), Error> {
     // Shutdown and show results & report
     let tracker = get_tracker().await;
     tracker.shutdown().await?;
-    ChecksumRecords::update_and_save(job_type).await?;
     let mut success: bool = true;
     for (idx, res) in results.iter().enumerate() {
         match res {
@@ -174,6 +173,8 @@ async fn main() -> Result<(), Error> {
     if !success {
         bail!("Some task were failed")
     };
+
+    ChecksumRecords::update_and_save(job_type).await?;
 
     if matches!(job_type, JobType::Run { production: _ }) {
         println!("Starting chipmunk...");
