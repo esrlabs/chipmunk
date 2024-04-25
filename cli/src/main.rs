@@ -165,7 +165,7 @@ async fn main() -> Result<(), Error> {
                 }
             }
             Err(err) => {
-                eprintln!("Builder error: {err}");
+                eprintln!("Builder error: {:?}", err);
                 success = false;
             }
         }

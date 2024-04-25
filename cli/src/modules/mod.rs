@@ -189,7 +189,7 @@ pub trait Manager {
 
                 let res_clone = match &build_result {
                     Ok(spawn_res) => Ok(spawn_res.clone()),
-                    Err(err) => Err(anyhow::anyhow!("{}", err)),
+                    Err(err) => Err(anyhow::anyhow!("{:?}", err)),
                 };
 
                 let Some(BuildState::Running(senders)) =
@@ -201,7 +201,7 @@ pub trait Manager {
                 for sender in senders {
                     let res_clone = match &res_clone {
                         Ok(spawn_res) => Ok(spawn_res.clone()),
-                        Err(err) => Err(anyhow::anyhow!("{}", err)),
+                        Err(err) => Err(anyhow::anyhow!("{:?}", err)),
                     };
                     if sender.send(res_clone).is_err() {
                         bail!("Fail to communicate with builder");
@@ -257,30 +257,27 @@ pub trait Manager {
             spawn(cmd, Some(path), caption, iter::empty(), Some(spawn_opt)).await
         };
 
-        match spawn_reslt {
-            Ok(status) => {
-                if !status.status.success() {
-                    results.push(status);
-                    Ok(results)
-                } else {
-                    results.push(status);
-                    if !skip_task {
-                        let res = self.after(prod).await?;
-                        if let Some(result) = res {
-                            results.push(result);
-                        }
-                        if matches!(self.kind(), Kind::Ts) && prod {
-                            let clean_res = self.clean().await?;
-                            results.push(clean_res);
-                            let install_res = self.install(prod).await?;
-                            results.push(install_res);
-                        }
-                    }
+        let status = spawn_reslt?;
 
-                    Ok(results)
+        if !status.status.success() {
+            results.push(status);
+            Ok(results)
+        } else {
+            results.push(status);
+            if !skip_task {
+                let res = self.after(prod).await?;
+                if let Some(result) = res {
+                    results.push(result);
+                }
+                if matches!(self.kind(), Kind::Ts) && prod {
+                    let clean_res = self.clean().await?;
+                    results.push(clean_res);
+                    let install_res = self.install(prod).await?;
+                    results.push(install_res);
                 }
             }
-            Err(err) => Err(err),
+
+            Ok(results)
         }
     }
 

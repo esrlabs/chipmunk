@@ -83,7 +83,15 @@ pub async fn spawn(
     let mut env_vars: Vec<_> = env::vars().chain(environment_vars).collect();
     env_vars.push((String::from("TERM"), String::from("xterm-256color")));
 
-    let mut child = Command::new(cmd)
+    let tracker = get_tracker().await;
+    let sequence = tracker
+        .start(
+            &format!("{}: {}", to_relative_path(&cwd).display(), caption),
+            None,
+        )
+        .await?;
+
+    let command_result = Command::new(cmd)
         .current_dir(&cwd)
         .args(&parts)
         .envs(env_vars)
@@ -91,19 +99,16 @@ pub async fn spawn(
         .stderr(Stdio::piped())
         .spawn()
         .with_context(|| {
-            format!(
-                "Error While running the command '{cmd}'\nwith arguments: {parts:?}\ncwd: {}",
-                cwd.display()
-            )
-        })?;
-    let job_title = caption;
-    let tracker = get_tracker().await;
-    let sequence = tracker
-        .start(
-            &format!("{}: {}", to_relative_path(&cwd).display(), job_title),
-            None,
-        )
-        .await?;
+            format!("Error While running the command '{cmd}'\nwith arguments: {parts:?}")
+        });
+
+    let mut child = match command_result {
+        Ok(child) => child,
+        Err(err) => {
+            tracker.fail(sequence, format!("{err:#}").as_str()).await;
+            return Err(err);
+        }
+    };
 
     let mut report_lines: Vec<String> = vec![];
     let drain_stdout_stderr = {
@@ -175,7 +180,7 @@ pub async fn spawn(
         Ok(SpawnResult {
             report: report_lines,
             status,
-            job: job_title,
+            job: caption,
             cmd: command,
             skipped,
         })
