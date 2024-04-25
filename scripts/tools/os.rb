@@ -19,7 +19,8 @@ module OS
   end
 
   def self.arm64?
-    arch = (OS.unix? || OS.mac?) ? `uname -m`.chomp : ""
+    arch = (OS.unix? || OS.mac?) ? `uname -m` : `echo %PROCESSOR_ARCHITECTURE%`
+    arch.chomp!.downcase!
     arch=='arm64' || arch=='aarch64'
   end
 
