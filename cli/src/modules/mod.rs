@@ -226,7 +226,7 @@ pub trait Manager {
         for module in deps {
             let status = module.build(prod).await.with_context(|| {
                 format!(
-                    "Error while building the dependciy {} for target{}",
+                    "Error while building the dependciy {} for target {}",
                     module.owner(),
                     self.owner()
                 )

@@ -5,7 +5,7 @@ use crate::{
     spawner::{spawn, spawn_blocking, SpawnResult},
     Target,
 };
-use anyhow::{bail, Context, Error};
+use anyhow::{Context, Error};
 use async_trait::async_trait;
 use std::{fs, iter, path::PathBuf};
 
@@ -68,22 +68,6 @@ impl Manager for Module {
     }
     async fn after(&self, _prod: bool) -> Result<Option<SpawnResult>, Error> {
         let mut report_logs = Vec::new();
-
-        // *** Copy `index.node` from rs to ts bindings ***
-        let src = Target::Binding.get().cwd().join("dist").join("index.node");
-        let dest = self.cwd().join("dist").join("native");
-        if !src.exists() {
-            bail!("Not found: {}", src.to_string_lossy());
-        }
-        if !dest.exists() {
-            let msg = format!("creating directory: {}", dest.display());
-            report_logs.push(msg);
-
-            fs::create_dir(&dest)
-                .with_context(|| format!("Error while creating directory: {}", dest.display()))?;
-        }
-
-        fstools::cp_file(src, dest.join("index.node"), &mut report_logs).await?;
 
         // *** Copying TS Bindings ***
         report_logs.push(String::from("Copying ts-bindings to electron..."));
