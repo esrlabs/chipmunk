@@ -4,7 +4,7 @@ use crate::{modules, modules::Manager};
 use anyhow::bail;
 use clap::ValueEnum;
 
-#[derive(ValueEnum, Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, ValueEnum, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Target {
     /// Represents the path `application/apps/indexer`
     Core,
@@ -64,7 +64,7 @@ impl FromStr for Target {
 }
 
 impl Target {
-    pub fn all_enums() -> Vec<Target> {
+    pub fn _all_enums() -> Vec<Target> {
         if cfg!(debug_assertions) {
             // This check to remember to add the newly added enums to this function
             match Target::App {

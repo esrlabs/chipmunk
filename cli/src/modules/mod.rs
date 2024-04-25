@@ -11,8 +11,9 @@ use crate::{
     build_state::{BuildState, BuildStatesTracker},
     checksum_records::ChecksumRecords,
     fstools,
+    job_type::JobType,
     location::get_root,
-    spawner::{spawn, SpawnOptions, SpawnResult},
+    spawner::{spawn, spawn_skip, SpawnOptions, SpawnResult},
     Target,
 };
 use anyhow::{bail, Context, Error};
@@ -85,8 +86,8 @@ pub trait Manager {
         Vec::new()
     }
     async fn reset(&self, production: bool) -> anyhow::Result<Vec<SpawnResult>> {
-        let checksum = ChecksumRecords::get(production).await?;
-        checksum.remove_hash_if_exist(&self.owner());
+        let checksum = ChecksumRecords::get(JobType::Clean { production }).await?;
+        checksum.remove_hash_if_exist(self.owner());
         let mut results = Vec::new();
         let clean_result = self.clean().await?;
         results.push(clean_result);
@@ -174,7 +175,7 @@ pub trait Manager {
                 None => {
                     // Run the build and add the sender to the list.
                     run_build = true;
-                    states.insert(target.clone(), BuildState::Running(vec![tx_result]));
+                    states.insert(target, BuildState::Running(vec![tx_result]));
                 }
             }
         }
@@ -217,8 +218,6 @@ pub trait Manager {
     /// Performs build process without checking the current builds states
     async fn perform_build(&self, prod: bool) -> Result<Vec<SpawnResult>, Error> {
         let mut results = Vec::new();
-        let install_result = self.install(false).await?;
-        results.push(install_result);
         let deps: Vec<Box<dyn Manager + Sync + Send>> =
             self.deps().iter().map(|target| target.get()).collect();
         for module in deps {
@@ -233,22 +232,40 @@ pub trait Manager {
             .build_cmd(prod)
             .unwrap_or_else(|| self.kind().build_cmd(prod));
         let caption = format!("Build {}", self.owner());
-        match spawn(cmd, Some(path), caption, iter::empty(), None).await {
+
+        let mut skip_task = false;
+        let all_skipped = results.is_empty() || results.iter().all(|r| r.skipped);
+        if all_skipped {
+            let checksum_rec = ChecksumRecords::get(JobType::Build { production: prod }).await?;
+            skip_task = !checksum_rec.check_changed(self.owner())?;
+        }
+
+        let spawn_reslt = if skip_task {
+            spawn_skip(cmd, Some(path), caption).await
+        } else {
+            let install_result = self.install(false).await?;
+            results.push(install_result);
+            spawn(cmd, Some(path), caption, iter::empty(), None).await
+        };
+
+        match spawn_reslt {
             Ok(status) => {
                 if !status.status.success() {
                     results.push(status);
                     Ok(results)
                 } else {
                     results.push(status);
-                    let res = self.after(prod).await?;
-                    if let Some(result) = res {
-                        results.push(result);
-                    }
-                    if matches!(self.kind(), Kind::Ts) && prod {
-                        let clean_res = self.clean().await?;
-                        results.push(clean_res);
-                        let install_res = self.install(prod).await?;
-                        results.push(install_res);
+                    if !skip_task {
+                        let res = self.after(prod).await?;
+                        if let Some(result) = res {
+                            results.push(result);
+                        }
+                        if matches!(self.kind(), Kind::Ts) && prod {
+                            let clean_res = self.clean().await?;
+                            results.push(clean_res);
+                            let install_res = self.install(prod).await?;
+                            results.push(install_res);
+                        }
                     }
 
                     Ok(results)

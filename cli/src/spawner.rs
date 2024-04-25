@@ -22,6 +22,7 @@ pub struct SpawnResult {
     pub status: ExitStatus,
     pub job: String,
     pub cmd: String,
+    pub skipped: bool,
 }
 
 impl SpawnResult {
@@ -31,6 +32,7 @@ impl SpawnResult {
             status: ExitStatus::default(),
             job: String::new(),
             cmd: String::default(),
+            skipped: false,
         }
     }
 
@@ -38,12 +40,25 @@ impl SpawnResult {
         self.job.is_empty() && self.cmd.is_empty()
     }
 
+    /// Create spawn for multiple file system commands
     pub fn create_for_fs(job: String, report: Vec<String>) -> Self {
         SpawnResult {
             report,
             job,
             status: ExitStatus::default(),
             cmd: "Multiple file system commands".into(),
+            skipped: false,
+        }
+    }
+
+    /// Create spawn for jobs that has been skipped
+    pub fn create_for_skipped(job: String, cmd: String) -> Self {
+        SpawnResult {
+            report: Vec::new(),
+            job,
+            status: ExitStatus::default(),
+            cmd,
+            skipped: true,
         }
     }
 }
@@ -154,6 +169,7 @@ pub async fn spawn(
             status,
             job: job_title,
             cmd: command,
+            skipped: false,
         })
     } else {
         tracker
@@ -210,5 +226,27 @@ pub async fn spawn_blocking(
         status,
         job: caption,
         cmd: command,
+        skipped: false,
     })
+}
+
+/// This spawns a new task and return immediately showing that the job has been skipped
+pub async fn spawn_skip(
+    command: String,
+    cwd: Option<PathBuf>,
+    caption: String,
+) -> anyhow::Result<SpawnResult> {
+    let cwd = cwd.unwrap_or_else(|| get_root().clone());
+
+    let tracker = get_tracker().await;
+    let sequence = tracker
+        .start(
+            &format!("{}: {}", to_relative_path(&cwd).display(), caption),
+            None,
+        )
+        .await?;
+
+    tracker.success(sequence, "skipped").await;
+
+    Ok(SpawnResult::create_for_skipped(caption, command))
 }
