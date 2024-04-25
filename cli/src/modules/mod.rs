@@ -224,7 +224,13 @@ pub trait Manager {
         let deps: Vec<Box<dyn Manager + Sync + Send>> =
             self.deps().iter().map(|target| target.get()).collect();
         for module in deps {
-            let status = module.build(prod).await?;
+            let status = module.build(prod).await.with_context(|| {
+                format!(
+                    "Error while building the dependciy {} for target{}",
+                    module.owner(),
+                    self.owner()
+                )
+            })?;
             results.extend(status);
             if results.iter().any(|res| !res.status.success()) {
                 return Ok(results);

@@ -159,6 +159,7 @@ async fn main() -> Result<(), Error> {
                         if print_err {
                             eprintln!("Failed with errors");
                             eprintln!("{}:\n{}", status.job, status.report.join(""));
+                            eprintln!("---------------------------------------------------------------------");
                         }
                         success = false;
                     }
@@ -166,6 +167,7 @@ async fn main() -> Result<(), Error> {
             }
             Err(err) => {
                 eprintln!("Builder error: {:?}", err);
+                eprintln!("---------------------------------------------------------------------");
                 success = false;
             }
         }
