@@ -36,7 +36,7 @@ module Paths
     if OS.windows?
       'win-unpacked/Resources'
     elsif OS.linux? && OS.arm64?
-      'linux-arm64-unpacked'
+      'linux-arm64-unpacked/Resources'
     elsif OS.linux?
       'linux-unpacked/Resources'
     elsif OS.arm64?
