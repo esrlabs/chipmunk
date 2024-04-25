@@ -243,10 +243,14 @@ pub trait Manager {
         let caption = format!("Build {}", self.owner());
 
         let mut skip_task = false;
-        let all_skipped = results.iter().all(|r| match r.skipped {
-            Some(skipped) => skipped,
-            None => true, // Tasks with no skip info are irrelevant
+
+        let all_skipped = results.iter().all(|r| {
+            r.skipped.unwrap_or({
+                // Tasks with no skip info are irrelevant
+                true
+            })
         });
+
         if all_skipped {
             skip_task = !checksum_rec.check_changed(self.owner())?;
         }
