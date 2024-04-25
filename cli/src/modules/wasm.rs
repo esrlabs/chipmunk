@@ -51,7 +51,10 @@ impl Manager for Module {
             TestCommand::new(
                 "npm run test".into(),
                 self.cwd().join("spec"),
-                Some(SpawnOptions { suppress_msg: true }),
+                Some(SpawnOptions {
+                    suppress_msg: true,
+                    ..Default::default()
+                }),
             ),
         ]
     }

@@ -22,7 +22,7 @@ pub struct SpawnResult {
     pub status: ExitStatus,
     pub job: String,
     pub cmd: String,
-    pub skipped: bool,
+    pub skipped: Option<bool>,
 }
 
 impl SpawnResult {
@@ -32,7 +32,7 @@ impl SpawnResult {
             status: ExitStatus::default(),
             job: String::new(),
             cmd: String::default(),
-            skipped: false,
+            skipped: None,
         }
     }
 
@@ -47,7 +47,7 @@ impl SpawnResult {
             job,
             status: ExitStatus::default(),
             cmd: "Multiple file system commands".into(),
-            skipped: false,
+            skipped: None,
         }
     }
 
@@ -58,7 +58,7 @@ impl SpawnResult {
             job,
             status: ExitStatus::default(),
             cmd,
-            skipped: true,
+            skipped: Some(true),
         }
     }
 }
@@ -66,6 +66,7 @@ impl SpawnResult {
 #[derive(Debug, Clone, Default)]
 pub(crate) struct SpawnOptions {
     pub suppress_msg: bool,
+    pub has_skip_info: bool,
 }
 
 pub async fn spawn(
@@ -164,12 +165,19 @@ pub async fn spawn(
         } else {
             tracker.fail(sequence, "finished with errors").await;
         }
+
+        let skipped = if opts.has_skip_info {
+            Some(false)
+        } else {
+            None
+        };
+
         Ok(SpawnResult {
             report: report_lines,
             status,
             job: job_title,
             cmd: command,
-            skipped: false,
+            skipped,
         })
     } else {
         tracker
@@ -226,7 +234,7 @@ pub async fn spawn_blocking(
         status,
         job: caption,
         cmd: command,
-        skipped: false,
+        skipped: None,
     })
 }
 

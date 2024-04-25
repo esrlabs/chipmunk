@@ -101,9 +101,14 @@ impl ChecksumRecords {
         Ok(hashes)
     }
 
-    pub fn check_changed(&self, target: Target) -> anyhow::Result<bool> {
+    pub fn register_job(&self, target: Target) {
         let mut items = self.items.lock().unwrap();
         items.involved_targets.insert(target);
+    }
+
+    pub fn check_changed(&self, target: Target) -> anyhow::Result<bool> {
+        let items = self.items.lock().unwrap();
+        assert!(items.involved_targets.contains(&target));
         let saved_hash = match items.map.get(&target) {
             Some(hash) => hash,
             None => return Ok(true),

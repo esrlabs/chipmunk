@@ -217,6 +217,9 @@ pub trait Manager {
 
     /// Performs build process without checking the current builds states
     async fn perform_build(&self, prod: bool) -> Result<Vec<SpawnResult>, Error> {
+        let checksum_rec = ChecksumRecords::get(JobType::Build { production: prod }).await?;
+        checksum_rec.register_job(self.owner());
+
         let mut results = Vec::new();
         let deps: Vec<Box<dyn Manager + Sync + Send>> =
             self.deps().iter().map(|target| target.get()).collect();
@@ -234,9 +237,11 @@ pub trait Manager {
         let caption = format!("Build {}", self.owner());
 
         let mut skip_task = false;
-        let all_skipped = results.is_empty() || results.iter().all(|r| r.skipped);
+        let all_skipped = results.iter().all(|r| match r.skipped {
+            Some(skipped) => skipped,
+            None => true, // Tasks with no skip info are irrelevant
+        });
         if all_skipped {
-            let checksum_rec = ChecksumRecords::get(JobType::Build { production: prod }).await?;
             skip_task = !checksum_rec.check_changed(self.owner())?;
         }
 
@@ -245,7 +250,11 @@ pub trait Manager {
         } else {
             let install_result = self.install(false).await?;
             results.push(install_result);
-            spawn(cmd, Some(path), caption, iter::empty(), None).await
+            let spawn_opt = SpawnOptions {
+                has_skip_info: true,
+                ..Default::default()
+            };
+            spawn(cmd, Some(path), caption, iter::empty(), Some(spawn_opt)).await
         };
 
         match spawn_reslt {

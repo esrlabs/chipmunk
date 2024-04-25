@@ -216,14 +216,14 @@ fn write_report(spawn_result: &SpawnResult, mut writer: impl io::Write) -> Resul
     writeln!(writer)?;
 
     let status = match (spawn_result.skipped, spawn_result.status.success()) {
-        (true, _) => "been skipped",
+        (Some(true), _) => "been skipped",
         (_, true) => "succeeded",
         (_, false) => "failed",
     };
 
     writeln!(writer, "Job '{}' has {status}", spawn_result.job)?;
     writeln!(writer, "Command: {}", spawn_result.cmd)?;
-    if spawn_result.skipped {
+    if spawn_result.skipped.is_some_and(|skipped| skipped) {
         return Ok(());
     }
 
