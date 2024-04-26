@@ -146,4 +146,14 @@ impl Target {
             Target::Client | Target::Wrapper | Target::Shared | Target::App => Kind::Ts,
         }
     }
+
+    pub fn deps(&self) -> Vec<Target> {
+        match self {
+            Target::Core | Target::Cli | Target::Shared | Target::Wasm => Vec::new(),
+            Target::Binding => vec![Target::Shared],
+            Target::Wrapper => vec![Target::Binding, Target::Shared],
+            Target::Client => vec![Target::Shared, Target::Wasm],
+            Target::App => vec![Target::Shared, Target::Wrapper, Target::Client],
+        }
+    }
 }

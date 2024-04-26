@@ -18,10 +18,6 @@ impl Manager for Module {
         Target::Wasm
     }
 
-    fn deps(&self) -> Vec<Target> {
-        vec![]
-    }
-
     fn build_cmd(&self, prod: bool) -> Option<String> {
         let env = if prod { "--release" } else { "--dev" };
 

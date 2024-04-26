@@ -17,9 +17,6 @@ impl Manager for Module {
     fn owner(&self) -> Target {
         Target::Cli
     }
-    fn deps(&self) -> Vec<Target> {
-        vec![]
-    }
     fn test_cmds(&self, production: bool) -> Vec<TestCommand> {
         let cmd = format!(
             "cargo +stable test{} --color always",

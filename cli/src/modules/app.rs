@@ -20,9 +20,6 @@ impl Manager for Module {
         Target::App
     }
 
-    fn deps(&self) -> Vec<Target> {
-        vec![Target::Shared, Target::Wrapper, Target::Client]
-    }
     fn install_cmd(&self, _prod: bool) -> Option<String> {
         // For app we don't need --production
         Some(String::from("yarn install"))

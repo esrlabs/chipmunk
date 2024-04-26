@@ -73,7 +73,6 @@ pub trait Manager {
     fn dist_path(&self, _prod: bool) -> Option<PathBuf> {
         None
     }
-    fn deps(&self) -> Vec<Target>;
     fn build_cmd(&self, _prod: bool) -> Option<String> {
         None
     }
@@ -219,8 +218,12 @@ pub trait Manager {
         checksum_rec.register_job(self.owner());
 
         let mut results = Vec::new();
-        let deps: Vec<Box<dyn Manager + Sync + Send>> =
-            self.deps().iter().map(|target| target.get()).collect();
+        let deps: Vec<Box<dyn Manager + Sync + Send>> = self
+            .owner()
+            .deps()
+            .iter()
+            .map(|target| target.get())
+            .collect();
         for module in deps {
             let status = module.build(prod).await.with_context(|| {
                 format!(

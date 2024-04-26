@@ -20,9 +20,6 @@ impl Manager for Module {
         Target::Shared
     }
 
-    fn deps(&self) -> Vec<Target> {
-        vec![]
-    }
     async fn after(&self, _prod: bool) -> Result<Option<SpawnResult>, Error> {
         let mut report_logs = Vec::new();
 

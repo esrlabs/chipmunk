@@ -52,9 +52,6 @@ impl Manager for Module {
     fn owner(&self) -> Target {
         Target::Wrapper
     }
-    fn deps(&self) -> Vec<Target> {
-        vec![Target::Binding, Target::Shared]
-    }
     async fn after(&self, _prod: bool) -> Result<Option<SpawnResult>, Error> {
         let mut report_logs = Vec::new();
 

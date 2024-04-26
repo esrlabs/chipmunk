@@ -19,10 +19,6 @@ impl Manager for Module {
     fn owner(&self) -> Target {
         Target::Binding
     }
-    fn deps(&self) -> Vec<Target> {
-        vec![Target::Shared]
-    }
-
     //TODO: This is just a work around to solve installing ts bindings before biulding rs bindings
     async fn install(&self, prod: bool) -> Result<SpawnResult, Error> {
         Target::Wrapper.get().install(prod).await

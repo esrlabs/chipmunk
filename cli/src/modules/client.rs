@@ -18,9 +18,6 @@ impl Manager for Module {
     fn owner(&self) -> Target {
         Target::Client
     }
-    fn deps(&self) -> Vec<Target> {
-        vec![Target::Shared, Target::Wasm]
-    }
     fn dist_path(&self, prod: bool) -> Option<PathBuf> {
         Some(
             self.owner()
