@@ -69,7 +69,6 @@ impl TestCommand {
 
 #[async_trait]
 pub trait Manager {
-    fn kind(&self) -> Kind;
     fn owner(&self) -> Target;
     fn dist_path(&self, _prod: bool) -> Option<PathBuf> {
         None
@@ -105,7 +104,7 @@ pub trait Manager {
     }
     async fn clean(&self) -> Result<SpawnResult, Error> {
         let mut logs = Vec::new();
-        let path = match self.kind() {
+        let path = match self.owner().kind() {
             Kind::Ts => self.owner().cwd().join("node_modules"),
             Kind::Rs => self.owner().cwd().join("target"),
         };
@@ -123,7 +122,7 @@ pub trait Manager {
         let cmd = if self.install_cmd(prod).is_some() {
             self.install_cmd(prod)
         } else {
-            self.kind().install_cmd(prod)
+            self.owner().kind().install_cmd(prod)
         };
         if let Some(cmd) = cmd {
             let caption = format!("Install {}", self.owner());
@@ -133,7 +132,7 @@ pub trait Manager {
         }
     }
     async fn install_if_need(&self, prod: bool) -> Result<SpawnResult, Error> {
-        match self.kind() {
+        match self.owner().kind() {
             Kind::Ts => {
                 if self.owner().cwd().join("node_modules").exists() {
                     Ok(SpawnResult::empty())
@@ -238,7 +237,7 @@ pub trait Manager {
         let path = get_root().join(self.owner().cwd());
         let cmd = self
             .build_cmd(prod)
-            .unwrap_or_else(|| self.kind().build_cmd(prod));
+            .unwrap_or_else(|| self.owner().kind().build_cmd(prod));
         let caption = format!("Build {}", self.owner());
 
         let mut skip_task = false;
@@ -278,7 +277,7 @@ pub trait Manager {
                 if let Some(result) = res {
                     results.push(result);
                 }
-                if matches!(self.kind(), Kind::Ts) && prod {
+                if matches!(self.owner().kind(), Kind::Ts) && prod {
                     let clean_res = self.clean().await?;
                     results.push(clean_res);
                     let install_res = self.install(prod).await?;
@@ -292,7 +291,7 @@ pub trait Manager {
 
     async fn check(&self) -> Result<Vec<SpawnResult>, Error> {
         let mut results = Vec::new();
-        match self.kind() {
+        match self.owner().kind() {
             Kind::Ts => {
                 let install_result = self.install(false).await?;
                 let lint_restul = self.lint().await?;

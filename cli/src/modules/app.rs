@@ -1,4 +1,4 @@
-use super::{Kind, Manager};
+use super::Manager;
 use crate::{fstools, spawner::SpawnResult, Target};
 use anyhow::{bail, Context, Error};
 use async_trait::async_trait;
@@ -19,9 +19,7 @@ impl Manager for Module {
     fn owner(&self) -> Target {
         Target::App
     }
-    fn kind(&self) -> Kind {
-        Kind::Ts
-    }
+
     fn deps(&self) -> Vec<Target> {
         vec![Target::Shared, Target::Wrapper, Target::Client]
     }

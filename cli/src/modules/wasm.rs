@@ -1,4 +1,4 @@
-use super::{Kind, Manager, TestCommand};
+use super::{Manager, TestCommand};
 use crate::{spawner::SpawnOptions, Target};
 use async_trait::async_trait;
 
@@ -17,9 +17,7 @@ impl Manager for Module {
     fn owner(&self) -> Target {
         Target::Wasm
     }
-    fn kind(&self) -> Kind {
-        Kind::Rs
-    }
+
     fn deps(&self) -> Vec<Target> {
         vec![]
     }

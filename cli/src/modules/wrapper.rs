@@ -1,4 +1,4 @@
-use super::{Kind, Manager};
+use super::Manager;
 use crate::{
     fstools,
     spawner::{spawn, spawn_blocking, SpawnResult},
@@ -51,9 +51,6 @@ impl Module {
 impl Manager for Module {
     fn owner(&self) -> Target {
         Target::Wrapper
-    }
-    fn kind(&self) -> Kind {
-        Kind::Ts
     }
     fn deps(&self) -> Vec<Target> {
         vec![Target::Binding, Target::Shared]

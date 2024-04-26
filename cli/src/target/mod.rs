@@ -1,6 +1,10 @@
 use std::{path::PathBuf, str::FromStr};
 
-use crate::{location::get_root, modules, modules::Manager};
+use crate::{
+    location::get_root,
+    modules::Manager,
+    modules::{self, Kind},
+};
 use anyhow::bail;
 use clap::ValueEnum;
 
@@ -134,5 +138,12 @@ impl Target {
         let sub_path: PathBuf = sub_parts.collect();
 
         root.join(sub_path)
+    }
+
+    pub fn kind(&self) -> Kind {
+        match self {
+            Target::Binding | Target::Core | Target::Cli | Target::Wasm => Kind::Rs,
+            Target::Client | Target::Wrapper | Target::Shared | Target::App => Kind::Ts,
+        }
     }
 }

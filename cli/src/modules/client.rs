@@ -1,4 +1,4 @@
-use super::{Kind, Manager};
+use super::Manager;
 use crate::Target;
 use async_trait::async_trait;
 use std::path::PathBuf;
@@ -18,10 +18,6 @@ impl Manager for Module {
     fn owner(&self) -> Target {
         Target::Client
     }
-    fn kind(&self) -> Kind {
-        Kind::Ts
-    }
-
     fn deps(&self) -> Vec<Target> {
         vec![Target::Shared, Target::Wasm]
     }

@@ -1,4 +1,4 @@
-use super::{Kind, Manager};
+use super::Manager;
 use crate::{modules::TestCommand, Target};
 use async_trait::async_trait;
 
@@ -16,9 +16,6 @@ impl Module {
 impl Manager for Module {
     fn owner(&self) -> Target {
         Target::Cli
-    }
-    fn kind(&self) -> Kind {
-        Kind::Rs
     }
     fn deps(&self) -> Vec<Target> {
         vec![]
