@@ -6,8 +6,6 @@ use crate::{
     fstools,
     job_type::JobType,
     location::get_root,
-    modules,
-    modules::Manager,
     spawner::{spawn, spawn_skip, SpawnOptions, SpawnResult},
 };
 use anyhow::{bail, Context};
@@ -108,7 +106,7 @@ impl FromStr for Target {
 }
 
 impl Target {
-    pub fn _all_enums() -> Vec<Target> {
+    pub fn all() -> Vec<Target> {
         if cfg!(debug_assertions) {
             // This check to remember to add the newly added enums to this function
             match Target::App {
@@ -124,42 +122,15 @@ impl Target {
         }
 
         vec![
-            Target::Core,
             Target::Binding,
-            Target::Wrapper,
-            Target::Client,
-            Target::Shared,
-            Target::App,
             Target::Cli,
+            Target::App,
+            Target::Core,
+            Target::Wrapper,
+            Target::Shared,
+            Target::Client,
             Target::Wasm,
         ]
-    }
-
-    //TODO AAZ: Replace this with _all_enums
-    pub fn all() -> Vec<Box<dyn Manager + Sync + Send>> {
-        vec![
-            Box::new(modules::binding::Module::new()),
-            Box::new(modules::cli::Module::new()),
-            Box::new(modules::app::Module::new()),
-            Box::new(modules::core::Module::new()),
-            Box::new(modules::wrapper::Module::new()),
-            Box::new(modules::shared::Module::new()),
-            Box::new(modules::client::Module::new()),
-            Box::new(modules::wasm::Module::new()),
-        ]
-    }
-    //TODO AAZ: Remove this
-    pub fn get(&self) -> Box<dyn Manager + Sync + Send> {
-        match self {
-            Target::Binding => Box::new(modules::binding::Module::new()),
-            Target::Cli => Box::new(modules::cli::Module::new()),
-            Target::Client => Box::new(modules::client::Module::new()),
-            Target::Core => Box::new(modules::core::Module::new()),
-            Target::Wrapper => Box::new(modules::wrapper::Module::new()),
-            Target::Shared => Box::new(modules::shared::Module::new()),
-            Target::App => Box::new(modules::app::Module::new()),
-            Target::Wasm => Box::new(modules::wasm::Module::new()),
-        }
     }
 
     pub fn cwd(&self) -> PathBuf {

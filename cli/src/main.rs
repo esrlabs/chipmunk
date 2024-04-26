@@ -6,7 +6,6 @@ mod cli_args;
 mod fstools;
 mod job_type;
 mod location;
-mod modules;
 mod spawner;
 mod target;
 mod tracker;
@@ -19,7 +18,6 @@ use cli_args::{CargoCli, Command};
 use futures::future::join_all;
 use job_type::JobType;
 use location::init_location;
-use modules::Manager;
 use spawner::SpawnResult;
 use std::{
     fs::File,
@@ -55,10 +53,7 @@ async fn main() -> Result<(), Error> {
         }
         Command::Lint { target, report } => {
             report_opt = get_report_option(report)?;
-            let targets: Vec<_> = get_targets_or_default(target)
-                .into_iter()
-                .map(|t| t.owner())
-                .collect();
+            let targets = get_targets_or_default(target);
             let results = join_all(
                 targets
                     .iter()
@@ -74,10 +69,7 @@ async fn main() -> Result<(), Error> {
             report,
         } => {
             report_opt = get_report_option(report)?;
-            let targets: Vec<_> = get_targets_or_default(target)
-                .into_iter()
-                .map(|t| t.owner())
-                .collect();
+            let targets = get_targets_or_default(target);
             let results = join_all(
                 targets
                     .iter()
@@ -93,10 +85,7 @@ async fn main() -> Result<(), Error> {
             report,
         } => {
             report_opt = get_report_option(report)?;
-            let targets: Vec<_> = get_targets_or_default(target)
-                .into_iter()
-                .map(|t| t.owner())
-                .collect();
+            let targets = get_targets_or_default(target);
             let results = join_all(
                 targets
                     .iter()
@@ -112,11 +101,7 @@ async fn main() -> Result<(), Error> {
             report,
         } => {
             report_opt = get_report_option(report)?;
-            //TODO AAZ: Work around until manager trait is removed
-            let targets: Vec<_> = get_targets_or_default(target)
-                .into_iter()
-                .map(|t| t.owner())
-                .collect();
+            let targets = get_targets_or_default(target);
             let results = join_all(
                 targets
                     .iter()
@@ -129,7 +114,7 @@ async fn main() -> Result<(), Error> {
         Command::Run { production } => {
             report_opt = ReportOptions::None;
             let results = join_all(
-                Target::_all_enums()
+                Target::all()
                     .iter()
                     .map(|module| module.build(production))
                     .collect::<Vec<_>>(),
@@ -201,10 +186,10 @@ async fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn get_targets_or_default(targets: Option<Vec<Target>>) -> Vec<Box<dyn Manager + Sync + Send>> {
+fn get_targets_or_default(targets: Option<Vec<Target>>) -> Vec<Target> {
     if let Some(mut list) = targets {
         list.dedup();
-        list.iter().map(|target| target.get()).collect()
+        list
     } else {
         Target::all()
     }
