@@ -42,9 +42,6 @@ impl TestCommand {
 #[async_trait]
 pub trait Manager {
     fn owner(&self) -> Target;
-    fn build_cmd(&self, _prod: bool) -> Option<String> {
-        None
-    }
     fn install_cmd(&self, _prod: bool) -> Option<String> {
         None
     }
@@ -207,9 +204,7 @@ pub trait Manager {
             }
         }
         let path = get_root().join(self.owner().cwd());
-        let cmd = self
-            .build_cmd(prod)
-            .unwrap_or_else(|| self.owner().kind().build_cmd(prod));
+        let cmd = self.owner().build_cmd(prod);
         let caption = format!("Build {}", self.owner());
 
         let mut skip_task = false;

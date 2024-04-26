@@ -9,8 +9,10 @@ use anyhow::bail;
 use clap::ValueEnum;
 
 //TODO AAZ: Conisder which module should be pub after teh refactoring is done
+mod binding;
 pub mod client;
 mod target_kind;
+mod wasm;
 
 //TODO AAZ: Conisder removing this when refactoring is done
 pub use target_kind::TargetKind;
@@ -161,6 +163,14 @@ impl Target {
             Target::Wrapper => vec![Target::Binding, Target::Shared],
             Target::Client => vec![Target::Shared, Target::Wasm],
             Target::App => vec![Target::Shared, Target::Wrapper, Target::Client],
+        }
+    }
+
+    pub fn build_cmd(&self, prod: bool) -> String {
+        match self {
+            Target::Binding => binding::get_build_cmd(prod),
+            Target::Wasm => wasm::get_build_cmd(prod),
+            rest_targets => rest_targets.kind().build_cmd(prod),
         }
     }
 }

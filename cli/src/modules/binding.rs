@@ -24,19 +24,6 @@ impl Manager for Module {
         Target::Wrapper.get().install(prod).await
     }
 
-    fn build_cmd(&self, prod: bool) -> Option<String> {
-        let mut path = Target::Wrapper.cwd();
-        path.push("node_modules");
-        path.push(".bin");
-        path.push("electron-build-env");
-
-        Some(format!(
-            "{} nj-cli build{}",
-            path.to_string_lossy(),
-            //TODO: Ruby code build always in release mode
-            if prod { " --release" } else { "" }
-        ))
-    }
     async fn after(&self, _prod: bool) -> Result<Option<SpawnResult>, Error> {
         let mut report_logs = Vec::new();
 

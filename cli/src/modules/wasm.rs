@@ -18,14 +18,6 @@ impl Manager for Module {
         Target::Wasm
     }
 
-    fn build_cmd(&self, prod: bool) -> Option<String> {
-        let env = if prod { "--release" } else { "--dev" };
-
-        Some(format!(
-            "wasm-pack build {env} --target bundler --color always"
-        ))
-    }
-
     fn test_cmds(&self, _production: bool) -> Vec<TestCommand> {
         vec![
             TestCommand::new(
