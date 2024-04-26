@@ -14,6 +14,7 @@ use crate::{
     job_type::JobType,
     location::get_root,
     spawner::{spawn, spawn_skip, SpawnOptions, SpawnResult},
+    target::TargetKind,
     Target,
 };
 use anyhow::{bail, Context, Error};
@@ -21,35 +22,6 @@ use async_trait::async_trait;
 use futures::future::join_all;
 use std::{iter, path::PathBuf};
 use tokio::sync::oneshot;
-
-#[derive(Debug, Clone)]
-pub enum Kind {
-    /// TypeScript
-    Ts,
-    /// Rust
-    Rs,
-}
-
-impl Kind {
-    pub fn build_cmd(&self, prod: bool) -> String {
-        match self {
-            Kind::Ts => format!("yarn run {}", if prod { "prod" } else { "build" }),
-            Kind::Rs => format!(
-                "cargo build --color always{}",
-                if prod { " --release" } else { "" }
-            ),
-        }
-    }
-    pub fn install_cmd(&self, prod: bool) -> Option<String> {
-        match self {
-            Kind::Ts => Some(format!(
-                "yarn install{}",
-                if prod { " --production" } else { "" }
-            )),
-            Kind::Rs => None,
-        }
-    }
-}
 
 pub(crate) struct TestCommand {
     command: String,
@@ -70,9 +42,6 @@ impl TestCommand {
 #[async_trait]
 pub trait Manager {
     fn owner(&self) -> Target;
-    fn dist_path(&self, _prod: bool) -> Option<PathBuf> {
-        None
-    }
     fn build_cmd(&self, _prod: bool) -> Option<String> {
         None
     }
@@ -104,8 +73,8 @@ pub trait Manager {
     async fn clean(&self) -> Result<SpawnResult, Error> {
         let mut logs = Vec::new();
         let path = match self.owner().kind() {
-            Kind::Ts => self.owner().cwd().join("node_modules"),
-            Kind::Rs => self.owner().cwd().join("target"),
+            TargetKind::Ts => self.owner().cwd().join("node_modules"),
+            TargetKind::Rs => self.owner().cwd().join("target"),
         };
 
         let remove_log = format!("removing directory {}", path.display());
@@ -132,14 +101,14 @@ pub trait Manager {
     }
     async fn install_if_need(&self, prod: bool) -> Result<SpawnResult, Error> {
         match self.owner().kind() {
-            Kind::Ts => {
+            TargetKind::Ts => {
                 if self.owner().cwd().join("node_modules").exists() {
                     Ok(SpawnResult::empty())
                 } else {
                     self.install(prod).await
                 }
             }
-            Kind::Rs => Ok(SpawnResult::empty()),
+            TargetKind::Rs => Ok(SpawnResult::empty()),
         }
     }
     async fn after(&self, _prod: bool) -> Result<Option<SpawnResult>, Error> {
@@ -280,7 +249,7 @@ pub trait Manager {
                 if let Some(result) = res {
                     results.push(result);
                 }
-                if matches!(self.owner().kind(), Kind::Ts) && prod {
+                if matches!(self.owner().kind(), TargetKind::Ts) && prod {
                     let clean_res = self.clean().await?;
                     results.push(clean_res);
                     let install_res = self.install(prod).await?;
@@ -295,13 +264,13 @@ pub trait Manager {
     async fn check(&self) -> Result<Vec<SpawnResult>, Error> {
         let mut results = Vec::new();
         match self.owner().kind() {
-            Kind::Ts => {
+            TargetKind::Ts => {
                 let install_result = self.install(false).await?;
                 let lint_restul = self.lint().await?;
                 results.push(install_result);
                 results.push(lint_restul);
             }
-            Kind::Rs => {
+            TargetKind::Rs => {
                 let clippy_result = self.clippy().await?;
                 results.push(clippy_result);
             }

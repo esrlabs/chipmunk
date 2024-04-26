@@ -1,7 +1,6 @@
 use super::Manager;
 use crate::Target;
 use async_trait::async_trait;
-use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
 /// Represents the path `application/client`
@@ -17,13 +16,5 @@ impl Module {
 impl Manager for Module {
     fn owner(&self) -> Target {
         Target::Client
-    }
-    fn dist_path(&self, prod: bool) -> Option<PathBuf> {
-        Some(
-            self.owner()
-                .cwd()
-                .join("dist")
-                .join(if prod { "release" } else { "debug" }),
-        )
     }
 }

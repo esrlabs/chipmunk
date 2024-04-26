@@ -1,5 +1,5 @@
 use super::Manager;
-use crate::{fstools, spawner::SpawnResult, Target};
+use crate::{fstools, spawner::SpawnResult, target, Target};
 use anyhow::{bail, Context, Error};
 use async_trait::async_trait;
 use std::fs;
@@ -26,10 +26,7 @@ impl Manager for Module {
     }
     async fn after(&self, prod: bool) -> Result<Option<SpawnResult>, Error> {
         let mut report_logs = Vec::new();
-        let src = Target::Client
-            .get()
-            .dist_path(prod)
-            .context("Fail to get client artifacts")?;
+        let src = target::client::get_dist_path(prod);
         let dest = self.owner().cwd().join("dist");
         if !src.exists() {
             bail!("Not found: {}", src.display());

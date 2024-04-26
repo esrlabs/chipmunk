@@ -3,10 +3,17 @@ use std::{path::PathBuf, str::FromStr};
 use crate::{
     location::get_root,
     modules::Manager,
-    modules::{self, Kind},
+    modules::{self},
 };
 use anyhow::bail;
 use clap::ValueEnum;
+
+//TODO AAZ: Conisder which module should be pub after teh refactoring is done
+pub mod client;
+mod target_kind;
+
+//TODO AAZ: Conisder removing this when refactoring is done
+pub use target_kind::TargetKind;
 
 #[derive(Debug, ValueEnum, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Target {
@@ -140,10 +147,10 @@ impl Target {
         root.join(sub_path)
     }
 
-    pub fn kind(&self) -> Kind {
+    pub fn kind(&self) -> TargetKind {
         match self {
-            Target::Binding | Target::Core | Target::Cli | Target::Wasm => Kind::Rs,
-            Target::Client | Target::Wrapper | Target::Shared | Target::App => Kind::Ts,
+            Target::Binding | Target::Core | Target::Cli | Target::Wasm => TargetKind::Rs,
+            Target::Client | Target::Wrapper | Target::Shared | Target::App => TargetKind::Ts,
         }
     }
 
