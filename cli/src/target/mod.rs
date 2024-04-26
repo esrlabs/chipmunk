@@ -1,4 +1,11 @@
+use anyhow::{bail, Context};
+use clap::ValueEnum;
+use futures::{
+    future::{join_all, BoxFuture},
+    FutureExt,
+};
 use std::{iter, path::PathBuf, str::FromStr};
+use tokio::sync::oneshot;
 
 use crate::{
     build_state::{BuildState, BuildStatesTracker},
@@ -8,27 +15,18 @@ use crate::{
     location::get_root,
     spawner::{spawn, spawn_skip, SpawnOptions, SpawnResult},
 };
-use anyhow::{bail, Context};
-use clap::ValueEnum;
 
-//TODO AAZ: Conisder which module should be pub after the refactoring is done
+use target_kind::TargetKind;
+
 mod app;
 mod binding;
 mod cli;
-pub mod client;
+mod client;
 mod core;
 mod shared;
 mod target_kind;
 mod wasm;
 mod wrapper;
-
-use futures::{
-    future::{join_all, BoxFuture},
-    FutureExt,
-};
-//TODO AAZ: Conisder removing this when refactoring is done
-pub use target_kind::TargetKind;
-use tokio::sync::oneshot;
 
 #[derive(Debug, ValueEnum, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Target {
@@ -51,13 +49,13 @@ pub enum Target {
 }
 
 pub struct TestCommand {
-    pub command: String,
-    pub cwd: PathBuf,
-    pub spawn_opts: Option<SpawnOptions>,
+    command: String,
+    cwd: PathBuf,
+    spawn_opts: Option<SpawnOptions>,
 }
 
 impl TestCommand {
-    pub(crate) fn new(command: String, cwd: PathBuf, spawn_opts: Option<SpawnOptions>) -> Self {
+    fn new(command: String, cwd: PathBuf, spawn_opts: Option<SpawnOptions>) -> Self {
         Self {
             command,
             cwd,
@@ -180,7 +178,6 @@ impl Target {
         match self {
             // We must install ts binding tools before running rs bindings, therefore we call
             // wrapper (ts-bindings) install in the rs bindings install.
-            // TODO AAZ: Make sure the following statement is correct:
             // Since rs bindings is a dependency for ts bindings, we don't need to call to install
             // on ts bindings again.
             Target::Binding => install_general(&Target::Wrapper, prod).await,
