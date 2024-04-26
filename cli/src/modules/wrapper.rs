@@ -1,7 +1,6 @@
 use super::{Kind, Manager};
 use crate::{
     fstools,
-    location::get_root,
     spawner::{spawn, spawn_blocking, SpawnResult},
     Target,
 };
@@ -56,13 +55,6 @@ impl Manager for Module {
     fn kind(&self) -> Kind {
         Kind::Ts
     }
-    fn cwd(&self) -> PathBuf {
-        get_root()
-            .join("application")
-            .join("apps")
-            .join("rustcore")
-            .join("ts-bindings")
-    }
     fn deps(&self) -> Vec<Target> {
         vec![Target::Binding, Target::Shared]
     }
@@ -71,11 +63,7 @@ impl Manager for Module {
 
         // *** Copying TS Bindings ***
         report_logs.push(String::from("Copying ts-bindings to electron..."));
-        let rustcore_dest = Target::App
-            .get()
-            .cwd()
-            .join("node_modules")
-            .join("rustcore");
+        let rustcore_dest = Target::App.cwd().join("node_modules").join("rustcore");
 
         fstools::rm_folder(&rustcore_dest).await?;
 
@@ -89,7 +77,7 @@ impl Manager for Module {
             })?;
 
         // This part to get all the needed files and folders to copy
-        let ts_source = self.cwd();
+        let ts_source = self.owner().cwd();
         let ts_entries_to_copy: Vec<_> = fs::read_dir(&ts_source)
             .with_context(|| {
                 format!(
@@ -136,7 +124,7 @@ impl Manager for Module {
                 )
             })?;
 
-        let platform_src = Target::Shared.get().cwd();
+        let platform_src = Target::Shared.cwd();
 
         let platform_entries_to_copy: Vec<_> = fs::read_dir(&platform_src)
             .with_context(|| {
@@ -163,11 +151,7 @@ impl Manager for Module {
 
         // *** Copy Platform to electron ***
         report_logs.push(String::from("Copying platform in to electron..."));
-        let platform_dest2 = Target::App
-            .get()
-            .cwd()
-            .join("node_modules")
-            .join("platform");
+        let platform_dest2 = Target::App.cwd().join("node_modules").join("platform");
 
         fstools::rm_folder(&platform_dest2).await?;
         tokio::fs::create_dir_all(&platform_dest2)
@@ -199,11 +183,16 @@ impl Manager for Module {
         let build_results = self.build(false).await?;
         results.extend(build_results);
 
-        let build_spec_path = self.cwd().join("spec");
+        let build_spec_path = self.owner().cwd().join("spec");
         //TODO: This check exists in rake implementation but it need to be improved.
         // The check should cover if the test themselves or the code under the tests has been changed.
         if !build_spec_path.join("build").exists() {
-            let test_builder_path = self.cwd().join("node_modules").join(".bin").join("tsc");
+            let test_builder_path = self
+                .owner()
+                .cwd()
+                .join("node_modules")
+                .join(".bin")
+                .join("tsc");
             let build_spec_cmd =
                 format!("{} -p tsconfig.json", test_builder_path.to_string_lossy());
 
@@ -219,7 +208,7 @@ impl Manager for Module {
             results.push(spec_res);
         }
 
-        let cwd = self.cwd();
+        let cwd = self.owner().cwd();
 
         let electron_path: PathBuf = [".", "node_modules", ".bin", "electron"].iter().collect();
         let electron_path = electron_path.to_string_lossy();

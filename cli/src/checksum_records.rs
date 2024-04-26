@@ -120,7 +120,7 @@ impl ChecksumRecords {
     }
 
     fn calc_hash_for_target(target: &Target) -> anyhow::Result<HashDigest> {
-        let path = target.get().cwd();
+        let path = target.cwd();
         calc_combined_checksum(path).with_context(|| {
             format!("Error while calculating the current hash for target: {target}",)
         })

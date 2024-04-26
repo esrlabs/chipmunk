@@ -1,7 +1,6 @@
 use super::{Kind, Manager, TestCommand};
-use crate::{location::get_root, Target};
+use crate::Target;
 use async_trait::async_trait;
-use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
 /// Represents the path `application/apps/indexer`
@@ -21,9 +20,6 @@ impl Manager for Module {
     fn kind(&self) -> Kind {
         Kind::Rs
     }
-    fn cwd(&self) -> PathBuf {
-        get_root().join("application").join("apps").join("indexer")
-    }
     fn deps(&self) -> Vec<Target> {
         vec![]
     }
@@ -34,6 +30,6 @@ impl Manager for Module {
             if production { " -r" } else { "" }
         );
 
-        vec![TestCommand::new(cmd, self.cwd(), None)]
+        vec![TestCommand::new(cmd, self.owner().cwd(), None)]
     }
 }

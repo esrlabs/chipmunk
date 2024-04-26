@@ -1,8 +1,8 @@
 use super::{Kind, Manager};
-use crate::{fstools, location::get_root, spawner::SpawnResult, Target};
+use crate::{fstools, spawner::SpawnResult, Target};
 use anyhow::{Context, Error};
 use async_trait::async_trait;
-use std::{fs, path::PathBuf};
+use std::fs;
 
 #[derive(Clone, Debug)]
 /// Represents the path `application/platform`
@@ -22,9 +22,7 @@ impl Manager for Module {
     fn kind(&self) -> Kind {
         Kind::Ts
     }
-    fn cwd(&self) -> PathBuf {
-        get_root().join("application").join("platform")
-    }
+
     fn deps(&self) -> Vec<Target> {
         vec![]
     }
@@ -33,11 +31,7 @@ impl Manager for Module {
 
         report_logs.push(String::from("Start Job: Copying Platform to Bindings..."));
 
-        let platform_dest = Target::Wrapper
-            .get()
-            .cwd()
-            .join("node_modules")
-            .join("platform");
+        let platform_dest = Target::Wrapper.cwd().join("node_modules").join("platform");
 
         let msg = format!("Removing directory: '{}'", platform_dest.display());
         report_logs.push(msg);
@@ -50,7 +44,7 @@ impl Manager for Module {
                 format!("Error while creating directory {}", platform_dest.display())
             })?;
 
-        let source = self.cwd();
+        let source = self.owner().cwd();
 
         // This part to get all the needed files and folders to copy
         let entries_to_copy: Vec<_> = fs::read_dir(&source)

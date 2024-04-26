@@ -1,8 +1,8 @@
 use super::{Kind, Manager};
-use crate::{fstools, location::get_root, spawner::SpawnResult, Target};
+use crate::{fstools, spawner::SpawnResult, Target};
 use anyhow::{bail, Context, Error};
 use async_trait::async_trait;
-use std::{fs, path::PathBuf};
+use std::fs;
 
 #[derive(Clone, Debug)]
 /// Represents the path `application/holder`
@@ -22,9 +22,6 @@ impl Manager for Module {
     fn kind(&self) -> Kind {
         Kind::Ts
     }
-    fn cwd(&self) -> PathBuf {
-        get_root().join("application").join("holder")
-    }
     fn deps(&self) -> Vec<Target> {
         vec![Target::Shared, Target::Wrapper, Target::Client]
     }
@@ -38,7 +35,7 @@ impl Manager for Module {
             .get()
             .dist_path(prod)
             .context("Fail to get client artifacts")?;
-        let dest = self.cwd().join("dist");
+        let dest = self.owner().cwd().join("dist");
         if !src.exists() {
             bail!("Not found: {}", src.display());
         }

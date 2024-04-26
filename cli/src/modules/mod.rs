@@ -71,7 +71,6 @@ impl TestCommand {
 pub trait Manager {
     fn kind(&self) -> Kind;
     fn owner(&self) -> Target;
-    fn cwd(&self) -> PathBuf;
     fn dist_path(&self, _prod: bool) -> Option<PathBuf> {
         None
     }
@@ -92,7 +91,7 @@ pub trait Manager {
         let clean_result = self.clean().await?;
         results.push(clean_result);
 
-        let dist_path = self.cwd().join("dist");
+        let dist_path = self.owner().cwd().join("dist");
 
         let remove_log = format!("removing {}", dist_path.display());
 
@@ -107,8 +106,8 @@ pub trait Manager {
     async fn clean(&self) -> Result<SpawnResult, Error> {
         let mut logs = Vec::new();
         let path = match self.kind() {
-            Kind::Ts => self.cwd().join("node_modules"),
-            Kind::Rs => self.cwd().join("target"),
+            Kind::Ts => self.owner().cwd().join("node_modules"),
+            Kind::Rs => self.owner().cwd().join("target"),
         };
 
         let remove_log = format!("removing directory {}", path.display());
@@ -128,7 +127,7 @@ pub trait Manager {
         };
         if let Some(cmd) = cmd {
             let caption = format!("Install {}", self.owner());
-            spawn(cmd, Some(self.cwd()), caption, iter::empty(), None).await
+            spawn(cmd, Some(self.owner().cwd()), caption, iter::empty(), None).await
         } else {
             Ok(SpawnResult::empty())
         }
@@ -136,7 +135,7 @@ pub trait Manager {
     async fn install_if_need(&self, prod: bool) -> Result<SpawnResult, Error> {
         match self.kind() {
             Kind::Ts => {
-                if self.cwd().join("node_modules").exists() {
+                if self.owner().cwd().join("node_modules").exists() {
                     Ok(SpawnResult::empty())
                 } else {
                     self.install(prod).await
@@ -236,7 +235,7 @@ pub trait Manager {
                 return Ok(results);
             }
         }
-        let path = get_root().join(self.cwd());
+        let path = get_root().join(self.owner().cwd());
         let cmd = self
             .build_cmd(prod)
             .unwrap_or_else(|| self.kind().build_cmd(prod));
@@ -309,7 +308,7 @@ pub trait Manager {
         Ok(results)
     }
     async fn lint(&self) -> Result<SpawnResult, Error> {
-        let path = get_root().join(self.cwd());
+        let path = get_root().join(self.owner().cwd());
         let caption = format!("TS Lint {}", self.owner());
         let status = spawn(
             "yarn run lint".into(),
@@ -334,7 +333,7 @@ pub trait Manager {
         .await
     }
     async fn clippy(&self) -> Result<SpawnResult, Error> {
-        let path = get_root().join(self.cwd());
+        let path = get_root().join(self.owner().cwd());
 
         let caption = format!("Clippy {}", self.owner());
         spawn(

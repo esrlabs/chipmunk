@@ -1,8 +1,8 @@
 use super::{Kind, Manager};
-use crate::{fstools, location::get_root, spawner::SpawnResult, Target};
+use crate::{fstools, spawner::SpawnResult, Target};
 use anyhow::{bail, Context, Error};
 use async_trait::async_trait;
-use std::{fs, path::PathBuf};
+use std::fs;
 
 #[derive(Clone, Debug)]
 /// Represents the path `application/apps/rustcore/rs-bindings`
@@ -22,13 +22,6 @@ impl Manager for Module {
     fn kind(&self) -> Kind {
         Kind::Rs
     }
-    fn cwd(&self) -> PathBuf {
-        get_root()
-            .join("application")
-            .join("apps")
-            .join("rustcore")
-            .join("rs-bindings")
-    }
     fn deps(&self) -> Vec<Target> {
         vec![Target::Shared]
     }
@@ -39,7 +32,7 @@ impl Manager for Module {
     }
 
     fn build_cmd(&self, prod: bool) -> Option<String> {
-        let mut path = Target::Wrapper.get().cwd();
+        let mut path = Target::Wrapper.cwd();
         path.push("node_modules");
         path.push(".bin");
         path.push("electron-build-env");
@@ -57,7 +50,7 @@ impl Manager for Module {
         // *** Copy `index.node` from rs to ts bindings dist ***
         report_logs.push(String::from("Copying `index.node` to ts-bindings dist..."));
 
-        let src_file = self.cwd().join("dist").join("index.node");
+        let src_file = self.owner().cwd().join("dist").join("index.node");
         if !src_file.exists() {
             bail!(
                 "Error while copying `rs-bindings`. Err: Not found: {}",
@@ -65,7 +58,7 @@ impl Manager for Module {
             );
         }
 
-        let ts_dist_native_dir = Target::Wrapper.get().cwd().join("dist").join("native");
+        let ts_dist_native_dir = Target::Wrapper.cwd().join("dist").join("native");
         if !ts_dist_native_dir.exists() {
             let msg = format!("creating directory: {}", ts_dist_native_dir.display());
             report_logs.push(msg);
@@ -90,7 +83,7 @@ impl Manager for Module {
             "Copying `index.node` to ts-bindings src native...",
         ));
 
-        let dir_tests = Target::Wrapper.get().cwd().join("src").join("native");
+        let dir_tests = Target::Wrapper.cwd().join("src").join("native");
         let mod_file = dir_tests.join("index.node");
 
         fstools::cp_file(src_file, mod_file, &mut report_logs).await?;

@@ -1,5 +1,5 @@
 use super::{Kind, Manager};
-use crate::{location::get_root, Target};
+use crate::Target;
 use async_trait::async_trait;
 use std::path::PathBuf;
 
@@ -21,15 +21,14 @@ impl Manager for Module {
     fn kind(&self) -> Kind {
         Kind::Ts
     }
-    fn cwd(&self) -> PathBuf {
-        get_root().join("application").join("client")
-    }
+
     fn deps(&self) -> Vec<Target> {
         vec![Target::Shared, Target::Wasm]
     }
     fn dist_path(&self, prod: bool) -> Option<PathBuf> {
         Some(
-            self.cwd()
+            self.owner()
+                .cwd()
                 .join("dist")
                 .join(if prod { "release" } else { "debug" }),
         )

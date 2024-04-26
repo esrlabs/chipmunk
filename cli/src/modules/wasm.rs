@@ -1,7 +1,6 @@
 use super::{Kind, Manager, TestCommand};
-use crate::{location::get_root, spawner::SpawnOptions, Target};
+use crate::{spawner::SpawnOptions, Target};
 use async_trait::async_trait;
-use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
 /// Represents the path `application/apps/rustcore/wasm-bindings`
@@ -21,14 +20,6 @@ impl Manager for Module {
     fn kind(&self) -> Kind {
         Kind::Rs
     }
-    fn cwd(&self) -> PathBuf {
-        get_root()
-            .join("application")
-            .join("apps")
-            .join("rustcore")
-            .join("wasm-bindings")
-    }
-
     fn deps(&self) -> Vec<Target> {
         vec![]
     }
@@ -45,12 +36,12 @@ impl Manager for Module {
         vec![
             TestCommand::new(
                 "wasm-pack test --node --color always".into(),
-                self.cwd(),
+                self.owner().cwd(),
                 None,
             ),
             TestCommand::new(
                 "npm run test".into(),
-                self.cwd().join("spec"),
+                self.owner().cwd().join("spec"),
                 Some(SpawnOptions {
                     suppress_msg: true,
                     ..Default::default()

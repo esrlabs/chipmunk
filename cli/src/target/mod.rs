@@ -1,6 +1,6 @@
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 
-use crate::{modules, modules::Manager};
+use crate::{location::get_root, modules, modules::Manager};
 use anyhow::bail;
 use clap::ValueEnum;
 
@@ -91,6 +91,7 @@ impl Target {
         ]
     }
 
+    //TODO AAZ: Replace this with _all_enums
     pub fn all() -> Vec<Box<dyn Manager + Sync + Send>> {
         vec![
             Box::new(modules::binding::Module::new()),
@@ -103,6 +104,7 @@ impl Target {
             Box::new(modules::wasm::Module::new()),
         ]
     }
+    //TODO AAZ: Remove this
     pub fn get(&self) -> Box<dyn Manager + Sync + Send> {
         match self {
             Target::Binding => Box::new(modules::binding::Module::new()),
@@ -114,5 +116,23 @@ impl Target {
             Target::App => Box::new(modules::app::Module::new()),
             Target::Wasm => Box::new(modules::wasm::Module::new()),
         }
+    }
+
+    pub fn cwd(&self) -> PathBuf {
+        let root = get_root();
+        let sub_parts = match self {
+            Target::Core => ["application", "apps", "indexer"].iter(),
+            Target::Binding => ["application", "apps", "rustcore", "rs-bindings"].iter(),
+            Target::Wrapper => ["application", "apps", "rustcore", "ts-bindings"].iter(),
+            Target::Client => ["application", "client"].iter(),
+            Target::Shared => ["application", "platform"].iter(),
+            Target::App => ["application", "holder"].iter(),
+            Target::Cli => ["cli"].iter(),
+            Target::Wasm => ["application", "apps", "rustcore", "wasm-bindings"].iter(),
+        };
+
+        let sub_path: PathBuf = sub_parts.collect();
+
+        root.join(sub_path)
     }
 }
