@@ -1,4 +1,4 @@
-use super::{Manager, TestCommand};
+use super::Manager;
 use crate::Target;
 use async_trait::async_trait;
 
@@ -16,14 +16,5 @@ impl Module {
 impl Manager for Module {
     fn owner(&self) -> Target {
         Target::Core
-    }
-
-    fn test_cmds(&self, production: bool) -> Vec<TestCommand> {
-        let cmd = format!(
-            "cargo +stable test{} --color always",
-            if production { " -r" } else { "" }
-        );
-
-        vec![TestCommand::new(cmd, self.owner().cwd(), None)]
     }
 }

@@ -4,14 +4,16 @@ use crate::{
     location::get_root,
     modules::Manager,
     modules::{self},
-    spawner::{spawn, SpawnResult},
+    spawner::{spawn, SpawnOptions, SpawnResult},
 };
 use anyhow::bail;
 use clap::ValueEnum;
 
 //TODO AAZ: Conisder which module should be pub after teh refactoring is done
 mod binding;
+mod cli;
 pub mod client;
+mod core;
 mod target_kind;
 mod wasm;
 
@@ -36,6 +38,22 @@ pub enum Target {
     Cli,
     /// Represents the path `application/apps/rustcore/wasm-bindings`
     Wasm,
+}
+
+pub struct TestCommand {
+    pub command: String,
+    pub cwd: PathBuf,
+    pub spawn_opts: Option<SpawnOptions>,
+}
+
+impl TestCommand {
+    pub(crate) fn new(command: String, cwd: PathBuf, spawn_opts: Option<SpawnOptions>) -> Self {
+        Self {
+            command,
+            cwd,
+            spawn_opts,
+        }
+    }
 }
 
 impl std::fmt::Display for Target {
@@ -187,6 +205,15 @@ impl Target {
             // For app we don't need --production
             Target::App => install_general(&Target::App, false).await,
             rest_targets => install_general(rest_targets, prod).await,
+        }
+    }
+
+    pub fn test_cmds(&self, production: bool) -> Option<Vec<TestCommand>> {
+        match self {
+            Target::Core => Some(core::get_test_cmds(production)),
+            Target::Cli => Some(cli::gettest_cmds(production)),
+            Target::Wasm => Some(wasm::get_test_cmds()),
+            _ => None,
         }
     }
 }

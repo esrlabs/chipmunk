@@ -20,31 +20,12 @@ use crate::{
 use anyhow::{bail, Context, Error};
 use async_trait::async_trait;
 use futures::future::join_all;
-use std::{iter, path::PathBuf};
+use std::iter;
 use tokio::sync::oneshot;
-
-pub(crate) struct TestCommand {
-    command: String,
-    cwd: PathBuf,
-    spawn_opts: Option<SpawnOptions>,
-}
-
-impl TestCommand {
-    pub(crate) fn new(command: String, cwd: PathBuf, spawn_opts: Option<SpawnOptions>) -> Self {
-        Self {
-            command,
-            cwd,
-            spawn_opts,
-        }
-    }
-}
 
 #[async_trait]
 pub trait Manager {
     fn owner(&self) -> Target;
-    fn test_cmds(&self, _production: bool) -> Vec<TestCommand> {
-        Vec::new()
-    }
     async fn reset(&self, production: bool) -> anyhow::Result<Vec<SpawnResult>> {
         let checksum = ChecksumRecords::get(JobType::Clean { production }).await?;
         checksum.remove_hash_if_exist(self.owner());
@@ -286,10 +267,11 @@ pub trait Manager {
     }
 
     async fn test(&self, production: bool) -> Result<Vec<SpawnResult>, Error> {
-        let test_cmds = self.test_cmds(production);
-        if test_cmds.is_empty() {
+        let Some(test_cmds) = self.owner().test_cmds(production) else {
             return Ok(Vec::new());
-        }
+        };
+
+        debug_assert!(!test_cmds.is_empty());
 
         let mut results = Vec::new();
 
