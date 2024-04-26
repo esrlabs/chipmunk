@@ -2,8 +2,8 @@ use std::{iter, path::PathBuf, str::FromStr};
 
 use crate::{
     location::get_root,
+    modules,
     modules::Manager,
-    modules::{self},
     spawner::{spawn, SpawnOptions, SpawnResult},
 };
 use anyhow::bail;
@@ -16,7 +16,9 @@ pub mod client;
 mod core;
 mod target_kind;
 mod wasm;
+mod wrapper;
 
+use futures::future::join_all;
 //TODO AAZ: Conisder removing this when refactoring is done
 pub use target_kind::TargetKind;
 
@@ -208,7 +210,14 @@ impl Target {
         }
     }
 
-    pub fn test_cmds(&self, production: bool) -> Option<Vec<TestCommand>> {
+    pub async fn test(&self, production: bool) -> Result<Vec<SpawnResult>, anyhow::Error> {
+        match self {
+            Target::Wrapper => wrapper::run_test().await,
+            rest_targets => rest_targets.run_test_general(production).await,
+        }
+    }
+
+    fn test_cmds(&self, production: bool) -> Option<Vec<TestCommand>> {
         match self {
             Target::Core => Some(core::get_test_cmds(production)),
             Target::Cli => Some(cli::gettest_cmds(production)),
@@ -216,7 +225,44 @@ impl Target {
             _ => None,
         }
     }
+
+    /// run test using the general routine with `test_cmds()` method
+    async fn run_test_general(&self, production: bool) -> Result<Vec<SpawnResult>, anyhow::Error> {
+        let Some(test_cmds) = self.test_cmds(production) else {
+            return Ok(Vec::new());
+        };
+
+        debug_assert!(!test_cmds.is_empty());
+
+        let mut results = Vec::new();
+
+        // build method calls install
+        let build_results = self.get().build(false).await?;
+        results.extend(build_results);
+
+        let caption = format!("Test {}", self);
+        let spawn_results = join_all(test_cmds.into_iter().map(|cmd| {
+            spawn(
+                cmd.command,
+                Some(cmd.cwd),
+                caption.clone(),
+                iter::empty(),
+                cmd.spawn_opts,
+            )
+        }))
+        .await;
+
+        for res in spawn_results {
+            match res {
+                Ok(spawn_res) => results.push(spawn_res),
+                Err(err) => return Err(err),
+            }
+        }
+
+        Ok(results)
+    }
 }
+
 /// run install using the general routine for the given target
 async fn install_general(target: &Target, prod: bool) -> Result<SpawnResult, anyhow::Error> {
     let cmd = target.kind().install_cmd(prod);

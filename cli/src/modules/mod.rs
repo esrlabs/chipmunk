@@ -19,7 +19,6 @@ use crate::{
 };
 use anyhow::{bail, Context, Error};
 use async_trait::async_trait;
-use futures::future::join_all;
 use std::iter;
 use tokio::sync::oneshot;
 
@@ -264,40 +263,5 @@ pub trait Manager {
             None,
         )
         .await
-    }
-
-    async fn test(&self, production: bool) -> Result<Vec<SpawnResult>, Error> {
-        let Some(test_cmds) = self.owner().test_cmds(production) else {
-            return Ok(Vec::new());
-        };
-
-        debug_assert!(!test_cmds.is_empty());
-
-        let mut results = Vec::new();
-
-        // build method calls install
-        let build_results = self.build(false).await?;
-        results.extend(build_results);
-
-        let caption = format!("Test {}", self.owner());
-        let spawn_results = join_all(test_cmds.into_iter().map(|cmd| {
-            spawn(
-                cmd.command,
-                Some(cmd.cwd),
-                caption.clone(),
-                iter::empty(),
-                cmd.spawn_opts,
-            )
-        }))
-        .await;
-
-        for res in spawn_results {
-            match res {
-                Ok(spawn_res) => results.push(spawn_res),
-                Err(err) => return Err(err),
-            }
-        }
-
-        Ok(results)
     }
 }
