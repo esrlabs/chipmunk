@@ -9,7 +9,7 @@ use crate::{
 use anyhow::bail;
 use clap::ValueEnum;
 
-//TODO AAZ: Conisder which module should be pub after teh refactoring is done
+//TODO AAZ: Conisder which module should be pub after the refactoring is done
 mod binding;
 mod cli;
 pub mod client;
@@ -260,6 +260,64 @@ impl Target {
         }
 
         Ok(results)
+    }
+
+    pub async fn check(&self) -> Result<Vec<SpawnResult>, anyhow::Error> {
+        let mut results = Vec::new();
+        match self.kind() {
+            TargetKind::Ts => {
+                let install_result = self.install(false).await?;
+                let lint_restul = self.ts_lint().await?;
+                results.push(install_result);
+                results.push(lint_restul);
+            }
+            TargetKind::Rs => {
+                let clippy_result = self.clippy().await?;
+                results.push(clippy_result);
+            }
+        }
+
+        Ok(results)
+    }
+
+    async fn ts_lint(&self) -> Result<SpawnResult, anyhow::Error> {
+        let path = get_root().join(self.cwd());
+        let caption = format!("TS Lint {}", self);
+        let status = spawn(
+            "yarn run lint".into(),
+            Some(path.clone()),
+            caption,
+            iter::empty(),
+            None,
+        )
+        .await?;
+        if !status.status.success() {
+            return Ok(status);
+        }
+
+        let caption = format!("Build {}", self);
+        spawn(
+            "yarn run build".into(),
+            Some(path),
+            caption,
+            iter::empty(),
+            None,
+        )
+        .await
+    }
+
+    async fn clippy(&self) -> Result<SpawnResult, anyhow::Error> {
+        let path = get_root().join(self.cwd());
+
+        let caption = format!("Clippy {}", self);
+        spawn(
+            "cargo clippy --color always --all --all-features -- -D warnings".into(),
+            Some(path),
+            caption,
+            iter::empty(),
+            None,
+        )
+        .await
     }
 }
 
