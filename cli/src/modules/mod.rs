@@ -42,9 +42,6 @@ impl TestCommand {
 #[async_trait]
 pub trait Manager {
     fn owner(&self) -> Target;
-    fn install_cmd(&self, _prod: bool) -> Option<String> {
-        None
-    }
     fn test_cmds(&self, _production: bool) -> Vec<TestCommand> {
         Vec::new()
     }
@@ -83,31 +80,7 @@ pub trait Manager {
 
         Ok(SpawnResult::create_for_fs(job, logs))
     }
-    async fn install(&self, prod: bool) -> Result<SpawnResult, Error> {
-        let cmd = if self.install_cmd(prod).is_some() {
-            self.install_cmd(prod)
-        } else {
-            self.owner().kind().install_cmd(prod)
-        };
-        if let Some(cmd) = cmd {
-            let caption = format!("Install {}", self.owner());
-            spawn(cmd, Some(self.owner().cwd()), caption, iter::empty(), None).await
-        } else {
-            Ok(SpawnResult::empty())
-        }
-    }
-    async fn install_if_need(&self, prod: bool) -> Result<SpawnResult, Error> {
-        match self.owner().kind() {
-            TargetKind::Ts => {
-                if self.owner().cwd().join("node_modules").exists() {
-                    Ok(SpawnResult::empty())
-                } else {
-                    self.install(prod).await
-                }
-            }
-            TargetKind::Rs => Ok(SpawnResult::empty()),
-        }
-    }
+
     async fn after(&self, _prod: bool) -> Result<Option<SpawnResult>, Error> {
         Ok(None)
     }
@@ -223,7 +196,7 @@ pub trait Manager {
         let spawn_reslt = if skip_task {
             spawn_skip(cmd, Some(path), caption).await
         } else {
-            let install_result = self.install(false).await?;
+            let install_result = self.owner().install(false).await?;
             results.push(install_result);
             let spawn_opt = SpawnOptions {
                 has_skip_info: true,
@@ -247,7 +220,7 @@ pub trait Manager {
                 if matches!(self.owner().kind(), TargetKind::Ts) && prod {
                     let clean_res = self.clean().await?;
                     results.push(clean_res);
-                    let install_res = self.install(prod).await?;
+                    let install_res = self.owner().install(prod).await?;
                     results.push(install_res);
                 }
             }
@@ -260,7 +233,7 @@ pub trait Manager {
         let mut results = Vec::new();
         match self.owner().kind() {
             TargetKind::Ts => {
-                let install_result = self.install(false).await?;
+                let install_result = self.owner().install(false).await?;
                 let lint_restul = self.lint().await?;
                 results.push(install_result);
                 results.push(lint_restul);

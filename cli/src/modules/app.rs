@@ -20,10 +20,6 @@ impl Manager for Module {
         Target::App
     }
 
-    fn install_cmd(&self, _prod: bool) -> Option<String> {
-        // For app we don't need --production
-        Some(String::from("yarn install"))
-    }
     async fn after(&self, prod: bool) -> Result<Option<SpawnResult>, Error> {
         let mut report_logs = Vec::new();
         let src = target::client::get_dist_path(prod);

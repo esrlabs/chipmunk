@@ -19,10 +19,6 @@ impl Manager for Module {
     fn owner(&self) -> Target {
         Target::Binding
     }
-    //TODO: This is just a work around to solve installing ts bindings before biulding rs bindings
-    async fn install(&self, prod: bool) -> Result<SpawnResult, Error> {
-        Target::Wrapper.get().install(prod).await
-    }
 
     async fn after(&self, _prod: bool) -> Result<Option<SpawnResult>, Error> {
         let mut report_logs = Vec::new();

@@ -1,9 +1,10 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{iter, path::PathBuf, str::FromStr};
 
 use crate::{
     location::get_root,
     modules::Manager,
     modules::{self},
+    spawner::{spawn, SpawnResult},
 };
 use anyhow::bail;
 use clap::ValueEnum;
@@ -172,5 +173,30 @@ impl Target {
             Target::Wasm => wasm::get_build_cmd(prod),
             rest_targets => rest_targets.kind().build_cmd(prod),
         }
+    }
+
+    pub async fn install(&self, prod: bool) -> Result<SpawnResult, anyhow::Error> {
+        match self {
+            // We must install ts binding tools before running rs bindings, therefore we call
+            // wrapper (ts-bindings) install in the rs bindings install.
+            // TODO AAZ: Make sure the following statement is correct:
+            // Since rs bindings is a dependency for ts bindings, we don't need to call to install
+            // on ts bindings again.
+            Target::Binding => install_general(&Target::Wrapper, prod).await,
+            Target::Wrapper => Ok(SpawnResult::empty()),
+            // For app we don't need --production
+            Target::App => install_general(&Target::App, false).await,
+            rest_targets => install_general(rest_targets, prod).await,
+        }
+    }
+}
+/// run install using the general routine for the given target
+async fn install_general(target: &Target, prod: bool) -> Result<SpawnResult, anyhow::Error> {
+    let cmd = target.kind().install_cmd(prod);
+    if let Some(cmd) = cmd {
+        let caption = format!("Install {}", target);
+        spawn(cmd, Some(target.cwd()), caption, iter::empty(), None).await
+    } else {
+        Ok(SpawnResult::empty())
     }
 }
