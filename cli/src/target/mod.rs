@@ -1,26 +1,36 @@
 use std::{iter, path::PathBuf, str::FromStr};
 
 use crate::{
+    build_state::{BuildState, BuildStatesTracker},
+    checksum_records::ChecksumRecords,
+    fstools,
+    job_type::JobType,
     location::get_root,
     modules,
     modules::Manager,
-    spawner::{spawn, SpawnOptions, SpawnResult},
+    spawner::{spawn, spawn_skip, SpawnOptions, SpawnResult},
 };
-use anyhow::bail;
+use anyhow::{bail, Context};
 use clap::ValueEnum;
 
 //TODO AAZ: Conisder which module should be pub after the refactoring is done
+mod app;
 mod binding;
 mod cli;
 pub mod client;
 mod core;
+mod shared;
 mod target_kind;
 mod wasm;
 mod wrapper;
 
-use futures::future::join_all;
+use futures::{
+    future::{join_all, BoxFuture},
+    FutureExt,
+};
 //TODO AAZ: Conisder removing this when refactoring is done
 pub use target_kind::TargetKind;
+use tokio::sync::oneshot;
 
 #[derive(Debug, ValueEnum, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Target {
@@ -237,7 +247,7 @@ impl Target {
         let mut results = Vec::new();
 
         // build method calls install
-        let build_results = self.get().build(false).await?;
+        let build_results = self.build(false).await?;
         results.extend(build_results);
 
         let caption = format!("Test {}", self);
@@ -318,6 +328,194 @@ impl Target {
             None,
         )
         .await
+    }
+
+    pub async fn reset(&self, production: bool) -> anyhow::Result<Vec<SpawnResult>> {
+        let checksum = ChecksumRecords::get(JobType::Clean { production }).await?;
+        checksum.remove_hash_if_exist(*self);
+        let mut results = Vec::new();
+        let clean_result = self.clean().await?;
+        results.push(clean_result);
+
+        let dist_path = self.cwd().join("dist");
+
+        let remove_log = format!("removing {}", dist_path.display());
+
+        fstools::rm_folder(&dist_path).await?;
+
+        let job = format!("Reset {}", self);
+
+        results.push(SpawnResult::create_for_fs(job, vec![remove_log]));
+
+        Ok(results)
+    }
+
+    async fn clean(&self) -> Result<SpawnResult, anyhow::Error> {
+        let mut logs = Vec::new();
+        let path = match self.kind() {
+            TargetKind::Ts => self.cwd().join("node_modules"),
+            TargetKind::Rs => self.cwd().join("target"),
+        };
+
+        let remove_log = format!("removing directory {}", path.display());
+        logs.push(remove_log);
+
+        fstools::rm_folder(&path).await?;
+
+        let job = format!("Clean {}", self);
+
+        Ok(SpawnResult::create_for_fs(job, logs))
+    }
+
+    /// Runs build considering the currently running builds and already finished ones as well.
+    pub async fn build(&self, prod: bool) -> Result<Vec<SpawnResult>, anyhow::Error> {
+        let build_states = BuildStatesTracker::get().await;
+        let (tx_result, rx_result) = oneshot::channel();
+
+        let mut run_build = false;
+        // Check the current build state
+        {
+            let mut states = build_states.states_map.lock().unwrap();
+            match states.get_mut(self) {
+                Some(BuildState::Running(senders)) => {
+                    // If the build is currently running, add the sender to senders list so it get
+                    // the results when the job is done;
+                    senders.push(tx_result);
+                }
+                Some(BuildState::Finished(build_result)) => {
+                    // If Build is already finished, then return the results directly
+                    match build_result {
+                        Ok(res) => return Ok(res.clone()),
+                        Err(err) => bail!(err.to_string()),
+                    }
+                }
+                None => {
+                    // Run the build and add the sender to the list.
+                    run_build = true;
+                    states.insert(*self, BuildState::Running(vec![tx_result]));
+                }
+            }
+        }
+
+        if run_build {
+            // Run the build
+            let build_result = self.perform_build(prod).await;
+            // Update the build state and notify all the senders
+            {
+                let mut states = build_states.states_map.lock().unwrap();
+
+                let res_clone = match &build_result {
+                    Ok(spawn_res) => Ok(spawn_res.clone()),
+                    Err(err) => Err(anyhow::anyhow!("{:?}", err)),
+                };
+
+                let Some(BuildState::Running(senders)) =
+                    states.insert(*self, BuildState::Finished(build_result))
+                else {
+                    unreachable!("State after calling build must be renning");
+                };
+
+                for sender in senders {
+                    let res_clone = match &res_clone {
+                        Ok(spawn_res) => Ok(spawn_res.clone()),
+                        Err(err) => Err(anyhow::anyhow!("{:?}", err)),
+                    };
+                    if sender.send(res_clone).is_err() {
+                        bail!("Fail to communicate with builder");
+                    }
+                }
+            }
+        }
+
+        rx_result
+            .await
+            .context("Fail to communicate with builder")?
+    }
+
+    /// Performs build process without checking the current builds states
+    fn perform_build(&self, prod: bool) -> BoxFuture<Result<Vec<SpawnResult>, anyhow::Error>> {
+        // BoxFuture is needed because recursion isn't supported with async rust yet
+        async move {
+            let checksum_rec = ChecksumRecords::get(JobType::Build { production: prod }).await?;
+            checksum_rec.register_job(*self);
+
+            let mut results = Vec::new();
+            let deps: Vec<Target> = self.deps();
+            for module in deps {
+                let status = module.build(prod).await.with_context(|| {
+                    format!(
+                        "Error while building the dependciy {} for target {}",
+                        module, self
+                    )
+                })?;
+                results.extend(status);
+                if results.iter().any(|res| !res.status.success()) {
+                    return Ok(results);
+                }
+            }
+            let path = get_root().join(self.cwd());
+            let cmd = self.build_cmd(prod);
+            let caption = format!("Build {}", self);
+
+            let mut skip_task = false;
+
+            let all_skipped = results.iter().all(|r| {
+                r.skipped.unwrap_or({
+                    // Tasks with no skip info are irrelevant
+                    true
+                })
+            });
+
+            if all_skipped {
+                skip_task = !checksum_rec.check_changed(*self)?;
+            }
+
+            let spawn_reslt = if skip_task {
+                spawn_skip(cmd, Some(path), caption).await
+            } else {
+                let install_result = self.install(false).await?;
+                results.push(install_result);
+                let spawn_opt = SpawnOptions {
+                    has_skip_info: true,
+                    ..Default::default()
+                };
+                spawn(cmd, Some(path), caption, iter::empty(), Some(spawn_opt)).await
+            };
+
+            let status = spawn_reslt?;
+
+            if !status.status.success() {
+                results.push(status);
+                Ok(results)
+            } else {
+                results.push(status);
+                if !skip_task {
+                    let res = self.after_build(prod).await?;
+                    if let Some(result) = res {
+                        results.push(result);
+                    }
+                    if matches!(self.kind(), TargetKind::Ts) && prod {
+                        let clean_res = self.clean().await?;
+                        results.push(clean_res);
+                        let install_res = self.install(prod).await?;
+                        results.push(install_res);
+                    }
+                }
+
+                Ok(results)
+            }
+        }
+        .boxed()
+    }
+
+    async fn after_build(&self, prod: bool) -> Result<Option<SpawnResult>, anyhow::Error> {
+        match self {
+            Target::Binding => binding::copy_index_node().await,
+            Target::Wrapper => wrapper::copy_binding_to_app().await,
+            Target::Shared => shared::copy_platform_to_binding().await,
+            Target::App => app::copy_client_to_app(prod).await,
+            _ => Ok(None),
+        }
     }
 }
 

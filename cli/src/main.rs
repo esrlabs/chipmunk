@@ -74,7 +74,10 @@ async fn main() -> Result<(), Error> {
             report,
         } => {
             report_opt = get_report_option(report)?;
-            let targets = get_targets_or_default(target);
+            let targets: Vec<_> = get_targets_or_default(target)
+                .into_iter()
+                .map(|t| t.owner())
+                .collect();
             let results = join_all(
                 targets
                     .iter()
@@ -90,7 +93,10 @@ async fn main() -> Result<(), Error> {
             report,
         } => {
             report_opt = get_report_option(report)?;
-            let targets = get_targets_or_default(target);
+            let targets: Vec<_> = get_targets_or_default(target)
+                .into_iter()
+                .map(|t| t.owner())
+                .collect();
             let results = join_all(
                 targets
                     .iter()
@@ -123,7 +129,7 @@ async fn main() -> Result<(), Error> {
         Command::Run { production } => {
             report_opt = ReportOptions::None;
             let results = join_all(
-                Target::all()
+                Target::_all_enums()
                     .iter()
                     .map(|module| module.build(production))
                     .collect::<Vec<_>>(),
