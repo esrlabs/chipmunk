@@ -1,3 +1,8 @@
+# 3.12.5 (26.04.2024)
+
+## Added
+- Support ARM64 for MacOS
+
 # 3.12.4 (19.04.2024)
 
 ## Fixes
