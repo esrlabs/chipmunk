@@ -2,7 +2,7 @@
 name = "cargo-chipmunk"
 version = "0.1.0"
 edition = "2021"
-description = "Tool for chipmunk application development"
+description = "CLI Tool for chipmunk application development"
 
 [workspace]
 members = ["dir_checksum"]
