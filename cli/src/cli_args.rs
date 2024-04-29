@@ -91,5 +91,6 @@ pub enum EnvironmentCommand {
     /// Checks that all needed tools for the development are installed
     Check,
     /// Prints the information of the needed tools for the development
+    #[clap(visible_alias = "list")]
     Print,
 }
