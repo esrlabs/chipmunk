@@ -1,5 +1,6 @@
 /target
 **/*.rs.bk
+**/proptest-regressions
 *.out
 lineMetadata.json
 vim-markdown-preview.html

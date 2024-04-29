@@ -229,8 +229,9 @@ export class ProviderFilters extends Provider<FilterRequest> {
             }).length !== 0
                 ? () => {
                       entities.forEach((entity: Entity<FilterRequest>) => {
-                          entity.extract().set().state(true);
+                          entity.extract().set(true).state(true);
                       });
+                      this.session.search.store().filters().refresh();
                   }
                 : undefined;
         actions.deactivate =
@@ -239,8 +240,9 @@ export class ProviderFilters extends Provider<FilterRequest> {
             }).length !== 0
                 ? () => {
                       entities.forEach((entity: Entity<FilterRequest>) => {
-                          entity.extract().set().state(false);
+                          entity.extract().set(true).state(false);
                       });
+                      this.session.search.store().filters().refresh();
                   }
                 : undefined;
         actions.edit =

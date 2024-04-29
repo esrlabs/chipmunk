@@ -4,6 +4,8 @@ import { SetupLogger, LoggerInterface } from 'platform/entity/logger';
 import * as fs from 'fs';
 import * as path from 'path';
 
+const WARN_WRITE_DURATION_MS = 500;
+
 @SetupLogger()
 export class FileController {
     public readonly filename: string;
@@ -15,8 +17,8 @@ export class FileController {
     }
 
     public init(): FileController {
-        this._queue = new Queue(this.log());
         this.setLoggerName(`Accessor ("${path.basename(this.filename)}")`);
+        this._queue = new Queue(this.log());
         return this;
     }
 
@@ -39,8 +41,19 @@ export class FileController {
             return new Error(`Storage is locked`);
         }
         this._queue.add(() => {
+            const ts = Date.now();
             return fs.promises
                 .writeFile(this.filename, content, { encoding: 'utf-8' })
+                .then(() => {
+                    const duration = Date.now() - ts;
+                    if (duration > WARN_WRITE_DURATION_MS) {
+                        this.log().warn(
+                            `Writing of ~${content.length}b took too long time: ${duration}ms`,
+                        );
+                    } else {
+                        this.log().verbose(`~${content.length}b written in: ${Date.now() - ts}ms`);
+                    }
+                })
                 .catch((err: Error) => {
                     this.log().error(`Fail to write data into "${this.filename}": ${err.message}`);
                 });

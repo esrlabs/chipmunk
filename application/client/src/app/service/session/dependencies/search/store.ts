@@ -135,7 +135,9 @@ export abstract class Store<T> extends Subscriber {
                             if (event.consequence().value) {
                                 this.subjects.get().value.emit({ entities, sequence });
                             }
-                            this.subjects.get().any.emit({ entities, sequence });
+                            if (event.consequence().storable) {
+                                this.subjects.get().any.emit({ entities, sequence });
+                            }
                         }
                     }),
                 );

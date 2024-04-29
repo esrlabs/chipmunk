@@ -34,7 +34,7 @@ jobs:
       CSC_FOR_PULL_REQUEST: true
     strategy:
       matrix:
-        os: [ubuntu-20.04, windows-latest, macOS-latest]
+        os: [ubuntu-20.04, windows-latest, macos-13, macOS-latest]
         rust: [stable]
     steps:
       - name: Checkout
@@ -88,7 +88,8 @@ jobs:
             "$KEYCHAIN_NAME"
       - name: build release
         working-directory: ./application/holder
-        run: rake release:prod --trace
+        run: |
+          rake release:prod --trace
         env:
           KEYCHAIN_NAME: "build.keychain"
           CSC_LINK: ${{ secrets.CSC_LINK }}

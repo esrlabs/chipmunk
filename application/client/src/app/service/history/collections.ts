@@ -16,6 +16,7 @@ import { StorageCollections } from './storage.collections';
 import { unique } from '@platform/env/sequence';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 import { ChartRequest } from '@service/session/dependencies/search/charts/request';
+import { hash } from '@platform/env/hash';
 
 import * as obj from '@platform/env/obj';
 
@@ -164,7 +165,11 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
 
     public subscribe(subscriber: Subscriber, session: Session): void {
         this.asCollectionsArray().forEach((c) => {
-            subscriber.register(c.updated.subscribe(() => this.updated.emit()));
+            subscriber.register(
+                c.updated.subscribe(() => {
+                    this.updated.emit();
+                }),
+            );
             c.subscribe(subscriber, session);
         });
     }
@@ -287,6 +292,51 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         return Object.keys(this.collections).map(
             (key) => (this.collections as { [key: string]: Collection<any> })[key],
         );
+    }
+
+    public getInnerHash(): string {
+        const representation =
+            this.collections.filters
+                .as()
+                .elements()
+                .map((request) => {
+                    const def = request.definition;
+                    return `${def.filter.filter}${def.filter.flags.cases}${def.filter.flags.word}${def.filter.flags.reg}${def.colors.color}${def.colors.background}${def.active}`;
+                })
+                .join(';') +
+            this.collections.charts
+                .as()
+                .elements()
+                .map((request) => {
+                    const def = request.definition;
+                    return `${def.filter}${def.color}${def.active}`;
+                })
+                .join(';') +
+            (
+                this.collections.disabled
+                    .as()
+                    .elements()
+                    .map((entity) => entity.as().filter())
+                    .filter((entity) => entity !== undefined) as unknown as FilterRequest[]
+            )
+                .map((request: FilterRequest) => {
+                    const def = request.definition;
+                    return `${def.filter.filter}${def.filter.flags.cases}${def.filter.flags.word}${def.filter.flags.reg}${def.colors.color}${def.colors.background}${def.active}`;
+                })
+                .join(';') +
+            (
+                this.collections.disabled
+                    .as()
+                    .elements()
+                    .map((entity) => entity.as().chart())
+                    .filter((entity) => entity !== undefined) as unknown as ChartRequest[]
+            )
+                .map((request) => {
+                    const def = request.definition;
+                    return `${def.filter}${def.color}${def.active}`;
+                })
+                .join(';');
+        return hash(representation).toString();
     }
 
     public isEmpty(): boolean {

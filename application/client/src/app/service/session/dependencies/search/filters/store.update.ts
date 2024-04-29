@@ -56,11 +56,13 @@ export class UpdateEvent extends EntityUpdateEvent<UpdateEventInner, FilterReque
         highlights: boolean;
         value: boolean;
         inner: boolean;
+        storable: boolean;
     } {
         return {
             highlights: this.event.colors,
             value: this.event.state || this.event.filter,
             inner: this.event.colors || this.event.filter || this.event.stat || this.event.state,
+            storable: this.event.colors || this.event.filter || this.event.state,
         };
     }
     public inner(): UpdateEventInner {

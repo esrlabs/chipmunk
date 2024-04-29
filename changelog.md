@@ -1,3 +1,28 @@
+# 3.12.5 (26.04.2024)
+
+## Added
+- Support ARM64 for MacOS
+
+# 3.12.4 (19.04.2024)
+
+## Fixes
+- Fix parsing disabled entities (filters/charts)
+
+# 3.12.3 (19.04.2024)
+
+## Changes
+- Optimization of the events life cycle of filters/charts/disabled
+
+# 3.12.2 (19.04.2024)
+
+## Changes
+- Optimization for "History/Presets" tab
+
+# 3.12.1 (16.04.2024)
+
+## Fixes
+- Fix issue related to invalid UTF-8 and Unicode
+
 # 3.12.0 (12.04.2024)
 
 ## Features

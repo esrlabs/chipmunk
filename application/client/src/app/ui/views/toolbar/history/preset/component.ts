@@ -5,6 +5,17 @@ import { ChartRequest } from '@service/session/dependencies/search/charts/reques
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 
+import * as dom from '@ui/env/dom';
+
+const CUT_LIST_ON = 5;
+
+enum Target {
+    Filters,
+    Charts,
+    DisabledFilters,
+    DisabledCharts,
+}
+
 @Component({
     selector: 'app-toolbar-history-preset',
     templateUrl: './template.html',
@@ -23,24 +34,47 @@ export class Preset extends ChangesDetector implements AfterContentInit {
         filters: [],
         charts: [],
     };
+    public origin: {
+        filters: FilterRequest[];
+        charts: ChartRequest[];
+        disabled: {
+            filters: FilterRequest[];
+            charts: ChartRequest[];
+        };
+    } = {
+        filters: [],
+        charts: [],
+        disabled: {
+            filters: [],
+            charts: [],
+        },
+    };
+
+    public get Target(): typeof Target {
+        return Target;
+    }
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
 
     public ngAfterContentInit(): void {
-        this.filters = this.collections.collections.filters.as().elements();
-        this.charts = this.collections.collections.charts.as().elements();
-        this.disabled.filters = this.collections.collections.disabled
+        this.origin.filters = this.collections.collections.filters.as().elements();
+        this.origin.charts = this.collections.collections.charts.as().elements();
+        this.origin.disabled.filters = this.collections.collections.disabled
             .as()
             .elements()
             .map((el) => el.as().filter())
             .filter((f) => f !== undefined) as FilterRequest[];
-        this.disabled.charts = this.collections.collections.disabled
+        this.origin.disabled.charts = this.collections.collections.disabled
             .as()
             .elements()
             .map((el) => el.as().chart())
             .filter((f) => f !== undefined) as ChartRequest[];
+        this.filters = this.origin.filters.slice(0, CUT_LIST_ON);
+        this.charts = this.origin.charts.slice(0, CUT_LIST_ON);
+        this.disabled.filters = this.origin.disabled.filters.slice(0, CUT_LIST_ON);
+        this.disabled.charts = this.origin.disabled.charts.slice(0, CUT_LIST_ON);
     }
 
     public getName(): string {
@@ -64,6 +98,20 @@ export class Preset extends ChangesDetector implements AfterContentInit {
             this.collections.name = value;
         }
         this.collections.setName(this.collections.name);
+        this.detectChanges();
+    }
+
+    public more(event: MouseEvent, target: Target) {
+        dom.stop(event);
+        if (target === Target.Filters) {
+            this.filters = this.origin.filters;
+        } else if (target === Target.Charts) {
+            this.charts = this.origin.charts;
+        } else if (target === Target.DisabledCharts) {
+            this.disabled.charts = this.origin.disabled.charts;
+        } else if (target === Target.DisabledFilters) {
+            this.disabled.filters = this.origin.disabled.filters;
+        }
         this.detectChanges();
     }
 }

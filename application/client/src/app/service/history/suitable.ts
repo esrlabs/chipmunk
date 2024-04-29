@@ -36,6 +36,18 @@ export class Suitable {
         list.sort((a, b) => {
             return a.rank > b.rank ? 1 : -1;
         });
+        list.forEach((group: SuitableGroup) => {
+            const unique: string[] = [];
+            group.collections = group.collections.filter((collection) => {
+                const hash = collection.getInnerHash();
+                if (unique.includes(hash)) {
+                    return false;
+                } else {
+                    unique.push(hash);
+                    return true;
+                }
+            });
+        });
         return list;
     }
 

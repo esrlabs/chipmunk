@@ -1,5 +1,4 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { Entry } from '../../../types/storage/entry';
 
 import * as validator from '../../../env/obj';
 
@@ -24,13 +23,12 @@ export interface Request extends Interface {}
 @Define({ name: 'EntriesGetResponse' })
 export class Response extends SignatureRequirement {
     public key: string;
-    public entries: Entry[];
-    constructor(input: { key: string; entries: Entry[] }) {
+    public entries: string;
+    constructor(input: { key: string; entries: string }) {
         super();
         validator.isObject(input);
-        this.entries = validator.getAsArray(input, 'entries');
+        this.entries = validator.getAsNotEmptyString(input, 'entries');
         this.key = validator.getAsNotEmptyString(input, 'key');
-        this.entries = validator.getAsArray(input, 'entries');
     }
 }
 
