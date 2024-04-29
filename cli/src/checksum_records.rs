@@ -30,7 +30,7 @@ struct ChecksumItems {
 impl ChecksumRecords {
     pub async fn update_and_save(job_type: JobType) -> anyhow::Result<()> {
         let calculate_involved = match &job_type {
-            JobType::_Environment | JobType::Lint => return Ok(()),
+            JobType::Lint => return Ok(()),
             JobType::Build { production: _ }
             | JobType::Run { production: _ }
             | JobType::Test { production: _ } => true,

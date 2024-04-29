@@ -23,9 +23,10 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum Command {
-    /// Checks that all needed tools for the development are installed
+    /// Provides commands for the needed tools for the development
     #[clap(visible_alias = "env")]
-    Environment,
+    #[command(subcommand)]
+    Environment(EnvironmentCommand),
     /// Runs linting & clippy
     Lint {
         /// Target to lint, by default whole application will be linted
@@ -80,4 +81,12 @@ pub enum Command {
         #[arg(short, long, default_value_t = false)]
         production: bool,
     },
+}
+
+#[derive(Subcommand, Debug, Clone)]
+pub enum EnvironmentCommand {
+    /// Checks that all needed tools for the development are installed
+    Check,
+    /// Prints the information of the needed tools for the development
+    Print,
 }

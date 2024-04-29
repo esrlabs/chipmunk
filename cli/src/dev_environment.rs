@@ -14,7 +14,7 @@ const ENV_CHECKS: [EnvCheck; 7] = [
     EnvCheck::new(
         "wasm-pack",
         "wasm-pack",
-        "--help",
+        "-V",
         Some("cargo install wasm-pack"),
     ),
     EnvCheck::new("nj-cli", "nj-cli", "-V", Some("cargo install nj-cli")),
@@ -85,5 +85,17 @@ pub fn check_env() -> anyhow::Result<()> {
     match errors {
         Some(err_text) => bail!("{}", err_text.trim()),
         None => Ok(()),
+    }
+}
+
+/// Prints the information of the needed tools for the development if available, otherwise prints
+/// error information to `stderr`
+pub fn print_env_info() {
+    for check in ENV_CHECKS.iter() {
+        println!("{} Info:", check.app_name);
+        if let Err(err) = Command::new(check.command).arg(check.arg).status() {
+            eprintln!("Error while retrieving dependency's information: {err}");
+        }
+        println!("------------------------------------------------------------------");
     }
 }

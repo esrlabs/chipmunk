@@ -1,8 +1,8 @@
 mod app_runner;
 mod build_state;
-mod check_env;
 mod checksum_records;
 mod cli_args;
+mod dev_environment;
 mod fstools;
 mod job_type;
 mod location;
@@ -11,10 +11,10 @@ mod target;
 mod tracker;
 
 use anyhow::{bail, Error};
-use check_env::check_env;
 use checksum_records::ChecksumRecords;
 use clap::Parser;
 use cli_args::{CargoCli, Command};
+use dev_environment::{check_env, print_env_info};
 use futures::future::join_all;
 use job_type::JobType;
 use location::init_location;
@@ -27,6 +27,8 @@ use std::{
 use target::Target;
 use tracker::get_tracker;
 
+use crate::cli_args::EnvironmentCommand;
+
 #[derive(Debug)]
 pub enum ReportOptions {
     None,
@@ -38,20 +40,25 @@ pub enum ReportOptions {
 async fn main() -> Result<(), Error> {
     let CargoCli::Chipmunk(cli) = CargoCli::parse();
 
-    check_env()?;
-
     init_location()?;
 
     // Run the given command
     let command = cli.command;
     let report_opt: ReportOptions;
     let (job_type, results) = match command {
-        Command::Environment => {
-            // Check for dependencies is already called before calling any command
-            println!("All needed tools for development are installed");
-            return Ok(());
-        }
+        Command::Environment(sub_command) => match sub_command {
+            EnvironmentCommand::Check => {
+                check_env()?;
+                println!("All needed tools for development are installed");
+                return Ok(());
+            }
+            EnvironmentCommand::Print => {
+                print_env_info();
+                return Ok(());
+            }
+        },
         Command::Lint { target, report } => {
+            check_env()?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             let results = join_all(
@@ -68,6 +75,7 @@ async fn main() -> Result<(), Error> {
             production,
             report,
         } => {
+            check_env()?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             let results = join_all(
@@ -84,6 +92,7 @@ async fn main() -> Result<(), Error> {
             production,
             report,
         } => {
+            check_env()?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             let results = join_all(
@@ -100,6 +109,7 @@ async fn main() -> Result<(), Error> {
             production,
             report,
         } => {
+            check_env()?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             let results = join_all(
@@ -112,6 +122,7 @@ async fn main() -> Result<(), Error> {
             (JobType::Test { production }, results)
         }
         Command::Run { production } => {
+            check_env()?;
             report_opt = ReportOptions::None;
             let results = join_all(
                 Target::all()
