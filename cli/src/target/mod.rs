@@ -13,6 +13,7 @@ use crate::{
     fstools,
     job_type::JobType,
     location::get_root,
+    node_cmd,
     spawner::{spawn, spawn_skip, SpawnOptions, SpawnResult},
 };
 
@@ -289,7 +290,7 @@ impl Target {
         let path = get_root().join(self.cwd());
         let caption = format!("TS Lint {}", self);
         let status = spawn(
-            "yarn run lint".into(),
+            format!("{} run lint", node_cmd::YARN),
             Some(path.clone()),
             caption,
             iter::empty(),
@@ -302,7 +303,7 @@ impl Target {
 
         let caption = format!("Build {}", self);
         spawn(
-            "yarn run build".into(),
+            format!("{} run build", node_cmd::YARN),
             Some(path),
             caption,
             iter::empty(),

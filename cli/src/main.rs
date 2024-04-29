@@ -6,6 +6,7 @@ mod dev_environment;
 mod fstools;
 mod job_type;
 mod location;
+mod node_cmd;
 mod print_dot;
 mod spawner;
 mod target;

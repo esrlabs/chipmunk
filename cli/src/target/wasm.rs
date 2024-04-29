@@ -1,4 +1,4 @@
-use crate::{spawner::SpawnOptions, target::Target};
+use crate::{node_cmd, spawner::SpawnOptions, target::Target};
 
 use super::TestCommand;
 
@@ -17,7 +17,7 @@ pub fn get_test_cmds() -> Vec<TestCommand> {
             None,
         ),
         TestCommand::new(
-            "npm run test".into(),
+            format!("{} run test", node_cmd::NPM),
             cwd.join("spec"),
             Some(SpawnOptions {
                 suppress_msg: true,

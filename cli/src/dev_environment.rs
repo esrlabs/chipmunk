@@ -5,10 +5,17 @@ use std::{
 
 use anyhow::bail;
 
+use crate::node_cmd;
+
 const ENV_CHECKS: [EnvCheck; 7] = [
     EnvCheck::new("NodeJS", "node", "-v", None),
-    EnvCheck::new("npm", "npm", "-v", None),
-    EnvCheck::new("yarn", "yarn", "-v", Some("npm install --global yarn")),
+    EnvCheck::new("npm", node_cmd::NPM, "-v", None),
+    EnvCheck::new(
+        "yarn",
+        node_cmd::YARN,
+        "-v",
+        Some("npm install --global yarn"),
+    ),
     EnvCheck::new("rust", "rustup", "-V", None),
     EnvCheck::new("cargo", "cargo", "-V", None),
     EnvCheck::new(
