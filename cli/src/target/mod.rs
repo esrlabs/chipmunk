@@ -46,6 +46,8 @@ pub enum Target {
     Cli,
     /// Represents the path `application/apps/rustcore/wasm-bindings`
     Wasm,
+    /// Represents the path `application/apps/precompiled/updater
+    Updater,
 }
 
 pub struct TestCommand {
@@ -78,6 +80,7 @@ impl std::fmt::Display for Target {
                 Target::Shared => "Shared",
                 Target::App => "App",
                 Target::Wasm => "Wasm",
+                Target::Updater => "Updater",
             }
         )
     }
@@ -89,6 +92,21 @@ impl FromStr for Target {
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         type T = Target;
 
+        if cfg!(debug_assertions) {
+            // This check to remember to add the newly added enums to this function
+            match T::App {
+                T::Core => (),
+                T::Binding => (),
+                T::Wrapper => (),
+                T::Client => (),
+                T::Shared => (),
+                T::App => (),
+                T::Cli => (),
+                T::Wasm => (),
+                T::Updater => (),
+            };
+        }
+
         match input {
             "Core" => Ok(T::Core),
             "Wrapper" => Ok(T::Wrapper),
@@ -98,7 +116,8 @@ impl FromStr for Target {
             "Shared" => Ok(T::Shared),
             "App" => Ok(T::App),
             "Wasm" => Ok(T::Wasm),
-            invalid => bail!("Invalid input: {invalid}"),
+            "Updater" => Ok(T::Updater),
+            invalid => bail!("Invalid input for Parsing Target: {invalid}"),
         }
     }
 }
@@ -116,6 +135,7 @@ impl Target {
                 Target::App => (),
                 Target::Cli => (),
                 Target::Wasm => (),
+                Target::Updater => (),
             };
         }
 
@@ -128,6 +148,7 @@ impl Target {
             Target::Shared,
             Target::Client,
             Target::Wasm,
+            Target::Updater,
         ]
     }
 
@@ -142,6 +163,7 @@ impl Target {
             Target::App => ["application", "holder"].iter(),
             Target::Cli => ["cli"].iter(),
             Target::Wasm => ["application", "apps", "rustcore", "wasm-bindings"].iter(),
+            Target::Updater => ["application", "apps", "precompiled", "updater"].iter(),
         };
 
         let sub_path: PathBuf = sub_parts.collect();
@@ -151,14 +173,18 @@ impl Target {
 
     pub fn kind(&self) -> TargetKind {
         match self {
-            Target::Binding | Target::Core | Target::Cli | Target::Wasm => TargetKind::Rs,
+            Target::Binding | Target::Core | Target::Cli | Target::Wasm | Target::Updater => {
+                TargetKind::Rs
+            }
             Target::Client | Target::Wrapper | Target::Shared | Target::App => TargetKind::Ts,
         }
     }
 
     pub fn deps(&self) -> Vec<Target> {
         match self {
-            Target::Core | Target::Cli | Target::Shared | Target::Wasm => Vec::new(),
+            Target::Core | Target::Cli | Target::Shared | Target::Wasm | Target::Updater => {
+                Vec::new()
+            }
             Target::Binding => vec![Target::Shared],
             Target::Wrapper => vec![Target::Binding, Target::Shared],
             Target::Client => vec![Target::Shared, Target::Wasm],
@@ -170,6 +196,7 @@ impl Target {
         match self {
             Target::Binding => binding::get_build_cmd(prod),
             Target::Wasm => wasm::get_build_cmd(prod),
+            Target::Updater => "cargo +stable build --color always --release".into(),
             rest_targets => rest_targets.kind().build_cmd(prod),
         }
     }
