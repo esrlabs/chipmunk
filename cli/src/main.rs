@@ -6,6 +6,7 @@ mod dev_environment;
 mod fstools;
 mod job_type;
 mod location;
+mod print_dot;
 mod spawner;
 mod target;
 mod tracker;
@@ -57,6 +58,10 @@ async fn main() -> Result<(), Error> {
                 return Ok(());
             }
         },
+        Command::PrintDot => {
+            print_dot::print_dependencies();
+            return Ok(());
+        }
         Command::Lint { target, report } => {
             check_env()?;
             report_opt = get_report_option(report)?;

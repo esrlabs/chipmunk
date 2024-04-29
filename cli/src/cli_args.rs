@@ -27,6 +27,9 @@ pub enum Command {
     #[clap(visible_alias = "env")]
     #[command(subcommand)]
     Environment(EnvironmentCommand),
+    /// Prints an overview of targets dependencies in print-dot format for `Graphviz`
+    #[clap(visible_alias = "dot")]
+    PrintDot,
     /// Runs linting & clippy
     Lint {
         /// Target to lint, by default whole application will be linted
