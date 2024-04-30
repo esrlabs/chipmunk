@@ -3,10 +3,10 @@ mod build_state;
 mod checksum_records;
 mod cli_args;
 mod dev_environment;
+mod dev_tools;
 mod fstools;
 mod job_type;
 mod location;
-mod node_cmd;
 mod print_dot;
 mod spawner;
 mod target;
@@ -16,7 +16,7 @@ use anyhow::{bail, Error};
 use checksum_records::ChecksumRecords;
 use clap::Parser;
 use cli_args::{CargoCli, Command};
-use dev_environment::{check_env, print_env_info};
+use dev_environment::{print_env_info, resolve_dev_tools};
 use futures::future::join_all;
 use job_type::JobType;
 use location::init_location;
@@ -50,12 +50,12 @@ async fn main() -> Result<(), Error> {
     let (job_type, results) = match command {
         Command::Environment(sub_command) => match sub_command {
             EnvironmentCommand::Check => {
-                check_env()?;
+                resolve_dev_tools().await?;
                 println!("All needed tools for development are installed");
                 return Ok(());
             }
             EnvironmentCommand::Print => {
-                print_env_info();
+                print_env_info().await;
                 return Ok(());
             }
         },
@@ -64,7 +64,7 @@ async fn main() -> Result<(), Error> {
             return Ok(());
         }
         Command::Lint { target, report } => {
-            check_env()?;
+            resolve_dev_tools().await?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             let results = join_all(
@@ -81,7 +81,7 @@ async fn main() -> Result<(), Error> {
             production,
             report,
         } => {
-            check_env()?;
+            resolve_dev_tools().await?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             let results = join_all(
@@ -98,7 +98,7 @@ async fn main() -> Result<(), Error> {
             production,
             report,
         } => {
-            check_env()?;
+            resolve_dev_tools().await?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             let results = join_all(
@@ -115,7 +115,7 @@ async fn main() -> Result<(), Error> {
             production,
             report,
         } => {
-            check_env()?;
+            resolve_dev_tools().await?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             let results = join_all(
@@ -128,7 +128,7 @@ async fn main() -> Result<(), Error> {
             (JobType::Test { production }, results)
         }
         Command::Run { production } => {
-            check_env()?;
+            resolve_dev_tools().await?;
             report_opt = ReportOptions::None;
             let results = join_all(
                 Target::all()

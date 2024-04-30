@@ -10,10 +10,10 @@ use tokio::sync::oneshot;
 use crate::{
     build_state::{BuildState, BuildStatesTracker},
     checksum_records::ChecksumRecords,
+    dev_tools::DevTool,
     fstools,
     job_type::JobType,
     location::get_root,
-    node_cmd,
     spawner::{spawn, spawn_skip, SpawnOptions, SpawnResult},
 };
 
@@ -26,6 +26,7 @@ mod client;
 mod core;
 mod shared;
 mod target_kind;
+mod updater;
 mod wasm;
 mod wrapper;
 
@@ -193,12 +194,12 @@ impl Target {
         }
     }
 
-    pub fn build_cmd(&self, prod: bool) -> String {
+    pub async fn build_cmd(&self, prod: bool) -> String {
         match self {
             Target::Binding => binding::get_build_cmd(prod),
-            Target::Wasm => wasm::get_build_cmd(prod),
-            Target::Updater => "cargo +stable build --color always --release".into(),
-            rest_targets => rest_targets.kind().build_cmd(prod),
+            Target::Wasm => wasm::get_build_cmd(prod).await,
+            Target::Updater => updater::get_build_cmd().await,
+            rest_targets => rest_targets.kind().build_cmd(prod).await,
         }
     }
 
@@ -223,18 +224,18 @@ impl Target {
         }
     }
 
-    fn test_cmds(&self, production: bool) -> Option<Vec<TestCommand>> {
+    async fn test_cmds(&self, production: bool) -> Option<Vec<TestCommand>> {
         match self {
-            Target::Core => Some(core::get_test_cmds(production)),
-            Target::Cli => Some(cli::gettest_cmds(production)),
-            Target::Wasm => Some(wasm::get_test_cmds()),
+            Target::Core => Some(core::get_test_cmds(production).await),
+            Target::Cli => Some(cli::get_test_cmds(production).await),
+            Target::Wasm => Some(wasm::get_test_cmds().await),
             _ => None,
         }
     }
 
     /// run test using the general routine with `test_cmds()` method
     async fn run_test_general(&self, production: bool) -> Result<Vec<SpawnResult>, anyhow::Error> {
-        let Some(test_cmds) = self.test_cmds(production) else {
+        let Some(test_cmds) = self.test_cmds(production).await else {
             return Ok(Vec::new());
         };
 
@@ -289,8 +290,9 @@ impl Target {
     async fn ts_lint(&self) -> Result<SpawnResult, anyhow::Error> {
         let path = get_root().join(self.cwd());
         let caption = format!("TS Lint {}", self);
+        let yarn_cmd = DevTool::Yarn.path().await.to_string_lossy();
         let status = spawn(
-            format!("{} run lint", node_cmd::YARN),
+            format!("{} run lint", yarn_cmd),
             Some(path.clone()),
             caption,
             iter::empty(),
@@ -303,7 +305,7 @@ impl Target {
 
         let caption = format!("Build {}", self);
         spawn(
-            format!("{} run build", node_cmd::YARN),
+            format!("{} run build", yarn_cmd),
             Some(path),
             caption,
             iter::empty(),
@@ -315,9 +317,13 @@ impl Target {
     async fn clippy(&self) -> Result<SpawnResult, anyhow::Error> {
         let path = get_root().join(self.cwd());
 
+        let cargo_path = DevTool::Cargo.path().await;
         let caption = format!("Clippy {}", self);
         spawn(
-            "cargo clippy --color always --all --all-features -- -D warnings".into(),
+            format!(
+                "{} clippy --color always --all --all-features -- -D warnings",
+                cargo_path.to_string_lossy()
+            ),
             Some(path),
             caption,
             iter::empty(),
@@ -450,7 +456,7 @@ impl Target {
                 }
             }
             let path = get_root().join(self.cwd());
-            let cmd = self.build_cmd(prod);
+            let cmd = self.build_cmd(prod).await;
             let caption = format!("Build {}", self);
 
             let mut skip_task = false;
@@ -517,7 +523,7 @@ impl Target {
 
 /// run install using the general routine for the given target
 async fn install_general(target: &Target, prod: bool) -> Result<SpawnResult, anyhow::Error> {
-    let cmd = target.kind().install_cmd(prod);
+    let cmd = target.kind().install_cmd(prod).await;
     if let Some(cmd) = cmd {
         let caption = format!("Install {}", target);
         spawn(cmd, Some(target.cwd()), caption, iter::empty(), None).await

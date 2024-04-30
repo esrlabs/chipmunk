@@ -1,4 +1,4 @@
-use crate::node_cmd;
+use crate::dev_tools::DevTool;
 
 #[derive(Debug, Clone)]
 pub enum TargetKind {
@@ -9,26 +9,36 @@ pub enum TargetKind {
 }
 
 impl TargetKind {
-    pub fn build_cmd(&self, prod: bool) -> String {
+    pub async fn build_cmd(&self, prod: bool) -> String {
         match self {
-            TargetKind::Ts => format!(
-                "{} run {}",
-                node_cmd::YARN,
-                if prod { "prod" } else { "build" }
-            ),
-            TargetKind::Rs => format!(
-                "cargo build --color always{}",
-                if prod { " --release" } else { "" }
-            ),
+            TargetKind::Ts => {
+                let yarn_path = DevTool::Yarn.path().await;
+                format!(
+                    "{} run {}",
+                    yarn_path.to_string_lossy(),
+                    if prod { "prod" } else { "build" }
+                )
+            }
+            TargetKind::Rs => {
+                let cargo_path = DevTool::Cargo.path().await;
+                format!(
+                    "{} build --color always{}",
+                    cargo_path.to_string_lossy(),
+                    if prod { " --release" } else { "" }
+                )
+            }
         }
     }
-    pub fn install_cmd(&self, prod: bool) -> Option<String> {
+    pub async fn install_cmd(&self, prod: bool) -> Option<String> {
         match self {
-            TargetKind::Ts => Some(format!(
-                "{} install{}",
-                node_cmd::YARN,
-                if prod { " --production" } else { "" }
-            )),
+            TargetKind::Ts => {
+                let yarn_path = DevTool::Yarn.path().await;
+                Some(format!(
+                    "{} install{}",
+                    yarn_path.to_string_lossy(),
+                    if prod { " --production" } else { "" }
+                ))
+            }
             TargetKind::Rs => None,
         }
     }

@@ -1,10 +1,12 @@
-use crate::target::Target;
+use crate::{dev_tools::DevTool, target::Target};
 
 use super::TestCommand;
 
-pub fn gettest_cmds(production: bool) -> Vec<TestCommand> {
+pub async fn get_test_cmds(production: bool) -> Vec<TestCommand> {
+    let cargo_path = DevTool::Cargo.path().await;
     let cmd = format!(
-        "cargo +stable test{} --color always",
+        "{} +stable test{} --color always",
+        cargo_path.to_string_lossy(),
         if production { " -r" } else { "" }
     );
 

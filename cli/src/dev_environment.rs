@@ -1,92 +1,42 @@
-use std::{
-    fmt::Write,
-    process::{Command, Stdio},
-};
+use std::{fmt::Write, process::Command};
 
 use anyhow::bail;
 
-use crate::node_cmd;
+use crate::dev_tools::DevTool;
 
-const ENV_CHECKS: [EnvCheck; 7] = [
-    EnvCheck::new("NodeJS", "node", "-v", None),
-    EnvCheck::new("npm", node_cmd::NPM, "-v", None),
-    EnvCheck::new(
-        "yarn",
-        node_cmd::YARN,
-        "-v",
-        Some("npm install --global yarn"),
-    ),
-    EnvCheck::new("rust", "rustup", "-V", None),
-    EnvCheck::new("cargo", "cargo", "-V", None),
-    EnvCheck::new(
-        "wasm-pack",
-        "wasm-pack",
-        "-V",
-        Some("cargo install wasm-pack"),
-    ),
-    EnvCheck::new("nj-cli", "nj-cli", "-V", Some("cargo install nj-cli")),
-];
-
-struct EnvCheck {
-    app_name: &'static str,
-    command: &'static str,
-    arg: &'static str,
-    install_hint: Option<&'static str>,
-}
-
-impl EnvCheck {
-    const fn new(
-        app_name: &'static str,
-        command: &'static str,
-        arg: &'static str,
-        install_hint: Option<&'static str>,
-    ) -> Self {
-        Self {
-            app_name,
-            command,
-            arg,
-            install_hint,
-        }
-    }
-}
-
-/// Checks if all the needed dependencies for the build environment are available
-pub fn check_env() -> anyhow::Result<()> {
+/// Resolve the paths for all development tool returning an Error if any of them can't be resolved
+pub async fn resolve_dev_tools() -> anyhow::Result<()> {
     let mut errors = None;
-    for check in ENV_CHECKS.iter() {
-        let success = match Command::new(check.command)
-            .arg(check.arg)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-        {
-            Ok(status) => status.success(),
-            Err(_) => false,
+    for tool in DevTool::all() {
+        let Err(err) = tool.resolve().await else {
+            continue;
         };
 
-        if !success {
-            let error_lines =
-                errors.get_or_insert(String::from("Following dependencies are missing:\n"));
-            writeln!(
-                error_lines,
-                "Required dependency '{}' is not installed.",
-                check.app_name
-            )
-            .expect("Writing to string never fail");
-            if let Some(install_hint) = check.install_hint {
-                writeln!(
-                    error_lines,
-                    "Consider installing it using the command '{install_hint}'"
-                )
-                .expect("Writing to string never fail");
-            }
+        let error_lines =
+            errors.get_or_insert(String::from("Following dependencies are missing:\n"));
 
+        // Writing to string never fails
+        writeln!(
+            error_lines,
+            "Required dependency '{tool}' is not installed.",
+        )
+        .unwrap();
+
+        writeln!(error_lines, "Resolve Error Info:{err}",).unwrap();
+
+        if let Some(install_hint) = tool.install_hint() {
             writeln!(
                 error_lines,
-                "------------------------------------------------------------------"
+                "Consider installing it using the command '{install_hint}'"
             )
-            .expect("Writing to string never fail");
+            .unwrap();
         }
+
+        writeln!(
+            error_lines,
+            "------------------------------------------------------------------"
+        )
+        .expect("Writing to string never fail");
     }
 
     match errors {
@@ -97,11 +47,16 @@ pub fn check_env() -> anyhow::Result<()> {
 
 /// Prints the information of the needed tools for the development if available, otherwise prints
 /// error information to `stderr`
-pub fn print_env_info() {
-    for check in ENV_CHECKS.iter() {
-        println!("{} Info:", check.app_name);
-        if let Err(err) = Command::new(check.command).arg(check.arg).status() {
-            eprintln!("Error while retrieving dependency's information: {err}");
+pub async fn print_env_info() {
+    for tool in DevTool::all() {
+        println!("{tool} Info:");
+        match tool.resolve().await {
+            Ok(cmd) => {
+                if let Err(err) = Command::new(cmd).arg(tool.version_args()).status() {
+                    eprintln!("Error while retrieving dependency's information: {err}");
+                }
+            }
+            Err(err) => eprintln!("Error while resolving tool '{tool}': {err}"),
         }
         println!("------------------------------------------------------------------");
     }
