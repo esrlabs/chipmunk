@@ -9,9 +9,15 @@ pub async fn run_app() -> io::Result<ExitStatus> {
 
     let yarn_path = DevTool::Yarn.path().await;
 
+    let electron_arg = if cfg!(windows) {
+        "electron-win"
+    } else {
+        "electron"
+    };
+
     Command::new(yarn_path)
         .current_dir(electron_path)
-        .args(["run", "electron"])
+        .args(["run", electron_arg])
         .status()
         .await
 }
