@@ -86,10 +86,11 @@ pub async fn spawn(
 
     let tracker = get_tracker().await;
     let sequence = tracker
-        .start(
-            &format!("{}: {}", to_relative_path(&cwd).display(), caption),
-            None,
-        )
+        .start(&format!(
+            "{}: {}",
+            to_relative_path(&cwd).display(),
+            caption
+        ))
         .await?;
 
     let command_result = Command::new(cmd)
@@ -215,10 +216,11 @@ pub async fn spawn_blocking(
     let tracker = get_tracker().await;
 
     let sequence = tracker
-        .start(
-            &format!("{}: {}", to_relative_path(&cwd).display(), caption),
-            None,
-        )
+        .start(&format!(
+            "{}: {}",
+            to_relative_path(&cwd).display(),
+            caption
+        ))
         .await?;
 
     let status = match tracker.suspend_and_run(child).await {
@@ -254,10 +256,11 @@ pub async fn spawn_skip(
 
     let tracker = get_tracker().await;
     let sequence = tracker
-        .start(
-            &format!("{}: {}", to_relative_path(&cwd).display(), caption),
-            None,
-        )
+        .start(&format!(
+            "{}: {}",
+            to_relative_path(&cwd).display(),
+            caption
+        ))
         .await?;
 
     tracker.success(sequence, "skipped").await;

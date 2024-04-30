@@ -15,7 +15,7 @@ pub async fn cp_file(
     report_logs: &mut Vec<String>,
 ) -> Result<(), Error> {
     let tracker = get_tracker().await;
-    let sequence = tracker.start("copy file", None).await?;
+    let sequence = tracker.start("copy file").await?;
 
     let msg = format!("copying file: '{}' to '{}'", src.display(), dest.display());
     report_logs.push(msg);
@@ -43,7 +43,7 @@ pub async fn cp_folder(
     report_logs: &mut Vec<String>,
 ) -> Result<(), Error> {
     let tracker = get_tracker().await;
-    let sequence = tracker.start("copy folder", None).await?;
+    let sequence = tracker.start("copy folder").await?;
     let options = CopyOptions::new();
     let (tx, rx): (mpsc::Sender<TransitProcess>, mpsc::Receiver<TransitProcess>) = mpsc::channel();
 
@@ -89,7 +89,7 @@ pub async fn cp_many(
     logs: &mut Vec<String>,
 ) -> Result<(), Error> {
     let tracker = get_tracker().await;
-    let sequence = tracker.start("copy file and folders", None).await?;
+    let sequence = tracker.start("copy file and folders").await?;
     let options = CopyOptions::new();
     let (tx, rx) = mpsc::channel();
     let path_display = format!("from '{}' to '{}'", general_source, dest.display());
@@ -134,7 +134,7 @@ pub async fn rm_folder(path: &PathBuf) -> Result<(), Error> {
         return Ok(());
     }
     let tracker = get_tracker().await;
-    let sequence = tracker.start("remove folder", None).await?;
+    let sequence = tracker.start("remove folder").await?;
     fs::remove_dir_all(path)?;
     tracker
         .success(sequence, &format!("removed: {}", path.display(),))

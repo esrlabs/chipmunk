@@ -36,7 +36,7 @@ impl std::fmt::Display for OperationResult {
 /// Represents tasks information that can be sent to and from the tracker
 pub enum Tick {
     /// Start a job giving the job name and the sender to return the job number.
-    Started(String, Option<u64>, oneshot::Sender<usize>),
+    Started(String, oneshot::Sender<usize>),
     /// Update the job with the given id providing an optional progress value.
     Progress(usize, Option<u64>),
     /// Send a message to the job with the giving id
@@ -103,9 +103,9 @@ impl Tracker {
             let start_time = Instant::now();
             while let Some(tick) = rx.recv().await {
                 match tick {
-                    Tick::Started(job, len, tx_response) => {
+                    Tick::Started(job, tx_response) => {
                         sequence += 1;
-                        let bar = mp.add(ProgressBar::new(len.unwrap_or(max)));
+                        let bar = mp.add(ProgressBar::new(max));
                         bar.set_style(spinner_style.clone());
                         let job_bar = JobBarState::start_job(job, bar);
                         bars.insert(sequence, job_bar);
@@ -236,10 +236,10 @@ impl Tracker {
     }
 
     /// Start a job giving the job name and the sender to return the job number.
-    pub async fn start(&self, job: &str, max: Option<u64>) -> Result<usize, Error> {
+    pub async fn start(&self, job: &str) -> Result<usize, Error> {
         let (tx_response, rx_response) = oneshot::channel();
         self.tx
-            .send(Tick::Started(job.to_string(), max, tx_response))
+            .send(Tick::Started(job.to_string(), tx_response))
             .context("Fail to send tick")?;
         rx_response.await.context("Fail to receive tick")
     }
