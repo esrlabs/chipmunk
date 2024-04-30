@@ -33,13 +33,20 @@ impl std::fmt::Display for OperationResult {
 }
 
 #[derive(Debug)]
+/// Represents tasks information that can be sent to and from the tracker
 pub enum Tick {
+    /// Start a job giving the job name and the sender to return the job number.
     Started(String, Option<u64>, oneshot::Sender<usize>),
+    /// Update the job with the given id providing an optional progress value.
     Progress(usize, Option<u64>),
+    /// Send a message to the job with the giving id
     Message(usize, String),
+    /// Sets the job with the given id as finished providing the job result and a message
     Finished(usize, OperationResult, String),
     #[allow(dead_code)]
+    /// Prints the given text outside the progress bar
     Print(String),
+    /// Close all the jobs and shutdown the progress bars
     Shutdown(oneshot::Sender<()>),
     /// Suspends the progress bars and execute the giving blocking command
     SuspendAndRun(Command, oneshot::Sender<anyhow::Result<ExitStatus>>),
@@ -228,6 +235,7 @@ impl Tracker {
         count
     }
 
+    /// Start a job giving the job name and the sender to return the job number.
     pub async fn start(&self, job: &str, max: Option<u64>) -> Result<usize, Error> {
         let (tx_response, rx_response) = oneshot::channel();
         self.tx
@@ -236,18 +244,21 @@ impl Tracker {
         rx_response.await.context("Fail to receive tick")
     }
 
+    /// Update the job with the given id providing an optional progress value.
     pub async fn progress(&self, sequence: usize, pos: Option<u64>) {
         if let Err(e) = self.tx.send(Tick::Progress(sequence, pos)) {
             eprintln!("Fail to communicate with tracker: {e}");
         }
     }
 
+    /// Send a message to the job with the giving id
     pub async fn msg(&self, sequence: usize, log: &str) {
         if let Err(e) = self.tx.send(Tick::Message(sequence, log.to_string())) {
             eprintln!("Fail to communicate with tracker: {e}");
         }
     }
 
+    /// Sets the job with the given id as finished providing successful result and a message
     pub async fn success(&self, sequence: usize, msg: &str) {
         if let Err(e) = self.tx.send(Tick::Finished(
             sequence,
@@ -258,6 +269,7 @@ impl Tracker {
         }
     }
 
+    /// Sets the job with the given id as finished providing failed result and a message
     pub async fn fail(&self, sequence: usize, msg: &str) {
         if let Err(e) = self.tx.send(Tick::Finished(
             sequence,
@@ -268,6 +280,7 @@ impl Tracker {
         }
     }
 
+    /// Close all the jobs and shutdown the progress bars
     pub async fn shutdown(&self) -> Result<(), Error> {
         let (tx_response, rx_response) = oneshot::channel();
         self.tx
@@ -276,6 +289,7 @@ impl Tracker {
         rx_response.await.context("Fail to receive tick")
     }
 
+    /// Prints the given text outside the progress bar
     pub async fn _print(&self, msg: String) {
         if let Err(e) = self
             .tx

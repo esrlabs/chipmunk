@@ -9,6 +9,7 @@ pub enum TargetKind {
 }
 
 impl TargetKind {
+    /// Provide the general build command for each target type
     pub async fn build_cmd(&self, prod: bool) -> String {
         match self {
             TargetKind::Ts => {
@@ -29,6 +30,7 @@ impl TargetKind {
             }
         }
     }
+    /// Provide the general install command for each target type
     pub async fn install_cmd(&self, prod: bool) -> Option<String> {
         match self {
             TargetKind::Ts => {

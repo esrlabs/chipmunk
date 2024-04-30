@@ -69,6 +69,7 @@ pub(crate) struct SpawnOptions {
     pub has_skip_info: bool,
 }
 
+/// Spawns and runs a job asynchronously, updating the bar when job infos are available
 pub async fn spawn(
     command: String,
     cwd: Option<PathBuf>,

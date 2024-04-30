@@ -29,6 +29,7 @@ struct ChecksumItems {
 
 impl ChecksumRecords {
     pub async fn update_and_save(job_type: JobType) -> anyhow::Result<()> {
+        // calculate should be involved when build is called at some point of the job
         let calculate_involved = match &job_type {
             JobType::Lint => return Ok(()),
             JobType::Build { production: _ }
@@ -59,6 +60,7 @@ impl ChecksumRecords {
             .map_err(|err| anyhow!("{err}"))
     }
 
+    /// Loads the persisted records from checksums file if exist
     fn load(job_type: JobType) -> anyhow::Result<Self> {
         let file_path = Self::get_file_path(job_type.is_production().is_some_and(|prod| prod));
 
@@ -79,6 +81,7 @@ impl ChecksumRecords {
         })
     }
 
+    /// Gets the path of the file where the checksums are saved
     fn get_file_path(production: bool) -> PathBuf {
         let root = get_root();
         if production {
@@ -101,11 +104,14 @@ impl ChecksumRecords {
         Ok(hashes)
     }
 
+    /// Marks the job is involved in the record tracker
     pub fn register_job(&self, target: Target) {
         let mut items = self.items.lock().unwrap();
         items.involved_targets.insert(target);
     }
 
+    /// Calculate the current checksum for the given target and compare it to the saved one.
+    /// This method panics if the provided target isn't registered
     pub fn check_changed(&self, target: Target) -> anyhow::Result<bool> {
         let items = self.items.lock().unwrap();
         assert!(items.involved_targets.contains(&target));
@@ -126,6 +132,7 @@ impl ChecksumRecords {
         })
     }
 
+    /// Remove the target from the checksum records
     pub fn remove_hash_if_exist(&self, target: Target) {
         let mut items = self.items.lock().unwrap();
         items.involved_targets.insert(target);

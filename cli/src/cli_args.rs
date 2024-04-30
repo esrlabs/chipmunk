@@ -30,7 +30,7 @@ pub enum Command {
     /// Prints an overview of targets dependencies in print-dot format for `Graphviz`
     #[clap(visible_alias = "dot")]
     PrintDot,
-    /// Runs linting & clippy
+    /// Runs linting & clippy for all or the specified targets
     Lint {
         /// Target to lint, by default whole application will be linted
         #[arg(index = 1)]
@@ -39,7 +39,7 @@ pub enum Command {
         #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
         report: Option<Option<PathBuf>>,
     },
-    /// Build
+    /// Build all or the specified targets
     Build {
         /// Target to build, by default whole application will be built
         #[arg(index = 1)]
@@ -52,7 +52,7 @@ pub enum Command {
         #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
         report: Option<Option<PathBuf>>,
     },
-    /// Clean
+    /// Clean all or the specified targets
     Clean {
         /// Target to clean, by default whole application will be cleaned
         #[arg(index = 1)]
@@ -65,7 +65,7 @@ pub enum Command {
         #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
         report: Option<Option<PathBuf>>,
     },
-    /// Run tests
+    /// Run tests for all or the specified targets
     Test {
         /// Target to test, by default whole application will be tested
         #[arg(index = 1)]

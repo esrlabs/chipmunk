@@ -57,6 +57,7 @@ impl DevTool {
         .as_slice()
     }
 
+    /// Provide the suggested way to install the tool
     pub fn install_hint(&self) -> Option<&'static str> {
         match self {
             DevTool::Node | DevTool::Npm | DevTool::RustUp | DevTool::Cargo => None,
@@ -66,6 +67,7 @@ impl DevTool {
         }
     }
 
+    /// Provide the command line argument to get the version of the installed tool
     pub fn version_args(&self) -> &'static str {
         match self {
             DevTool::Node | DevTool::Npm | DevTool::Yarn => "-v",
@@ -73,6 +75,7 @@ impl DevTool {
         }
     }
 
+    /// Resolve the path of the tool if exists. Returning an Error when not possible
     pub async fn resolve(&self) -> &'static Result<PathBuf> {
         match self {
             DevTool::Node => resolve_node().await,
@@ -85,6 +88,7 @@ impl DevTool {
         }
     }
 
+    /// Get the path of the resolved tool. Panics if the tool can't be resolved   
     pub async fn path(&self) -> &'static PathBuf {
         self.resolve()
             .await

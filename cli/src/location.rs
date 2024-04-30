@@ -52,6 +52,7 @@ pub fn init_location() -> Result<(), Error> {
     Ok(())
 }
 
+/// Returns the path relative to the repository root
 pub fn to_relative_path(path: &PathBuf) -> &Path {
     let root = get_root();
     path.strip_prefix(root).unwrap_or(path)

@@ -154,6 +154,7 @@ impl Target {
         ]
     }
 
+    /// Provides the absolute path to the target code
     pub fn cwd(&self) -> PathBuf {
         let root = get_root();
         let sub_parts = match self {
@@ -173,6 +174,7 @@ impl Target {
         root.join(sub_path)
     }
 
+    /// Provide the kind of the target between Rust or Type-Script
     pub fn kind(&self) -> TargetKind {
         match self {
             Target::Binding | Target::Core | Target::Cli | Target::Wasm | Target::Updater => {
@@ -182,6 +184,7 @@ impl Target {
         }
     }
 
+    /// Provides the target which this target depend on
     pub fn deps(&self) -> Vec<Target> {
         match self {
             Target::Core | Target::Cli | Target::Shared | Target::Wasm | Target::Updater => {
@@ -194,6 +197,7 @@ impl Target {
         }
     }
 
+    /// Provide the command that should be used in to build the target
     pub async fn build_cmd(&self, prod: bool) -> String {
         match self {
             Target::Binding => binding::get_build_cmd(prod),
@@ -203,6 +207,7 @@ impl Target {
         }
     }
 
+    /// Installs the needed module to perform the development task
     pub async fn install(&self, prod: bool) -> Result<SpawnResult, anyhow::Error> {
         match self {
             // We must install ts binding tools before running rs bindings, therefore we call
@@ -217,6 +222,7 @@ impl Target {
         }
     }
 
+    /// Run tests for the giving the target
     pub async fn test(&self, production: bool) -> Result<Vec<SpawnResult>, anyhow::Error> {
         match self {
             Target::Wrapper => wrapper::run_test().await,
@@ -224,6 +230,7 @@ impl Target {
         }
     }
 
+    /// Provides the test commands for the given target if available
     async fn test_cmds(&self, production: bool) -> Option<Vec<TestCommand>> {
         match self {
             Target::Core => Some(core::get_test_cmds(production).await),
@@ -269,6 +276,7 @@ impl Target {
         Ok(results)
     }
 
+    /// Perform Linting Checks on the giving target
     pub async fn check(&self) -> Result<Vec<SpawnResult>, anyhow::Error> {
         let mut results = Vec::new();
         match self.kind() {
@@ -287,6 +295,8 @@ impl Target {
         Ok(results)
     }
 
+    /// Perform Linting the Building the giving target since linting Type-Script doesn't check for
+    /// compiling errors
     async fn ts_lint(&self) -> Result<SpawnResult, anyhow::Error> {
         let path = get_root().join(self.cwd());
         let caption = format!("TS Lint {}", self);
@@ -314,6 +324,7 @@ impl Target {
         .await
     }
 
+    /// Runs Clippy for the given rust target
     async fn clippy(&self) -> Result<SpawnResult, anyhow::Error> {
         let path = get_root().join(self.cwd());
 
@@ -332,6 +343,7 @@ impl Target {
         .await
     }
 
+    /// Clean the given target, removing it from the checksum tracker as well.
     pub async fn reset(&self, production: bool) -> anyhow::Result<Vec<SpawnResult>> {
         let checksum = ChecksumRecords::get(JobType::Clean { production }).await?;
         checksum.remove_hash_if_exist(*self);
@@ -510,6 +522,7 @@ impl Target {
         .boxed()
     }
 
+    /// Perform any needed copy operation after the build is done
     async fn after_build(&self, prod: bool) -> Result<Option<SpawnResult>, anyhow::Error> {
         match self {
             Target::Binding => binding::copy_index_node().await,

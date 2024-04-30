@@ -8,6 +8,7 @@ use std::{fs, path::PathBuf};
 
 use crate::tracker::get_tracker;
 
+/// Spawn a job to copy a file, adding the info the report logs
 pub async fn cp_file(
     src: PathBuf,
     dest: PathBuf,
@@ -35,6 +36,7 @@ pub async fn cp_file(
     Ok(())
 }
 
+/// Spawn a job to copy a directory, adding the info the report logs
 pub async fn cp_folder(
     src: PathBuf,
     dest: PathBuf,
@@ -78,7 +80,8 @@ pub async fn cp_folder(
     Ok(())
 }
 
-/// Copy a collection of files and folders recursively.
+/// Spawn a job to Copy a collection of files and folders recursively, adding copying info to the
+/// log records
 pub async fn cp_many(
     items: Vec<PathBuf>,
     dest: PathBuf,
@@ -125,6 +128,7 @@ pub async fn cp_many(
     Ok(())
 }
 
+/// Spawn a job to remove a directory recursively, adding the info the report logs
 pub async fn rm_folder(path: &PathBuf) -> Result<(), Error> {
     if !path.exists() {
         return Ok(());
