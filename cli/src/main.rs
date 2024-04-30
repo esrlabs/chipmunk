@@ -208,7 +208,7 @@ fn get_targets_or_default(targets: Option<Vec<Target>>) -> Vec<Target> {
         list.dedup();
         list
     } else {
-        Target::all()
+        Target::all().to_vec()
     }
 }
 

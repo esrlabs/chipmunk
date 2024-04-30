@@ -125,7 +125,8 @@ impl FromStr for Target {
 }
 
 impl Target {
-    pub fn all() -> Vec<Target> {
+    /// Return all the available targets
+    pub fn all() -> &'static [Target] {
         if cfg!(debug_assertions) {
             // This check to remember to add the newly added enums to this function
             match Target::App {
@@ -141,7 +142,7 @@ impl Target {
             };
         }
 
-        vec![
+        [
             Target::Binding,
             Target::Cli,
             Target::App,
@@ -152,6 +153,7 @@ impl Target {
             Target::Wasm,
             Target::Updater,
         ]
+        .as_slice()
     }
 
     /// Provides the absolute path to the target code
