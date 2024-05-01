@@ -7,7 +7,6 @@ use anyhow::{bail, Context};
 use core::panic;
 use futures_lite::{future, FutureExt};
 use std::{
-    env,
     path::PathBuf,
     process::{ExitStatus, Stdio},
 };
@@ -81,8 +80,8 @@ pub async fn spawn(
     let cwd = cwd.unwrap_or_else(|| get_root().clone());
     let mut parts = command.split(' ').collect::<Vec<&str>>();
     let cmd = parts.remove(0);
-    let mut env_vars: Vec<_> = env::vars().chain(environment_vars).collect();
-    env_vars.push((String::from("TERM"), String::from("xterm-256color")));
+    let mut combined_env_vars = vec![(String::from("TERM"), String::from("xterm-256color"))];
+    combined_env_vars.extend(environment_vars);
 
     let tracker = get_tracker().await;
     let sequence = tracker
@@ -96,7 +95,7 @@ pub async fn spawn(
     let command_result = Command::new(cmd)
         .current_dir(&cwd)
         .args(&parts)
-        .envs(env_vars)
+        .envs(combined_env_vars)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -205,13 +204,14 @@ pub async fn spawn_blocking(
     let cwd = cwd.unwrap_or_else(|| get_root().clone());
     let mut parts = command.split(' ').collect::<Vec<&str>>();
     let cmd = parts.remove(0);
-    let mut env_vars: Vec<_> = env::vars().chain(environment_vars).collect();
-    env_vars.push((String::from("TERM"), String::from("xterm-256color")));
+
+    let mut combined_env_vars = vec![(String::from("TERM"), String::from("xterm-256color"))];
+    combined_env_vars.extend(environment_vars);
 
     let mut child = std::process::Command::new(cmd);
     child.current_dir(&cwd);
     child.args(&parts);
-    child.envs(env_vars);
+    child.envs(combined_env_vars);
 
     let tracker = get_tracker().await;
 
