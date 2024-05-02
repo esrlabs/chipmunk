@@ -32,19 +32,21 @@ This CLI tool provides multiple sub-commands for different tasks, with each sub-
 ### General Commands Overview
 
 ```bash
-Tool for chipmunk application development
+CLI Tool for chipmunk application development
 
 Usage: cargo chipmunk <COMMAND>
 
 Commands:
-  environment  Provides commands for the needed tools for the development [aliases: env]
-  print-dot    Prints an overview of targets dependencies in print-dot format for `Graphviz` [aliases: dot]
-  lint         Runs linting & clippy
-  build        Build
-  clean        Clean
-  test         Run tests
-  run          Build and Run the application
-  help         Print this message or the help of the given subcommand(s)
+  environment     Provides commands for the needed tools for the development [aliases: env]
+  print-dot       Prints an overview of targets dependencies in print-dot format for `Graphviz` [aliases: dot]
+  lint            Runs linting & clippy for all or the specified targets
+  build           Build all or the specified targets
+  clean           Clean all or the specified targets
+  test            Run tests for all or the specified targets
+  run             Build and Run the application
+  reset-checksum  Resets the checksums records what is used to check if there were any code changes for each target [aliases: reset]
+  shell-completion  Generate shell completion for the commands of this tool in the given shell, printing them to stdout [aliases: compl]
+  help            Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help     Print help
@@ -81,6 +83,29 @@ Options:
   -h, --help
           Print help (see a summary with '-h')
 ```
+
+## Shell Completion
+
+The Chipmunk CLI tool supports shell completion for various shells. You can generate shell completions and print them to `stdout` using the following command:
+
+```bash
+cargo chipmunk shell-completion <SHELL>
+```
+Replace <SHELL> with the name of your shell (e.g., bash, zsh, fish, powershell).
+
+To use shell completion, you can redirect the output of the completion command to a file and save the file to the appropriate shell completion directory.
+
+After installing the completion script, restart your shell session or source the completion file to enable shell completion for the Chipmunk CLI tool.
+
+
+### Example: Bash Shell
+To enable bash shell completion, run the following command to generate the completion script and save it to a file:
+
+```bash
+cargo chipmunk shell-completion bash > chipmunk-completion.bash
+```
+Next, copy the chipmunk-completion.bash file to your bash completion directory (typically  ~/.bash_completion.d/ or /etc/bash_completion.d/).
+
 
 ## Contributing
 See our [contribution](contribution.md) guide for details
