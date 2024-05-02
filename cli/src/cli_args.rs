@@ -85,12 +85,20 @@ pub enum Command {
         production: bool,
     },
     /// Resets the checksums records what is used to check if there were any code changes for
-    /// each target
+    /// each target.
     #[clap(visible_alias = "reset")]
     ResetChecksum {
         /// Reset release records
         #[arg(short, long, default_value_t = false)]
         production: bool,
+    },
+    /// Generate shell completion for the commands of this tool in the given shell,
+    /// printing them to stdout.
+    #[clap(visible_alias = "compl")]
+    ShellCompletion {
+        /// Shell to generate the completion for
+        #[arg(value_enum)]
+        shell: clap_complete::Shell,
     },
 }
 

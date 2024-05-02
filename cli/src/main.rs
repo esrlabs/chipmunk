@@ -8,6 +8,7 @@ mod fstools;
 mod job_type;
 mod location;
 mod print_dot;
+mod shell_completion;
 mod spawner;
 mod target;
 mod tracker;
@@ -149,6 +150,11 @@ async fn main() -> Result<(), Error> {
                     "development"
                 }
             );
+
+            return Ok(());
+        }
+        Command::ShellCompletion { shell } => {
+            shell_completion::generate_completion(shell);
 
             return Ok(());
         }
