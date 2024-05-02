@@ -91,6 +91,21 @@ impl ChecksumRecords {
         }
     }
 
+    /// Removes the records file for the given environment
+    pub fn remove_records_file(production: bool) -> anyhow::Result<()> {
+        let file_path = Self::get_file_path(production);
+        if file_path.exists() {
+            std::fs::remove_file(&file_path).with_context(|| {
+                format!(
+                    "Error while removing the file {} to reset checksum records",
+                    file_path.display()
+                )
+            })?;
+        }
+
+        Ok(())
+    }
+
     fn parse_hashes(text: String) -> anyhow::Result<BTreeMap<Target, HashDigest>> {
         let mut hashes = BTreeMap::new();
 

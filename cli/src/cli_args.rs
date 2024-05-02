@@ -84,6 +84,14 @@ pub enum Command {
         #[arg(short, long, default_value_t = false)]
         production: bool,
     },
+    /// Resets the checksums records what is used to check if there were any code changes for
+    /// each target
+    #[clap(visible_alias = "reset")]
+    ResetChecksum {
+        /// Reset release records
+        #[arg(short, long, default_value_t = false)]
+        production: bool,
+    },
 }
 
 #[derive(Subcommand, Debug, Clone)]

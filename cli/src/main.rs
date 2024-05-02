@@ -139,6 +139,19 @@ async fn main() -> Result<(), Error> {
             .await;
             (JobType::Run { production }, results)
         }
+        Command::ResetChecksum { production } => {
+            ChecksumRecords::remove_records_file(production)?;
+            println!(
+                "Checksum-Records for {} has been reset",
+                if production {
+                    "production"
+                } else {
+                    "development"
+                }
+            );
+
+            return Ok(());
+        }
     };
 
     // Shutdown and show results & report
