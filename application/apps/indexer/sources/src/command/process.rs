@@ -67,7 +67,7 @@ impl ProcessSource {
                 let mut str = a.to_string();
                 for (i, g) in groups.iter().enumerate() {
                     let key = format!("==extraction:({i})==");
-                    str = str.replace(&key, g).to_owned();
+                    str.replace(&key, g).clone_into(&mut str);
                 }
                 let restored = str.replace("==esc_space==", " ");
                 OsString::from(tilde(&restored).to_string())
