@@ -506,15 +506,21 @@ impl Target {
             } else {
                 results.push(status);
                 if !skip_task {
-                    let res = self.after_build(prod).await?;
-                    if let Some(result) = res {
-                        results.push(result);
-                    }
+                    // Taken from a discussion on GitHub:
+                    // To build an npm package you would need (in most cases) to be in dev-mode - install dev-dependencies + dependencies.
+                    // But to prepare a package for production, you have to remove dev-dependencies.
+                    // That's not an issue, if npm-package is published in npmjs; but we are coping packages manually in a right destination
+                    // and before copy it, we have to reinstall it to get rid of dev-dependencies.
                     if matches!(self.kind(), TargetKind::Ts) && prod {
                         let clean_res = self.clean().await?;
                         results.push(clean_res);
                         let install_res = self.install(prod).await?;
                         results.push(install_res);
+                    }
+
+                    let res = self.after_build(prod).await?;
+                    if let Some(result) = res {
+                        results.push(result);
                     }
                 }
 
