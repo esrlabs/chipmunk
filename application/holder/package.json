@@ -56,7 +56,7 @@
             "icon": "resources/mac/chipmunk.icns",
             "target": [],
             "binaries": [
-                "./release/mac*/chipmunk.app/Contents/Resources/bin/updater"
+                "release/mac*/chipmunk.app/Contents/Resources/bin/updater"
             ],
             "extendInfo": {
                 "NSCameraUsageDescription": "",
