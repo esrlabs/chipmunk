@@ -10,17 +10,32 @@
     height: 20px;
     cursor: default;
     align-items: center;
+    width: calc(100% - 24px);
+    &.notvalid {
+        background: fadeout(@scheme-color-warning, 50%);
+        &::after {
+            display: block;
+            content: '⚠';
+            font-size: 8px;
+            color: #fd1515;
+            top: 3px;
+            left: 8px;
+            position: absolute;
+        }
+        input.request {
+            color: @scheme-color-error;
+            border-bottom: dashed 1px @scheme-color-error;
+        }
+    }
     &:hover{
         background: @scheme-color-5;
     }
     &.selected{
         background: fadeout(@scheme-color-accent, 50%);
     }
-
     div.doubleclick {
-        display: flex;
+        display: contents;
         flex: auto;
-        align-items: center;
     }
     span.color {
         flex: 0;
@@ -95,13 +110,10 @@
             }
         }
     }
-    &.notvalid {
-        input.request {
-            color: @scheme-color-error;
-            border-bottom: dashed 1px @scheme-color-error;
-        }
-    }
     &.edited {
+        &::after{
+            display: none;
+        }
         padding-left: 0;
         background: @scheme-color-6;
         mat-checkbox {
