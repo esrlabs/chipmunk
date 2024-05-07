@@ -29,6 +29,13 @@ impl SearchFilter {
         }
     }
 
+    /// Validate filter. Checks possibility to convert filter
+    /// to RegEx considering filter's options
+    ///
+    /// # Returns
+    ///
+    /// `true` in case of valid condition; `false` - invalid
+    ///
     pub fn valid(&self) -> bool {
         get_filter_error(self).is_none()
     }
