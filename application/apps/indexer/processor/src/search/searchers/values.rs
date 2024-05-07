@@ -41,7 +41,7 @@ pub fn as_regex(filter: &str) -> String {
 ///
 /// `true` in case of valid condition; `false` - invalid
 ///
-pub fn is_valid(filter: &str) -> bool {
+fn is_valid(filter: &str) -> bool {
     Regex::from_str(&as_regex(filter)).is_ok()
 }
 
@@ -59,6 +59,15 @@ pub type ValueSearchHolder = BaseSearcher<ValueSearchState>;
 
 impl ValueSearchHolder {
     pub fn setup(&mut self, terms: Vec<String>) -> Result<(), SearchError> {
+        let invalid = terms
+            .iter()
+            .filter(|f| !is_valid(f))
+            .cloned()
+            .collect::<Vec<String>>()
+            .join("; ");
+        if !invalid.is_empty() {
+            Err(SearchError::Input(format!("Invalid filters: {invalid}")))?;
+        }
         let mut matchers = vec![];
         for filter in terms.iter() {
             matchers.push(Regex::from_str(&as_regex(filter)).map_err(|err| {
