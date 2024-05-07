@@ -3,6 +3,7 @@ import { IlcInterface } from '@env/decorators/component';
 import { Session } from '@service/session';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Collections } from '@service/history/collections';
+import { notifications, Notification } from '@ui/service/notifications';
 
 export interface Selection {
     select(collection: Collections): Selection;
@@ -111,11 +112,27 @@ export class State {
                         this.parent.detectChanges();
                     })
                     .catch((err: Error) => {
-                        this.parent.log().error(`Fail import collections: ${err.message}`);
+                        notifications.notify(
+                            new Notification({
+                                message: this.parent
+                                    .log()
+                                    .error(`Fail import filters/charts: ${err.message}`),
+                                session: this.session.uuid(),
+                                actions: [],
+                            }),
+                        );
                     });
             })
             .catch((err: Error) => {
-                this.parent.log().error(`Fail open file to import collections: ${err.message}`);
+                notifications.notify(
+                    new Notification({
+                        message: this.parent
+                            .log()
+                            .error(`Fail open file to import filters/charts: ${err.message}`),
+                        session: this.session.uuid(),
+                        actions: [],
+                    }),
+                );
             });
     }
 

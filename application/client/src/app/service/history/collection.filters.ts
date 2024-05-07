@@ -6,6 +6,7 @@ import { Session } from '@service/session/session';
 import { Definition } from './definition';
 import { Subscriber } from '@platform/env/subscription';
 import { StoredEntity } from '@service/session/dependencies/search/store';
+import { notifications, Notification } from '@ui/service/notifications';
 
 export class FiltersCollection
     extends Collection<FilterRequest>
@@ -29,10 +30,28 @@ export class FiltersCollection
     }
 
     public applyTo(session: Session, _definitions: Definition[]): Promise<AfterApplyCallback> {
-        session.search
-            .store()
-            .filters()
-            .overwrite(this.as().elements() as StoredEntity<FilterRequest>[]);
+        const filters = this.as().elements() as StoredEntity<FilterRequest>[];
+        const invalid: string[] = filters
+            .map((filter) => {
+                if (FilterRequest.getValidationError(filter.definition.filter) !== undefined) {
+                    return filter.definition.filter.filter;
+                } else {
+                    return undefined;
+                }
+            })
+            .filter((v) => v !== undefined) as unknown as string[];
+        session.search.store().filters().overwrite(filters);
+        if (invalid.length > 0) {
+            notifications.notify(
+                new Notification({
+                    message: `Next ${
+                        invalid.length
+                    } filter(s) cannot be applied, because are invalid: ${invalid.join('; ')}`,
+                    actions: [],
+                    pinned: true,
+                }),
+            );
+        }
         return Promise.resolve(() => {
             session.search.store().filters().refresh();
         });
