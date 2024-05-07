@@ -30,6 +30,17 @@ pub fn as_regex(filter: &str) -> String {
     format!("(?i){filter}(?-i)")
 }
 
+/// Validate search condition. Checks possibility to convert
+/// given string into RegEx
+///
+/// # Arguments
+///
+/// * `filter` - Regular expression as a string
+///
+/// # Returns
+///
+/// `true` in case of valid condition; `false` - invalid
+///
 pub fn is_valid(filter: &str) -> bool {
     Regex::from_str(&as_regex(filter)).is_ok()
 }
