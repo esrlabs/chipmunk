@@ -34,30 +34,19 @@ pub async fn execute_search(
     state: SessionStateAPI,
 ) -> OperationResult<u64> {
     debug!("RUST: Search operation is requested");
-    let invalid = filters
-        .iter()
-        .filter_map(|f| if f.valid() { None } else { Some(&f.value) })
-        .cloned()
-        .collect::<Vec<String>>();
-    if !invalid.is_empty() {
-        Err(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::OperationSearch,
-            message: Some(format!(
-                "Next {} filter(s) are invalid: {}",
-                invalid.len(),
-                invalid.join("; ")
-            )),
-        })?;
-    }
     state.drop_search().await?;
     let (rows, read_bytes) = state.get_stream_len().await?;
     let mut holder = state.get_search_holder(operation_api.id()).await?;
-    holder.setup(filters.clone()).map_err(|e| NativeError {
+    if let Err(err) = holder.setup(filters.clone()).map_err(|e| NativeError {
         severity: Severity::ERROR,
         kind: NativeErrorKind::OperationSearch,
         message: Some(format!("Fail to setup search terms: {e}")),
-    })?;
+    }) {
+        state
+            .set_search_holder(Some(holder), operation_api.id())
+            .await?;
+        return Err(err);
+    }
     if filters.is_empty() {
         debug!("RUST: Search are dropped. Filters are empty");
         state
