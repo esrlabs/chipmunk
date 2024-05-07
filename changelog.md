@@ -1,3 +1,13 @@
+# 3.12.5 (08.05.2024)
+
+## Changes
+- Check filters/charts during importing
+- Highlight invalid filters/charts in sidebar
+- Prevent search with invalid conditions
+- Better error reporting on search fail
+- Correction of filters/charts styles (sidebar)
+- Allow modification of invalid filters/charts
+
 # 3.12.4 (19.04.2024)
 
 ## Fixes
