@@ -5,7 +5,10 @@ use crate::{
     state::SessionStateAPI,
 };
 use log::debug;
-use processor::search::searchers::{self, values::ValueSearchHolder};
+use processor::search::searchers::{
+    self,
+    values::{is_valid, ValueSearchHolder},
+};
 use std::{collections::HashMap, ops::Range};
 use tokio::{
     select,
@@ -28,6 +31,22 @@ pub async fn execute_value_search(
     state: SessionStateAPI,
 ) -> OperationResult<()> {
     debug!("RUST: Search values operation is requested");
+    let invalid = filters
+        .iter()
+        .filter(|f| !is_valid(f))
+        .cloned()
+        .collect::<Vec<String>>();
+    if !invalid.is_empty() {
+        Err(NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::OperationSearch,
+            message: Some(format!(
+                "Next {} filter(s) are invalid: {}",
+                invalid.len(),
+                invalid.join("; ")
+            )),
+        })?;
+    }
     state.drop_search_values().await?;
     let (rows, read_bytes) = state.get_stream_len().await?;
     let mut holder = state.get_search_values_holder(operation_api.id()).await?;
