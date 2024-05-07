@@ -4,7 +4,7 @@ import { ISearchMap, INearest } from '@platform/types/filter';
 import { cutUuid } from '@log/index';
 import { IFilter, ISearchUpdated } from '@platform/types/filter';
 import { IRange } from '@platform/types/range';
-import { FiltersStore } from './search/filters/store';
+import { FilterRequest, FiltersStore } from './search/filters/store';
 import { DisableStore } from './search/disabled/store';
 import { ChartsStore } from './search/charts/store';
 import { State } from './search/state';
@@ -95,7 +95,7 @@ export class Search extends Subscriber {
                 Requests.Search.Search.Response,
                 new Requests.Search.Search.Request({
                     session: this._uuid,
-                    filters,
+                    filters: filters.filter((f) => FilterRequest.isValid(f)),
                 }),
             )
                 .then((response) => {

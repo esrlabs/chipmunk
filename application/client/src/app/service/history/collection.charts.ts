@@ -6,6 +6,7 @@ import { Session } from '@service/session/session';
 import { Definition } from './definition';
 import { Subscriber } from '@platform/env/subscription';
 import { StoredEntity } from '@service/session/dependencies/search/store';
+import { notifications, Notification } from '@ui/service/notifications';
 
 export class ChartsCollection extends Collection<ChartRequest> implements Equal<ChartsCollection> {
     constructor() {
@@ -26,10 +27,28 @@ export class ChartsCollection extends Collection<ChartRequest> implements Equal<
     }
 
     public applyTo(session: Session, _definitions: Definition[]): Promise<AfterApplyCallback> {
-        session.search
-            .store()
-            .charts()
-            .overwrite(this.as().elements() as StoredEntity<ChartRequest>[]);
+        const charts = this.as().elements() as StoredEntity<ChartRequest>[];
+        const invalid: string[] = charts
+            .map((chart) => {
+                if (ChartRequest.getValidationError(chart.definition.filter) !== undefined) {
+                    return chart.definition.filter;
+                } else {
+                    return undefined;
+                }
+            })
+            .filter((v) => v !== undefined) as unknown as string[];
+        session.search.store().charts().overwrite(charts);
+        if (invalid.length > 0) {
+            notifications.notify(
+                new Notification({
+                    message: `Next ${
+                        invalid.length
+                    } chart(s) cannot be applied, because are invalid: ${invalid.join('; ')}`,
+                    actions: [],
+                    pinned: true,
+                }),
+            );
+        }
         return Promise.resolve(() => {
             session.search.store().charts().refresh();
         });
