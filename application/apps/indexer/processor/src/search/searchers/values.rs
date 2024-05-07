@@ -30,6 +30,10 @@ pub fn as_regex(filter: &str) -> String {
     format!("(?i){filter}(?-i)")
 }
 
+pub fn is_valid(filter: &str) -> bool {
+    Regex::from_str(&as_regex(filter)).is_ok()
+}
+
 #[derive(Debug)]
 pub struct ValueSearchState {
     pub file_path: PathBuf,

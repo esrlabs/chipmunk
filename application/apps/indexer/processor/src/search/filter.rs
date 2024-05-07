@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SearchFilter {
-    value: String,
+    pub value: String,
     is_regex: bool,
     ignore_case: bool,
     is_word: bool,
@@ -27,6 +27,10 @@ impl SearchFilter {
             ignore_case: false,
             is_word: false,
         }
+    }
+
+    pub fn valid(&self) -> bool {
+        get_filter_error(self).is_none()
     }
 
     #[must_use]
