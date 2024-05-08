@@ -23,62 +23,6 @@
     ],
     "main": "./dist/app.js",
     "copyright": "Copyright © 2023 year ESR Labs",
-    "build": {
-        "asar": true,
-        "appId": "com.esrlabs.chipmunk",
-        "productName": "chipmunk",
-        "copyright": "Copyright © 2022 year ESR Labs",
-        "files": [
-            "./dist/**",
-            "./resources/**"
-        ],
-        "extraFiles": [
-            {
-                "from": "../apps/precompiled/updater/target/release",
-                "to": "Resources/bin",
-                "filter": [
-                    "updater",
-                    "updater.exe"
-                ]
-            }
-        ],
-        "directories": {
-            "output": "release",
-            "buildResources": "resources"
-        },
-        "asarUnpack": [
-            "resources"
-        ],
-        "npmRebuild": true,
-        "afterSign": "hooks/afterSign.js",
-        "mac": {
-            "category": "public.app-category.developer-tools",
-            "icon": "resources/mac/chipmunk.icns",
-            "target": [],
-            "binaries": [
-                "./release/mac/chipmunk.app/Contents/Resources/bin/updater"
-            ],
-            "extendInfo": {
-                "NSCameraUsageDescription": "",
-                "NSMicrophoneUsageDescription": ""
-            },
-            "hardenedRuntime": true,
-            "gatekeeperAssess": false,
-            "entitlements": "./resources/mac/entitlements.mac.plist",
-            "entitlementsInherit": "./resources/mac/entitlements.mac.plist"
-        },
-        "linux": {
-            "icon": "resources/icons/png/256.png",
-            "executableName": "chipmunk",
-            "desktop": "resources/linux/chipmunk.desktop",
-            "target": []
-        },
-        "win": {
-            "icon": "resources/win/chipmunk.ico",
-            "target": [],
-            "publisherName": "ESR Labs"
-        }
-    },
     "dependencies": {
         "commander": "^12.0.0",
         "glob": "9.3.5",
@@ -118,9 +62,10 @@
         "build": "node_modules/.bin/tsc -p tsconfig.json",
         "start": "npm run build-ts && npm run electron",
         "postinstall": "electron-builder install-app-deps",
-        "build-darwin": "node_modules/.bin/electron-builder --mac --dir",
-        "build-linux": "node_modules/.bin/electron-builder --linux --dir",
-        "build-win": "node_modules/.bin/electron-builder --win --dir",
+        "build-darwin-arm64": "node_modules/.bin/electron-builder --mac --dir --config=./electron.config.darwin.arm64.json",
+        "build-darwin-x86": "node_modules/.bin/electron-builder --mac --dir --config=./electron.config.darwin.x86.json",
+        "build-linux": "node_modules/.bin/electron-builder --linux --dir --config=./electron.config.linux.json",
+        "build-win": "node_modules/.bin/electron-builder --win --dir --config=./electron.config.win.json",
         "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0",
         "check": "node_modules/.bin/tsc -p tsconfig.json --noemit"
     }

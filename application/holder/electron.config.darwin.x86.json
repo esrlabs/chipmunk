@@ -1,0 +1,45 @@
+{
+    "asar": true,
+    "appId": "com.esrlabs.chipmunk",
+    "productName": "chipmunk",
+    "copyright": "Copyright © 2022 year ESR Labs",
+    "files": [
+        "./dist/**",
+        "./resources/**"
+    ],
+    "extraFiles": [
+        {
+            "from": "../apps/precompiled/updater/target/release",
+            "to": "Resources/bin",
+            "filter": [
+                "updater",
+                "updater.exe"
+            ]
+        }
+    ],
+    "directories": {
+        "output": "release",
+        "buildResources": "resources"
+    },
+    "asarUnpack": [
+        "resources"
+    ],
+    "npmRebuild": true,
+    "afterSign": "hooks/afterSign.js",
+    "mac": {
+        "category": "public.app-category.developer-tools",
+        "icon": "resources/mac/chipmunk.icns",
+        "target": [],
+        "binaries": [
+            "./release/mac/chipmunk.app/Contents/Resources/bin/updater"
+        ],
+        "extendInfo": {
+            "NSCameraUsageDescription": "",
+            "NSMicrophoneUsageDescription": ""
+        },
+        "hardenedRuntime": true,
+        "gatekeeperAssess": false,
+        "entitlements": "./resources/mac/entitlements.mac.plist",
+        "entitlementsInherit": "./resources/mac/entitlements.mac.plist"
+    }
+}
