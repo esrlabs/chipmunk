@@ -47,7 +47,7 @@ impl RegularSearchHolder {
     pub fn setup(&mut self, filters: Vec<SearchFilter>) -> Result<(), SearchError> {
         let invalid = filters
             .iter()
-            .filter(|&f| f.valid())
+            .filter(|&f| !f.valid())
             .map(|f| &f.value)
             .cloned()
             .collect::<Vec<String>>()
