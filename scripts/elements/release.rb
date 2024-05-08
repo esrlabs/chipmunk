@@ -15,14 +15,22 @@ module Release
     Release.load_from_env
     if OS.mac?
       if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS') && !ENV.key?('SKIP_NOTARIZE')
-        './node_modules/.bin/electron-builder --mac --dir'
+        if OS.arm64? 
+          './node_modules/.bin/electron-builder --mac --dir --config=./electron.config.darwin.arm64.json'
+        else
+          './node_modules/.bin/electron-builder --mac --dir --config=./electron.config.darwin.x86.json'
+        end  
       else
-        './node_modules/.bin/electron-builder --mac --dir -c.mac.identity=null'
+        if OS.arm64? 
+          './node_modules/.bin/electron-builder --mac --dir --config=./electron.config.darwin.arm64.json -c.mac.identity=null'
+        else
+          './node_modules/.bin/electron-builder --mac --dir --config=./electron.config.darwin.x86.json -c.mac.identity=null'
+        end  
       end
     elsif OS.linux?
-      './node_modules/.bin/electron-builder --linux --dir'
+      './node_modules/.bin/electron-builder --linux --dir --config=./electron.config.linux.json'
     else
-      './node_modules/.bin/electron-builder --win --dir'
+      './node_modules/.bin/electron-builder --win --dir --config=./electron.config.win.json'
     end
   end
 
