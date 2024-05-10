@@ -1,3 +1,8 @@
+# 3.12.6 (10.05.2024)
+
+## Changes
+- Up electron version to 30.x.x
+
 # 3.12.5 (08.05.2024)
 
 ## Changes
