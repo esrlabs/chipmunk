@@ -52,6 +52,7 @@ export class Service extends Implementation {
         }): Promise<{ entities: Entity[]; max: boolean }>;
         stat(path: string): Promise<Entity>;
         checksum(filename: string): Promise<string>;
+        isBinary(file: string): Promise<boolean>;
         checksumWithCache(filename: string): Promise<string>;
         exists(path: string): Promise<boolean>;
         name(
@@ -209,6 +210,20 @@ export class Service extends Implementation {
                         return Promise.reject(new Error(response.error));
                     } else {
                         return Promise.reject(new Error(`Unknown error`));
+                    }
+                });
+            },
+            isBinary: (file: string): Promise<boolean> => {
+                return Requests.IpcRequest.send(
+                    Requests.File.IsBinary.Response,
+                    new Requests.File.IsBinary.Request({
+                        file,
+                    }),
+                ).then((response) => {
+                    if (response.error !== undefined) {
+                        return Promise.reject(new Error(response.error));
+                    } else {
+                        return Promise.resolve(response.binary);
                     }
                 });
             },
