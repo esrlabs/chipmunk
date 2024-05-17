@@ -22,6 +22,9 @@ import { Observe } from '@platform/types/observe';
 import { getRender } from '@schema/render/tools';
 import { TabObserve } from '@tabs/observe/component';
 import { recent } from '@service/recent';
+import { bridge } from '@service/bridge';
+
+import * as Factory from '@platform/types/observe/factory';
 
 export { Session, TabControls, UnboundTab, Base };
 
@@ -222,12 +225,38 @@ export class Service extends Implementation {
     }
 
     public initialize(): {
+        suggest(filename: string, session?: Session): Promise<string | undefined>;
         auto(observe: Observe, session?: Session): Promise<string | undefined>;
         configure(observe: Observe, session?: Session): Promise<string | undefined>;
         observe(observe: Observe, session?: Session): Promise<string>;
         multiple(files: File[]): Promise<string | undefined>;
     } {
         return {
+            suggest: (filename: string, session?: Session): Promise<string | undefined> => {
+                return bridge
+                    .files()
+                    .isBinary(filename)
+                    .then((binary: boolean) => {
+                        if (!binary) {
+                            return this.initialize().observe(
+                                new Factory.File()
+                                    .type(Factory.FileType.Text)
+                                    .asText()
+                                    .file(filename)
+                                    .get(),
+                                session,
+                            );
+                        } else {
+                            return this.initialize().configure(
+                                new Factory.File()
+                                    .type(Factory.FileType.Binary)
+                                    .file(filename)
+                                    .get(),
+                                session,
+                            );
+                        }
+                    });
+            },
             auto: (observe: Observe, session?: Session): Promise<string | undefined> => {
                 return observe.locker().is()
                     ? this.initialize().observe(observe, session)

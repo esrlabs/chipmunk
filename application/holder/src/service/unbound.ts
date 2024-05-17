@@ -70,6 +70,15 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
+                    Requests.File.IsBinary.Request,
+                    RequestHandlers.File.IsBinary.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
                     Requests.Serial.Ports.Request,
                     RequestHandlers.Serial.Ports.handler,
                 ),
