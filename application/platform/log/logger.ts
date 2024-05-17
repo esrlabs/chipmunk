@@ -163,7 +163,7 @@ export abstract class Logger {
         });
     }
 
-    protected publish(msg: string, level: Level): Logger {
+    public publish(msg: string, level: Level): Logger {
         const defaultsLoggerInUse =
             typeof (this as any).isDefault === 'function' ? (this as any).isDefault() : false;
         if (defaultsLoggerInUse) {

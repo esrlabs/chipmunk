@@ -17,7 +17,7 @@ export function getLogLevelFromStr(str: any): Level | undefined {
     if (getProp(LOGS_LEVEL_TABLE, str) === undefined) {
         return undefined;
     }
-    return getProp(LOGS_LEVEL_TABLE, str) as Level;
+    return str as Level;
 }
 
 export function strToLogLevel(level: string): Level {
