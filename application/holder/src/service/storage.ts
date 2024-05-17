@@ -181,7 +181,7 @@ export class Service extends Implementation {
                                     }
                                 } else if (request.file !== undefined) {
                                     const file = new FileController(request.file).init();
-                                    const error = file.write(JSON.stringify(request.entries));
+                                    const error = file.write(JSON.stringify(entries));
                                     if (error instanceof Error) {
                                         return Promise.reject(error);
                                     }
