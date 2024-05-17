@@ -5,6 +5,7 @@
 
 ## Fixes
 - Fix the import/export presets feature
+- Fix logger. Make it react to envvars correctly
 
 ## Updates
 - Upgrade electron version
