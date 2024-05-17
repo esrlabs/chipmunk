@@ -182,7 +182,7 @@ export class ElementsTreeSelector
         if (entity.isFolder()) {
             return;
         }
-        // TODO: Needs implementation >>>>>>>>>>>>>>>>>>>>>>>
+        // TODO: Needs implementation
         // this.ilc()
         //     .services.system.opener.text(entity.getPath())
         //     .auto()
