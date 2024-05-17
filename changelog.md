@@ -1,3 +1,14 @@
+# 3.12.7 (17.05.2024)
+
+## Changes
+- Allow open files from favorites by dblclick
+
+## Fixes
+- Fix the import/export presets feature
+
+## Updates
+- Upgrade electron version
+
 # 3.12.6 (10.05.2024)
 
 ## Changes
