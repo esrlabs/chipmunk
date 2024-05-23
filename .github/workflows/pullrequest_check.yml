@@ -21,6 +21,8 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - name: enable corepack for yarnpkg upgrade
+        run: corepack enable
       - name: JS/TS linting
         run: rake lint:js
   rust_lint:

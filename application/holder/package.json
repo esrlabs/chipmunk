@@ -68,5 +68,6 @@
         "build-win": "node_modules/.bin/electron-builder --win --dir --config=./electron.config.win.json",
         "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0",
         "check": "node_modules/.bin/tsc -p tsconfig.json --noemit"
-    }
+    },
+    "packageManager": "yarn@4.2.2"
 }

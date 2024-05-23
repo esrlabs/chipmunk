@@ -140,5 +140,5 @@
         "./types/github/filter": "./dist/types/github/filter.js",
         "./package.json": "./package.json"
     },
-    "packageManager": "yarn@1.22.19"
+    "packageManager": "yarn@4.2.2"
 }
