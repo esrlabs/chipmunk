@@ -31,7 +31,7 @@ namespace :electron do
     puts 'trying to install electron yarn stuff'
     Shell.chdir(Paths::ELECTRON) do
       Reporter.log 'Installing Electron libraries'
-      duration = Shell.timed_sh('yarn install', 'yarn install electron')
+      duration = Shell.timed_sh("yarn install --no-immutable", 'yarn install electron')
       Reporter.done('electron', 'installing', '', duration)
     end
   end

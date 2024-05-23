@@ -72,6 +72,8 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - name: enable corepack for yarnpkg upgrade
+        run: corepack enable
       - name: Run integration tests
         run: rake test:js
   unit_tests:
