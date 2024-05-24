@@ -17,6 +17,14 @@ export interface ProviderConstructor {
 }
 
 export abstract class Provider {
+    static overwrite(src: ObserveSource[], dest: ObserveSource[]) {
+        src.filter((src) => src.observer === undefined).forEach((src) => {
+            const index = dest.findIndex((s) => s.observe.uuid === src.observe.uuid);
+            if (index !== -1) {
+                dest.splice(index, 1, src);
+            }
+        });
+    }
     public readonly session: Session;
     public readonly logger: Logger;
     public readonly subjects: Subjects<{
