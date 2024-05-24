@@ -50,6 +50,7 @@ export class Provider extends Base {
             this._sources.push(...files);
         });
         this._processed.push(...added.map((a) => a.uuid()));
+        Base.overwrite(sources, this._sources);
         return this;
     }
 
