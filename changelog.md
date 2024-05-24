@@ -1,3 +1,8 @@
+# 3.12.8 (24.05.2024)
+
+## Fixes
+- Fix issue on stopping observing 
+
 # 3.12.7 (17.05.2024)
 
 ## Changes
