@@ -116,7 +116,6 @@ namespace :release do
       # Sign each path
       paths_to_sign.each do |path|
         command = "codesign --sign \"#{ENV['SIGNING_ID']}\" #{options} \"#{path}\""
-        puts "Executing: #{command}"
         Shell.sh "#{command}"
       end
 
