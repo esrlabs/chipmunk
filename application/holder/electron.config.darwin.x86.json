@@ -25,7 +25,6 @@
         "resources"
     ],
     "npmRebuild": true,
-    "afterSign": "hooks/afterSign.js",
     "mac": {
         "category": "public.app-category.developer-tools",
         "icon": "resources/mac/chipmunk.icns",
