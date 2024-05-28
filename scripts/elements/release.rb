@@ -14,36 +14,15 @@ module Release
   def self.build_cmd
     Release.load_from_env
     if OS.mac?
-      if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS') && !ENV.key?('SKIP_NOTARIZE')
-        if OS.arm64? 
-          './node_modules/.bin/electron-builder --mac --dir --config=./electron.config.darwin.arm64.json'
-        else
-          './node_modules/.bin/electron-builder --mac --dir --config=./electron.config.darwin.x86.json'
-        end  
+      if OS.arm64?
+        './node_modules/.bin/electron-builder --mac --dir --config=./electron.config.darwin.arm64.json -c.mac.identity=null'
       else
-        if OS.arm64? 
-          './node_modules/.bin/electron-builder --mac --dir --config=./electron.config.darwin.arm64.json -c.mac.identity=null'
-        else
-          './node_modules/.bin/electron-builder --mac --dir --config=./electron.config.darwin.x86.json -c.mac.identity=null'
-        end  
+        './node_modules/.bin/electron-builder --mac --dir --config=./electron.config.darwin.x86.json -c.mac.identity=null'
       end
     elsif OS.linux?
       './node_modules/.bin/electron-builder --linux --dir --config=./electron.config.linux.json'
     else
       './node_modules/.bin/electron-builder --win --dir --config=./electron.config.win.json'
-    end
-  end
-
-  def self.set_envvars
-    Release.load_from_env
-    if ENV.key?('SKIP_NOTARIZE')
-      ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'false'
-      return
-    end
-    if OS.mac?
-      ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'true' if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS')
-    else
-      ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'false'
     end
   end
 
@@ -106,7 +85,7 @@ namespace :release do
 
   task :bundle do
     Shell.chdir(Paths::ELECTRON) do
-      Release.set_envvars
+      Release.load_from_env
       duration = Shell.timed_sh(Release.build_cmd, 'invoke electron builder')
       Reporter.done('release', 'built', '', duration)
     end
@@ -114,7 +93,55 @@ namespace :release do
     Reporter.done('release', "done: #{Paths::RELEASE_BUILD}", '')
   end
 
+  task :codesign_for_mac do
+    Shell.chdir(Paths::ELECTRON) do
+      ENV['CSC_IDENTITY_AUTO_DISCOVERY'] = 'true'
+      options = "--force --timestamp --options runtime --verbose --deep --strict --entitlements ./resources/mac/entitlements.mac.plist"
+      app_path = "#{Paths::RELEASE_BUILD}/chipmunk.app"
+
+      # Array of paths to sign
+      paths_to_sign = [
+        app_path,
+        "#{app_path}/Contents/Resources/bin/updater",
+        "#{app_path}/Contents/MacOS/chipmunk",
+        "#{app_path}/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libEGL.dylib",
+        "#{app_path}/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libvk_swiftshader.dylib",
+        "#{app_path}/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libGLESv2.dylib",
+        "#{app_path}/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libffmpeg.dylib",
+        "#{app_path}/Contents/Frameworks/Squirrel.framework/Versions/A/Resources/ShipIt",
+        "#{app_path}/Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework",
+        "#{app_path}/Contents/Frameworks/Squirrel.framework/Versions/A/Squirrel"
+      ]
+
+      # Sign each path
+      paths_to_sign.each do |path|
+        command = "codesign --sign \"#{ENV['SIGNING_ID']}\" #{options} \"#{path}\""
+        puts "Executing: #{command}"
+        Shell.sh "#{command}"
+      end
+
+      Shell.sh "codesign -vvv --deep --strict \"#{app_path}\""
+    end
+  end
+
   task :compress do
+    if OS.mac?
+      if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS') && !ENV.key?('SKIP_NOTARIZE')
+        Rake::Task["release:codesign_for_mac"].invoke
+      end
+    end
     Compressor.new(Paths::RELEASE_BUILD, release_file_name).compress
+    if OS.mac?
+      if ENV.key?('APPLEID') && ENV.key?('APPLEIDPASS') && !ENV.key?('SKIP_NOTARIZE')
+        Rake::Task["release:notarize_for_mac"].invoke
+      end
+    end
+  end
+
+  task :notarize_for_mac do
+    Shell.chdir(Paths::ELECTRON) do
+      # Run the notarytool submit command
+      Shell.sh("xcrun notarytool submit --force --wait --verbose \"#{Paths::RELEASE}/#{release_file_name}.tgz\" --apple-id \"$APPLEID\" --team-id \"$TEAMID\" --password \"$APPLEIDPASS\"")
+    end
   end
 end
