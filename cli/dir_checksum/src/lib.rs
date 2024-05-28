@@ -1,10 +1,7 @@
 use blake3::Hasher;
 use ignore::Walk;
 use input::Input;
-use rayon::{
-    iter::{IntoParallelIterator, ParallelIterator},
-    ThreadPoolBuilder,
-};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::{
     io::{self, ErrorKind},
     path::{Path, PathBuf},
@@ -73,11 +70,7 @@ where
 
     let mut hasher = blake3::Hasher::new();
 
-    let thread_pool = ThreadPoolBuilder::new()
-        .build()
-        .map_err(|e| HashError::Environment(format!("Threadpool can't be created: {e}")))?;
-
-    thread_pool.install(|| calc_fn(dir_path, &mut hasher))
+    calc_fn(dir_path, &mut hasher)
 }
 
 /// Walks through file trees calculate the checksum for each files of them
