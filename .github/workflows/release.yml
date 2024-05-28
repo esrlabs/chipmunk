@@ -81,10 +81,11 @@ jobs:
             -k "$KEYCHAIN_NAME"
           rm "$certfile"
           security set-key-partition-list \
-            -S 'apple:' \
+            -S apple-tool:,apple:,codesign: \
             -s \
             -k "$KEYCHAIN_PWD" \
             "$KEYCHAIN_NAME"
+          security set-keychain-settings -lut 1200
       - name: build release
         run: |
           cargo chipmunk release
