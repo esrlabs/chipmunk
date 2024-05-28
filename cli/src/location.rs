@@ -36,7 +36,7 @@ impl Location {
 pub fn get_root() -> &'static PathBuf {
     &LOCATION
         .get()
-        .expect("Location is initialized in main function")
+        .expect("Developer Error: Location is initialized in main function")
         .root
 }
 
@@ -48,7 +48,7 @@ pub fn init_location() -> Result<(), Error> {
     let location = Location::new()?;
     LOCATION
         .set(location)
-        .expect("init location can't be called more than once");
+        .expect("Developer Error: init location can't be called more than once");
     Ok(())
 }
 

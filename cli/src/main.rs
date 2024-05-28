@@ -154,7 +154,7 @@ async fn main() -> Result<(), Error> {
             return Ok(());
         }
         Command::ShellCompletion { shell } => {
-            shell_completion::generate_completion(shell);
+            shell_completion::generate_completion(shell)?;
 
             return Ok(());
         }

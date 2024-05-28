@@ -19,24 +19,21 @@ pub async fn resolve_dev_tools() -> anyhow::Result<()> {
         writeln!(
             error_lines,
             "Required dependency '{tool}' is not installed.",
-        )
-        .unwrap();
+        )?;
 
-        writeln!(error_lines, "Resolve Error Info:{err}",).unwrap();
+        writeln!(error_lines, "Resolve Error Info:{err}",)?;
 
         if let Some(install_hint) = tool.install_hint() {
             writeln!(
                 error_lines,
                 "Consider installing it using the command '{install_hint}'"
-            )
-            .unwrap();
+            )?;
         }
 
         writeln!(
             error_lines,
             "------------------------------------------------------------------"
-        )
-        .expect("Writing to string never fail");
+        )?;
     }
 
     match errors {

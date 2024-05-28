@@ -1,4 +1,4 @@
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 use clap::ValueEnum;
 use futures::{
     future::{join_all, BoxFuture},
@@ -200,13 +200,15 @@ impl Target {
     }
 
     /// Provide the command that should be used in to build the target
-    pub async fn build_cmd(&self, prod: bool) -> String {
-        match self {
-            Target::Binding => binding::get_build_cmd(prod),
+    pub async fn build_cmd(&self, prod: bool) -> anyhow::Result<String> {
+        let build_cmd = match self {
+            Target::Binding => binding::get_build_cmd(prod)?,
             Target::Wasm => wasm::get_build_cmd(prod).await,
             Target::Updater => updater::get_build_cmd().await,
             rest_targets => rest_targets.kind().build_cmd(prod).await,
-        }
+        };
+
+        Ok(build_cmd)
     }
 
     /// Installs the needed module to perform the development task
@@ -348,7 +350,7 @@ impl Target {
     /// Clean the given target, removing it from the checksum tracker as well.
     pub async fn reset(&self, production: bool) -> anyhow::Result<Vec<SpawnResult>> {
         let checksum = ChecksumRecords::get(JobType::Clean { production }).await?;
-        checksum.remove_hash_if_exist(*self);
+        checksum.remove_hash_if_exist(*self)?;
         let mut results = Vec::new();
         let clean_result = self.clean().await?;
         results.push(clean_result);
@@ -391,7 +393,10 @@ impl Target {
         let mut run_build = false;
         // Check the current build state
         {
-            let mut states = build_states.states_map.lock().unwrap();
+            let mut states = build_states
+                .states_map
+                .lock()
+                .map_err(|err| anyhow!("Error while acquiring items jobs mutex: Error {err}"))?;
             match states.get_mut(self) {
                 Some(BuildState::Running(senders)) => {
                     // If the build is currently running, add the sender to senders list so it get
@@ -418,7 +423,9 @@ impl Target {
             let build_result = self.perform_build(prod).await;
             // Update the build state and notify all the senders
             {
-                let mut states = build_states.states_map.lock().unwrap();
+                let mut states = build_states.states_map.lock().map_err(|err| {
+                    anyhow!("Error while acquiring items jobs mutex: Error {err}")
+                })?;
 
                 let res_clone = match &build_result {
                     Ok(spawn_res) => Ok(spawn_res.clone()),
@@ -453,7 +460,7 @@ impl Target {
         // BoxFuture is needed because recursion isn't supported with async rust yet
         async move {
             let checksum_rec = ChecksumRecords::get(JobType::Build { production: prod }).await?;
-            checksum_rec.register_job(*self);
+            checksum_rec.register_job(*self)?;
 
             let mut results = Vec::new();
             let deps: Vec<Target> = self.deps();
@@ -470,7 +477,7 @@ impl Target {
                 }
             }
             let path = get_root().join(self.cwd());
-            let cmd = self.build_cmd(prod).await;
+            let cmd = self.build_cmd(prod).await?;
             let caption = format!("Build {}", self);
 
             let mut skip_task = false;

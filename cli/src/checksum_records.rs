@@ -120,15 +120,23 @@ impl ChecksumRecords {
     }
 
     /// Marks the job is involved in the record tracker
-    pub fn register_job(&self, target: Target) {
-        let mut items = self.items.lock().unwrap();
+    pub fn register_job(&self, target: Target) -> anyhow::Result<()> {
+        let mut items = self
+            .items
+            .lock()
+            .map_err(|err| anyhow!("Error while acquiring items jobs mutex: Error {err}"))?;
         items.involved_targets.insert(target);
+        Ok(())
     }
 
     /// Calculate the current checksum for the given target and compare it to the saved one.
     /// This method panics if the provided target isn't registered
     pub fn check_changed(&self, target: Target) -> anyhow::Result<bool> {
-        let items = self.items.lock().unwrap();
+        let items = self
+            .items
+            .lock()
+            .map_err(|err| anyhow!("Error while acquiring items jobs mutex: Error {err}"))?;
+
         assert!(items.involved_targets.contains(&target));
         let saved_hash = match items.map.get(&target) {
             Some(hash) => hash,
@@ -148,15 +156,24 @@ impl ChecksumRecords {
     }
 
     /// Remove the target from the checksum records
-    pub fn remove_hash_if_exist(&self, target: Target) {
-        let mut items = self.items.lock().unwrap();
+    pub fn remove_hash_if_exist(&self, target: Target) -> anyhow::Result<()> {
+        let mut items = self
+            .items
+            .lock()
+            .map_err(|err| anyhow!("Error while acquiring items jobs mutex: Error {err}"))?;
+
         items.involved_targets.insert(target);
 
         items.map.remove(&target);
+
+        Ok(())
     }
 
     fn calculate_involved_hashes(&self) -> anyhow::Result<()> {
-        let mut items = self.items.lock().unwrap();
+        let mut items = self
+            .items
+            .lock()
+            .map_err(|err| anyhow!("Error while acquiring items jobs mutex: Error {err}"))?;
 
         for target in items.involved_targets.clone() {
             let hash = Self::calc_hash_for_target(&target)?;
@@ -173,7 +190,10 @@ impl ChecksumRecords {
         let file_path = Self::get_file_path(self.job_type.is_production().is_some_and(|prod| prod));
 
         let mut file = File::create(file_path)?;
-        let items = self.items.lock().unwrap();
+        let items = self
+            .items
+            .lock()
+            .map_err(|err| anyhow!("Error while acquiring items jobs mutex: Error {err}"))?;
 
         for (target, hash) in items.map.iter() {
             writeln!(file, "{}:{}", target, hash)?;

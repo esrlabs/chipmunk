@@ -93,7 +93,7 @@ impl DevTool {
         self.resolve()
             .await
             .as_ref()
-            .expect("Cmd has already been resolved")
+            .expect("Developer Error: Cmd has already been resolved")
     }
 }
 

@@ -113,8 +113,12 @@ pub async fn spawn(
 
     let mut report_lines: Vec<String> = vec![];
     let drain_stdout_stderr = {
-        let stdout = child.stdout.take().unwrap();
-        let stderr = child.stderr.take().unwrap();
+        let stdout = child.stdout.take().expect(
+                "Developer Error: Stdout is implicity set in command definition from which the child is spawn",
+            );
+        let stderr = child.stderr.take().expect(
+                "Developer Error: Stderr is implicity set in command definition from which the child is spawn",
+            );
         let storage_report = &mut report_lines;
         async move {
             let mut stdout_buf = BufReader::new(stdout);
