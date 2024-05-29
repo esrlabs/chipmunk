@@ -6,7 +6,7 @@ use crate::{fstools, spawner::SpawnResult};
 
 use super::Target;
 
-pub async fn copy_platform_to_binding() -> Result<Option<SpawnResult>, anyhow::Error> {
+pub async fn copy_platform_to_binding() -> Result<SpawnResult, anyhow::Error> {
     let mut report_logs = Vec::new();
 
     report_logs.push(String::from("Start Job: Copying Platform to Bindings..."));
@@ -47,8 +47,8 @@ pub async fn copy_platform_to_binding() -> Result<Option<SpawnResult>, anyhow::E
     )
     .await?;
 
-    Ok(Some(SpawnResult::create_for_fs(
+    Ok(SpawnResult::create_for_fs(
         "Copying Platform to Bindings".into(),
         report_logs,
-    )))
+    ))
 }

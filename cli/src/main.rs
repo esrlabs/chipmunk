@@ -6,6 +6,7 @@ mod dev_environment;
 mod dev_tools;
 mod fstools;
 mod job_type;
+mod jobs_runner;
 mod location;
 mod print_dot;
 mod shell_completion;
@@ -94,22 +95,18 @@ async fn main() -> Result<(), Error> {
             .await;
             (JobType::Build { production }, results)
         }
-        Command::Clean {
-            target,
-            production,
-            report,
-        } => {
+        Command::Clean { target, report } => {
             resolve_dev_tools().await?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             let results = join_all(
                 targets
                     .iter()
-                    .map(|module| module.reset(production))
+                    .map(|module| module.reset())
                     .collect::<Vec<_>>(),
             )
             .await;
-            (JobType::Clean { production }, results)
+            (JobType::Clean, results)
         }
         Command::Test {
             target,
@@ -126,7 +123,9 @@ async fn main() -> Result<(), Error> {
                     .collect::<Vec<_>>(),
             )
             .await;
-            (JobType::Test { production }, results)
+            todo!()
+            //TODO AAZ: This will replaced with the new logic
+            // (JobType::Test { production }, results)
         }
         Command::Run { production } => {
             resolve_dev_tools().await?;
@@ -166,33 +165,32 @@ async fn main() -> Result<(), Error> {
     let mut success: bool = true;
     for (idx, res) in results.iter().enumerate() {
         match res {
-            Ok(statuses) => {
-                for status in statuses {
-                    let print_err = match &report_opt {
-                        ReportOptions::None => true,
-                        ReportOptions::Stdout(stdout) => {
-                            write_report(status, stdout)?;
-                            false
-                        }
-                        ReportOptions::File(path, file) => {
-                            write_report(status, file)?;
-                            if idx == results.len() - 1 {
-                                let full_path =
-                                    path.canonicalize().unwrap_or_else(|_| path.to_owned());
-                                println!("Report is written to '{}'", full_path.display());
-                            }
-                            false
-                        }
-                    };
-
-                    if !status.status.success() {
-                        if print_err {
-                            eprintln!("Failed with errors");
-                            eprintln!("{}:\n{}", status.job, status.report.join(""));
-                            eprintln!("---------------------------------------------------------------------");
-                        }
-                        success = false;
+            Ok(status) => {
+                let print_err = match &report_opt {
+                    ReportOptions::None => true,
+                    ReportOptions::Stdout(stdout) => {
+                        write_report(status, stdout)?;
+                        false
                     }
+                    ReportOptions::File(path, file) => {
+                        write_report(status, file)?;
+                        if idx == results.len() - 1 {
+                            let full_path = path.canonicalize().unwrap_or_else(|_| path.to_owned());
+                            println!("Report is written to '{}'", full_path.display());
+                        }
+                        false
+                    }
+                };
+
+                if !status.status.success() {
+                    if print_err {
+                        eprintln!("Failed with errors");
+                        eprintln!("{}:\n{}", status.job, status.report.join(""));
+                        eprintln!(
+                            "---------------------------------------------------------------------"
+                        );
+                    }
+                    success = false;
                 }
             }
             Err(err) => {

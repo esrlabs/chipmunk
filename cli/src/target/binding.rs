@@ -28,7 +28,7 @@ pub fn get_build_cmd(prod: bool) -> anyhow::Result<String> {
     ))
 }
 
-pub async fn copy_index_node() -> Result<Option<SpawnResult>, anyhow::Error> {
+pub async fn copy_index_node() -> Result<SpawnResult, anyhow::Error> {
     let mut report_logs = Vec::new();
 
     // *** Copy `index.node` from rs to ts bindings dist ***
@@ -72,8 +72,8 @@ pub async fn copy_index_node() -> Result<Option<SpawnResult>, anyhow::Error> {
 
     fstools::cp_file(src_file, mod_file, &mut report_logs).await?;
 
-    Ok(Some(SpawnResult::create_for_fs(
+    Ok(SpawnResult::create_for_fs(
         "Copying `index.node` from rs to ts bindings".into(),
         report_logs,
-    )))
+    ))
 }

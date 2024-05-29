@@ -58,10 +58,6 @@ pub enum Command {
         #[arg(index = 1)]
         target: Option<Vec<Target>>,
 
-        /// Clean release version
-        #[arg(short, long, default_value_t = false)]
-        production: bool,
-
         #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
         report: Option<Option<PathBuf>>,
     },

@@ -1,6 +1,6 @@
 use std::{iter, path::PathBuf};
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use std::fs;
 
 use crate::{
@@ -39,32 +39,32 @@ const TEST_SPECS: [&str; 14] = [
     "promises",
 ];
 
-pub async fn run_test() -> Result<Vec<SpawnResult>, anyhow::Error> {
-    let mut results = Vec::new();
-
-    let build_results = Target::Wrapper.build(false).await?;
-    results.extend(build_results);
+pub async fn run_test() -> Result<SpawnResult, anyhow::Error> {
+    //TODO AAZ: Build should happen outside of test
+    // let build_results = Target::Wrapper.build(false).await?;
+    // results.extend(build_results);
 
     let cwd = Target::Wrapper.cwd();
 
-    let build_spec_path = cwd.join("spec");
-    //TODO: This check exists in rake implementation but it need to be improved.
-    // The check should cover if the test themselves or the code under the tests has been changed.
-    if !build_spec_path.join("build").exists() {
-        let test_builder_path = cwd.join("node_modules").join(".bin").join("tsc");
-        let build_spec_cmd = format!("{} -p tsconfig.json", test_builder_path.to_string_lossy());
-
-        let spec_res = spawn(
-            build_spec_cmd,
-            Some(build_spec_path),
-            "Build Specs".into(),
-            iter::empty(),
-            None,
-        )
-        .await?;
-
-        results.push(spec_res);
-    }
+    //TODO AAZ: Append build_spec_path to SpawnResult
+    // let build_spec_path = cwd.join("spec");
+    // //TODO: This check exists in rake implementation but it need to be improved.
+    // // The check should cover if the test themselves or the code under the tests has been changed.
+    // if !build_spec_path.join("build").exists() {
+    //     let test_builder_path = cwd.join("node_modules").join(".bin").join("tsc");
+    //     let build_spec_cmd = format!("{} -p tsconfig.json", test_builder_path.to_string_lossy());
+    //
+    //     let spec_res = spawn(
+    //         build_spec_cmd,
+    //         Some(build_spec_path),
+    //         "Build Specs".into(),
+    //         iter::empty(),
+    //         None,
+    //     )
+    //     .await?;
+    //
+    //     results.push(spec_res);
+    // }
 
     let electron_path: PathBuf = [".", "node_modules", ".bin", "electron"].iter().collect();
     let electron_path = electron_path.to_string_lossy();
@@ -76,6 +76,7 @@ pub async fn run_test() -> Result<Vec<SpawnResult>, anyhow::Error> {
 
     let specs_dir_path: PathBuf = ["spec", "build", "spec"].iter().collect();
 
+    let mut final_result: Option<SpawnResult> = None;
     for spec in TEST_SPECS {
         let caption = format!("Test {}: {}", Target::Wrapper, spec);
         let spec_file_name = format!("session.{spec}.spec.js");
@@ -92,13 +93,16 @@ pub async fn run_test() -> Result<Vec<SpawnResult>, anyhow::Error> {
         )
         .await?;
 
-        results.push(res);
+        match final_result.as_mut() {
+            Some(acc) => acc.append(res),
+            None => final_result = Some(res),
+        };
     }
 
-    Ok(results)
+    final_result.ok_or_else(|| anyhow!("Wrapper doesn't have test specs"))
 }
 
-pub async fn copy_binding_to_app() -> Result<Option<SpawnResult>, anyhow::Error> {
+pub async fn copy_binding_to_app() -> Result<SpawnResult, anyhow::Error> {
     let mut report_logs = Vec::new();
 
     // *** Copying TS Bindings ***
@@ -202,8 +206,8 @@ pub async fn copy_binding_to_app() -> Result<Option<SpawnResult>, anyhow::Error>
     )
     .await?;
 
-    Ok(Some(SpawnResult::create_for_fs(
+    Ok(SpawnResult::create_for_fs(
         "Copy TS Bindings and Platform to Electron".into(),
         report_logs,
-    )))
+    ))
 }

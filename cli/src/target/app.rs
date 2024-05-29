@@ -6,7 +6,7 @@ use crate::{fstools, spawner::SpawnResult};
 
 use super::{client::get_dist_path, Target};
 
-pub async fn copy_client_to_app(prod: bool) -> Result<Option<SpawnResult>, anyhow::Error> {
+pub async fn copy_client_to_app(prod: bool) -> Result<SpawnResult, anyhow::Error> {
     let mut report_logs = Vec::new();
     let src = get_dist_path(prod);
     let dest = Target::App.cwd().join("dist");
@@ -46,8 +46,8 @@ pub async fn copy_client_to_app(prod: bool) -> Result<Option<SpawnResult>, anyho
     std::fs::rename(&rename_from, &rename_to)
         .with_context(|| format!("Error while renaming {}", rename_from.display()))?;
 
-    Ok(Some(SpawnResult::create_for_fs(
+    Ok(SpawnResult::create_for_fs(
         "Copy App Build Artifacts".into(),
         report_logs,
-    )))
+    ))
 }

@@ -199,6 +199,27 @@ impl Target {
         }
     }
 
+    pub fn has_job(&self, job_type: &JobType) -> bool {
+        match job_type {
+            JobType::Lint | JobType::Clean | JobType::Build { production: _ } => true,
+            JobType::Install { production: _ } => {
+                matches!(
+                    self,
+                    Target::Binding | Target::Client | Target::Shared | Target::App
+                )
+            }
+            JobType::AfterBuild { production: _ } => matches!(
+                self,
+                Target::Shared | Target::Binding | Target::Wrapper | Target::App
+            ),
+            JobType::Test { production: _ } => matches!(
+                self,
+                Target::Wrapper | Target::Core | Target::Cli | Target::Wasm
+            ),
+            JobType::Run { production: _ } => false,
+        }
+    }
+
     /// Provide the command that should be used in to build the target
     pub async fn build_cmd(&self, prod: bool) -> anyhow::Result<String> {
         let build_cmd = match self {
@@ -212,14 +233,14 @@ impl Target {
     }
 
     /// Installs the needed module to perform the development task
-    pub async fn install(&self, prod: bool) -> Result<Option<SpawnResult>, anyhow::Error> {
+    pub async fn install(&self, prod: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
         match self {
             // We must install ts binding tools before running rs bindings, therefore we call
             // wrapper (ts-bindings) install in the rs bindings install.
             // Since rs bindings is a dependency for ts bindings, we don't need to call to install
             // on ts bindings again.
             Target::Binding => install_general(&Target::Wrapper, prod).await,
-            Target::Wrapper => Ok(None),
+            Target::Wrapper => None,
             // For app we don't need --production
             Target::App => install_general(&Target::App, false).await,
             rest_targets => install_general(rest_targets, prod).await,
@@ -227,9 +248,9 @@ impl Target {
     }
 
     /// Run tests for the giving the target
-    pub async fn test(&self, production: bool) -> Result<Vec<SpawnResult>, anyhow::Error> {
+    pub async fn test(&self, production: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
         match self {
-            Target::Wrapper => wrapper::run_test().await,
+            Target::Wrapper => Some(wrapper::run_test().await),
             rest_targets => rest_targets.run_test_general(production).await,
         }
     }
@@ -245,18 +266,18 @@ impl Target {
     }
 
     /// run test using the general routine with `test_cmds()` method
-    async fn run_test_general(&self, production: bool) -> Result<Vec<SpawnResult>, anyhow::Error> {
-        let Some(test_cmds) = self.test_cmds(production).await else {
-            return Ok(Vec::new());
-        };
+    async fn run_test_general(
+        &self,
+        production: bool,
+    ) -> Option<Result<SpawnResult, anyhow::Error>> {
+        let test_cmds = self.test_cmds(production).await?;
 
         debug_assert!(!test_cmds.is_empty());
 
-        let mut results = Vec::new();
-
+        // TODO AAZ: Call build outside
         // build method calls install
-        let build_results = self.build(false).await?;
-        results.extend(build_results);
+        // let build_results = self.build(false).await?;
+        // results.extend(build_results);
 
         let caption = format!("Test {}", self);
         let spawn_results = join_all(test_cmds.into_iter().map(|cmd| {
@@ -270,34 +291,35 @@ impl Target {
         }))
         .await;
 
-        for res in spawn_results {
-            match res {
-                Ok(spawn_res) => results.push(spawn_res),
-                Err(err) => return Err(err),
+        let mut spawn_results = spawn_results.into_iter();
+
+        let mut result = match spawn_results.next()? {
+            Ok(result) => result,
+            Err(err) => return Some(Err(err)),
+        };
+
+        while let Some(next_result) = spawn_results.next() {
+            match next_result {
+                Ok(next_res) => result.append(next_res),
+                Err(err) => return Some(Err(err)),
             }
         }
 
-        Ok(results)
+        Some(Ok(result))
     }
 
     /// Perform Linting Checks on the giving target
-    pub async fn check(&self) -> Result<Vec<SpawnResult>, anyhow::Error> {
-        let mut results = Vec::new();
+    pub async fn check(&self) -> Result<SpawnResult, anyhow::Error> {
         match self.kind() {
             TargetKind::Ts => {
-                if let Some(install_result) = self.install(false).await? {
-                    results.push(install_result);
-                }
-                let lint_restul = self.ts_lint().await?;
-                results.push(lint_restul);
+                //TODO AAZ: Check needs install on TS
+                // if let Some(install_result) = self.install(false).await? {
+                //     todo!()
+                // }
+                self.ts_lint().await
             }
-            TargetKind::Rs => {
-                let clippy_result = self.clippy().await?;
-                results.push(clippy_result);
-            }
+            TargetKind::Rs => self.clippy().await,
         }
-
-        Ok(results)
     }
 
     /// Perform Linting the Building the giving target since linting Type-Script doesn't check for
@@ -349,24 +371,18 @@ impl Target {
     }
 
     /// Clean the given target, removing it from the checksum tracker as well.
-    pub async fn reset(&self, production: bool) -> anyhow::Result<Vec<SpawnResult>> {
-        let checksum = ChecksumRecords::get(JobType::Clean { production }).await?;
+    pub async fn reset(&self) -> anyhow::Result<SpawnResult> {
+        let checksum = ChecksumRecords::get(JobType::Clean).await?;
         checksum.remove_hash_if_exist(*self)?;
-        let mut results = Vec::new();
-        let clean_result = self.clean().await?;
-        results.push(clean_result);
 
-        let dist_path = self.cwd().join("dist");
+        self.clean().await
+        //TODO AAZ:
 
-        let remove_log = format!("removing {}", dist_path.display());
-
-        fstools::rm_folder(&dist_path).await?;
-
-        let job = format!("Reset {}", self);
-
-        results.push(SpawnResult::create_for_fs(job, vec![remove_log]));
-
-        Ok(results)
+        // let dist_path = self.cwd().join("dist");
+        // let remove_log = format!("removing {}", dist_path.display());
+        // fstools::rm_folder(&dist_path).await?;
+        //
+        // Ok(results)
     }
 
     async fn clean(&self) -> Result<SpawnResult, anyhow::Error> {
@@ -387,168 +403,93 @@ impl Target {
     }
 
     /// Runs build considering the currently running builds and already finished ones as well.
-    pub async fn build(&self, prod: bool) -> Result<Vec<SpawnResult>, anyhow::Error> {
-        let build_states = BuildStatesTracker::get().await;
-        let (tx_result, rx_result) = oneshot::channel();
+    pub async fn build(&self, prod: bool) -> Result<SpawnResult, anyhow::Error> {
+        let checksum_rec = ChecksumRecords::get(JobType::Build { production: prod }).await?;
+        checksum_rec.register_job(*self)?;
 
-        let mut run_build = false;
-        // Check the current build state
-        {
-            let mut states = build_states
-                .states_map
-                .lock()
-                .map_err(|err| anyhow!("Error while acquiring items jobs mutex: Error {err}"))?;
-            match states.get_mut(self) {
-                Some(BuildState::Running(senders)) => {
-                    // If the build is currently running, add the sender to senders list so it get
-                    // the results when the job is done;
-                    senders.push(tx_result);
-                }
-                Some(BuildState::Finished(build_result)) => {
-                    // If Build is already finished, then return the results directly
-                    match build_result {
-                        Ok(res) => return Ok(res.clone()),
-                        Err(err) => bail!(err.to_string()),
-                    }
-                }
-                None => {
-                    // Run the build and add the sender to the list.
-                    run_build = true;
-                    states.insert(*self, BuildState::Running(vec![tx_result]));
-                }
-            }
+        //TODO AAZ: Dependencies should be resolved before running the jobs
+        // let deps: Vec<Target> = self.deps();
+        // for module in deps {
+        //     let status = module.build(prod).await.with_context(|| {
+        //         format!(
+        //             "Error while building the dependciy {} for target {}",
+        //             module, self
+        //         )
+        //     })?;
+        //     results.extend(status);
+        //     if results.iter().any(|res| !res.status.success()) {
+        //         return Ok(results);
+        //     }
+        // }
+        let path = get_root().join(self.cwd());
+        let cmd = self.build_cmd(prod).await?;
+        let caption = format!("Build {}", self);
+
+        //TODO AAZ: Skipping jobs should be resolved before running the jobs
+        // let mut skip_task = false;
+        //
+        // let all_skipped = results.iter().all(|r| {
+        //     r.skipped.unwrap_or({
+        //         // Tasks with no skip info are irrelevant
+        //         true
+        //     })
+        // });
+        //
+        // if all_skipped {
+        //     skip_task = !checksum_rec.check_changed(*self)?;
+        // }
+        //
+
+        //TODO AAZ: Install Run outside of build
+        // if let Some(install_result) = self.install(false).await? {
+        //     results.push(install_result);
+        // }
+        let spawn_opt = SpawnOptions {
+            has_skip_info: true,
+            ..Default::default()
+        };
+        let status = spawn(cmd, Some(path), caption, iter::empty(), Some(spawn_opt)).await?;
+
+        if !status.status.success() {
+            Ok(status)
+        } else {
+            //TODO AAZ: This should be solved before running the tasks
+            // Taken from a discussion on GitHub:
+            // To build an npm package you would need (in most cases) to be in dev-mode - install dev-dependencies + dependencies.
+            // But to prepare a package for production, you have to remove dev-dependencies.
+            // That's not an issue, if npm-package is published in npmjs; but we are coping packages manually in a right destination
+            // and before copy it, we have to reinstall it to get rid of dev-dependencies.
+            // if matches!(self.kind(), TargetKind::Ts) && prod {
+            //     let clean_res = self.clean().await?;
+            //     results.push(clean_res);
+            //     if let Some(install_res) = self.install(prod).await? {
+            //         results.push(install_res);
+            //     }
+            // }
+
+            // TODO AAZ: After Build should be called separately
+            // let res = self.after_build(prod).await?;
+            // if let Some(result) = res {
+            //     results.push(result);
+            // }
+
+            Ok(status)
         }
-
-        if run_build {
-            // Run the build
-            let build_result = self.perform_build(prod).await;
-            // Update the build state and notify all the senders
-            {
-                let mut states = build_states.states_map.lock().map_err(|err| {
-                    anyhow!("Error while acquiring items jobs mutex: Error {err}")
-                })?;
-
-                let res_clone = match &build_result {
-                    Ok(spawn_res) => Ok(spawn_res.clone()),
-                    Err(err) => Err(anyhow::anyhow!("{:?}", err)),
-                };
-
-                let Some(BuildState::Running(senders)) =
-                    states.insert(*self, BuildState::Finished(build_result))
-                else {
-                    unreachable!("State after calling build must be renning");
-                };
-
-                for sender in senders {
-                    let res_clone = match &res_clone {
-                        Ok(spawn_res) => Ok(spawn_res.clone()),
-                        Err(err) => Err(anyhow::anyhow!("{:?}", err)),
-                    };
-                    if sender.send(res_clone).is_err() {
-                        bail!("Fail to communicate with builder");
-                    }
-                }
-            }
-        }
-
-        rx_result
-            .await
-            .context("Fail to communicate with builder")?
     }
 
     /// Performs build process without checking the current builds states
-    fn perform_build(&self, prod: bool) -> BoxFuture<Result<Vec<SpawnResult>, anyhow::Error>> {
-        // BoxFuture is needed because recursion isn't supported with async rust yet
-        async move {
-            let checksum_rec = ChecksumRecords::get(JobType::Build { production: prod }).await?;
-            checksum_rec.register_job(*self)?;
-
-            let mut results = Vec::new();
-            let deps: Vec<Target> = self.deps();
-            for module in deps {
-                let status = module.build(prod).await.with_context(|| {
-                    format!(
-                        "Error while building the dependciy {} for target {}",
-                        module, self
-                    )
-                })?;
-                results.extend(status);
-                if results.iter().any(|res| !res.status.success()) {
-                    return Ok(results);
-                }
-            }
-            let path = get_root().join(self.cwd());
-            let cmd = self.build_cmd(prod).await?;
-            let caption = format!("Build {}", self);
-
-            let mut skip_task = false;
-
-            let all_skipped = results.iter().all(|r| {
-                r.skipped.unwrap_or({
-                    // Tasks with no skip info are irrelevant
-                    true
-                })
-            });
-
-            if all_skipped {
-                skip_task = !checksum_rec.check_changed(*self)?;
-            }
-
-            let spawn_reslt = if skip_task {
-                spawn_skip(cmd, Some(path), caption).await
-            } else {
-                if let Some(install_result) = self.install(false).await? {
-                    results.push(install_result);
-                }
-                let spawn_opt = SpawnOptions {
-                    has_skip_info: true,
-                    ..Default::default()
-                };
-                spawn(cmd, Some(path), caption, iter::empty(), Some(spawn_opt)).await
-            };
-
-            let status = spawn_reslt?;
-
-            if !status.status.success() {
-                results.push(status);
-                Ok(results)
-            } else {
-                results.push(status);
-                if !skip_task {
-                    // Taken from a discussion on GitHub:
-                    // To build an npm package you would need (in most cases) to be in dev-mode - install dev-dependencies + dependencies.
-                    // But to prepare a package for production, you have to remove dev-dependencies.
-                    // That's not an issue, if npm-package is published in npmjs; but we are coping packages manually in a right destination
-                    // and before copy it, we have to reinstall it to get rid of dev-dependencies.
-                    if matches!(self.kind(), TargetKind::Ts) && prod {
-                        let clean_res = self.clean().await?;
-                        results.push(clean_res);
-                        if let Some(install_res) = self.install(prod).await? {
-                            results.push(install_res);
-                        }
-                    }
-
-                    let res = self.after_build(prod).await?;
-                    if let Some(result) = res {
-                        results.push(result);
-                    }
-                }
-
-                Ok(results)
-            }
-        }
-        .boxed()
-    }
 
     /// Perform any needed copy operation after the build is done
-    async fn after_build(&self, prod: bool) -> Result<Option<SpawnResult>, anyhow::Error> {
-        match self {
+    pub async fn after_build(&self, prod: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
+        let res = match self {
             Target::Binding => binding::copy_index_node().await,
             Target::Wrapper => wrapper::copy_binding_to_app().await,
             Target::Shared => shared::copy_platform_to_binding().await,
             Target::App => app::copy_client_to_app(prod).await,
-            _ => Ok(None),
-        }
+            _ => return None,
+        };
+
+        Some(res)
     }
 }
 
@@ -556,13 +497,13 @@ impl Target {
 async fn install_general(
     target: &Target,
     prod: bool,
-) -> Result<Option<SpawnResult>, anyhow::Error> {
+) -> Option<Result<SpawnResult, anyhow::Error>> {
     let cmd = target.kind().install_cmd(prod).await;
     if let Some(cmd) = cmd {
         let caption = format!("Install {}", target);
-        let res = spawn(cmd, Some(target.cwd()), caption, iter::empty(), None).await?;
-        Ok(Some(res))
+        let res = spawn(cmd, Some(target.cwd()), caption, iter::empty(), None).await;
+        Some(res)
     } else {
-        Ok(None)
+        None
     }
 }

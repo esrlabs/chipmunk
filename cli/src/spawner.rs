@@ -16,6 +16,7 @@ use tokio::{
 };
 
 #[derive(Clone, Debug)]
+//TODO AAZ: Move this to its own file
 pub struct SpawnResult {
     pub report: Vec<String>,
     pub status: ExitStatus,
@@ -45,6 +46,33 @@ impl SpawnResult {
             cmd,
             skipped: Some(true),
         }
+    }
+
+    /// Append other result to the current one producing a combined results form them
+    pub fn append(&mut self, other: SpawnResult) {
+        if !other.report.is_empty() {
+            self.report.extend(
+                [
+                    String::default(),
+                    String::from("-------------------------------------------------------------------------------"), 
+                    String::default()
+                ]);
+            self.report.extend(other.report);
+        }
+
+        self.job = format!("{} & {}", self.job, other.job);
+        self.status = match (self.status.success(), other.status.success()) {
+            (_, true) => self.status,
+            (false, false) => self.status,
+            (_, false) => other.status,
+        };
+
+        self.cmd = format!("{} \n {}", self.cmd, other.cmd);
+        self.skipped = match (self.skipped, other.skipped) {
+            (Some(false), _) | (_, Some(false)) => Some(false),
+            (Some(true), _) | (_, Some(true)) => Some(true),
+            _ => None,
+        };
     }
 }
 

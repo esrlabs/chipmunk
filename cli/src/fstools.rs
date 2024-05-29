@@ -8,6 +8,9 @@ use std::{fs, path::PathBuf};
 
 use crate::tracker::get_tracker;
 
+//TODO AAZ: Tools here shouldn't spawn new trackers. This should be able to send updates to their
+// corresponding tracker only.
+
 /// Spawn a job to copy a file, adding the info the report logs
 pub async fn cp_file(
     src: PathBuf,

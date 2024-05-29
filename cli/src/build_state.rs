@@ -13,6 +13,7 @@ pub enum BuildState {
 }
 
 #[derive(Debug)]
+//TODO AAZ: Delete the whole struct
 pub struct BuildStatesTracker {
     pub states_map: Mutex<HashMap<Target, BuildState>>,
 }

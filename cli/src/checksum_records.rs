@@ -35,7 +35,9 @@ impl ChecksumRecords {
             JobType::Build { production: _ }
             | JobType::Run { production: _ }
             | JobType::Test { production: _ } => true,
-            JobType::Clean { production: _ } => false,
+            JobType::Clean
+            | JobType::Install { production: _ }
+            | JobType::AfterBuild { production: _ } => false,
         };
 
         let records = Self::get(job_type).await?;
