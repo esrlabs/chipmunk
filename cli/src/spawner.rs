@@ -25,20 +25,6 @@ pub struct SpawnResult {
 }
 
 impl SpawnResult {
-    pub fn empty() -> Self {
-        SpawnResult {
-            report: Vec::default(),
-            status: ExitStatus::default(),
-            job: String::new(),
-            cmd: String::default(),
-            skipped: None,
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.job.is_empty() && self.cmd.is_empty()
-    }
-
     /// Create spawn for multiple file system commands
     pub fn create_for_fs(job: String, report: Vec<String>) -> Self {
         SpawnResult {

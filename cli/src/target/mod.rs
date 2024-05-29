@@ -212,14 +212,14 @@ impl Target {
     }
 
     /// Installs the needed module to perform the development task
-    pub async fn install(&self, prod: bool) -> Result<SpawnResult, anyhow::Error> {
+    pub async fn install(&self, prod: bool) -> Result<Option<SpawnResult>, anyhow::Error> {
         match self {
             // We must install ts binding tools before running rs bindings, therefore we call
             // wrapper (ts-bindings) install in the rs bindings install.
             // Since rs bindings is a dependency for ts bindings, we don't need to call to install
             // on ts bindings again.
             Target::Binding => install_general(&Target::Wrapper, prod).await,
-            Target::Wrapper => Ok(SpawnResult::empty()),
+            Target::Wrapper => Ok(None),
             // For app we don't need --production
             Target::App => install_general(&Target::App, false).await,
             rest_targets => install_general(rest_targets, prod).await,
@@ -285,9 +285,10 @@ impl Target {
         let mut results = Vec::new();
         match self.kind() {
             TargetKind::Ts => {
-                let install_result = self.install(false).await?;
+                if let Some(install_result) = self.install(false).await? {
+                    results.push(install_result);
+                }
                 let lint_restul = self.ts_lint().await?;
-                results.push(install_result);
                 results.push(lint_restul);
             }
             TargetKind::Rs => {
@@ -496,8 +497,9 @@ impl Target {
             let spawn_reslt = if skip_task {
                 spawn_skip(cmd, Some(path), caption).await
             } else {
-                let install_result = self.install(false).await?;
-                results.push(install_result);
+                if let Some(install_result) = self.install(false).await? {
+                    results.push(install_result);
+                }
                 let spawn_opt = SpawnOptions {
                     has_skip_info: true,
                     ..Default::default()
@@ -521,8 +523,9 @@ impl Target {
                     if matches!(self.kind(), TargetKind::Ts) && prod {
                         let clean_res = self.clean().await?;
                         results.push(clean_res);
-                        let install_res = self.install(prod).await?;
-                        results.push(install_res);
+                        if let Some(install_res) = self.install(prod).await? {
+                            results.push(install_res);
+                        }
                     }
 
                     let res = self.after_build(prod).await?;
@@ -550,12 +553,16 @@ impl Target {
 }
 
 /// run install using the general routine for the given target
-async fn install_general(target: &Target, prod: bool) -> Result<SpawnResult, anyhow::Error> {
+async fn install_general(
+    target: &Target,
+    prod: bool,
+) -> Result<Option<SpawnResult>, anyhow::Error> {
     let cmd = target.kind().install_cmd(prod).await;
     if let Some(cmd) = cmd {
         let caption = format!("Install {}", target);
-        spawn(cmd, Some(target.cwd()), caption, iter::empty(), None).await
+        let res = spawn(cmd, Some(target.cwd()), caption, iter::empty(), None).await?;
+        Ok(Some(res))
     } else {
-        Ok(SpawnResult::empty())
+        Ok(None)
     }
 }
