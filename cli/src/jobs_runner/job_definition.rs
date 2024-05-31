@@ -15,7 +15,7 @@ impl JobDefinition {
         format!("{} {}", self.target, self.job_type)
     }
 
-    async fn run(&self) -> Option<Result<SpawnResult, anyhow::Error>> {
+    pub async fn run(&self) -> Option<Result<SpawnResult, anyhow::Error>> {
         let res = match self.job_type {
             JobType::Lint => self.target.check().await,
             JobType::Build { production } => self.target.build(production).await,

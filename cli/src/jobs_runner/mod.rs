@@ -28,9 +28,39 @@ pub struct JobsRunner {
 }
 
 impl JobsRunner {
-    pub fn print_deps(targets: &[Target], main_job: JobType) {
+    pub async fn run_jobs(
+        targets: &[Target],
+        main_job: JobType,
+    ) -> Vec<Result<SpawnResult, anyhow::Error>> {
         let jobs_tree = jobs_resolver::resolve(targets, main_job);
-        dbg!(jobs_tree);
-        todo!()
+
+        // This is needed for assertions while in development only, and it will be removed once the
+        // concurrent solution is implemented.
+        let mut finished = BTreeSet::new();
+
+        let mut results = Vec::new();
+
+        for (job_def, deps) in jobs_tree {
+            assert!(
+                deps.iter().all(|def| finished.contains(def)),
+                "Jobs deps must be resolved before running it"
+            );
+
+            let Some(res) = job_def.run().await else {
+                if cfg!(debug_assertions) {
+                    panic!(
+                        "Jobs tree should contain only runnable jobs. JobDefinition: {job_def:?}"
+                    );
+                } else {
+                    continue;
+                }
+            };
+
+            results.push(res);
+
+            finished.insert(job_def);
+        }
+
+        results
     }
 }

@@ -73,14 +73,7 @@ async fn main() -> Result<(), Error> {
             resolve_dev_tools().await?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
-            JobsRunner::print_deps(&targets, JobType::Lint);
-            let results = join_all(
-                targets
-                    .iter()
-                    .map(|module| module.check())
-                    .collect::<Vec<_>>(),
-            )
-            .await;
+            let results = JobsRunner::run_jobs(&targets, JobType::Lint).await;
             (JobType::Lint, results)
         }
         Command::Build {
@@ -91,28 +84,14 @@ async fn main() -> Result<(), Error> {
             resolve_dev_tools().await?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
-            JobsRunner::print_deps(&targets, JobType::Build { production });
-            let results = join_all(
-                targets
-                    .iter()
-                    .map(|module| module.build(production))
-                    .collect::<Vec<_>>(),
-            )
-            .await;
+            let results = JobsRunner::run_jobs(&targets, JobType::Build { production }).await;
             (JobType::Build { production }, results)
         }
         Command::Clean { target, report } => {
             resolve_dev_tools().await?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
-            JobsRunner::print_deps(&targets, JobType::Clean);
-            let results = join_all(
-                targets
-                    .iter()
-                    .map(|module| module.reset())
-                    .collect::<Vec<_>>(),
-            )
-            .await;
+            let results = JobsRunner::run_jobs(&targets, JobType::Clean).await;
             (JobType::Clean, results)
         }
         Command::Test {
@@ -123,28 +102,13 @@ async fn main() -> Result<(), Error> {
             resolve_dev_tools().await?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
-            JobsRunner::print_deps(&targets, JobType::Test { production });
-            let results = join_all(
-                targets
-                    .iter()
-                    .map(|module| module.test(production))
-                    .collect::<Vec<_>>(),
-            )
-            .await;
-            todo!()
-            //TODO AAZ: This will replaced with the new logic
-            // (JobType::Test { production }, results)
+            let results = JobsRunner::run_jobs(&targets, JobType::Test { production }).await;
+            (JobType::Test { production }, results)
         }
         Command::Run { production } => {
             resolve_dev_tools().await?;
             report_opt = ReportOptions::None;
-            let results = join_all(
-                Target::all()
-                    .iter()
-                    .map(|module| module.build(production))
-                    .collect::<Vec<_>>(),
-            )
-            .await;
+            let results = JobsRunner::run_jobs(&Target::all(), JobType::Build { production }).await;
             (JobType::Run { production }, results)
         }
         Command::ResetChecksum { production } => {
