@@ -40,10 +40,6 @@ const TEST_SPECS: [&str; 14] = [
 ];
 
 pub async fn run_test() -> Result<SpawnResult, anyhow::Error> {
-    //TODO AAZ: Build should happen outside of test
-    // let build_results = Target::Wrapper.build(false).await?;
-    // results.extend(build_results);
-
     let cwd = Target::Wrapper.cwd();
 
     //TODO AAZ: Append build_spec_path to SpawnResult

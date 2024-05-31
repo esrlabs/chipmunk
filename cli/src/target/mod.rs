@@ -276,11 +276,6 @@ impl Target {
 
         debug_assert!(!test_cmds.is_empty());
 
-        // TODO AAZ: Call build outside
-        // build method calls install
-        // let build_results = self.build(false).await?;
-        // results.extend(build_results);
-
         let caption = format!("Test {}", self);
         let spawn_results = join_all(test_cmds.into_iter().map(|cmd| {
             spawn(
@@ -313,13 +308,7 @@ impl Target {
     /// Perform Linting Checks on the giving target
     pub async fn check(&self) -> Result<SpawnResult, anyhow::Error> {
         match self.kind() {
-            TargetKind::Ts => {
-                //TODO AAZ: Check needs install on TS
-                // if let Some(install_result) = self.install(false).await? {
-                //     todo!()
-                // }
-                self.ts_lint().await
-            }
+            TargetKind::Ts => self.ts_lint().await,
             TargetKind::Rs => self.clippy().await,
         }
     }
@@ -377,17 +366,6 @@ impl Target {
         let checksum = ChecksumRecords::get(JobType::Clean).await?;
         checksum.remove_hash_if_exist(*self)?;
 
-        self.clean().await
-        //TODO AAZ:
-
-        // let dist_path = self.cwd().join("dist");
-        // let remove_log = format!("removing {}", dist_path.display());
-        // fstools::rm_folder(&dist_path).await?;
-        //
-        // Ok(results)
-    }
-
-    async fn clean(&self) -> Result<SpawnResult, anyhow::Error> {
         let mut logs = Vec::new();
         let path = match self.kind() {
             TargetKind::Ts => self.cwd().join("node_modules"),
@@ -399,6 +377,11 @@ impl Target {
 
         fstools::rm_folder(&path).await?;
 
+        let dist_path = self.cwd().join("dist");
+        let remove_log = format!("removing {}", dist_path.display());
+        logs.push(remove_log);
+        fstools::rm_folder(&dist_path).await?;
+
         let job = format!("Clean {}", self);
 
         Ok(SpawnResult::create_for_fs(job, logs))
@@ -409,20 +392,6 @@ impl Target {
         let checksum_rec = ChecksumRecords::get(JobType::Build { production: prod }).await?;
         checksum_rec.register_job(*self)?;
 
-        //TODO AAZ: Dependencies should be resolved before running the jobs
-        // let deps: Vec<Target> = self.deps();
-        // for module in deps {
-        //     let status = module.build(prod).await.with_context(|| {
-        //         format!(
-        //             "Error while building the dependciy {} for target {}",
-        //             module, self
-        //         )
-        //     })?;
-        //     results.extend(status);
-        //     if results.iter().any(|res| !res.status.success()) {
-        //         return Ok(results);
-        //     }
-        // }
         let path = get_root().join(self.cwd());
         let cmd = self.build_cmd(prod).await?;
         let caption = format!("Build {}", self);
@@ -442,41 +411,12 @@ impl Target {
         // }
         //
 
-        //TODO AAZ: Install Run outside of build
-        // if let Some(install_result) = self.install(false).await? {
-        //     results.push(install_result);
-        // }
         let spawn_opt = SpawnOptions {
             has_skip_info: true,
             ..Default::default()
         };
-        let status = spawn(cmd, Some(path), caption, iter::empty(), Some(spawn_opt)).await?;
 
-        if !status.status.success() {
-            Ok(status)
-        } else {
-            //TODO AAZ: This should be solved before running the tasks
-            // Taken from a discussion on GitHub:
-            // To build an npm package you would need (in most cases) to be in dev-mode - install dev-dependencies + dependencies.
-            // But to prepare a package for production, you have to remove dev-dependencies.
-            // That's not an issue, if npm-package is published in npmjs; but we are coping packages manually in a right destination
-            // and before copy it, we have to reinstall it to get rid of dev-dependencies.
-            // if matches!(self.kind(), TargetKind::Ts) && prod {
-            //     let clean_res = self.clean().await?;
-            //     results.push(clean_res);
-            //     if let Some(install_res) = self.install(prod).await? {
-            //         results.push(install_res);
-            //     }
-            // }
-
-            // TODO AAZ: After Build should be called separately
-            // let res = self.after_build(prod).await?;
-            // if let Some(result) = res {
-            //     results.push(result);
-            // }
-
-            Ok(status)
-        }
+        spawn(cmd, Some(path), caption, iter::empty(), Some(spawn_opt)).await
     }
 
     /// Performs build process without checking the current builds states
