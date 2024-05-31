@@ -34,7 +34,7 @@ namespace :client do
   task :install do
     Shell.chdir(Paths::CLIENT) do
       Reporter.log 'Installing client libraries'
-      duration = Shell.timed_sh("yarn install --no-immutable", 'yarn install client')
+      duration = Shell.timed_sh("yarn install", 'yarn install client')
       Reporter.done('client', 'installing', '', duration)
     end
   end

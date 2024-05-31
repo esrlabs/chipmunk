@@ -3364,12 +3364,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"platform@file:../../../platform::locator=rustcore%40workspace%3A.":
-  version: 3.9.0
-  resolution: "platform@file:../../../platform#../../../platform::hash=d0a054&locator=rustcore%40workspace%3A."
-  checksum: 10c0/e7db0bcc97dd18832527ac2b7678796427f0445e5b2516aac1f24e50e513c15136c9a9e231c5d7cdf1a47f1ff365921b50a4d6cbecbbfb11f46eb18bc1d5cadf
+"platform@link:../../../platform::locator=rustcore%40workspace%3A.":
+  version: 0.0.0-use.local
+  resolution: "platform@link:../../../platform::locator=rustcore%40workspace%3A."
   languageName: node
-  linkType: hard
+  linkType: soft
 
 "possible-typed-array-names@npm:^1.0.0":
   version: 1.0.0
@@ -3618,7 +3617,7 @@ __metadata:
     eslint-plugin-promise: "npm:^6.0.0"
     jasmine: "npm:^5.1.0"
     loglevel: "npm:^1.6.6"
-    platform: "file:../../../platform"
+    platform: "link:../../../platform"
     tmp: "npm:^0.2.3"
     ts-node: "npm:^10.4.0"
     tslib: "npm:^2.6.2"

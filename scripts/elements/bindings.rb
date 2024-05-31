@@ -25,7 +25,7 @@ namespace :bindings do
   task :install do
     Shell.chdir(Paths::TS_BINDINGS) do
       Reporter.log 'Installing ts-binding libraries'
-      duration = Shell.timed_sh("yarn install --no-immutable", 'yarn install bindings')
+      duration = Shell.timed_sh("yarn install", 'yarn install bindings')
       Reporter.done('bindings', 'installing', '', duration)
     end
   end

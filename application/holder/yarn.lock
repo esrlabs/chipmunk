@@ -1118,8 +1118,8 @@ __metadata:
     https-proxy-agent: "npm:^5.0.1"
     module-alias: "npm:^2.2.3"
     moment-timezone: "npm:^0.5.45"
-    platform: "file:../platform"
-    rustcore: "file:../apps/rustcore/ts-bindings"
+    platform: "link:../platform"
+    rustcore: "link:../apps/rustcore/ts-bindings"
     semver: "npm:^7.5.2"
     sudo-prompt: "npm:^9.2.1"
     tslib: "npm:^2.6.2"
@@ -3595,19 +3595,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"platform@file:../../../platform::locator=rustcore%40file%3A..%2Fapps%2Frustcore%2Fts-bindings%23..%2Fapps%2Frustcore%2Fts-bindings%3A%3Ahash%3D08bfa1%26locator%3Dchipmunk%2540workspace%253A.":
-  version: 3.9.0
-  resolution: "platform@file:../../../platform#../../../platform::hash=d0a054&locator=rustcore%40file%3A..%2Fapps%2Frustcore%2Fts-bindings%23..%2Fapps%2Frustcore%2Fts-bindings%3A%3Ahash%3D08bfa1%26locator%3Dchipmunk%2540workspace%253A."
-  checksum: 10c0/e7db0bcc97dd18832527ac2b7678796427f0445e5b2516aac1f24e50e513c15136c9a9e231c5d7cdf1a47f1ff365921b50a4d6cbecbbfb11f46eb18bc1d5cadf
+"platform@link:../platform::locator=chipmunk%40workspace%3A.":
+  version: 0.0.0-use.local
+  resolution: "platform@link:../platform::locator=chipmunk%40workspace%3A."
   languageName: node
-  linkType: hard
-
-"platform@file:../platform::locator=chipmunk%40workspace%3A.":
-  version: 3.9.0
-  resolution: "platform@file:../platform#../platform::hash=d0a054&locator=chipmunk%40workspace%3A."
-  checksum: 10c0/e7db0bcc97dd18832527ac2b7678796427f0445e5b2516aac1f24e50e513c15136c9a9e231c5d7cdf1a47f1ff365921b50a4d6cbecbbfb11f46eb18bc1d5cadf
-  languageName: node
-  linkType: hard
+  linkType: soft
 
 "plist@npm:^3.0.4, plist@npm:^3.0.5":
   version: 3.1.0
@@ -3842,16 +3834,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rustcore@file:../apps/rustcore/ts-bindings::locator=chipmunk%40workspace%3A.":
-  version: 3.9.0
-  resolution: "rustcore@file:../apps/rustcore/ts-bindings#../apps/rustcore/ts-bindings::hash=08bfa1&locator=chipmunk%40workspace%3A."
-  dependencies:
-    platform: "file:../../../platform"
-    tslib: "npm:^2.6.2"
-    uuid: "npm:^9.0.1"
-  checksum: 10c0/044e677655da6ceee91edbfab0b08ace13707079c793699e802726c293ab9ceff69d21577ad4ecb2085d69c9c151d37e4f3391698095162ffb1b57e4c5760e2d
+"rustcore@link:../apps/rustcore/ts-bindings::locator=chipmunk%40workspace%3A.":
+  version: 0.0.0-use.local
+  resolution: "rustcore@link:../apps/rustcore/ts-bindings::locator=chipmunk%40workspace%3A."
   languageName: node
-  linkType: hard
+  linkType: soft
 
 "safe-array-concat@npm:^1.1.2":
   version: 1.1.2
