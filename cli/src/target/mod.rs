@@ -31,23 +31,25 @@ mod wasm;
 mod wrapper;
 
 #[derive(Debug, ValueEnum, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+//NOTE: The order of targets must match the running-order between them because it's used for
+// solving their dependencies-graph using BTreeMap
 pub enum Target {
     /// Represents the path `application/apps/indexer`
     Core,
+    /// Represents the path `application/platform`
+    Shared,
     /// Represents the path `application/apps/rustcore/rs-bindings`
     Binding,
     /// Represents the path `application/apps/rustcore/ts-bindings`
     Wrapper,
+    /// Represents the path `application/apps/rustcore/wasm-bindings`
+    Wasm,
     /// Represents the path `application/client`
     Client,
-    /// Represents the path `application/platform`
-    Shared,
     /// Represents the path `application/holder`
     App,
     /// Represents the path `cli`
     Cli,
-    /// Represents the path `application/apps/rustcore/wasm-bindings`
-    Wasm,
     /// Represents the path `application/apps/precompiled/updater
     Updater,
 }

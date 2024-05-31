@@ -1,10 +1,11 @@
 mod job_definition;
+mod jobs_resolver;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub use job_definition::JobDefinition;
 
-use crate::{spawner::SpawnResult, target::Target};
+use crate::{job_type::JobType, spawner::SpawnResult, target::Target};
 
 enum JobPhase {
     Awaiting(Vec<Target>),
@@ -12,6 +13,7 @@ enum JobPhase {
     //TODO AAZ: Errors on Spawn calls should terminate the execution. Make sure results aren't
     // returned if a command fails or for expect reasons
     Done(SpawnResult),
+    Skipped,
 }
 
 struct JobState {
@@ -23,4 +25,12 @@ pub struct JobsRunner {
     // BTreeMap keeps the jobs in logical ordering
     jobs: BTreeMap<JobDefinition, JobState>,
     resolved_targets: Vec<Target>,
+}
+
+impl JobsRunner {
+    pub fn print_deps(targets: &[Target], main_job: JobType) {
+        let jobs_tree = jobs_resolver::resolve(targets, main_job);
+        dbg!(jobs_tree);
+        todo!()
+    }
 }

@@ -2,8 +2,8 @@ use crate::{job_type::JobType, spawner::SpawnResult, target::Target};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct JobDefinition {
-    target: Target,
-    job_type: JobType,
+    pub target: Target,
+    pub job_type: JobType,
 }
 
 impl JobDefinition {

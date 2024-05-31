@@ -1,3 +1,6 @@
+//TODO AAZ: Remove this when done prototyping
+#![allow(dead_code, unused_imports, unused)]
+
 mod app_runner;
 mod build_state;
 mod checksum_records;
@@ -21,6 +24,7 @@ use cli_args::{CargoCli, Command};
 use dev_environment::{print_env_info, resolve_dev_tools};
 use futures::future::join_all;
 use job_type::JobType;
+use jobs_runner::JobsRunner;
 use location::init_location;
 use spawner::SpawnResult;
 use std::{
@@ -69,6 +73,7 @@ async fn main() -> Result<(), Error> {
             resolve_dev_tools().await?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
+            JobsRunner::print_deps(&targets, JobType::Lint);
             let results = join_all(
                 targets
                     .iter()
@@ -86,6 +91,7 @@ async fn main() -> Result<(), Error> {
             resolve_dev_tools().await?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
+            JobsRunner::print_deps(&targets, JobType::Build { production });
             let results = join_all(
                 targets
                     .iter()
@@ -99,6 +105,7 @@ async fn main() -> Result<(), Error> {
             resolve_dev_tools().await?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
+            JobsRunner::print_deps(&targets, JobType::Clean);
             let results = join_all(
                 targets
                     .iter()
@@ -116,6 +123,7 @@ async fn main() -> Result<(), Error> {
             resolve_dev_tools().await?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
+            JobsRunner::print_deps(&targets, JobType::Test { production });
             let results = join_all(
                 targets
                     .iter()

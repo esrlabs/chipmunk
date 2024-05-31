@@ -1,11 +1,13 @@
 use std::fmt::Display;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+//NOTE: The order of job types must match the runnig-order of them because it's used by
+// solving their dependencies-graph using BTreeMap
 pub enum JobType {
     Lint,
     Clean,
-    Build { production: bool },
     Install { production: bool },
+    Build { production: bool },
     AfterBuild { production: bool },
     Test { production: bool },
     Run { production: bool },
@@ -34,6 +36,27 @@ impl JobType {
             | JobType::AfterBuild { production }
             | JobType::Test { production }
             | JobType::Run { production } => Some(*production),
+        }
+    }
+
+    /// Returns job types that are involved with this job and should run with it.
+    pub fn get_involved_jobs(&self) -> Vec<JobType> {
+        match self {
+            JobType::Lint => vec![JobType::Install { production: false }],
+            JobType::Build { production } => vec![
+                JobType::Install {
+                    production: *production,
+                },
+                JobType::AfterBuild {
+                    production: *production,
+                },
+            ],
+            JobType::Run { production } | JobType::Test { production } => vec![JobType::Build {
+                production: *production,
+            }],
+            JobType::Clean
+            | JobType::Install { production: _ }
+            | JobType::AfterBuild { production: _ } => Vec::new(),
         }
     }
 }
