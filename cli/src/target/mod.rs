@@ -1,22 +1,16 @@
-use anyhow::{anyhow, bail, Context};
+use anyhow::bail;
 use clap::ValueEnum;
-use futures::{
-    future::{join_all, BoxFuture},
-    FutureExt,
-};
+use futures::future::join_all;
 use std::{iter, path::PathBuf, str::FromStr};
-use tokio::sync::oneshot;
 
 use crate::{
-    build_state::{BuildState, BuildStatesTracker},
     checksum_records::ChecksumRecords,
     dev_tools::DevTool,
     fstools,
     job_type::JobType,
     jobs_runner::JobDefinition,
     location::get_root,
-    spawner::{spawn, spawn_skip, SpawnOptions, SpawnResult},
-    tracker::{self, get_tracker},
+    spawner::{spawn, SpawnOptions, SpawnResult},
 };
 
 use target_kind::TargetKind;
@@ -379,7 +373,6 @@ impl Target {
     /// Clean the given target, removing it from the checksum tracker as well.
     pub async fn reset(&self) -> anyhow::Result<SpawnResult> {
         let job_def = JobDefinition::new(*self, JobType::Clean);
-        let tracker = get_tracker().await;
 
         let checksum = ChecksumRecords::get(JobType::Clean).await?;
         checksum.remove_hash_if_exist(*self)?;

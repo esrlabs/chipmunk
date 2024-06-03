@@ -2,12 +2,7 @@ use std::fs;
 
 use anyhow::{bail, Context};
 
-use crate::{
-    fstools,
-    job_type::{self, JobType},
-    jobs_runner::JobDefinition,
-    spawner::SpawnResult,
-};
+use crate::{fstools, jobs_runner::JobDefinition, spawner::SpawnResult};
 
 use super::Target;
 

@@ -1,7 +1,6 @@
 use anyhow::{bail, Context, Error};
 use git2::Repository;
 
-use std::path::Path;
 use std::{env::current_dir, path::PathBuf};
 
 use tokio::sync::OnceCell;

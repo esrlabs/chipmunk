@@ -2,7 +2,7 @@ use std::fs;
 
 use anyhow::{bail, Context};
 
-use crate::{fstools, job_type::JobType, jobs_runner::JobDefinition, spawner::SpawnResult};
+use crate::{fstools, jobs_runner::JobDefinition, spawner::SpawnResult};
 
 use super::{client::get_dist_path, Target};
 

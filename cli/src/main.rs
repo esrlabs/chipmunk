@@ -1,8 +1,4 @@
-//TODO AAZ: Remove this when done prototyping
-#![allow(dead_code, unused_imports, unused)]
-
 mod app_runner;
-mod build_state;
 mod checksum_records;
 mod cli_args;
 mod dev_environment;
@@ -22,7 +18,6 @@ use checksum_records::ChecksumRecords;
 use clap::Parser;
 use cli_args::{CargoCli, Command};
 use dev_environment::{print_env_info, resolve_dev_tools};
-use futures::future::join_all;
 use job_type::JobType;
 use jobs_runner::JobsRunner;
 use location::init_location;

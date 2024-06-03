@@ -1,3 +1,6 @@
+//TODO AAZ: Remove this when done prototyping
+#![allow(dead_code, unused_imports, unused)]
+
 mod job_definition;
 mod jobs_resolver;
 

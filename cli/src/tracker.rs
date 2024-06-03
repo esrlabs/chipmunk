@@ -164,7 +164,6 @@ impl Tracker {
                         }
                     }
                     Tick::Finished(job_def, result, msg) => {
-                        let jobs_count_txt = bars.len().to_string();
                         let Some(job_bar) = bars.get_mut(&job_def)else {
                             unreachable!("Job must exist in progress bar before finishing it. Job Info: {job_def:?}")
                         }; 
@@ -177,8 +176,6 @@ impl Tracker {
 
                         max_time_len = max_time_len.max(Self::count_digits(time));
 
-                        let seq_width = jobs_count_txt.len();
-                        let job = job_bar.name.as_str();
                         job_bar.bar.finish_with_message(msg);
                         job_bar.phase = JobBarPhase::Finished((result, time));
 

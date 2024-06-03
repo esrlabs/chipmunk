@@ -1,4 +1,6 @@
-// cmd.envs(vec![("PATH", "/bin"), ("TERM", "xterm-256color")]);
+// TODO AAZ: Remove this when done prototyping
+#![allow(dead_code, unused_imports, unused)]
+
 use crate::{jobs_runner::JobDefinition, location::get_root, tracker::get_tracker};
 use anyhow::{bail, Context};
 use core::panic;
@@ -214,13 +216,7 @@ pub async fn spawn_blocking(
 }
 
 /// This spawns a new task and return immediately showing that the job has been skipped
-pub async fn spawn_skip(
-    job_def: JobDefinition,
-    command: String,
-    cwd: Option<PathBuf>,
-) -> anyhow::Result<SpawnResult> {
-    let cwd = cwd.unwrap_or_else(|| get_root().clone());
-
+pub async fn spawn_skip(job_def: JobDefinition, command: String) -> anyhow::Result<SpawnResult> {
     Ok(SpawnResult::create_for_skipped(
         job_def.job_title(),
         command,

@@ -1,4 +1,4 @@
-use std::{iter, path::PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{anyhow, Context};
 use std::fs;
@@ -7,7 +7,7 @@ use crate::{
     fstools,
     job_type::JobType,
     jobs_runner::JobDefinition,
-    spawner::{spawn, spawn_blocking, SpawnResult},
+    spawner::{spawn_blocking, SpawnResult},
 };
 
 use super::Target;
@@ -78,7 +78,6 @@ pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
 
     let job_def = JobDefinition::new(Target::Binding, JobType::Test { production });
     for spec in TEST_SPECS {
-        let caption = format!("Test {}: {}", Target::Wrapper, spec);
         let spec_file_name = format!("session.{spec}.spec.js");
         let spec_file_path = specs_dir_path.join(spec_file_name);
         let command = format!(
