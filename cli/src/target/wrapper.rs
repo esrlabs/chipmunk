@@ -5,6 +5,8 @@ use std::fs;
 
 use crate::{
     fstools,
+    job_type::JobType,
+    jobs_runner::JobDefinition,
     spawner::{spawn, spawn_blocking, SpawnResult},
 };
 
@@ -39,7 +41,7 @@ const TEST_SPECS: [&str; 14] = [
     "promises",
 ];
 
-pub async fn run_test() -> Result<SpawnResult, anyhow::Error> {
+pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
     let cwd = Target::Wrapper.cwd();
 
     //TODO AAZ: Append build_spec_path to SpawnResult
@@ -73,6 +75,8 @@ pub async fn run_test() -> Result<SpawnResult, anyhow::Error> {
     let specs_dir_path: PathBuf = ["spec", "build", "spec"].iter().collect();
 
     let mut final_result: Option<SpawnResult> = None;
+
+    let job_def = JobDefinition::new(Target::Binding, JobType::Test { production });
     for spec in TEST_SPECS {
         let caption = format!("Test {}: {}", Target::Wrapper, spec);
         let spec_file_name = format!("session.{spec}.spec.js");
@@ -82,9 +86,9 @@ pub async fn run_test() -> Result<SpawnResult, anyhow::Error> {
             spec_file_path.to_string_lossy()
         );
         let res = spawn_blocking(
+            job_def,
             command,
             Some(cwd.clone()),
-            caption.clone(),
             vec![(String::from("ELECTRON_RUN_AS_NODE"), String::from("1"))],
         )
         .await?;
@@ -98,14 +102,14 @@ pub async fn run_test() -> Result<SpawnResult, anyhow::Error> {
     final_result.ok_or_else(|| anyhow!("Wrapper doesn't have test specs"))
 }
 
-pub async fn copy_binding_to_app() -> Result<SpawnResult, anyhow::Error> {
+pub async fn copy_binding_to_app(job_def: JobDefinition) -> Result<SpawnResult, anyhow::Error> {
     let mut report_logs = Vec::new();
 
     // *** Copying TS Bindings ***
     report_logs.push(String::from("Copying ts-bindings to electron..."));
     let rustcore_dest = Target::App.cwd().join("node_modules").join("rustcore");
 
-    fstools::rm_folder(&rustcore_dest).await?;
+    fstools::rm_folder(job_def, &rustcore_dest).await?;
 
     let msg = format!("Removing directory: '{}'", rustcore_dest.display());
     report_logs.push(msg);
@@ -130,6 +134,7 @@ pub async fn copy_binding_to_app() -> Result<SpawnResult, anyhow::Error> {
         .collect();
 
     fstools::cp_many(
+        job_def,
         ts_entries_to_copy,
         rustcore_dest.clone(),
         ts_source.display(),
@@ -144,13 +149,13 @@ pub async fn copy_binding_to_app() -> Result<SpawnResult, anyhow::Error> {
         native_dir_path.display()
     ));
 
-    fstools::rm_folder(&native_dir_path).await?;
+    fstools::rm_folder(job_def, &native_dir_path).await?;
 
     // *** Copy Platform rustcore to electron ***
     report_logs.push(String::from("Copying platform rustcore in to electron..."));
     let platform_dest = rustcore_dest.join("node_modules").join("platform");
 
-    fstools::rm_folder(&platform_dest).await?;
+    fstools::rm_folder(job_def, &platform_dest).await?;
     fs::create_dir_all(&platform_dest).with_context(|| {
         format!(
             "Error while creating directory: {}",
@@ -175,6 +180,7 @@ pub async fn copy_binding_to_app() -> Result<SpawnResult, anyhow::Error> {
         .collect();
 
     fstools::cp_many(
+        job_def,
         platform_entries_to_copy.clone(),
         platform_dest,
         platform_src.display(),
@@ -186,7 +192,7 @@ pub async fn copy_binding_to_app() -> Result<SpawnResult, anyhow::Error> {
     report_logs.push(String::from("Copying platform in to electron..."));
     let platform_dest2 = Target::App.cwd().join("node_modules").join("platform");
 
-    fstools::rm_folder(&platform_dest2).await?;
+    fstools::rm_folder(job_def, &platform_dest2).await?;
     fs::create_dir_all(&platform_dest2).with_context(|| {
         format!(
             "Error while creating directory: {}",
@@ -195,6 +201,7 @@ pub async fn copy_binding_to_app() -> Result<SpawnResult, anyhow::Error> {
     })?;
 
     fstools::cp_many(
+        job_def,
         platform_entries_to_copy,
         platform_dest2,
         platform_src.display(),

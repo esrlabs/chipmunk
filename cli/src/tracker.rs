@@ -2,6 +2,7 @@ use anyhow::{anyhow, Context, Error};
 use console::style;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::{
+    collections::BTreeMap,
     process::{Command, ExitStatus},
     time::Instant,
 };
@@ -9,6 +10,8 @@ use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot, OnceCell,
 };
+
+use crate::jobs_runner::JobDefinition;
 
 const TIME_BAR_WIDTH: usize = 5;
 
@@ -34,14 +37,16 @@ impl std::fmt::Display for OperationResult {
 #[derive(Debug)]
 /// Represents tasks information that can be sent to and from the tracker
 pub enum Tick {
+    /// Change job status from awaiting to started.
+    Started(JobDefinition, oneshot::Sender<()>),
     /// Start a job giving the job name and the sender to return the job number.
-    Started(String, oneshot::Sender<usize>),
-    /// Update the job with the given id providing an optional progress value.
-    Progress(usize, Option<u64>),
-    /// Send a message to the job with the giving id
-    Message(usize, String),
-    /// Sets the job with the given id as finished providing the job result and a message
-    Finished(usize, OperationResult, String),
+    StartAll(Vec<JobDefinition>, oneshot::Sender<()>),
+    /// Update the job providing an optional progress value.
+    Progress(JobDefinition, Option<u64>),
+    /// Send a message to the job 
+    Message(JobDefinition, String),
+    /// Sets the job as finished providing the job result and a message
+    Finished(JobDefinition, OperationResult, String),
     #[allow(dead_code)]
     /// Prints the given text outside the progress bar
     Print(String),
@@ -56,23 +61,35 @@ pub struct Tracker {
     tx: UnboundedSender<Tick>,
 }
 
+enum JobBarPhase {
+    Pending,
+    Running(Instant),
+    Finished((OperationResult, u64)),
+}
+
 struct JobBarState {
     name: String,
     bar: ProgressBar,
-    start_time: Instant,
-    result: Option<(OperationResult, u64)>,
+    phase: JobBarPhase,
 }
 
 impl JobBarState {
-    fn start_job(name: String, bar: ProgressBar) -> Self {
-        let start_time = Instant::now();
-
+    fn new(name: String, bar: ProgressBar) -> Self {
         Self {
             name,
             bar,
-            start_time,
-            result: None,
+            phase: JobBarPhase::Pending,
         }
+    }
+
+    fn start(&mut self) {
+        assert!(
+            matches!(self.phase, JobBarPhase::Pending),
+            "Start can be called on pending jobs only"
+        );
+
+        let start_time = Instant::now();
+        self.phase = JobBarPhase::Running(start_time);
     }
 }
 
@@ -96,71 +113,94 @@ impl Tracker {
         async move {
             let mut max_time_len = 0;
             let max = u64::MAX;
-            let mut bars: Vec<JobBarState> = Vec::new();
+            let mut bars: BTreeMap<JobDefinition, JobBarState> = BTreeMap::new();
             let mp = MultiProgress::new();
             let start_time = Instant::now();
             while let Some(tick) = rx.recv().await {
                 match tick {
-                    Tick::Started(job, tx_response) => {
-                        let bar = mp.add(ProgressBar::new(max));
-                        bar.set_style(spinner_style.clone());
-                        let job_bar = JobBarState::start_job(job, bar);
-                        bars.push(job_bar);
-                        Self::refresh_all_bars(&mut bars, max_time_len, None);
-                        let job_number = bars.len();
-                        if let Err(e) = tx_response.send(job_number) {
-                            let _ = mp.println(format!("Fail to send response: {e}"));
-                        }
-                    }
-                    Tick::Message(job_number, log) => {
-                        let idx = job_number.checked_sub(1).expect("Job number can't be zero");
-                        if let Some(job_bar) = bars.get(idx) {
-                            job_bar.bar.set_message(log);
-                        }
-                    }
-                    Tick::Progress(job_number, pos) => {
-                        let idx = job_number.checked_sub(1).expect("Job number can't be zero");
-                        if let Some(job_bar) = bars.get(idx) {
-                            if let Some(pos) = pos {
-                                job_bar.bar.set_position(pos);
-                            } else {
-                                job_bar.bar.inc(1);
-                            }
-                        }
-                    }
-                    Tick::Finished(job_number, result, msg) => {
-                        let idx = job_number.checked_sub(1).expect("Job number can't be zero");
-                        let jobs_count_txt = bars.len().to_string();
-                        if let Some(job_bar) = bars.get_mut(idx) {
-                            // It doesn't make sense to show that a job is done in 0 seconds
-                            let time = job_bar.start_time.elapsed().as_secs().max(1);
-
-                            max_time_len = max_time_len.max(Self::count_digits(time));
-
-                            let seq_width = jobs_count_txt.len();
-                            let job = job_bar.name.as_str();
-                            job_bar.bar.set_prefix(format!(
-                                "[{job_number:seq_width$}/{jobs_count_txt}][{result}][{time:max_time_len$}s][{job}].",
-                            ));
-                            job_bar.bar.finish_with_message(msg);
-                            job_bar.result.replace((result, time));
-
+                    Tick::Started(job_def, tx_response) => {
+                        let Some(job) = bars.get_mut(&job_def) else {
+                            unreachable!("Job must exist in progress bar before starting it. Job Info: {job_def:?}")
+                        };
+                        if matches!(job.phase, JobBarPhase::Pending){
+                            job.start();
                             Self::refresh_all_bars(&mut bars, max_time_len, None);
                         }
+
+                        if let Err(_) = tx_response.send(()) {
+                            let _ = mp.println(format!("Fail to send response while starting the jobs"));
+                        }
+                    }
+                    Tick::StartAll(jobs, tx_response ) => {
+                        for job in jobs.into_iter() {
+                            let bar = mp.add(ProgressBar::new(max));
+                            bar.set_style(spinner_style.clone());
+                            let bar_text = format!("{}: {}", job.target.relative_cwd().display(), job.job_title());
+                            let job_bar = JobBarState::new(bar_text, bar);
+                            bars.insert(job, job_bar);
+                        }
+
+                        Self::refresh_all_bars(&mut bars, max_time_len, None);
+                        if let Err(_) = tx_response.send(()) {
+                            let _ = mp.println(format!("Fail to send response while starting the jobs"));
+                        }
+                    }
+                    Tick::Message(job_def, log) => {
+                        match bars.get(&job_def) {
+                            Some(job_bar) => job_bar.bar.set_message(log),
+                            None => unreachable!("Job must exist in progress bar before messaging it. Job Info: {job_def:?}"),
+                        }
+                        
+                    }
+                    Tick::Progress(job_def, pos) => {
+                        let Some(job_bar) = bars.get(&job_def) else {
+                            unreachable!("Job must exist in progress bar before changing it progress. Job Info: {job_def:?}")
+                        };
+
+                        if let Some(pos) = pos {
+                            job_bar.bar.set_position(pos);
+                        } else {
+                            job_bar.bar.inc(1);
+                        }
+                    }
+                    Tick::Finished(job_def, result, msg) => {
+                        let jobs_count_txt = bars.len().to_string();
+                        let Some(job_bar) = bars.get_mut(&job_def)else {
+                            unreachable!("Job must exist in progress bar before finishing it. Job Info: {job_def:?}")
+                        }; 
+
+                        // It doesn't make sense to show that a job is done in 0 seconds
+                        let time = match job_bar.phase {
+                            JobBarPhase::Running(start_time) => start_time.elapsed().as_secs().max(1),
+                            _ => unreachable!("Job must be running when finish is called"),
+                        };
+
+                        max_time_len = max_time_len.max(Self::count_digits(time));
+
+                        let seq_width = jobs_count_txt.len();
+                        let job = job_bar.name.as_str();
+                        job_bar.bar.finish_with_message(msg);
+                        job_bar.phase = JobBarPhase::Finished((result, time));
+
+                        Self::refresh_all_bars(&mut bars, max_time_len, None);
                     }
                     Tick::Print(msg) => {
                         let _ = mp.println(msg);
                     }
                     Tick::Shutdown(tx_response) => {
-                        bars.iter_mut().for_each(|job_bar| {
-                            if !job_bar.bar.is_finished() {
-                                let time = job_bar.start_time.elapsed().as_secs().max(1);
-                                job_bar.result.replace((OperationResult::Success, time));
-                                max_time_len = max_time_len.max(Self::count_digits(time));
+                        // Finish jobs that are still running
+                        for (_job_def, job_bar) in bars.iter_mut(){
+                            let time = match job_bar.phase{
+                                JobBarPhase::Pending => 1 ,
+                                JobBarPhase::Running(start_time) => start_time.elapsed().as_secs().max(1),
+                                JobBarPhase::Finished(_) => continue ,
+                            };
 
-                                job_bar.bar.finish();
-                            }
-                        });
+                            job_bar.phase = JobBarPhase::Finished((OperationResult::Failed, time));
+                            max_time_len = max_time_len.max(Self::count_digits(time));
+
+                            job_bar.bar.finish();
+                        }
 
                         // Insert graphic bar for the running duration of each bars
                         let total_time = start_time.elapsed().as_secs().max(1) as usize;
@@ -193,21 +233,20 @@ impl Tracker {
     }
 
     fn refresh_all_bars(
-        bars: &mut Vec<JobBarState>,
+        bars: &mut BTreeMap<JobDefinition, JobBarState>,
         max_time_len: usize,
         total_time: Option<usize>,
     ) {
         let jobs_count_txt = bars.len().to_string();
 
-        bars.iter_mut().enumerate().for_each(|(idx, job_bar)| {
+        bars.iter_mut().enumerate().for_each(|(idx, (_job_def ,job_bar))| {
             let job_number = idx + 1;
             let seq_width = jobs_count_txt.len();
             let job = job_bar.name.as_str();
-            let line_prefix = match job_bar.result.as_ref() {
-                None => {
-                    format!("[{job_number:seq_width$}/{jobs_count_txt}][....][{job}]")
-                }
-                Some((res, time)) => {
+            let line_prefix = match &job_bar.phase {
+                JobBarPhase::Pending => format!("[{job_number:seq_width$}/{jobs_count_txt}][{}][{job}]", style("wait").bold().blue()),
+                JobBarPhase::Running(_) => format!("[{job_number:seq_width$}/{jobs_count_txt}][....][{job}]"),
+                JobBarPhase::Finished((res, time)) => {
                     if let Some(total_time) = total_time {
                         let finish_limit = (*time as usize * TIME_BAR_WIDTH) / total_time;
                         let time_bar: String = (0..TIME_BAR_WIDTH).map(|idx| if idx <= finish_limit {'█'}else {'░'}).collect();
@@ -215,7 +254,7 @@ impl Tracker {
                     }else {
                         format!("[{job_number:seq_width$}/{jobs_count_txt}][{res}][{time:max_time_len$}s][{job}].")
                     }
-                }
+                },
             };
 
             job_bar.bar.set_prefix(line_prefix);
@@ -236,46 +275,54 @@ impl Tracker {
         count
     }
 
-    /// Start a job giving the job name and the sender to return the job number.
-    pub async fn start(&self, job: &str) -> Result<usize, Error> {
+    pub async fn start_all(&self, jobs: Vec<JobDefinition>) -> Result<(), Error> {
         let (tx_response, rx_response) = oneshot::channel();
         self.tx
-            .send(Tick::Started(job.to_string(), tx_response))
+            .send(Tick::StartAll(jobs, tx_response))
             .context("Fail to send tick")?;
-        rx_response.await.context("Fail to receive tick")
+        rx_response.await.context("Fail to receive tick start all")
     }
 
-    /// Update the job with the given id providing an optional progress value.
-    pub async fn progress(&self, job_number: usize, pos: Option<u64>) {
-        if let Err(e) = self.tx.send(Tick::Progress(job_number, pos)) {
+    /// Change job status from awaiting to started.
+    pub async fn start(&self, job_def: JobDefinition) -> Result<(), Error> {
+        let (tx_response, rx_response) = oneshot::channel();
+        self.tx
+            .send(Tick::Started(job_def, tx_response))
+            .context("Fail to send tick")?;
+        rx_response.await.context("Fail to receive tick Start Single")
+    }
+
+    /// Update the job providing an optional progress value.
+    pub async fn progress(&self, job_def: JobDefinition, pos: Option<u64>) {
+        if let Err(e) = self.tx.send(Tick::Progress(job_def, pos)) {
             eprintln!("Fail to communicate with tracker: {e}");
         }
     }
 
-    /// Send a message to the job with the giving id
-    pub async fn msg(&self, job_number: usize, log: &str) {
-        if let Err(e) = self.tx.send(Tick::Message(job_number, log.to_string())) {
+    /// Send a message to the job 
+    pub async fn msg(&self, job_def: JobDefinition, log: String) {
+        if let Err(e) = self.tx.send(Tick::Message(job_def, log)) {
             eprintln!("Fail to communicate with tracker: {e}");
         }
     }
 
-    /// Sets the job with the given id as finished providing successful result and a message
-    pub async fn success(&self, job_number: usize, msg: &str) {
+    /// Sets the job as finished providing successful result and a message
+    pub async fn success(&self, job_def: JobDefinition, msg: String) {
         if let Err(e) = self.tx.send(Tick::Finished(
-            job_number,
+            job_def,
             OperationResult::Success,
-            msg.to_string(),
+            msg,
         )) {
             eprintln!("Fail to communicate with tracker: {e}");
         }
     }
 
-    /// Sets the job with the given id as finished providing failed result and a message
-    pub async fn fail(&self, job_number: usize, msg: &str) {
+    /// Sets the job as finished providing failed result and a message
+    pub async fn fail(&self, job_def: JobDefinition, msg: String) {
         if let Err(e) = self.tx.send(Tick::Finished(
-            job_number,
+            job_def,
             OperationResult::Failed,
-            msg.to_string(),
+            msg,
         )) {
             eprintln!("Fail to communicate with tracker: {e}");
         }

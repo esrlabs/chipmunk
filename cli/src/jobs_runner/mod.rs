@@ -5,15 +5,16 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub use job_definition::JobDefinition;
 
-use crate::{job_type::JobType, spawner::SpawnResult, target::Target};
+use crate::{job_type::JobType, spawner::SpawnResult, target::Target, tracker::get_tracker};
+
+use anyhow::Result;
+
+type SpawnResultsCollection = Vec<Result<SpawnResult>>;
 
 enum JobPhase {
     Awaiting(Vec<Target>),
     Running,
-    //TODO AAZ: Errors on Spawn calls should terminate the execution. Make sure results aren't
-    // returned if a command fails or for expect reasons
     Done(SpawnResult),
-    Skipped,
 }
 
 struct JobState {
@@ -28,11 +29,13 @@ pub struct JobsRunner {
 }
 
 impl JobsRunner {
-    pub async fn run_jobs(
-        targets: &[Target],
-        main_job: JobType,
-    ) -> Vec<Result<SpawnResult, anyhow::Error>> {
+    pub async fn run_jobs(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCollection> {
         let jobs_tree = jobs_resolver::resolve(targets, main_job);
+
+        let tracker = get_tracker().await;
+        tracker
+            .start_all(jobs_tree.keys().cloned().collect())
+            .await?;
 
         // This is needed for assertions while in development only, and it will be removed once the
         // concurrent solution is implemented.
@@ -61,6 +64,6 @@ impl JobsRunner {
             finished.insert(job_def);
         }
 
-        results
+        Ok(results)
     }
 }

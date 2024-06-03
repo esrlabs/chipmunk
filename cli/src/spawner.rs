@@ -1,8 +1,5 @@
 // cmd.envs(vec![("PATH", "/bin"), ("TERM", "xterm-256color")]);
-use crate::{
-    location::{get_root, to_relative_path},
-    tracker::get_tracker,
-};
+use crate::{jobs_runner::JobDefinition, location::get_root, tracker::get_tracker};
 use anyhow::{bail, Context};
 use core::panic;
 use futures_lite::{future, FutureExt};
@@ -84,9 +81,9 @@ pub(crate) struct SpawnOptions {
 
 /// Spawns and runs a job asynchronously, updating the bar when job infos are available
 pub async fn spawn(
+    job_def: JobDefinition,
     command: String,
     cwd: Option<PathBuf>,
-    caption: String,
     environment_vars: impl IntoIterator<Item = (String, String)>,
     opts: Option<SpawnOptions>,
 ) -> Result<SpawnResult, anyhow::Error> {
@@ -98,13 +95,6 @@ pub async fn spawn(
     combined_env_vars.extend(environment_vars);
 
     let tracker = get_tracker().await;
-    let sequence = tracker
-        .start(&format!(
-            "{}: {}",
-            to_relative_path(&cwd).display(),
-            caption
-        ))
-        .await?;
 
     let command_result = Command::new(cmd)
         .current_dir(&cwd)
@@ -117,13 +107,7 @@ pub async fn spawn(
             format!("Error While running the command '{cmd}'\nwith arguments: {parts:?}")
         });
 
-    let mut child = match command_result {
-        Ok(child) => child,
-        Err(err) => {
-            tracker.fail(sequence, format!("{err:#}").as_str()).await;
-            return Err(err);
-        }
-    };
+    let mut child = command_result?;
 
     let mut report_lines: Vec<String> = vec![];
     let drain_stdout_stderr = {
@@ -147,9 +131,9 @@ pub async fn spawn(
                             break;
                         } else {
                             if !opts.suppress_msg {
-                                tracker.msg(sequence, &stdout_line).await;
+                                tracker.msg(job_def, stdout_line.clone()).await;
                             }
-                            tracker.progress(sequence, None).await;
+                            tracker.progress(job_def, None).await;
                             storage_report.push(stdout_line);
                         }
                     }
@@ -158,7 +142,7 @@ pub async fn spawn(
                         if stderr_read_bytes == 0 {
                             break;
                         } else {
-                            tracker.progress(sequence, None).await;
+                            tracker.progress(job_def, None).await;
                             if !stderr_line.trim().is_empty() {
                                 storage_report.push(stderr_line);
                             }
@@ -173,23 +157,11 @@ pub async fn spawn(
         }
     };
 
-    let status = match drain_stdout_stderr
+    let status = drain_stdout_stderr
         .or(async move { Ok(Some(child.wait().await?)) })
-        .await
-    {
-        Ok(status) => status,
-        Err(err) => {
-            tracker.fail(sequence, &err.to_string()).await;
-            return Err(err);
-        }
-    };
-    if let Some(status) = status {
-        if status.success() {
-            tracker.success(sequence, "").await;
-        } else {
-            tracker.fail(sequence, "finished with errors").await;
-        }
+        .await?;
 
+    if let Some(status) = status {
         let skipped = if opts.has_skip_info {
             Some(false)
         } else {
@@ -199,14 +171,11 @@ pub async fn spawn(
         Ok(SpawnResult {
             report: report_lines,
             status,
-            job: caption,
+            job: job_def.job_title(),
             cmd: command,
             skipped,
         })
     } else {
-        tracker
-            .fail(sequence, "Fail to get exist status of spawned command")
-            .await;
         bail!("Fail to get exist status of spawned command")
     }
 }
@@ -214,9 +183,9 @@ pub async fn spawn(
 /// Suspend the progress bars and run the giving blocking command using `Stdio::inherit()`
 /// This is used with commands that doesn't work with `Stdio::piped()`
 pub async fn spawn_blocking(
+    job_def: JobDefinition,
     command: String,
     cwd: Option<PathBuf>,
-    caption: String,
     environment_vars: impl IntoIterator<Item = (String, String)>,
 ) -> Result<SpawnResult, anyhow::Error> {
     let cwd = cwd.unwrap_or_else(|| get_root().clone());
@@ -233,32 +202,12 @@ pub async fn spawn_blocking(
 
     let tracker = get_tracker().await;
 
-    let sequence = tracker
-        .start(&format!(
-            "{}: {}",
-            to_relative_path(&cwd).display(),
-            caption
-        ))
-        .await?;
-
-    let status = match tracker.suspend_and_run(child).await {
-        Ok(status) => status,
-        Err(err) => {
-            tracker.fail(sequence, &err.to_string()).await;
-            bail!("Error While running the command '{cmd}'\nwith arguments: {parts:?}\ncwd: {}\n Error Info: {err}", cwd.display());
-        }
-    };
-
-    if status.success() {
-        tracker.success(sequence, "").await;
-    } else {
-        tracker.fail(sequence, "finished with errors").await;
-    }
+    let status = tracker.suspend_and_run(child).await?;
 
     Ok(SpawnResult {
         report: Vec::new(),
         status,
-        job: caption,
+        job: job_def.job_title(),
         cmd: command,
         skipped: None,
     })
@@ -266,22 +215,14 @@ pub async fn spawn_blocking(
 
 /// This spawns a new task and return immediately showing that the job has been skipped
 pub async fn spawn_skip(
+    job_def: JobDefinition,
     command: String,
     cwd: Option<PathBuf>,
-    caption: String,
 ) -> anyhow::Result<SpawnResult> {
     let cwd = cwd.unwrap_or_else(|| get_root().clone());
 
-    let tracker = get_tracker().await;
-    let sequence = tracker
-        .start(&format!(
-            "{}: {}",
-            to_relative_path(&cwd).display(),
-            caption
-        ))
-        .await?;
-
-    tracker.success(sequence, "skipped").await;
-
-    Ok(SpawnResult::create_for_skipped(caption, command))
+    Ok(SpawnResult::create_for_skipped(
+        job_def.job_title(),
+        command,
+    ))
 }

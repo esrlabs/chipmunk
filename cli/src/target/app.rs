@@ -2,12 +2,13 @@ use std::fs;
 
 use anyhow::{bail, Context};
 
-use crate::{fstools, spawner::SpawnResult};
+use crate::{fstools, job_type::JobType, jobs_runner::JobDefinition, spawner::SpawnResult};
 
 use super::{client::get_dist_path, Target};
 
-pub async fn copy_client_to_app(prod: bool) -> Result<SpawnResult, anyhow::Error> {
+pub async fn copy_client_to_app(job_def: JobDefinition) -> Result<SpawnResult, anyhow::Error> {
     let mut report_logs = Vec::new();
+    let prod = job_def.job_type.is_production().unwrap_or(false);
     let src = get_dist_path(prod);
     let dest = Target::App.cwd().join("dist");
     if !src.exists() {
@@ -25,10 +26,10 @@ pub async fn copy_client_to_app(prod: bool) -> Result<SpawnResult, anyhow::Error
         let msg = format!("removing directory: {}", prev.display());
         report_logs.push(msg);
 
-        fstools::rm_folder(&prev).await?;
+        fstools::rm_folder(job_def, &prev).await?;
     }
 
-    fstools::cp_folder(src.clone(), dest.clone(), &mut report_logs).await?;
+    fstools::cp_folder(job_def, src.clone(), dest.clone(), &mut report_logs).await?;
 
     let rename_from = dest.join(
         src.file_name()

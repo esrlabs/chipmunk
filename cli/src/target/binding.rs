@@ -2,7 +2,12 @@ use std::fs;
 
 use anyhow::{bail, Context};
 
-use crate::{fstools, spawner::SpawnResult};
+use crate::{
+    fstools,
+    job_type::{self, JobType},
+    jobs_runner::JobDefinition,
+    spawner::SpawnResult,
+};
 
 use super::Target;
 
@@ -28,7 +33,7 @@ pub fn get_build_cmd(prod: bool) -> anyhow::Result<String> {
     ))
 }
 
-pub async fn copy_index_node() -> Result<SpawnResult, anyhow::Error> {
+pub async fn copy_index_node(job_def: JobDefinition) -> Result<SpawnResult, anyhow::Error> {
     let mut report_logs = Vec::new();
 
     // *** Copy `index.node` from rs to ts bindings dist ***
@@ -56,6 +61,7 @@ pub async fn copy_index_node() -> Result<SpawnResult, anyhow::Error> {
     }
 
     fstools::cp_file(
+        job_def,
         src_file.clone(),
         ts_dist_native_dir.join("index.node"),
         &mut report_logs,
@@ -70,7 +76,7 @@ pub async fn copy_index_node() -> Result<SpawnResult, anyhow::Error> {
     let dir_tests = Target::Wrapper.cwd().join("src").join("native");
     let mod_file = dir_tests.join("index.node");
 
-    fstools::cp_file(src_file, mod_file, &mut report_logs).await?;
+    fstools::cp_file(job_def, src_file, mod_file, &mut report_logs).await?;
 
     Ok(SpawnResult::create_for_fs(
         "Copying `index.node` from rs to ts bindings".into(),

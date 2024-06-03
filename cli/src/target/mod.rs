@@ -13,8 +13,10 @@ use crate::{
     dev_tools::DevTool,
     fstools,
     job_type::JobType,
+    jobs_runner::JobDefinition,
     location::get_root,
     spawner::{spawn, spawn_skip, SpawnOptions, SpawnResult},
+    tracker::{self, get_tracker},
 };
 
 use target_kind::TargetKind;
@@ -161,6 +163,12 @@ impl Target {
     /// Provides the absolute path to the target code
     pub fn cwd(&self) -> PathBuf {
         let root = get_root();
+        let relative_path = self.relative_cwd();
+
+        root.join(relative_path)
+    }
+
+    pub fn relative_cwd(&self) -> PathBuf {
         let sub_parts = match self {
             Target::Core => ["application", "apps", "indexer"].iter(),
             Target::Binding => ["application", "apps", "rustcore", "rs-bindings"].iter(),
@@ -173,9 +181,7 @@ impl Target {
             Target::Updater => ["application", "apps", "precompiled", "updater"].iter(),
         };
 
-        let sub_path: PathBuf = sub_parts.collect();
-
-        root.join(sub_path)
+        sub_parts.collect()
     }
 
     /// Provide the kind of the target between Rust or Type-Script
@@ -241,18 +247,28 @@ impl Target {
             // wrapper (ts-bindings) install in the rs bindings install.
             // Since rs bindings is a dependency for ts bindings, we don't need to call to install
             // on ts bindings again.
-            Target::Binding => install_general(&Target::Wrapper, prod).await,
+            Target::Binding => {
+                install_general(
+                    &Target::Wrapper,
+                    prod,
+                    Some(JobDefinition::new(
+                        Target::Binding,
+                        JobType::Install { production: prod },
+                    )),
+                )
+                .await
+            }
             Target::Wrapper => None,
             // For app we don't need --production
-            Target::App => install_general(&Target::App, false).await,
-            rest_targets => install_general(rest_targets, prod).await,
+            Target::App => install_general(&Target::App, false, None).await,
+            rest_targets => install_general(rest_targets, prod, None).await,
         }
     }
 
     /// Run tests for the giving the target
     pub async fn test(&self, production: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
         match self {
-            Target::Wrapper => Some(wrapper::run_test().await),
+            Target::Wrapper => Some(wrapper::run_test(production).await),
             rest_targets => rest_targets.run_test_general(production).await,
         }
     }
@@ -276,12 +292,12 @@ impl Target {
 
         debug_assert!(!test_cmds.is_empty());
 
-        let caption = format!("Test {}", self);
+        let job_def = JobDefinition::new(*self, JobType::Test { production });
         let spawn_results = join_all(test_cmds.into_iter().map(|cmd| {
             spawn(
+                job_def,
                 cmd.command,
                 Some(cmd.cwd),
-                caption.clone(),
                 iter::empty(),
                 cmd.spawn_opts,
             )
@@ -316,13 +332,13 @@ impl Target {
     /// Perform Linting the Building the giving target since linting Type-Script doesn't check for
     /// compiling errors
     async fn ts_lint(&self) -> Result<SpawnResult, anyhow::Error> {
-        let path = get_root().join(self.cwd());
-        let caption = format!("TS Lint {}", self);
+        let path = self.cwd();
         let yarn_cmd = DevTool::Yarn.path().await.to_string_lossy();
+        let job_def = JobDefinition::new(*self, JobType::Lint);
         let status = spawn(
+            job_def,
             format!("{} run lint", yarn_cmd),
             Some(path.clone()),
-            caption,
             iter::empty(),
             None,
         )
@@ -331,11 +347,10 @@ impl Target {
             return Ok(status);
         }
 
-        let caption = format!("Build {}", self);
         spawn(
+            job_def,
             format!("{} run build", yarn_cmd),
             Some(path),
-            caption,
             iter::empty(),
             None,
         )
@@ -347,14 +362,14 @@ impl Target {
         let path = get_root().join(self.cwd());
 
         let cargo_path = DevTool::Cargo.path().await;
-        let caption = format!("Clippy {}", self);
+        let job_def = JobDefinition::new(*self, JobType::Lint);
         spawn(
+            job_def,
             format!(
                 "{} clippy --color always --all --all-features -- -D warnings",
                 cargo_path.to_string_lossy()
             ),
             Some(path),
-            caption,
             iter::empty(),
             None,
         )
@@ -363,6 +378,9 @@ impl Target {
 
     /// Clean the given target, removing it from the checksum tracker as well.
     pub async fn reset(&self) -> anyhow::Result<SpawnResult> {
+        let job_def = JobDefinition::new(*self, JobType::Clean);
+        let tracker = get_tracker().await;
+
         let checksum = ChecksumRecords::get(JobType::Clean).await?;
         checksum.remove_hash_if_exist(*self)?;
 
@@ -375,12 +393,12 @@ impl Target {
         let remove_log = format!("removing directory {}", path.display());
         logs.push(remove_log);
 
-        fstools::rm_folder(&path).await?;
+        fstools::rm_folder(job_def, &path).await?;
 
         let dist_path = self.cwd().join("dist");
         let remove_log = format!("removing {}", dist_path.display());
         logs.push(remove_log);
-        fstools::rm_folder(&dist_path).await?;
+        fstools::rm_folder(job_def, &dist_path).await?;
 
         let job = format!("Clean {}", self);
 
@@ -394,7 +412,6 @@ impl Target {
 
         let path = get_root().join(self.cwd());
         let cmd = self.build_cmd(prod).await?;
-        let caption = format!("Build {}", self);
 
         //TODO AAZ: Skipping jobs should be resolved before running the jobs
         // let mut skip_task = false;
@@ -416,18 +433,21 @@ impl Target {
             ..Default::default()
         };
 
-        spawn(cmd, Some(path), caption, iter::empty(), Some(spawn_opt)).await
+        let job_def = JobDefinition::new(*self, JobType::Build { production: prod });
+
+        spawn(job_def, cmd, Some(path), iter::empty(), Some(spawn_opt)).await
     }
 
     /// Performs build process without checking the current builds states
 
     /// Perform any needed copy operation after the build is done
     pub async fn after_build(&self, prod: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
+        let job_def = JobDefinition::new(*self, JobType::AfterBuild { production: prod });
         let res = match self {
-            Target::Binding => binding::copy_index_node().await,
-            Target::Wrapper => wrapper::copy_binding_to_app().await,
-            Target::Shared => shared::copy_platform_to_binding().await,
-            Target::App => app::copy_client_to_app(prod).await,
+            Target::Binding => binding::copy_index_node(job_def).await,
+            Target::Wrapper => wrapper::copy_binding_to_app(job_def).await,
+            Target::Shared => shared::copy_platform_to_binding(job_def).await,
+            Target::App => app::copy_client_to_app(job_def).await,
             _ => return None,
         };
 
@@ -436,14 +456,24 @@ impl Target {
 }
 
 /// run install using the general routine for the given target
+/// * `target`: job target to perform its after build jobs
+/// * `prod`: build for production
+/// * `overridden_job_def`: override job definition to update tracker message. This is used when
+/// target is used for another install command which happens currently with bindings and wrapper
+/// targets
 async fn install_general(
     target: &Target,
     prod: bool,
+    overridden_job_def: Option<JobDefinition>,
 ) -> Option<Result<SpawnResult, anyhow::Error>> {
     let cmd = target.kind().install_cmd(prod).await;
+    let job_def = overridden_job_def.unwrap_or(JobDefinition::new(
+        *target,
+        JobType::Install { production: prod },
+    ));
+
     if let Some(cmd) = cmd {
-        let caption = format!("Install {}", target);
-        let res = spawn(cmd, Some(target.cwd()), caption, iter::empty(), None).await;
+        let res = spawn(job_def, cmd, Some(target.cwd()), iter::empty(), None).await;
         Some(res)
     } else {
         None

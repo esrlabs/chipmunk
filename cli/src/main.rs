@@ -73,7 +73,7 @@ async fn main() -> Result<(), Error> {
             resolve_dev_tools().await?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
-            let results = JobsRunner::run_jobs(&targets, JobType::Lint).await;
+            let results = JobsRunner::run_jobs(&targets, JobType::Lint).await?;
             (JobType::Lint, results)
         }
         Command::Build {
@@ -84,14 +84,14 @@ async fn main() -> Result<(), Error> {
             resolve_dev_tools().await?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
-            let results = JobsRunner::run_jobs(&targets, JobType::Build { production }).await;
+            let results = JobsRunner::run_jobs(&targets, JobType::Build { production }).await?;
             (JobType::Build { production }, results)
         }
         Command::Clean { target, report } => {
             resolve_dev_tools().await?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
-            let results = JobsRunner::run_jobs(&targets, JobType::Clean).await;
+            let results = JobsRunner::run_jobs(&targets, JobType::Clean).await?;
             (JobType::Clean, results)
         }
         Command::Test {
@@ -102,13 +102,14 @@ async fn main() -> Result<(), Error> {
             resolve_dev_tools().await?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
-            let results = JobsRunner::run_jobs(&targets, JobType::Test { production }).await;
+            let results = JobsRunner::run_jobs(&targets, JobType::Test { production }).await?;
             (JobType::Test { production }, results)
         }
         Command::Run { production } => {
             resolve_dev_tools().await?;
             report_opt = ReportOptions::None;
-            let results = JobsRunner::run_jobs(&Target::all(), JobType::Build { production }).await;
+            let results =
+                JobsRunner::run_jobs(&Target::all(), JobType::Build { production }).await?;
             (JobType::Run { production }, results)
         }
         Command::ResetChecksum { production } => {

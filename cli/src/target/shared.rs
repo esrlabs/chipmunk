@@ -2,11 +2,13 @@ use std::fs;
 
 use anyhow::Context;
 
-use crate::{fstools, spawner::SpawnResult};
+use crate::{fstools, jobs_runner::JobDefinition, spawner::SpawnResult};
 
 use super::Target;
 
-pub async fn copy_platform_to_binding() -> Result<SpawnResult, anyhow::Error> {
+pub async fn copy_platform_to_binding(
+    job_def: JobDefinition,
+) -> Result<SpawnResult, anyhow::Error> {
     let mut report_logs = Vec::new();
 
     report_logs.push(String::from("Start Job: Copying Platform to Bindings..."));
@@ -16,7 +18,7 @@ pub async fn copy_platform_to_binding() -> Result<SpawnResult, anyhow::Error> {
     let msg = format!("Removing directory: '{}'", platform_dest.display());
     report_logs.push(msg);
 
-    fstools::rm_folder(&platform_dest).await?;
+    fstools::rm_folder(job_def, &platform_dest).await?;
 
     tokio::fs::create_dir_all(&platform_dest)
         .await
@@ -40,6 +42,7 @@ pub async fn copy_platform_to_binding() -> Result<SpawnResult, anyhow::Error> {
         .collect();
 
     fstools::cp_many(
+        job_def,
         entries_to_copy,
         platform_dest,
         source.display(),

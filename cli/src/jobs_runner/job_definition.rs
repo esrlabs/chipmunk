@@ -1,6 +1,6 @@
-use crate::{job_type::JobType, spawner::SpawnResult, target::Target};
+use crate::{job_type::JobType, spawner::SpawnResult, target::Target, tracker::get_tracker};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct JobDefinition {
     pub target: Target,
     pub job_type: JobType,
@@ -15,7 +15,41 @@ impl JobDefinition {
         format!("{} {}", self.target, self.job_type)
     }
 
+    /// Run the job definition if it has a job, communicating its status with the UI bars
     pub async fn run(&self) -> Option<Result<SpawnResult, anyhow::Error>> {
+        let tracker = get_tracker().await;
+        if let Err(err) = tracker.start(*self).await {
+            return Some(Err(err));
+        }
+
+        let res = self.run_intern().await;
+
+        match res.as_ref() {
+            Some(Ok(res)) => {
+                if res.status.success() {
+                    if res.skipped.is_some_and(|skipped| skipped) {
+                        tracker.success(*self, "skipped".into()).await;
+                    } else {
+                        tracker.success(*self, String::default()).await;
+                    }
+                } else {
+                    tracker.fail(*self, "finished with errors".into()).await;
+                }
+            }
+            Some(Err(err)) => {
+                tracker
+                    .fail(*self, format!("finished with errors. {err}"))
+                    .await
+            }
+            None => (),
+        }
+
+        res
+    }
+
+    #[inline]
+    /// Runs the job definition if it has a job
+    async fn run_intern(&self) -> Option<Result<SpawnResult, anyhow::Error>> {
         let res = match self.job_type {
             JobType::Lint => self.target.check().await,
             JobType::Build { production } => self.target.build(production).await,
@@ -43,7 +77,7 @@ mod tests {
                 if !target.has_job(&job_type) {
                     let job_def = JobDefinition::new(*target, job_type.clone());
                     assert!(
-                        job_def.run().await.is_none(),
+                        job_def.run_intern().await.is_none(),
                         "'{}' has no job for '{}' but it returns Some when calling run",
                         target,
                         job_type
