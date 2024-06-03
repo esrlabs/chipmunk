@@ -59,6 +59,16 @@ impl JobType {
             | JobType::AfterBuild { production: _ } => Vec::new(),
         }
     }
+
+    /// Returns if the job type is part of the build process (install, build, or after build)
+    pub fn is_part_of_build(&self) -> bool {
+        matches!(
+            self,
+            JobType::Install { production: _ }
+                | JobType::Build { production: _ }
+                | JobType::AfterBuild { production: _ }
+        )
+    }
 }
 
 #[cfg(test)]

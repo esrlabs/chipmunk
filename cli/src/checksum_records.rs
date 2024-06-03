@@ -21,7 +21,6 @@ const FILE_NAME_PROD: &str = ".build_chksum_prod";
 #[derive(Debug)]
 pub struct ChecksumRecords {
     items: Mutex<ChecksumItems>,
-    job_type: JobType,
 }
 
 #[derive(Debug, Default)]
@@ -33,41 +32,65 @@ struct ChecksumItems {
 impl ChecksumRecords {
     pub async fn update_and_save(job_type: JobType) -> anyhow::Result<()> {
         // calculate should be involved when build is called at some point of the job
-        let calculate_involved = match &job_type {
+        let (calculate_involved, prod) = match &job_type {
             JobType::Lint => return Ok(()),
-            JobType::Build { production: _ }
-            | JobType::Run { production: _ }
-            | JobType::Test { production: _ } => true,
-            JobType::Clean
-            | JobType::Install { production: _ }
-            | JobType::AfterBuild { production: _ } => false,
+            JobType::Build { production }
+            | JobType::Run { production }
+            | JobType::Test { production } => (true, *production),
+            // With clean we need to remove the items from both development and production
+            JobType::Clean => (false, false),
+            JobType::Install { production } | JobType::AfterBuild { production } => {
+                (false, *production)
+            }
         };
 
-        let records = Self::get(job_type).await?;
+        let records = Self::get(prod).await?;
 
         if calculate_involved {
             records.calculate_involved_hashes()?;
         }
+
         records
-            .persist_hashes()
+            .persist_hashes(prod)
             .context("Error while saving the updated hashes")?;
+
+        // Hashes must be removed from production if clean is called because it doesn't
+        // differentiate between development and production.
+        if matches!(job_type, JobType::Clean) {
+            let prod_records =
+                Self::load(true).context("Error while loading production recoreds")?;
+
+            let dev_items = records
+                .items
+                .lock()
+                .map_err(|err| anyhow!("Error while acquiring items jobs mutex: Error {err}"))?;
+
+            // With clean job, the involved targets are the ones that has been deleted.
+            for target in &dev_items.involved_targets {
+                prod_records.remove_hash_if_exist(*target);
+            }
+
+            prod_records
+                .persist_hashes(true)
+                .context("Error while saving the updated hashes")?;
+        }
 
         Ok(())
     }
 
-    pub async fn get(job_type: JobType) -> anyhow::Result<&'static ChecksumRecords> {
+    pub async fn get(production: bool) -> anyhow::Result<&'static ChecksumRecords> {
         static CHECKSUM_RECORDS: OnceCell<anyhow::Result<ChecksumRecords>> = OnceCell::const_new();
 
         CHECKSUM_RECORDS
-            .get_or_init(|| async { ChecksumRecords::load(job_type) })
+            .get_or_init(|| async { ChecksumRecords::load(production) })
             .await
             .as_ref()
             .map_err(|err| anyhow!("{err}"))
     }
 
     /// Loads the persisted records from checksums file if exist
-    fn load(job_type: JobType) -> anyhow::Result<Self> {
-        let file_path = Self::get_file_path(job_type.is_production().is_some_and(|prod| prod));
+    fn load(production: bool) -> anyhow::Result<Self> {
+        let file_path = Self::get_file_path(production);
 
         let items = if file_path.exists() {
             let file_content = fs::read_to_string(file_path)?;
@@ -82,7 +105,6 @@ impl ChecksumRecords {
 
         Ok(Self {
             items: Mutex::new(items),
-            job_type,
         })
     }
 
@@ -191,8 +213,8 @@ impl ChecksumRecords {
         Ok(())
     }
 
-    fn persist_hashes(&self) -> anyhow::Result<()> {
-        let file_path = Self::get_file_path(self.job_type.is_production().is_some_and(|prod| prod));
+    fn persist_hashes(&self, production: bool) -> anyhow::Result<()> {
+        let file_path = Self::get_file_path(production);
 
         let mut file = File::create(file_path)?;
         let items = self

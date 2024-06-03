@@ -16,13 +16,13 @@ impl JobDefinition {
     }
 
     /// Run the job definition if it has a job, communicating its status with the UI bars
-    pub async fn run(&self) -> Option<Result<SpawnResult, anyhow::Error>> {
+    pub async fn run(&self, skip: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
         let tracker = get_tracker().await;
         if let Err(err) = tracker.start(*self).await {
             return Some(Err(err));
         }
 
-        let res = self.run_intern().await;
+        let res = self.run_intern(skip).await;
 
         match res.as_ref() {
             Some(Ok(res)) => {
@@ -49,12 +49,14 @@ impl JobDefinition {
 
     #[inline]
     /// Runs the job definition if it has a job
-    async fn run_intern(&self) -> Option<Result<SpawnResult, anyhow::Error>> {
+    async fn run_intern(&self, skip: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
         let res = match self.job_type {
             JobType::Lint => self.target.check().await,
-            JobType::Build { production } => self.target.build(production).await,
-            JobType::Install { production } => return self.target.install(production).await,
-            JobType::AfterBuild { production } => return self.target.after_build(production).await,
+            JobType::Build { production } => self.target.build(production, skip).await,
+            JobType::Install { production } => return self.target.install(production, skip).await,
+            JobType::AfterBuild { production } => {
+                return self.target.after_build(production, skip).await
+            }
             JobType::Clean => self.target.reset().await,
             JobType::Test { production } => return self.target.test(production).await,
             JobType::Run { production: _ } => return None,
@@ -77,7 +79,7 @@ mod tests {
                 if !target.has_job(&job_type) {
                     let job_def = JobDefinition::new(*target, job_type.clone());
                     assert!(
-                        job_def.run_intern().await.is_none(),
+                        job_def.run_intern(false).await.is_none(),
                         "'{}' has no job for '{}' but it returns Some when calling run",
                         target,
                         job_type

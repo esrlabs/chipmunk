@@ -10,7 +10,7 @@ use crate::{
     job_type::JobType,
     jobs_runner::JobDefinition,
     location::get_root,
-    spawner::{spawn, SpawnOptions, SpawnResult},
+    spawner::{spawn, spawn_skip, SpawnOptions, SpawnResult},
 };
 
 use target_kind::TargetKind;
@@ -235,7 +235,21 @@ impl Target {
     }
 
     /// Installs the needed module to perform the development task
-    pub async fn install(&self, prod: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
+    pub async fn install(
+        &self,
+        prod: bool,
+        skip: bool,
+    ) -> Option<Result<SpawnResult, anyhow::Error>> {
+        if skip {
+            return Some(
+                spawn_skip(
+                    JobDefinition::new(*self, JobType::Install { production: prod }),
+                    format!("Install command for {self}"),
+                )
+                .await,
+            );
+        }
+
         match self {
             // We must install ts binding tools before running rs bindings, therefore we call
             // wrapper (ts-bindings) install in the rs bindings install.
@@ -253,8 +267,19 @@ impl Target {
                 .await
             }
             Target::Wrapper => None,
-            // For app we don't need --production
-            Target::App => install_general(&Target::App, false, None).await,
+            // For app we don't need --production, but we still needed to be defined to comunicate
+            // with UI bars
+            Target::App => {
+                install_general(
+                    &Target::App,
+                    false,
+                    Some(JobDefinition::new(
+                        *self,
+                        JobType::Install { production: prod },
+                    )),
+                )
+                .await
+            }
             rest_targets => install_general(rest_targets, prod, None).await,
         }
     }
@@ -374,7 +399,9 @@ impl Target {
     pub async fn reset(&self) -> anyhow::Result<SpawnResult> {
         let job_def = JobDefinition::new(*self, JobType::Clean);
 
-        let checksum = ChecksumRecords::get(JobType::Clean).await?;
+        // Clean doesn't differentiate between development and production, and both of them will be
+        // cleaned from the files when the data are persisted.
+        let checksum = ChecksumRecords::get(false).await?;
         checksum.remove_hash_if_exist(*self)?;
 
         let mut logs = Vec::new();
@@ -399,27 +426,9 @@ impl Target {
     }
 
     /// Runs build considering the currently running builds and already finished ones as well.
-    pub async fn build(&self, prod: bool) -> Result<SpawnResult, anyhow::Error> {
-        let checksum_rec = ChecksumRecords::get(JobType::Build { production: prod }).await?;
-        checksum_rec.register_job(*self)?;
-
+    pub async fn build(&self, prod: bool, skip: bool) -> Result<SpawnResult, anyhow::Error> {
         let path = get_root().join(self.cwd());
         let cmd = self.build_cmd(prod).await?;
-
-        //TODO AAZ: Skipping jobs should be resolved before running the jobs
-        // let mut skip_task = false;
-        //
-        // let all_skipped = results.iter().all(|r| {
-        //     r.skipped.unwrap_or({
-        //         // Tasks with no skip info are irrelevant
-        //         true
-        //     })
-        // });
-        //
-        // if all_skipped {
-        //     skip_task = !checksum_rec.check_changed(*self)?;
-        // }
-        //
 
         let spawn_opt = SpawnOptions {
             has_skip_info: true,
@@ -428,14 +437,27 @@ impl Target {
 
         let job_def = JobDefinition::new(*self, JobType::Build { production: prod });
 
-        spawn(job_def, cmd, Some(path), iter::empty(), Some(spawn_opt)).await
+        if skip {
+            spawn_skip(job_def, cmd).await
+        } else {
+            spawn(job_def, cmd, Some(path), iter::empty(), Some(spawn_opt)).await
+        }
     }
 
     /// Performs build process without checking the current builds states
 
     /// Perform any needed copy operation after the build is done
-    pub async fn after_build(&self, prod: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
+    pub async fn after_build(
+        &self,
+        prod: bool,
+        skip: bool,
+    ) -> Option<Result<SpawnResult, anyhow::Error>> {
         let job_def = JobDefinition::new(*self, JobType::AfterBuild { production: prod });
+
+        if skip {
+            return Some(spawn_skip(job_def, "Multiple file system commands".into()).await);
+        }
+
         let res = match self {
             Target::Binding => binding::copy_index_node(job_def).await,
             Target::Wrapper => wrapper::copy_binding_to_app(job_def).await,
