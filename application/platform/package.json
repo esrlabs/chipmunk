@@ -32,6 +32,9 @@
         "tslib": "^2.6.2",
         "typescript": "^5.2.2"
     },
+    "dependencies": {
+        "tslib": "^2.6.2"
+    },
     "scripts": {
         "build": "node_modules/.bin/tsc -p tsconfig.json",
         "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0 ",
