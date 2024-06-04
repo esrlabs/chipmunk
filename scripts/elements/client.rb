@@ -64,8 +64,8 @@ namespace :client do
     end
   end
 
-  desc 'tsc comile check client'
-  task check: ['client:install', 'wasm:build', 'electron:copy_tsbindings_and_platform'] do
+  desc 'tsc compile check client'
+  task check: ['client:install', 'wasm:build', 'bindings:build'] do
     Shell.chdir(Paths::CLIENT) do
       duration = Shell.timed_sh 'yarn run check', 'tsc check client'
       Reporter.done('client', 'check', '', duration)
