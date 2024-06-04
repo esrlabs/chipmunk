@@ -2,7 +2,7 @@
 #![allow(dead_code, unused_imports, unused)]
 
 mod job_definition;
-mod jobs_resolver;
+pub mod jobs_resolver;
 
 use std::collections::{BTreeMap, BTreeSet};
 

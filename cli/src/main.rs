@@ -60,8 +60,12 @@ async fn main() -> Result<(), Error> {
                 return Ok(());
             }
         },
-        Command::PrintDot => {
-            print_dot::print_dependencies();
+        Command::PrintDot { all_jobs } => {
+            if all_jobs {
+                print_dot::print_dependencies_jobs();
+            } else {
+                print_dot::print_dependencies_targets();
+            }
             return Ok(());
         }
         Command::Lint { target, report } => {

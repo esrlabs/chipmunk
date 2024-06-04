@@ -29,7 +29,11 @@ pub enum Command {
     Environment(EnvironmentCommand),
     /// Prints an overview of targets dependencies in print-dot format for `Graphviz`
     #[clap(visible_alias = "dot")]
-    PrintDot,
+    PrintDot {
+        /// Show all jobs and their relations
+        #[arg(short, long, default_value_t = false)]
+        all_jobs: bool,
+    },
     /// Runs linting & clippy for all or the specified targets
     Lint {
         /// Target to lint, by default whole application will be linted
