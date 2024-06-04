@@ -51,6 +51,7 @@ impl JobsRunner {
         let mut finished = BTreeSet::new();
 
         let mut skipped_map = BTreeMap::new();
+        let mut failed_jobs = Vec::new();
 
         let mut results = Vec::new();
 
@@ -61,8 +62,12 @@ impl JobsRunner {
             );
 
             let skip = if job_def.job_type.is_part_of_build() {
+                // Skip if any prequel job of this target has failed
+                if failed_jobs.contains(&job_def.target) {
+                    true
+                }
                 // Check if target is already registered and checked
-                if let Some(skip) = skipped_map.get(&job_def.target) {
+                else if let Some(skip) = skipped_map.get(&job_def.target) {
                     *skip
                 } else {
                     let prod = job_def.job_type.is_production().is_some_and(|prod| prod);
@@ -95,6 +100,10 @@ impl JobsRunner {
                     continue;
                 }
             };
+
+            if res.is_err() {
+                failed_jobs.push(job_def.target);
+            }
 
             results.push(res);
 
