@@ -235,10 +235,16 @@ impl Target {
     }
 
     /// Installs the needed module to perform the development task
+    ///
+    /// * `prod`: run install in production
+    /// * `skip`: skip the task
+    /// * `overridden_job_type`: override job type to communicate with tracker when install is ran
+    /// from within another task
     pub async fn install(
         &self,
         prod: bool,
         skip: bool,
+        overridden_job_type: Option<JobType>,
     ) -> Option<Result<SpawnResult, anyhow::Error>> {
         if skip {
             return Some(
@@ -250,37 +256,20 @@ impl Target {
             );
         }
 
+        let job_type = overridden_job_type.unwrap_or(JobType::Install { production: prod });
+
         match self {
             // We must install ts binding tools before running rs bindings, therefore we call
             // wrapper (ts-bindings) install in the rs bindings install.
             // Since rs bindings is a dependency for ts bindings, we don't need to call to install
             // on ts bindings again.
             Target::Binding => {
-                install_general(
-                    &Target::Wrapper,
-                    prod,
-                    Some(JobDefinition::new(
-                        Target::Binding,
-                        JobType::Install { production: prod },
-                    )),
-                )
-                .await
+                install_general(Target::Wrapper, prod, job_type, Some(Target::Binding)).await
             }
             Target::Wrapper => None,
-            // For app we don't need --production, but we still needed to be defined to comunicate
-            // with UI bars
-            Target::App => {
-                install_general(
-                    &Target::App,
-                    false,
-                    Some(JobDefinition::new(
-                        *self,
-                        JobType::Install { production: prod },
-                    )),
-                )
-                .await
-            }
-            rest_targets => install_general(rest_targets, prod, None).await,
+            // For app we don't need --production
+            Target::App => install_general(Target::App, false, job_type, None).await,
+            rest_targets => install_general(*rest_targets, prod, job_type, None).await,
         }
     }
 
@@ -452,13 +441,40 @@ impl Target {
         prod: bool,
         skip: bool,
     ) -> Option<Result<SpawnResult, anyhow::Error>> {
-        let job_def = JobDefinition::new(*self, JobType::AfterBuild { production: prod });
+        let job_type = JobType::AfterBuild { production: prod };
+        let job_def = JobDefinition::new(*self, job_type);
 
         if skip {
             return Some(spawn_skip(job_def, "Multiple file system commands".into()).await);
         }
 
-        let res = match self {
+        // Taken from a discussion on GitHub:
+        // To build an npm package you would need (in most cases) to be in dev-mode - install dev-dependencies + dependencies,
+        // therefore we always install in development mode at first.
+        // But to prepare a package for production, you have to remove dev-dependencies.
+        // That's not an issue, if npm-package is published in npmjs; but we are coping packages manually in a right destination
+        // and before copy it, we have to reinstall it to get rid of dev-dependencies.
+        let reinstall_res = if prod && matches!(self.kind(), TargetKind::Ts) {
+            let node_path = self.cwd().join("node_modules");
+            let remove_log = format!("removing directory {}", node_path.display());
+
+            if let Err(err) = fstools::rm_folder(job_def, &node_path).await {
+                return Some(Err(err));
+            }
+
+            match self.install(true, false, Some(job_type)).await {
+                Some(Ok(mut spawn_res)) => {
+                    spawn_res.report.insert(0, remove_log);
+                    Some(spawn_res)
+                }
+                Some(Err(err)) => return Some(Err(err)),
+                None => None,
+            }
+        } else {
+            None
+        };
+
+        let after_res = match self {
             Target::Binding => binding::copy_index_node(job_def).await,
             Target::Wrapper => wrapper::copy_binding_to_app(job_def).await,
             Target::Shared => shared::copy_platform_to_binding(job_def).await,
@@ -466,26 +482,31 @@ impl Target {
             _ => return None,
         };
 
-        Some(res)
+        match (after_res, reinstall_res) {
+            (res, None) => Some(res),
+            (Err(err), _) => Some(Err(err)),
+            (Ok(after_res), Some(mut install_res)) => {
+                install_res.append(after_res);
+                Some(Ok(install_res))
+            }
+        }
     }
 }
 
 /// run install using the general routine for the given target
 /// * `target`: job target to perform its after build jobs
 /// * `prod`: build for production
-/// * `overridden_job_def`: override job definition to update tracker message. This is used when
-/// target is used for another install command which happens currently with bindings and wrapper
-/// targets
+/// * `job_type`: job type to communicate with `tracker`
+/// * `overridden_target`: override target to communicate with `tracker` when install is called
+/// from within another task.
 async fn install_general(
-    target: &Target,
+    target: Target,
     prod: bool,
-    overridden_job_def: Option<JobDefinition>,
+    job_type: JobType,
+    overridden_target: Option<Target>,
 ) -> Option<Result<SpawnResult, anyhow::Error>> {
     let cmd = target.kind().install_cmd(prod).await;
-    let job_def = overridden_job_def.unwrap_or(JobDefinition::new(
-        *target,
-        JobType::Install { production: prod },
-    ));
+    let job_def = JobDefinition::new(overridden_target.unwrap_or(target), job_type);
 
     if let Some(cmd) = cmd {
         let res = spawn(job_def, cmd, Some(target.cwd()), iter::empty(), None).await;

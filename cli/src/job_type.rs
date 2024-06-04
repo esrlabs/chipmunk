@@ -44,9 +44,9 @@ impl JobType {
         match self {
             JobType::Lint => vec![JobType::Install { production: false }],
             JobType::Build { production } => vec![
-                JobType::Install {
-                    production: *production,
-                },
+                // Install run always in development at first then it should get reinstalled with
+                // production after build command is ran.
+                JobType::Install { production: false },
                 JobType::AfterBuild {
                     production: *production,
                 },
