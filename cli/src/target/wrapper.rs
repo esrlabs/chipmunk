@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{iter, path::PathBuf};
 
 use anyhow::{anyhow, Context};
 use std::fs;
@@ -7,7 +7,7 @@ use crate::{
     fstools,
     job_type::JobType,
     jobs_runner::JobDefinition,
-    spawner::{spawn_blocking, SpawnResult},
+    spawner::{spawn, spawn_blocking, SpawnResult},
 };
 
 use super::Target;
@@ -42,27 +42,29 @@ const TEST_SPECS: [&str; 14] = [
 ];
 
 pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
+    let job_def = JobDefinition::new(Target::Binding, JobType::Test { production });
+    let mut final_result: Option<SpawnResult> = None;
+
     let cwd = Target::Wrapper.cwd();
 
-    //TODO AAZ: Append build_spec_path to SpawnResult
-    // let build_spec_path = cwd.join("spec");
-    // //TODO: This check exists in rake implementation but it need to be improved.
-    // // The check should cover if the test themselves or the code under the tests has been changed.
-    // if !build_spec_path.join("build").exists() {
-    //     let test_builder_path = cwd.join("node_modules").join(".bin").join("tsc");
-    //     let build_spec_cmd = format!("{} -p tsconfig.json", test_builder_path.to_string_lossy());
-    //
-    //     let spec_res = spawn(
-    //         build_spec_cmd,
-    //         Some(build_spec_path),
-    //         "Build Specs".into(),
-    //         iter::empty(),
-    //         None,
-    //     )
-    //     .await?;
-    //
-    //     results.push(spec_res);
-    // }
+    let build_spec_path = cwd.join("spec");
+    //TODO: This check exists in rake implementation but it need to be improved.
+    // The check should cover if the test themselves or the code under the tests has been changed.
+    if !build_spec_path.join("build").exists() {
+        let test_builder_path = cwd.join("node_modules").join(".bin").join("tsc");
+        let build_spec_cmd = format!("{} -p tsconfig.json", test_builder_path.to_string_lossy());
+
+        let spec_res = spawn(
+            job_def,
+            build_spec_cmd,
+            Some(build_spec_path),
+            iter::empty(),
+            None,
+        )
+        .await?;
+
+        final_result = Some(spec_res);
+    }
 
     let electron_path: PathBuf = [".", "node_modules", ".bin", "electron"].iter().collect();
     let electron_path = electron_path.to_string_lossy();
@@ -74,9 +76,6 @@ pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
 
     let specs_dir_path: PathBuf = ["spec", "build", "spec"].iter().collect();
 
-    let mut final_result: Option<SpawnResult> = None;
-
-    let job_def = JobDefinition::new(Target::Binding, JobType::Test { production });
     for spec in TEST_SPECS {
         let spec_file_name = format!("session.{spec}.spec.js");
         let spec_file_path = specs_dir_path.join(spec_file_name);
