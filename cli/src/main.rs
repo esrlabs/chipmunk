@@ -108,7 +108,7 @@ async fn main() -> Result<(), Error> {
             resolve_dev_tools().await?;
             report_opt = ReportOptions::None;
             let results =
-                JobsRunner::run_jobs(&Target::all(), JobType::Build { production }).await?;
+                JobsRunner::run_jobs(&[Target::App], JobType::Build { production }).await?;
             (JobType::Run { production }, results)
         }
         Command::ResetChecksum { production } => {

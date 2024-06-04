@@ -166,11 +166,13 @@ mod tests {
     #[test]
     fn flatten_app_target() {
         let expected = BTreeSet::from([
+            Target::Core,
             Target::Shared,
             Target::Binding,
             Target::Wrapper,
             Target::Client,
             Target::Wasm,
+            Target::Updater,
             Target::App,
         ]);
         assert_eq!(flatten_targets_for_build(&[Target::App]), expected);

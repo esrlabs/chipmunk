@@ -42,12 +42,12 @@ pub enum Target {
     Wasm,
     /// Represents the path `application/client`
     Client,
+    /// Represents the path `application/apps/precompiled/updater
+    Updater,
     /// Represents the path `application/holder`
     App,
     /// Represents the path `cli`
     Cli,
-    /// Represents the path `application/apps/precompiled/updater
-    Updater,
 }
 
 pub struct TestCommand {
@@ -197,7 +197,12 @@ impl Target {
             Target::Binding => vec![Target::Shared],
             Target::Wrapper => vec![Target::Binding, Target::Shared],
             Target::Client => vec![Target::Shared, Target::Wasm],
-            Target::App => vec![Target::Shared, Target::Wrapper, Target::Client],
+            Target::App => vec![
+                Target::Wrapper,
+                Target::Client,
+                Target::Core,
+                Target::Updater,
+            ],
         }
     }
 
