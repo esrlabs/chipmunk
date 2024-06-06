@@ -2,6 +2,7 @@ use anyhow::bail;
 use clap::ValueEnum;
 use futures::future::join_all;
 use std::{iter, path::PathBuf, str::FromStr};
+use tokio::fs;
 
 use crate::{
     checksum_records::ChecksumRecords,
@@ -397,20 +398,35 @@ impl Target {
         checksum.remove_hash_if_exist(*self)?;
 
         let mut logs = Vec::new();
+        let mut paths_to_remove = vec![self.cwd().join("dist")];
         let path = match self.kind() {
             TargetKind::Ts => self.cwd().join("node_modules"),
             TargetKind::Rs => self.cwd().join("target"),
         };
+        paths_to_remove.push(path);
 
-        let remove_log = format!("removing directory {}", path.display());
-        logs.push(remove_log);
+        match self {
+            Target::Wasm => {
+                paths_to_remove.push(self.cwd().join("pkg"));
+                paths_to_remove.push(self.cwd().join("test_output"));
+            }
+            Target::Wrapper => {
+                paths_to_remove.push(self.cwd().join("spec").join("build"));
+                let index_node_path = self.cwd().join("src").join("native").join("index.node");
+                if index_node_path.exists() {
+                    logs.push(format!("removing file: {}", index_node_path.display()));
+                    fs::remove_file(index_node_path).await?;
+                }
+            }
+            _ => {}
+        }
 
-        fstools::rm_folder(job_def, &path).await?;
+        for path in paths_to_remove.into_iter().filter(|p| p.exists()) {
+            let remove_log = format!("removing directory {}", path.display());
+            logs.push(remove_log);
 
-        let dist_path = self.cwd().join("dist");
-        let remove_log = format!("removing {}", dist_path.display());
-        logs.push(remove_log);
-        fstools::rm_folder(job_def, &dist_path).await?;
+            fstools::rm_folder(job_def, &path).await?;
+        }
 
         let job = format!("Clean {}", self);
 
