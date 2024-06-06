@@ -144,7 +144,7 @@ async fn spawn_jobs(
                 None => panic!("Spawned jobs already resolved and must have return value."),
             };
 
-            if let Err(_) = sender.send((job_def, result)) {
+            if sender.send((job_def, result)).is_err() {
                 eprintln!("Job results can't be sent to receiver");
             };
         });

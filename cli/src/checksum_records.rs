@@ -67,7 +67,7 @@ impl ChecksumRecords {
 
             // With clean job, the involved targets are the ones that has been deleted.
             for target in &dev_items.involved_targets {
-                prod_records.remove_hash_if_exist(*target);
+                prod_records.remove_hash_if_exist(*target)?;
             }
 
             prod_records

@@ -324,7 +324,7 @@ impl Target {
             Err(err) => return Some(Err(err)),
         };
 
-        while let Some(next_result) = spawn_results.next() {
+        for next_result in spawn_results {
             match next_result {
                 Ok(next_res) => result.append(next_res),
                 Err(err) => return Some(Err(err)),

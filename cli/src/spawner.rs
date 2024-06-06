@@ -1,6 +1,3 @@
-// TODO AAZ: Remove this when done prototyping
-#![allow(dead_code, unused_imports, unused)]
-
 use crate::{jobs_runner::JobDefinition, location::get_root, tracker::get_tracker};
 use anyhow::{bail, Context};
 use core::panic;
@@ -15,7 +12,6 @@ use tokio::{
 };
 
 #[derive(Clone, Debug)]
-//TODO AAZ: Move this to its own file
 pub struct SpawnResult {
     pub report: Vec<String>,
     pub status: ExitStatus,

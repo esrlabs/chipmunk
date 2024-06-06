@@ -127,8 +127,8 @@ impl Tracker {
                             Self::refresh_all_bars(&mut bars, max_time_len, None);
                         }
 
-                        if let Err(_) = tx_response.send(()) {
-                            let _ = mp.println(format!("Fail to send response while starting the jobs"));
+                        if tx_response.send(()).is_err() {
+                            let _ = mp.println("Fail to send response while starting the jobs");
                         }
                     }
                     Tick::StartAll(jobs, tx_response ) => {
@@ -141,8 +141,8 @@ impl Tracker {
                         }
 
                         Self::refresh_all_bars(&mut bars, max_time_len, None);
-                        if let Err(_) = tx_response.send(()) {
-                            let _ = mp.println(format!("Fail to send response while starting the jobs"));
+                        if tx_response.send(()).is_err() {
+                            let _ = mp.println("Fail to send response while starting the jobs");
                         }
                     }
                     Tick::Message(job_def, log) => {
