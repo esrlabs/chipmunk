@@ -213,7 +213,7 @@ impl Target {
             JobType::Install { production: _ } => {
                 matches!(
                     self,
-                    Target::Binding | Target::Client | Target::Shared | Target::App
+                    Target::Binding | Target::Client | Target::Shared | Target::App | Target::Wasm
                 )
             }
             JobType::AfterBuild { production: _ } => matches!(self, Target::Binding | Target::App),
@@ -506,7 +506,12 @@ async fn install_general(
     job_type: JobType,
     overridden_target: Option<Target>,
 ) -> Option<Result<SpawnResult, anyhow::Error>> {
-    let cmd = target.kind().install_cmd(prod).await;
+    let cmd = match target {
+        // Wasm needs `yarn install` command despite having the kind `TargetKind::Rs`
+        Target::Wasm => TargetKind::Ts.install_cmd(prod).await,
+        t => t.kind().install_cmd(prod).await,
+    };
+
     let job_def = JobDefinition::new(overridden_target.unwrap_or(target), job_type);
 
     if let Some(cmd) = cmd {
