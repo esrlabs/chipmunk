@@ -7,7 +7,7 @@ export abstract class Matchee {
     constructor(matcher: wasm.Matcher, item: object | undefined) {
         this._matcher = matcher;
         if (item !== undefined) {
-            this._index = this._matcher.set_item(JSON.stringify(item));
+            this._index = this._matcher.set_item(item);
         }
     }
 
@@ -19,7 +19,9 @@ export abstract class Matchee {
     }
 
     protected setItem(item: object) {
-        this._index = this._matcher.set_item(JSON.stringify(item));
+        if (item !== undefined) {
+            this._index = this._matcher.set_item(item);
+        }
     }
 
     protected getHtmlOf(key: string): string | undefined {
@@ -63,7 +65,7 @@ export function createPassiveMatcheeList<T extends PassiveMatchee>(
     list: T[],
     matcher: wasm.Matcher,
 ): T[] {
-    const from: number = matcher.set_items(JSON.stringify(list.map((i) => i.asObj())));
+    const from: number = matcher.set_items(list.map((i) => i.asObj()));
     list.forEach((item, i) => {
         item.setIndex(from + i);
     });
