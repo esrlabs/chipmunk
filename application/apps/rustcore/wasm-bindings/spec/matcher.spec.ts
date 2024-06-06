@@ -1,4 +1,3 @@
-
 class Item {
     private _name: string;
     private _size: string;
@@ -43,7 +42,7 @@ describe('test', function () {
             new Item('medium_sized_file.txt', '15mb', '/home/user/Desktop/medium_sized_file.txt'),
         ];
         items.forEach((item: Item) => {
-            item.index = matcher.set_item(JSON.stringify(item.get()));
+            item.index = matcher.set_item(item.get());
         });
         matcher.search(query, tag);
         items.sort((a: Item, b: Item) => {
