@@ -20,7 +20,6 @@ mod binding;
 mod cli;
 mod client;
 mod core;
-mod shared;
 mod target_kind;
 mod updater;
 mod wasm;
@@ -217,10 +216,7 @@ impl Target {
                     Target::Binding | Target::Client | Target::Shared | Target::App
                 )
             }
-            JobType::AfterBuild { production: _ } => matches!(
-                self,
-                Target::Shared | Target::Binding | Target::Wrapper | Target::App
-            ),
+            JobType::AfterBuild { production: _ } => matches!(self, Target::Binding | Target::App),
             JobType::Test { production: _ } => matches!(
                 self,
                 Target::Wrapper | Target::Core | Target::Cli | Target::Wasm
@@ -483,8 +479,6 @@ impl Target {
 
         let after_res = match self {
             Target::Binding => binding::copy_index_node(job_def).await,
-            Target::Wrapper => wrapper::copy_binding_to_app(job_def).await,
-            Target::Shared => shared::copy_platform_to_binding(job_def).await,
             Target::App => app::copy_client_to_app(job_def).await,
             _ => return None,
         };

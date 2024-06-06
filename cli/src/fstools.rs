@@ -1,8 +1,6 @@
 extern crate fs_extra;
 use anyhow::{Context, Error};
-use fs_extra::copy_items_with_progress;
 use fs_extra::dir::{copy_with_progress, CopyOptions, TransitProcess, TransitProcessResult};
-use std::fmt::Display;
 use std::sync::mpsc;
 use std::{fs, path::PathBuf};
 
@@ -80,55 +78,6 @@ pub async fn cp_folder(
     }
 
     let msg = format!("copied: {path_display}");
-    tracker.msg(job_def, msg).await;
-    Ok(())
-}
-
-/// Spawn a job to Copy a collection of files and folders recursively, adding copying info to the
-/// log records
-pub async fn cp_many(
-    job_def: JobDefinition,
-    items: Vec<PathBuf>,
-    dest: PathBuf,
-    general_source: impl Display,
-    logs: &mut Vec<String>,
-) -> Result<(), Error> {
-    let options = CopyOptions::new();
-    let (tx, rx) = mpsc::channel();
-    let path_display = format!("from '{}' to '{}'", general_source, dest.display());
-
-    logs.extend(
-        items
-            .iter()
-            .map(|item| format!("Item: '{}' copied to '{}'", item.display(), dest.display())),
-    );
-
-    let tracker = get_tracker().await;
-    tracker.msg(job_def, "copying files".into()).await;
-    let _ = tokio::spawn(async move {
-        copy_items_with_progress(&items, dest, &options, |info| {
-            if tx.send(info).is_err() {
-                eprintln!("Fail to send copying progress");
-            }
-            TransitProcessResult::ContinueOrAbort
-        })
-    })
-    .await
-    .with_context(|| format!("Error while copying: {path_display}"))?;
-    while let Ok(info) = rx.recv() {
-        tracker
-            .msg(
-                job_def,
-                format!(
-                    "copied: {} bytes; current: {}",
-                    info.copied_bytes, info.file_name
-                ),
-            )
-            .await;
-        tracker.progress(job_def, None).await;
-    }
-
-    let msg = format!("copied files: {path_display}");
     tracker.msg(job_def, msg).await;
     Ok(())
 }

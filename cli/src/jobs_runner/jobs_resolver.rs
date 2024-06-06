@@ -246,18 +246,10 @@ mod tests {
                 )],
             ),
             (
-                JobDefinition::new(Target::Shared, JobType::AfterBuild { production }),
-                vec![
-                    JobDefinition::new(Target::Shared, JobType::Install { production }),
-                    JobDefinition::new(Target::Shared, JobType::Build { production }),
-                ],
-            ),
-            (
                 JobDefinition::new(Target::Binding, JobType::Install { production }),
                 vec![
                     JobDefinition::new(Target::Shared, JobType::Install { production }),
                     JobDefinition::new(Target::Shared, JobType::Build { production }),
-                    JobDefinition::new(Target::Shared, JobType::AfterBuild { production }),
                 ],
             ),
             (
@@ -265,7 +257,6 @@ mod tests {
                 vec![
                     JobDefinition::new(Target::Shared, JobType::Install { production }),
                     JobDefinition::new(Target::Shared, JobType::Build { production }),
-                    JobDefinition::new(Target::Shared, JobType::AfterBuild { production }),
                     JobDefinition::new(Target::Binding, JobType::Install { production }),
                 ],
             ),

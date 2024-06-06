@@ -1,10 +1,8 @@
 use std::{iter, path::PathBuf};
 
-use anyhow::{anyhow, Context};
-use std::fs;
+use anyhow::anyhow;
 
 use crate::{
-    fstools,
     job_type::JobType,
     jobs_runner::JobDefinition,
     spawner::{spawn, spawn_blocking, SpawnResult},
@@ -98,117 +96,4 @@ pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
     }
 
     final_result.ok_or_else(|| anyhow!("Wrapper doesn't have test specs"))
-}
-
-pub async fn copy_binding_to_app(job_def: JobDefinition) -> Result<SpawnResult, anyhow::Error> {
-    let mut report_logs = Vec::new();
-
-    // *** Copying TS Bindings ***
-    report_logs.push(String::from("Copying ts-bindings to electron..."));
-    let rustcore_dest = Target::App.cwd().join("node_modules").join("rustcore");
-
-    fstools::rm_folder(job_def, &rustcore_dest).await?;
-
-    let msg = format!("Removing directory: '{}'", rustcore_dest.display());
-    report_logs.push(msg);
-
-    fs::create_dir_all(&rustcore_dest)
-        .with_context(|| format!("Error while creating directory {}", rustcore_dest.display()))?;
-
-    // This part to get all the needed files and folders to copy
-    let ts_source = Target::Wrapper.cwd();
-    let with_context = fs::read_dir(&ts_source).with_context(|| {
-        format!(
-            "Error while reading directory content: {}",
-            ts_source.display()
-        )
-    });
-    let ts_entries_to_copy: Vec<_> = with_context?
-        .filter_map(|entry_res| entry_res.ok().map(|entry| entry.path()))
-        .filter(|path| {
-            path.file_name()
-                .is_some_and(|file_name| !file_name.to_string_lossy().starts_with("node_modules"))
-        })
-        .collect();
-
-    fstools::cp_many(
-        job_def,
-        ts_entries_to_copy,
-        rustcore_dest.clone(),
-        ts_source.display(),
-        &mut report_logs,
-    )
-    .await?;
-
-    // *** Remove native folder ***
-    let native_dir_path = rustcore_dest.join("native");
-    report_logs.push(format!(
-        "Removing the directory '{}'",
-        native_dir_path.display()
-    ));
-
-    fstools::rm_folder(job_def, &native_dir_path).await?;
-
-    // *** Copy Platform rustcore to electron ***
-    report_logs.push(String::from("Copying platform rustcore in to electron..."));
-    let platform_dest = rustcore_dest.join("node_modules").join("platform");
-
-    fstools::rm_folder(job_def, &platform_dest).await?;
-    fs::create_dir_all(&platform_dest).with_context(|| {
-        format!(
-            "Error while creating directory: {}",
-            platform_dest.display()
-        )
-    })?;
-
-    let platform_src = Target::Shared.cwd();
-
-    let platform_entries_to_copy: Vec<_> = fs::read_dir(&platform_src)
-        .with_context(|| {
-            format!(
-                "Error while reading directory content: {}",
-                platform_src.display()
-            )
-        })?
-        .filter_map(|entry_res| entry_res.ok().map(|entry| entry.path()))
-        .filter(|path| {
-            path.file_name()
-                .is_some_and(|file_name| !file_name.to_string_lossy().starts_with("node_modules"))
-        })
-        .collect();
-
-    fstools::cp_many(
-        job_def,
-        platform_entries_to_copy.clone(),
-        platform_dest,
-        platform_src.display(),
-        &mut report_logs,
-    )
-    .await?;
-
-    // *** Copy Platform to electron ***
-    report_logs.push(String::from("Copying platform in to electron..."));
-    let platform_dest2 = Target::App.cwd().join("node_modules").join("platform");
-
-    fstools::rm_folder(job_def, &platform_dest2).await?;
-    fs::create_dir_all(&platform_dest2).with_context(|| {
-        format!(
-            "Error while creating directory: {}",
-            platform_dest2.display()
-        )
-    })?;
-
-    fstools::cp_many(
-        job_def,
-        platform_entries_to_copy,
-        platform_dest2,
-        platform_src.display(),
-        &mut report_logs,
-    )
-    .await?;
-
-    Ok(SpawnResult::create_for_fs(
-        "Copy TS Bindings and Platform to Electron".into(),
-        report_logs,
-    ))
 }
