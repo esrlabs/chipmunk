@@ -23,7 +23,10 @@ pub fn resolve(
     let mut jobs_tree: BTreeMap<JobDefinition, Vec<JobDefinition>> = BTreeMap::new();
 
     for target in involved_targets {
-        for job in involved_jobs.iter().filter(|j| target.has_job(j)) {
+        for job in involved_jobs
+            .iter()
+            .filter(|j| is_job_involved(&target, j, &main_job))
+        {
             // Start with dependencies from other targets (Applies for Build & Install jobs only)
             // Install jobs are involved here too because copying the files in the after build
             // process could delete the current files.
@@ -101,6 +104,25 @@ fn flatten_targets_for_build(targets: &[Target]) -> BTreeSet<Target> {
     resolved_targets
 }
 
+/// Check if job involved depending if the target has a job for the current job type + Additional
+/// filter based on the main job type (Currently used because TS linting require all build steps)
+///
+/// * `target`: Job Target
+/// * `current_job`: Current job type to check if it has job for the given target
+/// * `main_job`: Main job type, which is used for the additional filter
+fn is_job_involved(target: &Target, current_job: &JobType, main_job: &JobType) -> bool {
+    let additional_filter = match (main_job, target) {
+        // For linting TS targets we need to build all their dependencies targets that have impact
+        // on building TS. Therefore we can exclude Core and CLI and Updater only.
+        (JobType::Lint, Target::Core | Target::Cli | Target::Updater) => {
+            matches!(current_job, JobType::Lint)
+        }
+        _ => true,
+    };
+
+    additional_filter && target.has_job(current_job)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -114,7 +136,12 @@ mod tests {
     #[test]
     fn flatten_lint_job() {
         let production = false;
-        let expected_lint = BTreeSet::from([JobType::Lint, JobType::Install { production }]);
+        let expected_lint = BTreeSet::from([
+            JobType::Lint,
+            JobType::Install { production },
+            JobType::Build { production },
+            JobType::AfterBuild { production },
+        ]);
         assert_eq!(flatten_jobs(JobType::Lint), expected_lint);
     }
 

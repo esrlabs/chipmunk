@@ -32,7 +32,8 @@ impl ChecksumRecords {
     pub async fn update_and_save(job_type: JobType) -> anyhow::Result<()> {
         // calculate should be involved when build is called at some point of the job
         let (calculate_involved, prod) = match &job_type {
-            JobType::Lint => return Ok(()),
+            // Linting build targets for TS targets and their dependencies
+            JobType::Lint => (true, false),
             JobType::Build { production }
             | JobType::Run { production }
             | JobType::Test { production } => (true, *production),

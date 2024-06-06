@@ -4,11 +4,11 @@ use std::fmt::Display;
 //NOTE: The order of job types must match the runnig-order of them because it's used by
 // solving their dependencies-graph using BTreeMap
 pub enum JobType {
-    Lint,
     Clean,
     Install { production: bool },
     Build { production: bool },
     AfterBuild { production: bool },
+    Lint,
     Test { production: bool },
     Run { production: bool },
 }
@@ -42,7 +42,8 @@ impl JobType {
     /// Returns job types that are involved with this job and should run with it.
     pub fn get_involved_jobs(&self) -> Vec<JobType> {
         match self {
-            JobType::Lint => vec![JobType::Install { production: false }],
+            // Linting TS needs to building too to check for type errors
+            JobType::Lint => vec![JobType::Build { production: false }],
             JobType::Build { production } => vec![
                 // Install run always in development at first then it should get reinstalled with
                 // production after build command is ran.

@@ -347,21 +347,9 @@ impl Target {
         let path = self.cwd();
         let yarn_cmd = DevTool::Yarn.path().await.to_string_lossy();
         let job_def = JobDefinition::new(*self, JobType::Lint);
-        let status = spawn(
-            job_def,
-            format!("{} run lint", yarn_cmd),
-            Some(path.clone()),
-            iter::empty(),
-            None,
-        )
-        .await?;
-        if !status.status.success() {
-            return Ok(status);
-        }
-
         spawn(
             job_def,
-            format!("{} run build", yarn_cmd),
+            format!("{} run lint", yarn_cmd),
             Some(path),
             iter::empty(),
             None,
