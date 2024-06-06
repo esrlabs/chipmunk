@@ -31,6 +31,7 @@ impl Display for DevTool {
 }
 
 impl DevTool {
+    /// Returns all needed tools to chipmunk development
     pub fn all() -> &'static [DevTool] {
         if cfg!(debug_assertions) {
             // This check to remember to add the newly added enums to this function

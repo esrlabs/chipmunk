@@ -1,6 +1,10 @@
 use crate::{job_type::JobType, spawner::SpawnResult, target::Target, tracker::get_tracker};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+/// Represents a development job definition
+///
+/// * `target`: Job Target (Shared, Client...)
+/// * `job_type`: Job Type (Build, Test...)
 pub struct JobDefinition {
     pub target: Target,
     pub job_type: JobType,
@@ -11,6 +15,7 @@ impl JobDefinition {
         Self { target, job_type }
     }
 
+    /// Provide formatted job title with target and job type infos
     pub fn job_title(&self) -> String {
         format!("{} {}", self.target, self.job_type)
     }

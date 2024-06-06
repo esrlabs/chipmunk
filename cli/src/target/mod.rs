@@ -154,7 +154,7 @@ impl Target {
         .as_slice()
     }
 
-    /// Provides the absolute path to the target code
+    /// Provides the absolute path to the target
     pub fn cwd(&self) -> PathBuf {
         let root = get_root();
         let relative_path = self.relative_cwd();
@@ -162,6 +162,7 @@ impl Target {
         root.join(relative_path)
     }
 
+    /// Provides the relative path to the target starting from chipmunk root directory
     pub fn relative_cwd(&self) -> PathBuf {
         let sub_parts = match self {
             Target::Core => ["application", "apps", "indexer"].iter(),
@@ -206,6 +207,7 @@ impl Target {
         }
     }
 
+    /// Returns if the current target has a job to the given job type
     pub fn has_job(&self, job_type: &JobType) -> bool {
         match job_type {
             JobType::Lint | JobType::Clean | JobType::Build { production: _ } => true,

@@ -73,6 +73,8 @@ impl JobType {
 
 #[cfg(test)]
 impl JobType {
+    /// Returns all existing targets with production set to false for the types with
+    /// production infos
     pub fn all() -> &'static [JobType] {
         if cfg!(debug_assertions) {
             // This check to remember to add the newly added enums to this function

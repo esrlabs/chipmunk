@@ -27,7 +27,7 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
 
     let tracker = get_tracker().await;
     tracker
-        .start_all(jobs_tree.keys().cloned().collect())
+        .register_all(jobs_tree.keys().cloned().collect())
         .await?;
 
     let mut jobs_status: BTreeMap<JobDefinition, JobPhase> = jobs_tree

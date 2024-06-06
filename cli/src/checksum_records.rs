@@ -27,6 +27,8 @@ struct ChecksumItems {
 }
 
 impl ChecksumRecords {
+    /// Update checksum records for involved jobs depending on the job type.
+    /// It will calculate new checksums if build tasks were involved.
     pub async fn update_and_save(job_type: JobType) -> anyhow::Result<()> {
         // calculate should be involved when build is called at some point of the job
         let (calculate_involved, prod) = match &job_type {
@@ -75,6 +77,7 @@ impl ChecksumRecords {
         Ok(())
     }
 
+    /// Returns a reference to checksums records manager singleton
     pub async fn get(production: bool) -> anyhow::Result<&'static ChecksumRecords> {
         static CHECKSUM_RECORDS: OnceCell<anyhow::Result<ChecksumRecords>> = OnceCell::const_new();
 

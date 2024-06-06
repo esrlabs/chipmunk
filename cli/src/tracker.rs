@@ -276,7 +276,9 @@ impl Tracker {
         count
     }
 
-    pub async fn start_all(&self, jobs: Vec<JobDefinition>) -> Result<(), Error> {
+    /// Registers all the given jobs setting their status to awaiting.
+    /// This function should be called once on the start of running the tasks
+    pub async fn register_all(&self, jobs: Vec<JobDefinition>) -> Result<(), Error> {
         let (tx_response, rx_response) = oneshot::channel();
         self.tx
             .send(Tick::StartAll(jobs, tx_response))

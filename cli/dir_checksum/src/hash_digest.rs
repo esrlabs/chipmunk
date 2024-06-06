@@ -51,10 +51,12 @@ impl<'a> From<&'a HashDigest> for &'a [u8; OUT_LEN] {
 }
 
 impl HashDigest {
+    /// Returns a reference to the hash as bytes.
     pub fn as_bytes(&self) -> &[u8; OUT_LEN] {
         self.hash.as_bytes()
     }
 
+    /// Convert the hash to bytes consuming itself.
     pub fn to_bytes(self) -> [u8; OUT_LEN] {
         self.hash.into()
     }
