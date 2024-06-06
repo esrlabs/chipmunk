@@ -1,6 +1,3 @@
-//TODO AAZ: Remove this when done prototyping
-#![allow(dead_code, unused_imports, unused)]
-
 use std::{
     collections::{btree_map, BTreeMap, BTreeSet},
     fs::{self, File},

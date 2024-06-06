@@ -145,7 +145,12 @@ async fn spawn_jobs(
             };
 
             if sender.send((job_def, result)).is_err() {
-                eprintln!("Job results can't be sent to receiver");
+                let tracker = get_tracker().await;
+                tracker
+                    .print(format!(
+                        "Error: Job results can't be sent to receiver. Job: {job_def:?}"
+                    ))
+                    .await;
             };
         });
 

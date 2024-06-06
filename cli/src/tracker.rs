@@ -100,13 +100,13 @@ pub async fn get_tracker() -> &'static Tracker {
 }
 
 impl Tracker {
-    pub fn new() -> Self {
+    fn new() -> Self {
         let (tx, rx): (UnboundedSender<Tick>, UnboundedReceiver<Tick>) = unbounded_channel();
         tokio::spawn(Tracker::run(rx));
         Self { tx }
     }
 
-    pub async fn run(mut rx: UnboundedReceiver<Tick>) -> Result<(), Error> {
+    async fn run(mut rx: UnboundedReceiver<Tick>) -> Result<(), Error> {
         let spinner_style =
             ProgressStyle::with_template("{spinner} {prefix:.bold.dim} {wide_msg}")?
                 .tick_chars("▂▃▅▆▇▆▅▃▂ ");
@@ -339,7 +339,7 @@ impl Tracker {
     }
 
     /// Prints the given text outside the progress bar
-    pub async fn _print(&self, msg: String) {
+    pub async fn print(&self, msg: String) {
         if let Err(e) = self
             .tx
             .send(Tick::Print(msg))

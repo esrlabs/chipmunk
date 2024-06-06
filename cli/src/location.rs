@@ -13,7 +13,7 @@ pub struct Location {
 }
 
 impl Location {
-    pub fn new() -> Result<Location, Error> {
+    fn new() -> Result<Location, Error> {
         let current_dir = current_dir()?;
         let repo =
             Repository::discover(current_dir).context("Fail to find chipmunk root directory")?;
