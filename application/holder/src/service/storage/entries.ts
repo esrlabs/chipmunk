@@ -10,7 +10,14 @@ export type Reader = (key: string) => Promise<string>;
 export class Entries {
     static from(str: string, storageKey: string, logger: Logger): Map<string, Entry> {
         const entries = new Map<string, Entry>();
-        const parsed = JSON.parse(str) as Entry[];
+        const parsed = ((): Entry[] => {
+            try {
+                const inner = JSON.parse(str);
+                return typeof inner === 'string' ? JSON.parse(inner) : inner;
+            } catch (e) {
+                throw new Error(`Fail to parse Entry[] from string: ${error(e)}`);
+            }
+        })();
         if (!(parsed instanceof Array)) {
             throw new Error(
                 `Invalid format: expecting an Entry[], but has been gotten: ${typeof parsed}`,

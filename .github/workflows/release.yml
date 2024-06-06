@@ -63,6 +63,10 @@ jobs:
         run: cargo install nj-cli
       - name: install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: enable corepack for yarnpkg upgrade
+        run: |
+          corepack enable
+          yarn cache clean
       - name: setup keychain for signing and notarising
         if: runner.os == 'macOS'
         env:

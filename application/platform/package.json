@@ -32,6 +32,9 @@
         "tslib": "^2.6.2",
         "typescript": "^5.2.2"
     },
+    "dependencies": {
+        "tslib": "^2.6.2"
+    },
     "scripts": {
         "build": "node_modules/.bin/tsc -p tsconfig.json",
         "prod": "node_modules/.bin/tsc -p tsconfig.json",
@@ -141,5 +144,5 @@
         "./types/github/filter": "./dist/types/github/filter.js",
         "./package.json": "./package.json"
     },
-    "packageManager": "yarn@1.22.19"
+    "packageManager": "yarn@4.2.2"
 }

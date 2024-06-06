@@ -1,7 +1,34 @@
-# 3.12.5 (26.04.2024)
+# 3.12.8 (24.05.2024)
 
-## Added
-- Support ARM64 for MacOS
+## Fixes
+- Fix issue on stopping observing 
+
+# 3.12.7 (17.05.2024)
+
+## Changes
+- Allow open files from favorites by dblclick
+
+## Fixes
+- Fix the import/export presets feature
+- Fix logger. Make it react to envvars correctly
+
+## Updates
+- Upgrade electron version
+
+# 3.12.6 (10.05.2024)
+
+## Changes
+- Up electron version to 30.x.x
+
+# 3.12.5 (08.05.2024)
+
+## Changes
+- Check filters/charts during importing
+- Highlight invalid filters/charts in sidebar
+- Prevent search with invalid conditions
+- Better error reporting on search fail
+- Correction of filters/charts styles (sidebar)
+- Allow modification of invalid filters/charts
 
 # 3.12.4 (19.04.2024)
 

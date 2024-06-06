@@ -31,7 +31,7 @@ namespace :electron do
     puts 'trying to install electron yarn stuff'
     Shell.chdir(Paths::ELECTRON) do
       Reporter.log 'Installing Electron libraries'
-      duration = Shell.timed_sh('yarn install', 'yarn install electron')
+      duration = Shell.timed_sh("yarn install", 'yarn install electron')
       Reporter.done('electron', 'installing', '', duration)
     end
   end
@@ -48,30 +48,6 @@ namespace :electron do
     duration = Shell.cp_r "#{Client.client_dist(:production)}/.", Paths::ELECTRON_CLIENT_DEST, 'copy client to electron'
     short_dest = Reporter.short_path(Paths::ELECTRON_CLIENT_DEST)
     Reporter.done('client', "copy client to #{short_dest}", '', duration)
-  end
-
-  task copy_tsbindings_and_platform: ['bindings:build', 'platform:build'] do
-    rustcore_dest = "#{Paths::ELECTRON}/node_modules/rustcore"
-    Shell.rm_rf(rustcore_dest)
-    FileUtils.mkdir_p rustcore_dest
-    files_to_copy = Dir["#{Paths::TS_BINDINGS}/*"].reject { |f| File.basename(f) == 'node_modules' }
-    duration = Shell.cp_r files_to_copy, rustcore_dest, 'copy ts-bindings to electron'
-    short_dest = Reporter.short_path(Paths::ELECTRON_CLIENT_DEST)
-    Reporter.done('electron', "copy ts-bindings to #{short_dest}", '', duration)
-    Shell.rm_rf("#{rustcore_dest}/native")
-    platform_dest = "#{rustcore_dest}/node_modules/platform"
-    Shell.rm_rf(platform_dest)
-    FileUtils.mkdir_p platform_dest
-    platform_files_to_copy = Dir["#{Paths::PLATFORM}/*"].reject { |f| File.basename(f) == 'node_modules' }
-    duration = Shell.cp_r platform_files_to_copy, platform_dest, 'copy platform rustcore in to electron'
-    Reporter.done('electron', "copy platform to #{short_dest}", '', duration)
-    # update electron dependencies manually since it's a local dependency and update does
-    # not work since we do not change the module versions
-    platform_dest2 = "#{Electron::NODE_MODULES}/platform"
-    Shell.rm_rf(platform_dest2)
-    FileUtils.mkdir_p platform_dest2
-    duration = Shell.cp_r platform_files_to_copy, platform_dest2, 'copy platform to electron'
-    Reporter.done('electron', "copy platform to #{short_dest}", '', duration)
   end
 
   task do_build: 'updater:build' do
@@ -95,7 +71,7 @@ namespace :electron do
 
   desc 'build dev version of electron'
   task build_dev: [
-    'electron:copy_tsbindings_and_platform',
+    'bindings:build',
     'electron:install',
     'electron:copy_client_debug',
     'environment:check',
@@ -106,7 +82,7 @@ namespace :electron do
 
   desc 'build production version of electron'
   task build_prod: [
-    'electron:copy_tsbindings_and_platform',
+    'bindings:build',
     'electron:install',
     'electron:copy_client_prod',
     'environment:check',
@@ -123,8 +99,8 @@ namespace :electron do
     end
   end
 
-  desc 'tsc comile check electron'
-  task check: ['electron:install', 'wasm:build', 'electron:copy_tsbindings_and_platform'] do
+  desc 'tsc compile check electron'
+  task check: ['electron:install', 'wasm:build', 'bindings:build'] do
     Shell.chdir(Paths::ELECTRON) do
       duration = Shell.timed_sh 'yarn run check', 'tsc check electron'
       Reporter.done('electron', 'check', '', duration)

@@ -177,7 +177,7 @@ export class Service extends Implementation {
                 if (this.logger === undefined) {
                     this.logger = new Logger('CLIENT');
                 }
-                Logger.post(`[C]${event.message}`, event.level);
+                this.logger.publish(`[C]${event.message}`, event.level);
                 this.logger.store(`[C]${event.message}`, event.level);
             }),
         );

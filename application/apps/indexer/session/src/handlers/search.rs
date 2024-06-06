@@ -37,11 +37,16 @@ pub async fn execute_search(
     state.drop_search().await?;
     let (rows, read_bytes) = state.get_stream_len().await?;
     let mut holder = state.get_search_holder(operation_api.id()).await?;
-    holder.setup(filters.clone()).map_err(|e| NativeError {
+    if let Err(err) = holder.setup(filters.clone()).map_err(|e| NativeError {
         severity: Severity::ERROR,
         kind: NativeErrorKind::OperationSearch,
         message: Some(format!("Fail to setup search terms: {e}")),
-    })?;
+    }) {
+        state
+            .set_search_holder(Some(holder), operation_api.id())
+            .await?;
+        return Err(err);
+    }
     if filters.is_empty() {
         debug!("RUST: Search are dropped. Filters are empty");
         state

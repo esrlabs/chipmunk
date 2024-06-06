@@ -452,4 +452,73 @@ describe('Errors', () => {
                 });
         });
     });
+
+    it(config.regular.list[10], function () {
+        return runner(config.regular, 10, async (logger, done, _collector) => {
+            Session.create()
+                .then((session: Session) => {
+                    // Set provider into debug mode
+                    session.debug(true, config.regular.list[10]);
+                    const stream = session.getStream();
+                    const search = session.getSearch();
+                    const events = session.getEvents();
+                    if (events instanceof Error) {
+                        finish(session, done, events);
+                        return;
+                    }
+                    if (stream instanceof Error) {
+                        return finish(session, done, stream);
+                    }
+                    if (search instanceof Error) {
+                        return finish(session, done, search);
+                    }
+                    const tmpobj = createSampleFile(
+                        5000,
+                        logger,
+                        (i: number) =>
+                            `[${i}]:: ${
+                                i % 100 === 0 || i <= 5
+                                    ? `some match line data\n`
+                                    : `some line data\n`
+                            }`,
+                    );
+                    stream
+                        .observe(
+                            new Factory.File()
+                                .asText()
+                                .type(Factory.FileType.Text)
+                                .file(tmpobj.name)
+                                .get()
+                                .sterilized(),
+                        )
+                        .on('processing', () => {
+                            search
+                                .search([
+                                    {
+                                        filter: 'invalid search { condition',
+                                        flags: { reg: true, word: false, cases: false },
+                                    },
+                                ])
+                                .then((_) => {
+                                    finish(session, done, new Error(`Search should be failed`));
+                                })
+                                .catch((_err: Error) => {
+                                    finish(session, done);
+                                });
+                        })
+                        .catch(finish.bind(null, session, done));
+                })
+                .catch((err: Error) => {
+                    finish(
+                        undefined,
+                        done,
+                        new Error(
+                            `Fail to create session due error: ${
+                                err instanceof Error ? err.message : err
+                            }`,
+                        ),
+                    );
+                });
+        });
+    });
 });

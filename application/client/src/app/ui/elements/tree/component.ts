@@ -182,13 +182,12 @@ export class ElementsTreeSelector
         if (entity.isFolder()) {
             return;
         }
-        // TODO: Needs implementation >>>>>>>>>>>>>>>>>>>>>>>
-        // this.ilc()
-        //     .services.system.opener.text(entity.getPath())
-        //     .auto()
-        //     .catch((err: Error) => {
-        //         this.log().error(`Fail to open text file; error: ${err.message}`);
-        //     });
+        this.ilc()
+            .services.system.session.initialize()
+            .suggest(entity.getPath())
+            .catch((err: Error) => {
+                this.log().error(`Fail open file: ${entity.getPath()}: ${err.message}`);
+            });
     }
 
     public onScrolling(event: Event) {

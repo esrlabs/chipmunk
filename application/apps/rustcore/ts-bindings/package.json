@@ -22,7 +22,7 @@
     "@typescript-eslint/eslint-plugin": "^7.2.0",
     "@typescript-eslint/parser": "^7.2.0",
     "custom.stdout": "^1.0.2",
-    "electron": "^29.1.4",
+    "electron": "^30.0.6",
     "electron-build-env": "0.2.0",
     "electron-rebuild": "^3.2.5",
     "eslint": "^8.50.0",
@@ -36,9 +36,9 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "platform": "file:../../../platform",
+    "platform": "link:../../../platform",
     "tslib": "^2.6.2",
     "uuid": "^9.0.1"
   },
-  "packageManager": "yarn@1.22.19"
+  "packageManager": "yarn@4.2.2"
 }

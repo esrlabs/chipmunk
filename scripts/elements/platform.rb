@@ -85,7 +85,7 @@ namespace :platform do
   task :install do
     Shell.chdir(Paths::PLATFORM) do
       Reporter.log 'Installing platform libraries'
-      duration = Shell.timed_sh('yarn install', 'yarn install platform')
+      duration = Shell.timed_sh("yarn install", 'yarn install platform')
       Reporter.done('platform', 'installing', '', duration)
     end
   end

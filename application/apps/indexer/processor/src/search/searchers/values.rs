@@ -30,6 +30,21 @@ pub fn as_regex(filter: &str) -> String {
     format!("(?i){filter}(?-i)")
 }
 
+/// Validate search condition. Checks possibility to convert
+/// given string into RegEx
+///
+/// # Arguments
+///
+/// * `filter` - Regular expression as a string
+///
+/// # Returns
+///
+/// `true` in case of valid condition; `false` - invalid
+///
+fn is_valid(filter: &str) -> bool {
+    Regex::from_str(&as_regex(filter)).is_ok()
+}
+
 #[derive(Debug)]
 pub struct ValueSearchState {
     pub file_path: PathBuf,
@@ -44,6 +59,15 @@ pub type ValueSearchHolder = BaseSearcher<ValueSearchState>;
 
 impl ValueSearchHolder {
     pub fn setup(&mut self, terms: Vec<String>) -> Result<(), SearchError> {
+        let invalid = terms
+            .iter()
+            .filter(|f| !is_valid(f))
+            .cloned()
+            .collect::<Vec<String>>()
+            .join("; ");
+        if !invalid.is_empty() {
+            Err(SearchError::Input(format!("Invalid filters: {invalid}")))?;
+        }
         let mut matchers = vec![];
         for filter in terms.iter() {
             matchers.push(Regex::from_str(&as_regex(filter)).map_err(|err| {

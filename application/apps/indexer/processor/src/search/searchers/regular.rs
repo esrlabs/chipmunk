@@ -45,6 +45,16 @@ pub type RegularSearchHolder = BaseSearcher<RegularSearchState>;
 
 impl RegularSearchHolder {
     pub fn setup(&mut self, filters: Vec<SearchFilter>) -> Result<(), SearchError> {
+        let invalid = filters
+            .iter()
+            .filter(|&f| !f.valid())
+            .map(|f| &f.value)
+            .cloned()
+            .collect::<Vec<String>>()
+            .join("; ");
+        if !invalid.is_empty() {
+            Err(SearchError::Input(format!("Invalid filters: {invalid}")))?;
+        }
         let mut aliases = HashMap::new();
         let mut matchers = vec![];
         for (pos, filter) in filters.iter().enumerate() {

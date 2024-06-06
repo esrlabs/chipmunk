@@ -67,9 +67,9 @@ export class Dialogs extends Implementation {
     } {
         const opener = async (target: number, ext?: string): Promise<string[]> => {
             let results;
+            this.fixFocusAndMouse();
             switch (target) {
                 case 0:
-                    this.fixFocusAndMouse();
                     results = await dialog.showOpenDialog(this._window, {
                         title: 'Opening a file',
                         properties: ['openFile', 'multiSelections'],
@@ -85,7 +85,6 @@ export class Dialogs extends Implementation {
                     });
                     break;
                 case 1:
-                    this.fixFocusAndMouse();
                     results = await dialog.showOpenDialog(this._window, {
                         title: 'Opening a DLT file',
                         properties: ['openFile', 'multiSelections'],
@@ -93,7 +92,6 @@ export class Dialogs extends Implementation {
                     });
                     break;
                 case 2:
-                    this.fixFocusAndMouse();
                     results = await dialog.showOpenDialog(this._window, {
                         title: 'Opening a PCAPNG file',
                         properties: ['openFile', 'multiSelections'],
@@ -101,7 +99,6 @@ export class Dialogs extends Implementation {
                     });
                     break;
                 case 3:
-                    this.fixFocusAndMouse();
                     results = await dialog.showOpenDialog(this._window, {
                         title: 'Opening a PCAP file',
                         properties: ['openFile', 'multiSelections'],

@@ -34,7 +34,7 @@ namespace :client do
   task :install do
     Shell.chdir(Paths::CLIENT) do
       Reporter.log 'Installing client libraries'
-      duration = Shell.timed_sh('yarn install', 'yarn install client')
+      duration = Shell.timed_sh("yarn install", 'yarn install client')
       Reporter.done('client', 'installing', '', duration)
     end
   end
@@ -64,8 +64,8 @@ namespace :client do
     end
   end
 
-  desc 'tsc comile check client'
-  task check: ['client:install', 'wasm:build', 'electron:copy_tsbindings_and_platform'] do
+  desc 'tsc compile check client'
+  task check: ['client:install', 'wasm:build', 'bindings:build'] do
     Shell.chdir(Paths::CLIENT) do
       duration = Shell.timed_sh 'yarn run check', 'tsc check client'
       Reporter.done('client', 'check', '', duration)

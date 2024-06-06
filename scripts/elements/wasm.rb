@@ -32,7 +32,7 @@ namespace :wasm do
   task :install do
     Shell.chdir(Paths::WASM) do
       Reporter.log 'Installing wasm libraries'
-      duration = Shell.timed_sh('yarn install', 'yarn install wasm')
+      duration = Shell.timed_sh("yarn install", 'yarn install wasm')
       Reporter.done('wasm', 'installing', '', duration)
     end
   end

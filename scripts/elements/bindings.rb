@@ -25,7 +25,7 @@ namespace :bindings do
   task :install do
     Shell.chdir(Paths::TS_BINDINGS) do
       Reporter.log 'Installing ts-binding libraries'
-      duration = Shell.timed_sh('yarn install', 'yarn install bindings')
+      duration = Shell.timed_sh("yarn install", 'yarn install bindings')
       Reporter.done('bindings', 'installing', '', duration)
     end
   end
@@ -83,15 +83,6 @@ namespace :bindings do
     end
   end
 
-  task copy_platform: 'platform:build' do
-    platform_dest = "#{Bindings::TS_NODE_MODULES}/platform"
-    Shell.rm_rf(platform_dest)
-    FileUtils.mkdir_p platform_dest
-    files_to_copy = Dir["#{Paths::PLATFORM}/*"].reject { |f| File.basename(f) == 'node_modules' }
-    duration = Shell.cp_r files_to_copy, platform_dest, 'copy platform to bindings'
-    Reporter.done('bindings', 'copy platform to bindings', '', duration)
-  end
-
   task :build_rs_bindings do
     Shell.chdir(Paths::RS_BINDINGS) do
       duration = Shell.timed_sh "#{Bindings::BUILD_ENV} nj-cli build --release", 'nj-cli build bindings'
@@ -130,7 +121,7 @@ namespace :bindings do
 
   desc 'Build bindings'
   task build: [
-    'bindings:copy_platform',
+    'platform:build',
     'bindings:install',
     'environment:check',
     'bindings:build_rs_bindings',

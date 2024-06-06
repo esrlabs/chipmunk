@@ -192,7 +192,8 @@
                     "6": "Test 6. Error: Grab lines with negative start",
                     "7": "Test 7. Error: Unexpected error on session state",
                     "8": "Test 8. Error: Unexpected error on session tracker",
-                    "9": "Test 9. Destroy dead session"
+                    "9": "Test 9. Destroy dead session",
+                    "10": "Test 10. Search with invalid filters"
                 }
             }
         },
