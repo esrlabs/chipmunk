@@ -1,10 +1,18 @@
 use crate::dev_tools::DevTool;
 
-pub async fn get_build_cmd() -> String {
+use super::ProcessCommand;
+
+pub async fn get_build_cmd() -> ProcessCommand {
     let cargo_path = DevTool::Cargo.path().await;
 
-    format!(
-        "{} +stable build --color always --release",
-        cargo_path.to_string_lossy()
+    ProcessCommand::new(
+        cargo_path.to_string_lossy().to_string(),
+        vec![
+            String::from("+stable"),
+            String::from("build"),
+            String::from("--color"),
+            String::from("always"),
+            String::from("--release"),
+        ],
     )
 }

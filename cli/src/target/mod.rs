@@ -1,7 +1,7 @@
 use anyhow::bail;
 use clap::ValueEnum;
 use futures::future::join_all;
-use std::{iter, path::PathBuf, str::FromStr};
+use std::{fmt::Display, iter, path::PathBuf, str::FromStr};
 use tokio::fs;
 
 use crate::{
@@ -50,14 +50,35 @@ pub enum Target {
     Cli,
 }
 
-pub struct TestCommand {
-    command: String,
+#[derive(Debug, Clone)]
+/// Represents a command to run with `process::Command` and its arguments
+pub struct ProcessCommand {
+    pub cmd: String,
+    pub args: Vec<String>,
+}
+
+impl ProcessCommand {
+    pub fn new(cmd: String, args: Vec<String>) -> Self {
+        Self { cmd, args }
+    }
+}
+
+impl Display for ProcessCommand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {}", self.cmd, self.args.join(" "))
+    }
+}
+
+#[derive(Debug, Clone)]
+/// Represents command and spawns infos to run with `Target::Test`
+pub struct TestSpawnCommand {
+    command: ProcessCommand,
     cwd: PathBuf,
     spawn_opts: Option<SpawnOptions>,
 }
 
-impl TestCommand {
-    fn new(command: String, cwd: PathBuf, spawn_opts: Option<SpawnOptions>) -> Self {
+impl TestSpawnCommand {
+    fn new(command: ProcessCommand, cwd: PathBuf, spawn_opts: Option<SpawnOptions>) -> Self {
         Self {
             command,
             cwd,
@@ -227,7 +248,7 @@ impl Target {
     }
 
     /// Provide the command that should be used in to build the target
-    pub async fn build_cmd(&self, prod: bool) -> anyhow::Result<String> {
+    pub async fn build_cmd(&self, prod: bool) -> anyhow::Result<ProcessCommand> {
         let build_cmd = match self {
             Target::Binding => binding::get_build_cmd(prod)?,
             Target::Wasm => wasm::get_build_cmd(prod).await,
@@ -286,7 +307,7 @@ impl Target {
     }
 
     /// Provides the test commands for the given target if available
-    async fn test_cmds(&self, production: bool) -> Option<Vec<TestCommand>> {
+    async fn test_cmds(&self, production: bool) -> Option<Vec<TestSpawnCommand>> {
         match self {
             Target::Core => Some(core::get_test_cmds(production).await),
             Target::Cli => Some(cli::get_test_cmds(production).await),
@@ -345,35 +366,38 @@ impl Target {
     /// compiling errors
     async fn ts_lint(&self) -> Result<SpawnResult, anyhow::Error> {
         let path = self.cwd();
-        let yarn_cmd = DevTool::Yarn.path().await.to_string_lossy();
         let job_def = JobDefinition::new(*self, JobType::Lint);
-        spawn(
-            job_def,
-            format!("{} run lint", yarn_cmd),
-            Some(path),
-            iter::empty(),
-            None,
-        )
-        .await
+
+        let yarn_cmd = DevTool::Yarn.path().await;
+        let command = ProcessCommand::new(
+            yarn_cmd.to_string_lossy().to_string(),
+            vec![String::from("run"), String::from("lint")],
+        );
+        spawn(job_def, command, Some(path), iter::empty(), None).await
     }
 
     /// Runs Clippy for the given rust target
     async fn clippy(&self) -> Result<SpawnResult, anyhow::Error> {
         let path = get_root().join(self.cwd());
 
-        let cargo_path = DevTool::Cargo.path().await;
         let job_def = JobDefinition::new(*self, JobType::Lint);
-        spawn(
-            job_def,
-            format!(
-                "{} clippy --color always --all --all-features -- -D warnings",
-                cargo_path.to_string_lossy()
-            ),
-            Some(path),
-            iter::empty(),
-            None,
-        )
-        .await
+
+        let cargo_path = DevTool::Cargo.path().await;
+        let command = ProcessCommand::new(
+            cargo_path.to_string_lossy().to_string(),
+            vec![
+                String::from("clippy"),
+                String::from("--color"),
+                String::from("always"),
+                String::from("--all"),
+                String::from("--all-features"),
+                String::from("--"),
+                String::from("-D"),
+                String::from("warnings"),
+            ],
+        );
+
+        spawn(job_def, command, Some(path), iter::empty(), None).await
     }
 
     /// Clean the given target, removing it from the checksum tracker as well.
@@ -434,7 +458,7 @@ impl Target {
         let job_def = JobDefinition::new(*self, JobType::Build { production: prod });
 
         if skip {
-            spawn_skip(job_def, cmd).await
+            spawn_skip(job_def, cmd.to_string()).await
         } else {
             spawn(job_def, cmd, Some(path), iter::empty(), Some(spawn_opt)).await
         }

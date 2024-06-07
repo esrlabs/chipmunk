@@ -8,7 +8,7 @@ use crate::{
     spawner::{spawn, spawn_blocking, SpawnResult},
 };
 
-use super::Target;
+use super::{ProcessCommand, Target};
 
 const TEST_SPECS: [&str; 14] = [
     // TODO:
@@ -50,7 +50,11 @@ pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
     // The check should cover if the test themselves or the code under the tests has been changed.
     if !build_spec_path.join("build").exists() {
         let test_builder_path = cwd.join("node_modules").join(".bin").join("tsc");
-        let build_spec_cmd = format!("{} -p tsconfig.json", test_builder_path.to_string_lossy());
+
+        let build_spec_cmd = ProcessCommand::new(
+            test_builder_path.to_string_lossy().to_string(),
+            vec![String::from("-p"), String::from("tsconfig.json")],
+        );
 
         let spec_res = spawn(
             job_def,
@@ -77,9 +81,12 @@ pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
     for spec in TEST_SPECS {
         let spec_file_name = format!("session.{spec}.spec.js");
         let spec_file_path = specs_dir_path.join(spec_file_name);
-        let command = format!(
-            "{electron_path} {jasmine_path} {}",
-            spec_file_path.to_string_lossy()
+        let command = ProcessCommand::new(
+            electron_path.to_string(),
+            vec![
+                jasmine_path.to_string(),
+                spec_file_path.to_string_lossy().to_string(),
+            ],
         );
         let res = spawn_blocking(
             job_def,

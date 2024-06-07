@@ -1,4 +1,6 @@
-use crate::{jobs_runner::JobDefinition, location::get_root, tracker::get_tracker};
+use crate::{
+    jobs_runner::JobDefinition, location::get_root, target::ProcessCommand, tracker::get_tracker,
+};
 use anyhow::{bail, Context};
 use core::panic;
 use futures_lite::{future, FutureExt};
@@ -80,29 +82,30 @@ pub(crate) struct SpawnOptions {
 /// Spawns and runs a job asynchronously, updating the bar when job infos are available
 pub async fn spawn(
     job_def: JobDefinition,
-    command: String,
+    command: ProcessCommand,
     cwd: Option<PathBuf>,
     environment_vars: impl IntoIterator<Item = (String, String)>,
     opts: Option<SpawnOptions>,
 ) -> Result<SpawnResult, anyhow::Error> {
     let opts = opts.unwrap_or_default();
     let cwd = cwd.unwrap_or_else(|| get_root().clone());
-    let mut parts = command.split(' ').collect::<Vec<&str>>();
-    let cmd = parts.remove(0);
     let mut combined_env_vars = vec![(String::from("TERM"), String::from("xterm-256color"))];
     combined_env_vars.extend(environment_vars);
 
     let tracker = get_tracker().await;
 
-    let command_result = Command::new(cmd)
+    let command_result = Command::new(&command.cmd)
         .current_dir(&cwd)
-        .args(&parts)
+        .args(&command.args)
         .envs(combined_env_vars)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
         .with_context(|| {
-            format!("Error While running the command '{cmd}'\nwith arguments: {parts:?}")
+            format!(
+                "Error While running the command '{}'\nwith arguments: {:?}",
+                command.cmd, command.args
+            )
         });
 
     let mut child = command_result?;
@@ -170,7 +173,7 @@ pub async fn spawn(
             report: report_lines,
             status,
             job: job_def.job_title(),
-            cmd: command,
+            cmd: command.to_string(),
             skipped,
         })
     } else {
@@ -182,20 +185,18 @@ pub async fn spawn(
 /// This is used with commands that doesn't work with `Stdio::piped()`
 pub async fn spawn_blocking(
     job_def: JobDefinition,
-    command: String,
+    command: ProcessCommand,
     cwd: Option<PathBuf>,
     environment_vars: impl IntoIterator<Item = (String, String)>,
 ) -> Result<SpawnResult, anyhow::Error> {
     let cwd = cwd.unwrap_or_else(|| get_root().clone());
-    let mut parts = command.split(' ').collect::<Vec<&str>>();
-    let cmd = parts.remove(0);
 
     let mut combined_env_vars = vec![(String::from("TERM"), String::from("xterm-256color"))];
     combined_env_vars.extend(environment_vars);
 
-    let mut child = std::process::Command::new(cmd);
+    let mut child = std::process::Command::new(&command.cmd);
     child.current_dir(&cwd);
-    child.args(&parts);
+    child.args(&command.args);
     child.envs(combined_env_vars);
 
     let tracker = get_tracker().await;
@@ -206,7 +207,7 @@ pub async fn spawn_blocking(
         report: Vec::new(),
         status,
         job: job_def.job_title(),
-        cmd: command,
+        cmd: command.to_string(),
         skipped: None,
     })
 }

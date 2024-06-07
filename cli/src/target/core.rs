@@ -1,14 +1,21 @@
-use crate::{dev_tools::DevTool, target::Target};
+use crate::{
+    dev_tools::DevTool,
+    target::{ProcessCommand, Target},
+};
 
-use super::TestCommand;
+use super::TestSpawnCommand;
 
-pub async fn get_test_cmds(production: bool) -> Vec<TestCommand> {
+pub async fn get_test_cmds(production: bool) -> Vec<TestSpawnCommand> {
     let cargo_path = DevTool::Cargo.path().await;
-    let cmd = format!(
-        "{} +stable test{} --color always",
-        cargo_path.to_string_lossy(),
-        if production { " -r" } else { "" }
-    );
 
-    vec![TestCommand::new(cmd, Target::Core.cwd(), None)]
+    let mut args = vec![String::from("+stable"), String::from("test")];
+    if production {
+        args.push("-r".into());
+    }
+    args.push("--color".into());
+    args.push("always".into());
+
+    let cmd = ProcessCommand::new(cargo_path.to_string_lossy().to_string(), args);
+
+    vec![TestSpawnCommand::new(cmd, Target::Core.cwd(), None)]
 }

@@ -4,9 +4,9 @@ use anyhow::{bail, Context};
 
 use crate::{fstools, jobs_runner::JobDefinition, spawner::SpawnResult};
 
-use super::Target;
+use super::{ProcessCommand, Target};
 
-pub fn get_build_cmd(prod: bool) -> anyhow::Result<String> {
+pub fn get_build_cmd(prod: bool) -> anyhow::Result<ProcessCommand> {
     let mut path = Target::Wrapper.cwd();
     path.push("node_modules");
     path.push(".bin");
@@ -20,11 +20,14 @@ pub fn get_build_cmd(prod: bool) -> anyhow::Result<String> {
         path.push("electron-build-env");
     }
 
-    Ok(format!(
-        "{} nj-cli build{}",
-        path.to_string_lossy(),
-        //TODO: Ruby code build always in release mode
-        if prod { " --release" } else { "" }
+    let mut args = vec![String::from("nj-cli"), String::from("build")];
+
+    if prod {
+        args.push("--release".into());
+    }
+    Ok(ProcessCommand::new(
+        path.to_string_lossy().to_string(),
+        args,
     ))
 }
 
