@@ -1,0 +1,66 @@
+package chipmunk:plugin@0.1.0;
+
+interface parse-types {
+  /// General configurations related to all parsers
+  record parser-config {
+    place-holder-config: string,
+  }
+
+  /// Return item for parsing call
+  record parse-return {
+    /// Parsed item or None if skipped
+    value: option<parse-yield>,
+    /// Consumed bytes count
+    consumed: u64,
+  }
+
+  /// Represents a parsed item
+  variant parse-yield {
+    message(string),
+    attachment(attachment),
+    message-and-attachment(tuple<string, attachment>),
+  }
+
+  /// Attachment included within parsed item
+  record attachment {
+    name: string,
+    size: u64,
+    created-date: option<string>,
+    modified-date: option<string>,
+    /// The indexes of the message within the original trace (0-based).
+    messages: list<u64>,
+    /// Data as bytes
+    data: list<u8>,
+  }
+
+  variant parse-error {
+    unrecoverable(string),
+    parse(string),
+    incomplete,
+    eof,
+  }
+}
+
+interface parser {
+  use shared-types.{init-error};
+  use parse-types.{parser-config, parse-return, parse-error};
+  
+  /// Initialize the parser with the given configurations
+  init: func(general-configs: parser-config, plugin-configs: option<string>) -> result<_, init-error>;
+
+  /// Parse the given bytes returning a list of plugins results
+  parse: func(data: list<u8>, timestamp: option<u64>) -> list<result<parse-return, parse-error>>;
+
+  /// Parse the given bytes returning the results to the host one by one using the function `add` provided by the host. 
+  parse-with-add: func(data: list<u8>, timestamp: option<u64>);
+}
+
+
+world parse-plugin {
+  use parse-types.{parse-return, parse-error};
+
+  /// Add parse results one by one directly at the host memory
+  import add: func(item: result<parse-return, parse-error>);
+
+  export parser;
+}

@@ -1,0 +1,12 @@
+/// Interface used for shard types among all plugins 
+interface shared-types {
+
+  /// Error type while initializing the plugins
+  variant init-error {
+    config(string),
+    io(string),
+    unsupported(string),
+    other(string),
+  }
+
+}
