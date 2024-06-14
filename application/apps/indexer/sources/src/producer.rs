@@ -128,8 +128,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 .parser
                 .parse(self.byte_source.current_slice(), self.last_seen_ts)
             {
-                Ok((rest, Some(m))) => {
-                    let consumed = available - rest.len();
+                Ok((consumed, Some(m))) => {
                     let total_used_bytes = consumed + skipped_bytes;
                     debug!(
                         "Extracted a valid message, consumed {} bytes (total used {} bytes)",
@@ -138,8 +137,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     self.byte_source.consume(consumed);
                     return Some((total_used_bytes, MessageStreamItem::Item(m)));
                 }
-                Ok((rest, None)) => {
-                    let consumed = available - rest.len();
+                Ok((consumed, None)) => {
                     self.byte_source.consume(consumed);
                     trace!("None, consumed {} bytes", consumed);
                     let total_used_bytes = consumed + skipped_bytes;

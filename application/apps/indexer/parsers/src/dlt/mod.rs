@@ -116,17 +116,18 @@ impl<'m> DltParser<'m> {
 }
 
 impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
-    fn parse<'b>(
+    fn parse(
         &mut self,
-        input: &'b [u8],
+        input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(&'b [u8], Option<ParseYield<FormattableMessage<'m>>>), Error> {
+    ) -> Result<(usize, Option<ParseYield<FormattableMessage<'m>>>), Error> {
         match dlt_message(input, self.filter_config.as_ref(), self.with_storage_header)
             .map_err(|e| Error::Parse(format!("{e}")))?
         {
             (rest, dlt_core::parse::ParsedMessage::FilteredOut(_n)) => {
-                self.offset += input.len() - rest.len();
-                Ok((rest, None))
+                let consumed = input.len() - rest.len();
+                self.offset += consumed;
+                Ok((consumed, None))
             }
             (_, dlt_core::parse::ParsedMessage::Invalid) => {
                 Err(Error::Parse("Invalid parse".to_owned()))
@@ -144,9 +145,10 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
                     fibex_metadata: self.fibex_metadata,
                     options: self.fmt_options,
                 };
-                self.offset += input.len() - rest.len();
+                let consumed = input.len() - rest.len();
+                self.offset += consumed;
                 Ok((
-                    rest,
+                    consumed,
                     if let Some(attachment) = attachment {
                         Some(ParseYield::MessageAndAttachment((msg, attachment)))
                     } else {
@@ -159,11 +161,11 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
 }
 
 impl Parser<RangeMessage> for DltRangeParser {
-    fn parse<'b>(
+    fn parse(
         &mut self,
-        input: &'b [u8],
+        input: &[u8],
         _timestamp: Option<u64>,
-    ) -> Result<(&'b [u8], Option<ParseYield<RangeMessage>>), Error> {
+    ) -> Result<(usize, Option<ParseYield<RangeMessage>>), Error> {
         let (rest, consumed) = dlt_consume_msg(input).map_err(|e| Error::Parse(format!("{e}")))?;
         let msg = consumed.map(|c| {
             self.offset += c as usize;
@@ -174,20 +176,22 @@ impl Parser<RangeMessage> for DltRangeParser {
                 },
             }
         });
-        Ok((rest, msg.map(|m| m.into())))
+        let total_consumed = input.len() - rest.len();
+        Ok((total_consumed, msg.map(|m| m.into())))
     }
 }
 
 impl Parser<RawMessage> for DltRawParser {
-    fn parse<'b>(
+    fn parse(
         &mut self,
-        input: &'b [u8],
+        input: &[u8],
         _timestamp: Option<u64>,
-    ) -> Result<(&'b [u8], Option<ParseYield<RawMessage>>), Error> {
+    ) -> Result<(usize, Option<ParseYield<RawMessage>>), Error> {
         let (rest, consumed) = dlt_consume_msg(input).map_err(|e| Error::Parse(format!("{e}")))?;
         let msg = consumed.map(|c| RawMessage {
             content: Vec::from(&input[0..c as usize]),
         });
-        Ok((rest, msg.map(|m| m.into())))
+        let total_consumed = input.len() - rest.len();
+        Ok((total_consumed, msg.map(|m| m.into())))
     }
 }
