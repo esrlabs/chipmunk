@@ -71,5 +71,6 @@ module Paths
   RUSTCORE = "#{ROOT}/application/apps/rustcore"
   RS_BINDINGS = "#{RUSTCORE}/rs-bindings"
   TS_BINDINGS = "#{RUSTCORE}/ts-bindings"
+  PROTOCOL = "#{ROOT}/application/apps/protocol"
   UPDATER = "#{APPS}/precompiled/updater"
 end
