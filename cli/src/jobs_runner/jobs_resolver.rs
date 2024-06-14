@@ -4,6 +4,8 @@ use crate::{job_type::JobType, target::Target};
 
 use super::JobDefinition;
 
+/// Resolve tasks dependcies for the given targets and job,
+/// returning dependcies map for the tasks
 pub fn resolve(
     targets: &[Target],
     main_job: JobType,
@@ -68,6 +70,7 @@ pub fn resolve(
     jobs_tree
 }
 
+/// Returns all involved job types according to the given job type.
 fn flatten_jobs(main_job: JobType) -> BTreeSet<JobType> {
     fn flatten_rec(job: JobType, involved_jobs: &mut BTreeSet<JobType>) {
         if !involved_jobs.insert(job) {
@@ -85,6 +88,7 @@ fn flatten_jobs(main_job: JobType) -> BTreeSet<JobType> {
     jobs
 }
 
+/// Returns all involved targets for the given target for build tasks
 fn flatten_targets_for_build(targets: &[Target]) -> BTreeSet<Target> {
     fn flatten_rec(target: Target, involved_targets: &mut BTreeSet<Target>) {
         if !involved_targets.insert(target) {
@@ -114,6 +118,7 @@ fn is_job_involved(target: &Target, current_job: &JobType, main_job: &JobType) -
     let additional_filter = match (main_job, target) {
         // For linting TS targets we need to build all their dependencies targets that have impact
         // on building TS. Therefore we can exclude Core and CLI and Updater only.
+        // Rust Linting doesn't need build and need to be excluded in the additional filter.
         (JobType::Lint, Target::Core | Target::Cli | Target::Updater) => {
             matches!(current_job, JobType::Lint)
         }

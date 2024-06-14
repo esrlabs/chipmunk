@@ -16,12 +16,18 @@ use anyhow::Result;
 type SpawnResultsCollection = Vec<Result<SpawnResult>>;
 
 #[derive(Debug, Clone)]
+/// Represents the current state of the task.
 enum JobPhase {
+    /// Job is waiting to the jobs in the list to finish
     Awaiting(Vec<JobDefinition>),
+    /// Job is running currently
     Running,
+    /// Job is finished
     Done,
 }
 
+/// Runs all the needed tasks for the given targets and the main jobs asynchronously,
+/// returning a list of the tasks results
 pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCollection> {
     let jobs_tree = jobs_resolver::resolve(targets, main_job);
 
@@ -46,6 +52,7 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
     let mut results = Vec::new();
 
     while let Some((job_def, result)) = rx.recv().await {
+        // Update job state
         jobs_status
             .entry(job_def)
             .and_modify(|phase| *phase = JobPhase::Done);
@@ -82,6 +89,7 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
             return Ok(results);
         }
 
+        // Spawn more jobs after updating jobs_status tree.
         spawn_jobs(tx.clone(), &mut jobs_status, &mut skipped_map, &failed_jobs).await?;
     }
 
@@ -113,10 +121,12 @@ async fn spawn_jobs(
             else if let Some(skip) = skipped_map.get(&job_def.target) {
                 *skip
             } else {
+                // Calculate target checksums and compare it the persisted one
                 let prod = job_def.job_type.is_production().is_some_and(|prod| prod);
                 let checksum_rec = ChecksumRecords::get(prod).await?;
                 checksum_rec.register_job(job_def.target)?;
 
+                // Check if all dependent jobs are skipped, then do the checksum calculations
                 if job_def
                     .target
                     .deps()
@@ -134,6 +144,7 @@ async fn spawn_jobs(
             false
         };
 
+        // Spawn the job
         let sender = sender.clone();
         let job_def = *job_def;
         tokio::spawn(async move {
