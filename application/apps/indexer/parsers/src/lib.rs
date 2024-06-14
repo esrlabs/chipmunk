@@ -44,7 +44,7 @@ pub trait Parser<T> {
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(usize, Option<ParseYield<T>>), Error>;
+    ) -> Vec<Result<(usize, Option<ParseYield<T>>), Error>>;
 }
 
 #[derive(Debug, Clone, Serialize)]
