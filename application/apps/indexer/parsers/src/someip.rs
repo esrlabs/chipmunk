@@ -53,13 +53,13 @@ impl Parser<SomeipLogMessage> for SomeipParser {
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(usize, Option<ParseYield<SomeipLogMessage>>), Error> {
+    ) -> Vec<Result<(usize, Option<ParseYield<SomeipLogMessage>>), Error>> {
         let time = timestamp.unwrap_or(0);
         match Message::from_slice(input) {
             Ok(Message::Sd(header, payload)) => {
                 let len = header.message_len();
                 debug!("at {} : SD Message ({} bytes)", time, len);
-                Ok((
+                vec![Ok((
                     if input.len() - len < Header::LENGTH {
                         input.len()
                     } else {
@@ -69,13 +69,13 @@ impl Parser<SomeipLogMessage> for SomeipParser {
                         sd_message_string(&header, &payload),
                         input[..len].to_vec(),
                     ))),
-                ))
+                ))]
             }
 
             Ok(Message::Rpc(header, payload)) => {
                 let len = header.message_len();
                 debug!("at {} : RPC Message ({:?} bytes)", time, len);
-                Ok((
+                vec![Ok((
                     if input.len() - len < Header::LENGTH {
                         input.len()
                     } else {
@@ -85,13 +85,13 @@ impl Parser<SomeipLogMessage> for SomeipParser {
                         rpc_message_string(&header, &payload, &self.model),
                         input[..len].to_vec(),
                     ))),
-                ))
+                ))]
             }
 
             Ok(Message::CookieClient) => {
                 let len = Header::LENGTH;
                 debug!("at {} : MCC Message", time);
-                Ok((
+                vec![Ok((
                     if input.len() - len < Header::LENGTH {
                         input.len()
                     } else {
@@ -101,13 +101,13 @@ impl Parser<SomeipLogMessage> for SomeipParser {
                         String::from("MCC"), // Magic-Cookie-Client
                         input[..len].to_vec(),
                     ))),
-                ))
+                ))]
             }
 
             Ok(Message::CookieServer) => {
                 let len = Header::LENGTH;
                 debug!("at {} : MCS Message", time);
-                Ok((
+                vec![Ok((
                     if input.len() - len < Header::LENGTH {
                         input.len()
                     } else {
@@ -117,13 +117,13 @@ impl Parser<SomeipLogMessage> for SomeipParser {
                         String::from("MCS"), // Magic-Cookie-Server
                         input[..len].to_vec(),
                     ))),
-                ))
+                ))]
             }
 
             Err(e) => {
                 let msg = e.to_string();
                 error!("at {} : {}", time, msg);
-                Err(Error::Parse(msg))
+                vec![Err(Error::Parse(msg))]
             }
         }
     }
@@ -407,7 +407,12 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser
+            .parse(input, None)
+            .into_iter()
+            .next()
+            .unwrap()
+            .unwrap();
 
         assert_eq!(consumed, input.len());
 
@@ -428,7 +433,12 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser
+            .parse(input, None)
+            .into_iter()
+            .next()
+            .unwrap()
+            .unwrap();
 
         assert_eq!(consumed, input.len());
 
@@ -449,7 +459,12 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser
+            .parse(input, None)
+            .into_iter()
+            .next()
+            .unwrap()
+            .unwrap();
 
         assert_eq!(consumed, input.len());
 
@@ -474,7 +489,12 @@ mod test {
         let model = test_model();
 
         let mut parser = SomeipParser { model: Some(model) };
-        let (consumed, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser
+            .parse(input, None)
+            .into_iter()
+            .next()
+            .unwrap()
+            .unwrap();
 
         assert_eq!(consumed, input.len());
 
@@ -498,7 +518,12 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser
+            .parse(input, None)
+            .into_iter()
+            .next()
+            .unwrap()
+            .unwrap();
 
         assert_eq!(consumed, input.len());
 
@@ -524,7 +549,12 @@ mod test {
         let model = test_model();
 
         let mut parser = SomeipParser { model: Some(model) };
-        let (consumed, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser
+            .parse(input, None)
+            .into_iter()
+            .next()
+            .unwrap()
+            .unwrap();
 
         assert_eq!(consumed, input.len());
 
@@ -550,7 +580,12 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser
+            .parse(input, None)
+            .into_iter()
+            .next()
+            .unwrap()
+            .unwrap();
 
         assert_eq!(consumed, input.len());
 
@@ -592,7 +627,12 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser
+            .parse(input, None)
+            .into_iter()
+            .next()
+            .unwrap()
+            .unwrap();
 
         assert_eq!(consumed, input.len());
 
