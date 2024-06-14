@@ -10,6 +10,8 @@ extern crate log;
 
 #[derive(Error, Debug)]
 pub enum Error {
+    #[error("Unrecoverable error, cannot continue: {0}")]
+    Unrecoverable(String),
     #[error("Parse error: {0}")]
     Parse(String),
     #[error("Incomplete, not enough data for a message")]

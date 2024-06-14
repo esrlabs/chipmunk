@@ -1,0 +1,12 @@
+[workspace]
+
+[package]
+name = "plugins_api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wit-bindgen = "0.26"
+
+[package.metadata.component]
+target = { path = "wit" }

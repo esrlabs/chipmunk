@@ -3,6 +3,7 @@ use crate::{
     state::AttachmentInfo,
 };
 use crossbeam_channel as cc;
+use plugins::PluginHostInitError;
 use processor::{grabber::GrabError, search::error::SearchError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -25,6 +26,7 @@ pub enum NativeErrorKind {
     ChannelError,
     Io,
     Grabber,
+    Plugins,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -142,6 +144,16 @@ impl From<GrabError> for NativeError {
                 kind: NativeErrorKind::ComputationFailed,
                 message: Some(format!("File type is not supported: {s}")),
             },
+        }
+    }
+}
+
+impl From<PluginHostInitError> for NativeError {
+    fn from(err: PluginHostInitError) -> Self {
+        NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Plugins,
+            message: Some(format!("Plugin initializations failed. Error: {err}")),
         }
     }
 }

@@ -227,6 +227,13 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                         return Some(Box::new([(unused, MessageStreamItem::Done)]));
                     }
                 }
+                Err(ParserError::Unrecoverable(err)) => {
+                    //TODO AAZ: Better handling to this error.
+                    error!("Parsing failed: Error {err}");
+                    eprintln!("Parsing failed: Error: {err}");
+                    self.done = true;
+                    return Some(Box::new([(0, MessageStreamItem::Done)]));
+                }
             }
         }
     }
