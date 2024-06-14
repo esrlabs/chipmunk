@@ -1,0 +1,65 @@
+include "./process.fbs";
+include "./serial.fbs";
+include "./udp.fbs";
+include "./tcp.fbs";
+
+namespace binding;
+
+union Transport {
+    ProcessTransportConfig,
+    TCPTransportConfig,
+    UDPTransportConfig,
+    SerialTransportConfig
+}
+
+table TransportWrapper {
+    transport: Transport;
+}
+
+enum FileFormat: byte {
+    PcapNG = 0,
+    PcapLegacy,
+    Text,
+    Binary
+}
+
+table FileObserveOrigin {
+    filename: string;
+    format: FileFormat;
+    path: string;
+}
+
+table ConcatFile {
+    filename: string;
+    format: FileFormat;
+    path: string;
+}
+
+table ConcatObserveOrigin {
+    files: [ConcatFile];
+}
+
+table StreamObserveOrigin {
+    name: string;
+    transport: Transport;
+}
+
+union ObserveOriginUnion {
+    FileObserveOrigin,
+    ConcatObserveOrigin,
+    StreamObserveOrigin
+}
+
+enum ObserveOriginType: byte {
+    File = 0,
+    Concat,
+    Stream
+}
+
+table ObserveOriginWrapper {
+    origin_type: ObserveOriginType;
+    origin_value: ObserveOriginUnion;
+}
+
+root_type ObserveOriginWrapper;
+root_type TransportWrapper;

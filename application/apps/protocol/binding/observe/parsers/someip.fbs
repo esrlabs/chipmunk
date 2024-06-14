@@ -1,0 +1,7 @@
+namespace binding;
+
+table SomeIpParserSettings {
+    fibex_file_paths: [string];
+}
+
+root_type SomeIpParserSettings;

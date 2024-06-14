@@ -1,0 +1,19 @@
+namespace binding;
+
+table DltFilterConfig {
+    min_log_level: uint8;
+    app_ids: [string];
+    ecu_ids: [string];
+    context_ids: [string];
+    app_id_count: int64;
+    context_id_count: int64;
+}
+
+table DltParserSettings {
+    filter_config: DltFilterConfig; 
+    fibex_file_paths: [string];     
+    with_storage_header: bool;
+    tz: string;                     
+}
+
+root_type DltParserSettings;

@@ -1,0 +1,10 @@
+include "../../common.fbs";
+namespace binding;
+
+table ProcessTransportConfig {
+    cwd: string;
+    command: string;
+    envs: [KeyValue];
+}
+
+root_type ProcessTransportConfig;

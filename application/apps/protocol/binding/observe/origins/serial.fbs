@@ -1,0 +1,14 @@
+namespace binding;
+
+table SerialTransportConfig {
+    path: string;
+    baud_rate: uint32;
+    data_bits: uint8;
+    flow_control: uint8;
+    parity: uint8;
+    stop_bits: uint8;
+    send_data_delay: uint8;
+    exclusive: bool;
+}
+
+root_type SerialTransportConfig;

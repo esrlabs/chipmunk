@@ -1,0 +1,11 @@
+include "./origins/index.fbs";
+include "./parsers/index.fbs";
+
+namespace binding;
+
+table ObserveOptions {
+    parser: ParserTypeWrapper;
+    origin: ObserveOriginWrapper;
+}
+
+root_type ObserveOptions;

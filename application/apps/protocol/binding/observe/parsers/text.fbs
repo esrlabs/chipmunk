@@ -1,0 +1,7 @@
+namespace binding;
+
+table TextParserSettings {
+    dummy: byte = 0;
+}
+
+root_type TextParserSettings;

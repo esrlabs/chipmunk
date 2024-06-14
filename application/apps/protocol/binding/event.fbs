@@ -1,0 +1,74 @@
+include "./error_native.fbs";
+include "./common.fbs";
+include "./attachment.fbs";
+
+namespace binding;
+
+enum ProgressType: byte { Ticks, Notification, Stopped }
+
+enum CallbackEventType: byte {
+    StreamUpdated,
+    FileRead,
+    SearchUpdated,
+    IndexedMapUpdated,
+    SearchMapUpdated,
+    SearchValuesUpdated,
+    AttachmentsUpdated,
+    Progress,
+    SessionError,
+    OperationError,
+    OperationStarted,
+    OperationProcessing,
+    OperationDone,
+    SessionDestroyed
+}
+
+table OperationDone {
+    uuid: string;
+    result: string;
+}
+
+table Ticks {
+    count: uint64;
+    state: string;
+    total: uint64;
+}
+
+table Notification {
+    severity: Severity;
+    content: string;
+    line: uint64;
+}
+
+union Progress {
+    Ticks,
+    Notification
+}
+
+table CallbackEvent {
+    type: CallbackEventType;
+    stream_updated: uint64;
+    search_updated_found: uint64;
+    search_updated_stat: [KeyValue];
+    indexed_map_updated_len: uint64;
+    search_map_updated: string;
+    search_values_updated: [SearchValue];
+    attachments_updated_len: uint64;
+    attachments_updated_attachment: AttachmentInfo;
+    progress_uuid: string;
+    progress: Progress;
+    session_error: NativeError;
+    operation_error_uuid: string;
+    operation_error: NativeError;
+    operation_started: string;
+    operation_processing: string;
+    operation_done: OperationDone;
+}
+
+table SearchValue {
+    key: uint8;
+    value_start: float64;
+    value_end: float64;
+}
+
+root_type CallbackEvent;

@@ -1,0 +1,13 @@
+namespace binding;
+
+table MulticastInfo {
+    multiaddr: string;
+    interface: string;
+}
+
+table UDPTransportConfig {
+    bind_addr: string;
+    multicast: [MulticastInfo];
+}
+
+root_type UDPTransportConfig;

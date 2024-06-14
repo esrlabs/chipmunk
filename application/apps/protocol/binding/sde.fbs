@@ -1,0 +1,31 @@
+namespace binding;
+
+enum SdeRequestType: byte {
+    WriteText = 0,
+    WriteBytes = 1
+}
+
+table WriteText {
+    text: string;
+}
+
+table WriteBytes {
+    bytes: [ubyte];
+}
+
+union SdeRequestUnion {
+    WriteText,
+    WriteBytes
+}
+
+table SdeRequest {
+    type: SdeRequestType;
+    data: SdeRequestUnion;
+}
+
+table SdeResponse {
+    bytes: uint64;
+}
+
+root_type SdeRequest;
+root_type SdeResponse;

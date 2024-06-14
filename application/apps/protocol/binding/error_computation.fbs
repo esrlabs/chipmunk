@@ -1,0 +1,82 @@
+include "./error_native.fbs";
+
+namespace binding;
+
+enum ComputationErrorType: byte {
+    DestinationPath = 0,
+    SessionCreatingFail,
+    Communication,
+    OperationNotSupported,
+    IoOperation,
+    InvalidData,
+    InvalidArgs,
+    Process,
+    Protocol,
+    SearchError,
+    MultipleInitCall,
+    SessionUnavailable,
+    NativeError,
+    Grabbing,
+    Sde
+}
+
+enum SearchErrorType: byte {
+    Config = 0,
+    Communication,
+    IoOperation,
+    Regex,
+    Input,
+    Grab,
+    Aborted
+}
+
+enum GrabErrorType: byte {
+    Config = 0,
+    Communication,
+    IoOperation,
+    InvalidRange,
+    Interrupted,
+    NotInitialize,
+    Unsupported
+}
+
+// Tables
+table ComputationError {
+    type: ComputationErrorType;
+    communication: string;
+    operation_not_supported: string;
+    io_operation: string;
+    invalid_args: string;
+    process: string;
+    protocol: string;
+    search_error: SearchError;
+    native_error: NativeError;
+    grabbing: GrabError;
+    sde: string;
+}
+
+table SearchError {
+    type: SearchErrorType;
+    config: string;
+    communication: string;
+    io_operation: string;
+    regex: string;
+    input: string;
+    grab: GrabError;
+    aborted: string;
+}
+
+table GrabError {
+    type: GrabErrorType;
+    config: string;
+    communication: string;
+    io_operation: string;
+    invalid_range_start: uint64;
+    invalid_range_end: uint64;
+    invalid_range_context: string;
+    unsupported: string;
+}
+
+root_type ComputationError;
+root_type SearchError;
+root_type GrabError;

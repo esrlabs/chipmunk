@@ -1,0 +1,24 @@
+namespace binding;
+
+enum Severity: byte { WARNING = 0, ERROR }
+enum NativeErrorKind: byte { 
+    FileNotFound, 
+    UnsupportedFileType, 
+    ComputationFailed, 
+    Configuration, 
+    Interrupted, 
+    OperationSearch, 
+    NotYetImplemented, 
+    ChannelError, 
+    Io, 
+    Grabber 
+}
+
+table NativeError {
+    severity: Severity;
+    kind: NativeErrorKind;
+    message: string;
+}
+
+
+root_type NativeError;

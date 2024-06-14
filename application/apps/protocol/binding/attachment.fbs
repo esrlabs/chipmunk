@@ -1,0 +1,13 @@
+namespace binding;
+
+table AttachmentInfo {
+    uuid: string;
+    filepath: string;
+    name: string;
+    ext: string;
+    size: uint64;
+    mime: string;
+    messages: [uint64];
+}
+
+root_type AttachmentInfo;

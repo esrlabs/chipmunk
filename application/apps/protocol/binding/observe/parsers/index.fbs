@@ -1,0 +1,17 @@
+include "./dlt.fbs";
+include "./someip.fbs";
+include "./text.fbs";
+
+namespace binding;
+
+union ParserType {
+    DltParserSettings,
+    SomeIpParserSettings,
+    TextParserSettings
+}
+
+table ParserTypeWrapper {
+    parser: ParserType;
+}
+
+root_type ParserTypeWrapper;

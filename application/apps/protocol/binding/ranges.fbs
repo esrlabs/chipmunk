@@ -1,0 +1,12 @@
+namespace binding;
+
+struct Range {
+    start: uint64; 
+    end: uint64;   
+}
+
+table Ranges {
+    ranges: [Range];
+}
+
+root_type Ranges;

@@ -1,0 +1,10 @@
+namespace binding;
+
+table GrabbedElement {
+    source_id: uint16;
+    content: string;
+    pos: uint64; 
+    nature: uint8;
+}
+
+root_type GrabbedElement;
