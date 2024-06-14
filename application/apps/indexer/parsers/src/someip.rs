@@ -49,11 +49,11 @@ unsafe impl Send for SomeipParser {}
 unsafe impl Sync for SomeipParser {}
 
 impl Parser<SomeipLogMessage> for SomeipParser {
-    fn parse<'a>(
+    fn parse(
         &mut self,
-        input: &'a [u8],
+        input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(&'a [u8], Option<ParseYield<SomeipLogMessage>>), Error> {
+    ) -> Result<(usize, Option<ParseYield<SomeipLogMessage>>), Error> {
         let time = timestamp.unwrap_or(0);
         match Message::from_slice(input) {
             Ok(Message::Sd(header, payload)) => {
@@ -61,9 +61,9 @@ impl Parser<SomeipLogMessage> for SomeipParser {
                 debug!("at {} : SD Message ({} bytes)", time, len);
                 Ok((
                     if input.len() - len < Header::LENGTH {
-                        &[0; 0]
+                        input.len()
                     } else {
-                        &input[len..]
+                        len
                     },
                     Some(ParseYield::from(SomeipLogMessage::from(
                         sd_message_string(&header, &payload),
@@ -77,9 +77,9 @@ impl Parser<SomeipLogMessage> for SomeipParser {
                 debug!("at {} : RPC Message ({:?} bytes)", time, len);
                 Ok((
                     if input.len() - len < Header::LENGTH {
-                        &[0; 0]
+                        input.len()
                     } else {
-                        &input[len..]
+                        len
                     },
                     Some(ParseYield::from(SomeipLogMessage::from(
                         rpc_message_string(&header, &payload, &self.model),
@@ -93,9 +93,9 @@ impl Parser<SomeipLogMessage> for SomeipParser {
                 debug!("at {} : MCC Message", time);
                 Ok((
                     if input.len() - len < Header::LENGTH {
-                        &[0; 0]
+                        input.len()
                     } else {
-                        &input[len..]
+                        len
                     },
                     Some(ParseYield::from(SomeipLogMessage::from(
                         String::from("MCC"), // Magic-Cookie-Client
@@ -109,9 +109,9 @@ impl Parser<SomeipLogMessage> for SomeipParser {
                 debug!("at {} : MCS Message", time);
                 Ok((
                     if input.len() - len < Header::LENGTH {
-                        &[0; 0]
+                        input.len()
                     } else {
-                        &input[len..]
+                        len
                     },
                     Some(ParseYield::from(SomeipLogMessage::from(
                         String::from("MCS"), // Magic-Cookie-Server
@@ -407,9 +407,9 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser.parse(input, None).unwrap();
 
-        assert!(output.is_empty());
+        assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_str("MCC", &format!("{}", item));
@@ -428,9 +428,9 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser.parse(input, None).unwrap();
 
-        assert!(output.is_empty());
+        assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_str("MCS", &format!("{}", item));
@@ -449,9 +449,9 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser.parse(input, None).unwrap();
 
-        assert!(output.is_empty());
+        assert_eq!(consumed, input.len());
 
         let expected = r#"RPC|259|32772|8|1|2|1|2|0|Bytes: []"#;
 
@@ -474,9 +474,9 @@ mod test {
         let model = test_model();
 
         let mut parser = SomeipParser { model: Some(model) };
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser.parse(input, None).unwrap();
 
-        assert!(output.is_empty());
+        assert_eq!(consumed, input.len());
 
         let expected = r#"RPC|259|32772|8|1|2|1|2|0|TestService::emptyEvent "#;
 
@@ -498,9 +498,9 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser.parse(input, None).unwrap();
 
-        assert!(output.is_empty());
+        assert_eq!(consumed, input.len());
 
         let expected = r#"RPC|259|32773|10|1|2|1|2|0|Bytes: [01, 02]"#;
 
@@ -524,9 +524,9 @@ mod test {
         let model = test_model();
 
         let mut parser = SomeipParser { model: Some(model) };
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser.parse(input, None).unwrap();
 
-        assert!(output.is_empty());
+        assert_eq!(consumed, input.len());
 
         let expected = r#"RPC|259|32773|10|1|2|1|2|0|TestService::testEvent {value1(UINT8):1,value2(UINT8):2,}"#;
 
@@ -550,9 +550,9 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser.parse(input, None).unwrap();
 
-        assert!(output.is_empty());
+        assert_eq!(consumed, input.len());
 
         let expected = r#"SD|65535|33024|20|0|0|1|2|0|Flags: [C0]"#;
 
@@ -592,9 +592,9 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser.parse(input, None).unwrap();
 
-        assert!(output.is_empty());
+        assert_eq!(consumed, input.len());
 
         let expected = r#"SD|65535|33024|64|0|0|1|2|0|Flags: [C0], Subscribe 259-456 v2 Inst 1 Ttl 3, Subscribe-Ack 259-456 v2 Inst 1 Ttl 3 UDP 127.0.0.1:30000"#;
 
