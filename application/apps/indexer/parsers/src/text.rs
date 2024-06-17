@@ -1,6 +1,6 @@
 use crate::{Error, LogMessage, ParseYield, Parser};
 use serde::Serialize;
-use std::{fmt, io::Write};
+use std::{fmt, io::Write, iter};
 
 pub struct StringTokenizer {}
 
@@ -31,11 +31,12 @@ where
         &mut self,
         input: &[u8],
         _timestamp: Option<u64>,
-    ) -> Vec<Result<(usize, Option<ParseYield<StringMessage>>), Error>> {
+    ) -> impl IntoIterator<Item = Result<(usize, Option<ParseYield<StringMessage>>), Error>> + Send
+    {
         // TODO: support non-utf8 encodings
         use memchr::memchr;
         if input.is_empty() {
-            return vec![Ok((input.len(), None))];
+            return iter::once(Ok((input.len(), None)));
         }
         let res = if let Some(msg_size) = memchr(b'\n', input) {
             let content = String::from_utf8_lossy(&input[..msg_size]);
@@ -52,7 +53,7 @@ where
             ))
         };
 
-        vec![res]
+        iter::once(res)
     }
 }
 

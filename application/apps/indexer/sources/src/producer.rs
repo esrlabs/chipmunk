@@ -128,9 +128,11 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 self.done = true;
                 return Some(vec![(0, MessageStreamItem::Done)]);
             }
-            let parse_results = self
+            let parse_results: Vec<_> = self
                 .parser
-                .parse(self.byte_source.current_slice(), self.last_seen_ts);
+                .parse(self.byte_source.current_slice(), self.last_seen_ts)
+                .into_iter()
+                .collect();
 
             let res_len = parse_results.len();
 
