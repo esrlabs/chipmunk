@@ -132,9 +132,11 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 .parser
                 .parse(self.byte_source.current_slice(), self.last_seen_ts);
 
-            let mut results = Vec::with_capacity(parse_results.len());
+            let res_len = parse_results.len();
 
-            for parse_res in parse_results {
+            let mut results = Vec::with_capacity(res_len);
+
+            for (idx, parse_res) in parse_results.into_iter().enumerate() {
                 match parse_res {
                     Ok((consumed, Some(m))) => {
                         let total_used_bytes = consumed + skipped_bytes;
@@ -152,7 +154,9 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                         results.push((total_used_bytes, MessageStreamItem::Skipped));
                     }
                     Err(ParserError::Incomplete) => {
-                        //TODO AAZ: Make sure this is the last results
+                        //TODO AAZ: Remove this assert after adding unit tests to ensure that the
+                        //parsing will end after encountering the first error.
+                        assert_eq!(idx, res_len - 1);
                         // This Error is currently not implemented by the parsers but it should be
                         // used when the parsers reaches the last bytes of the given buffer and
                         // can't parse them anymore. Currently Parse Error is returned
@@ -166,14 +170,18 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                         }
                     }
                     Err(ParserError::Eof) => {
-                        //TODO AAZ: Make sure this is the last results
+                        //TODO AAZ: Remove this assert after adding unit tests to ensure that the
+                        //parsing will end after encountering the first error.
+                        assert_eq!(idx, res_len - 1);
                         trace!(
                             "EOF reached...no more messages (skipped_bytes={})",
                             skipped_bytes
                         );
                     }
                     Err(ParserError::Parse(s)) => {
-                        //TODO AAZ: Make sure this is the last results
+                        //TODO AAZ: Remove this assert after adding unit tests to ensure that the
+                        //parsing will end after encountering the first error.
+                        assert_eq!(idx, res_len - 1);
                         // Currently, the parse error message indicates that the parse reaches the
                         // last bytes from the current buffer that can't be parsed.
                         // In this case if we don't have other results we will assume that an error
