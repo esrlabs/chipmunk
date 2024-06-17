@@ -1,5 +1,11 @@
 use crate::{Error, LogMessage, ParseYield, Parser};
-use std::{borrow::Cow, fmt, fmt::Display, io::Write, path::PathBuf};
+use std::{
+    borrow::Cow,
+    fmt::{self, Display},
+    io::Write,
+    iter,
+    path::PathBuf,
+};
 
 use someip_messages::*;
 use someip_payload::{
@@ -53,13 +59,14 @@ impl Parser<SomeipLogMessage> for SomeipParser {
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Vec<Result<(usize, Option<ParseYield<SomeipLogMessage>>), Error>> {
+    ) -> impl IntoIterator<Item = Result<(usize, Option<ParseYield<SomeipLogMessage>>), Error>> + Send
+    {
         let time = timestamp.unwrap_or(0);
         match Message::from_slice(input) {
             Ok(Message::Sd(header, payload)) => {
                 let len = header.message_len();
                 debug!("at {} : SD Message ({} bytes)", time, len);
-                vec![Ok((
+                iter::once(Ok((
                     if input.len() - len < Header::LENGTH {
                         input.len()
                     } else {
@@ -69,13 +76,13 @@ impl Parser<SomeipLogMessage> for SomeipParser {
                         sd_message_string(&header, &payload),
                         input[..len].to_vec(),
                     ))),
-                ))]
+                )))
             }
 
             Ok(Message::Rpc(header, payload)) => {
                 let len = header.message_len();
                 debug!("at {} : RPC Message ({:?} bytes)", time, len);
-                vec![Ok((
+                iter::once(Ok((
                     if input.len() - len < Header::LENGTH {
                         input.len()
                     } else {
@@ -85,13 +92,13 @@ impl Parser<SomeipLogMessage> for SomeipParser {
                         rpc_message_string(&header, &payload, &self.model),
                         input[..len].to_vec(),
                     ))),
-                ))]
+                )))
             }
 
             Ok(Message::CookieClient) => {
                 let len = Header::LENGTH;
                 debug!("at {} : MCC Message", time);
-                vec![Ok((
+                iter::once(Ok((
                     if input.len() - len < Header::LENGTH {
                         input.len()
                     } else {
@@ -101,13 +108,13 @@ impl Parser<SomeipLogMessage> for SomeipParser {
                         String::from("MCC"), // Magic-Cookie-Client
                         input[..len].to_vec(),
                     ))),
-                ))]
+                )))
             }
 
             Ok(Message::CookieServer) => {
                 let len = Header::LENGTH;
                 debug!("at {} : MCS Message", time);
-                vec![Ok((
+                iter::once(Ok((
                     if input.len() - len < Header::LENGTH {
                         input.len()
                     } else {
@@ -117,13 +124,13 @@ impl Parser<SomeipLogMessage> for SomeipParser {
                         String::from("MCS"), // Magic-Cookie-Server
                         input[..len].to_vec(),
                     ))),
-                ))]
+                )))
             }
 
             Err(e) => {
                 let msg = e.to_string();
                 error!("at {} : {}", time, msg);
-                vec![Err(Error::Parse(msg))]
+                iter::once(Err(Error::Parse(msg)))
             }
         }
     }
