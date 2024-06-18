@@ -97,6 +97,9 @@ impl<R: Read + Send + Sync> ByteSource for PcapLegacyByteSource<R> {
                         if actual_tp == *wanted {
                             Ok(Some(ReloadInfo::new(
                                 received_bytes,
+                                // BUG: This should represent all available bytes in `self.buffer`.
+                                // This assumes that the buffer will be empty on each parse call
+                                // which will fail silently when parser implementing changes.
                                 received_bytes,
                                 skipped,
                                 self.last_know_timestamp,
@@ -114,6 +117,7 @@ impl<R: Read + Send + Sync> ByteSource for PcapLegacyByteSource<R> {
                         let copied = self.buffer.copy_from_slice(value.payload);
                         Ok(Some(ReloadInfo::new(
                             copied,
+                            // BUG: Same as above.
                             copied,
                             skipped,
                             self.last_know_timestamp,

@@ -115,6 +115,10 @@ pub trait ByteSource: Send + Sync {
     ///
     /// If the source has access to some timestamp (e.g. timestamp of network package),
     /// this timestamp is passed on additionally (`last_known_ts`)
+
+    // NOTE: Renaming this to just load() or load_next() would be more descriptive because we aren't
+    // repeating any load function, but we are loading a new chunk of data appending them to the
+    // current buffer.
     async fn reload(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error>;
 
     /// In case the ByteSource is some kind of connection that does not end,

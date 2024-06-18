@@ -95,6 +95,9 @@ impl ByteSource for UdpSource {
             self.buffer.copy_from_slice(&self.tmp_buffer[..len]);
         }
 
+        // BUG: This should represent all available bytes in `self.buffer`.
+        // This assumes that the buffer will be empty on each parse call
+        // which will fail silently when parser implementing changes.
         Ok(Some(ReloadInfo::new(len, len, 0, None)))
     }
 
