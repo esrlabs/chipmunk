@@ -1,4 +1,6 @@
 #[cfg(test)]
+mod mock_byte_source;
+#[cfg(test)]
 mod mock_parser;
 
 use crate::{sde::SdeMsg, ByteSource, ReloadInfo, SourceFilter};
