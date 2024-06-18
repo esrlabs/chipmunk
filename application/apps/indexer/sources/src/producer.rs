@@ -1,7 +1,5 @@
 #[cfg(test)]
-mod mock_byte_source;
-#[cfg(test)]
-mod mock_parser;
+mod tests;
 
 use crate::{sde::SdeMsg, ByteSource, ReloadInfo, SourceFilter};
 use async_stream::stream;
@@ -214,23 +212,5 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 None
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use parsers::ParseYield;
-    use tests::mock_parser::*;
-
-    use super::*;
-
-    #[test]
-    fn test_place_holder() {
-        let mut parser = MockParser::new([Ok(MockResultSeed::new(
-            0,
-            Some(ParseYield::Message(MockMessage::from(1))),
-        ))]);
-
-        assert!(parser.parse(&[b'a'], None).is_ok())
     }
 }
