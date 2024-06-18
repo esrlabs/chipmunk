@@ -49,7 +49,7 @@ impl ByteSource for MockByteSource {
             self.buffer.len() >= offset,
             "Offset can't be bigger than buffer length"
         );
-        self.buffer.truncate(offset);
+        _ = self.buffer.drain(..offset);
     }
 
     /// Provide access to the filtered data that is currently loaded
@@ -73,6 +73,9 @@ impl ByteSource for MockByteSource {
         let seed_opt = seed_res?;
 
         let Some(seed) = seed_opt else {
+            //TODO AAZ: This should be removed if the current implementation of producer is
+            // modified
+            self.buffer.clear();
             return Ok(None);
         };
 
@@ -105,9 +108,9 @@ async fn test_mock_byte_source() {
     assert_eq!(source.current_slice(), &[b'a'; 10]);
 
     // Consume
-    source.consume(5);
-    assert_eq!(source.len(), 5);
-    assert_eq!(source.current_slice(), &[b'a'; 5]);
+    source.consume(4);
+    assert_eq!(source.len(), 6);
+    assert_eq!(source.current_slice(), &[b'a'; 6]);
 
     // Reload Calls
     let first_reload = source.reload(None).await;
@@ -115,20 +118,20 @@ async fn test_mock_byte_source() {
         first_reload,
         Ok(Some(ReloadInfo {
             newly_loaded_bytes: 5,
-            available_bytes: 10,
+            available_bytes: 11,
             skipped_bytes: 0,
             last_known_ts: None
         }))
     ));
-    assert_eq!(source.len(), 10);
-    assert_eq!(source.current_slice(), &[b'a'; 10]);
+    assert_eq!(source.len(), 11);
+    assert_eq!(source.current_slice(), &[b'a'; 11]);
 
     let second_reload = source.reload(None).await;
     assert!(matches!(
         second_reload,
         Ok(Some(ReloadInfo {
             newly_loaded_bytes: 1,
-            available_bytes: 11,
+            available_bytes: 12,
             skipped_bytes: 2,
             last_known_ts: Some(4)
         }))
