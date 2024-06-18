@@ -35,12 +35,12 @@ impl LogMessage for MockMessage {
 /// Mock Parser to use in prototyping and unit-tests
 pub struct MockParser {
     /// The seeds that will be used to return value on [`Parser::parse()`] calls
-    seeds: VecDeque<Result<MockResultSeed, Error>>,
+    seeds: VecDeque<Result<MockParseSeed, Error>>,
 }
 
 impl MockParser {
     /// * `seeds`: Seeds items which that will be used to produce return-values on [`Parser::parse()`] calls
-    pub fn new(seeds: impl Into<VecDeque<Result<MockResultSeed, Error>>>) -> Self {
+    pub fn new(seeds: impl Into<VecDeque<Result<MockParseSeed, Error>>>) -> Self {
         Self {
             seeds: seeds.into(),
         }
@@ -49,14 +49,14 @@ impl MockParser {
 
 #[derive(Debug)]
 /// Used to produce a Parse result item in [`MockParser`]
-pub struct MockResultSeed {
+pub struct MockParseSeed {
     /// Represents how much bytes should be consumed in the given slice in [`Parser::parse()`]
     cosumed: usize,
     /// Parse Yield value to return on [`Parser::parse()`] call
     parse_yeild: Option<ParseYield<MockMessage>>,
 }
 
-impl MockResultSeed {
+impl MockParseSeed {
     pub fn new(cosumed: usize, parse_yeild: Option<ParseYield<MockMessage>>) -> Self {
         Self {
             cosumed,
@@ -88,8 +88,8 @@ where
 #[test]
 fn test_mock_parser() {
     let mut parser = MockParser::new([
-        Ok(MockResultSeed::new(1, None)),
-        Ok(MockResultSeed::new(
+        Ok(MockParseSeed::new(1, None)),
+        Ok(MockParseSeed::new(
             2,
             Some(ParseYield::Message(MockMessage::from(1))),
         )),
