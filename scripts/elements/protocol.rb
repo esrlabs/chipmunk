@@ -7,8 +7,9 @@ module Protocol
   FLATBUFFERS_REPO = "https://github.com/google/flatbuffers.git"
   FLATBUFFERS_DIR = "flatbuffers"
   FLATBUFFERS_PATH = "#{Paths::PROTOCOL}/#{FLATBUFFERS_DIR}"
-  OUTPUT = "#{Paths::PROTOCOL}/output"
-  TARGETS = [OUTPUT, FLATBUFFERS_PATH].freeze
+  OUTPUT_RS = "#{Paths::PROTOCOL}/output/binding/rust/protocol/gen"
+  OUTPUT_TS = "#{Paths::PROTOCOL}/output/binding/ts/protocol/gen"
+  TARGETS = [OUTPUT_RS, OUTPUT_TS, FLATBUFFERS_PATH].freeze
 
 end
 
@@ -36,14 +37,19 @@ namespace :protocol do
 
   desc 'compile'
   task :compile do
-    if File.exist?(Protocol::OUTPUT) 
-      Shell.rm_rf(Protocol::OUTPUT)
-      Reporter.removed('protocol', "removed: #{Protocol::OUTPUT}", '')  
+    if File.exist?(Protocol::OUTPUT_RS) 
+      Shell.rm_rf(Protocol::OUTPUT_RS)
+      Reporter.removed('protocol', "removed: #{Protocol::OUTPUT_RS}", '')  
+    end
+    if File.exist?(Protocol::OUTPUT_TS) 
+      Shell.rm_rf(Protocol::OUTPUT_TS)
+      Reporter.removed('protocol', "removed: #{Protocol::OUTPUT_TS}", '')  
     end
     Shell.chdir(Paths::PROTOCOL) do
-      Shell.sh "./flatbuffers/flatc --ts -o ./output/binding/ts -I include ./binding.fbs $(find ./binding -name '*.fbs')"
-      Shell.sh "./flatbuffers/flatc --rust -o ./output/binding/rust -I include ./binding.fbs $(find ./binding -name '*.fbs')"
-      Reporter.done('protocol', "generated in: #{Protocol::OUTPUT}", '')
+      Shell.sh "./flatbuffers/flatc --ts -o ./output/binding/ts/protocol/gen -I include $(find ./binding -name '*.fbs')"
+      Shell.sh "./flatbuffers/flatc --rust -o ./output/binding/rust/protocol/gen -I include $(find ./binding -name '*.fbs')"
+      Reporter.done('protocol', "generated in: #{Protocol::OUTPUT_RS}", '')
+      Reporter.done('protocol', "generated in: #{Protocol::OUTPUT_TS}", '')
     end
   end
 

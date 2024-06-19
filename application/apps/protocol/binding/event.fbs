@@ -2,8 +2,6 @@ include "./error_native.fbs";
 include "./common.fbs";
 include "./attachment.fbs";
 
-namespace binding;
-
 enum ProgressType: byte { Ticks, Notification, Stopped }
 
 enum CallbackEventType: byte {
@@ -35,7 +33,7 @@ table Ticks {
 }
 
 table Notification {
-    severity: Severity;
+    severity: native_error.Severity;
     content: string;
     line: uint64;
 }
@@ -49,7 +47,7 @@ table CallbackEvent {
     type: CallbackEventType;
     stream_updated: uint64;
     search_updated_found: uint64;
-    search_updated_stat: [KeyValue];
+    search_updated_stat: [common.KeyValue];
     indexed_map_updated_len: uint64;
     search_map_updated: string;
     search_values_updated: [SearchValue];
@@ -57,9 +55,9 @@ table CallbackEvent {
     attachments_updated_attachment: AttachmentInfo;
     progress_uuid: string;
     progress: Progress;
-    session_error: NativeError;
+    session_error: native_error.NativeError;
     operation_error_uuid: string;
-    operation_error: NativeError;
+    operation_error: native_error.NativeError;
     operation_started: string;
     operation_processing: string;
     operation_done: OperationDone;

@@ -1,9 +1,11 @@
 pub mod events;
 pub mod progress_tracker;
-
 use crate::{
     js::{
-        converting::{filter::WrappedSearchFilter, source::WrappedSourceDefinition},
+        converting::{
+            filter::WrappedSearchFilter, grabded_el::GrabbedElements,
+            source::WrappedSourceDefinition,
+        },
         session::events::ComputationErrorWrapper,
     },
     logging::targets,
@@ -261,7 +263,7 @@ impl RustSession {
         &self,
         start_line_index: i64,
         number_of_lines: i64,
-    ) -> Result<String, ComputationErrorWrapper> {
+    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
         let start = u64::try_from(start_line_index)
             .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
         let end = u64::try_from(start_line_index + number_of_lines - 1)
@@ -271,7 +273,7 @@ impl RustSession {
                 .grab(LineRange::from(start..=end))
                 .await
                 .map_err(ComputationErrorWrapper)?;
-            Ok(serde_json::to_string(&grabbed)?)
+            Ok(GrabbedElements(grabbed).into())
         } else {
             Err(ComputationErrorWrapper(
                 ComputationError::SessionUnavailable,

@@ -1,7 +1,5 @@
-include "./origins/index.fbs";
-include "./parsers/index.fbs";
-
-namespace binding;
+include "./origins/origins.fbs";
+include "./parsers/parsers.fbs";
 
 table ObserveOptions {
     parser: ParserTypeWrapper;

@@ -2,8 +2,6 @@ include "./dlt.fbs";
 include "./someip.fbs";
 include "./text.fbs";
 
-namespace binding;
-
 union ParserType {
     DltParserSettings,
     SomeIpParserSettings,

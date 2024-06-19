@@ -1,4 +1,4 @@
-namespace binding;
+namespace common;
 
 table KeyValue {
     key: string;

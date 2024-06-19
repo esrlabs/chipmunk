@@ -3,8 +3,6 @@ include "./serial.fbs";
 include "./udp.fbs";
 include "./tcp.fbs";
 
-namespace binding;
-
 union Transport {
     ProcessTransportConfig,
     TCPTransportConfig,

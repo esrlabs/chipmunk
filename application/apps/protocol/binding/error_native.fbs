@@ -1,4 +1,4 @@
-namespace binding;
+namespace native_error;
 
 enum Severity: byte { WARNING = 0, ERROR }
 enum NativeErrorKind: byte { 

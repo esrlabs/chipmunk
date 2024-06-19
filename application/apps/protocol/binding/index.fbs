@@ -1,9 +1,0 @@
-include "./common.fbs";
-include "./error_native.fbs";
-include "./attachment.fbs";
-include "./observe/index.fbs";
-include "./error_computation.fbs";
-include "./ranges.fbs";
-include "./event.fbs";
-include "./sde.fbs";
-include "./grabbed_el.fbs";

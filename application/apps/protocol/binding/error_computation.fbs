@@ -1,7 +1,5 @@
 include "./error_native.fbs";
 
-namespace binding;
-
 enum ComputationErrorType: byte {
     DestinationPath = 0,
     SessionCreatingFail,
@@ -50,7 +48,7 @@ table ComputationError {
     process: string;
     protocol: string;
     search_error: SearchError;
-    native_error: NativeError;
+    native_error: native_error.NativeError;
     grabbing: GrabError;
     sde: string;
 }
