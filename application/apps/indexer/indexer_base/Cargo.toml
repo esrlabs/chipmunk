@@ -5,8 +5,8 @@ authors = ["Oliver Mueller <oliver.mueller@esrlabs.com>"]
 edition = "2021"
 
 [dependencies]
-log = "0.4"
-serde = { version = "1.0", features = ["derive"] }
-thiserror = "1.0"
+log.workspace = true
+serde = { workspace = true , features = ["derive"] }
+thiserror.workspace = true
 
 [dev-dependencies]
