@@ -1,0 +1,9 @@
+include "./binding/common.fbs";
+include "./binding/error_native.fbs";
+include "./binding/attachment.fbs";
+include "./binding/observe/index.fbs";
+include "./binding/error_computation.fbs";
+include "./binding/ranges.fbs";
+include "./binding/event.fbs";
+include "./binding/sde.fbs";
+include "./binding/grabbed_el.fbs";

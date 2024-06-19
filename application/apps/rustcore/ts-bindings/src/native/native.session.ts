@@ -16,6 +16,9 @@ import { Logger, utils } from 'platform/log';
 import { scope } from 'platform/env/scope';
 import { IObserve, Observe } from 'platform/types/observe';
 
+import * as fb from 'flatbuffers';
+import * as protocol from 'protocol';
+
 export type RustSessionConstructorImpl<T> = new (
     uuid: string,
     provider: Computation<any, any, any>,
@@ -209,7 +212,7 @@ export abstract class RustSessionNative {
 
     public abstract getSourcesDefinitions(): Promise<ISourceLink[]>;
 
-    public abstract grab(start: number, len: number): Promise<string>;
+    public abstract grab(start: number, len: number): Promise<number[]>;
 
     public abstract grabIndexed(start: number, len: number): Promise<string>;
 
@@ -437,49 +440,27 @@ export class RustSessionWrapper extends RustSession {
             this._provider.debug().emit.operation('grab');
             this._native
                 .grab(start, len)
-                .then((grabbed: string) => {
-                    try {
-                        const result: Array<{
-                            c: string;
-                            id: number;
-                            p: number;
-                            n: number;
-                        }> = JSON.parse(grabbed);
-                        resolve(
-                            result.map(
-                                (
-                                    item: {
-                                        c: string;
-                                        id: number;
-                                        p: number;
-                                        n: number;
-                                    },
-                                    i: number,
-                                ) => {
-                                    return {
-                                        content: item.c,
-                                        source_id: item.id,
-                                        position: getValidNum(item.p),
-                                        nature: item.n,
-                                    };
-                                },
-                            ),
+                .then((buf: number[]) => {
+                    const grabbedElementList =
+                        protocol.GrabbedElementList.getRootAsGrabbedElementList(
+                            new fb.ByteBuffer(Uint8Array.from(buf)),
                         );
-                    } catch (err) {
-                        reject(
-                            new NativeError(
-                                new Error(
-                                    this._logger.error(
-                                        `Fail to call grab(${start}, ${len}) due error: ${
-                                            err instanceof Error ? err.message : err
-                                        }`,
-                                    ),
-                                ),
-                                Type.ParsingContentChunk,
-                                Source.GrabStreamChunk,
-                            ),
-                        );
+                    const count = grabbedElementList.elementsLength();
+                    const els: IGrabbedElement[] = [];
+                    for (let i = 0; i < count; i++) {
+                        const el = grabbedElementList.elements(i);
+                        if (el === undefined || el === null) {
+                            continue;
+                        }
+                        const content = el.content();
+                        els.push({
+                            source_id: el.sourceId(),
+                            position: Number(el.pos()),
+                            nature: el.nature(),
+                            content: typeof content === 'string' ? content : '',
+                        });
                     }
+                    resolve(els);
                 })
                 .catch((err) => {
                     reject(

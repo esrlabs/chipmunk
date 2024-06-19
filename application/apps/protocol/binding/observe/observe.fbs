@@ -1,0 +1,9 @@
+include "./origins/origins.fbs";
+include "./parsers/parsers.fbs";
+
+table ObserveOptions {
+    parser: ParserTypeWrapper;
+    origin: ObserveOriginWrapper;
+}
+
+root_type ObserveOptions;

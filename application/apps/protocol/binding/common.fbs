@@ -1,0 +1,8 @@
+namespace common;
+
+table KeyValue {
+    key: string;
+    value: uint64;
+}
+
+root_type KeyValue;

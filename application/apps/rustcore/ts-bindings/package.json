@@ -35,7 +35,9 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "flatbuffers": "^24.3.25",
     "platform": "link:../../../platform",
+    "protocol": "link:../../protocol/output/binding/ts/protocol",
     "tslib": "^2.6.2",
     "uuid": "^9.0.1"
   },

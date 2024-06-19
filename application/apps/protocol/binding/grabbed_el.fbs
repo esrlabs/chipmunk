@@ -1,0 +1,13 @@
+table GrabbedElement {
+    source_id: uint16;
+    content: string;
+    pos: uint64; 
+    nature: uint8;
+}
+
+table GrabbedElementList {
+    elements: [GrabbedElement];
+}
+
+root_type GrabbedElementList;
+root_type GrabbedElement;

@@ -1,0 +1,5 @@
+table TCPTransportConfig {
+    bind_addr: string;
+}
+
+root_type TCPTransportConfig;
