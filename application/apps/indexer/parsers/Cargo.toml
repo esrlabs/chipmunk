@@ -7,14 +7,14 @@ edition = "2021"
 byteorder = "1.4"
 chrono = "0.4"
 chrono-tz = "0.8"
-dlt-core = "0.14"
+dlt-core.workspace = true
 humantime = "2.1"
-lazy_static = "1.4"
-log = "0.4.17"
+lazy_static.workspace = true
+log.workspace = true
 memchr = "2.4"
-serde = { version = "1.0", features = ["derive"] }
-thiserror = "1.0"
-rand = "0.8.5"
+serde = { workspace = true , features = ["derive"] }
+thiserror.workspace = true
+rand.workspace = true
 # someip-messages = { path = "../../../../../someip"}
 someip-messages = { git = "https://github.com/esrlabs/someip" }
 # someip-payload = { path = "../../../../../someip-payload" }
