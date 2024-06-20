@@ -3,7 +3,10 @@ pub mod progress_tracker;
 
 use crate::{
     js::{
-        converting::{filter::WrappedSearchFilter, source::WrappedSourceDefinition},
+        converting::{
+            filter::WrappedSearchFilter, grabbing::GrabbedElements,
+            source::WrappedSourceDefinition, u8_to_i32, ToBytes,
+        },
         session::events::ComputationErrorWrapper,
     },
     logging::targets,
@@ -261,7 +264,7 @@ impl RustSession {
         &self,
         start_line_index: i64,
         number_of_lines: i64,
-    ) -> Result<String, ComputationErrorWrapper> {
+    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
         let start = u64::try_from(start_line_index)
             .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
         let end = u64::try_from(start_line_index + number_of_lines - 1)
@@ -271,7 +274,7 @@ impl RustSession {
                 .grab(LineRange::from(start..=end))
                 .await
                 .map_err(ComputationErrorWrapper)?;
-            Ok(serde_json::to_string(&grabbed)?)
+            Ok(u8_to_i32(GrabbedElements(grabbed).into_bytes()))
         } else {
             Err(ComputationErrorWrapper(
                 ComputationError::SessionUnavailable,
@@ -284,7 +287,7 @@ impl RustSession {
         &self,
         start_line_index: i64,
         number_of_lines: i64,
-    ) -> Result<String, ComputationErrorWrapper> {
+    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
         let start = u64::try_from(start_line_index)
             .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
         let end = u64::try_from(start_line_index + number_of_lines - 1)
@@ -294,7 +297,7 @@ impl RustSession {
                 .grab_indexed(RangeInclusive::<u64>::new(start, end))
                 .await
                 .map_err(ComputationErrorWrapper)?;
-            Ok(serde_json::to_string(&grabbed)?)
+            Ok(u8_to_i32(GrabbedElements(grabbed).into_bytes()))
         } else {
             Err(ComputationErrorWrapper(
                 ComputationError::SessionUnavailable,
@@ -437,7 +440,7 @@ impl RustSession {
         &self,
         start_line_index: i64,
         number_of_lines: i64,
-    ) -> Result<String, ComputationErrorWrapper> {
+    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
         let start = u64::try_from(start_line_index)
             .map_err(|_| ComputationErrorWrapper(ComputationError::InvalidData))?;
         let end = u64::try_from(start_line_index + number_of_lines - 1)
@@ -447,7 +450,7 @@ impl RustSession {
                 .grab_search(LineRange::from(start..=end))
                 .await
                 .map_err(ComputationErrorWrapper)?;
-            Ok(serde_json::to_string(&grabbed)?)
+            Ok(u8_to_i32(GrabbedElements(grabbed).into_bytes()))
         } else {
             Err(ComputationErrorWrapper(
                 ComputationError::SessionUnavailable,
@@ -459,7 +462,7 @@ impl RustSession {
     async fn grab_ranges(
         &self,
         ranges: Vec<(i64, i64)>,
-    ) -> Result<String, ComputationErrorWrapper> {
+    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
         if let Some(ref session) = self.session {
             let grabbed = session
                 .grab_ranges(
@@ -470,7 +473,7 @@ impl RustSession {
                 )
                 .await
                 .map_err(ComputationErrorWrapper)?;
-            Ok(serde_json::to_string(&grabbed)?)
+            Ok(u8_to_i32(GrabbedElements(grabbed).into_bytes()))
         } else {
             Err(ComputationErrorWrapper(
                 ComputationError::SessionUnavailable,

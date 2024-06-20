@@ -1650,6 +1650,8 @@ dependencies = [
  "merging",
  "node-bindgen",
  "processor",
+ "prost 0.12.6",
+ "prost-types 0.12.6",
  "protocol",
  "serde",
  "serde_json",
