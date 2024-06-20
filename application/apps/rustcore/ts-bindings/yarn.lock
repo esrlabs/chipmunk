@@ -300,6 +300,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/google-protobuf@npm:^3":
+  version: 3.15.12
+  resolution: "@types/google-protobuf@npm:3.15.12"
+  checksum: 10c0/721783234e627f367dd710c345a1eaa9dca4ac64910032cef0c851c1821e05d06ffb51e9d1693080f1c0797a8674f89130fa56a390395ec7791ea8506d2f3bfb
+  languageName: node
+  linkType: hard
+
 "@types/http-cache-semantics@npm:*":
   version: 4.0.4
   resolution: "@types/http-cache-semantics@npm:4.0.4"
@@ -3422,6 +3429,12 @@ __metadata:
   languageName: node
   linkType: hard
 
+"protocol@link:../../protocol/gen/binding/ts/protocol::locator=rustcore%40workspace%3A.":
+  version: 0.0.0-use.local
+  resolution: "protocol@link:../../protocol/gen/binding/ts/protocol::locator=rustcore%40workspace%3A."
+  languageName: node
+  linkType: soft
+
 "pump@npm:^3.0.0":
   version: 3.0.0
   resolution: "pump@npm:3.0.0"
@@ -3601,6 +3614,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "rustcore@workspace:."
   dependencies:
+    "@types/google-protobuf": "npm:^3"
     "@types/jasmine": "npm:^5.1.4"
     "@types/node": "npm:^20.7.0"
     "@types/tmp": "npm:^0.2.4"
@@ -3618,6 +3632,7 @@ __metadata:
     jasmine: "npm:^5.1.0"
     loglevel: "npm:^1.6.6"
     platform: "link:../../../platform"
+    protocol: "link:../../protocol/gen/binding/ts/protocol"
     tmp: "npm:^0.2.3"
     ts-node: "npm:^10.4.0"
     tslib: "npm:^2.6.2"
