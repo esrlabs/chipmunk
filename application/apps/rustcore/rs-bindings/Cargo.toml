@@ -27,6 +27,7 @@ merging = { path = "../../indexer/merging" }
 node-bindgen = {git = "https://github.com/infinyon/node-bindgen.git", branch="master", features = ["serde-json"] }
 # node-bindgen = { version = "5.0", features = ["serde-json"] }
 processor = { path = "../../indexer/processor" }
+protocol = { path = "../../protocol/gen/binding/rust/protocol" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 session = { path = "../../indexer/session" }
