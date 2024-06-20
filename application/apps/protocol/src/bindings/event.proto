@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package event;
+
+import "error.proto";
+import "attachment.proto";
+
+message OperationDone {
+  string uuid = 1;
+  string result = 2;
+}
+
+message Ticks {
+  uint64 count = 1;
+  string state = 2;
+  uint64 total = 3;
+}
+
+message Notification {
+  error.Severity severity = 1;
+  string content = 2;
+  uint64 line = 3;
+}
+
+message CallbackEvent {
+  oneof event {
+    uint64 stream_updated = 1;
+    bool file_read = 2;
+    SearchUpdated search_updated = 3;
+    IndexedMapUpdated indexed_map_updated = 4;
+    SearchMapUpdated search_map_updated = 5;
+    SearchValuesUpdated search_values_updated = 6;
+    AttachmentsUpdated attachments_updated = 7;
+    Progress progress = 8;
+    error.NativeError session_error = 9;
+    OperationError operation_error = 10;
+    string operation_started = 11;
+    string operation_processing = 12;
+    OperationDone operation_done = 13;
+    bool session_destroyed = 14;
+  }
+
+  message SearchUpdated {
+    uint64 found = 1;
+    map<string, uint64> stat = 2;
+  }
+
+  message IndexedMapUpdated { uint64 len = 1; }
+
+  message SearchMapUpdated { string update = 1; }
+
+  message SearchValuesUpdated {
+    map<uint32, ValueRange> values = 1;
+
+    message ValueRange {
+      double min = 1;
+      double max = 2;
+    }
+  }
+
+  message AttachmentsUpdated {
+    uint64 len = 1;
+    attachment.AttachmentInfo attachment = 2;
+  }
+
+  message Progress {
+    string uuid = 1;
+    ProgressDetail detail = 2;
+
+    message ProgressDetail {
+      oneof detail {
+        Ticks ticks = 1;
+        Notification notification = 2;
+        bool stopped = 3;
+      }
+    }
+  }
+
+  message OperationError {
+    string uuid = 1;
+    error.NativeError error = 2;
+  }
+}
