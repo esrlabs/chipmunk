@@ -16,7 +16,9 @@ import { Logger, utils } from 'platform/log';
 import { scope } from 'platform/env/scope';
 import { IObserve, Observe } from 'platform/types/observe';
 
-import { grabbing } from 'protocol';
+import * as $ from 'platform/types/observe';
+
+import { grabbing, observe } from 'protocol';
 
 export type RustSessionConstructorImpl<T> = new (
     uuid: string,
@@ -205,7 +207,7 @@ export abstract class RustSessionNative {
 
     public abstract getSessionFile(): Promise<string>;
 
-    public abstract observe(source: string, operationUuid: string): Promise<void>;
+    public abstract observe(source: number[], operationUuid: string): Promise<void>;
 
     public abstract getStreamLen(): Promise<number>;
 
@@ -740,17 +742,124 @@ export class RustSessionWrapper extends RustSession {
 
     public observe(source: IObserve, operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            try {
-                this._provider.debug().emit.operation('observe', operationUuid);
-                this._native
-                    .observe(new Observe(source).json().to(), operationUuid)
-                    .then(resolve)
-                    .catch((err: Error) => {
-                        reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
+            console.log(`>>>>>>>>>>>>>>>>>>>>>>>> TS: starting 0000`);
+            const ob = new Observe(source);
+            console.log(`>>>>>>>>>>>>>>>>>>>>>>>> TS: starting 0001`);
+            let file = ob.origin.as<$.Origin.File.Configuration>($.Origin.File.Configuration);
+            let stream = ob.origin.as<$.Origin.Stream.Configuration>($.Origin.Stream.Configuration);
+            let concat = ob.origin.as<$.Origin.Concat.Configuration>($.Origin.Concat.Configuration);
+            const ft = (ft: $.Types.File.FileType) => {
+                switch (ft) {
+                    case $.Types.File.FileType.Text:
+                        return observe.FileFormat.Type.Text;
+                    case $.Types.File.FileType.Binary:
+                        return observe.FileFormat.Type.Binary;
+                    case $.Types.File.FileType.PcapNG:
+                        return observe.FileFormat.Type.PcapNG;
+                    case $.Types.File.FileType.PcapLegacy:
+                        return observe.FileFormat.Type.PcapLegacy;
+                }
+            };
+            let origin = new observe.ObserveOrigin();
+            if (file !== undefined) {
+                origin.file = new observe.ObserveOrigin.File({
+                    name: file.configuration[0],
+                    format: ft(file.configuration[1]),
+                    path: file.configuration[2],
+                });
+            } else if (concat !== undefined) {
+                origin.concat = new observe.ObserveOrigin.Concat({
+                    files: concat.configuration.map(
+                        (file) =>
+                            new observe.ObserveOrigin.File({
+                                name: file[0],
+                                format: ft(file[1]),
+                                path: file[2],
+                            }),
+                    ),
+                });
+            } else if (stream !== undefined) {
+                const processOrigin = stream.as<$.Origin.Stream.Stream.Process.Configuration>(
+                    $.Origin.Stream.Stream.Process.Configuration,
+                );
+                const serialOrigin = stream.as<$.Origin.Stream.Stream.Serial.Configuration>(
+                    $.Origin.Stream.Stream.Process.Configuration,
+                );
+                const tcpOrigin = stream.as<$.Origin.Stream.Stream.TCP.Configuration>(
+                    $.Origin.Stream.Stream.Process.Configuration,
+                );
+                const udpOrigin = stream.as<$.Origin.Stream.Stream.UDP.Configuration>(
+                    $.Origin.Stream.Stream.Process.Configuration,
+                );
+                let transport = new observe.Transport();
+                if (processOrigin !== undefined) {
+                    let envs: Map<string, string> = new Map();
+                    Object.keys(processOrigin.configuration.envs).forEach((key: string) => {
+                        envs.set(`${key}`, `${processOrigin.configuration.envs[key]}`);
                     });
-            } catch (err) {
-                return reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
+                    transport.process = new observe.ProcessTransportConfig({
+                        cwd: processOrigin.configuration.cwd,
+                        command: processOrigin.configuration.command,
+                        envs,
+                    });
+                } else if (serialOrigin !== undefined) {
+                    transport.serial = new observe.SerialTransportConfig(
+                        serialOrigin.configuration,
+                    );
+                } else if (tcpOrigin !== undefined) {
+                    transport.tcp = new observe.TCPTransportConfig(tcpOrigin.configuration);
+                } else if (udpOrigin !== undefined) {
+                    transport.udp = new observe.UDPTransportConfig({
+                        bind_addr: udpOrigin.configuration.bind_addr,
+                        multicast: udpOrigin.configuration.multicast.map((ma) => {
+                            return new observe.MulticastInfo(ma);
+                        }),
+                    });
+                }
+                origin.stream = new observe.ObserveOrigin.Stream({
+                    name: stream.configuration[0],
+                    transport,
+                });
             }
+            let text = ob.parser.as<$.Parser.Text.Configuration>($.Parser.Text.Configuration);
+            let dlt = ob.parser.as<$.Parser.Dlt.Configuration>($.Parser.Dlt.Configuration);
+            let someip = ob.parser.as<$.Parser.SomeIp.Configuration>($.Parser.SomeIp.Configuration);
+            let parser = new observe.ParserType();
+            if (text !== undefined) {
+                parser.text = true;
+            } else if (dlt !== undefined) {
+                parser.dlt = new observe.DltParserSettings();
+                if (dlt.configuration.fibex_file_paths !== undefined) {
+                    parser.dlt.fibex_file_paths = dlt.configuration.fibex_file_paths;
+                }
+                if (dlt.configuration.tz !== undefined) {
+                    parser.dlt.tz = dlt.configuration.tz;
+                }
+                if (dlt.configuration.with_storage_header !== undefined) {
+                    parser.dlt.with_storage_header = dlt.configuration.with_storage_header;
+                }
+                if (dlt.configuration.filter_config !== undefined) {
+                    parser.dlt.filter_config = new observe.DltFilterConfig(
+                        dlt.configuration.filter_config,
+                    );
+                }
+            } else if (someip !== undefined) {
+                parser.some_ip = new observe.SomeIpParserSettings();
+                if (someip.configuration.fibex_file_paths !== undefined) {
+                    parser.some_ip.fibex_file_paths = someip.configuration.fibex_file_paths;
+                }
+            }
+            const bytes = new observe.ObserveOptions({
+                origin,
+                parser,
+            }).serialize();
+            this._provider.debug().emit.operation('observe', operationUuid);
+            this._native
+                .observe(Array.from(bytes), operationUuid)
+                .then(resolve)
+                .catch((err: Error) => {
+                    reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
+                });
         });
     }
 

@@ -5,7 +5,7 @@ use crate::{
     js::{
         converting::{
             filter::WrappedSearchFilter, grabbing::GrabbedElements,
-            source::WrappedSourceDefinition, u8_to_i32, ToBytes,
+            source::WrappedSourceDefinition, u8_to_i32, FromBytes, JsIncomeI32Vec, ToBytes,
         },
         session::events::ComputationErrorWrapper,
     },
@@ -17,7 +17,6 @@ use node_bindgen::derive::node_bindgen;
 use processor::grabber::LineRange;
 use session::{
     events::{CallbackEvent, ComputationError, NativeError},
-    factory::ObserveOptions,
     operations,
     session::Session,
 };
@@ -484,11 +483,12 @@ impl RustSession {
     #[node_bindgen]
     async fn observe(
         &self,
-        options: String,
+        options: Vec<i32>,
         operation_id: String,
     ) -> Result<(), ComputationErrorWrapper> {
-        let options: ObserveOptions = serde_json::from_str(&options)
-            .map_err(|e| ComputationError::Process(format!("Cannot parse source settings: {e}")))?;
+        let options = JsIncomeI32Vec(options)
+            .from_bytes()
+            .map_err(|e| ComputationError::Process(format!("Cannot parse ObserveOptions: {e}")))?;
         if let Some(ref session) = self.session {
             session
                 .observe(operations::uuid_from_str(&operation_id)?, options)

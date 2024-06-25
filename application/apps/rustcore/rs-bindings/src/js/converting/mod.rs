@@ -1,12 +1,30 @@
 // pub mod concat;
+pub mod error;
 pub mod filter;
 pub mod grabbing;
 pub mod merge;
+pub mod observe;
 pub mod source;
+
+use std::ops::Deref;
 
 /// Trait, which is used to convert given entity to bytes based on protobuf protocol
 pub trait ToBytes {
     fn into_bytes(&mut self) -> Vec<u8>;
+}
+
+pub struct JsIncomeI32Vec(pub Vec<i32>);
+
+impl Deref for JsIncomeI32Vec {
+    type Target = Vec<i32>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+/// Trait, which is used to convert bytes into type
+pub trait FromBytes<T> {
+    fn from_bytes(&mut self) -> Result<T, error::E>;
 }
 
 /// This function takes a vector of bytes (`u8`) and converts each byte to an `i32` value,
