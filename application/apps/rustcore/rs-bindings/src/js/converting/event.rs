@@ -1,4 +1,4 @@
-use super::{u8_to_i32, ToBytes};
+use super::{errors::get_native_err, u8_to_i32, ToBytes};
 use event::callback_event::search_values_updated;
 use event::callback_event::{self, Event};
 use node_bindgen::{
@@ -7,10 +7,7 @@ use node_bindgen::{
 };
 use protocol::*;
 use session::progress::Severity;
-use session::{
-    events::{CallbackEvent, NativeError, NativeErrorKind},
-    progress::Progress,
-};
+use session::{events::CallbackEvent, progress::Progress};
 use std::{collections::HashMap, mem};
 
 #[derive(Debug)]
@@ -37,30 +34,6 @@ impl TryIntoJs for CallbackEventWrapped {
 impl From<CallbackEvent> for CallbackEventWrapped {
     fn from(ev: CallbackEvent) -> CallbackEventWrapped {
         CallbackEventWrapped::new(ev)
-    }
-}
-
-fn get_native_err(err: NativeError) -> error::NativeError {
-    error::NativeError {
-        severity: match err.severity {
-            Severity::ERROR => error::Severity::Error.into(),
-            Severity::WARNING => error::Severity::Warning.into(),
-        },
-        kind: match err.kind {
-            NativeErrorKind::ChannelError => error::NativeErrorKind::ChannelError.into(),
-            NativeErrorKind::ComputationFailed => error::NativeErrorKind::ComputationFailed.into(),
-            NativeErrorKind::Configuration => error::NativeErrorKind::Configuration.into(),
-            NativeErrorKind::FileNotFound => error::NativeErrorKind::FileNotFound.into(),
-            NativeErrorKind::Grabber => error::NativeErrorKind::Grabber.into(),
-            NativeErrorKind::Interrupted => error::NativeErrorKind::Interrupted.into(),
-            NativeErrorKind::Io => error::NativeErrorKind::Io.into(),
-            NativeErrorKind::NotYetImplemented => error::NativeErrorKind::NotYetImplemented.into(),
-            NativeErrorKind::OperationSearch => error::NativeErrorKind::OperationSearch.into(),
-            NativeErrorKind::UnsupportedFileType => {
-                error::NativeErrorKind::UnsupportedFileType.into()
-            }
-        },
-        message: err.message.unwrap_or_default(),
     }
 }
 

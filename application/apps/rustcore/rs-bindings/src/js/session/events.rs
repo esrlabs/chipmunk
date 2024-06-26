@@ -1,36 +1,8 @@
-use crate::js::converting;
 use node_bindgen::{
     core::{val::JsEnv, NjError, TryIntoJs},
     sys::napi_value,
 };
-use session::events::{CallbackEvent, ComputationError, LifecycleTransition};
-
-impl From<serde_json::Error> for ComputationErrorWrapper {
-    fn from(_: serde_json::Error) -> ComputationErrorWrapper {
-        ComputationErrorWrapper(ComputationError::InvalidData)
-    }
-}
-
-pub(crate) struct ComputationErrorWrapper(pub ComputationError);
-
-impl From<converting::error::E> for ComputationErrorWrapper {
-    fn from(err: converting::error::E) -> Self {
-        ComputationErrorWrapper(ComputationError::Protocol(err.to_string()))
-    }
-}
-
-impl TryIntoJs for ComputationErrorWrapper {
-    fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        let value = serde_json::to_value(self.0).map_err(|e| NjError::Other(format!("{e}")))?;
-        value.try_to_js(js_env)
-    }
-}
-
-impl From<ComputationError> for ComputationErrorWrapper {
-    fn from(err: ComputationError) -> ComputationErrorWrapper {
-        ComputationErrorWrapper(err)
-    }
-}
+use session::events::LifecycleTransition;
 
 #[derive(Debug)]
 pub(crate) struct LifecycleTransitionWrapper(pub LifecycleTransition);

@@ -1,6 +1,7 @@
 // pub mod concat;
 pub mod attachments;
 pub mod error;
+pub mod errors;
 pub mod event;
 pub mod filter;
 pub mod grabbing;
