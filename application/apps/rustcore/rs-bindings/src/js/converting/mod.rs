@@ -1,9 +1,13 @@
 // pub mod concat;
+pub mod attachments;
 pub mod error;
+pub mod event;
 pub mod filter;
 pub mod grabbing;
 pub mod merge;
 pub mod observe;
+pub mod ranges;
+pub mod sde;
 pub mod source;
 
 use std::ops::Deref;

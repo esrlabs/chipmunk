@@ -1,5 +1,8 @@
 use prost::DecodeError;
+use session::events::ComputationError;
 use thiserror::Error;
+
+use crate::js::session::events::ComputationErrorWrapper;
 
 #[derive(Error, Debug)]
 pub enum E {

@@ -1,29 +1,10 @@
+use crate::js::converting;
 use node_bindgen::{
     core::{val::JsEnv, NjError, TryIntoJs},
     sys::napi_value,
 };
 use session::events::{CallbackEvent, ComputationError, LifecycleTransition};
 
-#[derive(Debug)]
-pub(crate) struct CallbackEventWrapper(pub CallbackEvent);
-
-impl TryIntoJs for CallbackEventWrapper {
-    /// serialize into json object
-    fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        match serde_json::to_string(&self.0) {
-            Ok(s) => js_env.create_string_utf8(&s),
-            Err(e) => Err(NjError::Other(format!(
-                "Could not convert Callback event to json: {e}"
-            ))),
-        }
-    }
-}
-
-impl From<CallbackEvent> for CallbackEventWrapper {
-    fn from(e: CallbackEvent) -> CallbackEventWrapper {
-        CallbackEventWrapper(e)
-    }
-}
 impl From<serde_json::Error> for ComputationErrorWrapper {
     fn from(_: serde_json::Error) -> ComputationErrorWrapper {
         ComputationErrorWrapper(ComputationError::InvalidData)
@@ -31,6 +12,12 @@ impl From<serde_json::Error> for ComputationErrorWrapper {
 }
 
 pub(crate) struct ComputationErrorWrapper(pub ComputationError);
+
+impl From<converting::error::E> for ComputationErrorWrapper {
+    fn from(err: converting::error::E) -> Self {
+        ComputationErrorWrapper(ComputationError::Protocol(err.to_string()))
+    }
+}
 
 impl TryIntoJs for ComputationErrorWrapper {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {

@@ -11,3 +11,5 @@ message AttachmentInfo {
   string mime = 6;
   repeated uint64 messages = 7;
 }
+
+message AttachmentInfoList { repeated AttachmentInfo elements = 1; }
