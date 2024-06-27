@@ -10,10 +10,7 @@ use node_bindgen::{
 use processor::{grabber::GrabError, search::error::SearchError};
 use protocol::*;
 use session::events::{NativeError, NativeErrorKind};
-use session::{
-    events::{ComputationError, LifecycleTransition},
-    progress::Severity,
-};
+use session::{events::ComputationError, progress::Severity};
 
 #[derive(Debug)]
 pub struct ComputationErrorWapper(Option<ComputationError>);

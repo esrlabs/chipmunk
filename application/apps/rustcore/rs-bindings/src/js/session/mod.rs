@@ -1,4 +1,3 @@
-pub mod events;
 pub mod progress_tracker;
 
 use crate::{

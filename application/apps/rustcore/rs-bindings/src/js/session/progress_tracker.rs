@@ -1,5 +1,4 @@
-use super::events::LifecycleTransitionWrapper;
-use crate::js::converting::errors::ComputationErrorWapper;
+use crate::js::converting::{errors::ComputationErrorWapper, progress::LifecycleTransitionWrapper};
 use log::trace;
 use node_bindgen::derive::node_bindgen;
 use session::{
@@ -42,7 +41,7 @@ impl RustProgressTracker {
                         Ok(mut rx) => {
                             let _ = result_tx.send(Ok(()));
                             while let Some(progress_report) = rx.recv().await {
-                                callback(LifecycleTransitionWrapper(progress_report))
+                                callback(LifecycleTransitionWrapper::new(progress_report))
                             }
                         }
                         Err(e) => {

@@ -1,4 +1,4 @@
-use super::{errors::get_native_err, u8_to_i32, ToBytes};
+use super::{bytes_to_js_value, errors::get_native_err, u8_to_i32, ToBytes};
 use event::callback_event::search_values_updated;
 use event::callback_event::{self, Event};
 use node_bindgen::{
@@ -21,13 +21,7 @@ impl CallbackEventWrapped {
 
 impl TryIntoJs for CallbackEventWrapped {
     fn try_to_js(mut self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        let bytes = u8_to_i32(self.into_bytes());
-        let arr = js_env.create_array_with_len(bytes.len())?;
-        for (i, b) in bytes.into_iter().enumerate() {
-            let b = js_env.create_int32(b)?;
-            js_env.set_element(arr, b, i)?;
-        }
-        Ok(arr)
+        bytes_to_js_value(self.into_bytes(), js_env)
     }
 }
 
