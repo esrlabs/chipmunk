@@ -3,25 +3,36 @@
  * compiler version: 5.27.1
  * source: progress.proto
  * git: https://github.com/thesayyn/protoc-gen-ts */
-import * as pb_1 from "google-protobuf";
+import * as pb_1 from 'google-protobuf';
 export namespace progress {
     export class Ticks extends pb_1.Message {
         #one_of_decls: number[][] = [];
-        constructor(data?: any[] | {
-            count?: number;
-            state?: string;
-            total?: number;
-        }) {
+        constructor(
+            data?:
+                | any[]
+                | {
+                      count?: number;
+                      state?: string;
+                      total?: number;
+                  },
+        ) {
             super();
-            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-            if (!Array.isArray(data) && typeof data == "object") {
-                if ("count" in data && data.count != undefined) {
+            pb_1.Message.initialize(
+                this,
+                Array.isArray(data) ? data : [],
+                0,
+                -1,
+                [],
+                this.#one_of_decls,
+            );
+            if (!Array.isArray(data) && typeof data == 'object') {
+                if ('count' in data && data.count != undefined) {
                     this.count = data.count;
                 }
-                if ("state" in data && data.state != undefined) {
+                if ('state' in data && data.state != undefined) {
                     this.state = data.state;
                 }
-                if ("total" in data && data.total != undefined) {
+                if ('total' in data && data.total != undefined) {
                     this.total = data.total;
                 }
             }
@@ -33,7 +44,7 @@ export namespace progress {
             pb_1.Message.setField(this, 1, value);
         }
         get state() {
-            return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+            return pb_1.Message.getFieldWithDefault(this, 2, '') as string;
         }
         set state(value: string) {
             pb_1.Message.setField(this, 2, value);
@@ -44,11 +55,7 @@ export namespace progress {
         set total(value: number) {
             pb_1.Message.setField(this, 3, value);
         }
-        static fromObject(data: {
-            count?: number;
-            state?: string;
-            total?: number;
-        }): Ticks {
+        static fromObject(data: { count?: number; state?: string; total?: number }): Ticks {
             const message = new Ticks({});
             if (data.count != null) {
                 message.count = data.count;
@@ -82,20 +89,17 @@ export namespace progress {
         serialize(w: pb_1.BinaryWriter): void;
         serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
             const writer = w || new pb_1.BinaryWriter();
-            if (this.count != 0)
-                writer.writeUint64(1, this.count);
-            if (this.state.length)
-                writer.writeString(2, this.state);
-            if (this.total != 0)
-                writer.writeUint64(3, this.total);
-            if (!w)
-                return writer.getResultBuffer();
+            if (this.count != 0) writer.writeUint64(1, this.count);
+            if (this.state.length) writer.writeString(2, this.state);
+            if (this.total != 0) writer.writeUint64(3, this.total);
+            if (!w) return writer.getResultBuffer();
         }
         static deserialize(bytes: Uint8Array | pb_1.BinaryReader): Ticks {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new Ticks();
+            const reader =
+                    bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes),
+                message = new Ticks();
             while (reader.nextField()) {
-                if (reader.isEndGroup())
-                    break;
+                if (reader.isEndGroup()) break;
                 switch (reader.getFieldNumber()) {
                     case 1:
                         message.count = reader.readUint64();
@@ -106,7 +110,8 @@ export namespace progress {
                     case 3:
                         message.total = reader.readUint64();
                         break;
-                    default: reader.skipField();
+                    default:
+                        reader.skipField();
                 }
             }
             return message;
@@ -114,35 +119,50 @@ export namespace progress {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): Ticks {
+        static override deserializeBinary(bytes: Uint8Array): Ticks {
             return Ticks.deserialize(bytes);
         }
     }
     export class LifecycleTransition extends pb_1.Message {
         #one_of_decls: number[][] = [[1, 2, 3]];
-        constructor(data?: any[] | ({} & (({
-            started?: Started;
-            ticks?: never;
-            stopped?: never;
-        } | {
-            started?: never;
-            ticks?: TicksWithUuid;
-            stopped?: never;
-        } | {
-            started?: never;
-            ticks?: never;
-            stopped?: Stopped;
-        })))) {
+        constructor(
+            data?:
+                | any[]
+                | ({} & (
+                      | {
+                            started?: Started;
+                            ticks?: never;
+                            stopped?: never;
+                        }
+                      | {
+                            started?: never;
+                            ticks?: TicksWithUuid;
+                            stopped?: never;
+                        }
+                      | {
+                            started?: never;
+                            ticks?: never;
+                            stopped?: Stopped;
+                        }
+                  )),
+        ) {
             super();
-            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-            if (!Array.isArray(data) && typeof data == "object") {
-                if ("started" in data && data.started != undefined) {
+            pb_1.Message.initialize(
+                this,
+                Array.isArray(data) ? data : [],
+                0,
+                -1,
+                [],
+                this.#one_of_decls,
+            );
+            if (!Array.isArray(data) && typeof data == 'object') {
+                if ('started' in data && data.started != undefined) {
                     this.started = data.started;
                 }
-                if ("ticks" in data && data.ticks != undefined) {
+                if ('ticks' in data && data.ticks != undefined) {
                     this.ticks = data.ticks;
                 }
-                if ("stopped" in data && data.stopped != undefined) {
+                if ('stopped' in data && data.stopped != undefined) {
                     this.stopped = data.stopped;
                 }
             }
@@ -176,12 +196,12 @@ export namespace progress {
         }
         get transition() {
             const cases: {
-                [index: number]: "none" | "started" | "ticks" | "stopped";
+                [index: number]: 'none' | 'started' | 'ticks' | 'stopped';
             } = {
-                0: "none",
-                1: "started",
-                2: "ticks",
-                3: "stopped"
+                0: 'none',
+                1: 'started',
+                2: 'ticks',
+                3: 'stopped',
             };
             return cases[pb_1.Message.computeOneofCase(this, [1, 2, 3])];
         }
@@ -229,25 +249,35 @@ export namespace progress {
                 writer.writeMessage(2, this.ticks, () => this.ticks.serialize(writer));
             if (this.has_stopped)
                 writer.writeMessage(3, this.stopped, () => this.stopped.serialize(writer));
-            if (!w)
-                return writer.getResultBuffer();
+            if (!w) return writer.getResultBuffer();
         }
         static deserialize(bytes: Uint8Array | pb_1.BinaryReader): LifecycleTransition {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new LifecycleTransition();
+            const reader =
+                    bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes),
+                message = new LifecycleTransition();
             while (reader.nextField()) {
-                if (reader.isEndGroup())
-                    break;
+                if (reader.isEndGroup()) break;
                 switch (reader.getFieldNumber()) {
                     case 1:
-                        reader.readMessage(message.started, () => message.started = Started.deserialize(reader));
+                        reader.readMessage(
+                            message.started,
+                            () => (message.started = Started.deserialize(reader)),
+                        );
                         break;
                     case 2:
-                        reader.readMessage(message.ticks, () => message.ticks = TicksWithUuid.deserialize(reader));
+                        reader.readMessage(
+                            message.ticks,
+                            () => (message.ticks = TicksWithUuid.deserialize(reader)),
+                        );
                         break;
                     case 3:
-                        reader.readMessage(message.stopped, () => message.stopped = Stopped.deserialize(reader));
+                        reader.readMessage(
+                            message.stopped,
+                            () => (message.stopped = Stopped.deserialize(reader)),
+                        );
                         break;
-                    default: reader.skipField();
+                    default:
+                        reader.skipField();
                 }
             }
             return message;
@@ -255,43 +285,51 @@ export namespace progress {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): LifecycleTransition {
+        static override deserializeBinary(bytes: Uint8Array): LifecycleTransition {
             return LifecycleTransition.deserialize(bytes);
         }
     }
     export class Started extends pb_1.Message {
         #one_of_decls: number[][] = [];
-        constructor(data?: any[] | {
-            uuid?: string;
-            alias?: string;
-        }) {
+        constructor(
+            data?:
+                | any[]
+                | {
+                      uuid?: string;
+                      alias?: string;
+                  },
+        ) {
             super();
-            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-            if (!Array.isArray(data) && typeof data == "object") {
-                if ("uuid" in data && data.uuid != undefined) {
+            pb_1.Message.initialize(
+                this,
+                Array.isArray(data) ? data : [],
+                0,
+                -1,
+                [],
+                this.#one_of_decls,
+            );
+            if (!Array.isArray(data) && typeof data == 'object') {
+                if ('uuid' in data && data.uuid != undefined) {
                     this.uuid = data.uuid;
                 }
-                if ("alias" in data && data.alias != undefined) {
+                if ('alias' in data && data.alias != undefined) {
                     this.alias = data.alias;
                 }
             }
         }
         get uuid() {
-            return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+            return pb_1.Message.getFieldWithDefault(this, 1, '') as string;
         }
         set uuid(value: string) {
             pb_1.Message.setField(this, 1, value);
         }
         get alias() {
-            return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+            return pb_1.Message.getFieldWithDefault(this, 2, '') as string;
         }
         set alias(value: string) {
             pb_1.Message.setField(this, 2, value);
         }
-        static fromObject(data: {
-            uuid?: string;
-            alias?: string;
-        }): Started {
+        static fromObject(data: { uuid?: string; alias?: string }): Started {
             const message = new Started({});
             if (data.uuid != null) {
                 message.uuid = data.uuid;
@@ -318,18 +356,16 @@ export namespace progress {
         serialize(w: pb_1.BinaryWriter): void;
         serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
             const writer = w || new pb_1.BinaryWriter();
-            if (this.uuid.length)
-                writer.writeString(1, this.uuid);
-            if (this.alias.length)
-                writer.writeString(2, this.alias);
-            if (!w)
-                return writer.getResultBuffer();
+            if (this.uuid.length) writer.writeString(1, this.uuid);
+            if (this.alias.length) writer.writeString(2, this.alias);
+            if (!w) return writer.getResultBuffer();
         }
         static deserialize(bytes: Uint8Array | pb_1.BinaryReader): Started {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new Started();
+            const reader =
+                    bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes),
+                message = new Started();
             while (reader.nextField()) {
-                if (reader.isEndGroup())
-                    break;
+                if (reader.isEndGroup()) break;
                 switch (reader.getFieldNumber()) {
                     case 1:
                         message.uuid = reader.readString();
@@ -337,7 +373,8 @@ export namespace progress {
                     case 2:
                         message.alias = reader.readString();
                         break;
-                    default: reader.skipField();
+                    default:
+                        reader.skipField();
                 }
             }
             return message;
@@ -345,29 +382,40 @@ export namespace progress {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): Started {
+        static override deserializeBinary(bytes: Uint8Array): Started {
             return Started.deserialize(bytes);
         }
     }
     export class TicksWithUuid extends pb_1.Message {
         #one_of_decls: number[][] = [];
-        constructor(data?: any[] | {
-            uuid?: string;
-            ticks?: Ticks;
-        }) {
+        constructor(
+            data?:
+                | any[]
+                | {
+                      uuid?: string;
+                      ticks?: Ticks;
+                  },
+        ) {
             super();
-            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-            if (!Array.isArray(data) && typeof data == "object") {
-                if ("uuid" in data && data.uuid != undefined) {
+            pb_1.Message.initialize(
+                this,
+                Array.isArray(data) ? data : [],
+                0,
+                -1,
+                [],
+                this.#one_of_decls,
+            );
+            if (!Array.isArray(data) && typeof data == 'object') {
+                if ('uuid' in data && data.uuid != undefined) {
                     this.uuid = data.uuid;
                 }
-                if ("ticks" in data && data.ticks != undefined) {
+                if ('ticks' in data && data.ticks != undefined) {
                     this.ticks = data.ticks;
                 }
             }
         }
         get uuid() {
-            return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+            return pb_1.Message.getFieldWithDefault(this, 1, '') as string;
         }
         set uuid(value: string) {
             pb_1.Message.setField(this, 1, value);
@@ -411,26 +459,29 @@ export namespace progress {
         serialize(w: pb_1.BinaryWriter): void;
         serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
             const writer = w || new pb_1.BinaryWriter();
-            if (this.uuid.length)
-                writer.writeString(1, this.uuid);
+            if (this.uuid.length) writer.writeString(1, this.uuid);
             if (this.has_ticks)
                 writer.writeMessage(2, this.ticks, () => this.ticks.serialize(writer));
-            if (!w)
-                return writer.getResultBuffer();
+            if (!w) return writer.getResultBuffer();
         }
         static deserialize(bytes: Uint8Array | pb_1.BinaryReader): TicksWithUuid {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new TicksWithUuid();
+            const reader =
+                    bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes),
+                message = new TicksWithUuid();
             while (reader.nextField()) {
-                if (reader.isEndGroup())
-                    break;
+                if (reader.isEndGroup()) break;
                 switch (reader.getFieldNumber()) {
                     case 1:
                         message.uuid = reader.readString();
                         break;
                     case 2:
-                        reader.readMessage(message.ticks, () => message.ticks = Ticks.deserialize(reader));
+                        reader.readMessage(
+                            message.ticks,
+                            () => (message.ticks = Ticks.deserialize(reader)),
+                        );
                         break;
-                    default: reader.skipField();
+                    default:
+                        reader.skipField();
                 }
             }
             return message;
@@ -438,32 +489,41 @@ export namespace progress {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): TicksWithUuid {
+        static override deserializeBinary(bytes: Uint8Array): TicksWithUuid {
             return TicksWithUuid.deserialize(bytes);
         }
     }
     export class Stopped extends pb_1.Message {
         #one_of_decls: number[][] = [];
-        constructor(data?: any[] | {
-            uuid?: string;
-        }) {
+        constructor(
+            data?:
+                | any[]
+                | {
+                      uuid?: string;
+                  },
+        ) {
             super();
-            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-            if (!Array.isArray(data) && typeof data == "object") {
-                if ("uuid" in data && data.uuid != undefined) {
+            pb_1.Message.initialize(
+                this,
+                Array.isArray(data) ? data : [],
+                0,
+                -1,
+                [],
+                this.#one_of_decls,
+            );
+            if (!Array.isArray(data) && typeof data == 'object') {
+                if ('uuid' in data && data.uuid != undefined) {
                     this.uuid = data.uuid;
                 }
             }
         }
         get uuid() {
-            return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+            return pb_1.Message.getFieldWithDefault(this, 1, '') as string;
         }
         set uuid(value: string) {
             pb_1.Message.setField(this, 1, value);
         }
-        static fromObject(data: {
-            uuid?: string;
-        }): Stopped {
+        static fromObject(data: { uuid?: string }): Stopped {
             const message = new Stopped({});
             if (data.uuid != null) {
                 message.uuid = data.uuid;
@@ -483,21 +543,21 @@ export namespace progress {
         serialize(w: pb_1.BinaryWriter): void;
         serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
             const writer = w || new pb_1.BinaryWriter();
-            if (this.uuid.length)
-                writer.writeString(1, this.uuid);
-            if (!w)
-                return writer.getResultBuffer();
+            if (this.uuid.length) writer.writeString(1, this.uuid);
+            if (!w) return writer.getResultBuffer();
         }
         static deserialize(bytes: Uint8Array | pb_1.BinaryReader): Stopped {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new Stopped();
+            const reader =
+                    bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes),
+                message = new Stopped();
             while (reader.nextField()) {
-                if (reader.isEndGroup())
-                    break;
+                if (reader.isEndGroup()) break;
                 switch (reader.getFieldNumber()) {
                     case 1:
                         message.uuid = reader.readString();
                         break;
-                    default: reader.skipField();
+                    default:
+                        reader.skipField();
                 }
             }
             return message;
@@ -505,7 +565,7 @@ export namespace progress {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): Stopped {
+        static override deserializeBinary(bytes: Uint8Array): Stopped {
             return Stopped.deserialize(bytes);
         }
     }

@@ -18,7 +18,8 @@ import { IObserve, Observe } from 'platform/types/observe';
 
 import * as $ from 'platform/types/observe';
 
-import { grabbing, observe } from 'protocol';
+import { grabbing, observe, sde, attachment, common } from 'protocol';
+import { SdeRequest, SdeResponse } from 'platform/types/sde';
 
 export type RustSessionConstructorImpl<T> = new (
     uuid: string,
@@ -170,7 +171,10 @@ export abstract class RustSession extends RustSessionRequiered {
         positionInStream: number,
     ): Promise<{ index: number; position: number } | undefined>;
 
-    public abstract sendIntoSde(targetOperationUuid: string, jsonStrMsg: string): Promise<string>;
+    public abstract sendIntoSde(
+        targetOperationUuid: string,
+        request: SdeRequest,
+    ): Promise<SdeResponse>;
 
     public abstract getAttachments(): Promise<Attachment[]>;
     public abstract getIndexedRanges(): Promise<IRange[]>;
@@ -297,9 +301,9 @@ export abstract class RustSessionNative {
         positionInStream: number,
     ): Promise<number[] | null>;
 
-    public abstract sendIntoSde(targetOperationUuid: string, jsonStrMsg: string): Promise<string>;
-    public abstract getAttachments(): Promise<string>;
-    public abstract getIndexedRanges(): Promise<string>;
+    public abstract sendIntoSde(targetOperationUuid: string, request: number[]): Promise<number[]>;
+    public abstract getAttachments(): Promise<number[]>;
+    public abstract getIndexedRanges(): Promise<number[]>;
 
     public abstract abort(
         selfOperationUuid: string,
@@ -742,9 +746,7 @@ export class RustSessionWrapper extends RustSession {
 
     public observe(source: IObserve, operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            console.log(`>>>>>>>>>>>>>>>>>>>>>>>> TS: starting 0000`);
             const ob = new Observe(source);
-            console.log(`>>>>>>>>>>>>>>>>>>>>>>>> TS: starting 0001`);
             let file = ob.origin.as<$.Origin.File.Configuration>($.Origin.File.Configuration);
             let stream = ob.origin.as<$.Origin.Stream.Configuration>($.Origin.Stream.Configuration);
             let concat = ob.origin.as<$.Origin.Concat.Configuration>($.Origin.Concat.Configuration);
@@ -1074,11 +1076,25 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
-    public sendIntoSde(targetOperationUuid: string, jsonStrMsg: string): Promise<string> {
+    public sendIntoSde(targetOperationUuid: string, request: SdeRequest): Promise<SdeResponse> {
         return new Promise((resolve, reject) => {
             this._native
-                .sendIntoSde(targetOperationUuid, jsonStrMsg)
-                .then(resolve)
+                .sendIntoSde(
+                    targetOperationUuid,
+                    Array.from(
+                        new sde.SdeRequest(
+                            request.WriteBytes !== undefined
+                                ? {
+                                      write_bytes: Uint8Array.from(request.WriteBytes),
+                                  }
+                                : { write_text: request.WriteText! },
+                        ).serialize(),
+                    ),
+                )
+                .then((bytes: number[]) => {
+                    const response = sde.SdeResponse.deserialize(Uint8Array.from(bytes));
+                    resolve({ bytes: response.bytes });
+                })
                 .catch((err) => {
                     reject(new NativeError(NativeError.from(err), Type.Other, Source.SendIntoSde));
                 });
@@ -1089,21 +1105,13 @@ export class RustSessionWrapper extends RustSession {
         return new Promise((resolve, reject) => {
             this._native
                 .getAttachments()
-                .then((str: string) => {
-                    try {
-                        const attachments: Attachment[] = [];
-                        for (const unchecked of JSON.parse(str) as unknown[]) {
-                            const attachment = Attachment.from(unchecked);
-                            if (attachment instanceof Error) {
-                                reject(attachment);
-                                return;
-                            }
-                            attachments.push(attachment);
-                        }
-                        resolve(attachments);
-                    } catch (e) {
-                        reject(new Error(utils.error(e)));
-                    }
+                .then((bytes: number[]) => {
+                    const list = attachment.AttachmentInfoList.deserialize(Uint8Array.from(bytes));
+                    resolve(
+                        list.elements.map((el) => {
+                            return new Attachment(el);
+                        }),
+                    );
                 })
                 .catch((err) => {
                     reject(
@@ -1117,21 +1125,13 @@ export class RustSessionWrapper extends RustSession {
         return new Promise((resolve, reject) => {
             this._native
                 .getIndexedRanges()
-                .then((str: string) => {
-                    try {
-                        const ranges: IRange[] = [];
-                        for (const unchecked of JSON.parse(str) as unknown[]) {
-                            const range = fromTuple(unchecked);
-                            if (range instanceof Error) {
-                                reject(range);
-                                return;
-                            }
-                            ranges.push(range);
-                        }
-                        resolve(ranges);
-                    } catch (e) {
-                        reject(new Error(utils.error(e)));
-                    }
+                .then((bytes: number[]) => {
+                    const list = common.RangeInclusiveList.deserialize(Uint8Array.from(bytes));
+                    resolve(
+                        list.elements.map((el) => {
+                            return { from: el.start, to: el.end };
+                        }),
+                    );
                 })
                 .catch((err) => {
                     reject(

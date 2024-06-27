@@ -206,7 +206,7 @@ export namespace attachment {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): AttachmentInfo {
+        static override deserializeBinary(bytes: Uint8Array): AttachmentInfo {
             return AttachmentInfo.deserialize(bytes);
         }
     }
@@ -273,7 +273,7 @@ export namespace attachment {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): AttachmentInfoList {
+        static override deserializeBinary(bytes: Uint8Array): AttachmentInfoList {
             return AttachmentInfoList.deserialize(bytes);
         }
     }

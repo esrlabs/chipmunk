@@ -307,7 +307,7 @@ export namespace error {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): GrabError {
+        static override deserializeBinary(bytes: Uint8Array): GrabError {
             return GrabError.deserialize(bytes);
         }
     }
@@ -375,7 +375,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): Config {
+            static override deserializeBinary(bytes: Uint8Array): Config {
                 return Config.deserialize(bytes);
             }
         }
@@ -442,7 +442,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): Communication {
+            static override deserializeBinary(bytes: Uint8Array): Communication {
                 return Communication.deserialize(bytes);
             }
         }
@@ -509,7 +509,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): IoOperation {
+            static override deserializeBinary(bytes: Uint8Array): IoOperation {
                 return IoOperation.deserialize(bytes);
             }
         }
@@ -602,7 +602,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): InvalidRange {
+            static override deserializeBinary(bytes: Uint8Array): InvalidRange {
                 return InvalidRange.deserialize(bytes);
             }
         }
@@ -642,7 +642,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): Interrupted {
+            static override deserializeBinary(bytes: Uint8Array): Interrupted {
                 return Interrupted.deserialize(bytes);
             }
         }
@@ -682,7 +682,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): NotInitialize {
+            static override deserializeBinary(bytes: Uint8Array): NotInitialize {
                 return NotInitialize.deserialize(bytes);
             }
         }
@@ -749,7 +749,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): Unsupported {
+            static override deserializeBinary(bytes: Uint8Array): Unsupported {
                 return Unsupported.deserialize(bytes);
             }
         }
@@ -1039,7 +1039,7 @@ export namespace error {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): SearchError {
+        static override deserializeBinary(bytes: Uint8Array): SearchError {
             return SearchError.deserialize(bytes);
         }
     }
@@ -1107,7 +1107,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): Config {
+            static override deserializeBinary(bytes: Uint8Array): Config {
                 return Config.deserialize(bytes);
             }
         }
@@ -1174,7 +1174,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): Communication {
+            static override deserializeBinary(bytes: Uint8Array): Communication {
                 return Communication.deserialize(bytes);
             }
         }
@@ -1241,7 +1241,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): IoOperation {
+            static override deserializeBinary(bytes: Uint8Array): IoOperation {
                 return IoOperation.deserialize(bytes);
             }
         }
@@ -1308,7 +1308,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): Regex {
+            static override deserializeBinary(bytes: Uint8Array): Regex {
                 return Regex.deserialize(bytes);
             }
         }
@@ -1375,7 +1375,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): Input {
+            static override deserializeBinary(bytes: Uint8Array): Input {
                 return Input.deserialize(bytes);
             }
         }
@@ -1445,7 +1445,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): Grab {
+            static override deserializeBinary(bytes: Uint8Array): Grab {
                 return Grab.deserialize(bytes);
             }
         }
@@ -1512,7 +1512,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): Aborted {
+            static override deserializeBinary(bytes: Uint8Array): Aborted {
                 return Aborted.deserialize(bytes);
             }
         }
@@ -1626,7 +1626,7 @@ export namespace error {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): NativeError {
+        static override deserializeBinary(bytes: Uint8Array): NativeError {
             return NativeError.deserialize(bytes);
         }
     }
@@ -2307,7 +2307,7 @@ export namespace error {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): ComputationError {
+        static override deserializeBinary(bytes: Uint8Array): ComputationError {
             return ComputationError.deserialize(bytes);
         }
     }
@@ -2348,7 +2348,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): DestinationPath {
+            static override deserializeBinary(bytes: Uint8Array): DestinationPath {
                 return DestinationPath.deserialize(bytes);
             }
         }
@@ -2388,7 +2388,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): SessionCreatingFail {
+            static override deserializeBinary(bytes: Uint8Array): SessionCreatingFail {
                 return SessionCreatingFail.deserialize(bytes);
             }
         }
@@ -2455,7 +2455,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): Communication {
+            static override deserializeBinary(bytes: Uint8Array): Communication {
                 return Communication.deserialize(bytes);
             }
         }
@@ -2522,7 +2522,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): OperationNotSupported {
+            static override deserializeBinary(bytes: Uint8Array): OperationNotSupported {
                 return OperationNotSupported.deserialize(bytes);
             }
         }
@@ -2589,7 +2589,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): IoOperation {
+            static override deserializeBinary(bytes: Uint8Array): IoOperation {
                 return IoOperation.deserialize(bytes);
             }
         }
@@ -2629,7 +2629,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): InvalidData {
+            static override deserializeBinary(bytes: Uint8Array): InvalidData {
                 return InvalidData.deserialize(bytes);
             }
         }
@@ -2696,7 +2696,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): InvalidArgs {
+            static override deserializeBinary(bytes: Uint8Array): InvalidArgs {
                 return InvalidArgs.deserialize(bytes);
             }
         }
@@ -2763,7 +2763,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): Process {
+            static override deserializeBinary(bytes: Uint8Array): Process {
                 return Process.deserialize(bytes);
             }
         }
@@ -2830,7 +2830,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): Protocol {
+            static override deserializeBinary(bytes: Uint8Array): Protocol {
                 return Protocol.deserialize(bytes);
             }
         }
@@ -2870,7 +2870,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): MultipleInitCall {
+            static override deserializeBinary(bytes: Uint8Array): MultipleInitCall {
                 return MultipleInitCall.deserialize(bytes);
             }
         }
@@ -2910,7 +2910,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): SessionUnavailable {
+            static override deserializeBinary(bytes: Uint8Array): SessionUnavailable {
                 return SessionUnavailable.deserialize(bytes);
             }
         }
@@ -2980,7 +2980,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): Grabbing {
+            static override deserializeBinary(bytes: Uint8Array): Grabbing {
                 return Grabbing.deserialize(bytes);
             }
         }
@@ -3047,7 +3047,7 @@ export namespace error {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): Sde {
+            static override deserializeBinary(bytes: Uint8Array): Sde {
                 return Sde.deserialize(bytes);
             }
         }

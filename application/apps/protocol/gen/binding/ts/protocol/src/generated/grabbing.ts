@@ -3,29 +3,40 @@
  * compiler version: 5.27.1
  * source: grabbing.proto
  * git: https://github.com/thesayyn/protoc-gen-ts */
-import * as pb_1 from "google-protobuf";
+import * as pb_1 from 'google-protobuf';
 export namespace grabbing {
     export class GrabbedElement extends pb_1.Message {
         #one_of_decls: number[][] = [];
-        constructor(data?: any[] | {
-            source_id?: number;
-            content?: string;
-            pos?: number;
-            nature?: number;
-        }) {
+        constructor(
+            data?:
+                | any[]
+                | {
+                      source_id?: number;
+                      content?: string;
+                      pos?: number;
+                      nature?: number;
+                  },
+        ) {
             super();
-            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-            if (!Array.isArray(data) && typeof data == "object") {
-                if ("source_id" in data && data.source_id != undefined) {
+            pb_1.Message.initialize(
+                this,
+                Array.isArray(data) ? data : [],
+                0,
+                -1,
+                [],
+                this.#one_of_decls,
+            );
+            if (!Array.isArray(data) && typeof data == 'object') {
+                if ('source_id' in data && data.source_id != undefined) {
                     this.source_id = data.source_id;
                 }
-                if ("content" in data && data.content != undefined) {
+                if ('content' in data && data.content != undefined) {
                     this.content = data.content;
                 }
-                if ("pos" in data && data.pos != undefined) {
+                if ('pos' in data && data.pos != undefined) {
                     this.pos = data.pos;
                 }
-                if ("nature" in data && data.nature != undefined) {
+                if ('nature' in data && data.nature != undefined) {
                     this.nature = data.nature;
                 }
             }
@@ -37,7 +48,7 @@ export namespace grabbing {
             pb_1.Message.setField(this, 1, value);
         }
         get content() {
-            return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+            return pb_1.Message.getFieldWithDefault(this, 2, '') as string;
         }
         set content(value: string) {
             pb_1.Message.setField(this, 2, value);
@@ -100,22 +111,18 @@ export namespace grabbing {
         serialize(w: pb_1.BinaryWriter): void;
         serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
             const writer = w || new pb_1.BinaryWriter();
-            if (this.source_id != 0)
-                writer.writeUint32(1, this.source_id);
-            if (this.content.length)
-                writer.writeString(2, this.content);
-            if (this.pos != 0)
-                writer.writeUint64(3, this.pos);
-            if (this.nature != 0)
-                writer.writeUint32(4, this.nature);
-            if (!w)
-                return writer.getResultBuffer();
+            if (this.source_id != 0) writer.writeUint32(1, this.source_id);
+            if (this.content.length) writer.writeString(2, this.content);
+            if (this.pos != 0) writer.writeUint64(3, this.pos);
+            if (this.nature != 0) writer.writeUint32(4, this.nature);
+            if (!w) return writer.getResultBuffer();
         }
         static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GrabbedElement {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GrabbedElement();
+            const reader =
+                    bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes),
+                message = new GrabbedElement();
             while (reader.nextField()) {
-                if (reader.isEndGroup())
-                    break;
+                if (reader.isEndGroup()) break;
                 switch (reader.getFieldNumber()) {
                     case 1:
                         message.source_id = reader.readUint32();
@@ -129,7 +136,8 @@ export namespace grabbing {
                     case 4:
                         message.nature = reader.readUint32();
                         break;
-                    default: reader.skipField();
+                    default:
+                        reader.skipField();
                 }
             }
             return message;
@@ -137,25 +145,40 @@ export namespace grabbing {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): GrabbedElement {
+        static override deserializeBinary(bytes: Uint8Array): GrabbedElement {
             return GrabbedElement.deserialize(bytes);
         }
     }
     export class GrabbedElementList extends pb_1.Message {
         #one_of_decls: number[][] = [];
-        constructor(data?: any[] | {
-            elements?: GrabbedElement[];
-        }) {
+        constructor(
+            data?:
+                | any[]
+                | {
+                      elements?: GrabbedElement[];
+                  },
+        ) {
             super();
-            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [1], this.#one_of_decls);
-            if (!Array.isArray(data) && typeof data == "object") {
-                if ("elements" in data && data.elements != undefined) {
+            pb_1.Message.initialize(
+                this,
+                Array.isArray(data) ? data : [],
+                0,
+                -1,
+                [1],
+                this.#one_of_decls,
+            );
+            if (!Array.isArray(data) && typeof data == 'object') {
+                if ('elements' in data && data.elements != undefined) {
                     this.elements = data.elements;
                 }
             }
         }
         get elements() {
-            return pb_1.Message.getRepeatedWrapperField(this, GrabbedElement, 1) as GrabbedElement[];
+            return pb_1.Message.getRepeatedWrapperField(
+                this,
+                GrabbedElement,
+                1,
+            ) as GrabbedElement[];
         }
         set elements(value: GrabbedElement[]) {
             pb_1.Message.setRepeatedWrapperField(this, 1, value);
@@ -165,7 +188,7 @@ export namespace grabbing {
         }): GrabbedElementList {
             const message = new GrabbedElementList({});
             if (data.elements != null) {
-                message.elements = data.elements.map(item => GrabbedElement.fromObject(item));
+                message.elements = data.elements.map((item) => GrabbedElement.fromObject(item));
             }
             return message;
         }
@@ -183,20 +206,30 @@ export namespace grabbing {
         serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
             const writer = w || new pb_1.BinaryWriter();
             if (this.elements.length)
-                writer.writeRepeatedMessage(1, this.elements, (item: GrabbedElement) => item.serialize(writer));
-            if (!w)
-                return writer.getResultBuffer();
+                writer.writeRepeatedMessage(1, this.elements, (item: GrabbedElement) =>
+                    item.serialize(writer),
+                );
+            if (!w) return writer.getResultBuffer();
         }
         static deserialize(bytes: Uint8Array | pb_1.BinaryReader): GrabbedElementList {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new GrabbedElementList();
+            const reader =
+                    bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes),
+                message = new GrabbedElementList();
             while (reader.nextField()) {
-                if (reader.isEndGroup())
-                    break;
+                if (reader.isEndGroup()) break;
                 switch (reader.getFieldNumber()) {
                     case 1:
-                        reader.readMessage(message.elements, () => pb_1.Message.addToRepeatedWrapperField(message, 1, GrabbedElement.deserialize(reader), GrabbedElement));
+                        reader.readMessage(message.elements, () =>
+                            pb_1.Message.addToRepeatedWrapperField(
+                                message,
+                                1,
+                                GrabbedElement.deserialize(reader),
+                                GrabbedElement,
+                            ),
+                        );
                         break;
-                    default: reader.skipField();
+                    default:
+                        reader.skipField();
                 }
             }
             return message;
@@ -204,7 +237,7 @@ export namespace grabbing {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): GrabbedElementList {
+        static override deserializeBinary(bytes: Uint8Array): GrabbedElementList {
             return GrabbedElementList.deserialize(bytes);
         }
     }

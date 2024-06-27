@@ -93,7 +93,7 @@ export namespace event {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): OperationDone {
+        static override deserializeBinary(bytes: Uint8Array): OperationDone {
             return OperationDone.deserialize(bytes);
         }
     }
@@ -206,7 +206,7 @@ export namespace event {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): Ticks {
+        static override deserializeBinary(bytes: Uint8Array): Ticks {
             return Ticks.deserialize(bytes);
         }
     }
@@ -319,7 +319,7 @@ export namespace event {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): Notification {
+        static override deserializeBinary(bytes: Uint8Array): Notification {
             return Notification.deserialize(bytes);
         }
     }
@@ -944,7 +944,7 @@ export namespace event {
         serializeBinary(): Uint8Array {
             return this.serialize();
         }
-        static deserializeBinary(bytes: Uint8Array): CallbackEvent {
+        static override deserializeBinary(bytes: Uint8Array): CallbackEvent {
             return CallbackEvent.deserialize(bytes);
         }
     }
@@ -1045,7 +1045,7 @@ export namespace event {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): SearchUpdated {
+            static override deserializeBinary(bytes: Uint8Array): SearchUpdated {
                 return SearchUpdated.deserialize(bytes);
             }
         }
@@ -1112,7 +1112,7 @@ export namespace event {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): IndexedMapUpdated {
+            static override deserializeBinary(bytes: Uint8Array): IndexedMapUpdated {
                 return IndexedMapUpdated.deserialize(bytes);
             }
         }
@@ -1179,7 +1179,7 @@ export namespace event {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): SearchMapUpdated {
+            static override deserializeBinary(bytes: Uint8Array): SearchMapUpdated {
                 return SearchMapUpdated.deserialize(bytes);
             }
         }
@@ -1260,7 +1260,7 @@ export namespace event {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): SearchValuesUpdated {
+            static override deserializeBinary(bytes: Uint8Array): SearchValuesUpdated {
                 return SearchValuesUpdated.deserialize(bytes);
             }
         }
@@ -1351,7 +1351,7 @@ export namespace event {
                 serializeBinary(): Uint8Array {
                     return this.serialize();
                 }
-                static deserializeBinary(bytes: Uint8Array): ValueRange {
+                static override deserializeBinary(bytes: Uint8Array): ValueRange {
                     return ValueRange.deserialize(bytes);
                 }
             }
@@ -1445,7 +1445,7 @@ export namespace event {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): AttachmentsUpdated {
+            static override deserializeBinary(bytes: Uint8Array): AttachmentsUpdated {
                 return AttachmentsUpdated.deserialize(bytes);
             }
         }
@@ -1538,7 +1538,7 @@ export namespace event {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): Progress {
+            static override deserializeBinary(bytes: Uint8Array): Progress {
                 return Progress.deserialize(bytes);
             }
         }
@@ -1680,7 +1680,7 @@ export namespace event {
                 serializeBinary(): Uint8Array {
                     return this.serialize();
                 }
-                static deserializeBinary(bytes: Uint8Array): ProgressDetail {
+                static override deserializeBinary(bytes: Uint8Array): ProgressDetail {
                     return ProgressDetail.deserialize(bytes);
                 }
             }
@@ -1774,7 +1774,7 @@ export namespace event {
             serializeBinary(): Uint8Array {
                 return this.serialize();
             }
-            static deserializeBinary(bytes: Uint8Array): OperationError {
+            static override deserializeBinary(bytes: Uint8Array): OperationError {
                 return OperationError.deserialize(bytes);
             }
         }
