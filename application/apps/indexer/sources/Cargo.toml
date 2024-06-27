@@ -7,24 +7,24 @@ edition = "2021"
 [dependencies]
 async-stream = "0.3"
 async-trait = "0.1"
-buf_redux = "0.8"
+buf_redux.workspace = true
 bytes = "1.3"
 etherparse = "0.13"
-futures = "0.3"
+futures.workspace = true
 indexer_base = { path = "../indexer_base" }
-log = "0.4"
+log.workspace = true
 parsers = { path = "../parsers" }
 pcap-parser = "0.14"
-thiserror = "1.0"
-tokio = { version = "1.24", features = ["full"] }
+thiserror.workspace = true
+tokio.workspace = true
 tokio-serial = "5.4"
-tokio-stream = "0.1"
-tokio-util = { version = "0.7", features = ["full"] }
-serde = { version = "1.0", features = ["derive"] }
-uuid = { version = "1.3", features = ["serde", "v4"] }
-regex = "1.7"
-lazy_static = "1.4"
+tokio-stream.workspace = true
+tokio-util = { workspace = true , features = ["full"] }
+serde = { workspace = true, features = ["derive"] }
+uuid = { workspace = true , features = ["serde", "v4"] }
+regex.workspace = true
+lazy_static.workspace = true
 shellexpand = "3.0.0"
 
 [dev-dependencies]
-env_logger = "0.10"
+env_logger.workspace = true

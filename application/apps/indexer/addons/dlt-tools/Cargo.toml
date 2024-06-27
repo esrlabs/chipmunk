@@ -4,14 +4,14 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-dlt-core = "0.14"
-futures = "0.3"
+dlt-core.workspace = true
+futures.workspace = true
 indexer_base = { path = "../../indexer_base" }
-log = "0.4.17"
+log.workspace = true
 parsers = { path = "../../parsers" }
 sources = { path = "../../sources" }
-tokio = { version = "1.17", features = ["full"] }
-tokio-util = { version = "0.7", features = ["codec", "net"] }
-tokio-stream = "0.1.5"
+tokio = { workspace = true , features = ["full"] }
+tokio-util = { workspace = true, features = ["codec", "net"] }
+tokio-stream.workspace = true
 
 [dev-dependencies]
