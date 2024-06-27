@@ -45,6 +45,38 @@ pub async fn run_source<S: ByteSource>(
     rx_sde: Option<SdeReceiver>,
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
+    let cancel = operation_api.cancellation_token();
+
+    // Actual function is wrapped here in order to react on errors and cancel other tasks
+    // running concurrently.
+    let operation_result = run_source_intern(
+        operation_api,
+        state,
+        source,
+        source_id,
+        parser,
+        rx_sde,
+        rx_tail,
+    )
+    .await;
+
+    if operation_result.is_err() && !cancel.is_cancelled() {
+        cancel.cancel();
+    }
+
+    operation_result
+}
+
+/// Contains all implementation details for running the source and the producer in the session
+async fn run_source_intern<S: ByteSource>(
+    operation_api: OperationAPI,
+    state: SessionStateAPI,
+    source: S,
+    source_id: u16,
+    parser: &ParserType,
+    rx_sde: Option<SdeReceiver>,
+    rx_tail: Option<Receiver<Result<(), tail::Error>>>,
+) -> OperationResult<()> {
     match parser {
         ParserType::SomeIp(settings) => {
             let someip_parser = match &settings.fibex_file_paths {
