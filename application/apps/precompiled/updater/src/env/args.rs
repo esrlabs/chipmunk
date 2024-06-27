@@ -20,7 +20,10 @@ pub struct Arguments {
     pub app_name: String,
     pub location: PathBuf,
     pub compressed: PathBuf,
+    // `pid` and `ppid` aren't used yet but they can be used to check shutdown status by parent process.
+    #[allow(dead_code)]
     pub pid: Option<usize>,
+    #[allow(dead_code)]
     pub ppid: Option<usize>,
 }
 
