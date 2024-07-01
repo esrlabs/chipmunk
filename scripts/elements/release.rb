@@ -104,7 +104,7 @@ namespace :release do
       paths_to_sign << "#{app_path}/Contents/Resources/bin/updater" # add updater
       paths_to_sign << "#{app_path}/Contents/MacOS/chipmunk" # add executable
       paths_to_sign += Dir.glob("#{app_path}/**/*.dylib") # add all .dylib files
-      paths_to_sign += Dir.glob("#{app_path}/Contents/Frameworks/**/*.framework/**/**") # add all frameworks
+      paths_to_sign += Dir.glob("#{app_path}/Contents/Frameworks/**/*.framework/Versions/**/**") # add all frameworks
 
       paths_to_sign.uniq
 
