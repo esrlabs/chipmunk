@@ -104,9 +104,13 @@ namespace :release do
       paths_to_sign << "#{app_path}/Contents/Resources/bin/updater" # add updater
       paths_to_sign << "#{app_path}/Contents/MacOS/chipmunk" # add executable
       paths_to_sign += Dir.glob("#{app_path}/**/*.dylib") # add all .dylib files
-      paths_to_sign += Dir.glob("#{app_path}/Contents/Frameworks/**/*.framework/Versions/**/**") # add all frameworks
+      # paths_to_sign += Dir.glob("#{app_path}/Contents/Frameworks/**/*.framework/Versions/**/**")
+
+      paths_to_sign += Dir.glob("#{app_path}/Contents/Frameworks/**/*.framework/Versions/**/**").select { |path| File.file?(path)} # add all frameworks
 
       paths_to_sign.uniq
+      # puts "Paths are"
+      # paths_to_sign.each {|path| puts "#{path} #{File.file?(path)}"}
 
       # # Array of paths to sign
       # paths_to_sign = [
