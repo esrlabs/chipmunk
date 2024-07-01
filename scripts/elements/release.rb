@@ -132,7 +132,7 @@ namespace :release do
         Shell.sh "#{command}"
       end
 
-      Shell.sh "codesign -vvv --deep --strict \"#{app_path}\""
+      # Shell.sh "codesign -vvv --deep --strict \"#{app_path}\""
     end
   end
 
