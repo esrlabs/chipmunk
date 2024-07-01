@@ -100,31 +100,31 @@ namespace :release do
       app_path = "#{Paths::RELEASE_BUILD}/chipmunk.app"
 
       # Start with the main app path
-      paths_to_sign = [app_path]
-      paths_to_sign << "#{app_path}/Contents/Resources/bin/updater" # add updater
-      paths_to_sign << "#{app_path}/Contents/MacOS/chipmunk" # add executable
-      paths_to_sign += Dir.glob("#{app_path}/**/*.dylib") # add all .dylib files
-      # paths_to_sign += Dir.glob("#{app_path}/Contents/Frameworks/**/*.framework/Versions/**/**")
+      # paths_to_sign = [app_path]
+      # paths_to_sign << "#{app_path}/Contents/Resources/bin/updater" # add updater
+      # paths_to_sign << "#{app_path}/Contents/MacOS/chipmunk" # add executable
+      # paths_to_sign += Dir.glob("#{app_path}/**/*.dylib") # add all .dylib files
+      # # paths_to_sign += Dir.glob("#{app_path}/Contents/Frameworks/**/*.framework/Versions/**/**")
 
-      paths_to_sign += Dir.glob("#{app_path}/Contents/Frameworks/**/*.framework/Versions/**/**").select { |path| File.file?(path)} # add all frameworks
+      # paths_to_sign += Dir.glob("#{app_path}/Contents/Frameworks/**/*.framework/Versions/**/**").select { |path| File.file?(path)} # add all frameworks
 
-      paths_to_sign.uniq
+      # paths_to_sign.uniq
       # puts "Paths are"
       # paths_to_sign.each {|path| puts "#{path} #{File.file?(path)}"}
 
-      # # Array of paths to sign
-      # paths_to_sign = [
-      #   app_path,
-      #   "#{app_path}/Contents/Resources/bin/updater",
-      #   "#{app_path}/Contents/MacOS/chipmunk",
-      #   "#{app_path}/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libEGL.dylib",
-      #   "#{app_path}/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libvk_swiftshader.dylib",
-      #   "#{app_path}/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libGLESv2.dylib",
-      #   "#{app_path}/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libffmpeg.dylib",
-      #   "#{app_path}/Contents/Frameworks/Squirrel.framework/Versions/A/Resources/ShipIt",
-      #   "#{app_path}/Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework",
-      #   "#{app_path}/Contents/Frameworks/Squirrel.framework/Versions/A/Squirrel"
-      # ]
+      # Array of paths to sign
+      paths_to_sign = [
+        app_path,
+        "#{app_path}/Contents/Resources/bin/updater",
+        "#{app_path}/Contents/MacOS/chipmunk",
+        "#{app_path}/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libEGL.dylib",
+        "#{app_path}/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libvk_swiftshader.dylib",
+        "#{app_path}/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libGLESv2.dylib",
+        "#{app_path}/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libffmpeg.dylib",
+        "#{app_path}/Contents/Frameworks/Squirrel.framework/Versions/A/Resources/ShipIt",
+        "#{app_path}/Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework",
+        "#{app_path}/Contents/Frameworks/Squirrel.framework/Versions/A/Squirrel"
+      ]
 
       # Sign each path
       paths_to_sign.each do |path|
@@ -132,7 +132,7 @@ namespace :release do
         Shell.sh "#{command}"
       end
 
-      # Shell.sh "codesign -vvv --deep --strict \"#{app_path}\""
+      Shell.sh "codesign -vvv --strict \"#{app_path}\""
     end
   end
 
