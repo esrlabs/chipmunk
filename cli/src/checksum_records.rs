@@ -3,12 +3,11 @@ use std::{
     fs::{self, File},
     io::Write,
     path::PathBuf,
-    sync::Mutex,
+    sync::{Mutex, OnceLock},
 };
 
 use anyhow::{anyhow, Context};
 use dir_checksum::{calc_combined_checksum, HashDigest};
-use tokio::sync::OnceCell;
 
 use crate::{job_type::JobType, location::get_root, target::Target};
 
@@ -29,7 +28,7 @@ struct ChecksumItems {
 impl ChecksumRecords {
     /// Update checksum records for involved jobs depending on the job type.
     /// It will calculate new checksums if build tasks were involved.
-    pub async fn update_and_save(job_type: JobType) -> anyhow::Result<()> {
+    pub fn update_and_save(job_type: JobType) -> anyhow::Result<()> {
         // calculate should be involved when build is called at some point of the job
         let (calculate_involved, prod) = match &job_type {
             // Linting build targets for TS targets and their dependencies
@@ -44,7 +43,7 @@ impl ChecksumRecords {
             }
         };
 
-        let records = Self::get(prod).await?;
+        let records = Self::get(prod)?;
 
         if calculate_involved {
             records.calculate_involved_hashes()?;
@@ -79,12 +78,11 @@ impl ChecksumRecords {
     }
 
     /// Returns a reference to checksums records manager singleton
-    pub async fn get(production: bool) -> anyhow::Result<&'static ChecksumRecords> {
-        static CHECKSUM_RECORDS: OnceCell<anyhow::Result<ChecksumRecords>> = OnceCell::const_new();
+    pub fn get(production: bool) -> anyhow::Result<&'static ChecksumRecords> {
+        static CHECKSUM_RECORDS: OnceLock<anyhow::Result<ChecksumRecords>> = OnceLock::new();
 
         CHECKSUM_RECORDS
-            .get_or_init(|| async { ChecksumRecords::load(production) })
-            .await
+            .get_or_init(|| ChecksumRecords::load(production))
             .as_ref()
             .map_err(|err| anyhow!("{err}"))
     }

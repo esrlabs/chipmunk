@@ -50,12 +50,12 @@ async fn main() -> Result<(), Error> {
     let (job_type, results) = match command {
         Command::Environment(sub_command) => match sub_command {
             EnvironmentCommand::Check => {
-                resolve_dev_tools().await?;
+                resolve_dev_tools()?;
                 println!("All needed tools for development are installed");
                 return Ok(());
             }
             EnvironmentCommand::Print => {
-                print_env_info().await;
+                print_env_info();
                 return Ok(());
             }
         },
@@ -68,7 +68,7 @@ async fn main() -> Result<(), Error> {
             return Ok(());
         }
         Command::Lint { target, report } => {
-            resolve_dev_tools().await?;
+            resolve_dev_tools()?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             let results = jobs_runner::run(&targets, JobType::Lint).await?;
@@ -79,14 +79,14 @@ async fn main() -> Result<(), Error> {
             production,
             report,
         } => {
-            resolve_dev_tools().await?;
+            resolve_dev_tools()?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             let results = jobs_runner::run(&targets, JobType::Build { production }).await?;
             (JobType::Build { production }, results)
         }
         Command::Clean { target, report } => {
-            resolve_dev_tools().await?;
+            resolve_dev_tools()?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             let results = jobs_runner::run(&targets, JobType::Clean).await?;
@@ -97,14 +97,14 @@ async fn main() -> Result<(), Error> {
             production,
             report,
         } => {
-            resolve_dev_tools().await?;
+            resolve_dev_tools()?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             let results = jobs_runner::run(&targets, JobType::Test { production }).await?;
             (JobType::Test { production }, results)
         }
         Command::Run { production } => {
-            resolve_dev_tools().await?;
+            resolve_dev_tools()?;
             report_opt = ReportOptions::None;
             let results = jobs_runner::run(&[Target::App], JobType::Build { production }).await?;
             (JobType::Run { production }, results)
@@ -130,7 +130,7 @@ async fn main() -> Result<(), Error> {
     };
 
     // Shutdown and show results & report
-    let tracker = get_tracker().await;
+    let tracker = get_tracker();
     tracker.shutdown().await?;
     let mut success: bool = true;
     for (idx, res) in results.iter().enumerate() {
@@ -174,7 +174,7 @@ async fn main() -> Result<(), Error> {
         bail!("Some task were failed")
     };
 
-    ChecksumRecords::update_and_save(job_type).await?;
+    ChecksumRecords::update_and_save(job_type)?;
 
     if matches!(job_type, JobType::Run { production: _ }) {
         println!("Starting chipmunk...");

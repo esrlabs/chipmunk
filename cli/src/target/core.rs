@@ -5,8 +5,8 @@ use crate::{
 
 use super::TestSpawnCommand;
 
-pub async fn get_test_cmds(production: bool) -> Vec<TestSpawnCommand> {
-    let cargo_path = DevTool::Cargo.path().await;
+pub fn get_test_cmds(production: bool) -> Vec<TestSpawnCommand> {
+    let cargo_path = DevTool::Cargo.path();
 
     let mut args = vec![String::from("+stable"), String::from("test")];
     if production {

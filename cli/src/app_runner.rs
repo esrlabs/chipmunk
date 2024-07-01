@@ -7,7 +7,7 @@ use crate::{dev_tools::DevTool, target::Target};
 pub async fn run_app() -> io::Result<ExitStatus> {
     let electron_path = Target::App.cwd();
 
-    let yarn_path = DevTool::Yarn.path().await;
+    let yarn_path = DevTool::Yarn.path();
 
     let electron_arg = if cfg!(windows) {
         "electron-win"

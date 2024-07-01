@@ -248,12 +248,12 @@ impl Target {
     }
 
     /// Provide the command that should be used in to build the target
-    pub async fn build_cmd(&self, prod: bool) -> anyhow::Result<ProcessCommand> {
+    pub fn build_cmd(&self, prod: bool) -> anyhow::Result<ProcessCommand> {
         let build_cmd = match self {
             Target::Binding => binding::get_build_cmd(prod)?,
-            Target::Wasm => wasm::get_build_cmd(prod).await,
-            Target::Updater => updater::get_build_cmd().await,
-            rest_targets => rest_targets.kind().build_cmd(prod).await,
+            Target::Wasm => wasm::get_build_cmd(prod),
+            Target::Updater => updater::get_build_cmd(),
+            rest_targets => rest_targets.kind().build_cmd(prod),
         };
 
         Ok(build_cmd)
@@ -307,11 +307,11 @@ impl Target {
     }
 
     /// Provides the test commands for the given target if available
-    async fn test_cmds(&self, production: bool) -> Option<Vec<TestSpawnCommand>> {
+    fn test_cmds(&self, production: bool) -> Option<Vec<TestSpawnCommand>> {
         match self {
-            Target::Core => Some(core::get_test_cmds(production).await),
-            Target::Cli => Some(cli::get_test_cmds(production).await),
-            Target::Wasm => Some(wasm::get_test_cmds().await),
+            Target::Core => Some(core::get_test_cmds(production)),
+            Target::Cli => Some(cli::get_test_cmds(production)),
+            Target::Wasm => Some(wasm::get_test_cmds()),
             _ => None,
         }
     }
@@ -321,7 +321,7 @@ impl Target {
         &self,
         production: bool,
     ) -> Option<Result<SpawnResult, anyhow::Error>> {
-        let test_cmds = self.test_cmds(production).await?;
+        let test_cmds = self.test_cmds(production)?;
 
         debug_assert!(!test_cmds.is_empty());
 
@@ -368,7 +368,7 @@ impl Target {
         let path = self.cwd();
         let job_def = JobDefinition::new(*self, JobType::Lint);
 
-        let yarn_cmd = DevTool::Yarn.path().await;
+        let yarn_cmd = DevTool::Yarn.path();
         let command = ProcessCommand::new(
             yarn_cmd.to_string_lossy().to_string(),
             vec![String::from("run"), String::from("lint")],
@@ -382,7 +382,7 @@ impl Target {
 
         let job_def = JobDefinition::new(*self, JobType::Lint);
 
-        let cargo_path = DevTool::Cargo.path().await;
+        let cargo_path = DevTool::Cargo.path();
         let command = ProcessCommand::new(
             cargo_path.to_string_lossy().to_string(),
             vec![
@@ -406,7 +406,7 @@ impl Target {
 
         // Clean doesn't differentiate between development and production, and both of them will be
         // cleaned from the files when the data are persisted.
-        let checksum = ChecksumRecords::get(false).await?;
+        let checksum = ChecksumRecords::get(false)?;
         checksum.remove_hash_if_exist(*self)?;
 
         let mut logs = Vec::new();
@@ -448,7 +448,7 @@ impl Target {
     /// Runs build considering the currently running builds and already finished ones as well.
     pub async fn build(&self, prod: bool, skip: bool) -> Result<SpawnResult, anyhow::Error> {
         let path = get_root().join(self.cwd());
-        let cmd = self.build_cmd(prod).await?;
+        let cmd = self.build_cmd(prod)?;
 
         let spawn_opt = SpawnOptions {
             has_skip_info: true,
@@ -536,8 +536,8 @@ async fn install_general(
 ) -> Option<Result<SpawnResult, anyhow::Error>> {
     let cmd = match target {
         // Wasm needs `yarn install` command despite having the kind `TargetKind::Rs`
-        Target::Wasm => TargetKind::Ts.install_cmd(prod).await,
-        t => t.kind().install_cmd(prod).await,
+        Target::Wasm => TargetKind::Ts.install_cmd(prod),
+        t => t.kind().install_cmd(prod),
     };
 
     let job_def = JobDefinition::new(overridden_target.unwrap_or(target), job_type);

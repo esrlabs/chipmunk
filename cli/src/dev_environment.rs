@@ -5,10 +5,10 @@ use anyhow::bail;
 use crate::dev_tools::DevTool;
 
 /// Resolve the paths for all development tool returning an Error if any of them can't be resolved
-pub async fn resolve_dev_tools() -> anyhow::Result<()> {
+pub fn resolve_dev_tools() -> anyhow::Result<()> {
     let mut errors = None;
     for tool in DevTool::all() {
-        let Err(err) = tool.resolve().await else {
+        let Err(err) = tool.resolve() else {
             continue;
         };
 
@@ -44,10 +44,10 @@ pub async fn resolve_dev_tools() -> anyhow::Result<()> {
 
 /// Prints the information of the needed tools for the development if available, otherwise prints
 /// error information to `stderr`
-pub async fn print_env_info() {
+pub fn print_env_info() {
     for tool in DevTool::all() {
         println!("{tool} Info:");
-        match tool.resolve().await {
+        match tool.resolve() {
             Ok(cmd) => {
                 if let Err(err) = Command::new(cmd).arg(tool.version_args()).status() {
                     eprintln!("Error while retrieving dependency's information: {err}");

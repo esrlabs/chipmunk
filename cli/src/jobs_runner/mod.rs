@@ -31,7 +31,7 @@ enum JobPhase {
 pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCollection> {
     let jobs_tree = jobs_resolver::resolve(targets, main_job);
 
-    let tracker = get_tracker().await;
+    let tracker = get_tracker();
     tracker
         .register_all(jobs_tree.keys().cloned().collect())
         .await?;
@@ -123,7 +123,7 @@ async fn spawn_jobs(
             } else {
                 // Calculate target checksums and compare it the persisted one
                 let prod = job_def.job_type.is_production().is_some_and(|prod| prod);
-                let checksum_rec = ChecksumRecords::get(prod).await?;
+                let checksum_rec = ChecksumRecords::get(prod)?;
                 checksum_rec.register_job(job_def.target)?;
 
                 // Check if all dependent jobs are skipped, then do the checksum calculations
@@ -156,7 +156,7 @@ async fn spawn_jobs(
             };
 
             if sender.send((job_def, result)).is_err() {
-                let tracker = get_tracker().await;
+                let tracker = get_tracker();
                 tracker
                     .print(format!(
                         "Error: Job results can't be sent to receiver. Job: {job_def:?}"

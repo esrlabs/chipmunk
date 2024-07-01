@@ -17,7 +17,7 @@ pub async fn cp_file(
     let msg = format!("copying file: '{}' to '{}'", src.display(), dest.display());
     report_logs.push(msg);
 
-    let tracker = get_tracker().await;
+    let tracker = get_tracker();
     tracker.msg(job_def, "copying files".into()).await;
 
     fs::copy(&src, &dest).with_context(|| {
@@ -51,7 +51,7 @@ pub async fn cp_folder(
     let report_msg = format!("copying directory: {path_display}");
     report_logs.push(report_msg.clone());
 
-    let tracker = get_tracker().await;
+    let tracker = get_tracker();
     tracker.msg(job_def, report_msg).await;
 
     let _ = tokio::spawn(async move {
@@ -87,7 +87,7 @@ pub async fn rm_folder(job_def: JobDefinition, path: &PathBuf) -> Result<(), Err
     if !path.exists() {
         return Ok(());
     }
-    let tracker = get_tracker().await;
+    let tracker = get_tracker();
     tracker
         .msg(job_def, format!("removing directory: {}", path.display()))
         .await;

@@ -1,7 +1,6 @@
 use anyhow::{anyhow, Result};
-use std::{fmt::Display, path::PathBuf};
+use std::{fmt::Display, path::PathBuf, sync::OnceLock};
 
-use tokio::sync::OnceCell;
 use which::{which_all_global, which_global};
 
 #[derive(Debug, Clone, Copy)]
@@ -77,84 +76,79 @@ impl DevTool {
     }
 
     /// Resolve the path of the tool if exists. Returning an Error when not possible
-    pub async fn resolve(&self) -> &'static Result<PathBuf> {
+    pub fn resolve(&self) -> &'static Result<PathBuf> {
         match self {
-            DevTool::Node => resolve_node().await,
-            DevTool::Npm => resolve_npm().await,
-            DevTool::Yarn => resolve_yarn().await,
-            DevTool::RustUp => resolve_rustup().await,
-            DevTool::Cargo => resolve_cargo().await,
-            DevTool::WasmPack => resolve_wasm_pack().await,
-            DevTool::NjCli => resolve_nj_cli().await,
+            DevTool::Node => resolve_node(),
+            DevTool::Npm => resolve_npm(),
+            DevTool::Yarn => resolve_yarn(),
+            DevTool::RustUp => resolve_rustup(),
+            DevTool::Cargo => resolve_cargo(),
+            DevTool::WasmPack => resolve_wasm_pack(),
+            DevTool::NjCli => resolve_nj_cli(),
         }
     }
 
     /// Get the path of the resolved tool. Panics if the tool can't be resolved   
-    pub async fn path(&self) -> &'static PathBuf {
+    pub fn path(&self) -> &'static PathBuf {
         self.resolve()
-            .await
             .as_ref()
             .expect("Developer Error: Cmd has already been resolved")
     }
 }
 
-async fn resolve_node() -> &'static Result<PathBuf> {
-    static NODE: OnceCell<Result<PathBuf>> = OnceCell::const_new();
+fn resolve_node() -> &'static Result<PathBuf> {
+    static NODE: OnceLock<Result<PathBuf>> = OnceLock::new();
 
-    NODE.get_or_init(|| async { find_cmd("node") }).await
+    NODE.get_or_init(|| find_cmd("node"))
 }
 
 fn find_cmd(cmd: &str) -> Result<PathBuf> {
     which_global(cmd).map_err(|err| anyhow!("Command `{cmd}` couldn't be resolved. Err: {err}"))
 }
 
-async fn resolve_npm() -> &'static Result<PathBuf> {
-    static NPM: OnceCell<Result<PathBuf>> = OnceCell::const_new();
+fn resolve_npm() -> &'static Result<PathBuf> {
+    static NPM: OnceLock<Result<PathBuf>> = OnceLock::new();
 
-    NPM.get_or_init(|| async { find_cmd("npm") }).await
+    NPM.get_or_init(|| find_cmd("npm"))
 }
 
-async fn resolve_yarn() -> &'static Result<PathBuf> {
-    static YARN: OnceCell<Result<PathBuf>> = OnceCell::const_new();
+fn resolve_yarn() -> &'static Result<PathBuf> {
+    static YARN: OnceLock<Result<PathBuf>> = OnceLock::new();
 
-    YARN.get_or_init(|| async { find_cmd("yarn") }).await
+    YARN.get_or_init(|| find_cmd("yarn"))
 }
 
-async fn resolve_rustup() -> &'static Result<PathBuf> {
-    static RUSTUP: OnceCell<Result<PathBuf>> = OnceCell::const_new();
+fn resolve_rustup() -> &'static Result<PathBuf> {
+    static RUSTUP: OnceLock<Result<PathBuf>> = OnceLock::new();
 
-    RUSTUP.get_or_init(|| async { find_cmd("rustup") }).await
+    RUSTUP.get_or_init(|| find_cmd("rustup"))
 }
 
-async fn resolve_cargo() -> &'static Result<PathBuf> {
-    static CARGO: OnceCell<Result<PathBuf>> = OnceCell::const_new();
+fn resolve_cargo() -> &'static Result<PathBuf> {
+    static CARGO: OnceLock<Result<PathBuf>> = OnceLock::new();
 
     if cfg!(windows) {
         // Rust adds its toolchain to PATH in windows which must be filtered out
-        CARGO
-            .get_or_init(|| async {
-                let mut paths = which_all_global("cargo")?;
+        CARGO.get_or_init(|| {
+            let mut paths = which_all_global("cargo")?;
 
-                paths
-                    .find(|p| p.components().any(|c| c.as_os_str() == ".cargo"))
-                    .ok_or_else(|| anyhow!("The command 'cargo' can't be found"))
-            })
-            .await
+            paths
+                .find(|p| p.components().any(|c| c.as_os_str() == ".cargo"))
+                .ok_or_else(|| anyhow!("The command 'cargo' can't be found"))
+        })
     } else {
-        CARGO.get_or_init(|| async { find_cmd("cargo") }).await
+        CARGO.get_or_init(|| find_cmd("cargo"))
     }
 }
 
-async fn resolve_wasm_pack() -> &'static Result<PathBuf> {
-    static WASM_PACK: OnceCell<Result<PathBuf>> = OnceCell::const_new();
+fn resolve_wasm_pack() -> &'static Result<PathBuf> {
+    static WASM_PACK: OnceLock<Result<PathBuf>> = OnceLock::new();
 
-    WASM_PACK
-        .get_or_init(|| async { find_cmd("wasm-pack") })
-        .await
+    WASM_PACK.get_or_init(|| find_cmd("wasm-pack"))
 }
 
-async fn resolve_nj_cli() -> &'static Result<PathBuf> {
-    static NJ_CLI: OnceCell<Result<PathBuf>> = OnceCell::const_new();
+fn resolve_nj_cli() -> &'static Result<PathBuf> {
+    static NJ_CLI: OnceLock<Result<PathBuf>> = OnceLock::new();
 
-    NJ_CLI.get_or_init(|| async { find_cmd("nj-cli") }).await
+    NJ_CLI.get_or_init(|| find_cmd("nj-cli"))
 }

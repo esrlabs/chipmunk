@@ -2,8 +2,8 @@ use crate::dev_tools::DevTool;
 
 use super::ProcessCommand;
 
-pub async fn get_build_cmd() -> ProcessCommand {
-    let cargo_path = DevTool::Cargo.path().await;
+pub fn get_build_cmd() -> ProcessCommand {
+    let cargo_path = DevTool::Cargo.path();
 
     ProcessCommand::new(
         cargo_path.to_string_lossy().to_string(),

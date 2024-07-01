@@ -92,7 +92,7 @@ pub async fn spawn(
     let mut combined_env_vars = vec![(String::from("TERM"), String::from("xterm-256color"))];
     combined_env_vars.extend(environment_vars);
 
-    let tracker = get_tracker().await;
+    let tracker = get_tracker();
 
     let command_result = Command::new(&command.cmd)
         .current_dir(&cwd)
@@ -199,7 +199,7 @@ pub async fn spawn_blocking(
     child.args(&command.args);
     child.envs(combined_env_vars);
 
-    let tracker = get_tracker().await;
+    let tracker = get_tracker();
 
     let status = tracker.suspend_and_run(child).await?;
 

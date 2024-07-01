@@ -2,8 +2,8 @@ use crate::{dev_tools::DevTool, spawner::SpawnOptions, target::Target};
 
 use super::{ProcessCommand, TestSpawnCommand};
 
-pub async fn get_build_cmd(prod: bool) -> ProcessCommand {
-    let wasm_pack_path = DevTool::WasmPack.path().await;
+pub fn get_build_cmd(prod: bool) -> ProcessCommand {
+    let wasm_pack_path = DevTool::WasmPack.path();
     let env = if prod { "--release" } else { "--dev" };
 
     ProcessCommand::new(
@@ -19,11 +19,11 @@ pub async fn get_build_cmd(prod: bool) -> ProcessCommand {
     )
 }
 
-pub async fn get_test_cmds() -> Vec<TestSpawnCommand> {
+pub fn get_test_cmds() -> Vec<TestSpawnCommand> {
     let cwd = Target::Wasm.cwd();
 
-    let npm_path = DevTool::Npm.path().await;
-    let wasm_pack_path = DevTool::WasmPack.path().await;
+    let npm_path = DevTool::Npm.path();
+    let wasm_pack_path = DevTool::WasmPack.path();
 
     vec![
         TestSpawnCommand::new(

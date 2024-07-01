@@ -22,7 +22,7 @@ impl JobDefinition {
 
     /// Run the job definition if it has a job, communicating its status with the UI bars
     pub async fn run(&self, skip: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
-        let tracker = get_tracker().await;
+        let tracker = get_tracker();
         if let Err(err) = tracker.start(*self).await {
             return Some(Err(err));
         }

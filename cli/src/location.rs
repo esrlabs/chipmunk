@@ -1,11 +1,9 @@
 use anyhow::{bail, Context, Error};
 use git2::Repository;
 
-use std::{env::current_dir, path::PathBuf};
+use std::{env::current_dir, path::PathBuf, sync::OnceLock};
 
-use tokio::sync::OnceCell;
-
-pub static LOCATION: OnceCell<Location> = OnceCell::const_new();
+pub static LOCATION: OnceLock<Location> = OnceLock::new();
 
 #[derive(Clone, Debug)]
 pub struct Location {

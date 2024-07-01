@@ -4,11 +4,12 @@ use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::{
     collections::BTreeMap,
     process::{Command, ExitStatus},
+    sync::OnceLock,
     time::Instant,
 };
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
-    oneshot, OnceCell,
+    oneshot,
 };
 
 use crate::jobs_runner::JobDefinition;
@@ -93,10 +94,10 @@ impl JobBarState {
     }
 }
 
-pub async fn get_tracker() -> &'static Tracker {
-    static TRACKER: OnceCell<Tracker> = OnceCell::const_new();
+pub fn get_tracker() -> &'static Tracker {
+    static TRACKER: OnceLock<Tracker> = OnceLock::new();
 
-    TRACKER.get_or_init(|| async { Tracker::new() }).await
+    TRACKER.get_or_init(Tracker::new)
 }
 
 impl Tracker {
