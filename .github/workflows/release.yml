@@ -1,33 +1,34 @@
 name: BuildAndReleaseMaster
 
-on:
-  push:
-    tags:
-      - "*"
+on: [workflow_dispatch]
+# on:
+#   push:
+#     tags:
+#       - "*"
 
 jobs:
-  create_release:
-    name: Create release
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-    env:
-      PUBLISH_FOR_PULL_REQUEST: true
-      CSC_FOR_PULL_REQUEST: true
-    steps:
-      - name: Release
-        if: startsWith(github.ref, 'refs/tags/')
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          prerelease: true
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
+  # create_release:
+  #   name: Create release
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+  #   env:
+  #     PUBLISH_FOR_PULL_REQUEST: true
+  #     CSC_FOR_PULL_REQUEST: true
+  #   steps:
+  #     - name: Release
+  #       if: startsWith(github.ref, 'refs/tags/')
+  #       id: create_release
+  #       uses: softprops/action-gh-release@v1
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       with:
+  #         prerelease: true
+  #         tag_name: ${{ github.ref_name }}
+  #         name: ${{ github.ref_name }}
   build_release:
     name: Build release
-    needs: create_release
+    # needs: create_release
     runs-on: ${{ matrix.os }}
     env:
       PUBLISH_FOR_PULL_REQUEST: 1
@@ -86,31 +87,31 @@ jobs:
       - name: list release files
         working-directory: ./application/holder/release
         run: ls
-      - name: upload files
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: AButler/upload-release-assets@v2.0
-        with:
-          files: "./application/holder/release/*.tgz;./application/holder/release/*.zip"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          release-tag: ${{ github.ref_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  invoke_package_distribution:
-    name: Invoke chipmunk package creation and distribution for different package managers
-    needs: build_release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout chipmunk-distribution
-        uses: actions/checkout@v2
-        with:
-          repository: esrlabs/chipmunk-distribution
-          path: './chipmunk-distribution'
-          token: ${{secrets.PUSH_TOKEN}}
-      - name: Push tag
-        working-directory: ./chipmunk-distribution
-        run: |
-          git config user.name "esrlabs"
-          git config user.email "esrlabs@gmail.com"
-          git remote set-url origin "https://esrlabs:${{secrets.PUSH_TOKEN}}@github.com/esrlabs/chipmunk-distribution"
-          git tag ${{ github.ref_name }}
-          git push origin ${{ github.ref_name }}
+  #     - name: upload files
+  #       if: startsWith(github.ref, 'refs/tags/')
+  #       uses: AButler/upload-release-assets@v2.0
+  #       with:
+  #         files: "./application/holder/release/*.tgz;./application/holder/release/*.zip"
+  #         repo-token: ${{ secrets.GITHUB_TOKEN }}
+  #         release-tag: ${{ github.ref_name }}
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # invoke_package_distribution:
+  #   name: Invoke chipmunk package creation and distribution for different package managers
+  #   needs: build_release
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout chipmunk-distribution
+  #       uses: actions/checkout@v2
+  #       with:
+  #         repository: esrlabs/chipmunk-distribution
+  #         path: './chipmunk-distribution'
+  #         token: ${{secrets.PUSH_TOKEN}}
+  #     - name: Push tag
+  #       working-directory: ./chipmunk-distribution
+  #       run: |
+  #         git config user.name "esrlabs"
+  #         git config user.email "esrlabs@gmail.com"
+  #         git remote set-url origin "https://esrlabs:${{secrets.PUSH_TOKEN}}@github.com/esrlabs/chipmunk-distribution"
+  #         git tag ${{ github.ref_name }}
+  #         git push origin ${{ github.ref_name }}
