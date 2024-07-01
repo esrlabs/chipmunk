@@ -1,9 +1,9 @@
-use indexer_base::config::MulticastInfo;
+pub use dlt::DltFilterConfig;
+pub use indexer_base::config::MulticastInfo;
 use parsers::dlt;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
 use uuid::Uuid;
-
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ParserType {
@@ -14,7 +14,7 @@ pub enum ParserType {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DltParserSettings {
-    pub filter_config: Option<dlt::DltFilterConfig>,
+    pub filter_config: Option<DltFilterConfig>,
     pub fibex_file_paths: Option<Vec<String>>,
     pub with_storage_header: bool,
     pub tz: Option<String>,
@@ -36,7 +36,7 @@ impl Default for DltParserSettings {
 
 impl DltParserSettings {
     pub fn new_including_storage_headers(
-        filter_config: Option<dlt::DltFilterConfig>,
+        filter_config: Option<DltFilterConfig>,
         fibex_file_paths: Option<Vec<String>>,
     ) -> Self {
         Self {

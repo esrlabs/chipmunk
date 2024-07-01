@@ -1,0 +1,33 @@
+{
+    "name": "protocol",
+    "version": "0.0.1",
+    "description": "Protocol for Chipmunk",
+    "main": "./dist/lib.js",
+    "types": "./dist/lib.d.ts",
+    "copyright": "Copyright © 2022 year ESR Labs",
+    "devDependencies": {
+        "@types/google-protobuf": "^3",
+        "@types/node": "^20.7.0",
+        "@typescript-eslint/eslint-plugin": "^6.7.3",
+        "@typescript-eslint/parser": "^6.7.3",
+        "eslint": "^8.50.0",
+        "eslint-plugin-import": "^2.28.1",
+        "eslint-plugin-node": "^11.1.0",
+        "eslint-plugin-promise": "^6.1.1",
+        "tslib": "^2.6.2",
+        "typescript": "^5.2.2"
+    },
+    "dependencies": {
+        "google-protobuf": "^3.21.2",
+        "protobufjs": "^7.3.2",
+        "protoc-gen-ts": "^0.8.7",
+        "ts-proto": "^1.180.0",
+        "tslib": "^2.6.2"
+    },
+    "scripts": {
+        "build": "node_modules/.bin/tsc -p tsconfig.json",
+        "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0 ",
+        "check": "node_modules/.bin/tsc -p tsconfig.json --noemit"
+    },
+    "packageManager": "yarn@4.2.2"
+}

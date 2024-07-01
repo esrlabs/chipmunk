@@ -9,6 +9,109 @@ import { Logger } from 'platform/log';
 import { scope } from 'platform/env/scope';
 import { TEventData, TEventEmitter, IEventData } from '../provider/provider.general';
 
+import * as $ from 'protocol';
+
+function fromBytes(bytes: number[]): any {
+    const event = $.event.CallbackEvent.deserialize(Uint8Array.from(bytes));
+    if (event.file_read) {
+        return { FileRead: null };
+    } else if (event.attachments_updated) {
+        return {
+            AttachmentsUpdated: {
+                len: event.attachments_updated.len,
+                attachment: {
+                    uuid: event.attachments_updated.attachment.uuid,
+                    filepath: event.attachments_updated.attachment.filepath,
+                    name: event.attachments_updated.attachment.name,
+                    ext: event.attachments_updated.attachment.ext,
+                    size: event.attachments_updated.attachment.size,
+                    mime: event.attachments_updated.attachment.mime,
+                    messages: event.attachments_updated.attachment.messages,
+                },
+            },
+        };
+    } else if (event.operation_done) {
+        return {
+            OperationDone: {
+                uuid: event.operation_done.uuid,
+                result: event.operation_done.result,
+            },
+        };
+    } else if (event.operation_started) {
+        return {
+            OperationStarted: event.operation_started,
+        };
+    } else if (event.operation_processing) {
+        return { OperationProcessing: event.operation_processing };
+    } else if (event.session_destroyed) {
+        return { SessionDestroyed: null };
+    } else if (event.operation_error) {
+        const err = event.operation_error.error;
+        return {
+            OperationError: {
+                uuid: event.operation_error.uuid,
+                error: {
+                    severity: err.severity.toString(),
+                    message: err.message,
+                    kind: err.kind.toString(),
+                },
+            },
+        };
+    } else if (event.session_error) {
+        const err = event.session_error;
+        return {
+            SessionError: {
+                severity: err.severity.toString(),
+                message: err.message,
+                kind: err.kind.toString(),
+            },
+        };
+    } else if (event.progress) {
+        const ticks = event.progress.detail.ticks;
+        return {
+            Progress: {
+                uuid: event.progress.uuid,
+                progress: {
+                    count: ticks.count,
+                    total: ticks.total,
+                    type: ticks.state,
+                },
+            },
+        };
+    } else if (event.stream_updated) {
+        return {
+            StreamUpdated: event.stream_updated,
+        };
+    } else if (event.search_updated) {
+        return {
+            SearchUpdated: {
+                found: event.search_updated.found,
+                stat: event.search_updated.stat,
+            },
+        };
+    } else if (event.search_values_updated) {
+        return {
+            SearchValuesUpdated:
+                event.search_values_updated.values.size === 0
+                    ? null
+                    : event.search_values_updated.values,
+        };
+    } else if (event.search_map_updated) {
+        // TODO: Map represented as a JSON string and has to be parsed in addition
+        return {
+            SearchMapUpdated:
+                event.search_map_updated.update.trim().length === 0
+                    ? null
+                    : event.search_map_updated.update,
+        };
+    } else if (event.indexed_map_updated) {
+        return {
+            IndexedMapUpdated: {
+                len: event.indexed_map_updated.len,
+            },
+        };
+    }
+}
 export interface IOrderStat {
     type: 'E' | 'O';
     name: string;
@@ -16,6 +119,7 @@ export interface IOrderStat {
     emitted: number; // Time of emitting event or operation
     duration: number;
 }
+
 export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces> {
     private _destroyed: boolean = false;
     private readonly _uuid: string;
@@ -228,8 +332,8 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
     private _emitter(data: TEventData) {
         function dataAsStr(data: TEventData): { debug: string; verb?: string } {
             let message = '';
-            if (typeof data === 'string') {
-                message = `(defined as string): ${data}`;
+            if (data instanceof Array) {
+                message = `(defined as bytes): ${data}`;
             } else {
                 message = `(defined as object): keys: ${Object.keys(data).join(
                     ', ',
@@ -246,9 +350,9 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         this.logger.verbose(`Event from rust:\n\t${logs.debug}`);
         logs.verb !== undefined && this.logger.verbose(`Event from rust:\n\t${logs.verb}`);
         let event: Required<IEventData>;
-        if (typeof data === 'string') {
+        if (data instanceof Array) {
             try {
-                event = JSON.parse(data);
+                event = fromBytes(data);
             } catch (e) {
                 const msg: string = `Failed to parse rust event data due error: ${e}.\nExpecting type (JSON string): { [type: string]: string | undefined }, got: ${data}`;
                 this.debug().emit.error(msg);
@@ -272,7 +376,6 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         } else {
             const type: string = Object.keys(event)[0];
             const body: any = event[type];
-
             this._emit(type, body);
         }
     }

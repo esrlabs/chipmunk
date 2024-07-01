@@ -1,4 +1,4 @@
-use super::events::{ComputationErrorWrapper, LifecycleTransitionWrapper};
+use crate::js::converting::{errors::ComputationErrorWapper, progress::LifecycleTransitionWrapper};
 use log::trace;
 use node_bindgen::derive::node_bindgen;
 use session::{
@@ -28,7 +28,7 @@ impl RustProgressTracker {
     async fn init<F: Fn(LifecycleTransitionWrapper) + Send + 'static>(
         &mut self,
         callback: F,
-    ) -> Result<(), ComputationErrorWrapper> {
+    ) -> Result<(), ComputationErrorWapper> {
         let rt = Runtime::new().map_err(|e| {
             ComputationError::Process(format!("Could not start tokio runtime: {e}"))
         })?;
@@ -41,7 +41,7 @@ impl RustProgressTracker {
                         Ok(mut rx) => {
                             let _ = result_tx.send(Ok(()));
                             while let Some(progress_report) = rx.recv().await {
-                                callback(LifecycleTransitionWrapper(progress_report))
+                                callback(LifecycleTransitionWrapper::new(progress_report))
                             }
                         }
                         Err(e) => {
@@ -53,31 +53,31 @@ impl RustProgressTracker {
             result_rx
                 .recv()
                 .map_err(|_| {
-                    ComputationErrorWrapper(ComputationError::Protocol(
+                    ComputationErrorWapper::new(ComputationError::Protocol(
                         "could not setup tracking".to_string(),
                     ))
                 })?
-                .map_err(ComputationErrorWrapper)
+                .map_err(ComputationErrorWapper::new)
         } else {
-            Err(ComputationErrorWrapper(ComputationError::Protocol(
+            Err(ComputationErrorWapper::new(ComputationError::Protocol(
                 "Could not init progress_tracker".to_string(),
             )))
         }
     }
 
     #[node_bindgen]
-    async fn stats(&self) -> Result<String, ComputationErrorWrapper> {
+    async fn stats(&self) -> Result<String, ComputationErrorWapper> {
         self.tracker_api
             .content()
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWapper::new)
     }
 
     #[node_bindgen]
-    async fn destroy(&self) -> Result<(), ComputationErrorWrapper> {
+    async fn destroy(&self) -> Result<(), ComputationErrorWapper> {
         self.tracker_api
             .abort()
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWapper::new)
     }
 }
