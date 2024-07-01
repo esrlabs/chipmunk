@@ -1,13 +1,16 @@
 # Contributing
 
 Chipmunk uses [Rust](https://www.rust-lang.org/) for processing the log files while frontend application is built using the [ElectronJS](https://www.electronjs.org/)
+ 
+## Chipmunk Development CLI Tool
+With the new [Chipmunk Development CLI Tool](cli/README.md), you can perform various Chipmunk development tasks without the need to install Ruby.
 
 ## Pre-requisite
 
 To build and run chipmunk on local you will need following languages installed on your system.
 1. Rust
 2. NodeJS
-3. Ruby
+3. Ruby (Not needed with the new [Chipmunk Development CLI Tool](cli/README.md))
 
 To check if you have all the pre-requisite installed or not, chipmunk provides the shell
 script for this purpose. After cloning the repo run following command in your preferred terminal.
@@ -51,6 +54,10 @@ node -v
 ```
 
 which will print the installed NodeJS version on terminal.
+
+
+> [!TIP] 
+> You can use the new [Chipmunk Development CLI Tool](cli/README.md) instead of Ruby & `rake`
 
 ### Installing Ruby
 You must have latest Ruby installed on your system. Prefer your choice of version manager

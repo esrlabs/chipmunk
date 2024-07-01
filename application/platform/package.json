@@ -37,6 +37,7 @@
     },
     "scripts": {
         "build": "node_modules/.bin/tsc -p tsconfig.json",
+        "prod": "node_modules/.bin/tsc -p tsconfig.json",
         "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0 ",
         "check": "node_modules/.bin/tsc -p tsconfig.json --noemit"
     },

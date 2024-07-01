@@ -133,6 +133,7 @@ describe('Jobs', function () {
     it(config.regular.list[4], function () {
         return runner(config.regular, 4, async (logger, done, collector) => {
             const jobs = collector(await Jobs.create()) as Jobs;
+            //TODO: If we comment out these lines, build CLI with Stdio::piped() works.
             const profiles = await jobs.getShellProfiles();
             expect(profiles.length > 0).toBe(true);
             finish(jobs, done);
