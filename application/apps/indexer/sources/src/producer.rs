@@ -213,16 +213,14 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                         }
                     }
                 }
-                if call_parse {
-                    //TODO AAZ: This is needed while the implementation only
-                    assert!(results.is_empty());
-                } else {
-                    if results.is_empty() {
-                        return None;
-                    } else {
-                        return Some(results);
-                    }
-                }
+            }
+            if call_parse {
+                //TODO AAZ: This is needed while the implementation only
+                assert!(results.is_empty());
+            } else if results.is_empty() {
+                return None;
+            } else {
+                return Some(results);
             }
         }
 
