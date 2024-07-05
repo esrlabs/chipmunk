@@ -199,7 +199,7 @@ pub async fn export_runner<S, T>(
 ) -> Result<Option<usize>, NativeError>
 where
     T: LogMessage + Sized,
-    S: futures::Stream<Item = (usize, MessageStreamItem<T>)> + Unpin,
+    S: futures::Stream<Item = Vec<(usize, MessageStreamItem<T>)>> + Unpin,
 {
     export_raw(s, dest, sections, read_to_end, text_file, cancel)
         .await

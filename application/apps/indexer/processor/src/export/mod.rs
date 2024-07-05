@@ -49,7 +49,7 @@ pub async fn export_raw<S, T>(
 ) -> Result<usize, ExportError>
 where
     T: LogMessage + Sized,
-    S: futures::Stream<Item = (usize, MessageStreamItem<T>)> + Unpin,
+    S: futures::Stream<Item = Vec<(usize, MessageStreamItem<T>)>> + Unpin,
 {
     trace!("export_raw, sections: {sections:?}");
     if !sections_valid(sections) {
@@ -70,93 +70,100 @@ where
     if sections.is_empty() {
         debug!("no sections configured");
         // export everything
-        while let Some((_, item)) = s.next().await {
+        while let Some(items) = s.next().await {
             if cancel.is_cancelled() {
                 return Err(ExportError::Cancelled);
             }
-            let written = match item {
-                MessageStreamItem::Item(ParseYield::Message(msg)) => {
-                    msg.to_writer(&mut out_writer)?;
-                    true
+
+            for (_, item) in items {
+                let written = match item {
+                    MessageStreamItem::Item(ParseYield::Message(msg)) => {
+                        msg.to_writer(&mut out_writer)?;
+                        true
+                    }
+                    MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _))) => {
+                        msg.to_writer(&mut out_writer)?;
+                        true
+                    }
+                    MessageStreamItem::Done => break,
+                    _ => false,
+                };
+                if written && text_file {
+                    out_writer.write_all("\n".as_bytes())?;
                 }
-                MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _))) => {
-                    msg.to_writer(&mut out_writer)?;
-                    true
+                if written {
+                    exported += 1;
                 }
-                MessageStreamItem::Done => break,
-                _ => false,
-            };
-            if written && text_file {
-                out_writer.write_all("\n".as_bytes())?;
-            }
-            if written {
-                exported += 1;
             }
         }
         return Ok(exported);
     }
 
-    while let Some((_, item)) = s.next().await {
+    while let Some(items) = s.next().await {
         if cancel.is_cancelled() {
             return Err(ExportError::Cancelled);
         }
-        if !inside {
-            if sections[section_index].first_line == current_index {
-                inside = true;
+        for (_, item) in items {
+            if !inside {
+                if sections[section_index].first_line == current_index {
+                    inside = true;
+                }
+            } else if sections[section_index].last_line < current_index {
+                inside = false;
+                section_index += 1;
+                if sections.len() <= section_index {
+                    // no more sections
+                    if matches!(item, MessageStreamItem::Item(_)) {
+                        current_index += 1;
+                    }
+                    break;
+                }
+                // check if we are in next section again
+                if sections[section_index].first_line == current_index {
+                    inside = true;
+                }
             }
-        } else if sections[section_index].last_line < current_index {
-            inside = false;
-            section_index += 1;
-            if sections.len() <= section_index {
-                // no more sections
-                if matches!(item, MessageStreamItem::Item(_)) {
+            let written = match item {
+                MessageStreamItem::Item(ParseYield::Message(msg)) => {
+                    if inside {
+                        msg.to_writer(&mut out_writer)?;
+                    }
                     current_index += 1;
+                    inside
                 }
-                break;
-            }
-            // check if we are in next section again
-            if sections[section_index].first_line == current_index {
-                inside = true;
-            }
-        }
-        let written = match item {
-            MessageStreamItem::Item(ParseYield::Message(msg)) => {
-                if inside {
-                    msg.to_writer(&mut out_writer)?;
+                MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _))) => {
+                    if inside {
+                        msg.to_writer(&mut out_writer)?;
+                    }
+                    current_index += 1;
+                    inside
                 }
-                current_index += 1;
-                inside
-            }
-            MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _))) => {
-                if inside {
-                    msg.to_writer(&mut out_writer)?;
+                MessageStreamItem::Done => {
+                    debug!("No more messages to export");
+                    break;
                 }
-                current_index += 1;
-                inside
+                _ => false,
+            };
+            if written && text_file {
+                out_writer.write_all("\n".as_bytes())?;
             }
-            MessageStreamItem::Done => {
-                debug!("No more messages to export");
-                break;
-            }
-            _ => false,
-        };
-        if written && text_file {
-            out_writer.write_all("\n".as_bytes())?;
         }
     }
     if read_to_end {
-        while let Some((_, item)) = s.next().await {
+        while let Some(items) = s.next().await {
             if cancel.is_cancelled() {
                 return Err(ExportError::Cancelled);
             }
-            match item {
-                MessageStreamItem::Item(_) => {
-                    current_index += 1;
+            for (_, item) in items {
+                match item {
+                    MessageStreamItem::Item(_) => {
+                        current_index += 1;
+                    }
+                    MessageStreamItem::Done => {
+                        break;
+                    }
+                    _ => {}
                 }
-                MessageStreamItem::Done => {
-                    break;
-                }
-                _ => {}
             }
         }
     }

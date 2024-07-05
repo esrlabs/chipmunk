@@ -54,18 +54,28 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                                         println!("received shutdown through future channel");
                                         break;
                                     }
-                                    item = msg_stream.next() => {
-                                        match item {
-                                            Some((_, MessageStreamItem::Item(ParseYield::Message(msg)))) => {
-                                                println!("msg: {msg}");
+                                    items = msg_stream.next() => {
+                                        let items = match items {
+                                            Some(item) => item,
+                                            None => {
+                                                println!("no msg");
+                                                continue;
                                             }
-                                            Some((_, MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, attachment))))) => {
-                                                println!("msg: {msg}, attachment: {attachment:?}");
+                                        };
+                                        for item in items {
+
+                                            match item {
+                                                (_, MessageStreamItem::Item(ParseYield::Message(msg))) => {
+                                                    println!("msg: {msg}");
+                                                }
+                                                (_, MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, attachment)))) => {
+                                                    println!("msg: {msg}, attachment: {attachment:?}");
+                                                }
+                                                (_, MessageStreamItem::Item(ParseYield::Attachment(attachment))) => {
+                                                    println!("attachment: {attachment:?}");
+                                                }
+                                                _ => println!("no msg"),
                                             }
-                                            Some((_, MessageStreamItem::Item(ParseYield::Attachment(attachment)))) => {
-                                                println!("attachment: {attachment:?}");
-                                            }
-                                            _ => println!("no msg"),
                                         }
                                     }
                                 }
