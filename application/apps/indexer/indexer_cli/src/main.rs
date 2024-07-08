@@ -1395,11 +1395,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
             let mut attachment_count = 0usize;
             let mut err_count = 0usize;
             let mut consumed = 0usize;
-            'outer: loop {
-                let items = match msg_stream.next().await {
-                    Some(items) => items,
-                    None => break,
-                };
+            'outer: while let Some(items) = msg_stream.next().await {
                 for item in items {
                     match item {
                         (_, MessageStreamItem::Item(ParseYield::Message(item))) => {
@@ -1446,11 +1442,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                     let mut err_count = 0usize;
                     let mut consumed = 0usize;
                     let mut skipped_count = 0usize;
-                    'outer: loop {
-                        let items = match msg_stream.next().await {
-                            Some(items) => items,
-                            None => break,
-                        };
+                    'outer: while let Some(items) = msg_stream.next().await {
                         for item in items {
                             match item {
                                 (used, MessageStreamItem::Item(_)) => {
@@ -1490,11 +1482,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                     let mut err_count = 0usize;
                     let mut consumed = 0usize;
                     let mut skipped_count = 0usize;
-                    'outer: loop {
-                        let items = match msg_stream.next().await {
-                            Some(items) => items,
-                            None => break,
-                        };
+                    'outer: while let Some(items) = msg_stream.next().await {
                         for item in items {
                             match item {
                                 (_, MessageStreamItem::Item(ParseYield::Message(item))) => {
@@ -1547,11 +1535,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
             let mut consumed = 0usize;
             let mut attachment_count = 0usize;
             use std::io::Cursor;
-            'outer: loop {
-                let items = match msg_stream.next().await {
-                    Some(items) => items,
-                    None => break,
-                };
+            'outer: while let Some(items) = msg_stream.next().await {
                 for item in items {
                     match item {
                         (_rest, MessageStreamItem::Item(ParseYield::Message(item))) => {
