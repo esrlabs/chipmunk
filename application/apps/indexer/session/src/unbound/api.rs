@@ -1,6 +1,5 @@
 use crate::events::ComputationError;
 use processor::search::filter::SearchFilter;
-use serde::Serialize;
 use tokio::sync::{mpsc::UnboundedSender, oneshot};
 
 use super::commands::{Command, CommandOutcome};
@@ -42,12 +41,12 @@ impl UnboundSessionAPI {
         })
     }
 
-    async fn process_command<T: Serialize>(
+    async fn process_command(
         &self,
         id: u64,
-        rx_results: oneshot::Receiver<Result<CommandOutcome<T>, ComputationError>>,
+        rx_results: oneshot::Receiver<Result<CommandOutcome, ComputationError>>,
         command: Command,
-    ) -> Result<CommandOutcome<T>, ComputationError> {
+    ) -> Result<CommandOutcome, ComputationError> {
         let cmd = command.to_string();
         self.tx
             .send(API::Run(command, id))
@@ -69,7 +68,7 @@ impl UnboundSessionAPI {
         id: u64,
         custom_arg_a: i64,
         custom_arg_b: i64,
-    ) -> Result<CommandOutcome<i64>, ComputationError> {
+    ) -> Result<CommandOutcome, ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(
             id,
@@ -87,7 +86,7 @@ impl UnboundSessionAPI {
         paths: Vec<String>,
         include_files: bool,
         include_folders: bool,
-    ) -> Result<CommandOutcome<String>, ComputationError> {
+    ) -> Result<CommandOutcome, ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(
             id,
@@ -108,7 +107,7 @@ impl UnboundSessionAPI {
         &self,
         id: u64,
         file_path: String,
-    ) -> Result<CommandOutcome<bool>, ComputationError> {
+    ) -> Result<CommandOutcome, ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::IsFileBinary(file_path, tx_results))
             .await
@@ -119,7 +118,7 @@ impl UnboundSessionAPI {
         id: u64,
         path: String,
         args: Vec<String>,
-    ) -> Result<CommandOutcome<()>, ComputationError> {
+    ) -> Result<CommandOutcome, ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(
             id,
@@ -133,7 +132,7 @@ impl UnboundSessionAPI {
         &self,
         id: u64,
         path: String,
-    ) -> Result<CommandOutcome<String>, ComputationError> {
+    ) -> Result<CommandOutcome, ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::Checksum(path, tx_results))
             .await
@@ -143,7 +142,7 @@ impl UnboundSessionAPI {
         &self,
         id: u64,
         files: Vec<String>,
-    ) -> Result<CommandOutcome<String>, ComputationError> {
+    ) -> Result<CommandOutcome, ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::GetDltStats(files, tx_results))
             .await
@@ -153,7 +152,7 @@ impl UnboundSessionAPI {
         &self,
         id: u64,
         files: Vec<String>,
-    ) -> Result<CommandOutcome<String>, ComputationError> {
+    ) -> Result<CommandOutcome, ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(
             id,
@@ -163,28 +162,19 @@ impl UnboundSessionAPI {
         .await
     }
 
-    pub async fn get_shell_profiles(
-        &self,
-        id: u64,
-    ) -> Result<CommandOutcome<String>, ComputationError> {
+    pub async fn get_shell_profiles(&self, id: u64) -> Result<CommandOutcome, ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::GetShellProfiles(tx_results))
             .await
     }
 
-    pub async fn get_context_envvars(
-        &self,
-        id: u64,
-    ) -> Result<CommandOutcome<String>, ComputationError> {
+    pub async fn get_context_envvars(&self, id: u64) -> Result<CommandOutcome, ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::GetContextEnvvars(tx_results))
             .await
     }
 
-    pub async fn get_serial_ports_list(
-        &self,
-        id: u64,
-    ) -> Result<CommandOutcome<Vec<String>>, ComputationError> {
+    pub async fn get_serial_ports_list(&self, id: u64) -> Result<CommandOutcome, ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::SerialPortsList(tx_results))
             .await
@@ -194,13 +184,13 @@ impl UnboundSessionAPI {
         &self,
         id: u64,
         filter: SearchFilter,
-    ) -> Result<CommandOutcome<Option<String>>, ComputationError> {
+    ) -> Result<CommandOutcome, ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::GetRegexError(filter, tx_results))
             .await
     }
 
-    pub async fn sleep(&self, id: u64, ms: u64) -> Result<CommandOutcome<()>, ComputationError> {
+    pub async fn sleep(&self, id: u64, ms: u64) -> Result<CommandOutcome, ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::Sleep(ms, tx_results))
             .await

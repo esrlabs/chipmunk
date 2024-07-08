@@ -4,7 +4,7 @@ use crate::{events::ComputationError, unbound::signal::Signal};
 pub fn get_someip_statistic(
     _files: Vec<String>,
     _signal: Signal,
-) -> Result<CommandOutcome<String>, ComputationError> {
+) -> Result<CommandOutcome, ComputationError> {
     Err(ComputationError::OperationNotSupported("NYI".into()))
     // use parsers::someip::{read_someip_statistic_from_pcapng, SomeipStatistic};
     // use log::{error, warn};

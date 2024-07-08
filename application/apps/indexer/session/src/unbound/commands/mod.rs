@@ -21,19 +21,29 @@ use uuid::Uuid;
 use super::signal::Signal;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum CommandOutcome<T> {
-    Finished(T),
+pub enum Output {
+    String(String),
+    StringVec(Vec<String>),
+    OptionString(Option<String>),
+    Bool(bool),
+    I64(i64),
+    Empty,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum CommandOutcome {
+    Finished(Output),
     Cancelled,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum UuidCommandOutcome<T: Serialize> {
-    Finished((Uuid, T)),
+pub enum UuidCommandOutcome {
+    Finished((Uuid, Output)),
     Cancelled(Uuid),
 }
 
-impl<T: Serialize> CommandOutcome<T> {
-    pub fn as_command_result(self, uuid: Uuid) -> UuidCommandOutcome<T> {
+impl CommandOutcome {
+    pub fn as_command_result(self, uuid: Uuid) -> UuidCommandOutcome {
         match self {
             CommandOutcome::Cancelled => UuidCommandOutcome::Cancelled(uuid),
             CommandOutcome::Finished(c) => UuidCommandOutcome::Finished((uuid, c)),
@@ -46,7 +56,7 @@ pub enum Command {
     // This command is used only for testing/debug goals
     Sleep(
         u64,
-        oneshot::Sender<Result<CommandOutcome<()>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome, ComputationError>>,
     ),
     FolderContent(
         Vec<String>,
@@ -54,40 +64,40 @@ pub enum Command {
         usize,
         bool,
         bool,
-        oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome, ComputationError>>,
     ),
     SpawnProcess(
         String,
         Vec<String>,
-        oneshot::Sender<Result<CommandOutcome<()>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome, ComputationError>>,
     ),
     GetRegexError(
         SearchFilter,
-        oneshot::Sender<Result<CommandOutcome<Option<String>>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome, ComputationError>>,
     ),
     Checksum(
         String,
-        oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome, ComputationError>>,
     ),
     GetDltStats(
         Vec<String>,
-        oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome, ComputationError>>,
     ),
     GetSomeipStatistic(
         Vec<String>,
-        oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome, ComputationError>>,
     ),
-    GetShellProfiles(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
-    GetContextEnvvars(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
-    SerialPortsList(oneshot::Sender<Result<CommandOutcome<Vec<String>>, ComputationError>>),
+    GetShellProfiles(oneshot::Sender<Result<CommandOutcome, ComputationError>>),
+    GetContextEnvvars(oneshot::Sender<Result<CommandOutcome, ComputationError>>),
+    SerialPortsList(oneshot::Sender<Result<CommandOutcome, ComputationError>>),
     IsFileBinary(
         String,
-        oneshot::Sender<Result<CommandOutcome<bool>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome, ComputationError>>,
     ),
     CancelTest(
         i64,
         i64,
-        oneshot::Sender<Result<CommandOutcome<i64>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome, ComputationError>>,
     ),
 }
 

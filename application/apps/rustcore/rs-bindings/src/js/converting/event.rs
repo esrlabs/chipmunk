@@ -1,4 +1,4 @@
-use super::{bytes_to_js_value, errors::get_native_err, u8_to_i32, ToBytes};
+use super::{bytes_to_js_value, errors::get_native_err, ToBytes};
 use event::callback_event::search_values_updated;
 use event::callback_event::{self, Event};
 use node_bindgen::{

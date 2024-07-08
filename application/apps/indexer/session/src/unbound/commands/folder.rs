@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{events::ComputationError, unbound::signal::Signal};
 
-use super::CommandOutcome;
+use super::{CommandOutcome, Output};
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Serialize, Deserialize)]
@@ -116,7 +116,7 @@ pub fn get_folder_content(
     include_files: bool,
     include_folders: bool,
     signal: Signal,
-) -> Result<CommandOutcome<String>, ComputationError> {
+) -> Result<CommandOutcome, ComputationError> {
     let mut list: Vec<Entity> = vec![];
     let mut max_len_reached: bool = false;
     for depth in 1..=max_depth {
@@ -156,7 +156,7 @@ pub fn get_folder_content(
         max_len_reached,
     };
     serde_json::to_string(&results)
-        .map(CommandOutcome::Finished)
+        .map(|v| CommandOutcome::Finished(Output::String(v)))
         .map_err(|e| -> ComputationError {
             ComputationError::Process(format!("Could not produce json: {e}"))
         })

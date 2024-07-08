@@ -1654,7 +1654,6 @@ dependencies = [
  "prost-types 0.12.6",
  "protocol",
  "serde",
- "serde_json",
  "session",
  "sources",
  "thiserror",

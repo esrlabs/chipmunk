@@ -1,4 +1,4 @@
-use super::CommandOutcome;
+use super::{CommandOutcome, Output};
 use crate::{events::ComputationError, unbound::signal::Signal};
 use blake3;
 use std::{
@@ -6,10 +6,7 @@ use std::{
     io::{self, prelude::*},
 };
 
-pub fn checksum(
-    filename: &str,
-    _signal: Signal,
-) -> Result<CommandOutcome<String>, ComputationError> {
+pub fn checksum(filename: &str, _signal: Signal) -> Result<CommandOutcome, ComputationError> {
     let mut file =
         File::open(filename).map_err(|e| ComputationError::IoOperation(e.to_string()))?;
     let mut hasher = blake3::Hasher::new();
@@ -24,5 +21,7 @@ pub fn checksum(
             Err(e) => return Err(ComputationError::IoOperation(e.to_string())),
         }
     }
-    Ok(CommandOutcome::Finished(hasher.finalize().to_string()))
+    Ok(CommandOutcome::Finished(Output::String(
+        hasher.finalize().to_string(),
+    )))
 }

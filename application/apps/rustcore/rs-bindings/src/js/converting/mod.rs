@@ -37,7 +37,7 @@ use std::ops::Deref;
 ///
 /// This function will return an `NjError` if there is an issue creating the JavaScript array,
 /// converting the integers, or setting the array elements.
-fn bytes_to_js_value(bytes: Vec<u8>, js_env: &JsEnv) -> Result<napi_value, NjError> {
+pub(crate) fn bytes_to_js_value(bytes: Vec<u8>, js_env: &JsEnv) -> Result<napi_value, NjError> {
     let bytes = u8_to_i32(bytes);
     let arr = js_env.create_array_with_len(bytes.len())?;
     for (i, b) in bytes.into_iter().enumerate() {

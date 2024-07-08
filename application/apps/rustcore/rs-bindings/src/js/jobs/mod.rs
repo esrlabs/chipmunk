@@ -1,14 +1,21 @@
-use crate::js::converting::{errors::ComputationErrorWapper, filter::WrappedSearchFilter};
+use crate::js::converting::{
+    bytes_to_js_value, ToBytes,
+    {errors::ComputationErrorWapper, filter::WrappedSearchFilter},
+};
 use log::{debug, error};
 use node_bindgen::{
     core::{val::JsEnv, NjError, TryIntoJs},
     derive::node_bindgen,
     sys::napi_value,
 };
-use serde::Serialize;
+use protocol::*;
 use session::{
     events::ComputationError,
-    unbound::{api::UnboundSessionAPI, commands::CommandOutcome, UnboundSession},
+    unbound::{
+        api::UnboundSessionAPI,
+        commands::{CommandOutcome, Output},
+        UnboundSession,
+    },
 };
 use std::{convert::TryFrom, thread};
 use tokio::runtime::Runtime;
@@ -19,17 +26,55 @@ struct UnboundJobs {
     finished: CancellationToken,
 }
 
-pub(crate) struct CommandOutcomeWrapper<T: Serialize>(pub CommandOutcome<T>);
+pub(crate) struct CommandOutcomeWrapper(Option<CommandOutcome>);
+impl CommandOutcomeWrapper {
+    pub fn new(cout: CommandOutcome) -> Self {
+        CommandOutcomeWrapper(Some(cout))
+    }
+}
+impl ToBytes for CommandOutcomeWrapper {
+    fn into_bytes(&mut self) -> Vec<u8> {
+        let cout = self.0.take().expect("Command output has to be provided");
+        let msg = match cout {
+            CommandOutcome::Cancelled => commands::CommandOutcome {
+                outcome: Some(commands::command_outcome::Outcome::Cancelled(
+                    commands::command_outcome::Cancelled {},
+                )),
+            },
+            CommandOutcome::Finished(output) => commands::CommandOutcome {
+                outcome: Some(commands::command_outcome::Outcome::Finished(
+                    commands::command_outcome::Finished {
+                        result: Some(commands::Output {
+                            output: Some(match output {
+                                Output::Empty => {
+                                    commands::output::Output::EmptyValue(commands::output::Empty {})
+                                }
+                                Output::Bool(v) => commands::output::Output::BoolValue(v),
+                                Output::I64(v) => commands::output::Output::Int64Value(v),
+                                Output::String(v) => commands::output::Output::StringValue(v),
+                                Output::OptionString(v) => {
+                                    commands::output::Output::OptionStringValue(
+                                        v.unwrap_or_default(),
+                                    )
+                                }
+                                Output::StringVec(values) => {
+                                    commands::output::Output::StringVecValue(
+                                        commands::output::StringVec { values },
+                                    )
+                                }
+                            }),
+                        }),
+                    },
+                )),
+            },
+        };
+        prost::Message::encode_to_vec(&msg)
+    }
+}
 
-impl<T: Serialize> TryIntoJs for CommandOutcomeWrapper<T> {
-    /// serialize into json object
-    fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        match serde_json::to_string(&self.0) {
-            Ok(s) => js_env.create_string_utf8(&s),
-            Err(e) => Err(NjError::Other(format!(
-                "Could not convert Callback event to json: {e}"
-            ))),
-        }
+impl TryIntoJs for CommandOutcomeWrapper {
+    fn try_to_js(mut self, js_env: &JsEnv) -> Result<napi_value, NjError> {
+        bytes_to_js_value(self.into_bytes(), js_env)
     }
 }
 
@@ -116,7 +161,7 @@ impl UnboundJobs {
         paths: Vec<String>,
         include_files: bool,
         include_folders: bool,
-    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWapper> {
+    ) -> Result<CommandOutcomeWrapper, ComputationErrorWapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
@@ -130,7 +175,7 @@ impl UnboundJobs {
             )
             .await
             .map_err(ComputationErrorWapper::new)
-            .map(CommandOutcomeWrapper)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -138,14 +183,14 @@ impl UnboundJobs {
         &self,
         id: i64,
         file_path: String,
-    ) -> Result<CommandOutcomeWrapper<bool>, ComputationErrorWapper> {
+    ) -> Result<CommandOutcomeWrapper, ComputationErrorWapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
             .is_file_binary(u64_from_i64(id)?, file_path)
             .await
             .map_err(ComputationErrorWapper::new)
-            .map(CommandOutcomeWrapper)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -154,14 +199,14 @@ impl UnboundJobs {
         id: i64,
         path: String,
         args: Vec<String>,
-    ) -> Result<CommandOutcomeWrapper<()>, ComputationErrorWapper> {
+    ) -> Result<CommandOutcomeWrapper, ComputationErrorWapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
             .spawn_process(u64_from_i64(id)?, path, args)
             .await
             .map_err(ComputationErrorWapper::new)
-            .map(CommandOutcomeWrapper)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -169,14 +214,14 @@ impl UnboundJobs {
         &self,
         id: i64,
         path: String,
-    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWapper> {
+    ) -> Result<CommandOutcomeWrapper, ComputationErrorWapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
             .get_file_checksum(u64_from_i64(id)?, path)
             .await
             .map_err(ComputationErrorWapper::new)
-            .map(CommandOutcomeWrapper)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -184,14 +229,14 @@ impl UnboundJobs {
         &self,
         id: i64,
         files: Vec<String>,
-    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWapper> {
+    ) -> Result<CommandOutcomeWrapper, ComputationErrorWapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
             .get_dlt_stats(u64_from_i64(id)?, files)
             .await
             .map_err(ComputationErrorWapper::new)
-            .map(CommandOutcomeWrapper)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -199,56 +244,56 @@ impl UnboundJobs {
         &self,
         id: i64,
         files: Vec<String>,
-    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWapper> {
+    ) -> Result<CommandOutcomeWrapper, ComputationErrorWapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
             .get_someip_statistic(u64_from_i64(id)?, files)
             .await
             .map_err(ComputationErrorWapper::new)
-            .map(CommandOutcomeWrapper)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
     async fn get_shell_profiles(
         &self,
         id: i64,
-    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWapper> {
+    ) -> Result<CommandOutcomeWrapper, ComputationErrorWapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
             .get_shell_profiles(u64_from_i64(id)?)
             .await
             .map_err(ComputationErrorWapper::new)
-            .map(CommandOutcomeWrapper)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
     async fn get_context_envvars(
         &self,
         id: i64,
-    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWapper> {
+    ) -> Result<CommandOutcomeWrapper, ComputationErrorWapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
             .get_context_envvars(u64_from_i64(id)?)
             .await
             .map_err(ComputationErrorWapper::new)
-            .map(CommandOutcomeWrapper)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
     async fn get_serial_ports_list(
         &self,
         id: i64,
-    ) -> Result<CommandOutcomeWrapper<Vec<String>>, ComputationErrorWapper> {
+    ) -> Result<CommandOutcomeWrapper, ComputationErrorWapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
             .get_serial_ports_list(u64_from_i64(id)?)
             .await
             .map_err(ComputationErrorWapper::new)
-            .map(CommandOutcomeWrapper)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -256,14 +301,14 @@ impl UnboundJobs {
         &self,
         id: i64,
         filter: WrappedSearchFilter,
-    ) -> Result<CommandOutcomeWrapper<Option<String>>, ComputationErrorWapper> {
+    ) -> Result<CommandOutcomeWrapper, ComputationErrorWapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
             .get_regex_error(u64_from_i64(id)?, filter.as_filter())
             .await
             .map_err(ComputationErrorWapper::new)
-            .map(CommandOutcomeWrapper)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -272,14 +317,14 @@ impl UnboundJobs {
         id: i64,
         custom_arg_a: i64,
         custom_arg_b: i64,
-    ) -> Result<CommandOutcomeWrapper<i64>, ComputationErrorWapper> {
+    ) -> Result<CommandOutcomeWrapper, ComputationErrorWapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
             .cancel_test(u64_from_i64(id)?, custom_arg_a, custom_arg_b)
             .await
             .map_err(ComputationErrorWapper::new)
-            .map(CommandOutcomeWrapper)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -287,13 +332,13 @@ impl UnboundJobs {
         &self,
         id: i64,
         ms: i64,
-    ) -> Result<CommandOutcomeWrapper<()>, ComputationErrorWapper> {
+    ) -> Result<CommandOutcomeWrapper, ComputationErrorWapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
             .sleep(u64_from_i64(id)?, u64_from_i64(ms)?)
             .await
             .map_err(ComputationErrorWapper::new)
-            .map(CommandOutcomeWrapper)
+            .map(CommandOutcomeWrapper::new)
     }
 }

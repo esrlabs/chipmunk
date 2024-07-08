@@ -93,3 +93,13 @@ pub mod sde {
 pub mod progress {
     include!(concat!(env!("OUT_DIR"), "/progress.rs"));
 }
+
+///
+/// # Entities:
+///
+/// * `LifecycleTransition`
+/// * `Ticks`
+///
+pub mod commands {
+    include!(concat!(env!("OUT_DIR"), "/commands.rs"));
+}

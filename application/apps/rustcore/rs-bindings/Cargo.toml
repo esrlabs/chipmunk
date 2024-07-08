@@ -31,7 +31,6 @@ prost = "0.12.6"
 prost-types = "0.12.6"
 protocol = { path = "../../protocol/gen/binding/rust/protocol" }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
 session = { path = "../../indexer/session" }
 sources = { path = "../../indexer/sources" }
 thiserror = "1.0"

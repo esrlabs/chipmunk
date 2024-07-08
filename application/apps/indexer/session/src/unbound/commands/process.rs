@@ -1,4 +1,4 @@
-use super::CommandOutcome;
+use super::{CommandOutcome, Output};
 use crate::{events::ComputationError, unbound::signal::Signal};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
@@ -30,10 +30,9 @@ pub fn execute(
     exe: String,
     args: Vec<String>,
     _signal: Signal,
-) -> Result<CommandOutcome<()>, ComputationError> {
-    Ok(CommandOutcome::Finished(
-        spawn(Path::new(&exe), args)
-            .map_err(ComputationError::IoOperation)
-            .map(|_c| ())?,
-    ))
+) -> Result<CommandOutcome, ComputationError> {
+    spawn(Path::new(&exe), args)
+        .map_err(ComputationError::IoOperation)
+        .map(|_c| ())?;
+    Ok(CommandOutcome::Finished(Output::Empty))
 }

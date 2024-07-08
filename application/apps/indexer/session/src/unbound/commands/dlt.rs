@@ -1,12 +1,9 @@
-use super::CommandOutcome;
+use super::{CommandOutcome, Output};
 use crate::{events::ComputationError, unbound::signal::Signal};
 use dlt_core::statistics::{collect_dlt_stats, StatisticInfo};
 use std::path::Path;
 
-pub fn stats(
-    files: Vec<String>,
-    _signal: Signal,
-) -> Result<CommandOutcome<String>, ComputationError> {
+pub fn stats(files: Vec<String>, _signal: Signal) -> Result<CommandOutcome, ComputationError> {
     let mut stat = StatisticInfo::new();
     let mut error: Option<String> = None;
     files.iter().for_each(|file| {
@@ -25,7 +22,7 @@ pub fn stats(
     if let Some(err) = error {
         return Err(ComputationError::IoOperation(err));
     }
-    Ok(CommandOutcome::Finished(
+    Ok(CommandOutcome::Finished(Output::String(
         serde_json::to_string(&stat).map_err(|e| ComputationError::IoOperation(e.to_string()))?,
-    ))
+    )))
 }
