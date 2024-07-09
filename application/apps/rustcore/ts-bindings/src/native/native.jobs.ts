@@ -4,6 +4,8 @@ import { CancelablePromise } from 'platform/env/promise';
 import { error } from 'platform/log/utils';
 import { getNativeModule } from '../native/native';
 
+import { commands } from 'protocol';
+
 export abstract class JobsNative {
     public abstract abort(sequence: number): Promise<void>;
 
@@ -11,9 +13,13 @@ export abstract class JobsNative {
 
     public abstract destroy(): Promise<void>;
 
-    public abstract isFileBinary(sequence: number, filePath: string): Promise<boolean>;
+    public abstract isFileBinary(sequence: number, filePath: string): Promise<number[]>;
 
-    public abstract jobCancelTest(sequence: number, num_a: number, num_b: number): Promise<string>;
+    public abstract jobCancelTest(
+        sequence: number,
+        num_a: number,
+        num_b: number,
+    ): Promise<number[]>;
 
     public abstract listFolderContent(
         sequence: number,
@@ -22,16 +28,16 @@ export abstract class JobsNative {
         paths: string[],
         includeFiles: boolean,
         includeFolders: boolean,
-    ): Promise<string>;
+    ): Promise<number[]>;
 
-    public abstract spawnProcess(sequence: number, path: string, args: string[]): Promise<void>;
-    public abstract getFileChecksum(sequence: number, path: string): Promise<string>;
-    public abstract getDltStats(sequence: number, files: string[]): Promise<string>;
-    public abstract getSomeipStatistic(sequence: number, files: string[]): Promise<string>;
-    public abstract getShellProfiles(sequence: number): Promise<string>;
-    public abstract getContextEnvvars(sequence: number): Promise<string>;
-    public abstract getSerialPortsList(sequence: number): Promise<string[]>;
-    public abstract sleep(sequence: number, ms: number): Promise<undefined>;
+    public abstract spawnProcess(sequence: number, path: string, args: string[]): Promise<number[]>;
+    public abstract getFileChecksum(sequence: number, path: string): Promise<number[]>;
+    public abstract getDltStats(sequence: number, files: string[]): Promise<number[]>;
+    public abstract getSomeipStatistic(sequence: number, files: string[]): Promise<number[]>;
+    public abstract getShellProfiles(sequence: number): Promise<number[]>;
+    public abstract getContextEnvvars(sequence: number): Promise<number[]>;
+    public abstract getSerialPortsList(sequence: number): Promise<number[]>;
+    public abstract sleep(sequence: number, ms: number): Promise<number[]>;
     public abstract getRegexError(
         sequence: number,
         filter: {
@@ -40,7 +46,7 @@ export abstract class JobsNative {
             ignore_case: boolean;
             is_word: boolean;
         },
-    ): Promise<string | undefined | null>;
+    ): Promise<number[]>;
 }
 
 interface Job {
@@ -171,7 +177,7 @@ export class Base {
 
     protected execute<Input, Output>(
         convert: undefined | ConvertCallback<Input, Output>,
-        task: Promise<any>,
+        task: Promise<number[]>,
         sequence: number,
         alias: string,
     ): CancelablePromise<Output> {
@@ -189,26 +195,45 @@ export class Base {
                     this.logger.error(`Fail to cancel ${error(err)}`);
                 });
             });
-            task.then((nativeOutput: string) => {
-                try {
-                    const result: JobResult<Input> = JSON.parse(nativeOutput);
-                    if (result === 'Cancelled' || self.isCanceling()) {
-                        if (result !== 'Cancelled' && self.isCanceling()) {
-                            this.logger.warn('Job result dropped due canceling');
+            task.then((bytes: number[]) => {
+                let output = commands.CommandOutcome.deserialize(Uint8Array.from(bytes));
+                if (output.cancelled) {
+                    this.logger.warn('Job result dropped due canceling');
+                    cancel();
+                } else if (output.finished) {
+                    const value: any = (() => {
+                        const result = output.finished.result;
+                        if (!result) {
+                            return undefined;
                         }
-                        cancel();
-                    } else if (convert === undefined) {
-                        resolve(result.Finished as unknown as Output);
+                        if (result.boolValue) {
+                            return result.boolValue;
+                        } else if (result.emptyValue) {
+                            return undefined;
+                        } else if (result.int64Value) {
+                            return result.int64Value;
+                        } else if (result.stringValue) {
+                            return result.stringValue;
+                        } else if (result.optionStringValue) {
+                            return result.optionStringValue.length === 0
+                                ? undefined
+                                : result.optionStringValue;
+                        } else if (result.stringVecValue) {
+                            return result.stringVecValue.values;
+                        } else {
+                            return undefined;
+                        }
+                    })();
+                    if (convert === undefined) {
+                        resolve(value as unknown as Output);
                     } else {
-                        const converted: Output | Error = convert(result.Finished);
+                        const converted: Output | Error = convert(value);
                         if (converted instanceof Error) {
                             reject(converted);
                         } else {
                             resolve(converted);
                         }
                     }
-                } catch (e) {
-                    reject(new Error(`Fail to parse results (${nativeOutput}): ${error(e)}`));
                 }
             })
                 .catch((err: Error) => {

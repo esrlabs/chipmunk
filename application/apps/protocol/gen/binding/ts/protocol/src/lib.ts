@@ -6,3 +6,4 @@ export * from './generated/grabbing';
 export * from './generated/observe';
 export * from './generated/sde';
 export * from './generated/progress';
+export * from './generated/commands';

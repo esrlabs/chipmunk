@@ -11,4 +11,5 @@ protoc \
     ../../../../src/binding/grabbing.proto \
     ../../../../src/binding/observe.proto \
     ../../../../src/binding/sde.proto \
+    ../../../../src/binding/commands.proto \
     ../../../../src/binding/progress.proto
