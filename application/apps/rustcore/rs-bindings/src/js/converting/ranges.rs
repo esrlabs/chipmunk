@@ -1,4 +1,3 @@
-use super::ToBytes;
 use protocol::*;
 use std::{
     mem,
@@ -13,9 +12,9 @@ impl Deref for RangeInclusiveList {
     }
 }
 
-impl ToBytes for RangeInclusiveList {
-    fn into_bytes(&mut self) -> Vec<u8> {
-        let els = mem::take(&mut self.0);
+impl From<RangeInclusiveList> for Vec<u8> {
+    fn from(mut val: RangeInclusiveList) -> Self {
+        let els = mem::take(&mut val.0);
         let elements: Vec<common::RangeInclusive> = els
             .into_iter()
             .map(|el| common::RangeInclusive {

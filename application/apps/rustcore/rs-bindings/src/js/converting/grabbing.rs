@@ -1,4 +1,3 @@
-use super::ToBytes;
 use protocol::*;
 use session::state::GrabbedElement;
 use std::{mem, ops::Deref};
@@ -12,9 +11,9 @@ impl Deref for GrabbedElements {
     }
 }
 
-impl ToBytes for GrabbedElements {
-    fn into_bytes(&mut self) -> Vec<u8> {
-        let els = mem::take(&mut self.0);
+impl From<GrabbedElements> for Vec<u8> {
+    fn from(mut val: GrabbedElements) -> Self {
+        let els = mem::take(&mut val.0);
         let elements: Vec<grabbing::GrabbedElement> = els
             .into_iter()
             .map(|mut el| grabbing::GrabbedElement {

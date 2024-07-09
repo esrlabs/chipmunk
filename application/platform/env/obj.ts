@@ -180,6 +180,12 @@ export function getAsStringOrNull(src: any, key: string): string {
     }
     return src[key];
 }
+export function getAsStringOrUndefined(src: any, key: string): string {
+    if (typeof src[key] !== 'string' && src[key] !== null && src[key] !== undefined) {
+        throw new Error(`Parameter "${key}" should be a string or null or undefined`);
+    }
+    return src[key];
+}
 export function getAsNotEmptyString(src: any, key: string): string {
     if (typeof src[key] !== 'string' || src[key].trim() === '') {
         throw new Error(`Parameter "${key}" should be a none-empty string`);

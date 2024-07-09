@@ -1,4 +1,3 @@
-use super::ToBytes;
 use protocol::*;
 use session::state::AttachmentInfo;
 use std::{mem, ops::Deref};
@@ -12,9 +11,9 @@ impl Deref for AttachmentInfoList {
     }
 }
 
-impl ToBytes for AttachmentInfoList {
-    fn into_bytes(&mut self) -> Vec<u8> {
-        let els = mem::take(&mut self.0);
+impl From<AttachmentInfoList> for Vec<u8> {
+    fn from(mut val: AttachmentInfoList) -> Self {
+        let els = mem::take(&mut val.0);
         let elements: Vec<attachment::AttachmentInfo> = els
             .into_iter()
             .map(|mut el| attachment::AttachmentInfo {

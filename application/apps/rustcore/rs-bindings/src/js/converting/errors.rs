@@ -1,4 +1,4 @@
-use super::{error::E, u8_to_i32, ToBytes};
+use super::{error::E, u8_to_i32};
 use error::{
     computation_error::{self, Error},
     grab_error, search_error,
@@ -28,8 +28,8 @@ impl From<E> for ComputationErrorWapper {
 }
 
 impl TryIntoJs for ComputationErrorWapper {
-    fn try_to_js(mut self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        let bytes = u8_to_i32(self.into_bytes());
+    fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
+        let bytes = u8_to_i32(self.into());
         let arr = js_env.create_array_with_len(bytes.len())?;
         for (i, b) in bytes.into_iter().enumerate() {
             let b = js_env.create_int32(b)?;
@@ -126,9 +126,9 @@ fn get_search_err(err: SearchError) -> error::SearchError {
         }),
     }
 }
-impl ToBytes for ComputationErrorWapper {
-    fn into_bytes(&mut self) -> Vec<u8> {
-        let err = self.0.take().expect("Error has to be provided");
+impl From<ComputationErrorWapper> for Vec<u8> {
+    fn from(mut val: ComputationErrorWapper) -> Self {
+        let err = val.0.take().expect("Error has to be provided");
         let msg = error::ComputationError {
             error: Some(match err {
                 ComputationError::Communication(message) => {

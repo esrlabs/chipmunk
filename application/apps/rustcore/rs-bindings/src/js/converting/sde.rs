@@ -1,8 +1,8 @@
-use super::{error::E, FromBytes, JsIncomeI32Vec, ToBytes};
+use super::{error::E, JsIncomeI32Vec};
 use prost::Message;
 use protocol::*;
 use sources::sde::{SdeRequest, SdeResponse};
-use std::ops::Deref;
+use std::{convert::TryInto, ops::Deref};
 pub struct SdeResponseWrapped(pub SdeResponse);
 
 impl Deref for SdeResponseWrapped {
@@ -12,17 +12,18 @@ impl Deref for SdeResponseWrapped {
     }
 }
 
-impl ToBytes for SdeResponseWrapped {
-    fn into_bytes(&mut self) -> Vec<u8> {
+impl From<SdeResponseWrapped> for Vec<u8> {
+    fn from(val: SdeResponseWrapped) -> Self {
         let msg = sde::SdeResponse {
-            bytes: self.bytes as u64,
+            bytes: val.bytes as u64,
         };
         prost::Message::encode_to_vec(&msg)
     }
 }
 
-impl FromBytes<SdeRequest> for JsIncomeI32Vec {
-    fn from_bytes(&mut self) -> Result<SdeRequest, E> {
+impl TryInto<SdeRequest> for JsIncomeI32Vec {
+    type Error = E;
+    fn try_into(self) -> Result<SdeRequest, E> {
         let bytes = self.iter().map(|b| *b as u8).collect::<Vec<u8>>();
         let decoded = sde::SdeRequest::decode(&*bytes)?
             .request

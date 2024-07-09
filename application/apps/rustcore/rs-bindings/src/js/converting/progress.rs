@@ -1,4 +1,4 @@
-use super::{bytes_to_js_value, ToBytes};
+use super::bytes_to_js_value;
 use node_bindgen::{
     core::{val::JsEnv, NjError, TryIntoJs},
     sys::napi_value,
@@ -16,9 +16,9 @@ impl LifecycleTransitionWrapper {
     }
 }
 
-impl ToBytes for LifecycleTransitionWrapper {
-    fn into_bytes(&mut self) -> Vec<u8> {
-        let ev = self
+impl From<LifecycleTransitionWrapper> for Vec<u8> {
+    fn from(mut val: LifecycleTransitionWrapper) -> Self {
+        let ev = val
             .0
             .take()
             .expect("LifecycleTransition has to be provided");
@@ -52,7 +52,7 @@ impl ToBytes for LifecycleTransitionWrapper {
 }
 
 impl TryIntoJs for LifecycleTransitionWrapper {
-    fn try_to_js(mut self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        bytes_to_js_value(self.into_bytes(), js_env)
+    fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
+        bytes_to_js_value(self.into(), js_env)
     }
 }

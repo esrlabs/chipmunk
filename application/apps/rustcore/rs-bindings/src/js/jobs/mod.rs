@@ -1,5 +1,5 @@
 use crate::js::converting::{
-    bytes_to_js_value, ToBytes,
+    bytes_to_js_value,
     {errors::ComputationErrorWapper, filter::WrappedSearchFilter},
 };
 use log::{debug, error};
@@ -32,9 +32,10 @@ impl CommandOutcomeWrapper {
         CommandOutcomeWrapper(Some(cout))
     }
 }
-impl ToBytes for CommandOutcomeWrapper {
-    fn into_bytes(&mut self) -> Vec<u8> {
-        let cout = self.0.take().expect("Command output has to be provided");
+
+impl From<CommandOutcomeWrapper> for Vec<u8> {
+    fn from(mut val: CommandOutcomeWrapper) -> Self {
+        let cout = val.0.take().expect("Command output has to be provided");
         let msg = match cout {
             CommandOutcome::Cancelled => commands::CommandOutcome {
                 outcome: Some(commands::command_outcome::Outcome::Cancelled(
@@ -73,8 +74,8 @@ impl ToBytes for CommandOutcomeWrapper {
 }
 
 impl TryIntoJs for CommandOutcomeWrapper {
-    fn try_to_js(mut self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        bytes_to_js_value(self.into_bytes(), js_env)
+    fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
+        bytes_to_js_value(self.into(), js_env)
     }
 }
 

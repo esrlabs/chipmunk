@@ -110,6 +110,8 @@ function fromBytes(bytes: number[]): any {
                 len: event.indexed_map_updated.len,
             },
         };
+    } else {
+        throw new Error(`Fail to parse event: ${JSON.stringify(event)}`);
     }
 }
 export interface IOrderStat {
@@ -354,9 +356,8 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
             try {
                 event = fromBytes(data);
             } catch (e) {
-                const msg: string = `Failed to parse rust event data due error: ${e}.\nExpecting type (JSON string): { [type: string]: string | undefined }, got: ${data}`;
-                this.debug().emit.error(msg);
-                this.logger.error(msg);
+                this.debug().emit.error(error(e));
+                this.logger.error(error(e));
                 return;
             }
         } else if (typeof data === 'object' && data !== null) {

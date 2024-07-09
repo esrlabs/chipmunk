@@ -5,7 +5,7 @@ use crate::{
         attachments::AttachmentInfoList, errors::ComputationErrorWapper,
         event::CallbackEventWrapped, filter::WrappedSearchFilter, grabbing::GrabbedElements,
         ranges::RangeInclusiveList, sde::SdeResponseWrapped, source::WrappedSourceDefinition,
-        u8_to_i32, FromBytes, JsIncomeI32Vec, ToBytes,
+        u8_to_i32, JsIncomeI32Vec,
     },
     logging::targets,
 };
@@ -18,7 +18,12 @@ use session::{
     session::Session,
 };
 use sources::sde::SdeRequest;
-use std::{convert::TryFrom, ops::RangeInclusive, path::PathBuf, thread};
+use std::{
+    convert::{TryFrom, TryInto},
+    ops::RangeInclusive,
+    path::PathBuf,
+    thread,
+};
 use tokio::{runtime::Runtime, sync::oneshot};
 use uuid::Uuid;
 
@@ -217,7 +222,7 @@ impl RustSession {
             .grab(LineRange::from(start..=end))
             .await
             .map_err(ComputationErrorWapper::new)?;
-        Ok(u8_to_i32(GrabbedElements(grabbed).into_bytes()))
+        Ok(u8_to_i32(GrabbedElements(grabbed).into()))
     }
 
     #[node_bindgen]
@@ -235,7 +240,7 @@ impl RustSession {
             .grab_indexed(RangeInclusive::<u64>::new(start, end))
             .await
             .map_err(ComputationErrorWapper::new)?;
-        Ok(u8_to_i32(GrabbedElements(grabbed).into_bytes()))
+        Ok(u8_to_i32(GrabbedElements(grabbed).into()))
     }
 
     #[node_bindgen]
@@ -341,7 +346,7 @@ impl RustSession {
             .grab_search(LineRange::from(start..=end))
             .await
             .map_err(ComputationErrorWapper::new)?;
-        Ok(u8_to_i32(GrabbedElements(grabbed).into_bytes()))
+        Ok(u8_to_i32(GrabbedElements(grabbed).into()))
     }
 
     #[node_bindgen]
@@ -359,7 +364,7 @@ impl RustSession {
             )
             .await
             .map_err(ComputationErrorWapper::new)?;
-        Ok(u8_to_i32(GrabbedElements(grabbed).into_bytes()))
+        Ok(u8_to_i32(GrabbedElements(grabbed).into()))
     }
 
     #[node_bindgen]
@@ -368,7 +373,7 @@ impl RustSession {
         options: Vec<i32>,
         operation_id: String,
     ) -> Result<(), ComputationErrorWapper> {
-        let options = JsIncomeI32Vec(options).from_bytes()?;
+        let options = JsIncomeI32Vec(options).try_into()?;
         self.session()?
             .observe(operations::uuid_from_str(&operation_id)?, options)
             .map_err(ComputationErrorWapper::new)
@@ -543,13 +548,13 @@ impl RustSession {
         target: String,
         request: Vec<i32>,
     ) -> Result<Vec<i32>, ComputationErrorWapper> {
-        let request: SdeRequest = JsIncomeI32Vec(request).from_bytes()?;
+        let request: SdeRequest = JsIncomeI32Vec(request).try_into()?;
         let response = self
             .session()?
             .send_into_sde(operations::uuid_from_str(&target)?, request)
             .await
             .map_err(ComputationErrorWapper::new)?;
-        Ok(u8_to_i32(SdeResponseWrapped(response).into_bytes()))
+        Ok(u8_to_i32(SdeResponseWrapped(response).into()))
     }
 
     #[node_bindgen]
@@ -564,7 +569,7 @@ impl RustSession {
                         ComputationError::NativeError(e),
                     )
                 })?;
-        Ok(u8_to_i32(AttachmentInfoList(attachments).into_bytes()))
+        Ok(u8_to_i32(AttachmentInfoList(attachments).into()))
     }
 
     #[node_bindgen]
@@ -579,7 +584,7 @@ impl RustSession {
                     ComputationError::NativeError(e),
                 )
             })?;
-        Ok(u8_to_i32(RangeInclusiveList(ranges).into_bytes()))
+        Ok(u8_to_i32(RangeInclusiveList(ranges).into()))
     }
 
     #[node_bindgen]

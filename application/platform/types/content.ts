@@ -117,9 +117,9 @@ export class Attachment {
                 uuid: obj.getAsString(smth, 'uuid'),
                 filepath: obj.getAsString(smth, 'filepath'),
                 name: obj.getAsString(smth, 'name'),
-                ext: obj.getAsNotEmptyStringOrAsUndefined(smth, 'ext'),
+                ext: obj.getAsStringOrUndefined(smth, 'ext'),
                 size: obj.getAsValidNumber(smth, 'size'),
-                mime: obj.getAsNotEmptyStringOrAsUndefined(smth, 'mime'),
+                mime: obj.getAsStringOrUndefined(smth, 'mime'),
                 messages: obj.getAsArray(smth, 'messages'),
             });
         } catch (e) {
@@ -131,9 +131,9 @@ export class Attachment {
         this.uuid = attachment.uuid;
         this.filepath = attachment.filepath;
         this.name = attachment.name;
-        this.ext = attachment.ext;
+        this.ext = attachment.ext === '' ? undefined : attachment.ext;
         this.size = attachment.size;
-        this.mime = attachment.mime;
+        this.mime = attachment.mime === '' ? undefined : attachment.mime;
         this.messages = attachment.messages;
     }
 

@@ -1,6 +1,9 @@
-use std::{convert::TryFrom, path::PathBuf};
+use std::{
+    convert::{TryFrom, TryInto},
+    path::PathBuf,
+};
 
-use super::{error::E, FromBytes, JsIncomeI32Vec};
+use super::{error::E, JsIncomeI32Vec};
 use prost::Message;
 use protocol::*;
 use session::factory;
@@ -97,8 +100,9 @@ fn get_stream_transport(opt: &observe::observe_origin::Stream) -> Result<factory
     })
 }
 
-impl FromBytes<factory::ObserveOptions> for JsIncomeI32Vec {
-    fn from_bytes(&mut self) -> Result<factory::ObserveOptions, E> {
+impl TryInto<factory::ObserveOptions> for JsIncomeI32Vec {
+    type Error = E;
+    fn try_into(self) -> Result<factory::ObserveOptions, E> {
         // TODO: remove clonning
         let bytes = self.iter().map(|b| *b as u8).collect::<Vec<u8>>();
         let decoded = observe::ObserveOptions::decode(&*bytes)?;

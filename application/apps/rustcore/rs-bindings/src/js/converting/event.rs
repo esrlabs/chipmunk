@@ -1,4 +1,4 @@
-use super::{bytes_to_js_value, errors::get_native_err, ToBytes};
+use super::{bytes_to_js_value, errors::get_native_err};
 use event::callback_event::search_values_updated;
 use event::callback_event::{self, Event};
 use node_bindgen::{
@@ -20,8 +20,8 @@ impl CallbackEventWrapped {
 }
 
 impl TryIntoJs for CallbackEventWrapped {
-    fn try_to_js(mut self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        bytes_to_js_value(self.into_bytes(), js_env)
+    fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
+        bytes_to_js_value(self.into(), js_env)
     }
 }
 
@@ -31,9 +31,9 @@ impl From<CallbackEvent> for CallbackEventWrapped {
     }
 }
 
-impl ToBytes for CallbackEventWrapped {
-    fn into_bytes(&mut self) -> Vec<u8> {
-        let ev = self.0.take().expect("Callback event has to be provided");
+impl From<CallbackEventWrapped> for Vec<u8> {
+    fn from(mut val: CallbackEventWrapped) -> Self {
+        let ev = val.0.take().expect("Callback event has to be provided");
         let msg = event::CallbackEvent {
             event: Some(match ev {
                 CallbackEvent::StreamUpdated(v) => Event::StreamUpdated(v),

@@ -47,11 +47,6 @@ pub(crate) fn bytes_to_js_value(bytes: Vec<u8>, js_env: &JsEnv) -> Result<napi_v
     Ok(arr)
 }
 
-/// Trait, which is used to convert given entity to bytes based on protobuf protocol
-pub trait ToBytes {
-    fn into_bytes(&mut self) -> Vec<u8>;
-}
-
 pub struct JsIncomeI32Vec(pub Vec<i32>);
 
 impl Deref for JsIncomeI32Vec {
@@ -59,11 +54,6 @@ impl Deref for JsIncomeI32Vec {
     fn deref(&self) -> &Self::Target {
         &self.0
     }
-}
-
-/// Trait, which is used to convert bytes into type
-pub trait FromBytes<T> {
-    fn from_bytes(&mut self) -> Result<T, error::E>;
 }
 
 /// This function takes a vector of bytes (`u8`) and converts each byte to an `i32` value,

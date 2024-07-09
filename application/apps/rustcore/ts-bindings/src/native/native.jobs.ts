@@ -196,7 +196,7 @@ export class Base {
                 });
             });
             task.then((bytes: number[]) => {
-                let output = commands.CommandOutcome.deserialize(Uint8Array.from(bytes));
+                const output = commands.CommandOutcome.deserialize(Uint8Array.from(bytes));
                 if (output.cancelled) {
                     this.logger.warn('Job result dropped due canceling');
                     cancel();

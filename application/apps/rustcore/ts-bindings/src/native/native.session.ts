@@ -747,9 +747,13 @@ export class RustSessionWrapper extends RustSession {
     public observe(source: IObserve, operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             const ob = new Observe(source);
-            let file = ob.origin.as<$.Origin.File.Configuration>($.Origin.File.Configuration);
-            let stream = ob.origin.as<$.Origin.Stream.Configuration>($.Origin.Stream.Configuration);
-            let concat = ob.origin.as<$.Origin.Concat.Configuration>($.Origin.Concat.Configuration);
+            const file = ob.origin.as<$.Origin.File.Configuration>($.Origin.File.Configuration);
+            const stream = ob.origin.as<$.Origin.Stream.Configuration>(
+                $.Origin.Stream.Configuration,
+            );
+            const concat = ob.origin.as<$.Origin.Concat.Configuration>(
+                $.Origin.Concat.Configuration,
+            );
             const ft = (ft: $.Types.File.FileType) => {
                 switch (ft) {
                     case $.Types.File.FileType.Text:
@@ -762,7 +766,7 @@ export class RustSessionWrapper extends RustSession {
                         return observe.FileFormat.Type.PcapLegacy;
                 }
             };
-            let origin = new observe.ObserveOrigin();
+            const origin = new observe.ObserveOrigin();
             if (file !== undefined) {
                 origin.file = new observe.ObserveOrigin.File({
                     name: file.configuration[0],
@@ -793,9 +797,9 @@ export class RustSessionWrapper extends RustSession {
                 const udpOrigin = stream.as<$.Origin.Stream.Stream.UDP.Configuration>(
                     $.Origin.Stream.Stream.Process.Configuration,
                 );
-                let transport = new observe.Transport();
+                const transport = new observe.Transport();
                 if (processOrigin !== undefined) {
-                    let envs: Map<string, string> = new Map();
+                    const envs: Map<string, string> = new Map();
                     Object.keys(processOrigin.configuration.envs).forEach((key: string) => {
                         envs.set(`${key}`, `${processOrigin.configuration.envs[key]}`);
                     });
@@ -823,10 +827,12 @@ export class RustSessionWrapper extends RustSession {
                     transport,
                 });
             }
-            let text = ob.parser.as<$.Parser.Text.Configuration>($.Parser.Text.Configuration);
-            let dlt = ob.parser.as<$.Parser.Dlt.Configuration>($.Parser.Dlt.Configuration);
-            let someip = ob.parser.as<$.Parser.SomeIp.Configuration>($.Parser.SomeIp.Configuration);
-            let parser = new observe.ParserType();
+            const text = ob.parser.as<$.Parser.Text.Configuration>($.Parser.Text.Configuration);
+            const dlt = ob.parser.as<$.Parser.Dlt.Configuration>($.Parser.Dlt.Configuration);
+            const someip = ob.parser.as<$.Parser.SomeIp.Configuration>(
+                $.Parser.SomeIp.Configuration,
+            );
+            const parser = new observe.ParserType();
             if (text !== undefined) {
                 parser.text = true;
             } else if (dlt !== undefined) {
