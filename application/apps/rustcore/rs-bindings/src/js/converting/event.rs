@@ -112,8 +112,8 @@ impl From<CallbackEventWrapped> for Vec<u8> {
                     let mut values: HashMap<u32, search_values_updated::ValueRange> =
                         HashMap::new();
                     if let Some(data) = data {
-                        let _ = data.into_iter().map(|(k, (min, max))| {
-                            values.insert(k as u32, search_values_updated::ValueRange { min, max })
+                        data.into_iter().for_each(|(k, (min, max))| {
+                            values.insert(k as u32, search_values_updated::ValueRange { min, max });
                         });
                     }
                     Event::SearchValuesUpdated(callback_event::SearchValuesUpdated { values })

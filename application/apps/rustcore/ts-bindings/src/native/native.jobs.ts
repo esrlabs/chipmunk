@@ -206,19 +206,19 @@ export class Base {
                         if (!result) {
                             return undefined;
                         }
-                        if (result.boolValue) {
+                        if (result.has_boolValue) {
                             return result.boolValue;
-                        } else if (result.emptyValue) {
+                        } else if (result.has_emptyValue) {
                             return undefined;
-                        } else if (result.int64Value) {
+                        } else if (result.has_int64Value) {
                             return result.int64Value;
-                        } else if (result.stringValue) {
+                        } else if (result.has_stringValue) {
                             return result.stringValue;
-                        } else if (result.optionStringValue) {
+                        } else if (result.has_optionStringValue) {
                             return result.optionStringValue.length === 0
                                 ? undefined
                                 : result.optionStringValue;
-                        } else if (result.stringVecValue) {
+                        } else if (result.has_stringVecValue) {
                             return result.stringVecValue.values;
                         } else {
                             return undefined;

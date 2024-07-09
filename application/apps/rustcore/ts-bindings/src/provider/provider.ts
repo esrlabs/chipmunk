@@ -13,9 +13,9 @@ import * as $ from 'protocol';
 
 function fromBytes(bytes: number[]): any {
     const event = $.event.CallbackEvent.deserialize(Uint8Array.from(bytes));
-    if (event.file_read) {
+    if (event.has_file_read) {
         return { FileRead: null };
-    } else if (event.attachments_updated) {
+    } else if (event.has_attachments_updated) {
         return {
             AttachmentsUpdated: {
                 len: event.attachments_updated.len,
@@ -30,22 +30,22 @@ function fromBytes(bytes: number[]): any {
                 },
             },
         };
-    } else if (event.operation_done) {
+    } else if (event.has_operation_done) {
         return {
             OperationDone: {
                 uuid: event.operation_done.uuid,
                 result: event.operation_done.result,
             },
         };
-    } else if (event.operation_started) {
+    } else if (event.has_operation_started) {
         return {
             OperationStarted: event.operation_started,
         };
-    } else if (event.operation_processing) {
+    } else if (event.has_operation_processing) {
         return { OperationProcessing: event.operation_processing };
-    } else if (event.session_destroyed) {
+    } else if (event.has_session_destroyed) {
         return { SessionDestroyed: null };
-    } else if (event.operation_error) {
+    } else if (event.has_operation_error) {
         const err = event.operation_error.error;
         return {
             OperationError: {
@@ -57,7 +57,7 @@ function fromBytes(bytes: number[]): any {
                 },
             },
         };
-    } else if (event.session_error) {
+    } else if (event.has_session_error) {
         const err = event.session_error;
         return {
             SessionError: {
@@ -66,7 +66,7 @@ function fromBytes(bytes: number[]): any {
                 kind: err.kind.toString(),
             },
         };
-    } else if (event.progress) {
+    } else if (event.has_progress) {
         const ticks = event.progress.detail.ticks;
         return {
             Progress: {
@@ -78,25 +78,25 @@ function fromBytes(bytes: number[]): any {
                 },
             },
         };
-    } else if (event.stream_updated) {
+    } else if (event.has_stream_updated) {
         return {
             StreamUpdated: event.stream_updated,
         };
-    } else if (event.search_updated) {
+    } else if (event.has_search_updated) {
         return {
             SearchUpdated: {
                 found: event.search_updated.found,
                 stat: event.search_updated.stat,
             },
         };
-    } else if (event.search_values_updated) {
+    } else if (event.has_search_values_updated) {
         return {
             SearchValuesUpdated:
                 event.search_values_updated.values.size === 0
                     ? null
                     : event.search_values_updated.values,
         };
-    } else if (event.search_map_updated) {
+    } else if (event.has_search_map_updated) {
         // TODO: Map represented as a JSON string and has to be parsed in addition
         return {
             SearchMapUpdated:
@@ -104,7 +104,7 @@ function fromBytes(bytes: number[]): any {
                     ? null
                     : event.search_map_updated.update,
         };
-    } else if (event.indexed_map_updated) {
+    } else if (event.has_indexed_map_updated) {
         return {
             IndexedMapUpdated: {
                 len: event.indexed_map_updated.len,
