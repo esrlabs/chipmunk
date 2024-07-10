@@ -39,11 +39,8 @@ impl ByteSource for TcpSource {
                     if len > 0 {
                         self.buffer.copy_from_slice(&self.tmp_buffer[..len]);
                     }
-
-                    // BUG: This should represent all available bytes in `self.buffer`.
-                    // This assumes that the buffer will be empty on each parse call
-                    // which will fail silently when parser implementing changes.
-                    return Ok(Some(ReloadInfo::new(len, len, 0, None)));
+                    let availabe_bytes = self.buffer.len();
+                    return Ok(Some(ReloadInfo::new(len, availabe_bytes, 0, None)));
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     continue;

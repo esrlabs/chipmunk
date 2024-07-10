@@ -94,15 +94,13 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
                             transport: Some(wanted),
                         }),
                     ) => {
-                        // BUG: This should represent all available bytes in `self.buffer`.
-                        // This assumes that the buffer will be empty on each parse call
-                        // which will fail silently when parser implementing changes.
                         let actual_tp: TransportProtocol = actual.into();
                         let received_bytes = self.buffer.copy_from_slice(value.payload);
+                        let availabe_bytes = self.buffer.len();
                         if actual_tp == *wanted {
                             Ok(Some(ReloadInfo::new(
                                 received_bytes,
-                                received_bytes,
+                                availabe_bytes,
                                 skipped,
                                 self.last_know_timestamp,
                             )))
@@ -117,10 +115,10 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
                     }
                     _ => {
                         let copied = self.buffer.copy_from_slice(value.payload);
-                        // BUG: Same as above.
+                        let availabe_bytes = self.buffer.len();
                         Ok(Some(ReloadInfo::new(
                             copied,
-                            copied,
+                            availabe_bytes,
                             skipped,
                             self.last_know_timestamp,
                         )))
