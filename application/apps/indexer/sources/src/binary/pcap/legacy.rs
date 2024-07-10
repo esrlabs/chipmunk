@@ -198,7 +198,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_source_reload() {
+    async fn test_general_source_reload() {
         let reader = MockRepeatRead::new(SAMPLE_PCAP_DATA.to_vec());
         let mut source = PcapLegacyByteSource::new(reader).unwrap();
 
