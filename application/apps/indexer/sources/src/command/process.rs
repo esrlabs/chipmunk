@@ -183,10 +183,8 @@ impl ByteSource for ProcessSource {
             let stored = line.len() + 1;
             self.buffer.copy_from_slice(line.as_bytes());
             self.buffer.copy_from_slice(b"\n");
-            // BUG: This should represent all available bytes in `self.buffer`.
-            // This assumes that the buffer will be empty on each parse call
-            // which will fail silently when parser implementing changes.
-            Ok(Some(ReloadInfo::new(stored, stored, 0, None)))
+            let availabe_bytes = self.buffer.len();
+            Ok(Some(ReloadInfo::new(stored, availabe_bytes, 0, None)))
         } else if let Some(Err(err)) = output {
             Err(SourceError::Unrecoverable(format!("{err}")))
         } else {

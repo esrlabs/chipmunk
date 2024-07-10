@@ -155,10 +155,8 @@ impl ByteSource for SerialSource {
             }
         }
 
-        // BUG: This should represent all available bytes in `self.buffer`.
-        // This assumes that the buffer will be empty on each parse call
-        // which will fail silently when parser implementing changes.
-        Ok(Some(ReloadInfo::new(self.amount, self.amount, 0, None)))
+        let available_bytes = self.buffer.len();
+        Ok(Some(ReloadInfo::new(self.amount, available_bytes, 0, None)))
     }
 
     fn current_slice(&self) -> &[u8] {

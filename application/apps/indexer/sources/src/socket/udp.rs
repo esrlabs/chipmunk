@@ -94,11 +94,9 @@ impl ByteSource for UdpSource {
         if len > 0 {
             self.buffer.copy_from_slice(&self.tmp_buffer[..len]);
         }
+        let availabe_bytes = self.buffer.len();
 
-        // BUG: This should represent all available bytes in `self.buffer`.
-        // This assumes that the buffer will be empty on each parse call
-        // which will fail silently when parser implementing changes.
-        Ok(Some(ReloadInfo::new(len, len, 0, None)))
+        Ok(Some(ReloadInfo::new(len, availabe_bytes, 0, None)))
     }
 
     fn current_slice(&self) -> &[u8] {
