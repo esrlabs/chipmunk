@@ -270,4 +270,11 @@ async fn test_serial() {
         } => (),
     }
 }
+
+#[tokio::test]
+async fn test_general_source_reload() {
+    // Skipped for now due to permission issue as above
+    let serial_source = todo!();
+    general_source_reload_test(&mut serial_source).await;
+}
 */

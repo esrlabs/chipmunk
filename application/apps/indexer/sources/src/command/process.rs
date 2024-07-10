@@ -220,48 +220,74 @@ impl ByteSource for ProcessSource {
     }
 }
 
-#[tokio::test]
-async fn test_process() -> Result<(), ProcessError> {
-    use std::env;
-    let mut command = "";
-    if cfg!(windows) {
-        command = "help";
-    } else if cfg!(unix) {
-        command = "ls -lsa";
-    }
-    let envs = HashMap::new();
-    match ProcessSource::new(command.to_string(), env::current_dir().unwrap(), envs).await {
-        Ok(mut process_source) => {
-            while process_source
-                .reload(None)
-                .await
-                .expect("Reload data from process source failed")
-                .is_some()
-            {
-                assert!(!process_source.current_slice().is_empty());
-                process_source.consume(process_source.current_slice().len());
-            }
-            // By some reasons during test sometimes process stay alive and as result
-            let _ = process_source.process.kill().await;
-            Ok(())
-        }
-        Err(err) => Err(err),
-    }
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tests::general_source_reload_test;
 
-#[tokio::test]
-async fn test_parsing() -> Result<(), ProcessError> {
-    let parsed = ProcessSource::parse_command(r#"cmd arg2 "some_path/with space or spaces" arg3"#)?;
-    assert_eq!(parsed.len(), 4);
-    assert_eq!(parsed[0], OsString::from("cmd"));
-    assert_eq!(parsed[1], OsString::from("arg2"));
-    assert_eq!(parsed[2], OsString::from("some_path/with space or spaces"));
-    assert_eq!(parsed[3], OsString::from("arg3"));
-    let parsed = ProcessSource::parse_command(r"cmd arg2 some_path/with\ space\ or\ spaces arg3")?;
-    assert_eq!(parsed.len(), 4);
-    assert_eq!(parsed[0], OsString::from("cmd"));
-    assert_eq!(parsed[1], OsString::from("arg2"));
-    assert_eq!(parsed[2], OsString::from("some_path/with space or spaces"));
-    assert_eq!(parsed[3], OsString::from("arg3"));
-    Ok(())
+    #[tokio::test]
+    async fn test_process() -> Result<(), ProcessError> {
+        use std::env;
+        let mut command = "";
+        if cfg!(windows) {
+            command = "help";
+        } else if cfg!(unix) {
+            command = "ls -lsa";
+        }
+        let envs = HashMap::new();
+        match ProcessSource::new(command.to_string(), env::current_dir().unwrap(), envs).await {
+            Ok(mut process_source) => {
+                while process_source
+                    .reload(None)
+                    .await
+                    .expect("Reload data from process source failed")
+                    .is_some()
+                {
+                    assert!(!process_source.current_slice().is_empty());
+                    process_source.consume(process_source.current_slice().len());
+                }
+                // By some reasons during test sometimes process stay alive and as result
+                let _ = process_source.process.kill().await;
+                Ok(())
+            }
+            Err(err) => Err(err),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_parsing() -> Result<(), ProcessError> {
+        let parsed =
+            ProcessSource::parse_command(r#"cmd arg2 "some_path/with space or spaces" arg3"#)?;
+        assert_eq!(parsed.len(), 4);
+        assert_eq!(parsed[0], OsString::from("cmd"));
+        assert_eq!(parsed[1], OsString::from("arg2"));
+        assert_eq!(parsed[2], OsString::from("some_path/with space or spaces"));
+        assert_eq!(parsed[3], OsString::from("arg3"));
+        let parsed =
+            ProcessSource::parse_command(r"cmd arg2 some_path/with\ space\ or\ spaces arg3")?;
+        assert_eq!(parsed.len(), 4);
+        assert_eq!(parsed[0], OsString::from("cmd"));
+        assert_eq!(parsed[1], OsString::from("arg2"));
+        assert_eq!(parsed[2], OsString::from("some_path/with space or spaces"));
+        assert_eq!(parsed[3], OsString::from("arg3"));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_source_reload() {
+        use std::env;
+        let mut command = "";
+        if cfg!(windows) {
+            command = "help";
+        } else if cfg!(unix) {
+            command = "ls -lsa";
+        }
+        let envs = HashMap::new();
+        let mut process_soruce =
+            ProcessSource::new(command.to_string(), env::current_dir().unwrap(), envs)
+                .await
+                .unwrap();
+
+        general_source_reload_test(&mut process_soruce).await;
+    }
 }
