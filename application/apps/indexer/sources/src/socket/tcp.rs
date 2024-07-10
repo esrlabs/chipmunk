@@ -72,43 +72,74 @@ impl ByteSource for TcpSource {
     }
 }
 
-#[tokio::test]
-async fn test_tcp_reload() -> Result<(), std::io::Error> {
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::tests::general_source_reload_test;
     use std::time::Duration;
     use tokio::{io::AsyncWriteExt, net::TcpListener, time::sleep};
-    static SERVER: &str = "127.0.0.1:4000";
+
     static MESSAGES: &[&str] = &["one", "two", "three"];
-    let listener = TcpListener::bind(&SERVER).await.unwrap();
-    // process_socket(socket).await;
-    // let send_socket = TcpSocket::bind(SENDER).await?;
-    let send_handle = tokio::spawn(async move {
-        let (stream, _) = listener.accept().await.unwrap();
-        let (_, mut send) = tokio::io::split(stream);
-        // stream.writable().await.unwrap();
-        for msg in MESSAGES {
-            send.write_all(msg.as_bytes())
-                .await
-                .expect("could not send on socket");
-            send.flush().await.expect("flush message should work");
-            sleep(Duration::from_millis(100)).await;
-        }
-    });
-    let mut udp_source = TcpSource::new(SERVER).await?;
-    let receive_handle = tokio::spawn(async move {
-        for msg in MESSAGES {
-            udp_source.reload(None).await.expect("reload failed");
-            println!(
-                "receive: {:02X?}",
-                std::str::from_utf8(udp_source.current_slice())
-            );
-            assert_eq!(udp_source.current_slice(), msg.as_bytes());
-            udp_source.consume(msg.len());
-        }
-    });
 
-    println!("TCP: Starting send and receive");
-    let (_, rec_res) = tokio::join!(send_handle, receive_handle,);
+    #[tokio::test]
+    async fn test_tcp_reload() -> Result<(), std::io::Error> {
+        static SERVER: &str = "127.0.0.1:4000";
+        let listener = TcpListener::bind(&SERVER).await.unwrap();
+        // process_socket(socket).await;
+        // let send_socket = TcpSocket::bind(SENDER).await?;
+        let send_handle = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.unwrap();
+            let (_, mut send) = tokio::io::split(stream);
+            // stream.writable().await.unwrap();
+            for msg in MESSAGES {
+                send.write_all(msg.as_bytes())
+                    .await
+                    .expect("could not send on socket");
+                send.flush().await.expect("flush message should work");
+                sleep(Duration::from_millis(100)).await;
+            }
+        });
+        let mut udp_source = TcpSource::new(SERVER).await?;
+        let receive_handle = tokio::spawn(async move {
+            for msg in MESSAGES {
+                udp_source.reload(None).await.expect("reload failed");
+                println!(
+                    "receive: {:02X?}",
+                    std::str::from_utf8(udp_source.current_slice())
+                );
+                assert_eq!(udp_source.current_slice(), msg.as_bytes());
+                udp_source.consume(msg.len());
+            }
+        });
 
-    assert!(rec_res.is_ok());
-    Ok(())
+        println!("TCP: Starting send and receive");
+        let (_, rec_res) = tokio::join!(send_handle, receive_handle,);
+
+        assert!(rec_res.is_ok());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_general_source_reload() {
+        static SERVER: &str = "127.0.0.1:4001";
+        let listener = TcpListener::bind(&SERVER).await.unwrap();
+        // process_socket(socket).await;
+        // let send_socket = TcpSocket::bind(SENDER).await?;
+        tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.unwrap();
+            let (_, mut send) = tokio::io::split(stream);
+            // stream.writable().await.unwrap();
+            for msg in MESSAGES {
+                send.write_all(msg.as_bytes())
+                    .await
+                    .expect("could not send on socket");
+                send.flush().await.expect("flush message should work");
+                sleep(Duration::from_millis(100)).await;
+            }
+        });
+        let mut tcp_source = TcpSource::new(SERVER).await.unwrap();
+
+        general_source_reload_test(&mut tcp_source).await;
+    }
 }

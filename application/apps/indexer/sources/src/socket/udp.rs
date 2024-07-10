@@ -114,32 +114,60 @@ impl ByteSource for UdpSource {
     }
 }
 
-#[tokio::test]
-async fn test_udp_reload() -> Result<(), UdpSourceError> {
-    static SENDER: &str = "127.0.0.1:4000";
-    static RECEIVER: &str = "127.0.0.1:5000";
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tests::general_source_reload_test;
+
     static MESSAGES: &[&str] = &["one", "two", "three"];
-    let send_socket = UdpSocket::bind(SENDER).await.map_err(UdpSourceError::Io)?;
-    let send_handle = tokio::spawn(async move {
-        for msg in MESSAGES {
-            send_socket
-                .send_to(msg.as_bytes(), RECEIVER)
-                .await
-                .expect("could not send on socket");
-        }
-    });
-    let mut udp_source = UdpSource::new(RECEIVER, vec![]).await?;
-    let receive_handle = tokio::spawn(async move {
-        for msg in MESSAGES {
-            udp_source.reload(None).await.unwrap();
-            assert_eq!(udp_source.current_slice(), msg.as_bytes());
-            udp_source.consume(msg.len());
-        }
-    });
 
-    println!("UDP: Starting send and receive");
-    let (_, rec_res) = tokio::join!(send_handle, receive_handle,);
+    #[tokio::test]
+    async fn test_udp_reload() -> Result<(), UdpSourceError> {
+        static SENDER: &str = "127.0.0.1:4000";
+        static RECEIVER: &str = "127.0.0.1:5000";
+        let send_socket = UdpSocket::bind(SENDER).await.map_err(UdpSourceError::Io)?;
+        let send_handle = tokio::spawn(async move {
+            for msg in MESSAGES {
+                send_socket
+                    .send_to(msg.as_bytes(), RECEIVER)
+                    .await
+                    .expect("could not send on socket");
+            }
+        });
+        let mut udp_source = UdpSource::new(RECEIVER, vec![]).await?;
+        let receive_handle = tokio::spawn(async move {
+            for msg in MESSAGES {
+                udp_source.reload(None).await.unwrap();
+                assert_eq!(udp_source.current_slice(), msg.as_bytes());
+                udp_source.consume(msg.len());
+            }
+        });
 
-    assert!(rec_res.is_ok());
-    Ok(())
+        println!("UDP: Starting send and receive");
+        let (_, rec_res) = tokio::join!(send_handle, receive_handle,);
+
+        assert!(rec_res.is_ok());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_general_source_reload() {
+        static SENDER: &str = "127.0.0.1:4001";
+        static RECEIVER: &str = "127.0.0.1:5001";
+        let send_socket = UdpSocket::bind(SENDER)
+            .await
+            .map_err(UdpSourceError::Io)
+            .unwrap();
+        tokio::spawn(async move {
+            for msg in MESSAGES {
+                send_socket
+                    .send_to(msg.as_bytes(), RECEIVER)
+                    .await
+                    .expect("could not send on socket");
+            }
+        });
+        let mut udp_source = UdpSource::new(RECEIVER, vec![]).await.unwrap();
+
+        general_source_reload_test(&mut udp_source).await;
+    }
 }
