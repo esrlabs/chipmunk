@@ -4,6 +4,8 @@ pub use mock_read::{MockRead, MockRepeatRead};
 
 use crate::ByteSource;
 
+/// Do general tests on the reload returns to insure the [`byte_source`] match the trait signature
+/// and documentations
 pub async fn general_source_reload_test<S: ByteSource>(byte_source: &mut S) {
     assert!(
         byte_source.is_empty(),

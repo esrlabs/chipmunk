@@ -1,6 +1,7 @@
-use std::io::Read;
+use std::io::{Read, Seek};
 
 #[derive(Debug, Clone, Default)]
+/// Mock Class that provide differnt byte on each read call filling the whole given buffer with it
 pub struct MockRead {
     current_byte: u8,
 }
@@ -15,7 +16,14 @@ impl Read for MockRead {
     }
 }
 
+impl Seek for MockRead {
+    fn seek(&mut self, _pos: std::io::SeekFrom) -> std::io::Result<u64> {
+        panic!("Seek isn't called anywhere where MockRead is used yet");
+    }
+}
+
 #[derive(Debug, Clone)]
+/// Mock Class that proivde the given data an each read call.
 pub struct MockRepeatRead {
     data: Vec<u8>,
 }

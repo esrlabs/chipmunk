@@ -90,7 +90,11 @@ impl<R: Read + Send + Sync + Seek> ByteSource for BinaryByteSource<R> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{binary::raw::BinaryByteSource, ByteSource};
+    use crate::{
+        binary::raw::BinaryByteSource,
+        tests::{general_source_reload_test, MockRead},
+        ByteSource,
+    };
     use env_logger;
     use std::sync::Once;
 
@@ -145,5 +149,13 @@ mod tests {
         }
         assert_eq!(consumed_bytes, total);
         assert_eq!(consumed_msg, frame_cnt);
+    }
+
+    #[tokio::test]
+    async fn test_general_source_reload() {
+        let reader = MockRead::default();
+        let mut binary_source = BinaryByteSource::new(reader);
+
+        general_source_reload_test(&mut binary_source).await;
     }
 }
