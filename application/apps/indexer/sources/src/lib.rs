@@ -8,6 +8,9 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
+#[cfg(test)]
+mod tests;
+
 pub mod binary;
 pub mod command;
 pub mod factory;
