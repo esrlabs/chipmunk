@@ -39,8 +39,8 @@ impl ByteSource for TcpSource {
                     if len > 0 {
                         self.buffer.copy_from_slice(&self.tmp_buffer[..len]);
                     }
-                    let availabe_bytes = self.buffer.len();
-                    return Ok(Some(ReloadInfo::new(len, availabe_bytes, 0, None)));
+                    let available_bytes = self.buffer.len();
+                    return Ok(Some(ReloadInfo::new(len, available_bytes, 0, None)));
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     continue;
