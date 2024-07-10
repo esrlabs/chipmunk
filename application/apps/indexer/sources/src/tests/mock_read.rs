@@ -1,7 +1,7 @@
 use std::io::{Read, Seek};
 
 #[derive(Debug, Clone, Default)]
-/// Mock Class that provide differnt byte on each read call filling the whole given buffer with it
+/// Mock Class that provide different byte on each read call filling the whole given buffer with it
 pub struct MockRead {
     current_byte: u8,
 }
@@ -23,7 +23,7 @@ impl Seek for MockRead {
 }
 
 #[derive(Debug, Clone)]
-/// Mock Class that proivde the given data an each read call.
+/// Mock Class that proide the given data an each read call.
 pub struct MockRepeatRead {
     data: Vec<u8>,
 }

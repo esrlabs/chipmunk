@@ -116,7 +116,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
         };
         // 1. buffer loaded? if not, fill buffer with frame data
         // 2. try to parse message from buffer
-        // 3a. if message, pop it of the buffer and deliever
+        // 3a. if message, pop it of the buffer and deliver
         // 3b. else reload into buffer and goto 2
         loop {
             let current_slice = self.byte_source.current_slice();

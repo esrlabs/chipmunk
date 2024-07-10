@@ -18,13 +18,13 @@ pub async fn general_source_reload_test<S: ByteSource>(byte_source: &mut S) {
     assert_eq!(reload_1.newly_loaded_bytes, reload_1.available_bytes);
 
     // Consume half of the available bytes
-    let half_readen = reload_1.available_bytes / 2;
-    byte_source.consume(half_readen);
+    let half_read = reload_1.available_bytes / 2;
+    byte_source.consume(half_read);
 
     let reload_2 = byte_source.reload(None).await.unwrap().unwrap();
 
     let available_bytes_target =
-        reload_2.newly_loaded_bytes + (reload_1.available_bytes - half_readen);
+        reload_2.newly_loaded_bytes + (reload_1.available_bytes - half_read);
 
     assert_eq!(available_bytes_target, reload_2.available_bytes);
 
