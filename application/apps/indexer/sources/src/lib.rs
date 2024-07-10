@@ -109,7 +109,7 @@ pub trait ByteSource: Send + Sync {
     /// when the source has reached it's end, this function
     /// will return Ok((None, _))
     ///
-    /// A successfull reload operation will return the number
+    /// A successful reload operation will return the number
     /// of bytes that were newly loaded `newly_loaded_bytes`
     /// along with all currently available bytes `available_bytes`
     /// In some cases it is possible that some bytes had to be skipped in order to

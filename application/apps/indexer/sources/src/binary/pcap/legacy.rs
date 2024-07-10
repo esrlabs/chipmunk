@@ -94,11 +94,11 @@ impl<R: Read + Send + Sync> ByteSource for PcapLegacyByteSource<R> {
                     ) => {
                         let actual_tp: TransportProtocol = actual.into();
                         let received_bytes = self.buffer.copy_from_slice(value.payload);
-                        let availabe_bytes = self.buffer.len();
+                        let available_bytes = self.buffer.len();
                         if actual_tp == *wanted {
                             Ok(Some(ReloadInfo::new(
                                 received_bytes,
-                                availabe_bytes,
+                                available_bytes,
                                 skipped,
                                 self.last_know_timestamp,
                             )))
@@ -113,10 +113,10 @@ impl<R: Read + Send + Sync> ByteSource for PcapLegacyByteSource<R> {
                     }
                     _ => {
                         let copied = self.buffer.copy_from_slice(value.payload);
-                        let availabe_bytes = self.buffer.len();
+                        let available_bytes = self.buffer.len();
                         Ok(Some(ReloadInfo::new(
                             copied,
-                            availabe_bytes,
+                            available_bytes,
                             skipped,
                             self.last_know_timestamp,
                         )))

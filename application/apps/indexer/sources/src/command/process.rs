@@ -183,8 +183,8 @@ impl ByteSource for ProcessSource {
             let stored = line.len() + 1;
             self.buffer.copy_from_slice(line.as_bytes());
             self.buffer.copy_from_slice(b"\n");
-            let availabe_bytes = self.buffer.len();
-            Ok(Some(ReloadInfo::new(stored, availabe_bytes, 0, None)))
+            let available_bytes = self.buffer.len();
+            Ok(Some(ReloadInfo::new(stored, available_bytes, 0, None)))
         } else if let Some(Err(err)) = output {
             Err(SourceError::Unrecoverable(format!("{err}")))
         } else {
@@ -281,11 +281,11 @@ mod tests {
             command = "ls -lsa";
         }
         let envs = HashMap::new();
-        let mut process_soruce =
+        let mut process_source =
             ProcessSource::new(command.to_string(), env::current_dir().unwrap(), envs)
                 .await
                 .unwrap();
 
-        general_source_reload_test(&mut process_soruce).await;
+        general_source_reload_test(&mut process_source).await;
     }
 }

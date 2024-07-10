@@ -94,9 +94,9 @@ impl ByteSource for UdpSource {
         if len > 0 {
             self.buffer.copy_from_slice(&self.tmp_buffer[..len]);
         }
-        let availabe_bytes = self.buffer.len();
+        let available_bytes = self.buffer.len();
 
-        Ok(Some(ReloadInfo::new(len, availabe_bytes, 0, None)))
+        Ok(Some(ReloadInfo::new(len, available_bytes, 0, None)))
     }
 
     fn current_slice(&self) -> &[u8] {
