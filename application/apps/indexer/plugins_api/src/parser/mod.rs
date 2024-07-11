@@ -3,17 +3,34 @@
 
 use std::path::{Path, PathBuf};
 
-use wit_bindgen::generate;
+use self::bindings::exports::chipmunk::plugin::parser::Guest;
 
-use self::{
-    chipmunk::plugin::{parse_types::*, shared_types::*},
-    exports::chipmunk::plugin::parser::Guest,
+mod bindings {
+    use super::*;
+
+    wit_bindgen::generate!({
+        path: "wit/v_0.1.0",
+        world: "parse-plugin",
+        export_macro_name: "export_intern",
+        // Export macro is used withing the exported `parser_export!` macro and must be public
+        pub_export_macro: true,
+        // Bindings for export macro must be set, because it won't be called from withing the
+        // same module where `generate!` is called
+        default_bindings_module: "crate::parser::bindings",
+    });
+}
+
+// External exports for users
+pub use bindings::chipmunk::plugin::{
+    parse_types::{Attachment, ParseError, ParseReturn, ParseYield, ParserConfig},
+    shared_types::InitError,
 };
-
-generate!({
-    path: "wit/v_0.1.0",
-    world: "parse-plugin",
-});
+// Exports needed in macro but not needed by users
+#[doc(hidden)]
+pub use bindings::{
+    add as add_res_intern, export_intern,
+    exports::chipmunk::plugin::parser::Guest as PluginInternalGuest,
+};
 
 /// Chipmunk Parser Plugin
 pub trait Parser {
@@ -57,18 +74,18 @@ impl Parser for Dummy {
 #[macro_export]
 macro_rules! parser_export {
     ($par:ty) => {
-        //TODO AAZ: have all the types with the full path after defining the exports from wit file
         static mut PARSER: ::std::option::Option<$par> = ::std::option::Option::None;
 
-        struct PluginParser;
+        // Name intentionally lengthened to avoid conflict with user's own types
+        struct InternalPluginParserGuest;
 
-        impl Guest for PluginParser {
+        impl $crate::parser::PluginInternalGuest for InternalPluginParserGuest {
             /// Initialize the parser with the given configurations
             fn init(
-                general_configs: ParserConfig,
+                general_configs: $crate::parser::ParserConfig,
                 plugin_configs: ::std::option::Option<::std::string::String>,
-            ) -> ::std::result::Result<(), InitError> {
-                let parser = <$par as $crate::Parser>::create(
+            ) -> ::std::result::Result<(), $crate::parser::InitError> {
+                let parser = <$par as $crate::parser::Parser>::create(
                     general_configs,
                     plugin_configs.map(|path| path.into()),
                 )?;
@@ -81,9 +98,11 @@ macro_rules! parser_export {
 
             /// Parse the given bytes returning a list of plugins results
             fn parse(
-                data: _rt::Vec<u8>,
+                data: ::std::vec::Vec<u8>,
                 timestamp: ::std::option::Option<u64>,
-            ) -> _rt::Vec<Result<ParseReturn, ParseError>> {
+            ) -> ::std::vec::Vec<
+                ::std::result::Result<$crate::parser::ParseReturn, $crate::parser::ParseError>,
+            > {
                 // SAFETY: Parse method has mutable reference to self and can't be called more than
                 // once on the same time on host
                 let parser = unsafe { PARSER.as_mut().expect("parser already initialized") };
@@ -91,17 +110,17 @@ macro_rules! parser_export {
             }
 
             /// Parse the given bytes returning the results to the host one by one using the function `add` provided by the host.
-            fn parse_with_add(data: _rt::Vec<u8>, timestamp: Option<u64>) {
+            fn parse_with_add(data: ::std::vec::Vec<u8>, timestamp: ::std::option::Option<u64>) {
                 // SAFETY: Parse method has mutable reference to self and can't be called more than
                 // once on the same time on host
                 let parser = unsafe { PARSER.as_mut().expect("parser already initialized") };
                 for item in parser.parse(&data, timestamp) {
-                    add(item.as_ref());
+                    $crate::parser::add_res_intern(item.as_ref());
                 }
             }
         }
 
-        export!(PluginParser);
+        $crate::parser::export_intern!(InternalPluginParserGuest);
     };
 }
 
