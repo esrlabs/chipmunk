@@ -55,12 +55,16 @@ interface parser {
   parse-with-add: func(data: list<u8>, timestamp: option<u64>);
 }
 
-
-world parse-plugin {
+/// Provides methods to add parse items directly by the host
+interface host-add {
   use parse-types.{parse-return, parse-error};
 
   /// Add parse results one by one directly at the host memory
-  import add: func(item: result<parse-return, parse-error>);
+  add: func(item: result<parse-return, parse-error>);
+}
 
+
+world parse-plugin {
+  import host-add;
   export parser;
 }
