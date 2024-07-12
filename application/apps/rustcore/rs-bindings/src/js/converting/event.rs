@@ -5,6 +5,7 @@ use node_bindgen::{
     core::{val::JsEnv, NjError, TryIntoJs},
     sys::napi_value,
 };
+use prost::Message;
 use protocol::*;
 use session::progress::Severity;
 use session::{events::CallbackEvent, progress::Progress};
@@ -21,7 +22,12 @@ impl CallbackEventWrapped {
 
 impl TryIntoJs for CallbackEventWrapped {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        bytes_to_js_value(self.into(), js_env)
+        // println!("RUST: {:?}", self.0);
+        let bytes: Vec<u8> = self.into();
+        // println!("RUST bytes: {:?}", bytes);
+        let res = event::CallbackEvent::decode(&bytes[..]);
+        // println!("RUST decoded: {res:?}");
+        bytes_to_js_value(bytes, js_env)
     }
 }
 

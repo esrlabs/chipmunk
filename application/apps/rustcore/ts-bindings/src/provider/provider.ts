@@ -357,7 +357,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                 event = fromBytes(data);
             } catch (e) {
                 this.debug().emit.error(error(e));
-                this.logger.error(error(e));
+                this.logger.error(`Fail parse event: ${error(e)}; bytes: ${JSON.stringify(data)}`);
                 return;
             }
         } else if (typeof data === 'object' && data !== null) {

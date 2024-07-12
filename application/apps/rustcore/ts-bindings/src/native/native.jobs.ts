@@ -1,10 +1,11 @@
 import { Logger } from 'platform/log';
 import { scope } from 'platform/env/scope';
 import { CancelablePromise } from 'platform/env/promise';
-import { error } from 'platform/log/utils';
+import { error as e } from 'platform/log/utils';
 import { getNativeModule } from '../native/native';
+import { Type, Source, NativeError } from '../interfaces/errors';
 
-import { commands } from 'protocol';
+import { commands, error } from 'protocol';
 
 export abstract class JobsNative {
     public abstract abort(sequence: number): Promise<void>;
@@ -192,7 +193,7 @@ export class Base {
                         this.logger.warn('Job was already completed on aborting');
                         return;
                     }
-                    this.logger.error(`Fail to cancel ${error(err)}`);
+                    this.logger.error(`Fail to cancel ${e(err)}`);
                 });
             });
             task.then((bytes: number[]) => {
@@ -236,9 +237,12 @@ export class Base {
                     }
                 }
             })
-                .catch((err: Error) => {
-                    this.logger.error(`Fail to do "${alias}" operation due error: ${error(err)}`);
-                    reject(new Error(error(err)));
+                .catch((err: Error | number[]) => {
+                    const error = NativeError.from(err);
+                    this.logger.error(
+                        `Fail to do "${alias}" operation due error (unrecognized): ${e(error)}`,
+                    );
+                    reject(error);
                 })
                 .finally(() => {
                     this.queue.remove(sequence);
