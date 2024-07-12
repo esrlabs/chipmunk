@@ -8,5 +8,10 @@ edition = "2021"
 [dependencies]
 wit-bindgen = "0.26"
 
+[features]
+default = []
+parser =[]
+bytesource = []
+
 [package.metadata.component]
 target = { path = "wit" }
