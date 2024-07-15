@@ -1,0 +1,2 @@
+# Ignore TryBuild comparison files for now since we are overwrite them on every run.
+*/*.stderr

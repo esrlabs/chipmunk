@@ -98,32 +98,3 @@ macro_rules! parser_export {
         $crate::parser::internal_bindings::export!(InternalPluginParserGuest);
     };
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    struct Dummy;
-
-    impl Parser for Dummy {
-        fn create(
-            general_configs: ParserConfig,
-            config_path: Option<PathBuf>,
-        ) -> Result<Self, InitError>
-        where
-            Self: Sized,
-        {
-            todo!()
-        }
-
-        fn parse(
-            &mut self,
-            data: &[u8],
-            timestamp: Option<u64>,
-        ) -> impl IntoIterator<Item = Result<ParseReturn, ParseError>> + Send {
-            Vec::new()
-        }
-    }
-
-    parser_export!(Dummy);
-}

@@ -8,10 +8,17 @@ edition = "2021"
 [dependencies]
 wit-bindgen = "0.26"
 
+[dev-dependencies]
+trybuild = "1.0.97"
+
 [features]
 default = []
 parser =[]
 bytesource = []
+
+[[test]]
+name = "parser"
+required-features = ["parser"]
 
 [package.metadata.component]
 target = { path = "wit" }
