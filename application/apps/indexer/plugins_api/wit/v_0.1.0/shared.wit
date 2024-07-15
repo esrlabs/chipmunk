@@ -8,5 +8,20 @@ interface shared-types {
     unsupported(string),
     other(string),
   }
+}
 
+/// Logging definitions and methods for all plugins
+interface logging {
+
+  /// Log Level 
+  enum level {
+    error,
+    warn,
+    info,
+    debug,
+    trace,
+  }
+
+  /// Log the given message with current log level if log level is allowed
+  log: func(level: level, msg: string);
 }

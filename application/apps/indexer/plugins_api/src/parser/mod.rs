@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+pub mod logging;
+
 // WARNING: this is not part of the crate's public API and is subject to change at any time
 // Module must be public because the generated types and macros are used within `parser_export!`
 // macro + macros can't be re-exported via pub use
