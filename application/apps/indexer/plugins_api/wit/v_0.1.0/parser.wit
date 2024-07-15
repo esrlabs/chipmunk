@@ -66,5 +66,7 @@ interface host-add {
 
 world parse-plugin {
   import host-add;
+  import logging;
+
   export parser;
 }
