@@ -1,7 +1,4 @@
-// TODO: Temporally place holder
-#![allow(dead_code, unused_imports, unused)]
-
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 // Module must be public because the generated types and macros are used within `parser_export!`
 // macro + macros can't be re-exported via pub use
@@ -45,6 +42,9 @@ pub trait Parser {
 /// TODO AAZ: Macro docs with example
 macro_rules! parser_export {
     ($par:ty) => {
+        // Make sure Parser trait is in scope
+        use $crate::parser::Parser as _ChipmunkDefinedParser;
+
         static mut PARSER: ::std::option::Option<$par> = ::std::option::Option::None;
 
         // Name intentionally lengthened to avoid conflict with user's own types
