@@ -1,9 +1,10 @@
 use std::path::PathBuf;
 
+// WARNING: this is not part of the crate's public API and is subject to change at any time
 // Module must be public because the generated types and macros are used within `parser_export!`
 // macro + macros can't be re-exported via pub use
 #[doc(hidden)]
-pub mod internal_bindings {
+pub mod __internal_bindings {
     wit_bindgen::generate!({
         path: "wit/v_0.1.0",
         world: "parse-plugin",
@@ -11,12 +12,13 @@ pub mod internal_bindings {
         pub_export_macro: true,
         // Bindings for export macro must be set, because it won't be called from withing the
         // same module where `generate!` is called
-        default_bindings_module: "$crate::parser::internal_bindings",
+        default_bindings_module: "$crate::parser::__internal_bindings",
     });
 }
 
 // External exports for users
-pub use internal_bindings::chipmunk::plugin::{
+pub use __internal_bindings::chipmunk::plugin::{
+    logging::Level,
     parse_types::{Attachment, ParseError, ParseReturn, ParseYield, ParserConfig},
     shared_types::InitError,
 };
@@ -50,7 +52,7 @@ macro_rules! parser_export {
         // Name intentionally lengthened to avoid conflict with user's own types
         struct InternalPluginParserGuest;
 
-        impl $crate::parser::internal_bindings::exports::chipmunk::plugin::parser::Guest
+        impl $crate::parser::__internal_bindings::exports::chipmunk::plugin::parser::Guest
             for InternalPluginParserGuest
         {
             /// Initialize the parser with the given configurations
@@ -88,13 +90,13 @@ macro_rules! parser_export {
                 // once on the same time on host
                 let parser = unsafe { PARSER.as_mut().expect("parser already initialized") };
                 for item in parser.parse(&data, timestamp) {
-                    $crate::parser::internal_bindings::chipmunk::plugin::host_add::add(
+                    $crate::parser::__internal_bindings::chipmunk::plugin::host_add::add(
                         item.as_ref(),
                     );
                 }
             }
         }
 
-        $crate::parser::internal_bindings::export!(InternalPluginParserGuest);
+        $crate::parser::__internal_bindings::export!(InternalPluginParserGuest);
     };
 }
