@@ -51,6 +51,9 @@ pub trait Parser {
 macro_rules! parser_export {
     ($par:ty) => {
         static mut PARSER: ::std::option::Option<$par> = ::std::option::Option::None;
+        use $crate::__PluginLogger;
+        use $crate::parser::__ParserLogSend;
+        static LOGGER: __PluginLogger<__ParserLogSend> = __PluginLogger::new(__ParserLogSend);
 
         // Name intentionally lengthened to avoid conflict with user's own types
         struct InternalPluginParserGuest;
@@ -63,11 +66,8 @@ macro_rules! parser_export {
                 general_configs: $crate::parser::ParserConfig,
                 plugin_configs: ::std::option::Option<::std::string::String>,
             ) -> ::std::result::Result<(), $crate::parser::InitError> {
-                use $crate::__PluginLogger;
-                use $crate::parser::__ParserLogSend;
-
                 let level = ::log::Level::from(general_configs.log_level);
-                ::log::set_boxed_logger(Box::new(__PluginLogger::new(__ParserLogSend, level)))
+                ::log::set_logger(&LOGGER)
                     .map(|()| log::set_max_level(level.to_level_filter()))
                     .expect("Logger can be set on initialization only");
 
