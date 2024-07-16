@@ -112,8 +112,11 @@ macro_rules! parser_export {
     };
 }
 
-#[cfg(test)]
-mod tests {
+// This module is used for quick feedback while developing the macro by commenting out the cfg
+// attribute. After developing is done the attribute should be put back so this module won't be
+// compiled in all real use cases (bulid or tests);
+#[cfg(while_developing)]
+mod prototyping {
     use super::*;
 
     struct Dummy;
