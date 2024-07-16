@@ -8,3 +8,9 @@ pub mod bytesource;
 #[cfg(feature = "parser")]
 /// Provides types, methods and macros to write plugins that provide parser functionality
 pub mod parser;
+
+mod plugin_logger;
+
+// This is needed to be public because it's used in the export macro
+#[doc(hidden)]
+pub use plugin_logger::{LogSend as __LogSend, PluginLogger as __PluginLogger};
