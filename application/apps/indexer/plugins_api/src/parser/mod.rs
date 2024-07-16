@@ -1,10 +1,14 @@
 use std::path::PathBuf;
 
-pub mod logging;
+mod logging;
 
-// WARNING: this is not part of the crate's public API and is subject to change at any time
+// This is needed to be public because it's used in the export macro
+#[doc(hidden)]
+pub use logging::ParserLogSend as __ParserLogSend;
+
 // Module must be public because the generated types and macros are used within `parser_export!`
 // macro + macros can't be re-exported via pub use
+/// This is not part of the crate's public API and is subject to change at any time
 #[doc(hidden)]
 pub mod __internal_bindings {
     wit_bindgen::generate!({
@@ -46,9 +50,6 @@ pub trait Parser {
 /// TODO AAZ: Macro docs with example
 macro_rules! parser_export {
     ($par:ty) => {
-        // Make sure Parser trait is in scope
-        use $crate::parser::Parser as _ChipmunkDefinedParser;
-
         static mut PARSER: ::std::option::Option<$par> = ::std::option::Option::None;
 
         // Name intentionally lengthened to avoid conflict with user's own types
@@ -62,6 +63,14 @@ macro_rules! parser_export {
                 general_configs: $crate::parser::ParserConfig,
                 plugin_configs: ::std::option::Option<::std::string::String>,
             ) -> ::std::result::Result<(), $crate::parser::InitError> {
+                use $crate::__PluginLogger;
+                use $crate::parser::__ParserLogSend;
+
+                let level = ::log::Level::from(general_configs.log_level);
+                ::log::set_boxed_logger(Box::new(__PluginLogger::new(__ParserLogSend, level)))
+                    .map(|()| log::set_max_level(level.to_level_filter()))
+                    .expect("Logger can be set on initialization only");
+
                 let parser = <$par as $crate::parser::Parser>::create(
                     general_configs,
                     plugin_configs.map(|path| path.into()),
@@ -101,4 +110,33 @@ macro_rules! parser_export {
 
         $crate::parser::__internal_bindings::export!(InternalPluginParserGuest);
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct Dummy;
+
+    impl Parser for Dummy {
+        fn create(
+            _general_configs: ParserConfig,
+            _config_path: Option<PathBuf>,
+        ) -> Result<Self, InitError>
+        where
+            Self: Sized,
+        {
+            todo!()
+        }
+
+        fn parse(
+            &mut self,
+            _data: &[u8],
+            _timestamp: Option<u64>,
+        ) -> impl IntoIterator<Item = Result<ParseReturn, ParseError>> + Send {
+            Vec::new()
+        }
+    }
+
+    parser_export!(Dummy);
 }

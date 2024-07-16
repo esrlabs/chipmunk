@@ -1,9 +1,11 @@
 package chipmunk:plugin@0.1.0;
 
 interface parse-types {
+  use logging.{level};
+
   /// General configurations related to all parsers
   record parser-config {
-    place-holder-config: string,
+    log-level: level,
   }
 
   /// Return item for parsing call
