@@ -2541,6 +2541,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "futures",
+ "log",
  "parsers",
  "serde",
  "sources",
