@@ -15,11 +15,22 @@ wasmtime::component::bindgen!({
     },
 });
 
-impl<'a> From<&'a PluginParserGeneralSetttings> for ParserConfig<'a> {
-    fn from(value: &'a PluginParserGeneralSetttings) -> Self {
-        Self {
-            place_holder_config: &value.placeholder,
-        }
+impl From<&PluginParserGeneralSetttings> for ParserConfig {
+    fn from(_value: &PluginParserGeneralSetttings) -> Self {
+        // We must use the current log level form chipmunk because we are using the same log
+        // functionality to log the message from the plugins.
+        let current_log_level = log::max_level().to_level().unwrap_or(log::Level::Error);
+
+        use chipmunk::plugin::logging::Level as PlugLevel;
+        let level = match current_log_level {
+            log::Level::Error => PlugLevel::Error,
+            log::Level::Warn => PlugLevel::Warn,
+            log::Level::Info => PlugLevel::Info,
+            log::Level::Debug => PlugLevel::Debug,
+            log::Level::Trace => PlugLevel::Trace,
+        };
+
+        Self { log_level: level }
     }
 }
 
