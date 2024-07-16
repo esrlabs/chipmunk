@@ -55,3 +55,74 @@ where
         // we don't need to flush here because we are sending the messages to the host directly.
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{cell::Cell, sync::Mutex};
+
+    use super::*;
+    use log::LevelFilter;
+
+    #[derive(Default)]
+    /// Keeps track if a message has been sent and provide methods to reset the tracker.
+    /// This implementation isn't thread safe.
+    struct TrackSender {
+        sent: Mutex<Cell<bool>>,
+    }
+
+    impl TrackSender {
+        fn reset(&self) {
+            let sent = self.sent.lock().unwrap();
+            sent.set(false);
+        }
+
+        fn is_sent(&self) -> bool {
+            let sent = self.sent.lock().unwrap();
+            sent.get()
+        }
+    }
+
+    impl LogSend for TrackSender {
+        fn send_msg(&self, _level: log::Level, _msg: &str) {
+            // set sent to true and ignore sending the message
+            let sent = self.sent.lock().unwrap();
+            sent.set(true);
+        }
+    }
+
+    static LOGGER: PluginLogger<TrackSender> = PluginLogger::new(TrackSender {
+        sent: Mutex::new(Cell::new(false)),
+    });
+
+    #[test]
+    fn test_plugin_logger() {
+        log::set_logger(&LOGGER).unwrap();
+
+        // Debug Message on Warn Level.
+        log::set_max_level(LevelFilter::Warn);
+        log::debug!("");
+        assert!(
+            !LOGGER.sender.is_sent(),
+            "Debug Message on Warn Level can't be sent"
+        );
+        LOGGER.sender.reset();
+
+        // Warn Message on Debug Level
+        log::set_max_level(LevelFilter::Debug);
+        log::warn!("");
+        assert!(
+            LOGGER.sender.is_sent(),
+            "Warn Message on Debug Level should be sent"
+        );
+        LOGGER.sender.reset();
+
+        // Warn message on Warn Level
+        log::set_max_level(LevelFilter::Warn);
+        log::warn!("");
+        assert!(
+            LOGGER.sender.is_sent(),
+            "Warn Message on Warn Level should be sent"
+        );
+        LOGGER.sender.reset();
+    }
+}
