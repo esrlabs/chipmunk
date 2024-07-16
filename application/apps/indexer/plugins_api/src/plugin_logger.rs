@@ -19,16 +19,14 @@ where
     C: LogSend,
 {
     sender: C,
-    max_level: log::Level,
 }
 
 impl<C> PluginLogger<C>
 where
     C: LogSend,
 {
-    pub fn new(sender: C, max_level: impl Into<log::Level>) -> Self {
-        let max_level = max_level.into();
-        Self { sender, max_level }
+    pub const fn new(sender: C) -> Self {
+        Self { sender }
     }
 }
 
@@ -37,7 +35,7 @@ where
     C: LogSend + Send + Sync,
 {
     fn enabled(&self, metadata: &Metadata) -> bool {
-        metadata.level() <= self.max_level
+        metadata.level() <= log::max_level().to_level().unwrap_or(log::Level::Error)
     }
 
     fn log(&self, record: &Record) {
