@@ -66,9 +66,9 @@ macro_rules! parser_export {
                 general_configs: $crate::parser::ParserConfig,
                 plugin_configs: ::std::option::Option<::std::string::String>,
             ) -> ::std::result::Result<(), $crate::parser::InitError> {
-                let level = ::log::Level::from(general_configs.log_level);
-                ::log::set_logger(&LOGGER)
-                    .map(|()| log::set_max_level(level.to_level_filter()))
+                let level = $crate::log::Level::from(general_configs.log_level);
+                $crate::log::set_logger(&LOGGER)
+                    .map(|()| $crate::log::set_max_level(level.to_level_filter()))
                     .expect("Logger can be set on initialization only");
 
                 let parser = <$par as $crate::parser::Parser>::create(
