@@ -9,8 +9,10 @@ pub mod bytesource;
 /// Provides types, methods and macros to write plugins that provide parser functionality
 pub mod parser;
 
-mod plugin_logger;
+// `log` crate must be reexported because we use it withing our macros
+pub use log;
 
+mod plugin_logger;
 // This is needed to be public because it's used in the export macro
 #[doc(hidden)]
 pub use plugin_logger::{LogSend as __LogSend, PluginLogger as __PluginLogger};
