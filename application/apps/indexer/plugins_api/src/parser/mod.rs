@@ -1,3 +1,6 @@
+//! Provides types, methods and macros to write plugins that provide parser functionality.
+//!
+
 use std::path::PathBuf;
 
 mod logging;
@@ -8,6 +11,7 @@ pub use logging::ParserLogSend as __ParserLogSend;
 
 // Module must be public because the generated types and macros are used within `parser_export!`
 // macro + macros can't be re-exported via pub use
+/// Generated types from parser world in WIT file by the macro [`wit_bindgen::generate`]
 /// This is not part of the crate's public API and is subject to change at any time
 #[doc(hidden)]
 pub mod __internal_bindings {
@@ -50,7 +54,11 @@ pub trait Parser {
 /// TODO AAZ: Macro docs with example
 macro_rules! parser_export {
     ($par:ty) => {
+        // Define parser instant as static field to make it reachable from
+        // within parser function
         static mut PARSER: ::std::option::Option<$par> = ::std::option::Option::None;
+
+        // Define logger as static field to use it with macro initialization
         use $crate::__PluginLogger;
         use $crate::parser::__ParserLogSend;
         static LOGGER: __PluginLogger<__ParserLogSend> = __PluginLogger::new(__ParserLogSend);
@@ -66,11 +74,13 @@ macro_rules! parser_export {
                 general_configs: $crate::parser::ParserConfig,
                 plugin_configs: ::std::option::Option<::std::string::String>,
             ) -> ::std::result::Result<(), $crate::parser::InitError> {
+                // Logger initialization
                 let level = $crate::log::Level::from(general_configs.log_level);
                 $crate::log::set_logger(&LOGGER)
                     .map(|()| $crate::log::set_max_level(level.to_level_filter()))
                     .expect("Logger can be set on initialization only");
 
+                // Initializing the given parser
                 let parser = <$par as $crate::parser::Parser>::create(
                     general_configs,
                     plugin_configs.map(|path| path.into()),
@@ -79,6 +89,7 @@ macro_rules! parser_export {
                 unsafe {
                     PARSER = ::std::option::Option::Some(parser);
                 }
+
                 Ok(())
             }
 
@@ -108,13 +119,14 @@ macro_rules! parser_export {
             }
         }
 
+        // Call the generated export macro from wit-bindgen
         $crate::parser::__internal_bindings::export!(InternalPluginParserGuest);
     };
 }
 
 // This module is used for quick feedback while developing the macro by commenting out the cfg
 // attribute. After developing is done the attribute should be put back so this module won't be
-// compiled in all real use cases (bulid or tests);
+// compiled in all real use cases (build or tests);
 #[cfg(while_developing)]
 mod prototyping {
     use super::*;

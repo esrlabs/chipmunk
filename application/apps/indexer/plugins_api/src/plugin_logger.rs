@@ -1,3 +1,5 @@
+//! Internal Logger implementation to be used in the crate internally only.
+
 use log::{Log, Metadata, Record};
 
 /// Provides methods to send logs to the WASM host.
@@ -5,6 +7,11 @@ use log::{Log, Metadata, Record};
 /// This trait is made to be used internally only and it is not part of the crate's public API
 /// and is subject to change at any time.
 pub trait LogSend {
+    /// Sends the given log with its level to the host. This method should do any checks if the log
+    /// level is allowed or not.
+    ///
+    /// * `level`: log level of the message
+    /// * `msg`: message text
     fn send_msg(&self, level: log::Level, msg: &str);
 }
 
@@ -19,15 +26,6 @@ where
     C: LogSend,
 {
     sender: C,
-}
-
-impl<C> PluginLogger<C>
-where
-    C: LogSend,
-{
-    pub const fn new(sender: C) -> Self {
-        Self { sender }
-    }
 }
 
 impl<C> Log for PluginLogger<C>
@@ -90,9 +88,11 @@ mod tests {
         }
     }
 
-    static LOGGER: PluginLogger<TrackSender> = PluginLogger::new(TrackSender {
-        sent: Mutex::new(Cell::new(false)),
-    });
+    static LOGGER: PluginLogger<TrackSender> = PluginLogger {
+        sender: TrackSender {
+            sent: Mutex::new(Cell::new(false)),
+        },
+    };
 
     #[test]
     fn test_plugin_logger() {

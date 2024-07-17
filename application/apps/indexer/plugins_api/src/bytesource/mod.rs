@@ -1,3 +1,6 @@
+//! Provides types, methods and macros to write plugins that provide byte source functionality
+//!
+
 // TODO: Temporally place holder
 #![allow(dead_code, unused_imports, unused)]
 
