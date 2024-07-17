@@ -21,5 +21,12 @@ bytesource = []
 name = "parser"
 required-features = ["parser"]
 
+[package.metadata.docs.rs]
+# Activate all features when generating the code on docs.rs
+all-features = true
+# Activate the banner on docs explaining that the items is only available 
+# with specific feature 
+rustdoc-args = ["--cfg", "docsrs"]
+
 [package.metadata.component]
 target = { path = "wit" }
