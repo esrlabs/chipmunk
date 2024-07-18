@@ -25,7 +25,7 @@ pub struct PluginLogger<C>
 where
     C: LogSend,
 {
-    sender: C,
+    pub sender: C,
 }
 
 impl<C> Log for PluginLogger<C>

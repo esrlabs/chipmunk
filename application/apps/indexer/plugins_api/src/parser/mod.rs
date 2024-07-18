@@ -58,7 +58,9 @@ pub trait Parser {
 /// # Examples
 ///
 /// ```
-/// # use crate::parser::*;
+/// # use plugins_api::parser::*;
+/// # use plugins_api::*;
+/// # use std::path::PathBuf;
 ///
 /// struct CustomParser;
 ///
@@ -95,7 +97,9 @@ macro_rules! parser_export {
         // Define logger as static field to use it with macro initialization
         use $crate::__PluginLogger;
         use $crate::parser::__ParserLogSend;
-        static LOGGER: __PluginLogger<__ParserLogSend> = __PluginLogger::new(__ParserLogSend);
+        static LOGGER: __PluginLogger<__ParserLogSend> = __PluginLogger {
+            sender: __ParserLogSend,
+        };
 
         // Name intentionally lengthened to avoid conflict with user's own types
         struct InternalPluginParserGuest;
