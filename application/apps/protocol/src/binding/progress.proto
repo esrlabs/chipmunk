@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package progress;
+
+message Ticks {
+  uint64 count = 1;
+  string state = 2;
+  uint64 total = 3;
+}
+
+message LifecycleTransition {
+  oneof transition {
+    Started started = 1;
+    TicksWithUuid ticks = 2;
+    Stopped stopped = 3;
+  }
+}
+
+message Started {
+  string uuid = 1;
+  string alias = 2;
+}
+
+message TicksWithUuid {
+  string uuid = 1;
+  Ticks ticks = 2;
+}
+
+message Stopped { string uuid = 1; }
