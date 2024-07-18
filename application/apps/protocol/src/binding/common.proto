@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package common;
+
+message Range {
+  uint64 start = 1;
+  uint64 end = 2;
+}
+
+message RangeInclusive {
+  uint64 start = 1;
+  uint64 end = 2;
+}
+
+message RangeInclusiveList { repeated RangeInclusive elements = 1; }

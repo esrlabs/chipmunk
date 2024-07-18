@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package commands;
+
+message Output {
+  oneof output {
+    string stringValue = 1;
+    StringVec stringVecValue = 2;
+    string optionStringValue = 3;
+    bool boolValue = 4;
+    int64 int64Value = 5;
+    Empty emptyValue = 6;
+  }
+
+  message StringVec { repeated string values = 1; }
+
+  message Empty {}
+}
+
+message CommandOutcome {
+  oneof outcome {
+    Finished finished = 1;
+    Cancelled cancelled = 2;
+  }
+
+  message Finished { Output result = 1; }
+
+  message Cancelled {}
+}
