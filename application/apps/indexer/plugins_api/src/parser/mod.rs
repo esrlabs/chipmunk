@@ -51,7 +51,41 @@ pub trait Parser {
 }
 
 #[macro_export]
-/// TODO AAZ: Macro docs with example
+/// Registers the provided type as parser plugin to use within Chipmunk
+///
+/// The type must implement the [`Parser`] trait.
+///
+/// # Examples
+///
+/// ```
+/// # use crate::parser::*;
+///
+/// struct CustomParser;
+///
+/// impl Parser for CustomParser {
+///   // ... //
+///  #    fn create(
+///  #        _general_configs: ParserConfig,
+///  #        _config_path: Option<PathBuf>,
+///  #    ) -> Result<Self, InitError>
+///  #    where
+///  #        Self: Sized,
+///  #    {
+///  #        Ok(Self)
+///  #    }
+///  #
+///  #    fn parse(
+///  #        &mut self,
+///  #        _data: &[u8],
+///  #        _timestamp: Option<u64>,
+///  #    ) -> impl IntoIterator<Item = Result<ParseReturn, ParseError>> + Send {
+///  #        Vec::new()
+///  #    }
+/// }
+///
+/// parser_export!(CustomParser);
+/// ```
+
 macro_rules! parser_export {
     ($par:ty) => {
         // Define parser instant as static field to make it reachable from
