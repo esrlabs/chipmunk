@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package sde;
+
+message SdeRequest {
+  oneof request {
+    string write_text = 1;
+    bytes write_bytes = 2;
+  }
+}
+
+message SdeResponse { uint64 bytes = 1; }

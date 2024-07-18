@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package error;
+
+import "common.proto";
+
+message GrabError {
+  oneof error {
+    Config config = 1;
+    Communication communication = 2;
+    IoOperation io_operation = 3;
+    InvalidRange invalid_range = 4;
+    Interrupted interrupted = 5;
+    NotInitialize not_initialize = 6;
+    Unsupported unsupported = 7;
+  }
+
+  message Config { string message = 1; }
+
+  message Communication { string message = 1; }
+
+  message IoOperation { string message = 1; }
+
+  message InvalidRange {
+    common.RangeInclusive range = 1;
+    string context = 2;
+  }
+
+  message Interrupted {}
+
+  message NotInitialize {}
+
+  message Unsupported { string message = 1; }
+}
+
+message SearchError {
+  oneof error {
+    Config config = 1;
+    Communication communication = 2;
+    IoOperation io_operation = 3;
+    Regex regex = 4;
+    Input input = 5;
+    Grab grab = 6;
+    Aborted aborted = 7;
+  }
+
+  message Config { string message = 1; }
+
+  message Communication { string message = 1; }
+
+  message IoOperation { string message = 1; }
+
+  message Regex { string message = 1; }
+
+  message Input { string message = 1; }
+
+  message Grab { GrabError error = 1; }
+
+  message Aborted { string message = 1; }
+}
+
+enum NativeErrorKind {
+  FileNotFound = 0;
+  UnsupportedFileType = 1;
+  ComputationFailed = 2;
+  Configuration = 3;
+  Interrupted = 4;
+  OperationSearch = 5;
+  NotYetImplemented = 6;
+  ChannelError = 7;
+  Io = 8;
+  Grabber = 9;
+}
+
+message NativeError {
+  Severity severity = 1;
+  NativeErrorKind kind = 2;
+  string message = 3;
+}
+
+enum Severity {
+  WARNING = 0;
+  ERROR = 1;
+}
+
+message ComputationError {
+  oneof error {
+    DestinationPath destination_path = 1;
+    SessionCreatingFail session_creating_fail = 2;
+    Communication communication = 3;
+    OperationNotSupported operation_not_supported = 4;
+    IoOperation io_operation = 5;
+    InvalidData invalid_data = 6;
+    InvalidArgs invalid_args = 7;
+    Process process = 8;
+    Protocol protocol = 9;
+    SearchError search_error = 10;
+    MultipleInitCall multiple_init_call = 11;
+    SessionUnavailable session_unavailable = 12;
+    NativeError native_error = 13;
+    Grabbing grabbing = 14;
+    Sde sde = 15;
+  }
+
+  message DestinationPath {}
+
+  message SessionCreatingFail {}
+
+  message Communication { string message = 1; }
+
+  message OperationNotSupported { string message = 1; }
+
+  message IoOperation { string message = 1; }
+
+  message InvalidData {}
+
+  message InvalidArgs { string message = 1; }
+
+  message Process { string message = 1; }
+
+  message Protocol { string message = 1; }
+
+  message MultipleInitCall {}
+
+  message SessionUnavailable {}
+
+  message Grabbing { GrabError error = 1; }
+
+  message Sde { string message = 1; }
+}
