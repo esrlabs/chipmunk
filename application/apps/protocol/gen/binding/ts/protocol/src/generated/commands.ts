@@ -3,78 +3,96 @@
  * compiler version: 5.27.2
  * source: commands.proto
  * git: https://github.com/thesayyn/protoc-gen-ts */
-import * as pb_1 from "google-protobuf";
+import * as pb_1 from 'google-protobuf';
 export namespace commands {
     export class Output extends pb_1.Message {
         #one_of_decls: number[][] = [[1, 2, 3, 4, 5, 6]];
-        constructor(data?: any[] | ({} & (({
-            stringValue?: string;
-            stringVecValue?: never;
-            optionStringValue?: never;
-            boolValue?: never;
-            int64Value?: never;
-            emptyValue?: never;
-        } | {
-            stringValue?: never;
-            stringVecValue?: Output.StringVec;
-            optionStringValue?: never;
-            boolValue?: never;
-            int64Value?: never;
-            emptyValue?: never;
-        } | {
-            stringValue?: never;
-            stringVecValue?: never;
-            optionStringValue?: string;
-            boolValue?: never;
-            int64Value?: never;
-            emptyValue?: never;
-        } | {
-            stringValue?: never;
-            stringVecValue?: never;
-            optionStringValue?: never;
-            boolValue?: boolean;
-            int64Value?: never;
-            emptyValue?: never;
-        } | {
-            stringValue?: never;
-            stringVecValue?: never;
-            optionStringValue?: never;
-            boolValue?: never;
-            int64Value?: number;
-            emptyValue?: never;
-        } | {
-            stringValue?: never;
-            stringVecValue?: never;
-            optionStringValue?: never;
-            boolValue?: never;
-            int64Value?: never;
-            emptyValue?: Output.Empty;
-        })))) {
+        constructor(
+            data?:
+                | any[]
+                | ({} & (
+                      | {
+                            stringValue?: string;
+                            stringVecValue?: never;
+                            optionStringValue?: never;
+                            boolValue?: never;
+                            int64Value?: never;
+                            emptyValue?: never;
+                        }
+                      | {
+                            stringValue?: never;
+                            stringVecValue?: Output.StringVec;
+                            optionStringValue?: never;
+                            boolValue?: never;
+                            int64Value?: never;
+                            emptyValue?: never;
+                        }
+                      | {
+                            stringValue?: never;
+                            stringVecValue?: never;
+                            optionStringValue?: string;
+                            boolValue?: never;
+                            int64Value?: never;
+                            emptyValue?: never;
+                        }
+                      | {
+                            stringValue?: never;
+                            stringVecValue?: never;
+                            optionStringValue?: never;
+                            boolValue?: boolean;
+                            int64Value?: never;
+                            emptyValue?: never;
+                        }
+                      | {
+                            stringValue?: never;
+                            stringVecValue?: never;
+                            optionStringValue?: never;
+                            boolValue?: never;
+                            int64Value?: number;
+                            emptyValue?: never;
+                        }
+                      | {
+                            stringValue?: never;
+                            stringVecValue?: never;
+                            optionStringValue?: never;
+                            boolValue?: never;
+                            int64Value?: never;
+                            emptyValue?: Output.Empty;
+                        }
+                  )),
+        ) {
             super();
-            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-            if (!Array.isArray(data) && typeof data == "object") {
-                if ("stringValue" in data && data.stringValue != undefined) {
+            pb_1.Message.initialize(
+                this,
+                Array.isArray(data) ? data : [],
+                0,
+                -1,
+                [],
+                this.#one_of_decls,
+            );
+            if (!Array.isArray(data) && typeof data == 'object') {
+                if ('stringValue' in data && data.stringValue != undefined) {
                     this.stringValue = data.stringValue;
                 }
-                if ("stringVecValue" in data && data.stringVecValue != undefined) {
+                if ('stringVecValue' in data && data.stringVecValue != undefined) {
                     this.stringVecValue = data.stringVecValue;
                 }
-                if ("optionStringValue" in data && data.optionStringValue != undefined) {
+                if ('optionStringValue' in data && data.optionStringValue != undefined) {
                     this.optionStringValue = data.optionStringValue;
                 }
-                if ("boolValue" in data && data.boolValue != undefined) {
+                if ('boolValue' in data && data.boolValue != undefined) {
                     this.boolValue = data.boolValue;
                 }
-                if ("int64Value" in data && data.int64Value != undefined) {
+                if ('int64Value' in data && data.int64Value != undefined) {
                     this.int64Value = data.int64Value;
                 }
-                if ("emptyValue" in data && data.emptyValue != undefined) {
+                if ('emptyValue' in data && data.emptyValue != undefined) {
                     this.emptyValue = data.emptyValue;
                 }
             }
         }
         get stringValue() {
-            return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+            return pb_1.Message.getFieldWithDefault(this, 1, '') as string;
         }
         set stringValue(value: string) {
             pb_1.Message.setOneofField(this, 1, this.#one_of_decls[0], value);
@@ -92,7 +110,7 @@ export namespace commands {
             return pb_1.Message.getField(this, 2) != null;
         }
         get optionStringValue() {
-            return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
+            return pb_1.Message.getFieldWithDefault(this, 3, '') as string;
         }
         set optionStringValue(value: string) {
             pb_1.Message.setOneofField(this, 3, this.#one_of_decls[0], value);
@@ -129,15 +147,22 @@ export namespace commands {
         }
         get output() {
             const cases: {
-                [index: number]: "none" | "stringValue" | "stringVecValue" | "optionStringValue" | "boolValue" | "int64Value" | "emptyValue";
+                [index: number]:
+                    | 'none'
+                    | 'stringValue'
+                    | 'stringVecValue'
+                    | 'optionStringValue'
+                    | 'boolValue'
+                    | 'int64Value'
+                    | 'emptyValue';
             } = {
-                0: "none",
-                1: "stringValue",
-                2: "stringVecValue",
-                3: "optionStringValue",
-                4: "boolValue",
-                5: "int64Value",
-                6: "emptyValue"
+                0: 'none',
+                1: 'stringValue',
+                2: 'stringVecValue',
+                3: 'optionStringValue',
+                4: 'boolValue',
+                5: 'int64Value',
+                6: 'emptyValue',
             };
             return cases[pb_1.Message.computeOneofCase(this, [1, 2, 3, 4, 5, 6])];
         }
@@ -203,32 +228,33 @@ export namespace commands {
         serialize(w: pb_1.BinaryWriter): void;
         serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
             const writer = w || new pb_1.BinaryWriter();
-            if (this.has_stringValue)
-                writer.writeString(1, this.stringValue);
+            if (this.has_stringValue) writer.writeString(1, this.stringValue);
             if (this.has_stringVecValue)
-                writer.writeMessage(2, this.stringVecValue, () => this.stringVecValue.serialize(writer));
-            if (this.has_optionStringValue)
-                writer.writeString(3, this.optionStringValue);
-            if (this.has_boolValue)
-                writer.writeBool(4, this.boolValue);
-            if (this.has_int64Value)
-                writer.writeInt64(5, this.int64Value);
+                writer.writeMessage(2, this.stringVecValue, () =>
+                    this.stringVecValue.serialize(writer),
+                );
+            if (this.has_optionStringValue) writer.writeString(3, this.optionStringValue);
+            if (this.has_boolValue) writer.writeBool(4, this.boolValue);
+            if (this.has_int64Value) writer.writeInt64(5, this.int64Value);
             if (this.has_emptyValue)
                 writer.writeMessage(6, this.emptyValue, () => this.emptyValue.serialize(writer));
-            if (!w)
-                return writer.getResultBuffer();
+            if (!w) return writer.getResultBuffer();
         }
         static deserialize(bytes: Uint8Array | pb_1.BinaryReader): Output {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new Output();
+            const reader =
+                    bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes),
+                message = new Output();
             while (reader.nextField()) {
-                if (reader.isEndGroup())
-                    break;
+                if (reader.isEndGroup()) break;
                 switch (reader.getFieldNumber()) {
                     case 1:
                         message.stringValue = reader.readString();
                         break;
                     case 2:
-                        reader.readMessage(message.stringVecValue, () => message.stringVecValue = Output.StringVec.deserialize(reader));
+                        reader.readMessage(
+                            message.stringVecValue,
+                            () => (message.stringVecValue = Output.StringVec.deserialize(reader)),
+                        );
                         break;
                     case 3:
                         message.optionStringValue = reader.readString();
@@ -240,9 +266,13 @@ export namespace commands {
                         message.int64Value = reader.readInt64();
                         break;
                     case 6:
-                        reader.readMessage(message.emptyValue, () => message.emptyValue = Output.Empty.deserialize(reader));
+                        reader.readMessage(
+                            message.emptyValue,
+                            () => (message.emptyValue = Output.Empty.deserialize(reader)),
+                        );
                         break;
-                    default: reader.skipField();
+                    default:
+                        reader.skipField();
                 }
             }
             return message;
@@ -257,13 +287,24 @@ export namespace commands {
     export namespace Output {
         export class StringVec extends pb_1.Message {
             #one_of_decls: number[][] = [];
-            constructor(data?: any[] | {
-                values?: string[];
-            }) {
+            constructor(
+                data?:
+                    | any[]
+                    | {
+                          values?: string[];
+                      },
+            ) {
                 super();
-                pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [1], this.#one_of_decls);
-                if (!Array.isArray(data) && typeof data == "object") {
-                    if ("values" in data && data.values != undefined) {
+                pb_1.Message.initialize(
+                    this,
+                    Array.isArray(data) ? data : [],
+                    0,
+                    -1,
+                    [1],
+                    this.#one_of_decls,
+                );
+                if (!Array.isArray(data) && typeof data == 'object') {
+                    if ('values' in data && data.values != undefined) {
                         this.values = data.values;
                     }
                 }
@@ -274,9 +315,7 @@ export namespace commands {
             set values(value: string[]) {
                 pb_1.Message.setField(this, 1, value);
             }
-            static fromObject(data: {
-                values?: string[];
-            }): StringVec {
+            static fromObject(data: { values?: string[] }): StringVec {
                 const message = new StringVec({});
                 if (data.values != null) {
                     message.values = data.values;
@@ -296,21 +335,21 @@ export namespace commands {
             serialize(w: pb_1.BinaryWriter): void;
             serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
                 const writer = w || new pb_1.BinaryWriter();
-                if (this.values.length)
-                    writer.writeRepeatedString(1, this.values);
-                if (!w)
-                    return writer.getResultBuffer();
+                if (this.values.length) writer.writeRepeatedString(1, this.values);
+                if (!w) return writer.getResultBuffer();
             }
             static deserialize(bytes: Uint8Array | pb_1.BinaryReader): StringVec {
-                const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new StringVec();
+                const reader =
+                        bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes),
+                    message = new StringVec();
                 while (reader.nextField()) {
-                    if (reader.isEndGroup())
-                        break;
+                    if (reader.isEndGroup()) break;
                     switch (reader.getFieldNumber()) {
                         case 1:
                             pb_1.Message.addToRepeatedField(message, 1, reader.readString());
                             break;
-                        default: reader.skipField();
+                        default:
+                            reader.skipField();
                     }
                 }
                 return message;
@@ -326,8 +365,16 @@ export namespace commands {
             #one_of_decls: number[][] = [];
             constructor(data?: any[] | {}) {
                 super();
-                pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-                if (!Array.isArray(data) && typeof data == "object") { }
+                pb_1.Message.initialize(
+                    this,
+                    Array.isArray(data) ? data : [],
+                    0,
+                    -1,
+                    [],
+                    this.#one_of_decls,
+                );
+                if (!Array.isArray(data) && typeof data == 'object') {
+                }
             }
             static fromObject(data: {}): Empty {
                 const message = new Empty({});
@@ -341,16 +388,17 @@ export namespace commands {
             serialize(w: pb_1.BinaryWriter): void;
             serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
                 const writer = w || new pb_1.BinaryWriter();
-                if (!w)
-                    return writer.getResultBuffer();
+                if (!w) return writer.getResultBuffer();
             }
             static deserialize(bytes: Uint8Array | pb_1.BinaryReader): Empty {
-                const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new Empty();
+                const reader =
+                        bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes),
+                    message = new Empty();
                 while (reader.nextField()) {
-                    if (reader.isEndGroup())
-                        break;
+                    if (reader.isEndGroup()) break;
                     switch (reader.getFieldNumber()) {
-                        default: reader.skipField();
+                        default:
+                            reader.skipField();
                     }
                 }
                 return message;
@@ -365,26 +413,44 @@ export namespace commands {
     }
     export class CommandOutcome extends pb_1.Message {
         #one_of_decls: number[][] = [[1, 2]];
-        constructor(data?: any[] | ({} & (({
-            finished?: CommandOutcome.Finished;
-            cancelled?: never;
-        } | {
-            finished?: never;
-            cancelled?: CommandOutcome.Cancelled;
-        })))) {
+        constructor(
+            data?:
+                | any[]
+                | ({} & (
+                      | {
+                            finished?: CommandOutcome.Finished;
+                            cancelled?: never;
+                        }
+                      | {
+                            finished?: never;
+                            cancelled?: CommandOutcome.Cancelled;
+                        }
+                  )),
+        ) {
             super();
-            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-            if (!Array.isArray(data) && typeof data == "object") {
-                if ("finished" in data && data.finished != undefined) {
+            pb_1.Message.initialize(
+                this,
+                Array.isArray(data) ? data : [],
+                0,
+                -1,
+                [],
+                this.#one_of_decls,
+            );
+            if (!Array.isArray(data) && typeof data == 'object') {
+                if ('finished' in data && data.finished != undefined) {
                     this.finished = data.finished;
                 }
-                if ("cancelled" in data && data.cancelled != undefined) {
+                if ('cancelled' in data && data.cancelled != undefined) {
                     this.cancelled = data.cancelled;
                 }
             }
         }
         get finished() {
-            return pb_1.Message.getWrapperField(this, CommandOutcome.Finished, 1) as CommandOutcome.Finished;
+            return pb_1.Message.getWrapperField(
+                this,
+                CommandOutcome.Finished,
+                1,
+            ) as CommandOutcome.Finished;
         }
         set finished(value: CommandOutcome.Finished) {
             pb_1.Message.setOneofWrapperField(this, 1, this.#one_of_decls[0], value);
@@ -393,7 +459,11 @@ export namespace commands {
             return pb_1.Message.getField(this, 1) != null;
         }
         get cancelled() {
-            return pb_1.Message.getWrapperField(this, CommandOutcome.Cancelled, 2) as CommandOutcome.Cancelled;
+            return pb_1.Message.getWrapperField(
+                this,
+                CommandOutcome.Cancelled,
+                2,
+            ) as CommandOutcome.Cancelled;
         }
         set cancelled(value: CommandOutcome.Cancelled) {
             pb_1.Message.setOneofWrapperField(this, 2, this.#one_of_decls[0], value);
@@ -403,11 +473,11 @@ export namespace commands {
         }
         get outcome() {
             const cases: {
-                [index: number]: "none" | "finished" | "cancelled";
+                [index: number]: 'none' | 'finished' | 'cancelled';
             } = {
-                0: "none",
-                1: "finished",
-                2: "cancelled"
+                0: 'none',
+                1: 'finished',
+                2: 'cancelled',
             };
             return cases[pb_1.Message.computeOneofCase(this, [1, 2])];
         }
@@ -445,22 +515,30 @@ export namespace commands {
                 writer.writeMessage(1, this.finished, () => this.finished.serialize(writer));
             if (this.has_cancelled)
                 writer.writeMessage(2, this.cancelled, () => this.cancelled.serialize(writer));
-            if (!w)
-                return writer.getResultBuffer();
+            if (!w) return writer.getResultBuffer();
         }
         static deserialize(bytes: Uint8Array | pb_1.BinaryReader): CommandOutcome {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new CommandOutcome();
+            const reader =
+                    bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes),
+                message = new CommandOutcome();
             while (reader.nextField()) {
-                if (reader.isEndGroup())
-                    break;
+                if (reader.isEndGroup()) break;
                 switch (reader.getFieldNumber()) {
                     case 1:
-                        reader.readMessage(message.finished, () => message.finished = CommandOutcome.Finished.deserialize(reader));
+                        reader.readMessage(
+                            message.finished,
+                            () => (message.finished = CommandOutcome.Finished.deserialize(reader)),
+                        );
                         break;
                     case 2:
-                        reader.readMessage(message.cancelled, () => message.cancelled = CommandOutcome.Cancelled.deserialize(reader));
+                        reader.readMessage(
+                            message.cancelled,
+                            () =>
+                                (message.cancelled = CommandOutcome.Cancelled.deserialize(reader)),
+                        );
                         break;
-                    default: reader.skipField();
+                    default:
+                        reader.skipField();
                 }
             }
             return message;
@@ -475,13 +553,24 @@ export namespace commands {
     export namespace CommandOutcome {
         export class Finished extends pb_1.Message {
             #one_of_decls: number[][] = [];
-            constructor(data?: any[] | {
-                result?: Output;
-            }) {
+            constructor(
+                data?:
+                    | any[]
+                    | {
+                          result?: Output;
+                      },
+            ) {
                 super();
-                pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-                if (!Array.isArray(data) && typeof data == "object") {
-                    if ("result" in data && data.result != undefined) {
+                pb_1.Message.initialize(
+                    this,
+                    Array.isArray(data) ? data : [],
+                    0,
+                    -1,
+                    [],
+                    this.#one_of_decls,
+                );
+                if (!Array.isArray(data) && typeof data == 'object') {
+                    if ('result' in data && data.result != undefined) {
                         this.result = data.result;
                     }
                 }
@@ -519,19 +608,23 @@ export namespace commands {
                 const writer = w || new pb_1.BinaryWriter();
                 if (this.has_result)
                     writer.writeMessage(1, this.result, () => this.result.serialize(writer));
-                if (!w)
-                    return writer.getResultBuffer();
+                if (!w) return writer.getResultBuffer();
             }
             static deserialize(bytes: Uint8Array | pb_1.BinaryReader): Finished {
-                const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new Finished();
+                const reader =
+                        bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes),
+                    message = new Finished();
                 while (reader.nextField()) {
-                    if (reader.isEndGroup())
-                        break;
+                    if (reader.isEndGroup()) break;
                     switch (reader.getFieldNumber()) {
                         case 1:
-                            reader.readMessage(message.result, () => message.result = Output.deserialize(reader));
+                            reader.readMessage(
+                                message.result,
+                                () => (message.result = Output.deserialize(reader)),
+                            );
                             break;
-                        default: reader.skipField();
+                        default:
+                            reader.skipField();
                     }
                 }
                 return message;
@@ -547,8 +640,16 @@ export namespace commands {
             #one_of_decls: number[][] = [];
             constructor(data?: any[] | {}) {
                 super();
-                pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
-                if (!Array.isArray(data) && typeof data == "object") { }
+                pb_1.Message.initialize(
+                    this,
+                    Array.isArray(data) ? data : [],
+                    0,
+                    -1,
+                    [],
+                    this.#one_of_decls,
+                );
+                if (!Array.isArray(data) && typeof data == 'object') {
+                }
             }
             static fromObject(data: {}): Cancelled {
                 const message = new Cancelled({});
@@ -562,16 +663,17 @@ export namespace commands {
             serialize(w: pb_1.BinaryWriter): void;
             serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
                 const writer = w || new pb_1.BinaryWriter();
-                if (!w)
-                    return writer.getResultBuffer();
+                if (!w) return writer.getResultBuffer();
             }
             static deserialize(bytes: Uint8Array | pb_1.BinaryReader): Cancelled {
-                const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new Cancelled();
+                const reader =
+                        bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes),
+                    message = new Cancelled();
                 while (reader.nextField()) {
-                    if (reader.isEndGroup())
-                        break;
+                    if (reader.isEndGroup()) break;
                     switch (reader.getFieldNumber()) {
-                        default: reader.skipField();
+                        default:
+                            reader.skipField();
                     }
                 }
                 return message;

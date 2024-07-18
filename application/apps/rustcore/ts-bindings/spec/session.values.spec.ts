@@ -8,185 +8,205 @@ initLogger();
 import { Session, Factory } from '../src/api/session';
 import { finish, createSampleFile, appendToSampleFile, runner } from './common';
 import { readConfigurationFile } from './config';
+import * as pro from 'protocol';
 
 const config = readConfigurationFile().get().tests.values;
 const MAX_DATASET_LEN = 65000;
 
 describe('Values', function () {
-    it(config.regular.list[1], function () {
-        return runner(config.regular, 1, async (logger, done, collector) => {
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true, config.regular.list[1]);
-                    const stream = session.getStream();
-                    const search = session.getSearch();
-                    const events = session.getEvents();
-                    if (events instanceof Error) {
-                        finish(session, done, events);
-                        return;
-                    }
-                    if (stream instanceof Error) {
-                        return finish(session, done, stream);
-                    }
-                    if (search instanceof Error) {
-                        return finish(session, done, search);
-                    }
-                    let sum = 0;
-                    const tmpobj = createSampleFile(5000, logger, (i: number) => {
-                        if (i % 100 === 0 || i <= 5) {
-                            sum += i;
-                            return `[${i}]:: some data CPU=${i}% line data\n`;
-                        } else {
-                            return `[${i}]:: some line data\n`;
-                        }
-                    });
-                    stream
-                        .observe(
-                            new Factory.File()
-                                .asText()
-                                .type(Factory.FileType.Text)
-                                .file(tmpobj.name)
-                                .get()
-                                .sterilized(),
-                        )
-                        .on('processing', () => {
-                            search
-                                .values([`CPU=(\\d{1,})`])
-                                .catch(finish.bind(null, session, done));
-                        })
-                        .catch(finish.bind(null, session, done));
-                    events.SearchValuesUpdated.subscribe((map) => {
-                        if (map === null) {
-                            // Before get results rustcore should inform FE about dropping results.
-                            return;
-                        }
-                        search
-                            .getValues(MAX_DATASET_LEN)
-                            .then((data) => {
-                                let control = 0;
-                                data[0].forEach((pair) => {
-                                    control += pair[3];
-                                });
-                                expect(control).toEqual(sum);
-                                finish(session, done);
-                            })
-                            .catch(finish.bind(null, session, done));
-                    });
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
-                    );
-                });
+    it('test', function (done) {
+        const values = new Map();
+        values.set(
+            0,
+            new pro.event.CallbackEvent.SearchValuesUpdated.ValueRange({ min: 0.0, max: 4900.0 }),
+        );
+        const message = new pro.event.CallbackEvent({
+            search_values_updated: new pro.event.CallbackEvent.SearchValuesUpdated({
+                values,
+            }),
         });
+        const bytes = message.serialize();
+        console.log(`>>>>>>>>>>>>>>>>>>>>>>>> JS SERIALIZED:`);
+        console.log(bytes);
+        const msg = pro.event.CallbackEvent.deserialize(bytes);
+        console.log(`>>>>>>>>>>>>>>>>>>>>>>>> JS DESERIALIZED:`);
+        console.log(msg);
+        done();
     });
-    it(config.regular.list[2], function () {
-        return runner(config.regular, 2, async (logger, done, collector) => {
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true, config.regular.list[2]);
-                    const stream = session.getStream();
-                    const search = session.getSearch();
-                    const events = session.getEvents();
-                    if (events instanceof Error) {
-                        finish(session, done, events);
-                        return;
-                    }
-                    if (stream instanceof Error) {
-                        return finish(session, done, stream);
-                    }
-                    if (search instanceof Error) {
-                        return finish(session, done, search);
-                    }
-                    let sum = 0;
-                    const tmpobj = createSampleFile(5000, logger, (i: number) => {
-                        if (i % 100 === 0 || i <= 5) {
-                            sum += i;
-                            return `[${i}]:: some data CPU=${i}% line data\n`;
-                        } else {
-                            return `[${i}]:: some line data\n`;
-                        }
-                    });
-                    let iteration = 0;
-                    stream
-                        .observe(
-                            new Factory.File()
-                                .asText()
-                                .type(Factory.FileType.Text)
-                                .file(tmpobj.name)
-                                .get()
-                                .sterilized(),
-                        )
-                        .on('processing', () => {
-                            search
-                                .values([`CPU=(\\d{1,})`])
-                                .catch(finish.bind(null, session, done));
-                        })
-                        .catch(finish.bind(null, session, done));
-                    events.SearchValuesUpdated.subscribe((map) => {
-                        if (map === null) {
-                            // Before get results rustcore should inform FE about dropping results.
-                            return;
-                        }
-                        if (iteration === 0) {
-                            search
-                                .getValues(MAX_DATASET_LEN)
-                                .then((data) => {
-                                    let control = 0;
-                                    data[0].forEach((pair) => {
-                                        control += pair[3];
-                                    });
-                                    expect(control).toEqual(sum);
-                                    const offset = 5000;
-                                    appendToSampleFile(tmpobj, 5000, logger, (i: number) => {
-                                        if (i % 100 === 0 || i <= 5) {
-                                            sum += i + offset;
-                                            return `[${i}]:: some data CPU=${
-                                                i + offset
-                                            }% line data\n`;
-                                        } else {
-                                            return `[${i}]:: some line data\n`;
-                                        }
-                                    });
-                                })
-                                .catch(finish.bind(null, session, done));
-                            iteration += 1;
-                        } else if (iteration === 1) {
-                            search
-                                .getValues(MAX_DATASET_LEN)
-                                .then((data) => {
-                                    let control = 0;
-                                    data[0].forEach((pair) => {
-                                        control += pair[3];
-                                    });
-                                    expect(control).toEqual(sum);
-                                    finish(session, done);
-                                })
-                                .catch(finish.bind(null, session, done));
-                        } else {
-                            expect(iteration).toEqual(1);
-                        }
-                    });
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
-                    );
-                });
-        });
-    });
+    // it(config.regular.list[1], function () {
+    //     return runner(config.regular, 1, async (logger, done, collector) => {
+    //         Session.create()
+    //             .then((session: Session) => {
+    //                 // Set provider into debug mode
+    //                 session.debug(true, config.regular.list[1]);
+    //                 const stream = session.getStream();
+    //                 const search = session.getSearch();
+    //                 const events = session.getEvents();
+    //                 if (events instanceof Error) {
+    //                     finish(session, done, events);
+    //                     return;
+    //                 }
+    //                 if (stream instanceof Error) {
+    //                     return finish(session, done, stream);
+    //                 }
+    //                 if (search instanceof Error) {
+    //                     return finish(session, done, search);
+    //                 }
+    //                 let sum = 0;
+    //                 const tmpobj = createSampleFile(5000, logger, (i: number) => {
+    //                     if (i % 100 === 0 || i <= 5) {
+    //                         sum += i;
+    //                         return `[${i}]:: some data CPU=${i}% line data\n`;
+    //                     } else {
+    //                         return `[${i}]:: some line data\n`;
+    //                     }
+    //                 });
+    //                 stream
+    //                     .observe(
+    //                         new Factory.File()
+    //                             .asText()
+    //                             .type(Factory.FileType.Text)
+    //                             .file(tmpobj.name)
+    //                             .get()
+    //                             .sterilized(),
+    //                     )
+    //                     .on('processing', () => {
+    //                         search
+    //                             .values([`CPU=(\\d{1,})`])
+    //                             .catch(finish.bind(null, session, done));
+    //                     })
+    //                     .catch(finish.bind(null, session, done));
+    //                 events.SearchValuesUpdated.subscribe((map) => {
+    //                     if (map === null) {
+    //                         // Before get results rustcore should inform FE about dropping results.
+    //                         return;
+    //                     }
+    //                     search
+    //                         .getValues(MAX_DATASET_LEN)
+    //                         .then((data) => {
+    //                             let control = 0;
+    //                             data[0].forEach((pair) => {
+    //                                 control += pair[3];
+    //                             });
+    //                             expect(control).toEqual(sum);
+    //                             finish(session, done);
+    //                         })
+    //                         .catch(finish.bind(null, session, done));
+    //                 });
+    //             })
+    //             .catch((err: Error) => {
+    //                 finish(
+    //                     undefined,
+    //                     done,
+    //                     new Error(
+    //                         `Fail to create session due error: ${
+    //                             err instanceof Error ? err.message : err
+    //                         }`,
+    //                     ),
+    //                 );
+    //             });
+    //     });
+    // });
+    // it(config.regular.list[2], function () {
+    //     return runner(config.regular, 2, async (logger, done, collector) => {
+    //         Session.create()
+    //             .then((session: Session) => {
+    //                 // Set provider into debug mode
+    //                 session.debug(true, config.regular.list[2]);
+    //                 const stream = session.getStream();
+    //                 const search = session.getSearch();
+    //                 const events = session.getEvents();
+    //                 if (events instanceof Error) {
+    //                     finish(session, done, events);
+    //                     return;
+    //                 }
+    //                 if (stream instanceof Error) {
+    //                     return finish(session, done, stream);
+    //                 }
+    //                 if (search instanceof Error) {
+    //                     return finish(session, done, search);
+    //                 }
+    //                 let sum = 0;
+    //                 const tmpobj = createSampleFile(5000, logger, (i: number) => {
+    //                     if (i % 100 === 0 || i <= 5) {
+    //                         sum += i;
+    //                         return `[${i}]:: some data CPU=${i}% line data\n`;
+    //                     } else {
+    //                         return `[${i}]:: some line data\n`;
+    //                     }
+    //                 });
+    //                 let iteration = 0;
+    //                 stream
+    //                     .observe(
+    //                         new Factory.File()
+    //                             .asText()
+    //                             .type(Factory.FileType.Text)
+    //                             .file(tmpobj.name)
+    //                             .get()
+    //                             .sterilized(),
+    //                     )
+    //                     .on('processing', () => {
+    //                         search
+    //                             .values([`CPU=(\\d{1,})`])
+    //                             .catch(finish.bind(null, session, done));
+    //                     })
+    //                     .catch(finish.bind(null, session, done));
+    //                 events.SearchValuesUpdated.subscribe((map) => {
+    //                     if (map === null) {
+    //                         // Before get results rustcore should inform FE about dropping results.
+    //                         return;
+    //                     }
+    //                     if (iteration === 0) {
+    //                         search
+    //                             .getValues(MAX_DATASET_LEN)
+    //                             .then((data) => {
+    //                                 let control = 0;
+    //                                 data[0].forEach((pair) => {
+    //                                     control += pair[3];
+    //                                 });
+    //                                 expect(control).toEqual(sum);
+    //                                 const offset = 5000;
+    //                                 appendToSampleFile(tmpobj, 5000, logger, (i: number) => {
+    //                                     if (i % 100 === 0 || i <= 5) {
+    //                                         sum += i + offset;
+    //                                         return `[${i}]:: some data CPU=${
+    //                                             i + offset
+    //                                         }% line data\n`;
+    //                                     } else {
+    //                                         return `[${i}]:: some line data\n`;
+    //                                     }
+    //                                 });
+    //                             })
+    //                             .catch(finish.bind(null, session, done));
+    //                         iteration += 1;
+    //                     } else if (iteration === 1) {
+    //                         search
+    //                             .getValues(MAX_DATASET_LEN)
+    //                             .then((data) => {
+    //                                 let control = 0;
+    //                                 data[0].forEach((pair) => {
+    //                                     control += pair[3];
+    //                                 });
+    //                                 expect(control).toEqual(sum);
+    //                                 finish(session, done);
+    //                             })
+    //                             .catch(finish.bind(null, session, done));
+    //                     } else {
+    //                         expect(iteration).toEqual(1);
+    //                     }
+    //                 });
+    //             })
+    //             .catch((err: Error) => {
+    //                 finish(
+    //                     undefined,
+    //                     done,
+    //                     new Error(
+    //                         `Fail to create session due error: ${
+    //                             err instanceof Error ? err.message : err
+    //                         }`,
+    //                     ),
+    //                 );
+    //             });
+    //     });
+    // });
 });

@@ -3,65 +3,76 @@
  * compiler version: 5.27.2
  * source: attachment.proto
  * git: https://github.com/thesayyn/protoc-gen-ts */
-import * as pb_1 from "google-protobuf";
+import * as pb_1 from 'google-protobuf';
 export namespace attachment {
     export class AttachmentInfo extends pb_1.Message {
         #one_of_decls: number[][] = [];
-        constructor(data?: any[] | {
-            uuid?: string;
-            filepath?: string;
-            name?: string;
-            ext?: string;
-            size?: number;
-            mime?: string;
-            messages?: number[];
-        }) {
+        constructor(
+            data?:
+                | any[]
+                | {
+                      uuid?: string;
+                      filepath?: string;
+                      name?: string;
+                      ext?: string;
+                      size?: number;
+                      mime?: string;
+                      messages?: number[];
+                  },
+        ) {
             super();
-            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [7], this.#one_of_decls);
-            if (!Array.isArray(data) && typeof data == "object") {
-                if ("uuid" in data && data.uuid != undefined) {
+            pb_1.Message.initialize(
+                this,
+                Array.isArray(data) ? data : [],
+                0,
+                -1,
+                [7],
+                this.#one_of_decls,
+            );
+            if (!Array.isArray(data) && typeof data == 'object') {
+                if ('uuid' in data && data.uuid != undefined) {
                     this.uuid = data.uuid;
                 }
-                if ("filepath" in data && data.filepath != undefined) {
+                if ('filepath' in data && data.filepath != undefined) {
                     this.filepath = data.filepath;
                 }
-                if ("name" in data && data.name != undefined) {
+                if ('name' in data && data.name != undefined) {
                     this.name = data.name;
                 }
-                if ("ext" in data && data.ext != undefined) {
+                if ('ext' in data && data.ext != undefined) {
                     this.ext = data.ext;
                 }
-                if ("size" in data && data.size != undefined) {
+                if ('size' in data && data.size != undefined) {
                     this.size = data.size;
                 }
-                if ("mime" in data && data.mime != undefined) {
+                if ('mime' in data && data.mime != undefined) {
                     this.mime = data.mime;
                 }
-                if ("messages" in data && data.messages != undefined) {
+                if ('messages' in data && data.messages != undefined) {
                     this.messages = data.messages;
                 }
             }
         }
         get uuid() {
-            return pb_1.Message.getFieldWithDefault(this, 1, "") as string;
+            return pb_1.Message.getFieldWithDefault(this, 1, '') as string;
         }
         set uuid(value: string) {
             pb_1.Message.setField(this, 1, value);
         }
         get filepath() {
-            return pb_1.Message.getFieldWithDefault(this, 2, "") as string;
+            return pb_1.Message.getFieldWithDefault(this, 2, '') as string;
         }
         set filepath(value: string) {
             pb_1.Message.setField(this, 2, value);
         }
         get name() {
-            return pb_1.Message.getFieldWithDefault(this, 3, "") as string;
+            return pb_1.Message.getFieldWithDefault(this, 3, '') as string;
         }
         set name(value: string) {
             pb_1.Message.setField(this, 3, value);
         }
         get ext() {
-            return pb_1.Message.getFieldWithDefault(this, 4, "") as string;
+            return pb_1.Message.getFieldWithDefault(this, 4, '') as string;
         }
         set ext(value: string) {
             pb_1.Message.setField(this, 4, value);
@@ -73,7 +84,7 @@ export namespace attachment {
             pb_1.Message.setField(this, 5, value);
         }
         get mime() {
-            return pb_1.Message.getFieldWithDefault(this, 6, "") as string;
+            return pb_1.Message.getFieldWithDefault(this, 6, '') as string;
         }
         set mime(value: string) {
             pb_1.Message.setField(this, 6, value);
@@ -154,28 +165,21 @@ export namespace attachment {
         serialize(w: pb_1.BinaryWriter): void;
         serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
             const writer = w || new pb_1.BinaryWriter();
-            if (this.uuid.length)
-                writer.writeString(1, this.uuid);
-            if (this.filepath.length)
-                writer.writeString(2, this.filepath);
-            if (this.name.length)
-                writer.writeString(3, this.name);
-            if (this.ext.length)
-                writer.writeString(4, this.ext);
-            if (this.size != 0)
-                writer.writeUint64(5, this.size);
-            if (this.mime.length)
-                writer.writeString(6, this.mime);
-            if (this.messages.length)
-                writer.writePackedUint64(7, this.messages);
-            if (!w)
-                return writer.getResultBuffer();
+            if (this.uuid.length) writer.writeString(1, this.uuid);
+            if (this.filepath.length) writer.writeString(2, this.filepath);
+            if (this.name.length) writer.writeString(3, this.name);
+            if (this.ext.length) writer.writeString(4, this.ext);
+            if (this.size != 0) writer.writeUint64(5, this.size);
+            if (this.mime.length) writer.writeString(6, this.mime);
+            if (this.messages.length) writer.writePackedUint64(7, this.messages);
+            if (!w) return writer.getResultBuffer();
         }
         static deserialize(bytes: Uint8Array | pb_1.BinaryReader): AttachmentInfo {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new AttachmentInfo();
+            const reader =
+                    bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes),
+                message = new AttachmentInfo();
             while (reader.nextField()) {
-                if (reader.isEndGroup())
-                    break;
+                if (reader.isEndGroup()) break;
                 switch (reader.getFieldNumber()) {
                     case 1:
                         message.uuid = reader.readString();
@@ -198,7 +202,8 @@ export namespace attachment {
                     case 7:
                         message.messages = reader.readPackedUint64();
                         break;
-                    default: reader.skipField();
+                    default:
+                        reader.skipField();
                 }
             }
             return message;
@@ -212,19 +217,34 @@ export namespace attachment {
     }
     export class AttachmentInfoList extends pb_1.Message {
         #one_of_decls: number[][] = [];
-        constructor(data?: any[] | {
-            elements?: AttachmentInfo[];
-        }) {
+        constructor(
+            data?:
+                | any[]
+                | {
+                      elements?: AttachmentInfo[];
+                  },
+        ) {
             super();
-            pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [1], this.#one_of_decls);
-            if (!Array.isArray(data) && typeof data == "object") {
-                if ("elements" in data && data.elements != undefined) {
+            pb_1.Message.initialize(
+                this,
+                Array.isArray(data) ? data : [],
+                0,
+                -1,
+                [1],
+                this.#one_of_decls,
+            );
+            if (!Array.isArray(data) && typeof data == 'object') {
+                if ('elements' in data && data.elements != undefined) {
                     this.elements = data.elements;
                 }
             }
         }
         get elements() {
-            return pb_1.Message.getRepeatedWrapperField(this, AttachmentInfo, 1) as AttachmentInfo[];
+            return pb_1.Message.getRepeatedWrapperField(
+                this,
+                AttachmentInfo,
+                1,
+            ) as AttachmentInfo[];
         }
         set elements(value: AttachmentInfo[]) {
             pb_1.Message.setRepeatedWrapperField(this, 1, value);
@@ -234,7 +254,7 @@ export namespace attachment {
         }): AttachmentInfoList {
             const message = new AttachmentInfoList({});
             if (data.elements != null) {
-                message.elements = data.elements.map(item => AttachmentInfo.fromObject(item));
+                message.elements = data.elements.map((item) => AttachmentInfo.fromObject(item));
             }
             return message;
         }
@@ -252,20 +272,30 @@ export namespace attachment {
         serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
             const writer = w || new pb_1.BinaryWriter();
             if (this.elements.length)
-                writer.writeRepeatedMessage(1, this.elements, (item: AttachmentInfo) => item.serialize(writer));
-            if (!w)
-                return writer.getResultBuffer();
+                writer.writeRepeatedMessage(1, this.elements, (item: AttachmentInfo) =>
+                    item.serialize(writer),
+                );
+            if (!w) return writer.getResultBuffer();
         }
         static deserialize(bytes: Uint8Array | pb_1.BinaryReader): AttachmentInfoList {
-            const reader = bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes), message = new AttachmentInfoList();
+            const reader =
+                    bytes instanceof pb_1.BinaryReader ? bytes : new pb_1.BinaryReader(bytes),
+                message = new AttachmentInfoList();
             while (reader.nextField()) {
-                if (reader.isEndGroup())
-                    break;
+                if (reader.isEndGroup()) break;
                 switch (reader.getFieldNumber()) {
                     case 1:
-                        reader.readMessage(message.elements, () => pb_1.Message.addToRepeatedWrapperField(message, 1, AttachmentInfo.deserialize(reader), AttachmentInfo));
+                        reader.readMessage(message.elements, () =>
+                            pb_1.Message.addToRepeatedWrapperField(
+                                message,
+                                1,
+                                AttachmentInfo.deserialize(reader),
+                                AttachmentInfo,
+                            ),
+                        );
                         break;
-                    default: reader.skipField();
+                    default:
+                        reader.skipField();
                 }
             }
             return message;

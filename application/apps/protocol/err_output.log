@@ -1,0 +1,38 @@
+RUST: Some(OperationStarted(2f52e794-0560-4bcf-843f-09ec4d29a4d5))
+RUST bytes: [90, 36, 50, 102, 53, 50, 101, 55, 57, 52, 45, 48, 53, 54, 48, 45, 52, 98, 99, 102, 45, 56, 52, 51, 102, 45, 48, 57, 101, 99, 52, 100, 50, 57, 97, 52, 100, 53]
+>>>>>>>>>>>>>>>>>> $.event.CallbackEvent parsing 0000
+>>>>>>>>>>>>>>>>>> $.event.CallbackEvent parsing 0001
+{ OperationStarted: '2f52e794-0560-4bcf-843f-09ec4d29a4d5' }
+RUST: Some(SearchValuesUpdated(None))
+RUST bytes: [50, 0]
+>>>>>>>>>>>>>>>>>> $.event.CallbackEvent parsing 0000
+>>>>>>>>>>>>>>>>>> $.event.CallbackEvent parsing 0001
+{ SearchValuesUpdated: null }
+RUST: Some(SearchValuesUpdated(Some({0: (0.0, 4900.0)})))
+RUST bytes: [50, 13, 10, 11, 18, 9, 17, 0, 0, 0, 0, 0, 36, 179, 64]
+>>>>>>>>>>>>>>>>>> $.event.CallbackEvent parsing 0000
+>>>>>>>>>>>>>> JS Bytes
+[
+  50,  13, 10, 11, 18, 9,
+  17,   0,  0,  0,  0, 0,
+  36, 179, 64
+]
+Uint8Array(17) [
+  50,  15, 10, 13, 8, 0, 18,
+   9,  17,  0,  0, 0, 0,  0,
+  36, 179, 64
+]
+[2024-07-12T10:24:57.265Z][ERROR  ][ EventProvider: 9cd66f0b-6ee1-429a-bc43-10cfc99cfc5f ]: Assertion failed
+Error: Error stack
+    at EventProvider._emitter (/storage/projects/esrlabs/logviewer/application/apps/rustcore/ts-bindings/spec/build/src/provider/provider.js:313:29)
+RUST: Some(OperationDone(OperationDone { uuid: 2f52e794-0560-4bcf-843f-09ec4d29a4d5, result: Some("null") }))
+RUST bytes: [106, 44, 10, 36, 50, 102, 53, 50, 101, 55, 57, 52, 45, 48, 53, 54, 48, 45, 52, 98, 99, 102, 45, 56, 52, 51, 102, 45, 48, 57, 101, 99, 52, 100, 50, 57, 97, 52, 100, 53, 18, 4, 110, 117, 108, 108]
+>>>>>>>>>>>>>>>>>> $.event.CallbackEvent parsing 0000
+>>>>>>>>>>>>>>>>>> $.event.CallbackEvent parsing 0001
+{
+  OperationDone: { uuid: '2f52e794-0560-4bcf-843f-09ec4d29a4d5', result: 'null' }
+}
+
+RUST: 050,013,010,011,018,009,017,000,000,000,000,000,036,179,064
+JS:   050,015,010,013,008,000,018,009,017,000,000,000,000,000,036,179,064
+
