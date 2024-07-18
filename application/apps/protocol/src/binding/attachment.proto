@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package attachment;
+
+message AttachmentInfo {
+  string uuid = 1;
+  string filepath = 2;
+  string name = 3;
+  string ext = 4;
+  uint64 size = 5;
+  string mime = 6;
+  repeated uint64 messages = 7;
+}
+
+message AttachmentInfoList { repeated AttachmentInfo elements = 1; }

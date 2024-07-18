@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package grabbing;
+
+message GrabbedElement {
+  uint32 source_id = 1;
+  string content = 2;
+  uint64 pos = 3;
+  uint32 nature = 4;
+}
+
+message GrabbedElementList { repeated GrabbedElement elements = 1; }

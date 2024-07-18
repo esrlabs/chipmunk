@@ -1,0 +1,19 @@
+[package]
+name = "protocol"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+prost = "0.12.6"
+prost-types = "0.12.6"
+serde-wasm-bindgen = "0.6.5"
+wasm-bindgen = "0.2.92"
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0.62"
+wasm-bindgen-test = "0.3.42"
+
+[build-dependencies]
+prost-build = "0.11"
