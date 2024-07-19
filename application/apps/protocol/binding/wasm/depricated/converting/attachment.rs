@@ -10,8 +10,9 @@ pub struct AttachmentInfo;
 impl AttachmentInfo {
     #[wasm_bindgen]
     pub fn decode(buf: &[u8]) -> Result<JsValue, E> {
+        let t = attachment::AttachmentInfo::decode(buf)?;
         let cb_event: types::AttachmentInfo =
             attachment::AttachmentInfo::decode(buf)?.try_into()?;
-        Ok(to_value(&cb_event)?)
+        Ok(to_value(&t)?)
     }
 }

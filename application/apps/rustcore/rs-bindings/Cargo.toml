@@ -48,3 +48,6 @@ default = []
 # Uses `jemalloc` on Unix-based targets and `mimalloc` on Windows.
 # This feature won't be enabled by default since these allocators aren't well tested as the defaults.
 custom-alloc = ['dep:mimalloc', 'dep:tikv-jemallocator']
+proto = { path = "../../protocol/binding/proto" }
+prost = "0.13"
+prost-types = "0.13"

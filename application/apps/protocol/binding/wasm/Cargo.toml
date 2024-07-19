@@ -14,6 +14,6 @@ wasm-bindgen = "0.2.92"
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0.62"
 wasm-bindgen-test = "0.3.42"
+proto = { path = "../proto"}
+extend = { path = "../extend"}
 
-[build-dependencies]
-prost-build = "0.11"

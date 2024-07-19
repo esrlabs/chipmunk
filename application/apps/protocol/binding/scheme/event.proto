@@ -4,16 +4,11 @@ package event;
 
 import "error.proto";
 import "attachment.proto";
+import "progress.proto";
 
 message OperationDone {
   string uuid = 1;
   string result = 2;
-}
-
-message Ticks {
-  uint64 count = 1;
-  string state = 2;
-  uint64 total = 3;
 }
 
 message Notification {
@@ -69,7 +64,7 @@ message CallbackEvent {
 
     message ProgressDetail {
       oneof detail {
-        Ticks ticks = 1;
+        progress.Ticks ticks = 1;
         Notification notification = 2;
         bool stopped = 3;
       }
