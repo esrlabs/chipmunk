@@ -1,8 +1,10 @@
-use indexer_base::config::MulticastInfo;
+pub use indexer_base::config::MulticastInfo;
 use parsers::dlt;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
 use uuid::Uuid;
+
+pub use dlt::DltFilterConfig;
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Serialize, Deserialize, Clone)]

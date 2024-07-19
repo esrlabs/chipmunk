@@ -2,7 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 
 /// Path to sources of binding's protocols descriptions
-const PROTO_SRC: &str = "../../src/binding";
+const PROTO_SRC: &str = "../scheme";
 
 fn main() {
     let protos: Vec<PathBuf> = fs::read_dir(PROTO_SRC)
@@ -18,6 +18,8 @@ fn main() {
             }
         })
         .collect();
-
-    prost_build::compile_protos(&protos, &[PROTO_SRC]).expect("Fail to compile protos");
+    prost_build::Config::new()
+        .type_attribute(".", "#[derive(serde::Serialize, serde::Deserialize)]")
+        .compile_protos(&protos, &[PROTO_SRC])
+        .expect("Fail to compile protos");
 }
