@@ -29,7 +29,9 @@ export function getPlatform(win32Only = false): Platform {
         case Platform.openbsd:
             return Platform.linux;
         case Platform.darwin:
-            if (os.arch() === 'arm64') {
+            const { execSync } = require('child_process');
+            const result = execSync('sysctl -n machdep.cpu.brand_string').toString();
+            if (os.arch() === 'arm64' || !result.includes("Intel")) {
                 return Platform.darwinaarch64;
             } else {
                 return Platform.darwin;
