@@ -1,6 +1,4 @@
-use crate::js::{
-    converting::filter::WrappedSearchFilter, session::events::ComputationErrorWrapper,
-};
+use crate::js::converting::{errors::ComputationErrorWrapper, filter::WrappedSearchFilter};
 use log::{debug, error};
 use node_bindgen::{
     core::{val::JsEnv, NjError, TryIntoJs},
@@ -37,7 +35,7 @@ impl<T: Serialize> TryIntoJs for CommandOutcomeWrapper<T> {
 
 fn u64_from_i64(id: i64) -> Result<u64, ComputationErrorWrapper> {
     u64::try_from(id).map_err(|_| {
-        ComputationErrorWrapper(ComputationError::InvalidArgs(String::from(
+        ComputationErrorWrapper::new(ComputationError::InvalidArgs(String::from(
             "ID of job is invalid",
         )))
     })
@@ -45,7 +43,7 @@ fn u64_from_i64(id: i64) -> Result<u64, ComputationErrorWrapper> {
 
 fn usize_from_i64(id: i64) -> Result<usize, ComputationErrorWrapper> {
     usize::try_from(id).map_err(|_| {
-        ComputationErrorWrapper(ComputationError::InvalidArgs(String::from(
+        ComputationErrorWrapper::new(ComputationError::InvalidArgs(String::from(
             "Fail to conver i64 to usize",
         )))
     })
@@ -105,7 +103,7 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .cancel_job(&u64_from_i64(id)?)
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWrapper::new)
     }
 
     // Custom methods (jobs)
@@ -131,7 +129,7 @@ impl UnboundJobs {
                 include_folders,
             )
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper)
     }
 
@@ -146,7 +144,7 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .is_file_binary(u64_from_i64(id)?, file_path)
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper)
     }
 
@@ -162,7 +160,7 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .spawn_process(u64_from_i64(id)?, path, args)
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper)
     }
 
@@ -177,7 +175,7 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .get_file_checksum(u64_from_i64(id)?, path)
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper)
     }
 
@@ -192,7 +190,7 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .get_dlt_stats(u64_from_i64(id)?, files)
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper)
     }
 
@@ -207,7 +205,7 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .get_someip_statistic(u64_from_i64(id)?, files)
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper)
     }
 
@@ -221,7 +219,7 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .get_shell_profiles(u64_from_i64(id)?)
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper)
     }
 
@@ -235,7 +233,7 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .get_context_envvars(u64_from_i64(id)?)
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper)
     }
 
@@ -249,7 +247,7 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .get_serial_ports_list(u64_from_i64(id)?)
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper)
     }
 
@@ -264,7 +262,7 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .get_regex_error(u64_from_i64(id)?, filter.as_filter())
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper)
     }
 
@@ -280,7 +278,7 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .cancel_test(u64_from_i64(id)?, custom_arg_a, custom_arg_b)
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper)
     }
 
@@ -295,7 +293,7 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .sleep(u64_from_i64(id)?, u64_from_i64(ms)?)
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper)
     }
 }
