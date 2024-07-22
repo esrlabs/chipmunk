@@ -13,21 +13,21 @@ use session::events::{NativeError, NativeErrorKind};
 use session::{events::ComputationError, progress::Severity};
 
 #[derive(Debug)]
-pub struct ComputationErrorWapper(Option<ComputationError>);
+pub struct ComputationErrorWrapper(Option<ComputationError>);
 
-impl ComputationErrorWapper {
+impl ComputationErrorWrapper {
     pub fn new(err: ComputationError) -> Self {
         Self(Some(err))
     }
 }
 
-impl From<E> for ComputationErrorWapper {
+impl From<E> for ComputationErrorWrapper {
     fn from(err: E) -> Self {
-        ComputationErrorWapper::new(ComputationError::Protocol(err.to_string()))
+        ComputationErrorWrapper::new(ComputationError::Protocol(err.to_string()))
     }
 }
 
-impl TryIntoJs for ComputationErrorWapper {
+impl TryIntoJs for ComputationErrorWrapper {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
         let bytes = u8_to_i32(self.into());
         let arr = js_env.create_array_with_len(bytes.len())?;
@@ -39,9 +39,9 @@ impl TryIntoJs for ComputationErrorWapper {
     }
 }
 
-impl From<ComputationError> for ComputationErrorWapper {
-    fn from(err: ComputationError) -> ComputationErrorWapper {
-        ComputationErrorWapper::new(err)
+impl From<ComputationError> for ComputationErrorWrapper {
+    fn from(err: ComputationError) -> ComputationErrorWrapper {
+        ComputationErrorWrapper::new(err)
     }
 }
 
@@ -126,8 +126,8 @@ fn get_search_err(err: SearchError) -> error::SearchError {
         }),
     }
 }
-impl From<ComputationErrorWapper> for Vec<u8> {
-    fn from(mut val: ComputationErrorWapper) -> Self {
+impl From<ComputationErrorWrapper> for Vec<u8> {
+    fn from(mut val: ComputationErrorWrapper) -> Self {
         let err = val.0.take().expect("Error has to be provided");
         let msg = error::ComputationError {
             error: Some(match err {
