@@ -1,3 +1,7 @@
+"""
+Provides methods to test the Print-dot commands in Chipmunk Build CLI Tool
+"""
+
 import subprocess
 
 PRINT_DOT_COMMAND = [

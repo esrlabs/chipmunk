@@ -1,3 +1,8 @@
+"""
+Provides methods to test the Build command and checksum implementation to watch source code changes 
+in Chipmunk Build CLI Tool
+"""
+
 import subprocess
 from pathlib import Path
 from utls import get_root

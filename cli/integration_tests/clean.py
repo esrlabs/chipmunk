@@ -1,9 +1,10 @@
+"""
+Provides methods to test the Clean command in Chipmunk Build CLI Tool
+"""
+
 import subprocess
 from pathlib import Path
 from utls import get_root
-
-# This will be needed for debugging only
-# from pprint import pprint
 
 CLEAN_COMMAND = [
     "cargo",
@@ -34,7 +35,6 @@ PATHS_TO_CHECK = [
     "platform/node_modules",
     # Binding
     "apps/rustcore/rs-bindings/dist",
-    # These sub paths must not exist after clean build is done.
     "apps/rustcore/rs-bindings/target",
     # Wrapper
     "apps/rustcore/ts-bindings/dist",
@@ -64,6 +64,7 @@ def get_removed_paths() -> list[Path]:
 
 
 def run_clean_command():
+    """Runs Clean Commands on all targets and insure that all build directories are delted."""
     print("Running clean command...")
     subprocess.run(CLEAN_COMMAND, check=True)
     for path in get_removed_paths():

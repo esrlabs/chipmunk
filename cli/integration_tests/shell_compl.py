@@ -1,3 +1,7 @@
+"""
+Provides methods to test the Shell Completion command for varity of shells in Chipmunk Build CLI Tool
+"""
+
 import subprocess
 
 PRINT_COMPLETION_COMMAND = [

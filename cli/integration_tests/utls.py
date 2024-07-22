@@ -1,3 +1,7 @@
+"""
+Utilities function to be used among the modules to test Chipmunk Build CLI Tool
+"""
+
 from pathlib import Path
 
 

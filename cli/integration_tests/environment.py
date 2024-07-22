@@ -1,3 +1,7 @@
+"""
+Provides methods to test the Environment commands in Chipmunk Build CLI Tool
+"""
+
 import subprocess
 
 ENVIRONMENT_CHECK_COMMAND = [
