@@ -183,10 +183,35 @@ def _build_checksum_check():
             temp_file_path.unlink()
 
 
+############## RESET CHECKSUM COMMAND ################
+
+RESET_CHECKSUM_COMMAND = ["cargo", "run", "-r", "--", "chipmunk", "reset-checksum"]
+
+
+def _run_reset_checksum_command():
+    checksum_path = get_root().joinpath(CHECKSUM_FILE_NAME)
+    assert (
+        checksum_path.exists()
+    ), f"Checksum file must exist before running 'reset-checksum' command. File Path: {checksum_path}"
+
+    subprocess.run(RESET_CHECKSUM_COMMAND, check=True)
+
+    assert (
+        not checksum_path.exists()
+    ), f"Checksum file must not exist after running 'reset-checksum' command. File Path: {checksum_path}"
+
+    pass
+
+
 ################   RUN ALL TESTS   ######################
 
 
 def run_build_tests():
+    """Runs many tests for build command:
+    - General Test: General test for build command and the created directories and checksum files.
+    - Checksum Test: Test how changing files in some target will affect the build on it and other targets depending on it.
+    - Reset Checksum Test: Make sure checksum file will deleted when the command is called.
+    """
     print("Running General Checks for Build Command...")
     _build_general_check()
     print("*** General Check for Build Command Succeeded ***")
@@ -196,6 +221,12 @@ def run_build_tests():
     print("Running Checksum Checks for Build Command...")
     _build_checksum_check()
     print("*** Checksum Check for Build Command Succeeded ***")
+
+    print("---------------------------------------------------------------")
+
+    print("Running Reset Checksum Command...")
+    _run_reset_checksum_command()
+    print("*** Test Running Reset Checksum Command Succeeded ***")
 
 
 if __name__ == "__main__":
