@@ -2,7 +2,6 @@ use crate::{
     events::{CallbackEvent, ComputationError},
     operations,
     operations::Operation,
-    progress::Severity,
     state,
     state::{AttachmentInfo, GrabbedElement, IndexesMode, SessionStateAPI, SourceDefinition},
     tracker,
@@ -11,7 +10,6 @@ use crate::{
 use futures::Future;
 use log::{debug, error, warn};
 use processor::{grabber::LineRange, search::filter::SearchFilter};
-use serde::Serialize;
 use sources::{factory::ObserveOptions, sde};
 use std::{ops::RangeInclusive, path::PathBuf};
 use tokio::{
@@ -518,10 +516,4 @@ impl Session {
             .shutdown_with_error()
             .map_err(ComputationError::NativeError)
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct GeneralError {
-    severity: Severity,
-    message: String,
 }

@@ -1,4 +1,6 @@
-use super::events::{ComputationErrorWrapper, LifecycleTransitionWrapper};
+use crate::js::converting::{
+    errors::ComputationErrorWrapper, progress::LifecycleTransitionWrapper,
+};
 use log::trace;
 use node_bindgen::derive::node_bindgen;
 use session::{
@@ -41,7 +43,7 @@ impl RustProgressTracker {
                         Ok(mut rx) => {
                             let _ = result_tx.send(Ok(()));
                             while let Some(progress_report) = rx.recv().await {
-                                callback(LifecycleTransitionWrapper(progress_report))
+                                callback(LifecycleTransitionWrapper::new(progress_report))
                             }
                         }
                         Err(e) => {
@@ -53,13 +55,13 @@ impl RustProgressTracker {
             result_rx
                 .recv()
                 .map_err(|_| {
-                    ComputationErrorWrapper(ComputationError::Protocol(
+                    ComputationErrorWrapper::new(ComputationError::Protocol(
                         "could not setup tracking".to_string(),
                     ))
                 })?
-                .map_err(ComputationErrorWrapper)
+                .map_err(ComputationErrorWrapper::new)
         } else {
-            Err(ComputationErrorWrapper(ComputationError::Protocol(
+            Err(ComputationErrorWrapper::new(ComputationError::Protocol(
                 "Could not init progress_tracker".to_string(),
             )))
         }
@@ -70,7 +72,7 @@ impl RustProgressTracker {
         self.tracker_api
             .content()
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWrapper::new)
     }
 
     #[node_bindgen]
@@ -78,6 +80,6 @@ impl RustProgressTracker {
         self.tracker_api
             .abort()
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWrapper::new)
     }
 }
