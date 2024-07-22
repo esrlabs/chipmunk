@@ -54,7 +54,7 @@ fn maybe_memmap_file(file: &File) -> Result<Option<memmap2::Mmap>, HashError> {
     let map = if !metadata.is_file() {
         // Not a real file.
         None
-    } else if file_size > isize::max_value() as u64 {
+    } else if file_size > isize::MAX as u64 {
         // Too long to safely map.
         // https://github.com/danburkert/memmap-rs/issues/69
         None
