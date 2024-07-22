@@ -421,6 +421,7 @@ impl Target {
             Target::Wasm => {
                 paths_to_remove.push(self.cwd().join("pkg"));
                 paths_to_remove.push(self.cwd().join("test_output"));
+                paths_to_remove.push(self.cwd().join("node_modules"));
             }
             Target::Wrapper => {
                 paths_to_remove.push(self.cwd().join("spec").join("build"));
