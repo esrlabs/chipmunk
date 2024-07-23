@@ -21,6 +21,7 @@ impl Parse for Opt {
         let Some(expr) = input.first() else {
             return Ok(Opt::new(String::new()));
         };
+
         let Expr::Path(p) = expr else {
             return Err(syn::Error::new_spanned(
                 expr,
