@@ -14,9 +14,6 @@ use tokio::{
 use tokio_stream::StreamExt;
 use tokio_util::codec::{self, FramedRead, LinesCodec};
 
-#[cfg(windows)]
-use std::os::windows::process::CommandExt;
-
 lazy_static! {
     static ref GROUP_RE: Regex =
         Regex::new(r#"".*?""#).expect("Regex must compile (fail with GROUP_RE)");

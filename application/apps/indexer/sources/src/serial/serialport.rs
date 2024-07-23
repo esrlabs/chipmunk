@@ -103,6 +103,8 @@ impl SerialSource {
             .stop_bits(stop_bits(&config.stop_bits))
             .open_native_async()
         {
+            // We get warning on windows because `port` doesn't need to be mutated there
+            #[cfg_attr(windows, allow(unused_mut))]
             Ok(mut port) => {
                 #[cfg(unix)]
                 if let Err(err) = port.set_exclusive(config.exclusive) {
