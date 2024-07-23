@@ -82,28 +82,38 @@ export function finish(
     if (filtered.length === 0) {
         done();
     } else {
-        Promise.allSettled(
-            filtered.map((session) =>
-                session === undefined ? Promise.resolve() : session.destroy(),
-            ),
-        ).then((results) => {
-            let reasons: any[] = [];
-            results.forEach((res) => {
-                if (res.status === 'rejected') {
-                    reasons.push(res.reason);
-                }
-            });
-            if (reasons.length === 0) {
-                const session = filtered.find((s) => s instanceof Session);
-                if (session !== undefined) {
-                    checkSessionDebugger(session as Session, done);
-                } else {
-                    done();
-                }
-            } else {
-                fail(new Error(reasons.map((r) => error(r)).join('; ')));
-            }
-        });
+        try {
+            Promise.allSettled(
+                filtered.map((session) =>
+                    session === undefined ? Promise.resolve() : session.destroy(),
+                ),
+            )
+                .then((results) => {
+                    let reasons: any[] = [];
+                    results.forEach((res) => {
+                        if (res.status === 'rejected') {
+                            reasons.push(res.reason);
+                        }
+                    });
+                    if (reasons.length === 0) {
+                        const session = filtered.find((s) => s instanceof Session);
+                        if (session !== undefined) {
+                            checkSessionDebugger(session as Session, done);
+                        } else {
+                            done();
+                        }
+                    } else {
+                        fail(new Error(reasons.map((r) => error(r)).join('; ')));
+                    }
+                })
+                .catch((err: Error) => {
+                    console.error(err);
+                    fail(err);
+                });
+        } catch (err) {
+            console.error(err);
+            fail(err);
+        }
     }
 }
 

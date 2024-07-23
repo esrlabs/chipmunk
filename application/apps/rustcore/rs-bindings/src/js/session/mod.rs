@@ -76,7 +76,7 @@ impl RustSession {
                         }
                         debug!("task is started");
                         while let Some(event) = rx_callback_events.recv().await {
-                            callback(event.into())
+                            callback(event.into());
                         }
                         debug!("sending SessionDestroyed event");
                         callback(CallbackEvent::SessionDestroyed.into());

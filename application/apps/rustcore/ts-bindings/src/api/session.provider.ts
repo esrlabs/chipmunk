@@ -113,9 +113,9 @@ interface ISessionEventsInterfaces {
     SearchUpdated: { self: 'object'; found: 'number'; stat: typeof Object };
     SearchValuesUpdated: { self: ['object', null] };
     SearchMapUpdated: { self: ['string', null] };
-    MapUpdated: { self: 'object'; map: typeof Array };
+    MapUpdated: { self: 'object'; map: typeof Array }; // TODO: seems unused event
     IndexedMapUpdated: { self: 'object'; len: 'number' };
-    MatchesUpdated: { self: 'object'; matches: typeof Array };
+    MatchesUpdated: { self: 'object'; matches: typeof Array }; // TODO: seems unused event
     Progress: {
         self: 'object';
         uuid: 'string';

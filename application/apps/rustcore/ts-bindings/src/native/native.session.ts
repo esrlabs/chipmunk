@@ -8,7 +8,7 @@ import { getNativeModule } from '../native/native';
 import { EFileOptionsRequirements } from '../api/executors/session.stream.observe.executor';
 import { Type, Source, NativeError } from '../interfaces/errors';
 import { v4 as uuidv4 } from 'uuid';
-import { IRange, fromTuple } from 'platform/types/range';
+import { IRange } from 'platform/types/range';
 import { ISourceLink } from 'platform/types/observe/types';
 import { IndexingMode, Attachment } from 'platform/types/content';
 import { Logger, utils } from 'platform/log';
@@ -377,7 +377,7 @@ export class RustSessionWrapper extends RustSession {
                 this._logger.error(
                     `Fail to init session: ${err instanceof Error ? err.message : err}`,
                 );
-                cb(err);
+                cb(NativeError.from(err));
             });
     }
 
@@ -387,11 +387,13 @@ export class RustSessionWrapper extends RustSession {
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
                 reject(
-                    new Error(
-                        this._logger.error(
-                            `Timeout error. Session wasn't closed in ${
-                                DESTROY_TIMEOUT / 1000
-                            } sec.`,
+                    NativeError.from(
+                        new Error(
+                            this._logger.error(
+                                `Timeout error. Session wasn't closed in ${
+                                    DESTROY_TIMEOUT / 1000
+                                } sec.`,
+                            ),
                         ),
                     ),
                 );
@@ -408,7 +410,7 @@ export class RustSessionWrapper extends RustSession {
                             err instanceof Error ? err.message : err
                         }`,
                     );
-                    reject(err);
+                    reject(NativeError.from(err));
                 })
                 .finally(() => {
                     clearTimeout(timeout);
@@ -417,7 +419,7 @@ export class RustSessionWrapper extends RustSession {
     }
 
     public getSessionFile(): Promise<string> {
-        return this._native.getSessionFile();
+        return this._native.getSessionFile().catch((err) => Promise.reject(NativeError.from(err)));
     }
 
     public getUuid(): string {
@@ -432,15 +434,7 @@ export class RustSessionWrapper extends RustSession {
                 .then((sources: ISourceLink[]) => {
                     resolve(sources);
                 })
-                .catch((err) => {
-                    reject(
-                        new NativeError(
-                            NativeError.from(err),
-                            Type.GrabbingContent,
-                            Source.GetSourcesDefinitions,
-                        ),
-                    );
-                });
+                .catch((err) => reject(NativeError.from(err)));
         });
     }
 
@@ -449,18 +443,8 @@ export class RustSessionWrapper extends RustSession {
             this._provider.debug().emit.operation('grab');
             this._native
                 .grab(start, len)
-                .then((buf: number[]) => {
-                    resolve(Types.decodeGrabbedElementList(buf));
-                })
-                .catch((err) => {
-                    reject(
-                        new NativeError(
-                            NativeError.from(err),
-                            Type.GrabbingContent,
-                            Source.GrabStreamChunk,
-                        ),
-                    );
-                });
+                .then((buf: number[]) => resolve(Types.decodeGrabbedElementList(buf)))
+                .catch((err) => reject(NativeError.from(err)));
         });
     }
 
@@ -472,15 +456,7 @@ export class RustSessionWrapper extends RustSession {
                 .then((buf: number[]) => {
                     resolve(Types.decodeGrabbedElementList(buf));
                 })
-                .catch((err) => {
-                    reject(
-                        new NativeError(
-                            NativeError.from(err),
-                            Type.GrabbingContent,
-                            Source.GrabStreamChunk,
-                        ),
-                    );
-                });
+                .catch((err) => reject(NativeError.from(err)));
         });
     }
 
@@ -490,15 +466,7 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .setIndexingMode(mode)
                 .then(resolve)
-                .catch((err) => {
-                    reject(
-                        new NativeError(
-                            NativeError.from(err),
-                            Type.ContentManipulation,
-                            Source.SetIndexingMode,
-                        ),
-                    );
-                });
+                .catch((err) => reject(NativeError.from(err)));
         });
     }
 
@@ -508,15 +476,7 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .getIndexedLen()
                 .then(resolve)
-                .catch((err) => {
-                    reject(
-                        new NativeError(
-                            NativeError.from(err),
-                            Type.ContentManipulation,
-                            Source.GetIndexedLen,
-                        ),
-                    );
-                });
+                .catch((err) => reject(NativeError.from(err)));
         });
     }
 
@@ -533,15 +493,7 @@ export class RustSessionWrapper extends RustSession {
                         after: typeof result[1] !== 'number' ? undefined : result[1],
                     });
                 })
-                .catch((err) => {
-                    reject(
-                        new NativeError(
-                            NativeError.from(err),
-                            Type.ContentManipulation,
-                            Source.getAroundIndexes,
-                        ),
-                    );
-                });
+                .catch((err) => reject(NativeError.from(err)));
         });
     }
 
@@ -551,15 +503,7 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .expandBreadcrumbs(seporator, offset, above)
                 .then(resolve)
-                .catch((err) => {
-                    reject(
-                        new NativeError(
-                            NativeError.from(err),
-                            Type.ContentManipulation,
-                            Source.ExpandBreadcrumbs,
-                        ),
-                    );
-                });
+                .catch((err) => reject(NativeError.from(err)));
         });
     }
 
@@ -569,15 +513,7 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .removeBookmark(row)
                 .then(resolve)
-                .catch((err) => {
-                    reject(
-                        new NativeError(
-                            NativeError.from(err),
-                            Type.ContentManipulation,
-                            Source.RemoveBookmark,
-                        ),
-                    );
-                });
+                .catch((err) => reject(NativeError.from(err)));
         });
     }
 
@@ -587,15 +523,7 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .addBookmark(row)
                 .then(resolve)
-                .catch((err) => {
-                    reject(
-                        new NativeError(
-                            NativeError.from(err),
-                            Type.ContentManipulation,
-                            Source.AddBookmark,
-                        ),
-                    );
-                });
+                .catch((err) => reject(NativeError.from(err)));
         });
     }
 
@@ -605,41 +533,17 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .setBookmarks(rows)
                 .then(resolve)
-                .catch((err) => {
-                    reject(
-                        new NativeError(
-                            NativeError.from(err),
-                            Type.ContentManipulation,
-                            Source.SetBookmarks,
-                        ),
-                    );
-                });
+                .catch((err) => reject(NativeError.from(err)));
         });
     }
 
     public grabStreamRanges(ranges: IRange[]): Promise<IGrabbedElement[]> {
         return new Promise((resolve, reject) => {
-            try {
-                this._provider.debug().emit.operation('grabRanges');
-                this._native
-                    .grabRanges(ranges.map((r) => [r.from, r.to]))
-                    .then((buf: number[]) => {
-                        resolve(Types.decodeGrabbedElementList(buf));
-                    })
-                    .catch((err: Error) => {
-                        reject(
-                            new NativeError(
-                                NativeError.from(err),
-                                Type.Other,
-                                Source.GrabStreamChunk,
-                            ),
-                        );
-                    });
-            } catch (err) {
-                return reject(
-                    new NativeError(NativeError.from(err), Type.Other, Source.GrabStreamChunk),
-                );
-            }
+            this._provider.debug().emit.operation('grabRanges');
+            this._native
+                .grabRanges(ranges.map((r) => [r.from, r.to]))
+                .then((buf: number[]) => resolve(Types.decodeGrabbedElementList(buf)))
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -651,15 +555,7 @@ export class RustSessionWrapper extends RustSession {
                 .then((buf: number[]) => {
                     resolve(Types.decodeGrabbedElementList(buf));
                 })
-                .catch((err) => {
-                    reject(
-                        new NativeError(
-                            NativeError.from(err),
-                            Type.GrabbingSearch,
-                            Source.GrabSearchChunk,
-                        ),
-                    );
-                });
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -677,9 +573,7 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .getStreamLen()
                 .then(resolve)
-                .catch((err) => {
-                    reject(new NativeError(NativeError.from(err), Type.Other, Source.GetStreamLen));
-                });
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -689,9 +583,7 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .getSearchLen()
                 .then(resolve)
-                .catch((err) => {
-                    reject(new NativeError(NativeError.from(err), Type.Other, Source.GetSearchLen));
-                });
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -713,9 +605,7 @@ export class RustSessionWrapper extends RustSession {
                     operationUuid,
                 )
                 .then(resolve)
-                .catch((err: Error) => {
-                    reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
-                });
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -749,21 +639,15 @@ export class RustSessionWrapper extends RustSession {
 
     public exportRaw(dest: string, ranges: IRange[], operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            try {
-                this._provider.debug().emit.operation('exportRaw', operationUuid);
-                this._native
-                    .exportRaw(
-                        dest,
-                        ranges.map((r) => [r.from, r.to]),
-                        operationUuid,
-                    )
-                    .then(resolve)
-                    .catch((err: Error) => {
-                        reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
-                    });
-            } catch (err) {
-                return reject(new NativeError(NativeError.from(err), Type.Other, Source.Assign));
-            }
+            this._provider.debug().emit.operation('exportRaw', operationUuid);
+            this._native
+                .exportRaw(
+                    dest,
+                    ranges.map((r) => [r.from, r.to]),
+                    operationUuid,
+                )
+                .then(resolve)
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -773,55 +657,37 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .isRawExportAvailable()
                 .then(resolve)
-                .catch((err) => {
-                    reject(new NativeError(NativeError.from(err), Type.Other, Source.GetSearchLen));
-                });
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
     public search(filters: IFilter[], operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            try {
-                this._provider.debug().emit.operation('applySearchFilters', operationUuid);
-                this._native
-                    .applySearchFilters(
-                        filters.map((filter) => {
-                            return {
-                                value: filter.filter,
-                                is_regex: filter.flags.reg,
-                                ignore_case: !filter.flags.cases,
-                                is_word: filter.flags.word,
-                            };
-                        }),
-                        operationUuid,
-                    )
-                    .then(resolve)
-                    .catch((err: Error) => {
-                        reject(new NativeError(NativeError.from(err), Type.Other, Source.Search));
-                    });
-            } catch (err) {
-                return reject(new NativeError(NativeError.from(err), Type.Other, Source.Search));
-            }
+            this._provider.debug().emit.operation('applySearchFilters', operationUuid);
+            this._native
+                .applySearchFilters(
+                    filters.map((filter) => {
+                        return {
+                            value: filter.filter,
+                            is_regex: filter.flags.reg,
+                            ignore_case: !filter.flags.cases,
+                            is_word: filter.flags.word,
+                        };
+                    }),
+                    operationUuid,
+                )
+                .then(resolve)
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
     public searchValues(filters: string[], operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            try {
-                this._provider.debug().emit.operation('applySearchValuesFilters', operationUuid);
-                this._native
-                    .applySearchValuesFilters(filters, operationUuid)
-                    .then(resolve)
-                    .catch((err: Error) => {
-                        reject(
-                            new NativeError(NativeError.from(err), Type.Other, Source.SearchValues),
-                        );
-                    });
-            } catch (err) {
-                return reject(
-                    new NativeError(NativeError.from(err), Type.Other, Source.SearchValues),
-                );
-            }
+            this._provider.debug().emit.operation('applySearchValuesFilters', operationUuid);
+            this._native
+                .applySearchValuesFilters(filters, operationUuid)
+                .then(resolve)
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -831,35 +697,21 @@ export class RustSessionWrapper extends RustSession {
 
     public extractMatchesValues(filters: IFilter[], operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            try {
-                this._provider.debug().emit.operation('extractMatches', operationUuid);
-                this._native
-                    .extractMatches(
-                        filters.map((filter) => {
-                            return {
-                                value: filter.filter,
-                                is_regex: filter.flags.reg,
-                                ignore_case: !filter.flags.cases,
-                                is_word: filter.flags.word,
-                            };
-                        }),
-                        operationUuid,
-                    )
-                    .then(resolve)
-                    .catch((err: Error) => {
-                        reject(
-                            new NativeError(
-                                NativeError.from(err),
-                                Type.Other,
-                                Source.ExtractMatchesValues,
-                            ),
-                        );
-                    });
-            } catch (err) {
-                return reject(
-                    new NativeError(NativeError.from(err), Type.Other, Source.ExtractMatchesValues),
-                );
-            }
+            this._provider.debug().emit.operation('extractMatches', operationUuid);
+            this._native
+                .extractMatches(
+                    filters.map((filter) => {
+                        return {
+                            value: filter.filter,
+                            is_regex: filter.flags.reg,
+                            ignore_case: !filter.flags.cases,
+                            is_word: filter.flags.word,
+                        };
+                    }),
+                    operationUuid,
+                )
+                .then(resolve)
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -879,9 +731,7 @@ export class RustSessionWrapper extends RustSession {
                 }
             })()
                 .then(resolve)
-                .catch((err) => {
-                    reject(new NativeError(NativeError.from(err), Type.Other, Source.GetMap));
-                });
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -901,9 +751,7 @@ export class RustSessionWrapper extends RustSession {
                 }
             })()
                 .then(resolve)
-                .catch((err) => {
-                    reject(new NativeError(NativeError.from(err), Type.Other, Source.GetMap));
-                });
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -913,9 +761,7 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .getNearestTo(operationUuid, positionInStream)
                 .then(resolve)
-                .catch((err) => {
-                    reject(new NativeError(NativeError.from(err), Type.Other, Source.GetNearestTo));
-                });
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -923,12 +769,8 @@ export class RustSessionWrapper extends RustSession {
         return new Promise((resolve, reject) => {
             this._native
                 .sendIntoSde(targetOperationUuid, Types.encodeSdeRequest(request))
-                .then((buf: number[]) => {
-                    resolve(Types.decodeSdeResponse(buf));
-                })
-                .catch((err) => {
-                    reject(new NativeError(NativeError.from(err), Type.Other, Source.SendIntoSde));
-                });
+                .then((buf: number[]) => resolve(Types.decodeSdeResponse(buf)))
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -936,14 +778,8 @@ export class RustSessionWrapper extends RustSession {
         return new Promise((resolve, reject) => {
             this._native
                 .getAttachments()
-                .then((buf: number[]) => {
-                    resolve(Types.decodeAttachmentInfoList(buf));
-                })
-                .catch((err) => {
-                    reject(
-                        new NativeError(NativeError.from(err), Type.Other, Source.GetAttachments),
-                    );
-                });
+                .then((buf: number[]) => resolve(Types.decodeAttachmentInfoList(buf)))
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -951,21 +787,8 @@ export class RustSessionWrapper extends RustSession {
         return new Promise((resolve, reject) => {
             this._native
                 .getIndexedRanges()
-                .then((buf: number[]) => {
-                    const msg = proto.RangeInclusiveList.decode(Uint8Array.from(buf));
-                    console.log(`>>>>>>>>>>>>>>>>>>>>>> getIndexedRanges:`);
-                    console.log(msg);
-                    resolve(
-                        msg.elements.map((el: any) => {
-                            return { from: el.start, to: el.end };
-                        }),
-                    );
-                })
-                .catch((err) => {
-                    reject(
-                        new NativeError(NativeError.from(err), Type.Other, Source.GetAttachments),
-                    );
-                });
+                .then((buf: number[]) => resolve(Types.decodeIRanges(buf)))
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -974,7 +797,11 @@ export class RustSessionWrapper extends RustSession {
             this._provider.debug().emit.operation('abort', selfOperationUuid);
             return this._native.abort(selfOperationUuid, targetOperationUuid);
         } catch (err) {
-            return new NativeError(NativeError.from(err), Type.CancelationError, Source.Abort);
+            return new NativeError(
+                new Error(utils.error(err)),
+                Type.CancelationError,
+                Source.Abort,
+            );
         }
     }
 
@@ -983,9 +810,7 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .setDebug(debug)
                 .then(resolve)
-                .catch((err) => {
-                    reject(new NativeError(NativeError.from(err), Type.Other, Source.SetDebug));
-                });
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -994,15 +819,7 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .getOperationsStat()
                 .then(resolve)
-                .catch((err) => {
-                    reject(
-                        new NativeError(
-                            NativeError.from(err),
-                            Type.Other,
-                            Source.GetOperationsStat,
-                        ),
-                    );
-                });
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -1017,9 +834,7 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .sleep(operationUuid, duration, ignoreCancellation)
                 .then(resolve)
-                .catch((err) => {
-                    reject(new NativeError(NativeError.from(err), Type.Other, Source.Sleep));
-                });
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -1030,15 +845,7 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .triggerStateError()
                 .then(resolve)
-                .catch((err) => {
-                    reject(
-                        new NativeError(
-                            NativeError.from(err),
-                            Type.Other,
-                            Source.TriggerStateError,
-                        ),
-                    );
-                });
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 
@@ -1049,15 +856,7 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .triggerTrackerError()
                 .then(resolve)
-                .catch((err) => {
-                    reject(
-                        new NativeError(
-                            NativeError.from(err),
-                            Type.Other,
-                            Source.TriggerTrackerError,
-                        ),
-                    );
-                });
+                .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
 }
