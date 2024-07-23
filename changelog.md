@@ -1,3 +1,8 @@
+# 3.12.9 (06.06.2024)
+
+## Fixes
+- Fix issue with non-UTF8 symbols in paths (recent actions)
+
 # 3.12.8 (24.05.2024)
 
 ## Fixes

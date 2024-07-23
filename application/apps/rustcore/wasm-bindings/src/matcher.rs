@@ -1,5 +1,4 @@
 extern crate fuzzy_matcher;
-extern crate serde_json;
 extern crate wasm_bindgen;
 
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
@@ -32,9 +31,9 @@ impl Matcher {
     }
 
     #[wasm_bindgen]
-    pub fn set_item(&mut self, item: String) -> Result<usize, String> {
-        match serde_json::from_str(&item) {
-            Ok::<HashMap<String, String>, _>(item) => {
+    pub fn set_item(&mut self, item: JsValue) -> Result<usize, String> {
+        match serde_wasm_bindgen::from_value::<HashMap<String, String>>(item) {
+            Ok(item) => {
                 self.items_initial.push(item);
                 self.search(String::new(), None);
                 Ok(self.items_initial.len() - 1)
@@ -44,9 +43,9 @@ impl Matcher {
     }
 
     #[wasm_bindgen]
-    pub fn set_items(&mut self, items: String) -> Result<usize, String> {
-        match serde_json::from_str(&items) {
-            Ok::<Vec<HashMap<String, String>>, _>(mut items) => {
+    pub fn set_items(&mut self, items: JsValue) -> Result<usize, String> {
+        match serde_wasm_bindgen::from_value::<Vec<HashMap<String, String>>>(items) {
+            Ok(mut items) => {
                 let from = self.items_initial.len();
                 self.items_initial.append(&mut items);
                 self.search(String::new(), None);
@@ -184,7 +183,7 @@ fn test(query: String, tag: Option<String>, expected: Vec<HashMap<&str, &str>>) 
         ]),
     ]);
     for item in &items {
-        match serde_json::to_string(&item) {
+        match serde_wasm_bindgen::to_value(&item) {
             Ok(item) => {
                 if let Err(err) = matcher.set_item(item) {
                     panic!("{}", err)
