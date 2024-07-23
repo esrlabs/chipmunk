@@ -144,49 +144,79 @@ export function toObserveOptions(source: IObserve): ObserveOptions {
                 $.Origin.Stream.Stream.Process.Configuration,
             );
             const serialOrigin = stream.as<$.Origin.Stream.Stream.Serial.Configuration>(
-                $.Origin.Stream.Stream.Process.Configuration,
+                $.Origin.Stream.Stream.Serial.Configuration,
             );
             const tcpOrigin = stream.as<$.Origin.Stream.Stream.TCP.Configuration>(
-                $.Origin.Stream.Stream.Process.Configuration,
+                $.Origin.Stream.Stream.TCP.Configuration,
             );
             const udpOrigin = stream.as<$.Origin.Stream.Stream.UDP.Configuration>(
-                $.Origin.Stream.Stream.Process.Configuration,
+                $.Origin.Stream.Stream.UDP.Configuration,
             );
             return {
                 Stream: {
                     name: stream.configuration[0],
-                    transport: ((): Transport => {
-                        if (processOrigin !== undefined) {
-                            return {
-                                Process: {
-                                    cwd: processOrigin.configuration.cwd,
-                                    command: processOrigin.configuration.command,
-                                    envs: processOrigin.configuration.envs,
-                                },
-                            };
-                        } else if (serialOrigin !== undefined) {
-                            return {
-                                Serial: serialOrigin.configuration,
-                            };
-                        } else if (tcpOrigin !== undefined) {
-                            return { Tcp: tcpOrigin.configuration };
-                        } else if (udpOrigin !== undefined) {
-                            return {
-                                Udp: {
-                                    bind_addr: udpOrigin.configuration.bind_addr,
-                                    multicast: udpOrigin.configuration.multicast.map((ma) => {
-                                        return {
-                                            multiaddr: ma.multiaddr,
-                                            interface:
-                                                ma.interface === undefined ? '' : ma.interface,
-                                        };
-                                    }),
-                                },
-                            };
-                        } else {
-                            throw new Error(`Unknown transport`);
-                        }
-                    })(),
+                    transport: {
+                        transport: ((): Transport => {
+                            if (processOrigin !== undefined) {
+                                const envs: Map<string, string> = new Map();
+                                Object.keys(processOrigin.configuration.envs).forEach(
+                                    (key: string) => {
+                                        if (
+                                            ['string', 'number', 'boolean'].includes(
+                                                typeof processOrigin.configuration.envs[key],
+                                            )
+                                        ) {
+                                            envs.set(
+                                                key,
+                                                processOrigin.configuration.envs[key].toString(),
+                                            );
+                                        }
+                                    },
+                                );
+                                return {
+                                    Process: {
+                                        cwd: processOrigin.configuration.cwd,
+                                        command: processOrigin.configuration.command,
+                                        envs,
+                                    },
+                                };
+                            } else if (serialOrigin !== undefined) {
+                                return {
+                                    Serial: {
+                                        send_data_delay: serialOrigin.configuration.send_data_delay,
+                                        baud_rate: serialOrigin.configuration.baud_rate,
+                                        data_bits: serialOrigin.configuration.data_bits,
+                                        exclusive: serialOrigin.configuration.exclusive,
+                                        flow_control: serialOrigin.configuration.flow_control,
+                                        parity: serialOrigin.configuration.parity,
+                                        path: serialOrigin.configuration.path,
+                                        stop_bits: serialOrigin.configuration.stop_bits,
+                                    },
+                                };
+                            } else if (tcpOrigin !== undefined) {
+                                return {
+                                    Tcp: {
+                                        bind_addr: tcpOrigin.configuration.bind_addr,
+                                    },
+                                };
+                            } else if (udpOrigin !== undefined) {
+                                return {
+                                    Udp: {
+                                        bind_addr: udpOrigin.configuration.bind_addr,
+                                        multicast: udpOrigin.configuration.multicast.map((ma) => {
+                                            return {
+                                                multiaddr: ma.multiaddr,
+                                                interface:
+                                                    ma.interface === undefined ? '' : ma.interface,
+                                            };
+                                        }),
+                                    },
+                                };
+                            } else {
+                                throw new Error(`Unknown transport`);
+                            }
+                        })(),
+                    },
                 },
             };
         } else {
