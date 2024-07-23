@@ -9,6 +9,9 @@ import { Logger } from 'platform/log';
 import { scope } from 'platform/env/scope';
 import { TEventData, TEventEmitter, IEventData } from '../provider/provider.general';
 
+import * as proto from 'protocol';
+import * as Types from '../protocol';
+
 export interface IOrderStat {
     type: 'E' | 'O';
     name: string;
@@ -228,10 +231,12 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
     private _emitter(data: TEventData) {
         function dataAsStr(data: TEventData): { debug: string; verb?: string } {
             let message = '';
-            if (typeof data === 'string') {
-                message = `(defined as string): ${data}`;
+            if (data instanceof Array) {
+                message = `(as bytes): ${data.join(',')}`;
+            } else if (typeof data === 'string') {
+                message = `(as string): ${data}`;
             } else {
-                message = `(defined as object): keys: ${Object.keys(data).join(
+                message = `(as object): keys: ${Object.keys(data).join(
                     ', ',
                 )} / values: ${Object.keys(data)
                     .map((k) => JSON.stringify(data[k]))
@@ -246,7 +251,11 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         this.logger.verbose(`Event from rust:\n\t${logs.debug}`);
         logs.verb !== undefined && this.logger.verbose(`Event from rust:\n\t${logs.verb}`);
         let event: Required<IEventData>;
-        if (typeof data === 'string') {
+        if (data instanceof Array) {
+            event = Types.decodeCallbackEvent(data);
+            console.log(`>>>>>>>>>>>>>>>>>>>> CallbackEvent`);
+            console.log(event);
+        } else if (typeof data === 'string') {
             try {
                 event = JSON.parse(data);
             } catch (e) {

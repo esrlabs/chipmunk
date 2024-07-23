@@ -7,8 +7,6 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-prost = "0.12.6"
-prost-types = "0.12.6"
 serde-wasm-bindgen = "0.6.5"
 wasm-bindgen = "0.2.92"
 serde = { version = "1.0", features = ["derive"] }
@@ -16,4 +14,6 @@ thiserror = "1.0.62"
 wasm-bindgen-test = "0.3.42"
 proto = { path = "../proto"}
 extend = { path = "../extend"}
+prost = "0.13.1"
+prost-types = "0.13.1"
 
