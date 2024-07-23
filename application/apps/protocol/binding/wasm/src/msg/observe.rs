@@ -19,6 +19,15 @@ pub struct SomeIpParserSettings;
 #[extend(observe)]
 pub struct ProcessTransportConfig;
 
+#[extend(observe_origin)]
+pub struct File;
+
+#[extend(observe_origin)]
+pub struct Concat;
+
+#[extend(observe_origin)]
+pub struct Stream;
+
 #[extend(observe)]
 pub struct SerialTransportConfig;
 
