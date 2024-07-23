@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "platform": "link:../../../platform",
+    "protocol": "link:../../protocol/binding/wasm/pkg",
     "tslib": "^2.6.2",
     "uuid": "^9.0.1"
   },

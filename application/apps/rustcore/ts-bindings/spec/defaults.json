@@ -28,6 +28,16 @@
                 }
             }
         },
+        "protocol": {
+            "regular": {
+                "execute_only": [],
+                "list": {
+                    "1": "Test 1. CallbackEvent"
+                },
+                "files": {
+                }
+            }
+        },
         "stream": {
             "regular": {
                 "execute_only": [],
