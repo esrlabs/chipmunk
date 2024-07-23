@@ -18,14 +18,38 @@ const config = readConfigurationFile().get().tests.protocol;
 describe('Protocol', function () {
     it(config.regular.list[1], function () {
         return runner(config.regular, 1, async (logger, done, collector) => {
-            let observe = Types.toObserveOptions({
-                origin: { File: ['somefile', $.Types.File.FileType.Text, 'path_to_file'] },
-                parser: { Text: null },
-            });
-            let buf = proto.ObserveOptions.encode(observe);
-            console.log(buf);
-            let decoded = proto.ObserveOptions.decode(buf);
-            console.log(decoded.origin.origin.File);
+            {
+                let origin = Types.toObserveOptions({
+                    origin: { File: ['somefile', $.Types.File.FileType.Text, 'path_to_file'] },
+                    parser: { Text: null },
+                });
+                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
+                expect(JSON.stringify(origin)).toEqual(JSON.stringify(decoded));
+            }
+            {
+                let origin = Types.toObserveOptions({
+                    origin: {
+                        Stream: ['stream', { TCP: { bind_addr: '0.0.0.0' } }],
+                    },
+                    parser: { Text: null },
+                });
+                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
+                expect(JSON.stringify(origin)).toEqual(JSON.stringify(decoded));
+            }
+            {
+                let origin = Types.toObserveOptions({
+                    origin: {
+                        Stream: [
+                            'stream',
+                            { Process: { command: 'command', cwd: 'cwd', envs: { one: 'one' } } },
+                        ],
+                    },
+                    parser: { Text: null },
+                });
+                console.log((origin.origin as any).origin.Stream.transport.transport.Process);
+                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
+                expect(JSON.stringify(origin)).toEqual(JSON.stringify(decoded));
+            }
             finish(undefined, done);
         });
     });
