@@ -74,3 +74,8 @@ def print_green_bold(text: str):
 def print_red_bold(text: str):
     """Prints the given text to stdout with bold and red attribute"""
     print(f"{bcolors.BOLD}{bcolors.FAIL}{text}{bcolors.ENDC}{bcolors.ENDC}")
+
+
+def print_cyan(text: str):
+    """Prints the given text to stdout with cyan color attribute"""
+    print(f"{bcolors.OKCYAN}{text}{bcolors.ENDC}")

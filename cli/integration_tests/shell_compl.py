@@ -16,7 +16,7 @@ PRINT_COMPLETION_COMMAND = [
 SHELLS = ["bash", "elvish", "fish", "powershell", "zsh"]
 
 
-def run_print_dot_commands():
+def run_shell_completion_commands():
     """Runs commands to generate shell completion on all the available shells"""
     for shell in SHELLS:
         print_blue_bold(f"Runnig Shell Completion command for {shell}")
@@ -27,4 +27,4 @@ def run_print_dot_commands():
 
 
 if __name__ == "__main__":
-    run_print_dot_commands()
+    run_shell_completion_commands()
