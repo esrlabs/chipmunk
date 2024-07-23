@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-//NOTE: The order of job types must match the runnig-order of them because it's used by
+//NOTE: The order of job types must match the running-order of them because it's used by
 // solving their dependencies-graph using BTreeMap
 pub enum JobType {
     Clean,
@@ -20,7 +20,7 @@ impl Display for JobType {
             JobType::Clean => write!(f, "Clean"),
             JobType::Build { production: _ } => write!(f, "Build"),
             JobType::Install { production: _ } => write!(f, "Install"),
-            JobType::AfterBuild { production: _ } => write!(f, "After Bulid"),
+            JobType::AfterBuild { production: _ } => write!(f, "After Build"),
             JobType::Test { production: _ } => write!(f, "Test"),
             JobType::Run { production: _ } => write!(f, "Run"),
         }

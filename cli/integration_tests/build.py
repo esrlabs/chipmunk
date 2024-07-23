@@ -120,7 +120,7 @@ and please consider opening an issue if you can reproduce this behavior"""
 # Paths of files and directory in platform target and all other targets depending on it.
 # The modification date for this files will be read before the checksum test starts, then it will be compared after
 # the build command has finished to insure that the those targets have been rebuilt.
-APP_PATHS_FOR_CHECKSUM_CHECK = [
+INVOLVED_PATHS_CHECKSUM_CHECK = [
     # Shared
     "platform/dist/lib.js",
     # Binding
@@ -131,6 +131,18 @@ APP_PATHS_FOR_CHECKSUM_CHECK = [
     "client/dist",
     # App
     "holder/dist/app.js",
+]
+
+# Paths of files and directory that must be not changed after running the build with the changes in platform
+# The modification date for this files will be read before the checksum test starts, then it will be compared after
+# the build command has finished to insure that the those targets have not been rebuilt.
+PATHS_NON_INVOLVED_CHECKSUM_CHECK = [
+    # Core
+    "apps/indexer/target",
+    # Wasm
+    "apps/rustcore/wasm-bindings/pkg",
+    # Updater
+    "apps/precompiled/updater/target",
 ]
 
 
@@ -148,15 +160,25 @@ def _build_checksum_check():
         chksum_file.exists()
     ), f"Checksum File must exist before running checksum tests. File Path: {chksum_file}"
 
-    # Save modification date for build paths before start to compare them later.
-    modifi_before_start: Dict[Path, datetime] = {}
-    for sub_path in APP_PATHS_FOR_CHECKSUM_CHECK:
+    # Save modification date for build paths that must change before start to compare them later.
+    modifi_involved_before_start: Dict[Path, datetime] = {}
+    for sub_path in INVOLVED_PATHS_CHECKSUM_CHECK:
         sub_path = application_dir.joinpath(sub_path)
         assert (
             sub_path.exists()
         ), f"Build Path must exist before checksum tests starts. Path {sub_path}"
         modifi_date = datetime.fromtimestamp(sub_path.stat().st_mtime)
-        modifi_before_start[sub_path] = modifi_date
+        modifi_involved_before_start[sub_path] = modifi_date
+
+    # Save modification date for build paths that must sta before start to compare them later.
+    modifi_non_involved_before_start: Dict[Path, datetime] = {}
+    for sub_path in PATHS_NON_INVOLVED_CHECKSUM_CHECK:
+        sub_path = application_dir.joinpath(sub_path)
+        assert (
+            sub_path.exists()
+        ), f"Build Path must exist before checksum tests starts. Path {sub_path}"
+        modifi_date = datetime.fromtimestamp(sub_path.stat().st_mtime)
+        modifi_non_involved_before_start[sub_path] = modifi_date
 
     # Define temporary file path in platform directory to insure it will be rebuilt
     # with all other targets depending on it.
@@ -174,11 +196,20 @@ def _build_checksum_check():
         run_command(BUILD_COMMAND)
 
         # Compare modification date for involved targets
-        for path, modifi_before in modifi_before_start.items():
+        for path, modifi_before in modifi_involved_before_start.items():
             modifi_after = datetime.fromtimestamp(path.stat().st_mtime)
             assert (
                 modifi_after > modifi_before
-            ), f"Target modified date after must be more recent than before.\n\
+            ), f"Involved target modification date after must be more recent than before.\n\
+            Target Path: {path}.\n\
+            Before: {modifi_before}, After: {modifi_after}"
+
+        # Compare modification date for not involved targets
+        for path, modifi_before in modifi_involved_before_start.items():
+            modifi_after = datetime.fromtimestamp(path.stat().st_mtime)
+            assert (
+                modifi_after != modifi_before
+            ), f"Not involved target modification date must not be changed.\n\
             Target Path: {path}.\n\
             Before: {modifi_before}, After: {modifi_after}"
     finally:
