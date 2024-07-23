@@ -2,7 +2,7 @@
 Provides methods to test the Environment commands in Chipmunk Build CLI Tool
 """
 
-import subprocess
+from utls import run_command, print_blue_bold, print_green_bold
 
 ENVIRONMENT_CHECK_COMMAND = [
     "cargo",
@@ -28,13 +28,13 @@ ENVIRONMENT_PRINT_COMMAND = [
 def run_environment_commands():
     """Runs environment command to check the installed development tools for chipmunk,
     and the command to print infos about those tools"""
-    print("Running Environment Check command...")
-    subprocess.run(ENVIRONMENT_CHECK_COMMAND, check=True)
-    print("*** Environment Check Command Succeeded ***")
+    print_blue_bold("Running Environment Check command...")
+    run_command(ENVIRONMENT_CHECK_COMMAND)
+    print_green_bold("*** Environment Check Command Succeeded ***")
 
-    print("Running Environment Print command...")
-    subprocess.run(ENVIRONMENT_PRINT_COMMAND, check=True)
-    print("*** Environment Print Command Succeeded ***")
+    print_blue_bold("Running Environment Print command...")
+    run_command(ENVIRONMENT_PRINT_COMMAND)
+    print_green_bold("*** Environment Print Command Succeeded ***")
 
 
 if __name__ == "__main__":

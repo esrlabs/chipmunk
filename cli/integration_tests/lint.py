@@ -2,7 +2,7 @@
 Provides methods to test the Lint command in Chipmunk Build CLI Tool
 """
 
-import subprocess
+from utls import run_command, print_green_bold, print_blue_bold
 
 LINT_COMMAND = [
     "cargo",
@@ -16,9 +16,9 @@ LINT_COMMAND = [
 
 def run_lint_command():
     """Runs lint command for all targets. This test will fail on linting errors as well."""
-    print("Running Lint command...")
-    subprocess.run(LINT_COMMAND, check=True)
-    print("*** Check for Lint Command Succeeded ***")
+    print_blue_bold("Running Lint command...")
+    run_command(LINT_COMMAND)
+    print_green_bold("*** Check for Lint Command Succeeded ***")
 
 
 if __name__ == "__main__":

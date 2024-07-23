@@ -2,9 +2,8 @@
 Provides methods to test the Clean command in Chipmunk Build CLI Tool
 """
 
-import subprocess
 from pathlib import Path
-from utls import get_root
+from utls import run_command, print_blue_bold, print_green_bold, get_root
 
 CLEAN_COMMAND = [
     "cargo",
@@ -65,13 +64,13 @@ def get_removed_paths() -> list[Path]:
 
 def run_clean_command():
     """Runs Clean Commands on all targets and insure that all build directories are delted."""
-    print("Running clean command...")
-    subprocess.run(CLEAN_COMMAND, check=True)
+    print_blue_bold("Running clean command...")
+    run_command(CLEAN_COMMAND)
     for path in get_removed_paths():
         if path.exists():
             raise AssertionError(f"Path exists after clean. Path: {path}")
 
-    print("*** Check for Clean Command Succeeded ***")
+    print_green_bold("*** Check for Clean Command Succeeded ***")
 
 
 if __name__ == "__main__":
