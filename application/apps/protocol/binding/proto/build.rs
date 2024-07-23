@@ -19,7 +19,10 @@ fn main() {
         })
         .collect();
     prost_build::Config::new()
-        .type_attribute(".", "#[derive(serde::Serialize, serde::Deserialize)]")
+        .type_attribute(
+            ".",
+            "#[derive(serde::Serialize, serde::Deserialize, ts_rs::TS)]#[ts(export)]",
+        )
         .compile_protos(&protos, &[PROTO_SRC])
         .expect("Fail to compile protos");
 }
