@@ -1,6 +1,7 @@
 import { IObserve, Observe } from 'platform/types/observe';
 import { Attachment, IGrabbedElement } from 'platform/types/content';
 import { getValidNum } from '../util/numbers';
+import { IRange } from 'platform/types/range';
 
 import { Aborted } from './Aborted';
 import { DltFilterConfig } from './DltFilterConfig';
@@ -91,6 +92,15 @@ import * as proto from 'protocol';
 import * as $ from 'platform/types/observe';
 import * as sde from 'platform/types/sde';
 
+export function decodeIRanges(buf: number[]): IRange[] {
+    const list: RangeInclusiveList = proto.RangeInclusiveList.decode(Uint8Array.from(buf));
+    return list.elements.map((el: RangeInclusive) => {
+        return {
+            from: Number(el.start),
+            to: Number(el.end),
+        };
+    });
+}
 export function toObserveOptions(source: IObserve): ObserveOptions {
     const ob = new Observe(source);
     const file = ob.origin.as<$.Origin.File.Configuration>($.Origin.File.Configuration);
@@ -99,13 +109,13 @@ export function toObserveOptions(source: IObserve): ObserveOptions {
     const ft = (ft: $.Types.File.FileType) => {
         switch (ft) {
             case $.Types.File.FileType.Text:
-                return 0;
-            case $.Types.File.FileType.Binary:
-                return 1;
-            case $.Types.File.FileType.PcapNG:
                 return 2;
-            case $.Types.File.FileType.PcapLegacy:
+            case $.Types.File.FileType.Binary:
                 return 3;
+            case $.Types.File.FileType.PcapNG:
+                return 0;
+            case $.Types.File.FileType.PcapLegacy:
+                return 1;
         }
     };
     const origin: Origin = ((): Origin => {
@@ -251,7 +261,9 @@ export function decodeCallbackEvent(buf: number[]): any {
         return {};
     }
     const inner: Event = event.event;
-    if ('FileRead' in inner) {
+    if ('SessionDestroyed' in inner) {
+        return { SessionDestroyed: null };
+    } else if ('FileRead' in inner) {
         return { FileRead: null };
     } else if ('AttachmentsUpdated' in inner) {
         const attachment = inner.AttachmentsUpdated.attachment;
@@ -404,7 +416,7 @@ export function decodeAttachmentInfoList(buf: number[]): Attachment[] {
             }
             return el;
         })
-        .filter((el) => el instanceof Attachment);
+        .filter((el) => el instanceof Attachment) as Attachment[];
 }
 
 export function decodeSdeResponse(buf: number[]): sde.SdeResponse {
