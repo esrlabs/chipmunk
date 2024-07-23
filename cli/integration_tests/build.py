@@ -7,6 +7,7 @@ from pathlib import Path
 from utls import get_root, run_command, print_green_bold, print_blue_bold
 from datetime import datetime
 from typing import Dict
+import platform
 
 # Build command to be used in all build tests
 BUILD_COMMAND = [
@@ -72,7 +73,7 @@ def _build_general_check():
 
     # Get last modification date for checksum file if exists otherwise get minimal date
     checksum_modified_before = (
-        datetime.fromtimestamp(checksum_path.stat().st_mtime)
+        get_last_modification_date(checksum_path)
         if checksum_path.exists()
         else datetime.min
     )
@@ -94,7 +95,7 @@ def _build_general_check():
         checksum_path.exists()
     ), f"Checksum record file doesn't exist after build. File Path: {checksum_path}"
 
-    checksum_modified_after = datetime.fromtimestamp(checksum_path.stat().st_mtime)
+    checksum_modified_after = get_last_modification_date(checksum_path)
 
     assert (
         checksum_modified_after > checksum_modified_before
@@ -146,6 +147,28 @@ PATHS_NON_INVOLVED_CHECKSUM_CHECK = [
 ]
 
 
+def get_last_modification_date(path: Path) -> datetime:
+    """Gets the last modification date for the given path on different platforms
+    On Unix it will return the last time the meta data of the file has been changed
+    On Windows it will return the more recent between creating and last modification times
+    """
+    # Get file stats
+    stats = path.stat()
+
+    # On Unix, return the last time any of the file meta data has changed
+    if platform.system() != "Windows":
+        return datetime.fromtimestamp(stats.st_ctime)
+
+    # On Windows, return the greater of st_mtime and st_birthtime because time information on Windows can be misleading,
+    # like it's possible to get a creation time that is more recent than the modification time.
+    else:
+        most_recent_time = max(
+            stats.st_mtime,
+            stats.st_birthtime,
+        )
+        return datetime.fromtimestamp(most_recent_time)
+
+
 def _build_checksum_check():
     """!!!This function must run directly after a full build!!!
     It creates a dummy file in platform directory and checks that all dependencies (Binding, Wrapper, Client, App)
@@ -167,7 +190,7 @@ def _build_checksum_check():
         assert (
             sub_path.exists()
         ), f"Build Path must exist before checksum tests starts. Path {sub_path}"
-        modifi_date = datetime.fromtimestamp(sub_path.stat().st_mtime)
+        modifi_date = get_last_modification_date(sub_path)
         modifi_involved_before_start[sub_path] = modifi_date
 
     # Save modification date for build paths that must sta before start to compare them later.
@@ -177,7 +200,7 @@ def _build_checksum_check():
         assert (
             sub_path.exists()
         ), f"Build Path must exist before checksum tests starts. Path {sub_path}"
-        modifi_date = datetime.fromtimestamp(sub_path.stat().st_mtime)
+        modifi_date = get_last_modification_date(sub_path)
         modifi_non_involved_before_start[sub_path] = modifi_date
 
     # Define temporary file path in platform directory to insure it will be rebuilt
@@ -195,18 +218,34 @@ def _build_checksum_check():
         # Run build command
         run_command(BUILD_COMMAND)
 
-        # Compare modification date for involved targets
-        for path, modifi_before in modifi_involved_before_start.items():
-            modifi_after = datetime.fromtimestamp(path.stat().st_mtime)
+        # Compare modification date for involved targets on different platforms
+        if platform.system() != "Windows":
+            # On Unix systems we compare all the involved targets to insure the checksum solution is
+            # working and to test the build dependencies logic
+            for path, modifi_before in modifi_involved_before_start.items():
+                modifi_after = get_last_modification_date(path)
+                assert (
+                    modifi_after > modifi_before
+                ), f"Involved target modification date after must be more recent than before.\n\
+                Target Path: {path}.\n\
+                Before: {modifi_before}, After: {modifi_after}"
+        else:
+            # On Windows it's enough that only one of the involved target has more recent date
+            # because the file system here isn't reliable in delivering the current time of the
+            # latest change on a file or directory
+            date_changed = False
+            for path, modifi_before in modifi_involved_before_start.items():
+                modifi_after = get_last_modification_date(path)
+                date_changed = modifi_after > modifi_before
+                if date_changed:
+                    break
             assert (
-                modifi_after > modifi_before
-            ), f"Involved target modification date after must be more recent than before.\n\
-            Target Path: {path}.\n\
-            Before: {modifi_before}, After: {modifi_after}"
+                date_changed
+            ), "None of the involved targets' modification date is more recent than before build"
 
         # Compare modification date for not involved targets
         for path, modifi_before in modifi_involved_before_start.items():
-            modifi_after = datetime.fromtimestamp(path.stat().st_mtime)
+            modifi_after = get_last_modification_date(path)
             assert (
                 modifi_after != modifi_before
             ), f"Not involved target modification date must not be changed.\n\
