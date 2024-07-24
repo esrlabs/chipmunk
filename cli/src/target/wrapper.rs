@@ -1,6 +1,6 @@
 use std::{iter, path::PathBuf};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 
 use crate::{
     job_type::JobType,
@@ -49,10 +49,18 @@ pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
     //TODO: This check exists in rake implementation but it need to be improved.
     // The check should cover if the test themselves or the code under the tests has been changed.
     if !build_spec_path.join("build").exists() {
-        let test_builder_path = cwd.join("node_modules").join(".bin").join("tsc");
+        // Finding tsc path on differnet platforms
+        let mut test_runner_path = cwd.join("node_modules").join(".bin");
+        if cfg!(windows) {
+            let tsc_path = which::which_in("tsc", Some(&test_runner_path), &test_runner_path)
+                .context("Error while resolving tsc bin path on Windows")?;
+            test_runner_path = tsc_path;
+        } else {
+            test_runner_path.push("tsc");
+        }
 
         let build_spec_cmd = ProcessCommand::new(
-            test_builder_path.to_string_lossy().to_string(),
+            test_runner_path.to_string_lossy().to_string(),
             vec![String::from("-p"), String::from("tsconfig.json")],
         );
 
@@ -68,7 +76,14 @@ pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
         final_result = Some(spec_res);
     }
 
-    let electron_path: PathBuf = [".", "node_modules", ".bin", "electron"].iter().collect();
+    let mut electron_path: PathBuf = cwd.join("node_modules").join(".bin");
+    if cfg!(windows) {
+        electron_path = which::which_in("electron", Some(&electron_path), &electron_path)
+            .context("Error while resolving electron bin path on Windows")?;
+    } else {
+        electron_path.push("electron");
+    }
+    // "electron"].iter().collect();
     let electron_path = electron_path.to_string_lossy();
 
     let jasmine_path: PathBuf = [".", "node_modules", "jasmine", "bin", "jasmine.js"]
