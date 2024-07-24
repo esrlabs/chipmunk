@@ -3,6 +3,10 @@ import { scope } from 'platform/env/scope';
 import { CancelablePromise } from 'platform/env/promise';
 import { error } from 'platform/log/utils';
 import { getNativeModule } from '../native/native';
+import { Type, Source, NativeError } from '../interfaces/errors';
+
+import * as proto from 'protocol';
+import * as Types from '../protocol';
 
 export abstract class JobsNative {
     public abstract abort(sequence: number): Promise<void>;
@@ -103,10 +107,13 @@ export class Base {
                     resolve(this);
                 })
                 .catch((err: Error) => {
+                    const native = NativeError.from(err);
                     this.logger.error(
-                        `Fail to init Jobs session: ${err instanceof Error ? err.message : err}`,
+                        `Fail to init Jobs session: ${
+                            native instanceof Error ? native.message : native
+                        }`,
                     );
-                    reject(err);
+                    reject(native);
                 });
         });
     }
@@ -135,12 +142,13 @@ export class Base {
                     resolve();
                 })
                 .catch((err: Error) => {
+                    const native = NativeError.from(err);
                     this.logger.error(
                         `Fail to close session due error: ${
-                            err instanceof Error ? err.message : err
+                            native instanceof Error ? native.message : native
                         }`,
                     );
-                    reject(err);
+                    reject(native);
                 })
                 .finally(() => {
                     this._state = State.destroyed;
@@ -155,12 +163,13 @@ export class Base {
                 .abort(sequence)
                 .then(resolve)
                 .catch((err: Error) => {
+                    const native = NativeError.from(err);
                     this.logger.error(
                         `Fail to abort operation due error: ${
-                            err instanceof Error ? err.message : err
+                            native instanceof Error ? native.message : native
                         }`,
                     );
-                    reject(err);
+                    reject(native);
                 });
         });
     }
@@ -189,31 +198,82 @@ export class Base {
                     this.logger.error(`Fail to cancel ${error(err)}`);
                 });
             });
-            task.then((nativeOutput: string) => {
+            task.then((buf: number[]) => {
                 try {
-                    const result: JobResult<Input> = JSON.parse(nativeOutput);
-                    if (result === 'Cancelled' || self.isCanceling()) {
-                        if (result !== 'Cancelled' && self.isCanceling()) {
+                    const output: Types.CommandOutcome = proto.CommandOutcome.decode(
+                        Uint8Array.from(buf),
+                    );
+                    if (!output.outcome) {
+                        return reject(new Error(`Invalid output from command`));
+                    }
+                    const result = output.outcome;
+                    if ('Cancelled' in result || self.isCanceling()) {
+                        if (!('Cancelled' in result) && self.isCanceling()) {
                             this.logger.warn('Job result dropped due canceling');
                         }
                         cancel();
-                    } else if (convert === undefined) {
-                        resolve(result.Finished as unknown as Output);
-                    } else {
-                        const converted: Output | Error = convert(result.Finished);
-                        if (converted instanceof Error) {
-                            reject(converted);
+                    } else if ('Finished' in result) {
+                        const value = (() => {
+                            const value: { output: Types.Output | null } | null =
+                                result.Finished.result;
+                            if (!value || !value.output) {
+                                return undefined;
+                            }
+                            const output = value.output;
+                            if ('StringValue' in output) {
+                                return output.StringValue;
+                            } else if ('StringVecValue' in output) {
+                                return output.StringVecValue.values;
+                            } else if ('OptionStringValue' in output) {
+                                return output.OptionStringValue === ''
+                                    ? undefined
+                                    : output.OptionStringValue;
+                            } else if ('BoolValue' in output) {
+                                return output.BoolValue;
+                            } else if ('Int64Value' in output) {
+                                return Number(output.Int64Value);
+                            } else if ('EmptyValue' in output) {
+                                return undefined;
+                            } else {
+                                this.logger.error(
+                                    `Not supported value of job output: ${JSON.stringify(output)}`,
+                                );
+                                return undefined;
+                            }
+                        })();
+                        if (convert === undefined) {
+                            resolve(value as unknown as Output);
                         } else {
-                            resolve(converted);
+                            const converted: Output | Error = convert(value as unknown as Input);
+                            if (converted instanceof Error) {
+                                reject(converted);
+                            } else {
+                                resolve(converted);
+                            }
                         }
+                    } else {
+                        return reject(
+                            new Error(`Invalid output from command: no Finished/Cancelled state`),
+                        );
                     }
                 } catch (e) {
-                    reject(new Error(`Fail to parse results (${nativeOutput}): ${error(e)}`));
+                    reject(
+                        new NativeError(
+                            new Error(
+                                `Fail to parse results (${JSON.stringify(buf)}): ${error(e)}`,
+                            ),
+                            Type.Other,
+                            Source.Other,
+                        ),
+                    );
                 }
             })
                 .catch((err: Error) => {
-                    this.logger.error(`Fail to do "${alias}" operation due error: ${error(err)}`);
-                    reject(new Error(error(err)));
+                    const native = NativeError.from(err);
+                    this.logger.error(
+                        `Fail to do "${alias}" operation due error: ${error(native)}`,
+                    );
+                    reject(native);
                 })
                 .finally(() => {
                     this.queue.remove(sequence);
