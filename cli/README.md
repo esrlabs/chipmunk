@@ -108,4 +108,20 @@ Next, copy the chipmunk-completion.bash file to your bash completion directory (
 
 
 ## Contributing
-See our [contribution](contribution.md) guide for details
+
+Contributions in any part of Chipmunk are very welcome!
+
+After making any changes to this build CLI tool, please run the integration tests to ensure that all the provided commands in this tool are still working as expected. Additionally, consider adding new tests when introducing new features and commands.
+
+To run all the tests, execute the Python file `chipmunk/cli/integration_tests/run_all.py` from within the `chipmunk/cli` directory. For example:
+
+```bash
+# Move to cli directory
+cd cli
+# Run python file
+python ./integration_tests/run_all.py
+```
+Please be aware that these tests will run on your local copy of Chipmunk. This process will rebuild the project and run all linting and tests on the entire solution.
+
+For more details, please see our [contribution guid](../contribution.md)
+
