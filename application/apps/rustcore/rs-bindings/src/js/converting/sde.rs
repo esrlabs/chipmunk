@@ -4,6 +4,10 @@ use proto::*;
 use sources::sde::{SdeRequest, SdeResponse};
 use std::{convert::TryInto, ops::Deref};
 pub struct SdeResponseWrapped(pub SdeResponse);
+use node_bindgen::{
+    core::{val::JsEnv, NjError, TryIntoJs},
+    sys::napi_value,
+};
 
 impl Deref for SdeResponseWrapped {
     type Target = SdeResponse;
@@ -32,5 +36,12 @@ impl TryInto<SdeRequest> for JsIncomeI32Vec {
             sde::sde_request::Request::WriteBytes(v) => SdeRequest::WriteBytes(v),
             sde::sde_request::Request::WriteText(v) => SdeRequest::WriteText(v),
         })
+    }
+}
+
+impl TryIntoJs for SdeResponseWrapped {
+    fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
+        let bytes: Vec<u8> = self.into();
+        bytes.try_to_js(js_env)
     }
 }
