@@ -454,7 +454,7 @@ export function decodeSdeResponse(buf: number[]): sde.SdeResponse {
     return { bytes: Number(response.bytes) };
 }
 
-export function encodeSdeRequest(request: sde.SdeRequest): number[] {
+export function encodeSdeRequest(request: sde.SdeRequest): Uint8Array {
     const req: SdeRequest = {
         request: ((): Request => {
             if (request.WriteBytes) {
@@ -466,7 +466,7 @@ export function encodeSdeRequest(request: sde.SdeRequest): number[] {
             }
         })(),
     };
-    return Array.from(proto.SdeRequest.encode(req));
+    return proto.SdeRequest.encode(req);
 }
 
 export { Aborted } from './Aborted';

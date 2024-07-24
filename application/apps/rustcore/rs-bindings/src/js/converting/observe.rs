@@ -3,7 +3,7 @@ use std::{
     path::PathBuf,
 };
 
-use super::{error::E, JsIncomeI32Vec};
+use super::{error::E, JsIncomeBuffer};
 use prost::Message;
 use proto::*;
 use session::factory;
@@ -100,12 +100,10 @@ fn get_stream_transport(opt: &observe::observe_origin::Stream) -> Result<factory
     })
 }
 
-impl TryInto<factory::ObserveOptions> for JsIncomeI32Vec {
+impl TryInto<factory::ObserveOptions> for JsIncomeBuffer {
     type Error = E;
     fn try_into(self) -> Result<factory::ObserveOptions, E> {
-        // TODO: remove clonning
-        let bytes = self.iter().map(|b| *b as u8).collect::<Vec<u8>>();
-        let decoded = observe::ObserveOptions::decode(&*bytes)?;
+        let decoded = observe::ObserveOptions::decode(&*self.0)?;
         let origin = decoded
             .origin
             .ok_or(E::MissedField(String::from("origin")))?

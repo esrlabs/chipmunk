@@ -1,4 +1,4 @@
-use super::{error::E, JsIncomeI32Vec};
+use super::{error::E, JsIncomeBuffer};
 use prost::Message;
 use proto::*;
 use sources::sde::{SdeRequest, SdeResponse};
@@ -25,11 +25,10 @@ impl From<SdeResponseWrapped> for Vec<u8> {
     }
 }
 
-impl TryInto<SdeRequest> for JsIncomeI32Vec {
+impl TryInto<SdeRequest> for JsIncomeBuffer {
     type Error = E;
     fn try_into(self) -> Result<SdeRequest, E> {
-        let bytes = self.iter().map(|b| *b as u8).collect::<Vec<u8>>();
-        let decoded = sde::SdeRequest::decode(&*bytes)?
+        let decoded = sde::SdeRequest::decode(&*self.0)?
             .request
             .ok_or(E::MissedField(String::from("value of SdeRequest")))?;
         Ok(match decoded {
