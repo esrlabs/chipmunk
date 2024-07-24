@@ -10,11 +10,8 @@ resolver = "2"
 crate-type = ["cdylib"]
 
 [build-dependencies]
-# node-bindgen = { version = "5.0", features = ["build"] }
 # Added "default-features = false" becuase: https://github.com/rust-lang/rust/issues/98903
-# node-bindgen = {git = "https://github.com/DmitryAstafyev/node-bindgen.git", branch="master", default-features = false, features = ["build"] }
-node-bindgen = {git = "https://github.com/infinyon/node-bindgen.git", branch="master", default-features = false, features = ["build"] }
-
+node-bindgen = { version="6.0", default-features = false, features = ["build"] }
 [dependencies]
 anyhow = "1.0"
 crossbeam-channel = "0.5"
@@ -23,9 +20,7 @@ indexer_base = { path = "../../indexer/indexer_base" }
 log = "0.4"
 log4rs = "1.2"
 merging = { path = "../../indexer/merging" }
-# node-bindgen = {git = "https://github.com/DmitryAstafyev/node-bindgen.git", branch="master", features = ["serde-json"] }
-node-bindgen = {git = "https://github.com/infinyon/node-bindgen.git", branch="master", features = ["serde-json"] }
-# node-bindgen = { version = "5.0", features = ["serde-json"] }
+node-bindgen = { version="6.0", features = ["serde-json"] }
 processor = { path = "../../indexer/processor" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

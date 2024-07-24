@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { IObserve, Observe } from 'platform/types/observe';
 import { Attachment, IGrabbedElement } from 'platform/types/content';
 import { getValidNum } from '../util/numbers';
@@ -327,8 +329,6 @@ export function decodeCallbackEvent(buf: number[]): any {
         };
     } else if ('OperationProcessing' in inner) {
         return { OperationProcessing: inner.OperationProcessing };
-    } else if ('OperationProcessing' in inner) {
-        return { OperationProcessing: null };
     } else if ('OperationError' in inner) {
         const err = inner.OperationError.error;
         return {

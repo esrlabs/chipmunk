@@ -1,4 +1,4 @@
-use super::{error::E, u8_to_i32};
+use super::error::E;
 use error::{
     computation_error::{self, Error},
     grab_error, search_error,
@@ -29,13 +29,8 @@ impl From<E> for ComputationErrorWrapper {
 
 impl TryIntoJs for ComputationErrorWrapper {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        let bytes = u8_to_i32(self.into());
-        let arr = js_env.create_array_with_len(bytes.len())?;
-        for (i, b) in bytes.into_iter().enumerate() {
-            let b = js_env.create_int32(b)?;
-            js_env.set_element(arr, b, i)?;
-        }
-        Ok(arr)
+        let bytes: Vec<u8> = self.into();
+        bytes.try_to_js(js_env)
     }
 }
 
