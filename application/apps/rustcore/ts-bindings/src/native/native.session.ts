@@ -219,7 +219,7 @@ export abstract class RustSessionNative {
 
     public abstract getSessionFile(): Promise<string>;
 
-    public abstract observe(source: number[], operationUuid: string): Promise<void>;
+    public abstract observe(source: Buffer, operationUuid: string): Promise<void>;
 
     public abstract getStreamLen(): Promise<number>;
 
@@ -312,7 +312,7 @@ export abstract class RustSessionNative {
     ): Promise<void>;
 
     public abstract getNearestTo(operationUuid: string, positionInStream: number): Promise<void>;
-    public abstract sendIntoSde(targetOperationUuid: string, request: number[]): Promise<number[]>;
+    public abstract sendIntoSde(targetOperationUuid: string, request: Buffer): Promise<number[]>;
     public abstract getAttachments(): Promise<number[]>;
     public abstract getIndexedRanges(): Promise<number[]>;
 
@@ -614,7 +614,9 @@ export class RustSessionWrapper extends RustSession {
             this._provider.debug().emit.operation('observe', operationUuid);
             this._native
                 .observe(
-                    Array.from(proto.ObserveOptions.encode(Types.toObserveOptions(source))),
+                    Buffer.copyBytesFrom(
+                        proto.ObserveOptions.encode(Types.toObserveOptions(source)),
+                    ),
                     operationUuid,
                 )
                 .then(resolve)
@@ -781,7 +783,10 @@ export class RustSessionWrapper extends RustSession {
     public sendIntoSde(targetOperationUuid: string, request: SdeRequest): Promise<SdeResponse> {
         return new Promise((resolve, reject) => {
             this._native
-                .sendIntoSde(targetOperationUuid, Types.encodeSdeRequest(request))
+                .sendIntoSde(
+                    targetOperationUuid,
+                    Buffer.copyBytesFrom(Types.encodeSdeRequest(request)),
+                )
                 .then((buf: number[]) => resolve(Types.decodeSdeResponse(buf)))
                 .catch((err: Error) => reject(NativeError.from(err)));
         });

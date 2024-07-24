@@ -5,12 +5,12 @@ use crate::{
         attachment::AttachmentInfoList, errors::ComputationErrorWrapper,
         event::CallbackEventWrapped, filter::WrappedSearchFilter, grabbing::GrabbedElements,
         ranges::RangeInclusiveList, sde::SdeResponseWrapped, source::WrappedSourceDefinition,
-        JsIncomeI32Vec,
+        JsIncomeBuffer,
     },
     logging::targets,
 };
 use log::{debug, error, info, warn};
-use node_bindgen::derive::node_bindgen;
+use node_bindgen::{core::buffer::JSArrayBuffer, derive::node_bindgen};
 use processor::grabber::LineRange;
 use session::{
     events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind},
@@ -419,10 +419,10 @@ impl RustSession {
     #[node_bindgen]
     async fn observe(
         &self,
-        options: Vec<i32>,
+        options: JSArrayBuffer,
         operation_id: String,
     ) -> Result<(), ComputationErrorWrapper> {
-        let options = JsIncomeI32Vec(options).try_into()?;
+        let options = JsIncomeBuffer(options.to_vec()).try_into()?;
         self.session()?
             .observe(operations::uuid_from_str(&operation_id)?, options)
             .map_err(ComputationErrorWrapper::new)
@@ -595,9 +595,9 @@ impl RustSession {
     async fn send_into_sde(
         &self,
         target: String,
-        request: Vec<i32>,
+        request: JSArrayBuffer,
     ) -> Result<SdeResponseWrapped, ComputationErrorWrapper> {
-        let request: SdeRequest = JsIncomeI32Vec(request).try_into()?;
+        let request: SdeRequest = JsIncomeBuffer(request.to_vec()).try_into()?;
         let response = self
             .session()?
             .send_into_sde(operations::uuid_from_str(&target)?, request)

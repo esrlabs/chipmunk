@@ -14,10 +14,10 @@ pub mod source;
 
 use std::ops::Deref;
 
-pub struct JsIncomeI32Vec(pub Vec<i32>);
+pub struct JsIncomeBuffer(pub Vec<u8>);
 
-impl Deref for JsIncomeI32Vec {
-    type Target = Vec<i32>;
+impl Deref for JsIncomeBuffer {
+    type Target = Vec<u8>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
