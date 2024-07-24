@@ -1,8 +1,6 @@
 mod converting;
 
-use crate::js::converting::{
-    errors::ComputationErrorWrapper, filter::WrappedSearchFilter, u8_to_i32,
-};
+use crate::js::converting::{errors::ComputationErrorWrapper, filter::WrappedSearchFilter};
 use converting::CommandOutcomeWrapper;
 use log::{debug, error};
 use node_bindgen::derive::node_bindgen;
@@ -102,7 +100,7 @@ impl UnboundJobs {
         paths: Vec<String>,
         include_files: bool,
         include_folders: bool,
-    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
@@ -117,7 +115,6 @@ impl UnboundJobs {
             .await
             .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper::new)
-            .map(|v| u8_to_i32(v.into()))
     }
 
     #[node_bindgen]
@@ -125,7 +122,7 @@ impl UnboundJobs {
         &self,
         id: i64,
         file_path: String,
-    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    ) -> Result<CommandOutcomeWrapper<bool>, ComputationErrorWrapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
@@ -133,7 +130,6 @@ impl UnboundJobs {
             .await
             .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper::new)
-            .map(|v| u8_to_i32(v.into()))
     }
 
     #[node_bindgen]
@@ -142,7 +138,7 @@ impl UnboundJobs {
         id: i64,
         path: String,
         args: Vec<String>,
-    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    ) -> Result<CommandOutcomeWrapper<()>, ComputationErrorWrapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
@@ -150,7 +146,6 @@ impl UnboundJobs {
             .await
             .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper::new)
-            .map(|v| u8_to_i32(v.into()))
     }
 
     #[node_bindgen]
@@ -158,7 +153,7 @@ impl UnboundJobs {
         &self,
         id: i64,
         path: String,
-    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
@@ -166,7 +161,6 @@ impl UnboundJobs {
             .await
             .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper::new)
-            .map(|v| u8_to_i32(v.into()))
     }
 
     #[node_bindgen]
@@ -174,7 +168,7 @@ impl UnboundJobs {
         &self,
         id: i64,
         files: Vec<String>,
-    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
@@ -182,7 +176,6 @@ impl UnboundJobs {
             .await
             .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper::new)
-            .map(|v| u8_to_i32(v.into()))
     }
 
     #[node_bindgen]
@@ -190,7 +183,7 @@ impl UnboundJobs {
         &self,
         id: i64,
         files: Vec<String>,
-    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
@@ -198,11 +191,13 @@ impl UnboundJobs {
             .await
             .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper::new)
-            .map(|v| u8_to_i32(v.into()))
     }
 
     #[node_bindgen]
-    async fn get_shell_profiles(&self, id: i64) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    async fn get_shell_profiles(
+        &self,
+        id: i64,
+    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
@@ -210,11 +205,13 @@ impl UnboundJobs {
             .await
             .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper::new)
-            .map(|v| u8_to_i32(v.into()))
     }
 
     #[node_bindgen]
-    async fn get_context_envvars(&self, id: i64) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    async fn get_context_envvars(
+        &self,
+        id: i64,
+    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
@@ -222,11 +219,13 @@ impl UnboundJobs {
             .await
             .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper::new)
-            .map(|v| u8_to_i32(v.into()))
     }
 
     #[node_bindgen]
-    async fn get_serial_ports_list(&self, id: i64) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    async fn get_serial_ports_list(
+        &self,
+        id: i64,
+    ) -> Result<CommandOutcomeWrapper<Vec<String>>, ComputationErrorWrapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
@@ -234,7 +233,6 @@ impl UnboundJobs {
             .await
             .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper::new)
-            .map(|v| u8_to_i32(v.into()))
     }
 
     #[node_bindgen]
@@ -242,7 +240,7 @@ impl UnboundJobs {
         &self,
         id: i64,
         filter: WrappedSearchFilter,
-    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    ) -> Result<CommandOutcomeWrapper<Option<String>>, ComputationErrorWrapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
@@ -250,7 +248,6 @@ impl UnboundJobs {
             .await
             .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper::new)
-            .map(|v| u8_to_i32(v.into()))
     }
 
     #[node_bindgen]
@@ -259,7 +256,7 @@ impl UnboundJobs {
         id: i64,
         custom_arg_a: i64,
         custom_arg_b: i64,
-    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    ) -> Result<CommandOutcomeWrapper<i64>, ComputationErrorWrapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
@@ -267,11 +264,14 @@ impl UnboundJobs {
             .await
             .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper::new)
-            .map(|v| u8_to_i32(v.into()))
     }
 
     #[node_bindgen]
-    async fn sleep(&self, id: i64, ms: i64) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    async fn sleep(
+        &self,
+        id: i64,
+        ms: i64,
+    ) -> Result<CommandOutcomeWrapper<()>, ComputationErrorWrapper> {
         self.api
             .as_ref()
             .ok_or(ComputationError::SessionUnavailable)?
@@ -279,6 +279,5 @@ impl UnboundJobs {
             .await
             .map_err(ComputationErrorWrapper::new)
             .map(CommandOutcomeWrapper::new)
-            .map(|v| u8_to_i32(v.into()))
     }
 }

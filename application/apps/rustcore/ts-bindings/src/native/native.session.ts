@@ -15,6 +15,7 @@ import { Logger, utils } from 'platform/log';
 import { scope } from 'platform/env/scope';
 import { IObserve } from 'platform/types/observe';
 import { SdeRequest, SdeResponse } from 'platform/types/sde';
+import { getValidNum } from '../util/numbers';
 
 import * as proto from 'protocol';
 import * as Types from '../protocol';
@@ -195,6 +196,12 @@ export abstract class RustSession extends RustSessionRequiered {
 
     // Used only for testing and debug
     public abstract triggerTrackerError(): Promise<void>;
+
+    // Used only for testing and debug
+    public abstract testGrabElsAsJson(): IGrabbedElement[] | NativeError;
+
+    // Used only for testing and debug
+    public abstract testGrabElsAsProto(): IGrabbedElement[] | NativeError;
 }
 
 export abstract class RustSessionNative {
@@ -317,6 +324,12 @@ export abstract class RustSessionNative {
 
     // Used only for testing and debug
     public abstract triggerTrackerError(): Promise<void>;
+
+    // Used only for testing and debug
+    public abstract testGrabElsAsJson(): string;
+
+    // Used only for testing and debug
+    public abstract testGrabElsAsProto(): number[];
 }
 
 export function rustSessionFactory(
@@ -831,6 +844,47 @@ export class RustSessionWrapper extends RustSession {
                 .then(resolve)
                 .catch((err: Error) => reject(NativeError.from(err)));
         });
+    }
+
+    // Used only for testing and debug
+    public testGrabElsAsJson(): IGrabbedElement[] | NativeError {
+        try {
+            const lines: Array<{
+                c: string;
+                id: number;
+                p: number;
+                n: number;
+            }> = JSON.parse(this._native.testGrabElsAsJson());
+            return lines.map(
+                (
+                    item: {
+                        c: string;
+                        id: number;
+                        p: number;
+                        n: number;
+                    },
+                    i: number,
+                ) => {
+                    return {
+                        content: item.c,
+                        source_id: item.id,
+                        position: getValidNum(item.p),
+                        nature: item.n,
+                    };
+                },
+            );
+        } catch (err) {
+            return new NativeError(new Error(utils.error(err)), Type.Other, Source.Other);
+        }
+    }
+
+    // Used only for testing and debug
+    public testGrabElsAsProto(): IGrabbedElement[] | NativeError {
+        try {
+            return Types.decodeGrabbedElementList(this._native.testGrabElsAsProto());
+        } catch (err) {
+            return new NativeError(new Error(utils.error(err)), Type.Other, Source.Other);
+        }
     }
 }
 
