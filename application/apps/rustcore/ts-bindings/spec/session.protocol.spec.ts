@@ -8,6 +8,7 @@ initLogger();
 
 import { finish, runner } from './common';
 import { readConfigurationFile } from './config';
+import { Session } from '../src/api/session';
 
 import * as proto from 'protocol';
 import * as $ from 'platform/types/observe';
@@ -46,11 +47,52 @@ describe('Protocol', function () {
                     },
                     parser: { Text: null },
                 });
-                console.log((origin.origin as any).origin.Stream.transport.transport.Process);
                 let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
                 expect(JSON.stringify(origin)).toEqual(JSON.stringify(decoded));
             }
             finish(undefined, done);
+        });
+    });
+    it(config.regular.list[2], function () {
+        return runner(config.regular, 2, async (logger, done, collector) => {
+            Session.create()
+                .then((session: Session) => {
+                    // Set provider into debug mode
+                    session.debug(true);
+                    const MESSAGES_COUNT = 100000;
+                    const meausere: { json: number; proto: number } = { json: 0, proto: 0 };
+                    meausere.json = Date.now();
+                    for (let i = MESSAGES_COUNT; i >= 0; i -= 1) {
+                        const msg = session.getNativeSession().testGrabElsAsJson();
+                        expect(msg instanceof Array).toBe(true);
+                    }
+                    meausere.json = Date.now() - meausere.json;
+                    meausere.proto = Date.now();
+                    for (let i = MESSAGES_COUNT; i >= 0; i -= 1) {
+                        const msg = session.getNativeSession().testGrabElsAsProto();
+                        expect(msg instanceof Array).toBe(true);
+                    }
+                    meausere.proto = Date.now() - meausere.proto;
+                    console.log(
+                        `Grabbing messages count: ${MESSAGES_COUNT}\nJSON: ${
+                            meausere.json
+                        }ms (per msg ${(meausere.json / MESSAGES_COUNT).toFixed(2)});\nPROTO: ${
+                            meausere.proto
+                        }ms (per msg ${(meausere.proto / MESSAGES_COUNT).toFixed(2)})`,
+                    );
+                    finish(session, done);
+                })
+                .catch((err: Error) => {
+                    finish(
+                        undefined,
+                        done,
+                        new Error(
+                            `Fail to create session due error: ${
+                                err instanceof Error ? err.message : err
+                            }`,
+                        ),
+                    );
+                });
         });
     });
 });

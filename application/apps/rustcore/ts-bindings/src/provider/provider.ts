@@ -9,7 +9,6 @@ import { Logger } from 'platform/log';
 import { scope } from 'platform/env/scope';
 import { TEventData, TEventEmitter, IEventData } from '../provider/provider.general';
 
-import * as proto from 'protocol';
 import * as Types from '../protocol';
 
 export interface IOrderStat {

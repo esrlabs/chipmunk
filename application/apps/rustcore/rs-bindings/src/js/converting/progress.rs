@@ -1,4 +1,3 @@
-use super::bytes_to_js_value;
 use node_bindgen::{
     core::{val::JsEnv, NjError, TryIntoJs},
     sys::napi_value,
@@ -53,6 +52,7 @@ impl From<LifecycleTransitionWrapper> for Vec<u8> {
 
 impl TryIntoJs for LifecycleTransitionWrapper {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        bytes_to_js_value(self.into(), js_env)
+        let bytes: Vec<u8> = self.into();
+        bytes.try_to_js(js_env)
     }
 }

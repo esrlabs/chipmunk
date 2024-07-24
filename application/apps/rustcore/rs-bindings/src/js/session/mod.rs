@@ -5,7 +5,7 @@ use crate::{
         attachment::AttachmentInfoList, errors::ComputationErrorWrapper,
         event::CallbackEventWrapped, filter::WrappedSearchFilter, grabbing::GrabbedElements,
         ranges::RangeInclusiveList, sde::SdeResponseWrapped, source::WrappedSourceDefinition,
-        u8_to_i32, JsIncomeI32Vec,
+        JsIncomeI32Vec,
     },
     logging::targets,
 };
@@ -16,6 +16,7 @@ use session::{
     events::{CallbackEvent, ComputationError, NativeError},
     operations,
     session::Session,
+    state::GrabbedElement,
 };
 use sources::sde::SdeRequest;
 use std::{
@@ -216,7 +217,7 @@ impl RustSession {
         &self,
         start_line_index: i64,
         number_of_lines: i64,
-    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    ) -> Result<GrabbedElements, ComputationErrorWrapper> {
         let start = u64::try_from(start_line_index)
             .map_err(|_| ComputationErrorWrapper::new(ComputationError::InvalidData))?;
         let end = u64::try_from(start_line_index + number_of_lines - 1)
@@ -226,7 +227,7 @@ impl RustSession {
             .grab(LineRange::from(start..=end))
             .await
             .map_err(ComputationErrorWrapper::new)?;
-        Ok(u8_to_i32(GrabbedElements(grabbed).into()))
+        Ok(GrabbedElements(grabbed))
     }
 
     #[node_bindgen]
@@ -234,7 +235,7 @@ impl RustSession {
         &self,
         start_line_index: i64,
         number_of_lines: i64,
-    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    ) -> Result<GrabbedElements, ComputationErrorWrapper> {
         let start = u64::try_from(start_line_index)
             .map_err(|_| ComputationErrorWrapper::new(ComputationError::InvalidData))?;
         let end = u64::try_from(start_line_index + number_of_lines - 1)
@@ -244,7 +245,7 @@ impl RustSession {
             .grab_indexed(RangeInclusive::<u64>::new(start, end))
             .await
             .map_err(ComputationErrorWrapper::new)?;
-        Ok(u8_to_i32(GrabbedElements(grabbed).into()))
+        Ok(GrabbedElements(grabbed))
     }
 
     #[node_bindgen]
@@ -340,7 +341,7 @@ impl RustSession {
         &self,
         start_line_index: i64,
         number_of_lines: i64,
-    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    ) -> Result<GrabbedElements, ComputationErrorWrapper> {
         let start = u64::try_from(start_line_index)
             .map_err(|_| ComputationErrorWrapper::new(ComputationError::InvalidData))?;
         let end = u64::try_from(start_line_index + number_of_lines - 1)
@@ -350,14 +351,14 @@ impl RustSession {
             .grab_search(LineRange::from(start..=end))
             .await
             .map_err(ComputationErrorWrapper::new)?;
-        Ok(u8_to_i32(GrabbedElements(grabbed).into()))
+        Ok(GrabbedElements(grabbed))
     }
 
     #[node_bindgen]
     async fn grab_ranges(
         &self,
         ranges: Vec<(i64, i64)>,
-    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    ) -> Result<GrabbedElements, ComputationErrorWrapper> {
         let grabbed = self
             .session()?
             .grab_ranges(
@@ -368,7 +369,7 @@ impl RustSession {
             )
             .await
             .map_err(ComputationErrorWrapper::new)?;
-        Ok(u8_to_i32(GrabbedElements(grabbed).into()))
+        Ok(GrabbedElements(grabbed))
     }
 
     #[node_bindgen]
@@ -551,18 +552,18 @@ impl RustSession {
         &self,
         target: String,
         request: Vec<i32>,
-    ) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    ) -> Result<SdeResponseWrapped, ComputationErrorWrapper> {
         let request: SdeRequest = JsIncomeI32Vec(request).try_into()?;
         let response = self
             .session()?
             .send_into_sde(operations::uuid_from_str(&target)?, request)
             .await
             .map_err(ComputationErrorWrapper::new)?;
-        Ok(u8_to_i32(SdeResponseWrapped(response).into()))
+        Ok(SdeResponseWrapped(response))
     }
 
     #[node_bindgen]
-    async fn get_attachments(&self) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    async fn get_attachments(&self) -> Result<AttachmentInfoList, ComputationErrorWrapper> {
         let attachments =
             self.session()?
                 .state
@@ -573,11 +574,11 @@ impl RustSession {
                         ComputationError::NativeError(e),
                     )
                 })?;
-        Ok(u8_to_i32(AttachmentInfoList(attachments).into()))
+        Ok(AttachmentInfoList(attachments))
     }
 
     #[node_bindgen]
-    async fn get_indexed_ranges(&self) -> Result<Vec<i32>, ComputationErrorWrapper> {
+    async fn get_indexed_ranges(&self) -> Result<RangeInclusiveList, ComputationErrorWrapper> {
         let ranges: Vec<RangeInclusive<u64>> = self
             .session()?
             .state
@@ -588,7 +589,7 @@ impl RustSession {
                     ComputationError::NativeError(e),
                 )
             })?;
-        Ok(u8_to_i32(RangeInclusiveList(ranges).into()))
+        Ok(RangeInclusiveList(ranges))
     }
 
     #[node_bindgen]
@@ -639,5 +640,40 @@ impl RustSession {
             .trigger_tracker_error()
             .await
             .map_err(ComputationErrorWrapper::new)
+    }
+
+    #[node_bindgen]
+    fn test_grab_els_as_json(&self) -> Result<String, ComputationErrorWrapper> {
+        let mut els = Vec::new();
+        for i in 0..50 {
+            els.push(GrabbedElement {
+                source_id: 0,
+                nature: 0,
+                content: format!(
+                    "Test line content {i} Test line content {i} Test line content {i}"
+                ),
+                pos: i as usize,
+            })
+        }
+        serde_json::to_string(&els)
+            .map_err(|_| ComputationErrorWrapper::new(ComputationError::InvalidData))
+    }
+
+    #[node_bindgen]
+    fn test_grab_els_as_proto(&self) -> Result<Vec<u8>, ComputationErrorWrapper> {
+        let var_name = Vec::new();
+        let mut elements = var_name;
+        for i in 0..50 {
+            elements.push(proto::GrabbedElement {
+                source_id: 0,
+                nature: 0,
+                content: format!(
+                    "Test line content {i} Test line content {i} Test line content {i}"
+                ),
+                pos: i as u64,
+            })
+        }
+        let msg = proto::GrabbedElementList { elements };
+        Ok(prost::Message::encode_to_vec(&msg))
     }
 }
