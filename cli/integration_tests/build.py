@@ -244,10 +244,10 @@ def _build_checksum_check():
             ), "None of the involved targets' modification date is more recent than before build"
 
         # Compare modification date for not involved targets
-        for path, modifi_before in modifi_involved_before_start.items():
+        for path, modifi_before in modifi_non_involved_before_start.items():
             modifi_after = get_last_modification_date(path)
             assert (
-                modifi_after != modifi_before
+                modifi_after == modifi_before
             ), f"Not involved target modification date must not be changed.\n\
             Target Path: {path}.\n\
             Before: {modifi_before}, After: {modifi_after}"
