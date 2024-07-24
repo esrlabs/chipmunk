@@ -25,6 +25,8 @@ pub fn get_test_cmds() -> Vec<TestSpawnCommand> {
     let npm_path = DevTool::Npm.path();
     let wasm_pack_path = DevTool::WasmPack.path();
 
+    let npm_test_command = if cfg!(windows) { "test_win" } else { "test" };
+
     vec![
         TestSpawnCommand::new(
             ProcessCommand::new(
@@ -42,7 +44,7 @@ pub fn get_test_cmds() -> Vec<TestSpawnCommand> {
         TestSpawnCommand::new(
             ProcessCommand::new(
                 npm_path.to_string_lossy().to_string(),
-                vec![String::from("run"), String::from("test")],
+                vec![String::from("run"), String::from(npm_test_command)],
             ),
             cwd.join("spec"),
             Some(SpawnOptions {

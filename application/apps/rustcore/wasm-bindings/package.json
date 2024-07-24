@@ -5,7 +5,8 @@
   "scripts": {
     "build": "node_modules/.bin/webpack",
     "start": "node_modules/.bin/webpack-dev-server",
-    "test": "node_modules/.bin/karma start"
+    "test": "node_modules/.bin/karma start",
+    "test_win": "node_modules\\.bin\\karma start"
   },
   "author": "",
   "license": "MIT",
