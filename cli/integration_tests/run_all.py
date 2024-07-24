@@ -1,5 +1,7 @@
 """
 Provide method to run the tests for all the commands provided by Chipmunk Build CLI Tool
+All the tests build and run the current build CLI implementation in release mode, therefore 
+it must be invoked from withing `Chipmunk/cli` directory
 """
 
 from utls import print_red_bold, print_blue_bold, print_green_bold, print_cyan
@@ -12,14 +14,6 @@ from shell_compl import run_shell_completion_commands
 from test_cmd import run_test_command
 
 
-def print_err(cmd_name: str):
-    print_red_bold(f"Error while running tests for {cmd_name} commands")
-
-
-def print_separtor():
-    print_cyan("------------------------------------------------------------------")
-
-
 def run_all():
     """Run the tests for all commands provided by Chipmunk Build CLI Tool"""
     print_blue_bold("Running tests for all commands of Chipmunk Build CLI Tool")
@@ -30,7 +24,7 @@ def run_all():
     except Exception:
         print_err("Environment")
         raise
-    print_separtor()
+    print_separator()
 
     ### Lint ###
     try:
@@ -38,7 +32,7 @@ def run_all():
     except Exception:
         print_err("Lint")
         raise
-    print_separtor()
+    print_separator()
 
     ### Clean ###
     try:
@@ -46,7 +40,7 @@ def run_all():
     except Exception:
         print_err("Clean")
         raise
-    print_separtor()
+    print_separator()
 
     ### Build ###
     try:
@@ -54,7 +48,7 @@ def run_all():
     except Exception:
         print_err("Build")
         raise
-    print_separtor()
+    print_separator()
 
     ### Test ###
     try:
@@ -62,7 +56,7 @@ def run_all():
     except Exception:
         print_err("Test")
         raise
-    print_separtor()
+    print_separator()
 
     ### Print Dots ###
     try:
@@ -70,7 +64,7 @@ def run_all():
     except Exception:
         print_err("Print Dots")
         raise
-    print_separtor()
+    print_separator()
 
     ### Shell Completion ###
     try:
@@ -82,6 +76,16 @@ def run_all():
     print_green_bold(
         "******** Tests for all commands of Chipmunk Build CLI Tool succeeded ********"
     )
+
+
+def print_err(cmd_name: str):
+    """Prints a formatted error with the main command name"""
+    print_red_bold(f"Error while running tests for {cmd_name} commands")
+
+
+def print_separator():
+    """Prints a colored separator between main commands"""
+    print_cyan("------------------------------------------------------------------")
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ Provides methods to test the Print-dot commands in Chipmunk Build CLI Tool
 
 from utls import run_command, print_green_bold, print_blue_bold
 
+# Command and Args for the general print dot command
 PRINT_DOT_COMMAND = [
     "cargo",
     "run",
@@ -13,6 +14,7 @@ PRINT_DOT_COMMAND = [
     "print-dot",
 ]
 
+# Command and Args for the print dot command with `--all` flag
 PRINT_DOT_ALL_COMMAND = [
     "cargo",
     "run",
@@ -30,9 +32,9 @@ def run_print_dot_commands():
     run_command(PRINT_DOT_COMMAND)
     print_green_bold("*** General Print Dot command Succeeded ***")
 
-    print_blue_bold("Running All Print Dot command...")
+    print_blue_bold("Running Print Dot command with flag `--all`...")
     run_command(PRINT_DOT_ALL_COMMAND)
-    print_green_bold("*** All Print Dot command Succeeded ***")
+    print_green_bold("*** Print Dot command with flag `--all` Succeeded ***")
 
 
 if __name__ == "__main__":

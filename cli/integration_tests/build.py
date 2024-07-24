@@ -1,6 +1,6 @@
 """
 Provides methods to test the Build command and checksum implementation to watch source code changes 
-in Chipmunk Build CLI Tool
+in Chipmunk Build CLI Tool.
 """
 
 from pathlib import Path
@@ -9,7 +9,40 @@ from datetime import datetime
 from typing import Dict
 import platform
 
-# Build command to be used in all build tests
+#######################################################################
+########################   RUN ALL TESTS   ############################
+#######################################################################
+
+
+def run_build_tests():
+    """Runs many tests for build command:
+    - General Test: General test for build command and the created directories and checksum files.
+    - Checksum Test: Test how changing files in some target will affect the build on it and other targets depending on it.
+    - Reset Checksum Test: Make sure checksum file will deleted when the command is called.
+    """
+    print_blue_bold("Running General Checks for Build Command...")
+    _build_general_check()
+    print_green_bold("*** General Check for Build Command Succeeded ***")
+
+    print("---------------------------------------------------------------")
+
+    print_blue_bold("Running Checksum Checks for Build Command...")
+    _build_checksum_check()
+    print_green_bold("*** Checksum Check for Build Command Succeeded ***")
+
+    print("---------------------------------------------------------------")
+
+    print_blue_bold("Running Reset Checksum Command...")
+    _run_reset_checksum_command()
+    print_green_bold("*** Test Running Reset Checksum Command Succeeded ***")
+
+
+#######################################################################
+################   GENERAL TEST FOR BUILD COMMAND   ###################
+#######################################################################
+
+# Build command to be used in general build test
+# This command should build all the targets expect the Build CLI Tool
 BUILD_COMMAND = [
     "cargo",
     "run",
@@ -104,7 +137,9 @@ def _build_general_check():
     print("Checking if Checksum Records file changed Succeeded")
 
 
-############   CHECKSUM RECORDS TESTS    ###########
+#######################################################################
+####################   CHECKSUM RECORDS TESTS   #######################
+#######################################################################
 
 # Name of the temporary file which will be used for testing if file changes will lead to rebuild
 # the direct target and all other targets that depend on here.
@@ -257,12 +292,17 @@ def _build_checksum_check():
             temp_file_path.unlink()
 
 
-############## RESET CHECKSUM COMMAND ################
+#######################################################################
+####################   RESET CHECKSUM COMMAND   #######################
+#######################################################################
 
 RESET_CHECKSUM_COMMAND = ["cargo", "run", "-r", "--", "chipmunk", "reset-checksum"]
 
 
 def _run_reset_checksum_command():
+    """This test will run reset-checksum command in development mode, then it insure that
+    the checksum file has been deleted"""
+
     checksum_path = get_root().joinpath(CHECKSUM_FILE_NAME)
     assert (
         checksum_path.exists()
@@ -275,32 +315,6 @@ def _run_reset_checksum_command():
     ), f"Checksum file must not exist after running 'reset-checksum' command. File Path: {checksum_path}"
 
     pass
-
-
-################   RUN ALL TESTS   ######################
-
-
-def run_build_tests():
-    """Runs many tests for build command:
-    - General Test: General test for build command and the created directories and checksum files.
-    - Checksum Test: Test how changing files in some target will affect the build on it and other targets depending on it.
-    - Reset Checksum Test: Make sure checksum file will deleted when the command is called.
-    """
-    print_blue_bold("Running General Checks for Build Command...")
-    _build_general_check()
-    print_green_bold("*** General Check for Build Command Succeeded ***")
-
-    print("---------------------------------------------------------------")
-
-    print_blue_bold("Running Checksum Checks for Build Command...")
-    _build_checksum_check()
-    print_green_bold("*** Checksum Check for Build Command Succeeded ***")
-
-    print("---------------------------------------------------------------")
-
-    print_blue_bold("Running Reset Checksum Command...")
-    _run_reset_checksum_command()
-    print_green_bold("*** Test Running Reset Checksum Command Succeeded ***")
 
 
 if __name__ == "__main__":

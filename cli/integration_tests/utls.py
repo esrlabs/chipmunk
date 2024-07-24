@@ -10,7 +10,7 @@ def get_root() -> Path:
     """Get and validate the root directory of chipmunk repository
 
     Raises:
-        IOError: If validation of root directory fails
+        SystemError: If validation of root directory fails
 
     Returns:
         Root directory of chipmunk
@@ -32,7 +32,7 @@ def get_root() -> Path:
 
 
 def run_command(command_args: list[str]):
-    """Runs the commands and its arguments after printing the command to stdout
+    """Runs the commands and its arguments after printing it to stdout
 
     Args:
         command_args: The command and its arguments in one string list

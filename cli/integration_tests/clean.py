@@ -1,5 +1,7 @@
 """
 Provides methods to test the Clean command in Chipmunk Build CLI Tool
+Clean command will be invoked here for all targets but the CLI tool itself,
+then it checks that all the paths that must be removed don't exist anymore.
 """
 
 from pathlib import Path
@@ -55,15 +57,8 @@ PATHS_TO_CHECK = [
 ]
 
 
-def get_removed_paths() -> list[Path]:
-    """Provides the paths for the directories that must be removed after running the clean command"""
-    root_dir = get_root()
-    application_dir = root_dir.joinpath("application")
-    return [application_dir.joinpath(sub_dir) for sub_dir in PATHS_TO_CHECK]
-
-
 def run_clean_command():
-    """Runs Clean Commands on all targets and insure that all build directories are delted."""
+    """Runs Clean Commands on all targets and insure that all build directories are deleted."""
     print_blue_bold("Running clean command...")
     run_command(CLEAN_COMMAND)
     for path in get_removed_paths():
@@ -71,6 +66,13 @@ def run_clean_command():
             raise AssertionError(f"Path exists after clean. Path: {path}")
 
     print_green_bold("*** Check for Clean Command Succeeded ***")
+
+
+def get_removed_paths() -> list[Path]:
+    """Provides the paths for the directories that must be removed after running the clean command"""
+    root_dir = get_root()
+    application_dir = root_dir.joinpath("application")
+    return [application_dir.joinpath(sub_dir) for sub_dir in PATHS_TO_CHECK]
 
 
 if __name__ == "__main__":
