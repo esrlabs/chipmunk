@@ -21,6 +21,8 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
       - name: enable corepack for yarnpkg upgrade
         run: corepack enable
       - name: JS/TS linting
@@ -45,6 +47,8 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
       - name: Rust linting
         run: rake lint:rust
   integration_tests:
@@ -67,6 +71,8 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
       - name: enable corepack for yarnpkg upgrade
         run: |
           npm install tslib
@@ -85,5 +91,7 @@ jobs:
         with:
           ruby-version: "3.0"
           bundler-cache: true
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
       - name: Run unit tests on indexer
         run: rake test:rust
