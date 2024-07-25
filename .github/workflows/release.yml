@@ -48,6 +48,8 @@ jobs:
         uses: actions/setup-node@master
         with:
           node-version: "lts/*"
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
       - name: install rust
         uses: hecrj/setup-rust-action@v1
         with:

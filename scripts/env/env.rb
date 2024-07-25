@@ -17,6 +17,7 @@ end
 namespace :environment do
   desc 'check that all needed tools are installed'
   task :check do
+    check_protoc
     check_node
     check_rust
     check_nj_cli
@@ -30,10 +31,17 @@ namespace :environment do
     Shell.sh 'nj-cli -V'
     Shell.sh 'node -v'
     Shell.sh 'yarn -v'
+    Shell.sh 'protoc --version'
     # put back in when wasm-pack supports the version again
     # Shell.sh 'wasm-pack -V'
     Shell.sh 'rustup toolchain list'
   end
+end
+
+def check_protoc
+  return if command_exists('protoc --version')
+
+  raise 'protoc not installed, please install before'
 end
 
 def check_node
