@@ -287,6 +287,35 @@ export function toObserveOptions(source: IObserve): ObserveOptions {
     return { origin: { origin }, parser };
 }
 
+export function decodeLifecycleTransition(buf: number[]): any {
+    const event: LifecycleTransition = proto.LifecycleTransition.decode(Uint8Array.from(buf));
+    if (!event.transition) {
+        return {};
+    }
+    const inner: Transition = event.transition;
+    if ('Started' in inner) {
+        return { Started: { uuid: inner.Started.uuid, alias: inner.Started.alias } };
+    } else if ('Ticks' in inner) {
+        const ticks = inner.Ticks.ticks;
+        return {
+            Ticks: {
+                uuid: inner.Ticks.uuid,
+                progress:
+                    ticks === null
+                        ? {}
+                        : {
+                              count: Number(ticks.count),
+                              state: ticks.state,
+                              total: Number(ticks.total),
+                          },
+            },
+        };
+    } else if ('Stopped' in inner) {
+        return { Stopped: inner.Stopped.uuid };
+    } else {
+        throw new Error(`Fail to parse event: ${JSON.stringify(event)}`);
+    }
+}
 export function decodeCallbackEvent(buf: number[]): any {
     const event: CallbackEvent = proto.CallbackEvent.decode(Uint8Array.from(buf));
     if (!event.event) {
