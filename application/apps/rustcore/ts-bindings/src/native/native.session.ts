@@ -204,10 +204,10 @@ export abstract class RustSession extends RustSessionRequiered {
     public abstract triggerTrackerError(): Promise<void>;
 
     // Used only for testing and debug
-    public abstract testGrabElsAsJson(): IGrabbedElement[] | NativeError;
+    public abstract testGrabElsAsJson(decode?: boolean): IGrabbedElement[] | NativeError;
 
     // Used only for testing and debug
-    public abstract testGrabElsAsProto(): IGrabbedElement[] | NativeError;
+    public abstract testGrabElsAsProto(decode?: boolean): IGrabbedElement[] | NativeError;
 }
 
 export abstract class RustSessionNative {
@@ -879,8 +879,12 @@ export class RustSessionWrapper extends RustSession {
     }
 
     // Used only for testing and debug
-    public testGrabElsAsJson(): IGrabbedElement[] | NativeError {
+    public testGrabElsAsJson(decode?: boolean): IGrabbedElement[] | NativeError {
         try {
+            const received = this._native.testGrabElsAsJson();
+            if (decode === false) {
+                return [];
+            }
             const lines: Array<{
                 c: string;
                 id: number;
@@ -911,9 +915,13 @@ export class RustSessionWrapper extends RustSession {
     }
 
     // Used only for testing and debug
-    public testGrabElsAsProto(): IGrabbedElement[] | NativeError {
+    public testGrabElsAsProto(decode?: boolean): IGrabbedElement[] | NativeError {
         try {
-            return Types.decodeGrabbedElementList(this._native.testGrabElsAsProto());
+            const received = this._native.testGrabElsAsProto();
+            if (decode === false) {
+                return [];
+            }
+            return Types.decodeGrabbedElementList(received);
         } catch (err) {
             return new NativeError(new Error(utils.error(err)), Type.Other, Source.Other);
         }

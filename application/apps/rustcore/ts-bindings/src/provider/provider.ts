@@ -9,8 +9,6 @@ import { Logger } from 'platform/log';
 import { scope } from 'platform/env/scope';
 import { TEventData, TEventEmitter, IEventData } from '../provider/provider.general';
 
-import * as Types from '../protocol';
-
 export interface IOrderStat {
     type: 'E' | 'O';
     name: string;
@@ -18,9 +16,13 @@ export interface IOrderStat {
     emitted: number; // Time of emitting event or operation
     duration: number;
 }
+
+export type Decoder = (buf: number[]) => any;
+
 export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces> {
     private _destroyed: boolean = false;
     private readonly _uuid: string;
+    private readonly _decoder: Decoder;
     private readonly _tracking: {
         subjects: {
             unsupported: Subject<string>;
@@ -56,8 +58,9 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
     };
     public readonly logger: Logger;
 
-    constructor(uuid: string) {
+    constructor(uuid: string, decoder: Decoder) {
         this._uuid = uuid;
+        this._decoder = decoder;
         this._emitter = this._emitter.bind(this);
         this.logger = scope.getLogger(`${this.getName()}: ${uuid}`);
     }
@@ -252,7 +255,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         let event: Required<IEventData>;
         try {
             if (data instanceof Array) {
-                event = Types.decodeCallbackEvent(data);
+                event = this._decoder(data);
             } else if (typeof data === 'string') {
                 try {
                     event = JSON.parse(data);

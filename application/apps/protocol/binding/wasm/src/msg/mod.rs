@@ -5,4 +5,5 @@ pub mod error;
 pub mod event;
 pub mod grabbing;
 pub mod observe;
+pub mod progress;
 pub mod sde;
