@@ -55,11 +55,11 @@ pub async fn scan_dlt_ft(
                         match items {
                             Some(items) => {
                                 for (_, item) in items {
-                                if let MessageStreamItem::Item(ParseYield::MessageAndAttachment((_msg, attachment))) = item {
-                                    attachments.push(attachment);
-                                } else if let MessageStreamItem::Item(ParseYield::Attachment(attachment)) = item {
-                                    attachments.push(attachment);
-                                }
+                                    if let MessageStreamItem::Item(ParseYield::MessageAndAttachment((_msg, attachment))) = item {
+                                        attachments.push(attachment);
+                                    } else if let MessageStreamItem::Item(ParseYield::Attachment(attachment)) = item {
+                                        attachments.push(attachment);
+                                    }
                                 }
                             }
                             _ => {
