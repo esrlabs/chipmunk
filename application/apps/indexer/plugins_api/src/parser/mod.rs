@@ -164,8 +164,8 @@ macro_rules! parser_export {
 
 // This module is used for quick feedback while developing the macro by commenting out the cfg
 // attribute. After developing is done the attribute should be put back so this module won't be
-// compiled in all real use cases (build or tests);
-#[cfg(while_developing)]
+// compiled in all real use cases;
+#[cfg(test)]
 mod prototyping {
     use super::*;
 
