@@ -44,7 +44,7 @@ pub trait Parser<T> {
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> impl IntoIterator<Item = Result<(usize, Option<ParseYield<T>>), Error>> + Send;
+    ) -> impl Iterator<Item = Result<(usize, Option<ParseYield<T>>), Error>>;
 }
 
 #[derive(Debug, Clone, Serialize)]
