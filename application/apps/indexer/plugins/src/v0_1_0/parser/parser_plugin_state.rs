@@ -48,7 +48,7 @@ impl shared_types::Host for ParserPluginState {}
 
 impl logging::Host for ParserPluginState {
     /// Log the given message with current log level if log level is allowed
-    fn log(&mut self, level: Level, msg: String) -> () {
+    fn log(&mut self, level: Level, msg: String) {
         const PARSER_LOG_TARGET: &str = "parser_plugin";
 
         match level {
