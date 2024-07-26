@@ -24,8 +24,8 @@ use tokio::{
 };
 use tokio_stream::StreamExt;
 
-enum Next<T: LogMessage> {
-    Items(Vec<(usize, MessageStreamItem<T>)>),
+enum Next<T: LogMessage, IT: IntoIterator<Item = (usize, MessageStreamItem<T>)>> {
+    Items(IT),
     Timeout,
     Waiting,
 }

@@ -54,7 +54,9 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
     }
     /// create a stream of pairs that contain the count of all consumed bytes and the
     /// MessageStreamItem
-    pub fn as_stream(&mut self) -> impl Stream<Item = Vec<(usize, MessageStreamItem<T>)>> + '_ {
+    pub fn as_stream(
+        &mut self,
+    ) -> impl Stream<Item = impl Iterator<Item = (usize, MessageStreamItem<T>)>> + '_ {
         stream! {
             while let Some(items) = self.read_next_segment().await {
                 yield items;
@@ -62,7 +64,9 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
         }
     }
 
-    async fn read_next_segment(&mut self) -> Option<Vec<(usize, MessageStreamItem<T>)>> {
+    async fn read_next_segment(
+        &mut self,
+    ) -> Option<impl Iterator<Item = (usize, MessageStreamItem<T>)>> {
         if self.done {
             debug!("done...no next segment");
             return None;
@@ -124,7 +128,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
             if available == 0 {
                 trace!("No more bytes available from source");
                 self.done = true;
-                return Some(vec![(0, MessageStreamItem::Done)]);
+                return Some(vec![(0, MessageStreamItem::Done)].into_iter());
             }
             let parse_results: Vec<_> = self
                 .parser
@@ -206,7 +210,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                             } else {
                                 let unused = skipped_bytes + available;
                                 self.done = true;
-                                return Some(vec![(unused, MessageStreamItem::Done)]);
+                                return Some(vec![(unused, MessageStreamItem::Done)].into_iter());
                             }
                         }
                     }
@@ -218,7 +222,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
             } else if results.is_empty() {
                 return None;
             } else {
-                return Some(results);
+                return Some(results.into_iter());
             }
         }
 
