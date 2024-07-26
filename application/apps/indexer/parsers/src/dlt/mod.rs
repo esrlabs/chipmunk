@@ -120,8 +120,8 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> impl IntoIterator<Item = Result<(usize, Option<ParseYield<FormattableMessage<'m>>>), Error>>
-           + Send {
+    ) -> impl Iterator<Item = Result<(usize, Option<ParseYield<FormattableMessage<'m>>>), Error>>
+    {
         let res = match dlt_message(input, self.filter_config.as_ref(), self.with_storage_header) {
             Ok((rest, dlt_core::parse::ParsedMessage::FilteredOut(_n))) => {
                 let consumed = input.len() - rest.len();
@@ -167,8 +167,7 @@ impl Parser<RangeMessage> for DltRangeParser {
         &mut self,
         input: &[u8],
         _timestamp: Option<u64>,
-    ) -> impl IntoIterator<Item = Result<(usize, Option<ParseYield<RangeMessage>>), Error>> + Send
-    {
+    ) -> impl Iterator<Item = Result<(usize, Option<ParseYield<RangeMessage>>), Error>> {
         let (rest, consumed) = match dlt_consume_msg(input) {
             Ok((rest, consumed)) => (rest, consumed),
             Err(e) => return iter::once(Err(Error::Parse(format!("{e}")))),
@@ -192,8 +191,7 @@ impl Parser<RawMessage> for DltRawParser {
         &mut self,
         input: &[u8],
         _timestamp: Option<u64>,
-    ) -> impl IntoIterator<Item = Result<(usize, Option<ParseYield<RawMessage>>), Error>> + Send
-    {
+    ) -> impl Iterator<Item = Result<(usize, Option<ParseYield<RawMessage>>), Error>> {
         let (rest, consumed) = match dlt_consume_msg(input) {
             Ok((rest, consumed)) => (rest, consumed),
             Err(e) => return iter::once(Err(Error::Parse(format!("{e}")))),

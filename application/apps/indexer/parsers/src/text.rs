@@ -31,8 +31,7 @@ where
         &mut self,
         input: &[u8],
         _timestamp: Option<u64>,
-    ) -> impl IntoIterator<Item = Result<(usize, Option<ParseYield<StringMessage>>), Error>> + Send
-    {
+    ) -> impl Iterator<Item = Result<(usize, Option<ParseYield<StringMessage>>), Error>> {
         // TODO: support non-utf8 encodings
         use memchr::memchr;
         if input.is_empty() {
@@ -61,35 +60,20 @@ where
 fn test_string_tokenizer() {
     let mut parser = StringTokenizer {};
     let content = b"hello\nworld\n";
-    let (consumed_1, first_msg) = parser
-        .parse(content, None)
-        .into_iter()
-        .next()
-        .unwrap()
-        .unwrap();
+    let (consumed_1, first_msg) = parser.parse(content, None).next().unwrap().unwrap();
     match first_msg {
         Some(ParseYield::Message(StringMessage { content })) if content.eq("hello") => {}
         _ => panic!("First message did not match"),
     }
     let rest_1 = &content[consumed_1..];
     println!("rest_1 = {:?}", String::from_utf8_lossy(rest_1));
-    let (consumed_2, second_msg) = parser
-        .parse(rest_1, None)
-        .into_iter()
-        .next()
-        .unwrap()
-        .unwrap();
+    let (consumed_2, second_msg) = parser.parse(rest_1, None).next().unwrap().unwrap();
     match second_msg {
         Some(ParseYield::Message(StringMessage { content })) if content.eq("world") => {}
         _ => panic!("Second message did not match"),
     }
     let rest_2 = &rest_1[consumed_2..];
-    let (consumed_3, third_msg) = parser
-        .parse(rest_2, None)
-        .into_iter()
-        .next()
-        .unwrap()
-        .unwrap();
+    let (consumed_3, third_msg) = parser.parse(rest_2, None).next().unwrap().unwrap();
     println!(
         "rest_3 = {:?}",
         String::from_utf8_lossy(&rest_2[consumed_3..])

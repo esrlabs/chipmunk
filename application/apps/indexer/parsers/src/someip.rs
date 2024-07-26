@@ -59,8 +59,7 @@ impl Parser<SomeipLogMessage> for SomeipParser {
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> impl IntoIterator<Item = Result<(usize, Option<ParseYield<SomeipLogMessage>>), Error>> + Send
-    {
+    ) -> impl Iterator<Item = Result<(usize, Option<ParseYield<SomeipLogMessage>>), Error>> {
         let time = timestamp.unwrap_or(0);
         match Message::from_slice(input) {
             Ok(Message::Sd(header, payload)) => {
@@ -414,12 +413,7 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser
-            .parse(input, None)
-            .into_iter()
-            .next()
-            .unwrap()
-            .unwrap();
+        let (consumed, message) = parser.parse(input, None).next().unwrap().unwrap();
 
         assert_eq!(consumed, input.len());
 
@@ -440,12 +434,7 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser
-            .parse(input, None)
-            .into_iter()
-            .next()
-            .unwrap()
-            .unwrap();
+        let (consumed, message) = parser.parse(input, None).next().unwrap().unwrap();
 
         assert_eq!(consumed, input.len());
 
@@ -466,12 +455,7 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser
-            .parse(input, None)
-            .into_iter()
-            .next()
-            .unwrap()
-            .unwrap();
+        let (consumed, message) = parser.parse(input, None).next().unwrap().unwrap();
 
         assert_eq!(consumed, input.len());
 
@@ -496,12 +480,7 @@ mod test {
         let model = test_model();
 
         let mut parser = SomeipParser { model: Some(model) };
-        let (consumed, message) = parser
-            .parse(input, None)
-            .into_iter()
-            .next()
-            .unwrap()
-            .unwrap();
+        let (consumed, message) = parser.parse(input, None).next().unwrap().unwrap();
 
         assert_eq!(consumed, input.len());
 
@@ -525,12 +504,7 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser
-            .parse(input, None)
-            .into_iter()
-            .next()
-            .unwrap()
-            .unwrap();
+        let (consumed, message) = parser.parse(input, None).next().unwrap().unwrap();
 
         assert_eq!(consumed, input.len());
 
@@ -556,12 +530,7 @@ mod test {
         let model = test_model();
 
         let mut parser = SomeipParser { model: Some(model) };
-        let (consumed, message) = parser
-            .parse(input, None)
-            .into_iter()
-            .next()
-            .unwrap()
-            .unwrap();
+        let (consumed, message) = parser.parse(input, None).next().unwrap().unwrap();
 
         assert_eq!(consumed, input.len());
 
@@ -587,12 +556,7 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser
-            .parse(input, None)
-            .into_iter()
-            .next()
-            .unwrap()
-            .unwrap();
+        let (consumed, message) = parser.parse(input, None).next().unwrap().unwrap();
 
         assert_eq!(consumed, input.len());
 
@@ -634,12 +598,7 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser
-            .parse(input, None)
-            .into_iter()
-            .next()
-            .unwrap()
-            .unwrap();
+        let (consumed, message) = parser.parse(input, None).next().unwrap().unwrap();
 
         assert_eq!(consumed, input.len());
 

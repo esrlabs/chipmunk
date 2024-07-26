@@ -133,7 +133,6 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
             let parse_results: Vec<_> = self
                 .parser
                 .parse(self.byte_source.current_slice(), self.last_seen_ts)
-                .into_iter()
                 .collect();
 
             let res_len = parse_results.len();
