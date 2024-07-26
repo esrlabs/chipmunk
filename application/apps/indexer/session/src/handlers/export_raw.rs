@@ -189,7 +189,7 @@ async fn export<S: ByteSource>(
     }
 }
 
-pub async fn export_runner<S, T, IT>(
+pub async fn export_runner<S, T, I>(
     s: S,
     dest: &Path,
     sections: &Vec<IndexSection>,
@@ -199,8 +199,8 @@ pub async fn export_runner<S, T, IT>(
 ) -> Result<Option<usize>, NativeError>
 where
     T: LogMessage + Sized,
-    S: futures::Stream<Item = IT> + Unpin,
-    IT: Iterator<Item = (usize, MessageStreamItem<T>)>,
+    S: futures::Stream<Item = I> + Unpin,
+    I: Iterator<Item = (usize, MessageStreamItem<T>)>,
 {
     export_raw(s, dest, sections, read_to_end, text_file, cancel)
         .await

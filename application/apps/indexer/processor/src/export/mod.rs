@@ -39,7 +39,7 @@ pub enum ExportError {
 ///
 /// # Errors
 /// In case of cancellation will return ExportError::Cancelled
-pub async fn export_raw<S, T, IT>(
+pub async fn export_raw<S, T, I>(
     mut s: S,
     destination_path: &Path,
     sections: &Vec<IndexSection>,
@@ -49,8 +49,8 @@ pub async fn export_raw<S, T, IT>(
 ) -> Result<usize, ExportError>
 where
     T: LogMessage + Sized,
-    S: futures::Stream<Item = IT> + Unpin,
-    IT: Iterator<Item = (usize, MessageStreamItem<T>)>,
+    S: futures::Stream<Item = I> + Unpin,
+    I: Iterator<Item = (usize, MessageStreamItem<T>)>,
 {
     trace!("export_raw, sections: {sections:?}");
     if !sections_valid(sections) {
