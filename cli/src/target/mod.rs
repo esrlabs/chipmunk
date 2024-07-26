@@ -264,7 +264,7 @@ impl Target {
     /// * `prod`: run install in production
     /// * `skip`: skip the task
     /// * `overridden_job_type`: override job type to communicate with tracker when install is ran
-    /// from within another task
+    ///   from within another task
     pub async fn install(
         &self,
         prod: bool,
@@ -528,7 +528,7 @@ impl Target {
 /// * `prod`: build for production
 /// * `job_type`: job type to communicate with `tracker`
 /// * `overridden_target`: override target to communicate with `tracker` when install is called
-/// from within another task.
+///   from within another task.
 async fn install_general(
     target: Target,
     prod: bool,

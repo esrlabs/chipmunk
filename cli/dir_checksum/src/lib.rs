@@ -49,7 +49,7 @@ where
 /// returning its result
 ///
 /// * `calc_fn`: Function that will be called inside the function with the directory path and
-/// the created hasher
+///   the created hasher
 fn run_intern<F, T, P>(dir_path: P, calc_fn: F) -> Result<T, HashError>
 where
     F: Fn(&Path, &mut blake3::Hasher) -> Result<T, HashError> + Sync + Send,
