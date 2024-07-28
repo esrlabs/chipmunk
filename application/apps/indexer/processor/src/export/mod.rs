@@ -27,14 +27,14 @@ pub enum ExportError {
 /// # Arguments
 /// * `s` - instance of MessageProducer stream
 /// * `destination_path` - destination path to a target file. If the file doesn't
-/// exist it would be created; if exists - it will be opened to append new
-/// content to the end of the file
+///   exist it would be created; if exists - it will be opened to append new
+///   content to the end of the file
 /// * `sections` - an array of ranges, which should be written into destination
-/// file
+///   file
 /// * `read_to_end` - in "true" will continue iterating stream after all ranges
-/// are processed; in "false" will stop listening to a stream as soon as all ranges
-/// are processed. It should be used in "true" for example if exporting applied
-/// to concatenated files.
+///   are processed; in "false" will stop listening to a stream as soon as all ranges
+///   are processed. It should be used in "true" for example if exporting applied
+///   to concatenated files.
 /// * `cancel` - cancellation token to stop operation
 ///
 /// # Errors

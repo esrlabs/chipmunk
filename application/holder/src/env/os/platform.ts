@@ -22,7 +22,6 @@ let cachedCpuBrandString: string | null = null;
 
 function safeExecSync(command: string, timeout: number): string {
     try {
-        scope.getLogger('PlatformChecker').warn(`Runnning command ${command}`);
         return execSync(command, { timeout }).toString().trim().toLowerCase();
     } catch (err) {
         scope.getLogger('PlatformChecker').warn(`Fail to detect arch for darwin. Command '${command}' gives error: ${error(err)}`);
