@@ -34,6 +34,7 @@ where
     total_skipped: usize,
     done: bool,
     rx_sde: Option<SdeReceiver>,
+    start: std::time::Instant,
 }
 
 impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
@@ -50,6 +51,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
             total_skipped: 0,
             done: false,
             rx_sde,
+            start: std::time::Instant::now(),
         }
     }
     /// create a stream of pairs that contain the count of all consumed bytes and the
@@ -69,6 +71,10 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
     ) -> Option<impl Iterator<Item = (usize, MessageStreamItem<T>)>> {
         if self.done {
             debug!("done...no next segment");
+            println!(
+                "\x1b[93mmessage producer took : {:?}\x1b[0m",
+                self.start.elapsed()
+            );
             return None;
         }
         self.index += 1;
@@ -209,6 +215,10 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                             } else {
                                 let unused = skipped_bytes + available;
                                 self.done = true;
+                                println!(
+                                    "\x1b[93mmessage producer took : {:?}. But ended with parse error\x1b[0m",
+                                    self.start.elapsed()
+                                );
                                 return Some(vec![(unused, MessageStreamItem::Done)].into_iter());
                             }
                         }
