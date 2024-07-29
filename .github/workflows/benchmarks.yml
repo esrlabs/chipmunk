@@ -1,57 +1,14 @@
 name: Benchmarks
 
-on: [workflow_dispatch]
-
+on:
+  workflow_dispatch:
+  pull_request_target:
+    branches: [master]
+  workflow_run:
+    workflows: ["BuildAndReleaseMaster"]
+    types:
+      - completed
 jobs:
-  # invoke_jasmine_tests:
-  #     name: Invoke Jasmine performance tests
-  #     runs-on: sh-linux-x86-chipmunk  # Specify that it runs on a self-hosted runner
-  #     steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v3
-  #     - name: libudev-dev and install Ruby
-  #       run: |
-  #         whoami
-  #         sudo yum install -y libudev-devel ruby-devel cargo npm
-  #         sudo yum install rbenv
-  #         rbenv install 3.1.2 -s
-  #         rbenv global 3.1.2
-  #         sudo chown -R $(whoami) /usr/local
-  #     - name: install ruby:gem::dotenv
-  #       run: sudo gem install dotenv
-  #     - name: install ruby:gem::json
-  #       run: sudo gem install json
-  #     - name: install node
-  #       uses: actions/setup-node@master
-  #       with:
-  #         node-version: "current"
-  #     - name: install rust
-  #       uses: hecrj/setup-rust-action@v1
-  #       with:
-  #         rust-version: stable
-  #     - name: cargo install wasm-pack
-  #       run: |
-  #         pwd
-  #         whoami
-  #         cargo install wasm-pack --locked
-  #         npm install -y yarn rustup
-  #         export PATH="$HOME/.cargo/bin:$PATH"
-  #         export PATH="$HOME/.cargo/env:$PATH"
-  #         . "$HOME/.cargo/env"
-  #     - name: Run Jasmine performance tests
-  #       run: |
-  #         source ./application/apps/rustcore/ts-bindings/spec/setup_config.sh sample_tag
-  #         pwd
-  #         cargo install nj-cli --locked
-  #         source ~/.bashrc
-  #         rustup -V
-  #         whoami
-  #         nj-cli --version
-  #         printenv
-  #         rake bindings:clean
-  #         rake bindings:test:indexes
-  #         rake bindings:test:search
-  #         rake bindings:test:observe
   invoke_jasmine_tests:
     name: Invoke Jasmine performance tests
     runs-on: self-hosted-runner-ubuntu
@@ -64,7 +21,7 @@ jobs:
           ls -la ./
       - name: Checkout
         uses: actions/checkout@v3
-      - name: libudev-dev
+      - name: Install pre-requisite dependencies
         run: |
           sudo apt-get update && sudo apt-get install -y gconf-service libgbm-dev libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libnss3 lsb-release xdg-utils wget ca-certificates
           sudo apt-get install -y libudev-dev cargo npm imagemagick libmagickwand-dev cmake
@@ -72,7 +29,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22.4.0
-      - name: Install Ruby and required gems
+      - name: Install ruby and other related tools
         run: |
           whoami
           npm install -g corepack
@@ -102,7 +59,7 @@ jobs:
         run: |
           cargo install nj-cli --locked
           cargo install wasm-pack --locked
-      - name: Run Jasmine performance tests
+      - name: Prepare environment
         run: |
           npm i -g tslib
           export PATH="/usr/share/rvm:$PATH"
@@ -110,16 +67,37 @@ jobs:
           ruby --version
           pwd
           gem install dotenv json octokit tmpdir fileutils
+      - name: Run Jasmine performance tests for the latest release
+        if: github.event_name != 'pull_request'
+        run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           export PATH="/root/.cargo/bin:$PATH"
           . "/root/.cargo/env"
           source ~/.bashrc
-          ruby scripts/tools/run_benchmarks.rb 10
-          ls -la /chipmunk/chipmunk_performance_results
+          ruby scripts/tools/run_benchmarks.rb 1
         env:
           REPO_OWNER: 'esrlabs'
           REPO_NAME: 'chipmunk'
-  invoke_package_distribution:
+      - name: Run Jasmine performance tests for the latest pull request
+        if: github.event_name == 'pull_request'
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          export PATH="/root/.cargo/bin:$PATH"
+          . "/root/.cargo/env"
+          source ~/.bashrc
+          echo "PR head repo: ${{ github.event.pull_request.head.repo.name }}"
+          echo "PR head branch: ${{ github.event.pull_request.head.ref }}"
+          echo "PR head owner: ${{ github.event.pull_request.head.repo.owner.login }}"
+          ruby scripts/tools/run_benchmarks.rb PR~${{ github.event.pull_request.number }}
+        env:
+          REPO_OWNER: ${{ github.event.pull_request.head.repo.owner.login }}
+          REPO_NAME: ${{ github.event.pull_request.head.repo.name }}
+      - name: List files in the results folder
+        run: |
+          echo "PR head owner: ${{ github.event.pull_request.head.repo.owner.login }}"
+          echo "Event is:  ${{ github.event_name }}"
+          ls -la /chipmunk/chipmunk_performance_results
+  push_data_to_chipmunk_docs:
     name: Move benchmark data to chipmunk-docs repository
     needs: invoke_jasmine_tests
     runs-on: self-hosted-runner-ubuntu
@@ -130,8 +108,9 @@ jobs:
           repository: esrlabs/chipmunk-docs
           path: './chipmunk-docs'
           token: ${{secrets.DOCS_PUSH_TOKEN}}
-      - name: Push tag
+      - name: Push tag for release
         working-directory: ./chipmunk-docs
+        if: github.event_name != 'pull_request_target'
         run: |
           ls -la
           cp /chipmunk/chipmunk_performance_results/data.json ./jekyll/benchmarks/data/data.json
@@ -140,4 +119,16 @@ jobs:
           git remote set-url origin "https://esrlabs:${{secrets.DOCS_PUSH_TOKEN}}@github.com/esrlabs/chipmunk-docs"
           git add ./jekyll/benchmarks/data/data.json
           git commit -m "Updating data.json for latest tag"
+          git push origin master
+      - name: Push PR data to chipmunk-docs
+        working-directory: ./chipmunk-docs
+        if: ${{ github.event_name == 'pull_request_target' && contains(fromJson('["itsmesamster", "marcmo", "DmitryAstafyev", "kruss", "AmmarAbouZor"]'), github.event.pull_request.head.repo.owner.login) }}
+        run: |
+          ls -la
+          cp /chipmunk/chipmunk_performance_results/Benchmark_PR_${{ github.event.pull_request.number }}.json ./jekyll/benchmarks/data/pull_request/Benchmark_PR_${{ github.event.pull_request.number }}.json
+          git config user.name "esrlabs"
+          git config user.email "esrlabs@gmail.com"
+          git remote set-url origin "https://esrlabs:${{secrets.DOCS_PUSH_TOKEN}}@github.com/esrlabs/chipmunk-docs"
+          git add ./jekyll/benchmarks/data/pull_request/Benchmark_PR_${{ github.event.pull_request.number }}.json
+          git commit -m "Adding PR benchmark results for chipmunk PR # ${{ github.event.pull_request.number }}"
           git push origin master

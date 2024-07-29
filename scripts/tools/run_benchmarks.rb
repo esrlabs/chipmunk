@@ -1,9 +1,11 @@
 require 'octokit'
 require 'tmpdir'
 require 'fileutils'
+require 'json'
 
-REPO_OWNER = 'esrlabs'
-REPO_NAME = 'chipmunk'
+
+ENV['REPO_OWNER'] ||= 'esrlabs'
+ENV['REPO_NAME'] ||= 'chipmunk'
 
 RAKE_COMMANDS = [
   'rake clobber',
@@ -17,19 +19,15 @@ RAKE_COMMANDS = [
 
 SHELL_SCRIPT_PATH = 'application/apps/rustcore/ts-bindings/spec'
 
-if ARGV.length > 1
-  puts "Usage: ruby scripts/tools/run_benchmarks.rb <number_of_releases>/<start_tag-end_tag>"
+def usage
+  puts "Usage: ruby scripts/tools/run_benchmarks.rb <number_of_releases>/<start_tag-end_tag>/PR~<PR_NUMBER>"
   exit(1)
 end
 
 def compute_average_of_benchmarks(result_path)
-  # Read the JSON data from the file
-  file_content = File.read(result_path)
-  data = JSON.parse(file_content)
+  data = JSON.parse(File.read(result_path))
 
-  # Group the tests by their names and compute the average actual value for each test type
   grouped_data = data.group_by { |test| test['name'] }
-  puts "grouped_data is \n#{grouped_data}"
 
   averages = grouped_data.map do |name, tests|
     passed_tests = tests.select { |test| test['passed'] }
@@ -43,171 +41,145 @@ def compute_average_of_benchmarks(result_path)
     end
   end
 
-  puts "Final data is \n#{averages}"
-
-  # Write the resulting JSON back to the file
-  File.open(result_path, 'w') do |file|
-    file.write(JSON.pretty_generate(averages))
-  end
-  puts "Average actual values have been written to the file #{result_path}"
+  File.write(result_path, JSON.pretty_generate(averages))
 end
 
-# def compute_average_of_benchmarks(result_path)
-#   # Read the JSON data from the file
-#   file_content = File.read(result_path)
-#   data = JSON.parse(file_content)
+client = Octokit::Client.new
 
-#   # Group the tests by their names and compute the average actual value for each test type
-#   grouped_data = data.group_by { |test| test['name'] }
-#   puts "grouped_data is \n#{grouped_data}"
-#   averages = grouped_data.map do |name, tests|
-#     average_actual = tests.sum { |test| test['actual'] if test['passed'] rescue 0} / tests.sum{ |test| test['passed'] ? 1 : 0 rescue 0}
-#     average_expected = tests.sum { |test| test['expectation'] if test['passed'] rescue 0} / tests.sum{ |test| test['passed'] ? 1 : 0 rescue 0}
-#     { 'name' => name, 'actual' => average_actual, "expectation": average_expected, 'passed' => average_actual <= average_expected }
-#   end
-
-#   puts "Final data is \n#{averages}"
-
-#   # Write the resulting JSON back to the file
-#   File.open(result_path, 'w') do |file|
-#     file.write(JSON.pretty_generate(averages))
-#   end
-#   puts "Average actual values have been written to the file #{result_path}"
-# end
-
-client = Octokit::Client.new()
-
-# Fetch the latest releases from the GitHub repository
-releases = client.releases("#{REPO_OWNER}/#{REPO_NAME}")
-
-if !ARGV[0] || (ARGV.length == 1 && ARGV[0].match?(/\A\d+(\.\d+)?\z/))
-  NUMBER_OF_RELEASES = ARGV[0].to_i == 0 ? 1 : ARGV[0].to_i
-  filtered_releases = releases.take(NUMBER_OF_RELEASES)
-  puts "running benchmarks for last #{NUMBER_OF_RELEASES} releases"
-elsif ARGV.length == 1 && ARGV[0].include?('-')
-  start_tag, end_tag = ARGV[0].split('-')
-  if start_tag.nil? || end_tag.nil?
-    puts "Invalid range format. Use <start_tag-end_tag>"
-    exit(1)
-  end
-  filtered_releases = releases.select do |release|
-    release.tag_name >= start_tag && release.tag_name <= end_tag
-  end
-  puts "running benchmarks for releases #{start_tag} - #{end_tag}"
-else
-  puts "Usage: ruby scripts/tools/run_benchmarks.rb <number_of_releases>/<start_tag-end_tag>"
-  exit(1)
+def fetch_pull_request(client, pr_number)
+  client.pull_request("esrlabs/chipmunk", pr_number)
 end
 
-# Iterate over the specified number of releases
-filtered_releases.each_with_index do |release, index|
-  puts "Processing release #{index + 1}: #{release.name}"
+def fetch_releases(client)
+  client.releases("#{ENV['REPO_OWNER']}/#{ENV['REPO_NAME']}")
+end
 
-  ENV_VARS = {
+def parse_arguments(arg)
+  if arg.start_with?('PR~')
+    pr_number = arg.split('~').last
+    { type: :pr, value: pr_number }
+  elsif arg.match?(/\A\d+(\.\d+)?\z/)
+    number_of_releases = arg.to_i == 0 ? 1 : arg.to_i
+    { type: :number_of_releases, value: number_of_releases }
+  elsif arg.include?('-')
+    start_tag, end_tag = arg.split('-')
+    { type: :range, value: [start_tag, end_tag] }
+  else
+    usage
+  end
+end
+
+def set_environment_vars
+  {
     'JASMIN_TEST_CONFIGURATION' => './spec/benchmarks.json',
     'PERFORMANCE_RESULTS_FOLDER' => 'chipmunk_performance_results',
-    'PERFORMANCE_RESULTS' => "Benchmark_#{release.tag_name}.json",
-    # 'SH_HOME_DIR' => "/chipmunk"
-    'SH_HOME_DIR' => "/Users/sameer.g.srivastava"
+    'PERFORMANCE_RESULTS' => '',
+    'SH_HOME_DIR' => "/chipmunk"
+    # 'SH_HOME_DIR' => "/Users/sameer.g.srivastava"
   }
+end
 
-  # Create a temporary directory for this release
+def clone_and_setup_repo(branch_or_tag_name, temp_dir)
+  system("git clone --depth 1 --branch #{branch_or_tag_name} https://github.com/#{ENV['REPO_OWNER']}/#{ENV['REPO_NAME']}.git #{temp_dir}")
+  FileUtils.cp_r("#{SHELL_SCRIPT_PATH}/.", "#{temp_dir}/#{SHELL_SCRIPT_PATH}/.", verbose: true)
+  FileUtils.cp_r("scripts/elements/bindings.rb", "#{temp_dir}/scripts/elements/bindings.rb", verbose: true)
+end
+
+def process_release_or_pr(branch_or_tag_name, identifier, env_vars)
   Dir.mktmpdir do |temp_dir|
     begin
-      # Clone the repository into the temporary directory
-      system("git clone --depth 1 --branch #{release.tag_name} https://github.com/#{REPO_OWNER}/#{REPO_NAME}.git #{temp_dir}")
+      clone_and_setup_repo(branch_or_tag_name, temp_dir)
+      result_path = "#{env_vars['SH_HOME_DIR']}/#{env_vars['PERFORMANCE_RESULTS_FOLDER']}/Benchmark_#{identifier}.json"
 
-      # Copy scripts folder to have the test cases available in the cloned repo
-      FileUtils.cp_r("#{SHELL_SCRIPT_PATH}/.", "#{temp_dir}/#{SHELL_SCRIPT_PATH}/.", verbose: true)
-      FileUtils.cp_r("scripts/elements/bindings.rb", "#{temp_dir}/scripts/elements/bindings.rb", verbose: true)
-
-      result_path = "#{ENV_VARS['SH_HOME_DIR']}/#{ENV_VARS['PERFORMANCE_RESULTS_FOLDER']}/Benchmark_#{release.tag_name}.json"
-
-      # Change directory to the temporary directory
       Dir.chdir(temp_dir) do
-        # Execute the shell script
-        ENV_VARS.each do |key, value|
-          ENV[key] = "#{value}"
-        end
-
+        env_vars.each { |key, value| ENV[key] = value }
+        ENV['PERFORMANCE_RESULTS'] = "Benchmark_#{identifier}.json"
         system("corepack enable")
         system("yarn cache clean")
 
-        if File.exist?("#{SHELL_SCRIPT_PATH}/#{ENV_VARS['JASMIN_TEST_CONFIGURATION'].gsub('./spec/', '')}")
-          puts "Benchmark.json file available."
-        else
-          break
-        end
+        next unless File.exist?("#{SHELL_SCRIPT_PATH}/#{env_vars['JASMIN_TEST_CONFIGURATION'].gsub('./spec/', '')}")
 
-        system("printenv")
+        puts "Benchmark.json file available."
 
-        if File.exist?(result_path)
-          FileUtils.rm(result_path, verbose: true)
-        end
+        FileUtils.rm(result_path, verbose: true) if File.exist?(result_path)
 
-        # Run each Rake command
         RAKE_COMMANDS.each do |command|
-          puts "Running #{command} for tag #{release.name}"
+          puts "Running #{command} for #{identifier}"
           system(command)
         end
       end
 
+      if File.exist?(result_path)
+        compute_average_of_benchmarks(result_path)
+        puts "Benchmark results:"
+        system("cat #{result_path}")
+      else
+        puts "Benchmark results not found at #{result_path}."
+      end
     rescue => e
-      puts "An error occurred while processing release #{release.tag_name}: #{e.message}"
+      puts "An error occurred while processing #{identifier}: #{e.message}"
     end
 
-    if File.exist?(result_path)
-      compute_average_of_benchmarks(result_path)
-      puts "Benchmark results:"
-      system("cat #{result_path}")
-    else
-      puts "Benchmark results not found at #{result_path}."
-    end
-    puts "Completed processing release #{index + 1}: #{release.name}"
-
+    puts "Completed processing #{identifier}"
   end
 end
 
-# Method to read and parse JSON files
 def read_benchmark_data(file_path)
-  puts "Data in file = #{file_path}\n#{File.read(file_path)}\n:: EOF"
-  { file_name: File.basename(file_path), data: JSON.parse(File.read(file_path)) }
+  data = JSON.parse(File.read(file_path))
+  { file_name: File.basename(file_path), data: data }
 end
 
-# Method to collect data from the latest 10 JSON files
 def collect_latest_benchmark_data(directory)
-  Dir.glob("#{directory}/Benchmark*.json").map do |file|
+  Dir.glob("#{directory}/Benchmark_*.json").reject { |file| File.basename(file).start_with?('Benchmark_PR') }.map do |file|
     read_benchmark_data(file)
   end
 end
 
-# Method to generate graphs for each performance test type
-def update_performance_data(data)
-  # Hash to store data organized by test name
-  test_data = {}
-
-  # Collect data by test name
-  data.each do |benchmark|
+def update_performance_data(data, data_file_path)
+  test_data = data.each_with_object({}) do |benchmark, hash|
     benchmark[:data].each do |entry|
       test_name = entry['name']
       actual_value = entry['actual']
-      file_name = benchmark[:file_name]
+      release = benchmark[:file_name].gsub("Benchmark_", "").gsub(".json", "")
 
-      if test_data[test_name]
-        test_data[test_name] << { release: file_name.gsub("Benchmark_","").gsub(".json",""), actual_value: actual_value }
-      else
-        test_data[test_name] = [{ release: file_name.gsub("Benchmark_","").gsub(".json",""), actual_value: actual_value }]
-      end
+      hash[test_name] ||= []
+      hash[test_name] << { release: release, actual_value: actual_value }
     end
   end
-
-  puts ("Test data = #{test_data.to_json}")
-  File.open("#{ENV_VARS['SH_HOME_DIR']}/#{ENV_VARS['PERFORMANCE_RESULTS_FOLDER']}/data.json", 'w') do |file|
-    file.write(test_data.to_json)
-  end
+  test_data = test_data.to_json
+  puts "Data written to #{data_file_path}\n#{test_data}"
+  File.write(data_file_path, test_data)
   puts "Benchmark data created successfully!"
 end
 
-benchmark_data = collect_latest_benchmark_data("#{ENV_VARS['SH_HOME_DIR']}/#{ENV_VARS['PERFORMANCE_RESULTS_FOLDER']}")
-update_performance_data(benchmark_data)
+arg = ARGV[0] || usage
+parsed_arg = parse_arguments(arg)
+env_vars = set_environment_vars
 
+case parsed_arg[:type]
+when :pr
+  pr_number = parsed_arg[:value]
+  pull_request = fetch_pull_request(client, pr_number)
+  branch_name = pull_request.head.ref
+  puts "Running benchmarks for the pull request: #{pull_request.title} (#{branch_name})"
+  process_release_or_pr(branch_name, "PR_#{pr_number}", env_vars)
+when :number_of_releases
+  releases = fetch_releases(client).take(parsed_arg[:value]) rescue 1
+  puts "Running benchmarks for the last #{parsed_arg[:value]} release/s"
+  releases.each { |release| process_release_or_pr(release.tag_name, release.tag_name, env_vars) }
+when :range
+  start_tag, end_tag = parsed_arg[:value]
+  releases = fetch_releases(client).select { |release| release.tag_name >= start_tag && release.tag_name <= end_tag }
+  puts "Running benchmarks for releases #{start_tag} - #{end_tag}"
+  releases.each { |release| process_release_or_pr(release.tag_name, release.tag_name, env_vars) }
+end
+
+benchmark_data = collect_latest_benchmark_data("#{env_vars['SH_HOME_DIR']}/#{env_vars['PERFORMANCE_RESULTS_FOLDER']}")
+
+DATA_JSON_PATH = "#{env_vars['SH_HOME_DIR']}/#{env_vars['PERFORMANCE_RESULTS_FOLDER']}/data.json"
+if !File.exist?(DATA_JSON_PATH) || benchmark_data.any? { |file| File.mtime(DATA_JSON_PATH) < File.mtime("#{env_vars['SH_HOME_DIR']}/#{env_vars['PERFORMANCE_RESULTS_FOLDER']}/#{file[:file_name]}") && !file[:file_name].start_with?('Benchmark_PR') }
+  update_performance_data(benchmark_data, DATA_JSON_PATH)
+elsif parsed_arg[:type] == :pr
+  pr_data_filepath = "#{env_vars['SH_HOME_DIR']}/#{env_vars['PERFORMANCE_RESULTS_FOLDER']}/Benchmark_PR_#{pr_number}.json"
+  update_performance_data([read_benchmark_data(pr_data_filepath)], pr_data_filepath)
+end
