@@ -47,6 +47,23 @@ impl ChecksumRecords {
 
         if calculate_involved {
             records.calculate_involved_hashes()?;
+
+            // Production and development use the same artifacts which will lead to false
+            // positives when the artifacts are modified via another build but the checksum of
+            // source files still the same.
+            // To solve this problem we will reset the checksums of the opposite build production
+            // type when build is involved in the current process
+            let outdated_record_prod = !prod;
+            Self::remove_records_file(outdated_record_prod).with_context(|| {
+                format!(
+                    "Error while remove the outdated {} build checksum records",
+                    if outdated_record_prod {
+                        "production"
+                    } else {
+                        "development"
+                    }
+                )
+            })?;
         }
 
         records
