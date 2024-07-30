@@ -113,16 +113,14 @@ impl<'m> DltParser<'m> {
             offset: 0,
         }
     }
-}
 
-impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
-    fn parse(
+    // NOTE: This has the original implementation to DLT parser.
+    fn parse_intern(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> impl Iterator<Item = Result<(usize, Option<ParseYield<FormattableMessage<'m>>>), Error>>
-    {
-        let res = match dlt_message(input, self.filter_config.as_ref(), self.with_storage_header) {
+    ) -> Result<(usize, Option<ParseYield<FormattableMessage<'m>>>), Error> {
+        match dlt_message(input, self.filter_config.as_ref(), self.with_storage_header) {
             Ok((rest, dlt_core::parse::ParsedMessage::FilteredOut(_n))) => {
                 let consumed = input.len() - rest.len();
                 self.offset += consumed;
@@ -156,9 +154,37 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
                 ))
             }
             Err(e) => Err(Error::Parse(format!("{e}"))),
-        };
+        }
+    }
+}
 
-        iter::once(res)
+impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
+    fn parse(
+        &mut self,
+        input: &[u8],
+        timestamp: Option<u64>,
+    ) -> impl Iterator<Item = Result<(usize, Option<ParseYield<FormattableMessage<'m>>>), Error>>
+    {
+        let mut input = &input[..];
+        let mut encounter_error = false;
+
+        iter::from_fn(move || {
+            if encounter_error {
+                return None;
+            }
+
+            match self.parse_intern(input, timestamp) {
+                Ok(res) => {
+                    input = &input[res.0..];
+
+                    Some(Ok(res))
+                }
+                Err(err) => {
+                    encounter_error = true;
+                    Some(Err(err))
+                }
+            }
+        })
     }
 }
 
