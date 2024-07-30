@@ -3,7 +3,7 @@ use crate::{
     state::AttachmentInfo,
 };
 use crossbeam_channel as cc;
-use plugins::PluginHostInitError;
+use plugins_host::PluginHostInitError;
 use processor::{grabber::GrabError, search::error::SearchError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
