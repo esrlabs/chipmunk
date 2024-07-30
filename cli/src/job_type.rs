@@ -45,9 +45,9 @@ impl JobType {
             // Linting TS needs to building too to check for type errors
             JobType::Lint => vec![JobType::Build { production: false }],
             JobType::Build { production } => vec![
-                // Install run always in development at first then it should get reinstalled with
-                // production after build command is ran.
-                JobType::Install { production: false },
+                JobType::Install {
+                    production: *production,
+                },
                 JobType::AfterBuild {
                     production: *production,
                 },

@@ -58,8 +58,14 @@ impl JobDefinition {
         let res = match self.job_type {
             JobType::Lint => self.target.check().await,
             JobType::Build { production } => self.target.build(production, skip).await,
+            // Install run always in development at first then it should get reinstalled with
+            // production after build command is ran.
+            // We must deliver the correct jobtype though for the communication with tracker.
             JobType::Install { production } => {
-                return self.target.install(production, skip, None).await
+                return self
+                    .target
+                    .install(false, skip, Some(JobType::Install { production }))
+                    .await;
             }
             JobType::AfterBuild { production } => {
                 return self.target.after_build(production, skip).await
