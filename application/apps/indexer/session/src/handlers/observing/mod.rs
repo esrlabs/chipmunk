@@ -12,7 +12,7 @@ use parsers::{
     text::StringTokenizer,
     LogMessage, MessageStreamItem, ParseYield, Parser,
 };
-use plugins::PluginParser;
+use plugins_host::PluginParser;
 use sources::{
     factory::ParserType,
     producer::{MessageProducer, SdeReceiver},

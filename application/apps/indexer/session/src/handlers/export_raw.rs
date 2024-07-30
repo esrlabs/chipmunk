@@ -12,7 +12,7 @@ use parsers::{
     text::StringTokenizer,
     LogMessage, MessageStreamItem,
 };
-use plugins::PluginParser;
+use plugins_host::PluginParser;
 use processor::export::{export_raw, ExportError};
 use sources::{
     binary::{
