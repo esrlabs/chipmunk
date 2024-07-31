@@ -1,7 +1,9 @@
 package chipmunk:plugin@0.1.0;
 
 interface bytesource-types {
-  /// Represents the errors while reading more bytes
+  use logging.{level};
+
+  /// Represents the errors while reading bytes in bytesource plugin
   variant source-error {
     io(string),
     unsupported,
@@ -10,7 +12,7 @@ interface bytesource-types {
 
   /// General configurations related to all bytesources
   record source-config {
-    place-holder-config: string,
+    log-level: level,
   }
 }
 
@@ -26,5 +28,6 @@ interface byte-source {
 }
 
 world bytesource-plugin {
+  import logging;
   export byte-source;
 }
