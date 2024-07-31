@@ -33,9 +33,20 @@ pub use __internal_bindings::chipmunk::plugin::{
     shared_types::InitError,
 };
 
-/// Chipmunk Parser for plugins. This trait must be implemented from types that need to be exported
-/// as parser plugin to be used within Chipmunk
+/// Trait representing a parser for Chipmunk plugins. Types that need to be
+/// exported as parser plugins for use within Chipmunk must implement this trait.
 pub trait Parser {
+    /// Creates an instance of the parser. This method initializes the parser,
+    /// configuring it with the provided settings and preparing it to perform parsing.
+    ///
+    /// # Parameters
+    ///
+    /// * `general_configs` - General configurations that apply to all parser plugins.
+    /// * `config_path` - Optional path to a custom configuration file specific to this plugin.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing an instance of the implementing type on success, or an `InitError` on failure.
     fn create(
         general_configs: ParserConfig,
         config_path: Option<PathBuf>,
@@ -43,6 +54,17 @@ pub trait Parser {
     where
         Self: Sized;
 
+    /// Parses the provided data and returns an iterator over the parse results.
+    ///
+    /// # Parameters
+    ///
+    /// * `data` - A slice of bytes representing the data to be parsed.
+    /// * `timestamp` - An optional timestamp associated with the data.
+    ///
+    /// # Returns
+    ///
+    /// An iterator over `Result<ParseReturn, ParseError>` items. Each item represents either a successful parse result
+    /// or a parse error.
     fn parse(
         &mut self,
         data: &[u8],
@@ -90,8 +112,8 @@ pub trait Parser {
 
 macro_rules! parser_export {
     ($par:ty) => {
-        // Define parser instant as static field to make it reachable from
-        // within parser function
+        // Define parser instance as static field to make it reachable from
+        // within parse function
         static mut PARSER: ::std::option::Option<$par> = ::std::option::Option::None;
 
         // Define logger as static field to use it with macro initialization
