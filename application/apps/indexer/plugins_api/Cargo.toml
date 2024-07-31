@@ -21,6 +21,10 @@ bytesource = []
 name = "parser"
 required-features = ["parser"]
 
+[[test]]
+name = "bytesource"
+required-features = ["bytesource"]
+
 [package.metadata.docs.rs]
 # Activate all features when generating the code on docs.rs
 all-features = true
