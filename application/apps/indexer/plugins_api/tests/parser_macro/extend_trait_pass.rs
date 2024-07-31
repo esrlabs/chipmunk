@@ -5,7 +5,7 @@ struct Dummy;
 
 trait ExtendParser: crate::parser::Parser {}
 
-impl ExtendParser for Dummy {
+impl crate::parser::Parser for Dummy {
     fn create(
         _general_configs: crate::parser::ParserConfig,
         _config_path: Option<std::path::PathBuf>,
@@ -25,6 +25,8 @@ impl ExtendParser for Dummy {
         Vec::new()
     }
 }
+
+impl ExtendParser for Dummy {}
 
 parser_export!(Dummy);
 
