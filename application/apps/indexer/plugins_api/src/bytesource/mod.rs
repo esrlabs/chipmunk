@@ -88,7 +88,7 @@ pub trait ByteSource {
 ///  #    }
 ///  #
 ///  #    fn read(&mut self, len: usize) -> Result<Vec<u8>, SourceError> { todo!() }
-///  #    }
+///  }
 ///
 /// bytesource_export!(CustomByteSoruce);
 /// ```
