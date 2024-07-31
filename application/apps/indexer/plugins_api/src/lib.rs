@@ -31,3 +31,21 @@ mod plugin_logger;
 // This is needed to be public because it's used in the export macro
 #[doc(hidden)]
 pub use plugin_logger::{LogSend as __LogSend, PluginLogger as __PluginLogger};
+
+// This is a temporary reminder to include `--all-features` flag with cargo test in CI pipelines.
+// This code is activated in tests only if no features is activated, since almost all tests are
+// included within the features.
+#[cfg(all(test, not(any(feature = "parser", feature = "bytesource"))))]
+mod tests {
+    #[test]
+    fn no_features_error() {
+        const BOLD_RED: &str = "\x1b[1;31m";
+        const YELLOW: &str = "\x1b[33m";
+        const RESET: &str = "\x1b[0m";
+
+        panic!(
+            "{BOLD_RED}Error:{RESET} {YELLOW}Tests were run without activating any features.\n\
+            This is a reminder to include all features in test in the CI pipeline{RESET}"
+        )
+    }
+}
