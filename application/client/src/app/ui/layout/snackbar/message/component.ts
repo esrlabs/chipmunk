@@ -34,7 +34,7 @@ export class LayoutSnackBarMessage {
             .then((response) => {
                 if (response.error !== undefined) {
                     this.log().error(
-                        `Fail to proccess action ${action.name} (${action.uuid}); error: ${response.error}`,
+                        `Fail to process action ${action.name} (${action.uuid}); error: ${response.error}`,
                     );
                 }
             })
