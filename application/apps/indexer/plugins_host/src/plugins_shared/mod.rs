@@ -1,9 +1,10 @@
 use std::path::{Path, PathBuf};
 
-use thiserror::Error;
 use wasmtime_wasi::{DirPerms, FilePerms, WasiCtxBuilder};
 
-use crate::{wasm_host::WasmHostInitError, PluginHostInitError};
+use crate::PluginHostInitError;
+
+pub mod plugin_init_error;
 
 /// Path of plugin configurations directory that will presented to the plugins.
 const PLUGINS_CONFIG_DIR_PATH: &str = "./config";
