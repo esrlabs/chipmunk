@@ -7,7 +7,7 @@ mod wasm_host;
 
 pub use parser_shared::{plugin_parse_message::PluginParseMessage, PluginParser};
 
-//TODO AAZ: Add pubic use for bytesource_shared
+pub use bytesource_shared::PluginByteSource;
 
 pub use plugins_shared::plugin_init_error::{PluginGuestInitError, PluginHostInitError};
 

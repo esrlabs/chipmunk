@@ -34,20 +34,59 @@ pub async fn observe_file<'a>(
     ) = channel(1);
     match file_format {
         FileFormat::Binary => {
-            let source = BinaryByteSource::new(input_file(filename)?);
-            let (_, listening) = join!(
-                tail::track(filename, tx_tail, operation_api.cancellation_token()),
-                super::run_source(
-                    operation_api,
-                    state,
-                    source,
-                    source_id,
-                    parser,
-                    None,
-                    Some(rx_tail)
+            //TODO AAZ: Remove prototyping code when not needed anymore.
+            const PLUGIN_SOURCE_PATH_ENV: &str = "WASM_SOURCE_PATH";
+
+            if let Ok(path) = std::env::var(PLUGIN_SOURCE_PATH_ENV) {
+                println!("------------------------------------------------------");
+                println!("-------------    WASM source used    -----------------");
+                println!("------------------------------------------------------");
+
+                use plugins_host::*;
+                use sources::plugins;
+                let setting = plugins::PluginByteSourceSettings::prototyping(
+                    path.into(),
+                    plugins::ByteSourceInput::File(filename.into()),
+                );
+
+                let plugin_source = PluginByteSource::create(
+                    &setting.plugin_path,
+                    setting.source_input,
+                    &setting.general_settings,
+                    setting.custom_config_path.as_ref(),
                 )
-            );
-            listening
+                .await?;
+
+                let source = BinaryByteSource::new(plugin_source);
+                let (_, listening) = join!(
+                    tail::track(filename, tx_tail, operation_api.cancellation_token()),
+                    super::run_source(
+                        operation_api,
+                        state,
+                        source,
+                        source_id,
+                        parser,
+                        None,
+                        Some(rx_tail)
+                    )
+                );
+                listening
+            } else {
+                let source = BinaryByteSource::new(input_file(filename)?);
+                let (_, listening) = join!(
+                    tail::track(filename, tx_tail, operation_api.cancellation_token()),
+                    super::run_source(
+                        operation_api,
+                        state,
+                        source,
+                        source_id,
+                        parser,
+                        None,
+                        Some(rx_tail)
+                    )
+                );
+                listening
+            }
         }
         FileFormat::PcapLegacy => {
             let source = PcapLegacyByteSource::new(input_file(filename)?)?;

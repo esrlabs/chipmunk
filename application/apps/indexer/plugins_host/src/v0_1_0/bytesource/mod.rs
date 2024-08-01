@@ -1,9 +1,13 @@
 //TODO AAZ: Suppress warnings while developing
 #![allow(dead_code, unused_imports, unused)]
 
-use std::path::{Path, PathBuf};
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 
 use sources::plugins::{ByteSourceInput, PluginByteSourceGeneralSetttings};
+use wasmtime::component::Component;
 use wasmtime_wasi::{DirPerms, FilePerms, WasiCtxBuilder};
 
 use crate::{
@@ -13,8 +17,8 @@ use crate::{
 pub struct PluginByteSource {}
 
 impl PluginByteSource {
-    pub fn create(
-        plugin_path: impl AsRef<Path>,
+    pub async fn create(
+        component: Component,
         input: ByteSourceInput,
         general_config: &PluginByteSourceGeneralSetttings,
         config_path: Option<impl AsRef<Path>>,
@@ -30,6 +34,10 @@ impl PluginByteSource {
             ctx.preopened_dir(file_dir, INPUT_DIR_PATH, DirPerms::READ, FilePerms::READ)?;
         }
 
+        todo!()
+    }
+
+    pub async fn read_next(&self, len: usize) -> io::Result<Vec<u8>> {
         todo!()
     }
 }

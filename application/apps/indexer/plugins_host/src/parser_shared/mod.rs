@@ -22,10 +22,9 @@ impl PluginParser {
         general_config: &PluginParserGeneralSetttings,
         config_path: Option<impl AsRef<Path>>,
     ) -> Result<Self, PluginHostInitError> {
-        let engine = match get_wasm_host() {
-            Ok(host) => &host.engine,
-            Err(err) => return Err(err.to_owned().into()),
-        };
+        let engine = get_wasm_host()
+            .map(|host| &host.engine)
+            .map_err(|err| err.to_owned())?;
 
         if !plugin_path.as_ref().exists() {
             return Err(PluginHostInitError::IO("Plugin path doesn't exist".into()));
