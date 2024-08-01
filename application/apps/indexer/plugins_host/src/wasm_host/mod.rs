@@ -29,8 +29,8 @@ impl WasmHost {
     }
 }
 
-pub fn get_wasm_host() -> &'static Result<WasmHost, WasmHostInitError> {
+pub fn get_wasm_host() -> Result<&'static WasmHost, &'static WasmHostInitError> {
     static WASM_HOST: OnceLock<Result<WasmHost, WasmHostInitError>> = OnceLock::new();
 
-    WASM_HOST.get_or_init(WasmHost::init)
+    WASM_HOST.get_or_init(WasmHost::init).as_ref()
 }
