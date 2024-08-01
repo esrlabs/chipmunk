@@ -1,5 +1,5 @@
 use crate::{PluginGuestInitError, PluginParseMessage};
-use sources::factory::PluginParserGeneralSetttings;
+use sources::plugins::PluginParserGeneralSetttings;
 
 pub use self::chipmunk::plugin::{parse_types::*, shared_types::*};
 //TODO AAZ: Check if `duplicate_if_necessary` should be set to true or false on both plugin and
