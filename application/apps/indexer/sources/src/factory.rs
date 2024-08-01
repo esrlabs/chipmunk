@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
 use uuid::Uuid;
 
+use crate::plugins::PluginParserSettings;
+
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ParserType {
@@ -66,37 +68,6 @@ impl DltParserSettings {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SomeIpParserSettings {
     pub fibex_file_paths: Option<Vec<String>>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PluginParserSettings {
-    pub plugin_path: PathBuf,
-    pub general_settings: PluginParserGeneralSetttings,
-    pub custom_config_path: Option<PathBuf>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-/// General settings for all parsers as plugins
-pub struct PluginParserGeneralSetttings {
-    pub placeholder: String,
-}
-
-impl PluginParserSettings {
-    /// Implementation needed during prototyping only
-    pub fn prototyping(plugin_path: PathBuf) -> Self {
-        Self {
-            plugin_path,
-            general_settings: PluginParserGeneralSetttings {
-                placeholder: Default::default(),
-            },
-            custom_config_path: None,
-        }
-    }
-
-    /// Default implementation needed during prototyping only
-    pub fn default_prototyping() -> Self {
-        Self::prototyping(PathBuf::default())
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

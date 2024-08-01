@@ -3,25 +3,20 @@
 
 use std::path::{Path, PathBuf};
 
+use sources::plugins::{ByteSourceInput, PluginByteSourceGeneralSetttings};
 use wasmtime_wasi::{DirPerms, FilePerms, WasiCtxBuilder};
 
-use crate::{plugins_shared::get_wasi_ctx_builder, PluginHostInitError};
-
-/// Path of input file directory that will presented to the plugins.
-const INPUT_DIR_PATH: &str = "./input";
-
-#[derive(Debug, Clone)]
-/// Represents The input source for byte source to read from
-pub enum ByteSourceInput {
-    File(PathBuf),
-    Other,
-}
+use crate::{
+    bytesource_shared::INPUT_DIR_PATH, plugins_shared::get_wasi_ctx_builder, PluginHostInitError,
+};
 
 pub struct PluginByteSource {}
 
 impl PluginByteSource {
     pub fn create(
+        plugin_path: impl AsRef<Path>,
         input: ByteSourceInput,
+        general_config: &PluginByteSourceGeneralSetttings,
         config_path: Option<impl AsRef<Path>>,
     ) -> Result<Self, PluginHostInitError> {
         // This is just handling the case of input file. The rest is missing

@@ -119,7 +119,7 @@ async fn run_source_intern<S: ByteSource>(
                 Err(err) => panic!("Retrieving plugin path environment variable failed. Err {err}"),
             };
             let proto_plugin_path = PathBuf::from(plugin_path);
-            let settings = sources::factory::PluginParserSettings::prototyping(proto_plugin_path);
+            let settings = sources::plugins::PluginParserSettings::prototyping(proto_plugin_path);
 
             let parser = PluginParser::create(
                 &settings.plugin_path,

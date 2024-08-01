@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use sources::factory::PluginParserGeneralSetttings;
+use sources::plugins::PluginParserGeneralSetttings;
 use wasmtime::component::Component;
 
 use crate::{
