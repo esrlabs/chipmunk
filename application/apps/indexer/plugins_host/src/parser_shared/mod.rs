@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use sources::factory::{PluginParserGeneralSetttings, PluginParserSettings};
+use sources::factory::PluginParserGeneralSetttings;
 use wasmtime::component::Component;
 
 use crate::{
@@ -8,7 +8,6 @@ use crate::{
     PluginParseMessage,
 };
 
-pub mod plugin_init_error;
 pub mod plugin_parse_message;
 
 const PARSER_INTERFACE_NAME: &str = "chipmunk:plugin/parser";
@@ -72,9 +71,9 @@ impl PluginParser {
                         .await?;
                 Ok(PluginParser::Ver010(parser))
             }
-            invalid => Err(PluginHostInitError::PluginInvalid(
-                "Plugin version not supported".into(),
-            )),
+            invalid_version => Err(PluginHostInitError::PluginInvalid(format!(
+                "Plugin version {invalid_version} is not supported"
+            ))),
         }
     }
 }

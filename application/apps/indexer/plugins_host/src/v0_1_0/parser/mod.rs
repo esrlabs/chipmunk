@@ -1,14 +1,14 @@
 mod bindings;
 mod parser_plugin_state;
 
-use std::{iter, path::Path};
+use std::path::Path;
 
-use sources::factory::{PluginParserGeneralSetttings, PluginParserSettings};
+use sources::factory::PluginParserGeneralSetttings;
 use wasmtime::{
     component::{Component, Linker},
     Store,
 };
-use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable, WasiCtxBuilder};
+use wasmtime_wasi::ResourceTable;
 
 use crate::{
     plugins_shared::{get_plugin_config_path, get_wasi_ctx_builder},
@@ -18,7 +18,7 @@ use crate::{
 };
 
 use self::{
-    bindings::{InitError, ParsePlugin, ParseReturn},
+    bindings::{ParsePlugin, ParseReturn},
     parser_plugin_state::ParserPluginState,
 };
 
@@ -47,7 +47,7 @@ impl PluginParser {
         let mut linker: Linker<ParserPluginState> = Linker::new(engine);
         wasmtime_wasi::add_to_linker_async(&mut linker)?;
 
-        ParsePlugin::add_to_linker(&mut linker, |state| state);
+        ParsePlugin::add_to_linker(&mut linker, |state| state)?;
 
         let mut ctx = get_wasi_ctx_builder(config_path.as_ref())?;
         let resource_table = ResourceTable::new();
@@ -94,7 +94,7 @@ impl PluginParser {
 
     #[inline]
     /// Call parse function that returns the result as a collection.
-    fn parse_with_list(
+    fn _parse_with_list(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
@@ -181,6 +181,6 @@ impl p::Parser<PluginParseMessage> for PluginParser {
     {
         // TODO AAZ: We keep both functions for now until we can benchmark them properly.
         self.parse_with_add(input, timestamp)
-        // self.parse_with_list(input, timestamp)
+        // self._parse_with_list(input, timestamp)
     }
 }

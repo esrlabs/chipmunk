@@ -1,6 +1,5 @@
 use std::sync::{Arc, OnceLock};
 
-use tokio::sync::OnceCell;
 use wasmtime::{Config, Engine};
 
 pub struct WasmHost {

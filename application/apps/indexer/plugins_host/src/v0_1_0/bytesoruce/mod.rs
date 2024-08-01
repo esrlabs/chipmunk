@@ -1,3 +1,6 @@
+//TODO AAZ: Suppress warnings while developing
+#![allow(dead_code, unused_imports, unused)]
+
 use std::path::{Path, PathBuf};
 
 use wasmtime_wasi::{DirPerms, FilePerms, WasiCtxBuilder};

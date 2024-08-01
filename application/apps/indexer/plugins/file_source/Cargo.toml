@@ -8,6 +8,7 @@ authors = ["Ammar Abou Zor <ammar.abou.zor@accenture.com>"]
 description = "An example of a Chipmunk bytesource plugin that reads byte data from a file and provides it to the Chipmunk application."
 
 [dependencies]
+# TODO: Use lib from crates.io once the crate is published
 plugins_api = {path = "../../plugins_api", features = ["bytesource"]}
 
 [lib]

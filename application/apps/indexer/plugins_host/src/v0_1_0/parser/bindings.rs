@@ -1,4 +1,4 @@
-use crate::{PluginGuestInitError, PluginHostInitError, PluginParseMessage};
+use crate::{PluginGuestInitError, PluginParseMessage};
 use sources::factory::PluginParserGeneralSetttings;
 
 pub use self::chipmunk::plugin::{parse_types::*, shared_types::*};
