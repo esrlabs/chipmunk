@@ -23,7 +23,7 @@ use std::path::PathBuf;
 
 // External exports for users
 pub use __internal_bindings::chipmunk::plugin::{
-    bytesource_types::{SourceConfig, SourceError},
+    bytesource_types::{InputSource, SocketInfo, SourceConfig, SourceError},
     logging::Level,
     shared_types::InitError,
 };
@@ -36,6 +36,7 @@ pub trait ByteSource {
     ///
     /// # Parameters
     ///
+    /// * `input-source` - Source of the input to be used in the bytesource plugin.
     /// * `general_configs` - General configurations that apply to all bytesource plugins.
     /// * `config_path` - Optional path to a custom configuration file specific to this plugin.
     ///
@@ -43,6 +44,7 @@ pub trait ByteSource {
     ///
     /// A `Result` containing an instance of the implementing type on success, or an `InitError` on failure.
     fn create(
+        input_source: InputSource,
         general_configs: SourceConfig,
         config_path: Option<PathBuf>,
     ) -> Result<Self, InitError>
@@ -78,6 +80,7 @@ pub trait ByteSource {
 /// impl ByteSource for CustomByteSoruce {
 ///   // ... //
 ///  #    fn create(
+///  #        _input_source: InputSource,
 ///  #        _general_configs: SourceConfig,
 ///  #        _config_path: Option<PathBuf>,
 ///  #    ) -> Result<Self, InitError>
@@ -113,6 +116,7 @@ macro_rules! bytesource_export {
         {
             /// Initialize the bytesource with the given configurations
             fn init(
+                input_source: $crate::bytesource::InputSource,
                 general_configs: $crate::bytesource::SourceConfig,
                 plugin_configs: ::std::option::Option<::std::string::String>,
             ) -> ::std::result::Result<(), $crate::bytesource::InitError> {
@@ -124,6 +128,7 @@ macro_rules! bytesource_export {
 
                 // Initializing the given bytesource
                 let source = <$par as $crate::bytesource::ByteSource>::create(
+                    input_source,
                     general_configs,
                     plugin_configs.map(|path| path.into()),
                 )?;
@@ -164,6 +169,7 @@ mod prototyping {
 
     impl ByteSource for Dummy {
         fn create(
+            _input_source: InputSource,
             _general_configs: SourceConfig,
             _config_path: Option<PathBuf>,
         ) -> Result<Self, InitError>
