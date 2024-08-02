@@ -82,7 +82,7 @@ impl PluginByteSource {
         }
     }
 
-    async fn read_next(&self, len: usize) -> io::Result<Vec<u8>> {
+    async fn read_next(&mut self, len: usize) -> io::Result<Vec<u8>> {
         match self {
             PluginByteSource::Ver010(source) => source.read_next(len).await,
         }
