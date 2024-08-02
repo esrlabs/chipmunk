@@ -37,7 +37,7 @@ impl PluginParserSettings {
 pub struct PluginByteSourceSettings {
     pub plugin_path: PathBuf,
     pub source_input: ByteSourceInput,
-    pub general_settings: PluginByteSourceGeneralSetttings,
+    pub general_settings: PluginByteSourceGeneralSettings,
     pub custom_config_path: Option<PathBuf>,
 }
 
@@ -60,7 +60,7 @@ pub enum ByteSourceInput {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 /// General settings for all parsers as plugins
-pub struct PluginByteSourceGeneralSetttings {
+pub struct PluginByteSourceGeneralSettings {
     pub placeholder: String,
 }
 
@@ -70,7 +70,7 @@ impl PluginByteSourceSettings {
         Self {
             plugin_path,
             source_input,
-            general_settings: PluginByteSourceGeneralSetttings {
+            general_settings: PluginByteSourceGeneralSettings {
                 placeholder: Default::default(),
             },
             custom_config_path: None,

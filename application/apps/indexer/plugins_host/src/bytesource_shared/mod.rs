@@ -3,7 +3,7 @@ use std::{
     path::Path,
 };
 
-use sources::plugins::{ByteSourceInput, PluginByteSourceGeneralSetttings};
+use sources::plugins::{ByteSourceInput, PluginByteSourceGeneralSettings};
 use wasmtime::component::Component;
 
 use crate::{
@@ -11,9 +11,6 @@ use crate::{
 };
 
 const BYTESOURCE_INTERFACE_NAME: &str = "chipmunk:plugin/byte-source";
-
-/// Path of input file directory that will presented to the plugins.
-pub(crate) const INPUT_DIR_PATH: &str = "./input";
 
 pub enum PluginByteSource {
     Ver010(v0_1_0::bytesource::PluginByteSource),
@@ -23,7 +20,7 @@ impl PluginByteSource {
     pub async fn create(
         plugin_path: impl AsRef<Path>,
         input: ByteSourceInput,
-        general_config: &PluginByteSourceGeneralSetttings,
+        general_config: &PluginByteSourceGeneralSettings,
         config_path: Option<impl AsRef<Path>>,
     ) -> Result<Self, PluginHostInitError> {
         let engine = get_wasm_host()
