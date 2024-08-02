@@ -104,7 +104,26 @@ impl PluginByteSource {
         })
     }
 
-    pub async fn read_next(&self, _len: usize) -> io::Result<Vec<u8>> {
-        todo!()
+    pub async fn read_next(&mut self, len: usize) -> io::Result<Vec<u8>> {
+        let store = self.store.get_mut().map_err(|err| {
+            io::Error::new(
+                io::ErrorKind::Other,
+                format!("Bytesource Plugin: Poison Error while acquiring WASM store. Error: {err}"),
+            )
+        })?;
+
+        let bytes_result = self
+            .plugin_bindings
+            .chipmunk_plugin_byte_source()
+            .call_read(store, len as u64)
+            .await
+            .map_err(|err| {
+                io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("WASM Error while calling read on bytesource plugin. Error {err}"),
+                )
+            })?;
+
+        bytes_result.map_err(|err| err.into())
     }
 }
