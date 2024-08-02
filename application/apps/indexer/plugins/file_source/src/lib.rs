@@ -9,7 +9,7 @@ use std::{
     path::PathBuf,
 };
 
-use plugins_api::bytesource::{ByteSource, InitError, SourceConfig, SourceError};
+use plugins_api::bytesource::{ByteSource, InitError, InputSource, SourceConfig, SourceError};
 
 /// Simple struct that opens a file and read its content, providing them as bytes to Chipmunk when
 /// read method for the plugin is called
@@ -19,18 +19,18 @@ struct FileSource {
 
 impl ByteSource for FileSource {
     fn create(
+        input_source: InputSource,
         _general_configs: SourceConfig,
-        config_path: Option<PathBuf>,
+        _config_path: Option<PathBuf>,
     ) -> Result<Self, InitError>
     where
         Self: Sized,
     {
-        // TODO AAZ: Define Input Source enum in wit file and provide a separate argument for
-        // the input sources
-        // We are using the config path as file path temporary
-        let file_path = config_path.ok_or_else(||
-            InitError::Io("Config File must be provided in prototyping phase because it's used as source file path".into())
-        )?;
+        let file_path = match input_source {
+            InputSource::File(path) => PathBuf::from(path),
+            _ => return Err(InitError::Unsupported("Input Type must be a file".into())),
+        };
+
         let file = File::open(file_path).map_err(|err| InitError::Io(err.to_string()))?;
         let reader = BufReader::new(file);
 
