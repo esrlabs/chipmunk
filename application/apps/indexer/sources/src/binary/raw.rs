@@ -33,7 +33,7 @@ where
     }
 }
 
-impl<R: Read + Send + Sync> ByteSource for BinaryByteSource<R> {
+impl<R: Read + Send> ByteSource for BinaryByteSource<R> {
     async fn load(&mut self, _: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, SourceError> {
         let initial_buf_len = self.reader.buf_len();
         trace!(
