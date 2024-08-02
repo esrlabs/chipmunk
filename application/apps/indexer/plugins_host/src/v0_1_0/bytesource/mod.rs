@@ -1,7 +1,7 @@
 mod bindings;
 mod bytesource_plugin_state;
 
-use std::{io, path::Path, sync::Mutex};
+use std::{io, path::Path};
 
 use bindings::BytesourcePlugin;
 use bytesource_plugin_state::ByteSourcePluginState;
@@ -17,11 +17,8 @@ use crate::{
     PluginHostInitError, PluginType, WasmPlugin,
 };
 
-//TODO AAZ: Remove after prototyping
-#[allow(unused)]
 pub struct PluginByteSource {
-    //TODO AAZ: Check if there is a way to remove the mutex here
-    store: Mutex<Store<ByteSourcePluginState>>,
+    store: Store<ByteSourcePluginState>,
     plugin_bindings: BytesourcePlugin,
 }
 
@@ -96,8 +93,6 @@ impl PluginByteSource {
                 PluginHostInitError::GuestError(PluginGuestInitError::from(guest_err))
             })?;
 
-        let store = Mutex::new(store);
-
         Ok(Self {
             store,
             plugin_bindings,
@@ -105,17 +100,10 @@ impl PluginByteSource {
     }
 
     pub async fn read_next(&mut self, len: usize) -> io::Result<Vec<u8>> {
-        let store = self.store.get_mut().map_err(|err| {
-            io::Error::new(
-                io::ErrorKind::Other,
-                format!("Bytesource Plugin: Poison Error while acquiring WASM store. Error: {err}"),
-            )
-        })?;
-
         let bytes_result = self
             .plugin_bindings
             .chipmunk_plugin_byte_source()
-            .call_read(store, len as u64)
+            .call_read(&mut self.store, len as u64)
             .await
             .map_err(|err| {
                 io::Error::new(
