@@ -8,6 +8,7 @@ mod impl_mod {
 
     impl ByteSource for Dummy {
         fn create(
+            _input_source: InputSource,
             _general_configs: SourceConfig,
             _config_path: Option<PathBuf>,
         ) -> Result<Self, InitError>
