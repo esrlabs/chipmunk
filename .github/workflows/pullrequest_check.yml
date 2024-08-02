@@ -3,56 +3,6 @@ name: Checks
 on: [pull_request]
 
 jobs:
-  all_lint:
-    name: Run all lints using CLI tool
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Install Latest Rust
-        run: |
-          rustup update --no-self-update ${{ env.RUST_CHANNEL }}
-          rustup default ${{ env.RUST_CHANNEL }}
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2.7.3
-      - name: Install wasm-pack
-        run: cargo install wasm-pack
-      - name: Install nj-cli
-        run: cargo install nj-cli
-      - name: Install Build CLI tool
-        run: cargo install --path=cli
-      - name: libudev-dev
-        run: sudo apt-get install -y libudev-dev
-      - name: enable corepack for yarnpkg upgrade
-        run: corepack enable
-      - name: Run Lints
-        run: cargo chipmunk lint -r
-  all_test:
-    name: Run all tests using CLI tool
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Install Latest Rust
-        run: |
-          rustup update --no-self-update ${{ env.RUST_CHANNEL }}
-          rustup default ${{ env.RUST_CHANNEL }}
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2.7.3
-      - name: Install wasm-pack
-        run: cargo install wasm-pack
-      - name: Install nj-cli
-        run: cargo install nj-cli
-      - name: Install Build CLI tool
-        run: cargo install --path=cli
-      - name: libudev-dev
-        run: sudo apt-get install -y libudev-dev
-      - name: enable corepack for yarnpkg upgrade
-        run: |
-          npm install tslib
-          corepack enable
-      - name: Run Tests
-        run: cargo chipmunk test -r
   ts_lint:
     runs-on: ubuntu-latest
     steps:
