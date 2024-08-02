@@ -11,10 +11,9 @@ use wasmtime::{
 use wasmtime_wasi::ResourceTable;
 
 use crate::{
-    plugins_shared::{get_plugin_config_path, get_wasi_ctx_builder},
-    v0_1_0::parser::bindings::ParseError,
-    wasm_host::get_wasm_host,
-    PluginGuestInitError, PluginHostInitError, PluginParseMessage, PluginType, WasmPlugin,
+    plugins_shared::get_wasi_ctx_builder, v0_1_0::parser::bindings::ParseError,
+    wasm_host::get_wasm_host, PluginGuestInitError, PluginHostInitError, PluginParseMessage,
+    PluginType, WasmPlugin,
 };
 
 use self::{
@@ -39,10 +38,9 @@ impl PluginParser {
         general_config: &PluginParserGeneralSetttings,
         config_path: Option<impl AsRef<Path>>,
     ) -> Result<Self, PluginHostInitError> {
-        let engine = match get_wasm_host() {
-            Ok(host) => &host.engine,
-            Err(err) => return Err(err.to_owned().into()),
-        };
+        let engine = get_wasm_host()
+            .map(|host| &host.engine)
+            .map_err(|err| err.to_owned())?;
 
         let mut linker: Linker<ParserPluginState> = Linker::new(engine);
         wasmtime_wasi::add_to_linker_async(&mut linker)?;
@@ -57,23 +55,8 @@ impl PluginParser {
         let (plugin_bindings, _instance) =
             ParsePlugin::instantiate_async(&mut store, &component, &linker).await?;
 
-        let plugin_config_path = if let Some(config_path) = config_path.as_ref() {
-            let plugin_config_path = get_plugin_config_path(config_path)?;
-            let plugin_config_path =
-                plugin_config_path
-                    .into_os_string()
-                    .into_string()
-                    .map_err(|os_path| {
-                        PluginHostInitError::IO(format!(
-                            "Plugin Config Path isn't valid utf-8 string: {}",
-                            os_path.to_string_lossy()
-                        ))
-                    })?;
-            Some(plugin_config_path)
-        } else {
-            None
-        };
-
+        let plugin_config_path =
+            config_path.map(|path| path.as_ref().to_string_lossy().to_string());
         plugin_bindings
             .chipmunk_plugin_parser()
             .call_init(

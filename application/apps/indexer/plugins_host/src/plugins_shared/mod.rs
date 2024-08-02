@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use wasmtime_wasi::{DirPerms, FilePerms, WasiCtxBuilder};
 
@@ -6,16 +6,14 @@ use crate::PluginHostInitError;
 
 pub mod plugin_init_error;
 
-/// Path of plugin configurations directory that will presented to the plugins.
-const PLUGINS_CONFIG_DIR_PATH: &str = "./config";
-
 /// Creates [`WasiCtxBuilder`] with shared configurations, giving the plugin access to their
 /// configurations file directory.
 pub fn get_wasi_ctx_builder(
     config_path: Option<impl AsRef<Path>>,
 ) -> Result<WasiCtxBuilder, PluginHostInitError> {
     let mut ctx = WasiCtxBuilder::new();
-    ctx.inherit_stdout().inherit_stderr();
+    ctx.inherit_stdout().inherit_stderr().inherit_env();
+
     if let Some(config_path) = config_path {
         let config_path = config_path.as_ref();
         let config_dir = config_path.parent().ok_or(PluginHostInitError::IO(
@@ -24,25 +22,11 @@ pub fn get_wasi_ctx_builder(
 
         ctx.preopened_dir(
             config_dir,
-            PLUGINS_CONFIG_DIR_PATH,
+            config_dir.to_string_lossy(),
             DirPerms::READ,
             FilePerms::READ,
         )?;
     }
 
     Ok(ctx)
-}
-
-/// Get plugin configuration path as it should be presented to the plugin
-pub fn get_plugin_config_path(
-    real_config_path: impl AsRef<Path>,
-) -> Result<PathBuf, PluginHostInitError> {
-    let file_name = real_config_path
-        .as_ref()
-        .file_name()
-        .ok_or_else(|| PluginHostInitError::IO("Resolve config file name failed".into()))?;
-
-    let plugin_config_path = PathBuf::from(PLUGINS_CONFIG_DIR_PATH).join(file_name);
-
-    Ok(plugin_config_path)
 }
