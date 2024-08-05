@@ -4,6 +4,7 @@ on: [pull_request]
 
 jobs:
   ts_lint:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -26,6 +27,7 @@ jobs:
       - name: JS/TS linting
         run: rake lint:js
   rust_lint:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -48,6 +50,7 @@ jobs:
       - name: Rust linting
         run: rake lint:rust
   integration_tests:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -74,6 +77,7 @@ jobs:
       - name: Run integration tests
         run: rake test:js
   unit_tests:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
