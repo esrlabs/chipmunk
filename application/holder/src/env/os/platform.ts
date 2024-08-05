@@ -31,7 +31,7 @@ function safeExecSync(command: string, timeout: number): string {
 
 function getCpuBrandString(): string {
     if (cachedCpuBrandString === null) {
-        cachedCpuBrandString = safeExecSync('sysctl -n machdep.cpu.brand_string', 100);
+        cachedCpuBrandString = safeExecSync('sysctl -n machdep.cpu.brand_string', 200);
     }
     return cachedCpuBrandString;
 }
@@ -50,7 +50,7 @@ export function getPlatform(win32Only = false): Platform {
             return Platform.linux;
         case Platform.darwin: {
             const result = getCpuBrandString();
-            if (os.arch() === 'arm64' || !result.includes('intel')) {
+            if (os.arch() === 'arm64' || (!result.includes('intel') && result !== '')) {
                 return Platform.darwinaarch64;
             } else {
                 return Platform.darwin;
