@@ -9,7 +9,10 @@ use std::{
     path::PathBuf,
 };
 
-use plugins_api::bytesource::{ByteSource, InitError, InputSource, SourceConfig, SourceError};
+use plugins_api::{
+    bytesource::{ByteSource, InitError, InputSource, SourceConfig, SourceError},
+    bytesource_export,
+};
 
 /// Simple struct that opens a file and read its content, providing them as bytes to Chipmunk when
 /// read method for the plugin is called
@@ -55,3 +58,5 @@ impl ByteSource for FileSource {
         Ok(buf)
     }
 }
+
+bytesource_export!(FileSource);
