@@ -19,7 +19,7 @@ pub struct DltParserSettings {
     pub with_storage_header: bool,
     pub tz: Option<String>,
     #[serde(skip)]
-    pub fibex_metadata: Option<dlt::FibexMetadata>,
+    pub fibex_metadata: Option<dlt::FibexDltMetadata>,
 }
 
 impl Default for DltParserSettings {

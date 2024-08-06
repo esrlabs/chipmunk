@@ -161,6 +161,7 @@ async fn export<S: ByteSource>(
                 settings.filter_config.as_ref().map(|f| f.into()),
                 settings.fibex_metadata.as_ref(),
                 fmt_options.as_ref(),
+                None,
                 settings.with_storage_header,
             );
             let mut producer = MessageProducer::new(parser, source, None);

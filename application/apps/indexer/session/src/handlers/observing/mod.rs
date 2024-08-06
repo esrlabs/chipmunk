@@ -8,7 +8,7 @@ use crate::{
 use log::trace;
 use parsers::{
     dlt::{fmt::FormatOptions, DltParser},
-    someip::SomeipParser,
+    someip::{FibexMetadata as FibexSomeipMetadata, SomeipParser},
     text::StringTokenizer,
     LogMessage, MessageStreamItem, ParseYield, Parser,
 };
@@ -94,10 +94,14 @@ async fn run_source_intern<S: ByteSource>(
         }
         ParserType::Dlt(settings) => {
             let fmt_options = Some(FormatOptions::from(settings.tz.as_ref()));
+            let someip_metadata = settings.fibex_file_paths.as_ref().and_then(|paths| {
+                FibexSomeipMetadata::from_fibex_files(paths.iter().map(PathBuf::from).collect())
+            });
             let dlt_parser = DltParser::new(
                 settings.filter_config.as_ref().map(|f| f.into()),
                 settings.fibex_metadata.as_ref(),
                 fmt_options.as_ref(),
+                someip_metadata.as_ref(),
                 settings.with_storage_header,
             );
             let producer = MessageProducer::new(dlt_parser, source, rx_sde);

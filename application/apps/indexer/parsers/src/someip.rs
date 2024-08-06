@@ -1,19 +1,93 @@
 use crate::{Error, LogMessage, ParseYield, Parser};
-use std::{borrow::Cow, fmt, fmt::Display, io::Write, path::PathBuf};
+use std::{
+    borrow::Cow, cmp::Ordering, collections::HashMap, fmt, fmt::Display, io::Write, path::PathBuf,
+};
 
 use someip_messages::*;
 use someip_payload::{
-    fibex::{FibexModel, FibexParser, FibexReader},
+    fibex::{FibexModel, FibexParser, FibexReader, FibexServiceInterface},
     fibex2som::FibexTypes,
     som::SOMParser,
 };
 
+use lazy_static::lazy_static;
 use log::{debug, error};
+use regex::Regex;
 use serde::Serialize;
+
+/// Wrapper for a fibex-model (new-type pattern).
+pub struct FibexMetadata {
+    model: FibexModel,
+    map: HashMap<usize, Vec<(usize, usize, usize)>>,
+}
+
+impl FibexMetadata {
+    /// Returns a new meta-data from the given fibex-files.
+    pub fn from_fibex_files(paths: Vec<PathBuf>) -> Option<Self> {
+        let readers: Vec<_> = paths
+            .iter()
+            .filter_map(|path| FibexReader::from_file(path).ok())
+            .collect();
+
+        if !readers.is_empty() {
+            return FibexParser::try_parse(readers).map(FibexMetadata::new).ok();
+        }
+
+        None
+    }
+
+    /// Returns a new meta-data from the given fibex-model.
+    pub fn new(model: FibexModel) -> Self {
+        let mut map: HashMap<usize, Vec<(usize, usize, usize)>> = HashMap::new();
+
+        for (index, service) in model.services.iter().enumerate() {
+            let entry = (service.major_version, service.minor_version, index);
+            match map.remove(&service.service_id) {
+                Some(mut list) => {
+                    list.push(entry);
+                    map.insert(service.service_id, list);
+                }
+                None => {
+                    map.insert(service.service_id, vec![entry]);
+                }
+            }
+        }
+
+        for list in map.values_mut() {
+            list.sort_by(|a, b| {
+                let r = b.0.cmp(&a.0);
+                if Ordering::Equal == r {
+                    return b.1.cmp(&a.1);
+                }
+                r
+            });
+        }
+
+        Self { model, map }
+    }
+
+    /// Finds a service for the given id and the matching or latest available version, if any.
+    pub fn find_service(&self, id: usize, version: usize) -> Option<&FibexServiceInterface> {
+        if let Some(list) = self.map.get(&id) {
+            if let Some(entry) = list.iter().find(|entry| entry.0 == version) {
+                self.model.services.get(entry.2)
+            } else if let Some(entry) = list.first() {
+                self.model.services.get(entry.2)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+}
+
+unsafe impl Send for FibexMetadata {}
+unsafe impl Sync for FibexMetadata {}
 
 /// A parser for SOME/IP log messages.
 pub struct SomeipParser {
-    model: Option<FibexModel>,
+    fibex_metadata: Option<FibexMetadata>,
 }
 
 impl Default for SomeipParser {
@@ -25,35 +99,23 @@ impl Default for SomeipParser {
 impl SomeipParser {
     /// Creates a new parser.
     pub fn new() -> Self {
-        SomeipParser { model: None }
+        SomeipParser {
+            fibex_metadata: None,
+        }
     }
 
     /// Creates a new parser with the given files.
     pub fn from_fibex_files(paths: Vec<PathBuf>) -> Self {
-        let readers: Vec<_> = paths
-            .iter()
-            .filter_map(|path| FibexReader::from_file(path).ok())
-            .collect();
-
-        if !readers.is_empty() {
-            if let Ok(model) = FibexParser::try_parse(readers) {
-                return SomeipParser { model: Some(model) };
-            }
+        SomeipParser {
+            fibex_metadata: FibexMetadata::from_fibex_files(paths),
         }
-
-        SomeipParser { model: None }
     }
-}
 
-unsafe impl Send for SomeipParser {}
-unsafe impl Sync for SomeipParser {}
-
-impl Parser<SomeipLogMessage> for SomeipParser {
-    fn parse<'a>(
-        &mut self,
+    pub(crate) fn parse_message<'a>(
+        fibex_metadata: Option<&FibexMetadata>,
         input: &'a [u8],
         timestamp: Option<u64>,
-    ) -> Result<(&'a [u8], Option<ParseYield<SomeipLogMessage>>), Error> {
+    ) -> Result<(&'a [u8], SomeipLogMessage), Error> {
         let time = timestamp.unwrap_or(0);
         match Message::from_slice(input) {
             Ok(Message::Sd(header, payload)) => {
@@ -65,10 +127,10 @@ impl Parser<SomeipLogMessage> for SomeipParser {
                     } else {
                         &input[len..]
                     },
-                    Some(ParseYield::from(SomeipLogMessage::from(
+                    SomeipLogMessage::from(
                         sd_message_string(&header, &payload),
                         input[..len].to_vec(),
-                    ))),
+                    ),
                 ))
             }
 
@@ -81,10 +143,10 @@ impl Parser<SomeipLogMessage> for SomeipParser {
                     } else {
                         &input[len..]
                     },
-                    Some(ParseYield::from(SomeipLogMessage::from(
-                        rpc_message_string(&header, &payload, &self.model),
+                    SomeipLogMessage::from(
+                        rpc_message_string(fibex_metadata, &header, &payload),
                         input[..len].to_vec(),
-                    ))),
+                    ),
                 ))
             }
 
@@ -97,10 +159,10 @@ impl Parser<SomeipLogMessage> for SomeipParser {
                     } else {
                         &input[len..]
                     },
-                    Some(ParseYield::from(SomeipLogMessage::from(
+                    SomeipLogMessage::from(
                         String::from("MCC"), // Magic-Cookie-Client
                         input[..len].to_vec(),
-                    ))),
+                    ),
                 ))
             }
 
@@ -113,10 +175,10 @@ impl Parser<SomeipLogMessage> for SomeipParser {
                     } else {
                         &input[len..]
                     },
-                    Some(ParseYield::from(SomeipLogMessage::from(
+                    SomeipLogMessage::from(
                         String::from("MCS"), // Magic-Cookie-Server
                         input[..len].to_vec(),
-                    ))),
+                    ),
                 ))
             }
 
@@ -126,6 +188,20 @@ impl Parser<SomeipLogMessage> for SomeipParser {
                 Err(Error::Parse(msg))
             }
         }
+    }
+}
+
+unsafe impl Send for SomeipParser {}
+unsafe impl Sync for SomeipParser {}
+
+impl Parser<SomeipLogMessage> for SomeipParser {
+    fn parse<'a>(
+        &mut self,
+        input: &'a [u8],
+        timestamp: Option<u64>,
+    ) -> Result<(&'a [u8], Option<ParseYield<SomeipLogMessage>>), Error> {
+        SomeipParser::parse_message(self.fibex_metadata.as_ref(), input, timestamp)
+            .map(|(rest, message)| (rest, Some(ParseYield::from(message))))
     }
 }
 
@@ -147,7 +223,7 @@ fn header_string(header: &Header) -> String {
 
 fn sd_message_string(header: &Header, payload: &SdPayload) -> String {
     let mut string = format!(
-        "SD{}{}{}Flags: [{:02X?}]",
+        "SD{}{}{}Flags [{:02X?}]",
         COLUMN_SEP,
         header_string(header),
         COLUMN_SEP,
@@ -250,68 +326,83 @@ fn option_string(option: &SdEndpointOption) -> String {
     )
 }
 
-fn rpc_message_string(header: &Header, payload: &RpcPayload, model: &Option<FibexModel>) -> String {
+fn rpc_message_string(
+    fibex_metadata: Option<&FibexMetadata>,
+    header: &Header,
+    payload: &RpcPayload,
+) -> String {
     format!(
         "RPC{COLUMN_SEP}{}{COLUMN_SEP}{}",
         header_string(header),
-        match model {
+        match fibex_metadata {
             None => {
-                format!("Bytes: {:02X?}", *payload)
+                format!("{:02X?}", *payload)
             }
-            Some(model) => {
+            Some(meta_data) => {
                 let service_id = header.message_id.service_id as usize;
                 let service_version = header.interface_version as usize;
                 let method_id = header.message_id.method_id as usize;
                 let message_type = header.message_type;
 
-                let mut service_name: Option<&str> = None;
-                let mut method_name: Option<&str> = None;
+                let lookup = meta_data
+                    .find_service(service_id, service_version)
+                    .map(|service| {
+                        let service_name = if service.major_version == service_version {
+                            service.name.to_string()
+                        } else {
+                            format!("{}<{}?>", service.name, service.major_version)
+                        };
+                        (service, service_name)
+                    });
 
-                let fibex_type =
-                    model
-                        .get_service(service_id, service_version)
-                        .and_then(|service| {
-                            service_name = Some(&service.name);
-                            service.get_method(method_id).and_then(|method| {
-                                method_name = Some(&method.name);
-                                match message_type {
+                match lookup {
+                    Some((service, service_name)) => match service.get_method(method_id) {
+                        Some(method) => {
+                            let payload_string = if payload.is_empty() {
+                                Cow::Borrowed("")
+                            } else {
+                                let fibex_type = match message_type {
                                     MessageType::Request
                                     | MessageType::RequestNoReturn
                                     | MessageType::Notification => method.get_request(),
                                     MessageType::Response => method.get_response(),
                                     _ => None,
-                                }
-                            })
-                        });
+                                };
 
-                let som_type = fibex_type.and_then(|value| FibexTypes::build(value).ok());
+                                let som_type =
+                                    fibex_type.and_then(|value| FibexTypes::build(value).ok());
 
-                format!(
-                    "{}::{} {}",
-                    service_name.unwrap_or("Service?"),
-                    method_name.unwrap_or("Method?"),
-                    match payload.is_empty() {
-                        true => Cow::Borrowed(""),
-                        false => {
-                            let mut som_parser = SOMParser::new(payload);
-                            som_type
-                                .map(|mut value| match value.parse(&mut som_parser) {
-                                    Ok(_) => {
-                                        Cow::Owned(format!("{value}").replace([' ', '\n'], ""))
-                                    }
-                                    Err(error) => Cow::Owned(format!("{error}")),
-                                })
-                                .unwrap_or(Cow::Borrowed("(Type?)"))
+                                let mut som_parser = SOMParser::new(payload);
+
+                                som_type
+                                    .map(|mut value| match value.parse(&mut som_parser) {
+                                        Ok(_) => {
+                                            Cow::Owned(value.to_string().replace([' ', '\n'], ""))
+                                        }
+                                        Err(error) => {
+                                            format!("'{}' {:02X?}", error, *payload).into()
+                                        }
+                                    })
+                                    .unwrap_or_else(|| format!("{:02X?}", *payload).into())
+                            };
+
+                            format!("{}::{} {}", service_name, method.name, payload_string)
                         }
+                        None => {
+                            format!("{}::UnknownMethod {:02X?}", service_name, *payload)
+                        }
+                    },
+                    None => {
+                        format!("UnknownService {:02X?}", *payload)
                     }
-                )
+                }
             }
         }
     )
 }
 
 /// Represents a SOME/IP log message.
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 pub struct SomeipLogMessage {
     description: String,
     bytes: Vec<u8>,
@@ -333,8 +424,24 @@ impl LogMessage for SomeipLogMessage {
 
 impl Display for SomeipLogMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.description,)
+        write!(f, "{}", self.description)
     }
+}
+
+impl fmt::Debug for SomeipLogMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", merge_columns(self.description.as_str()))
+    }
+}
+
+/// Merges the SOME/IP message columns to a single column with additional info.
+fn merge_columns(columns: &str) -> Cow<str> {
+    lazy_static! {
+        static ref REGEX : Regex = Regex::new(
+            r"(SD|RPC)\u{0004}(\d+)\u{0004}(\d+)\u{0004}(\d+)\u{0004}(\d+)\u{0004}(\d+)\u{0004}(\d+)\u{0004}(\d+)\u{0004}(\d+)\u{0004}(.*)"
+            ).unwrap();
+    }
+    REGEX.replace(columns, "${1} SERV:${2} METH:${3} LENG:${4} CLID:${5} SEID:${6} IVER:${7} MSTP:${8} RETC:${9} ${10}")
 }
 
 #[cfg(test)]
@@ -343,11 +450,7 @@ mod test {
     use std::io::BufReader;
     use stringreader::StringReader;
 
-    fn assert_str(expected: &str, actual: &str) {
-        assert_eq!(expected, actual.replace(COLUMN_SEP, "|"), "\n{actual}\n");
-    }
-
-    fn test_model() -> FibexModel {
+    fn test_metadata() -> FibexMetadata {
         let xml = r#"
             <fx:SERVICE-INTERFACE ID="/SOMEIP/TEST/ServiceInterface_TestService">
                 <ho:SHORT-NAME>TestService</ho:SHORT-NAME>
@@ -393,8 +496,52 @@ mod test {
             </fx:DATATYPE>
         "#;
 
-        let reader = FibexReader::from_reader(BufReader::new(StringReader::new(xml))).unwrap();
-        FibexParser::parse(vec![reader]).expect("parse failed")
+        FibexMetadata::new(
+            FibexParser::parse(vec![FibexReader::from_reader(BufReader::new(
+                StringReader::new(xml),
+            ))
+            .unwrap()])
+            .expect("parse failed"),
+        )
+    }
+
+    #[test]
+    fn parse_error_no_data() {
+        let input: &[u8] = &[];
+
+        let mut parser = SomeipParser::new();
+        let result = parser.parse(input, None);
+
+        if let Err(error) = result {
+            assert_eq!(
+                "Parse error: Not enough data: min: 16, actual: 0",
+                &format!("{}", error)
+            );
+        } else {
+            panic!("unexpected parse result");
+        }
+    }
+
+    #[test]
+    fn parse_error_malformed_header() {
+        let input: &[u8] = &[
+            0xFF, 0xFF, 0x00, 0x00, // serviceId(u16), methodId(u16)
+            0x00, 0x00, 0x00, 0x0A, // length(u32)
+            0xDE, 0xAD, 0xBE, 0xEF, // clientId(u16), sessionId(u16)
+            0x01, 0x01, 0x01, 0x00, // proto(u8), version(u8), messageType,(u8) returnCode(u8)
+        ];
+
+        let mut parser = SomeipParser::new();
+        let result = parser.parse(input, None);
+
+        if let Err(error) = result {
+            assert_eq!(
+                "Parse error: Not enough data: min: 18, actual: 16",
+                &format!("{}", error)
+            );
+        } else {
+            panic!("unexpected parse result");
+        }
     }
 
     #[test]
@@ -408,11 +555,11 @@ mod test {
 
         let mut parser = SomeipParser::new();
         let (output, message) = parser.parse(input, None).unwrap();
-
         assert!(output.is_empty());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_str("MCC", &format!("{}", item));
+            assert_eq!("MCC", &format!("{}", item));
+            assert_eq!("MCC", &format!("{:?}", item));
         } else {
             panic!("unexpected parse yield");
         }
@@ -429,11 +576,11 @@ mod test {
 
         let mut parser = SomeipParser::new();
         let (output, message) = parser.parse(input, None).unwrap();
-
         assert!(output.is_empty());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_str("MCS", &format!("{}", item));
+            assert_eq!("MCS", &format!("{}", item));
+            assert_eq!("MCS", &format!("{:?}", item));
         } else {
             panic!("unexpected parse yield");
         }
@@ -450,13 +597,14 @@ mod test {
 
         let mut parser = SomeipParser::new();
         let (output, message) = parser.parse(input, None).unwrap();
-
         assert!(output.is_empty());
 
-        let expected = r#"RPC|259|32772|8|1|2|1|2|0|Bytes: []"#;
-
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_str(expected, &format!("{}", item));
+            assert_eq!("RPC\u{0004}259\u{0004}32772\u{0004}8\u{0004}1\u{0004}2\u{0004}1\u{0004}2\u{0004}0\u{0004}[]", &format!("{}", item));
+            assert_eq!(
+                "RPC SERV:259 METH:32772 LENG:8 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 []",
+                &format!("{:?}", item)
+            );
         } else {
             panic!("unexpected parse yield");
         }
@@ -471,17 +619,16 @@ mod test {
             0x01, 0x01, 0x02, 0x00, // proto(u8), version(u8), messageType,(u8) returnCode(u8)
         ];
 
-        let model = test_model();
-
-        let mut parser = SomeipParser { model: Some(model) };
+        let fibex_metadata = test_metadata();
+        let mut parser = SomeipParser {
+            fibex_metadata: Some(fibex_metadata),
+        };
         let (output, message) = parser.parse(input, None).unwrap();
-
         assert!(output.is_empty());
 
-        let expected = r#"RPC|259|32772|8|1|2|1|2|0|TestService::emptyEvent "#;
-
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_str(expected, &format!("{}", item));
+            assert_eq!("RPC\u{0004}259\u{0004}32772\u{0004}8\u{0004}1\u{0004}2\u{0004}1\u{0004}2\u{0004}0\u{0004}TestService::emptyEvent ", &format!("{}", item));
+            assert_eq!("RPC SERV:259 METH:32772 LENG:8 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 TestService::emptyEvent ", &format!("{:?}", item));
         } else {
             panic!("unexpected parse yield");
         }
@@ -499,13 +646,14 @@ mod test {
 
         let mut parser = SomeipParser::new();
         let (output, message) = parser.parse(input, None).unwrap();
-
         assert!(output.is_empty());
 
-        let expected = r#"RPC|259|32773|10|1|2|1|2|0|Bytes: [01, 02]"#;
-
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_str(expected, &format!("{}", item));
+            assert_eq!("RPC\u{0004}259\u{0004}32773\u{0004}10\u{0004}1\u{0004}2\u{0004}1\u{0004}2\u{0004}0\u{0004}[01, 02]", &format!("{}", item));
+            assert_eq!(
+                "RPC SERV:259 METH:32773 LENG:10 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 [01, 02]",
+                &format!("{:?}", item)
+            );
         } else {
             panic!("unexpected parse yield");
         }
@@ -521,17 +669,116 @@ mod test {
             0x01, 0x02, // payload([u8;2])
         ];
 
-        let model = test_model();
-
-        let mut parser = SomeipParser { model: Some(model) };
+        let fibex_metadata = test_metadata();
+        let mut parser = SomeipParser {
+            fibex_metadata: Some(fibex_metadata),
+        };
         let (output, message) = parser.parse(input, None).unwrap();
-
         assert!(output.is_empty());
 
-        let expected = r#"RPC|259|32773|10|1|2|1|2|0|TestService::testEvent {value1(UINT8):1,value2(UINT8):2,}"#;
+        if let ParseYield::Message(item) = message.unwrap() {
+            assert_eq!("RPC\u{0004}259\u{0004}32773\u{0004}10\u{0004}1\u{0004}2\u{0004}1\u{0004}2\u{0004}0\u{0004}TestService::testEvent {value1(UINT8):1,value2(UINT8):2,}", &format!("{}", item));
+            assert_eq!("RPC SERV:259 METH:32773 LENG:10 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 TestService::testEvent {value1(UINT8):1,value2(UINT8):2,}", &format!("{:?}", item));
+        } else {
+            panic!("unexpected parse yield");
+        }
+    }
+
+    #[test]
+    fn parse_rpc_message_service_not_found() {
+        let input: &[u8] = &[
+            0x01, 0x04, 0x80, 0x05, // serviceId(u16), methodId(u16)
+            0x00, 0x00, 0x00, 0x0A, // length(u32)
+            0x00, 0x01, 0x00, 0x02, // clientId(u16), sessionId(u16)
+            0x01, 0x01, 0x02, 0x00, // proto(u8), version(u8), messageType,(u8) returnCode(u8)
+            0x01, 0x02, // payload([u8;2])
+        ];
+
+        let fibex_metadata = test_metadata();
+        let mut parser = SomeipParser {
+            fibex_metadata: Some(fibex_metadata),
+        };
+        let (output, message) = parser.parse(input, None).unwrap();
+        assert!(output.is_empty());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_str(expected, &format!("{}", item));
+            assert_eq!("RPC\u{0004}260\u{0004}32773\u{0004}10\u{0004}1\u{0004}2\u{0004}1\u{0004}2\u{0004}0\u{0004}UnknownService [01, 02]", &format!("{}", item));
+            assert_eq!("RPC SERV:260 METH:32773 LENG:10 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 UnknownService [01, 02]", &format!("{:?}", item));
+        } else {
+            panic!("unexpected parse yield");
+        }
+    }
+
+    #[test]
+    fn parse_rpc_message_service_version_not_found() {
+        let input: &[u8] = &[
+            0x01, 0x03, 0x80, 0x05, // serviceId(u16), methodId(u16)
+            0x00, 0x00, 0x00, 0x0A, // length(u32)
+            0x00, 0x01, 0x00, 0x02, // clientId(u16), sessionId(u16)
+            0x01, 0x03, 0x02, 0x00, // proto(u8), version(u8), messageType,(u8) returnCode(u8)
+            0x01, 0x02, // payload([u8;2])
+        ];
+
+        let fibex_metadata = test_metadata();
+        let mut parser = SomeipParser {
+            fibex_metadata: Some(fibex_metadata),
+        };
+        let (output, message) = parser.parse(input, None).unwrap();
+        assert!(output.is_empty());
+
+        if let ParseYield::Message(item) = message.unwrap() {
+            assert_eq!("RPC\u{0004}259\u{0004}32773\u{0004}10\u{0004}1\u{0004}2\u{0004}3\u{0004}2\u{0004}0\u{0004}TestService<1?>::testEvent {value1(UINT8):1,value2(UINT8):2,}", &format!("{}", item));
+            assert_eq!("RPC SERV:259 METH:32773 LENG:10 CLID:1 SEID:2 IVER:3 MSTP:2 RETC:0 TestService<1?>::testEvent {value1(UINT8):1,value2(UINT8):2,}", &format!("{:?}", item));
+        } else {
+            panic!("unexpected parse yield");
+        }
+    }
+
+    #[test]
+    fn parse_rpc_message_method_not_found() {
+        let input: &[u8] = &[
+            0x01, 0x03, 0x80, 0x06, // serviceId(u16), methodId(u16)
+            0x00, 0x00, 0x00, 0x0A, // length(u32)
+            0x00, 0x01, 0x00, 0x02, // clientId(u16), sessionId(u16)
+            0x01, 0x01, 0x02, 0x00, // proto(u8), version(u8), messageType,(u8) returnCode(u8)
+            0x01, 0x02, // payload([u8;2])
+        ];
+
+        let fibex_metadata = test_metadata();
+        let mut parser = SomeipParser {
+            fibex_metadata: Some(fibex_metadata),
+        };
+        let (output, message) = parser.parse(input, None).unwrap();
+        assert!(output.is_empty());
+
+        if let ParseYield::Message(item) = message.unwrap() {
+            assert_eq!("RPC\u{0004}259\u{0004}32774\u{0004}10\u{0004}1\u{0004}2\u{0004}1\u{0004}2\u{0004}0\u{0004}TestService::UnknownMethod [01, 02]", &format!("{}", item));
+            assert_eq!("RPC SERV:259 METH:32774 LENG:10 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 TestService::UnknownMethod [01, 02]", &format!("{:?}", item));
+        } else {
+            panic!("unexpected parse yield");
+        }
+    }
+
+    #[test]
+    fn parse_rpc_message_invalid_payload() {
+        let input: &[u8] = &[
+            0x01, 0x03, 0x80, 0x05, // serviceId(u16), methodId(u16)
+            0x00, 0x00, 0x00, 0x09, // length(u32)
+            0x00, 0x01, 0x00, 0x02, // clientId(u16), sessionId(u16)
+            0x01, 0x01, 0x02, 0x00, // proto(u8), version(u8), messageType,(u8) returnCode(u8)
+            0x01, // payload([u8;2])
+        ];
+
+        let fibex_metadata = test_metadata();
+        let mut parser = SomeipParser {
+            fibex_metadata: Some(fibex_metadata),
+        };
+        let (output, message) = parser.parse(input, None).unwrap();
+        assert!(output.is_empty());
+
+        if let ParseYield::Message(item) = message.unwrap() {
+            assert_eq!("RPC\u{0004}259\u{0004}32773\u{0004}9\u{0004}1\u{0004}2\u{0004}1\u{0004}2\u{0004}0\u{0004}TestService::testEvent 'SOME/IP Error: Parser exhausted at offset 1 for Object size 1' [01]", &format!("{}", item));
+            assert_eq!("RPC SERV:259 METH:32773 LENG:9 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 TestService::testEvent 'SOME/IP Error: Parser exhausted at offset 1 for Object size 1' [01]", &format!("{:?}", item));
         } else {
             panic!("unexpected parse yield");
         }
@@ -551,13 +798,14 @@ mod test {
 
         let mut parser = SomeipParser::new();
         let (output, message) = parser.parse(input, None).unwrap();
-
         assert!(output.is_empty());
 
-        let expected = r#"SD|65535|33024|20|0|0|1|2|0|Flags: [C0]"#;
-
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_str(expected, &format!("{}", item));
+            assert_eq!("SD\u{0004}65535\u{0004}33024\u{0004}20\u{0004}0\u{0004}0\u{0004}1\u{0004}2\u{0004}0\u{0004}Flags [C0]", &format!("{}", item));
+            assert_eq!(
+                "SD SERV:65535 METH:33024 LENG:20 CLID:0 SEID:0 IVER:1 MSTP:2 RETC:0 Flags [C0]",
+                &format!("{:?}", item)
+            );
         } else {
             panic!("unexpected parse yield");
         }
@@ -593,15 +841,100 @@ mod test {
 
         let mut parser = SomeipParser::new();
         let (output, message) = parser.parse(input, None).unwrap();
-
         assert!(output.is_empty());
 
-        let expected = r#"SD|65535|33024|64|0|0|1|2|0|Flags: [C0], Subscribe 259-456 v2 Inst 1 Ttl 3, Subscribe-Ack 259-456 v2 Inst 1 Ttl 3 UDP 127.0.0.1:30000"#;
-
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_str(expected, &format!("{}", item));
+            assert_eq!("SD\u{0004}65535\u{0004}33024\u{0004}64\u{0004}0\u{0004}0\u{0004}1\u{0004}2\u{0004}0\u{0004}Flags [C0], Subscribe 259-456 v2 Inst 1 Ttl 3, Subscribe-Ack 259-456 v2 Inst 1 Ttl 3 UDP 127.0.0.1:30000", &format!("{}", item));
+            assert_eq!("SD SERV:65535 METH:33024 LENG:64 CLID:0 SEID:0 IVER:1 MSTP:2 RETC:0 Flags [C0], Subscribe 259-456 v2 Inst 1 Ttl 3, Subscribe-Ack 259-456 v2 Inst 1 Ttl 3 UDP 127.0.0.1:30000", &format!("{:?}", item));
         } else {
             panic!("unexpected parse yield");
         }
+    }
+
+    #[test]
+    fn service_lookup() {
+        let xml = r#"
+            <fx:SERVICE-INTERFACE ID="123.1.0">
+                <ho:SHORT-NAME>Foo</ho:SHORT-NAME>
+                <fx:SERVICE-IDENTIFIER>123</fx:SERVICE-IDENTIFIER>
+                <service:API-VERSION>
+                    <service:MAJOR>1</service:MAJOR>
+                    <service:MINOR>0</service:MINOR>
+                </service:API-VERSION>
+            </fx:SERVICE-INTERFACE>
+            <fx:SERVICE-INTERFACE ID="321.1.0">
+                <ho:SHORT-NAME>Foo</ho:SHORT-NAME>
+                <fx:SERVICE-IDENTIFIER>321</fx:SERVICE-IDENTIFIER>
+                <service:API-VERSION>
+                    <service:MAJOR>1</service:MAJOR>
+                    <service:MINOR>0</service:MINOR>
+                </service:API-VERSION>
+            </fx:SERVICE-INTERFACE>
+            <fx:SERVICE-INTERFACE ID="123.2.1">
+                <ho:SHORT-NAME>Foo</ho:SHORT-NAME>
+                <fx:SERVICE-IDENTIFIER>123</fx:SERVICE-IDENTIFIER>
+                <service:API-VERSION>
+                    <service:MAJOR>2</service:MAJOR>
+                    <service:MINOR>1</service:MINOR>
+                </service:API-VERSION>
+            </fx:SERVICE-INTERFACE>
+            <fx:SERVICE-INTERFACE ID="123.1.1">
+                <ho:SHORT-NAME>Foo</ho:SHORT-NAME>
+                <fx:SERVICE-IDENTIFIER>123</fx:SERVICE-IDENTIFIER>
+                <service:API-VERSION>
+                    <service:MAJOR>1</service:MAJOR>
+                    <service:MINOR>1</service:MINOR>
+                </service:API-VERSION>
+            </fx:SERVICE-INTERFACE>
+            <fx:SERVICE-INTERFACE ID="123.2.3">
+                <ho:SHORT-NAME>Foo</ho:SHORT-NAME>
+                <fx:SERVICE-IDENTIFIER>123</fx:SERVICE-IDENTIFIER>
+                <service:API-VERSION>
+                    <service:MAJOR>2</service:MAJOR>
+                    <service:MINOR>3</service:MINOR>
+                </service:API-VERSION>
+            </fx:SERVICE-INTERFACE>
+        "#;
+
+        let meta_data = FibexMetadata::new(
+            FibexParser::parse(vec![FibexReader::from_reader(BufReader::new(
+                StringReader::new(xml),
+            ))
+            .unwrap()])
+            .expect("parse failed"),
+        );
+
+        let service = meta_data.find_service(123, 3).unwrap();
+        assert_eq!(
+            (123, 2, 3),
+            (
+                service.service_id,
+                service.major_version,
+                service.minor_version
+            )
+        );
+
+        let service = meta_data.find_service(123, 2).unwrap();
+        assert_eq!(
+            (123, 2, 3),
+            (
+                service.service_id,
+                service.major_version,
+                service.minor_version
+            )
+        );
+
+        let service = meta_data.find_service(123, 1).unwrap();
+        assert_eq!(
+            (123, 1, 1),
+            (
+                service.service_id,
+                service.major_version,
+                service.minor_version
+            )
+        );
+
+        assert!(meta_data.find_service(213, 1).is_none());
+        assert!(meta_data.find_service(321, 1).is_some());
     }
 }

@@ -11,13 +11,12 @@ dlt-core.workspace = true
 humantime = "2.1"
 lazy_static.workspace = true
 log.workspace = true
+regex.workspace = true
 memchr = "2.4"
 serde = { workspace = true , features = ["derive"] }
 thiserror.workspace = true
 rand.workspace = true
-# someip-messages = { path = "../../../../../someip"}
 someip-messages = { git = "https://github.com/esrlabs/someip" }
-# someip-payload = { path = "../../../../../someip-payload" }
 someip-payload = { git = "https://github.com/esrlabs/someip-payload" }
 
 [dev-dependencies]

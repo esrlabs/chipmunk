@@ -639,9 +639,8 @@ dependencies = [
 
 [[package]]
 name = "dlt-core"
-version = "0.14.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6fd69a328826e883613fbbcf468a33a53df1198c3e39bae7ad079c449431bfd"
+version = "0.16.0"
+source = "git+https://github.com/kruss/dlt-core.git?branch=dlt_network_traces#525f591862437ca15c56639143f205a956d01b6a"
 dependencies = [
  "buf_redux 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder",
@@ -1675,9 +1674,9 @@ dependencies = [
 
 [[package]]
 name = "quick-xml"
-version = "0.22.0"
+version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8533f14c8382aaad0d592c812ac3b826162128b65662331e1127b45c3d18536b"
+checksum = "11bafc859c6815fbaffbbbf4229ecb767ac913fecb27f9ad4343662e9ef099ea"
 dependencies = [
  "memchr",
 ]
@@ -2074,12 +2073,12 @@ dependencies = [
 
 [[package]]
 name = "someip-payload"
-version = "0.1.1"
-source = "git+https://github.com/esrlabs/someip-payload#9a58a561a3d284e37a25ea2dc52188c70694682d"
+version = "0.1.2"
+source = "git+https://github.com/kruss/someip-payload.git?branch=fix_someip_array_parsing#8d0a5a5d61604d559970ef4d6a717ad536ece1fc"
 dependencies = [
  "byteorder",
  "log",
- "quick-xml 0.22.0",
+ "quick-xml 0.23.1",
  "regex",
  "thiserror",
  "ux",
