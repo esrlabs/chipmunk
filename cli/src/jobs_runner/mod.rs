@@ -7,7 +7,10 @@ pub use job_definition::JobDefinition;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 
 use crate::{
-    checksum_records::ChecksumRecords, job_type::JobType, spawner::SpawnResult, target::Target,
+    checksum_records::{ChecksumCompareResult, ChecksumRecords},
+    job_type::JobType,
+    spawner::SpawnResult,
+    target::Target,
     tracker::get_tracker,
 };
 
@@ -43,11 +46,17 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
 
     let (tx, mut rx) = unbounded_channel::<(JobDefinition, Result<SpawnResult>)>();
 
-    let mut skipped_map = BTreeMap::new();
+    let mut checksum_compare_map = BTreeMap::new();
     let mut failed_jobs = Vec::new();
 
     // Spawn free job at first
-    spawn_jobs(tx.clone(), &mut jobs_status, &mut skipped_map, &failed_jobs).await?;
+    spawn_jobs(
+        tx.clone(),
+        &mut jobs_status,
+        &mut checksum_compare_map,
+        &failed_jobs,
+    )
+    .await?;
 
     let mut results = Vec::new();
 
@@ -90,7 +99,13 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
         }
 
         // Spawn more jobs after updating jobs_status tree.
-        spawn_jobs(tx.clone(), &mut jobs_status, &mut skipped_map, &failed_jobs).await?;
+        spawn_jobs(
+            tx.clone(),
+            &mut jobs_status,
+            &mut checksum_compare_map,
+            &failed_jobs,
+        )
+        .await?;
     }
 
     Ok(results)
@@ -100,7 +115,7 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
 async fn spawn_jobs(
     sender: UnboundedSender<(JobDefinition, Result<SpawnResult>)>,
     jobs_status: &mut BTreeMap<JobDefinition, JobPhase>,
-    skipped_map: &mut BTreeMap<Target, bool>,
+    checksum_compare_map: &mut BTreeMap<Target, ChecksumCompareResult>,
     failed_jobs: &[Target],
 ) -> Result<()> {
     for (job_def, phase) in jobs_status.iter_mut() {
@@ -118,8 +133,8 @@ async fn spawn_jobs(
                 true
             }
             // Check if target is already registered and checked
-            else if let Some(skip) = skipped_map.get(&job_def.target) {
-                *skip
+            else if let Some(&chksm_compare) = checksum_compare_map.get(&job_def.target) {
+                chksm_compare == ChecksumCompareResult::Same
             } else {
                 // Calculate target checksums and compare it the persisted one
                 let prod = job_def.job_type.is_production().is_some_and(|prod| prod);
@@ -127,15 +142,14 @@ async fn spawn_jobs(
                 checksum_rec.register_job(job_def.target)?;
 
                 // Check if all dependent jobs are skipped, then do the checksum calculations
-                if job_def
-                    .target
-                    .deps()
-                    .iter()
-                    .all(|dep| skipped_map.get(dep).is_some_and(|skip| *skip))
-                {
-                    let calc_skip = !checksum_rec.check_changed(job_def.target)?;
-                    skipped_map.insert(job_def.target, calc_skip);
-                    calc_skip
+                if job_def.target.deps().iter().all(|dep| {
+                    checksum_compare_map
+                        .get(dep)
+                        .is_some_and(|&chksm| chksm == ChecksumCompareResult::Same)
+                }) {
+                    let chksm_compare = checksum_rec.compare_checksum(job_def.target)?;
+                    checksum_compare_map.insert(job_def.target, chksm_compare);
+                    chksm_compare == ChecksumCompareResult::Same
                 } else {
                     false
                 }

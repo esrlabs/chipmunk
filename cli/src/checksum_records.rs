@@ -25,6 +25,14 @@ struct ChecksumItems {
     involved_targets: BTreeSet<Target>,
 }
 
+/// Represents the comparison's result between the saved Checksum and the calculate one for the
+/// build target
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ChecksumCompareResult {
+    Same,
+    Changed,
+}
+
 impl ChecksumRecords {
     /// Update checksum records for involved jobs depending on the job type.
     /// It will calculate new checksums if build tasks were involved.
@@ -74,7 +82,7 @@ impl ChecksumRecords {
         // differentiate between development and production.
         if matches!(job_type, JobType::Clean) {
             let prod_records =
-                Self::load(true).context("Error while loading production recoreds")?;
+                Self::load(true).context("Error while loading production records")?;
 
             let dev_items = records
                 .items
@@ -173,8 +181,11 @@ impl ChecksumRecords {
     }
 
     /// Calculate the current checksum for the given target and compare it to the saved one.
+    ///
+    /// # Panics
+    ///
     /// This method panics if the provided target isn't registered
-    pub fn check_changed(&self, target: Target) -> anyhow::Result<bool> {
+    pub fn compare_checksum(&self, target: Target) -> anyhow::Result<ChecksumCompareResult> {
         let items = self
             .items
             .lock()
@@ -183,12 +194,20 @@ impl ChecksumRecords {
         assert!(items.involved_targets.contains(&target));
         let saved_hash = match items.map.get(&target) {
             Some(hash) => hash,
-            None => return Ok(true),
+            // If there is no existing checksum to compare with, then the checksums state has
+            // changed.
+            None => return Ok(ChecksumCompareResult::Changed),
         };
 
         let current_hash = Self::calc_hash_for_target(&target)?;
 
-        Ok(current_hash != *saved_hash)
+        let comparison = if current_hash == *saved_hash {
+            ChecksumCompareResult::Same
+        } else {
+            ChecksumCompareResult::Changed
+        };
+
+        Ok(comparison)
     }
 
     fn calc_hash_for_target(target: &Target) -> anyhow::Result<HashDigest> {
