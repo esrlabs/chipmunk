@@ -24,15 +24,15 @@ export class Implementation extends Render<Columns> {
             desc: 'The Length-Field',
         },
         {
-            caption: 'CLIT',
+            caption: 'CLID',
             desc: 'The Client-ID',
         },
         {
-            caption: 'SESN',
+            caption: 'SEID',
             desc: 'The Session-ID',
         },
         {
-            caption: 'IFVR',
+            caption: 'IVER',
             desc: 'The Interface-Version',
         },
         {
@@ -40,8 +40,8 @@ export class Implementation extends Render<Columns> {
             desc: 'The Message-Type',
         },
         {
-            caption: 'RETP',
-            desc: 'The Return-Type',
+            caption: 'RETC',
+            desc: 'The Return-Code',
         },
         {
             caption: 'PAYLOAD',

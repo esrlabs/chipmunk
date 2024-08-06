@@ -306,7 +306,7 @@ describe('Observe', function () {
                                     '2', // Message-Type
                                     '0', // Return-Type
                                     /* Payload */
-                                    'Flags: [C0], Offer 123 v1.0 Inst 1 Ttl 3 UDP 192.168.178.58:30000 TCP 192.168.178.58:30000',
+                                    'Flags [C0], Offer 123 v1.0 Inst 1 Ttl 3 UDP 192.168.178.58:30000 TCP 192.168.178.58:30000',
                                 ]);
                                 expect(result[3].content.split('\u0004')).toEqual([
                                     'RPC',
@@ -320,7 +320,7 @@ describe('Observe', function () {
                                     '2', // Message-Type
                                     '0', // Return-Type
                                     /* Payload */
-                                    'Bytes: [00, 00, 01, 88, 01, C3, C4, 1D]',
+                                    '[00, 00, 01, 88, 01, C3, C4, 1D]',
                                 ]);
                                 logger.debug('result of grab was: ' + JSON.stringify(result));
                                 finish(comps.session, done);
@@ -388,7 +388,7 @@ describe('Observe', function () {
                                     '2', // Message-Type
                                     '0', // Return-Type
                                     /* Payload */
-                                    'Flags: [C0], Offer 123 v1.0 Inst 1 Ttl 3 UDP 192.168.178.58:30000 TCP 192.168.178.58:30000',
+                                    'Flags [C0], Offer 123 v1.0 Inst 1 Ttl 3 UDP 192.168.178.58:30000 TCP 192.168.178.58:30000',
                                 ]);
                                 expect(result[3].content.split('\u0004')).toEqual([
                                     'RPC',
@@ -470,7 +470,7 @@ describe('Observe', function () {
                                     '2', // Message-Type
                                     '0', // Return-Type
                                     /* Payload */
-                                    'Flags: [C0], Offer 123 v1.0 Inst 1 Ttl 3 UDP 192.168.178.58:30000 TCP 192.168.178.58:30000',
+                                    'Flags [C0], Offer 123 v1.0 Inst 1 Ttl 3 UDP 192.168.178.58:30000 TCP 192.168.178.58:30000',
                                 ]);
                                 expect(result[3].content.split('\u0004')).toEqual([
                                     'RPC',
@@ -484,7 +484,7 @@ describe('Observe', function () {
                                     '2', // Message-Type
                                     '0', // Return-Type
                                     /* Payload */
-                                    'Bytes: [00, 00, 01, 88, 01, C3, C4, 1D]',
+                                    '[00, 00, 01, 88, 01, C3, C4, 1D]',
                                 ]);
                                 logger.debug('result of grab was: ' + JSON.stringify(result));
                                 finish(comps.session, done);
@@ -552,7 +552,7 @@ describe('Observe', function () {
                                     '2', // Message-Type
                                     '0', // Return-Type
                                     /* Payload */
-                                    'Flags: [C0], Offer 123 v1.0 Inst 1 Ttl 3 UDP 192.168.178.58:30000 TCP 192.168.178.58:30000',
+                                    'Flags [C0], Offer 123 v1.0 Inst 1 Ttl 3 UDP 192.168.178.58:30000 TCP 192.168.178.58:30000',
                                 ]);
                                 expect(result[3].content.split('\u0004')).toEqual([
                                     'RPC',
@@ -567,6 +567,152 @@ describe('Observe', function () {
                                     '0', // Return-Type
                                     /* Payload */
                                     'TestService::timeEvent {timestamp(INT64):1683656786973,}',
+                                ]);
+                                logger.debug('result of grab was: ' + JSON.stringify(result));
+                                finish(comps.session, done);
+                            })
+                            .catch((err: Error) => {
+                                finish(
+                                    comps.session,
+                                    done,
+                                    new Error(
+                                        `Fail to grab data due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                );
+                            });
+                    });
+        });
+    });
+
+    it(config.regular.list[9], function () {
+        return runners.withSession(config.regular, 9, async (logger, done, comps) => {
+                    comps.stream
+                        .observe(
+                            new Factory.File()
+                                .type(Factory.FileType.Binary)
+                                .file(config.regular.files['someip-dlt'])
+                                .asDlt({
+                                    filter_config: undefined,
+                                    fibex_file_paths: [],
+                                    with_storage_header: true,
+                                    tz: undefined,
+                                })
+                                .get()
+                                .sterilized(),
+                        )
+                        .catch(finish.bind(null, comps.session, done));
+                    let grabbing: boolean = false;
+                    let received: number = 0;
+                    const timeout = setTimeout(() => {
+                        finish(
+                            comps.session,
+                            done,
+                            new Error(
+                                `Failed because timeout. Waited for at least 55 rows. Has been gotten: ${received}`,
+                            ),
+                        );
+                    }, 20000);
+                    comps.events.StreamUpdated.subscribe((rows: number) => {
+                        received = rows;
+                        if (rows < 6 || grabbing) {
+                            return;
+                        }
+                        clearTimeout(timeout);
+                        grabbing = true;
+                        comps.stream
+                            .grab(0, 6)
+                            .then((result: IGrabbedElement[]) => {
+                                expect(result.length).toEqual(6);
+                                expect(result[0].content.split('\u0004')).toEqual([
+                                    '2024-02-20T13:17:26.713537000Z', 'ECU1', '1', '571', '204', '28138506', 'ECU1', 'APP1', 'C1', 'IPC',
+                                    'SOME/IP RPC SERV:123 METH:32773 LENG:16 CLID:0 SEID:58252 IVER:1 MSTP:2 RETC:0 [00, 00, 01, 88, 01, C3, C4, 1D]',
+                                ]);
+                                expect(result[5].content.split('\u0004')).toEqual([
+                                    '2024-02-20T13:17:26.713537000Z', 'ECU1', '1', '571', '209', '28138506', 'ECU1', 'APP1', 'C1', 'IPC',
+                                    'SOME/IP \'Parse error: Not enough data: min: 25, actual: 24\' [00, 7B, 80, 05, 00, 00, 00, 11, 00, 00, E3, 8C, 01, 01, 02, 00, 00, 00, 01, 88, 01, C3, C4, 1D]',
+                                ]);
+                                logger.debug('result of grab was: ' + JSON.stringify(result));
+                                finish(comps.session, done);
+                            })
+                            .catch((err: Error) => {
+                                finish(
+                                    comps.session,
+                                    done,
+                                    new Error(
+                                        `Fail to grab data due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                );
+                            });
+                    });
+        });
+    });
+
+    it(config.regular.list[10], function () {
+        return runners.withSession(config.regular, 10, async (logger, done, comps) => {
+                    comps.stream
+                        .observe(
+                            new Factory.File()
+                                .type(Factory.FileType.Binary)
+                                .file(config.regular.files['someip-dlt'])
+                                .asDlt({
+                                    filter_config: undefined,
+                                    fibex_file_paths: [config.regular.files['someip-fibex']],
+                                    with_storage_header: true,
+                                    tz: undefined,
+                                })
+                                .get()
+                                .sterilized(),
+                        )
+                        .catch(finish.bind(null, comps.session, done));
+                    let grabbing: boolean = false;
+                    let received: number = 0;
+                    const timeout = setTimeout(() => {
+                        finish(
+                            comps.session,
+                            done,
+                            new Error(
+                                `Failed because timeout. Waited for at least 55 rows. Has been gotten: ${received}`,
+                            ),
+                        );
+                    }, 20000);
+                    comps.events.StreamUpdated.subscribe((rows: number) => {
+                        received = rows;
+                        if (rows < 6 || grabbing) {
+                            return;
+                        }
+                        clearTimeout(timeout);
+                        grabbing = true;
+                        comps.stream
+                            .grab(0, 6)
+                            .then((result: IGrabbedElement[]) => {
+                                expect(result.length).toEqual(6);
+                                expect(result[0].content.split('\u0004')).toEqual([
+                                    '2024-02-20T13:17:26.713537000Z', 'ECU1', '1', '571', '204', '28138506', 'ECU1', 'APP1', 'C1', 'IPC',
+                                    'SOME/IP RPC SERV:123 METH:32773 LENG:16 CLID:0 SEID:58252 IVER:1 MSTP:2 RETC:0 TestService::timeEvent {timestamp(INT64):1683656786973,}',
+                                ]);
+                                expect(result[1].content.split('\u0004')).toEqual([
+                                    '2024-02-20T13:17:26.713537000Z', 'ECU1', '1', '571', '205', '28138506', 'ECU1', 'APP1', 'C1', 'IPC',
+                                    'SOME/IP RPC SERV:124 METH:32773 LENG:16 CLID:0 SEID:58252 IVER:1 MSTP:2 RETC:0 UnknownService [00, 00, 01, 88, 01, C3, C4, 1D]',
+                                ]);
+                                expect(result[2].content.split('\u0004')).toEqual([
+                                    '2024-02-20T13:17:26.713537000Z', 'ECU1', '1', '571', '206', '28138506', 'ECU1', 'APP1', 'C1', 'IPC',
+                                    'SOME/IP RPC SERV:123 METH:32773 LENG:16 CLID:0 SEID:58252 IVER:3 MSTP:2 RETC:0 TestService<1?>::timeEvent {timestamp(INT64):1683656786973,}',
+                                ]);
+                                expect(result[3].content.split('\u0004')).toEqual([
+                                    '2024-02-20T13:17:26.713537000Z', 'ECU1', '1', '571', '207', '28138506', 'ECU1', 'APP1', 'C1', 'IPC',
+                                    'SOME/IP RPC SERV:123 METH:32774 LENG:16 CLID:0 SEID:58252 IVER:1 MSTP:2 RETC:0 TestService::UnknownMethod [00, 00, 01, 88, 01, C3, C4, 1D]',
+                                ]);
+                                expect(result[4].content.split('\u0004')).toEqual([
+                                    '2024-02-20T13:17:26.713537000Z', 'ECU1', '1', '571', '208', '28138506', 'ECU1', 'APP1', 'C1', 'IPC',
+                                    'SOME/IP RPC SERV:123 METH:32773 LENG:15 CLID:0 SEID:58252 IVER:1 MSTP:2 RETC:0 TestService::timeEvent \'SOME/IP Error: Parser exhausted at offset 0 for Object size 8\' [00, 00, 01, 88, 01, C3, C4]',
+                                ]);
+                                expect(result[5].content.split('\u0004')).toEqual([
+                                    '2024-02-20T13:17:26.713537000Z', 'ECU1', '1', '571', '209', '28138506', 'ECU1', 'APP1', 'C1', 'IPC',
+                                    'SOME/IP \'Parse error: Not enough data: min: 25, actual: 24\' [00, 7B, 80, 05, 00, 00, 00, 11, 00, 00, E3, 8C, 01, 01, 02, 00, 00, 00, 01, 88, 01, C3, C4, 1D]',
                                 ]);
                                 logger.debug('result of grab was: ' + JSON.stringify(result));
                                 finish(comps.session, done);

@@ -36,7 +36,13 @@ pub async fn scan_dlt_ft(
         Ok(input) => {
             let reader = BufReader::new(&input);
             let source = BinaryByteSource::new(reader);
-            let parser = DltParser::new(filter.map(|f| f.into()), None, None, with_storage_header);
+            let parser = DltParser::new(
+                filter.map(|f| f.into()),
+                None,
+                None,
+                None,
+                with_storage_header,
+            );
             let mut producer = MessageProducer::new(parser, source, None);
             let stream = producer.as_stream();
             pin_mut!(stream);

@@ -5,7 +5,8 @@
         "observe": {
             "regular": {
                 /* With numbers you can define, which tests should be executed. "execute_only": [1, 3] will run ONLY tests 1 and 3*/
-                "execute_only": [1, 4, 5, 6, 7, 8],
+                /* If "execute_only" isn't empty, all performance tests will be ignored*/
+                "execute_only": [1, 4, 5, 6, 7, 8, 9, 10],
                 "list": {
                     "1": "Test 1. Observe and grab content (text)",
                     "2": "Test 2. Observe and grab content (pcapng)",
@@ -14,13 +15,16 @@
                     "5": "Test 5. Observe and grab content (someip from pcapng)",
                     "6": "Test 6. Observe and grab content (someip from pcapng with fibex)",
                     "7": "Test 7. Observe and grab content (someip from pcap)",
-                    "8": "Test 8. Observe and grab content (someip from pcap with fibex)"
+                    "8": "Test 8. Observe and grab content (someip from pcap with fibex)",
+                    "9": "Test 9. Observe and grab content (someip from dlt)",
+                    "10": "Test 10. Observe and grab content (someip from dlt with fibex)"
                 },
                 "files": {
                     "attachments": "../../../../application/developing/resources/attachments.dlt",
                     "someip-pcapng": "../../../../application/developing/resources/someip.pcapng",
                     "someip-pcap": "../../../../application/developing/resources/someip.pcap",
-                    "someip-fibex": "../../../../application/developing/resources/someip.xml"
+                    "someip-fibex": "../../../../application/developing/resources/someip.xml",
+                    "someip-dlt": "../../../../application/developing/resources/someip.dlt"
                 }
             }
         },

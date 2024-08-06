@@ -11,6 +11,7 @@
 // from E.S.R.Labs.
 
 //! # Formatting dlt messages as text
+use crate::someip::{FibexMetadata as FibexSomeipMetadata, SomeipParser};
 use chrono::prelude::{DateTime, Utc};
 use chrono_tz::Tz;
 use dlt_core::{
@@ -19,7 +20,7 @@ use dlt_core::{
         NetworkTraceType, PayloadContent, StandardHeader, StorageHeader, StringCoding, TypeInfo,
         TypeInfoKind, Value,
     },
-    fibex::{extract_metadata, FibexMetadata},
+    fibex::{extract_metadata, FibexMetadata as FibexDltMetadata},
     parse::construct_arguments,
     service_id::service_id_lookup,
 };
@@ -196,7 +197,8 @@ impl From<Option<&String>> for FormatOptions {
 /// A dlt message that can be formatted with optional FIBEX data support
 pub struct FormattableMessage<'a> {
     pub message: Message,
-    pub fibex_metadata: Option<&'a FibexMetadata>,
+    pub fibex_dlt_metadata: Option<&'a FibexDltMetadata>,
+    pub fibex_someip_metadata: Option<&'a FibexSomeipMetadata>,
     pub options: Option<&'a FormatOptions>,
 }
 
@@ -281,6 +283,17 @@ impl<'a> Serialize for FormattableMessage<'a> {
                     None => state.serialize_field("payload", "[Unknown CtrlCommand]")?,
                 }
             }
+            PayloadContent::NetworkTrace(slices) => {
+                state.serialize_field("app-id", &ext_header_app_id)?;
+                state.serialize_field("context-id", &ext_header_context_id)?;
+                state.serialize_field("message-type", &ext_header_msg_type)?;
+                let arg_string = slices
+                    .iter()
+                    .map(|slice| format!("{:02X?}", slice))
+                    .collect::<Vec<String>>()
+                    .join("|");
+                state.serialize_field("payload", &arg_string)?;
+            }
         }
         state.end()
     }
@@ -290,7 +303,8 @@ impl<'a> From<Message> for FormattableMessage<'a> {
     fn from(message: Message) -> Self {
         FormattableMessage {
             message,
-            fibex_metadata: None,
+            fibex_dlt_metadata: None,
+            fibex_someip_metadata: None,
             options: None,
         }
     }
@@ -386,6 +400,19 @@ impl<'a> FormattableMessage<'a> {
                     payload_string,
                 ))
             }
+            PayloadContent::NetworkTrace(slices) => {
+                let payload_string = slices
+                    .iter()
+                    .map(|slice| format!("{:02X?}", slice))
+                    .collect::<Vec<String>>()
+                    .join("|");
+                Ok(PrintableMessage::new(
+                    ext_h_app_id,
+                    eh_ctx_id,
+                    ext_h_msg_type,
+                    payload_string,
+                ))
+            }
         }
     }
 
@@ -462,7 +489,7 @@ impl<'a> FormattableMessage<'a> {
     }
 
     fn info_from_metadata<'b>(&'b self, id: u32, data: &[u8]) -> Option<NonVerboseInfo<'b>> {
-        let fibex = self.fibex_metadata?;
+        let fibex = self.fibex_dlt_metadata?;
         let md = extract_metadata(fibex, id, self.message.extended_header.as_ref())?;
         let msg_type: Option<MessageType> = message_type(&self.message, md.message_info.as_deref());
         let app_id = md.application_id.as_deref().or_else(|| {
@@ -558,6 +585,37 @@ impl<'a> fmt::Display for FormattableMessage<'a> {
                     Some((name, _desc)) => write!(f, "[{name}]"),
                     None => write!(f, "[Unknown CtrlCommand]"),
                 }
+            }
+            PayloadContent::NetworkTrace(slices) => {
+                self.write_app_id_context_id_and_message_type(f)?;
+
+                if self
+                    .message
+                    .extended_header
+                    .as_ref()
+                    .is_some_and(|ext_header| {
+                        matches!(
+                            ext_header.message_type,
+                            MessageType::NetworkTrace(NetworkTraceType::Ipc)
+                                | MessageType::NetworkTrace(NetworkTraceType::Someip)
+                        )
+                    })
+                {
+                    if let Some(slice) = slices.get(1) {
+                        match SomeipParser::parse_message(self.fibex_someip_metadata, slice, None) {
+                            Ok((_, message)) => {
+                                return write!(f, "SOME/IP {:?}", message);
+                            }
+                            Err(error) => {
+                                return write!(f, "SOME/IP '{}' {:02X?}", error, slice);
+                            }
+                        }
+                    }
+                }
+
+                slices
+                    .iter()
+                    .try_for_each(|slice| write!(f, "{}{:02X?}", DLT_ARGUMENT_SENTINAL, slice))
             }
         }
     }

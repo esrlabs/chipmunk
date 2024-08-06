@@ -1,16 +1,19 @@
 pub mod attachment;
 pub mod fmt;
 
-use crate::{dlt::fmt::FormattableMessage, Error, LogMessage, ParseYield, Parser};
+use crate::{
+    dlt::fmt::FormattableMessage, someip::FibexMetadata as FibexSomeipMetadata, Error, LogMessage,
+    ParseYield, Parser,
+};
 use byteorder::{BigEndian, WriteBytesExt};
+use dlt_core::{
+    dlt,
+    parse::{dlt_consume_msg, dlt_message},
+};
 pub use dlt_core::{
     dlt::LogLevel,
-    fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
+    fibex::{gather_fibex_data, FibexConfig, FibexMetadata as FibexDltMetadata},
     filtering::{DltFilterConfig, ProcessedDltFilterConfig},
-};
-use dlt_core::{
-    dlt::{self},
-    parse::{dlt_consume_msg, dlt_message},
 };
 use serde::Serialize;
 use std::{io::Write, ops::Range};
@@ -67,10 +70,11 @@ impl LogMessage for RawMessage {
 #[derive(Default)]
 pub struct DltParser<'m> {
     pub filter_config: Option<ProcessedDltFilterConfig>,
-    pub fibex_metadata: Option<&'m FibexMetadata>,
+    pub fibex_dlt_metadata: Option<&'m FibexDltMetadata>,
     pub fmt_options: Option<&'m FormatOptions>,
     pub with_storage_header: bool,
     ft_scanner: FtScanner,
+    fibex_someip_metadata: Option<&'m FibexSomeipMetadata>,
     offset: usize,
 }
 
@@ -100,16 +104,18 @@ impl DltRangeParser {
 impl<'m> DltParser<'m> {
     pub fn new(
         filter_config: Option<ProcessedDltFilterConfig>,
-        fibex_metadata: Option<&'m FibexMetadata>,
+        fibex_dlt_metadata: Option<&'m FibexDltMetadata>,
         fmt_options: Option<&'m FormatOptions>,
+        fibex_someip_metadata: Option<&'m FibexSomeipMetadata>,
         with_storage_header: bool,
     ) -> Self {
         Self {
             filter_config,
-            fibex_metadata,
+            fibex_dlt_metadata,
             with_storage_header,
             fmt_options,
             ft_scanner: FtScanner::new(),
+            fibex_someip_metadata,
             offset: 0,
         }
     }
@@ -141,8 +147,9 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
 
                 let msg = FormattableMessage {
                     message: msg_with_storage_header,
-                    fibex_metadata: self.fibex_metadata,
+                    fibex_dlt_metadata: self.fibex_dlt_metadata,
                     options: self.fmt_options,
+                    fibex_someip_metadata: self.fibex_someip_metadata,
                 };
                 self.offset += input.len() - rest.len();
                 Ok((
