@@ -37,7 +37,12 @@ fn job_to_dot_string(job_def: &JobDefinition) -> String {
         JobType::Install { production: _ } => "Install",
         JobType::Build { production: _ } => "Build",
         JobType::AfterBuild { production: _ } => "After Build (Copy & Reinstall)",
-        _ => unreachable!("Only build-related jobs are included in dot print"),
+        JobType::Clean
+        | JobType::Lint
+        | JobType::Test { production: _ }
+        | JobType::Run { production: _ } => {
+            unreachable!("Only build-related jobs are included in dot print")
+        }
     };
 
     format!("{}: {job_type}", job_def.target)

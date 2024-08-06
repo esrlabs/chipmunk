@@ -30,24 +30,31 @@ pub fn resolve(
             .filter(|j| is_job_involved(&target, j, &main_job))
         {
             // Start with dependencies from other targets (Applies for Build & Install jobs only)
-            // Install jobs are involved here too because copying the files in the after build
-            // process could delete the current files.
-            let mut dep_jobs = if matches!(
-                job,
-                JobType::Build { production: _ } | JobType::Install { production: _ }
-            ) {
-                let deps = flatten_targets_for_build(target.deps().as_slice());
+            let mut dep_jobs = match job {
+                // Install jobs are involved here too because copying the files in the after build
+                // process could delete the current files.
+                JobType::Build { production: _ } | JobType::Install { production: _ } => {
+                    let deps = flatten_targets_for_build(target.deps().as_slice());
 
-                jobs_tree
-                    .keys()
-                    .filter(|job_def| deps.contains(&job_def.target))
-                    .cloned()
-                    .collect()
-            } else {
-                Vec::new()
+                    // Jobs of the dependencies are already included in the jobs tree because we
+                    // are iterating through targets and jobs in the matching order of their
+                    // dependencies relations.
+                    jobs_tree
+                        .keys()
+                        .filter(|job_def| deps.contains(&job_def.target))
+                        .cloned()
+                        .collect()
+                }
+
+                // Other job types doesn't have dependencies
+                JobType::Clean
+                | JobType::AfterBuild { production: _ }
+                | JobType::Lint
+                | JobType::Test { production: _ }
+                | JobType::Run { production: _ } => Vec::new(),
             };
 
-            // Add dependencies from the same target
+            // Add dependencies jobs from the same target
             // NOTE: This relays on that JobType enums are listed in the current order
             dep_jobs.extend(
                 jobs_tree
@@ -168,7 +175,11 @@ fn is_job_involved(target: &Target, current_job: &JobType, main_job: &JobType) -
                     false
                 }
             },
-            _ => true,
+            JobType::Clean
+            | JobType::Install { production: _ }
+            | JobType::Build { production: _ }
+            | JobType::AfterBuild { production: _ }
+            | JobType::Run { production: _ } => true,
         }
     };
 

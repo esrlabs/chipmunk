@@ -64,12 +64,15 @@ impl JobType {
 
     /// Returns if the job type is part of the build process (install, build, or after build)
     pub fn is_part_of_build(&self) -> bool {
-        matches!(
-            self,
+        match self {
             JobType::Install { production: _ }
-                | JobType::Build { production: _ }
-                | JobType::AfterBuild { production: _ }
-        )
+            | JobType::Build { production: _ }
+            | JobType::AfterBuild { production: _ } => true,
+            JobType::Clean
+            | JobType::Lint
+            | JobType::Test { production: _ }
+            | JobType::Run { production: _ } => false,
+        }
     }
 }
 

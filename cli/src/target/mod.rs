@@ -232,17 +232,32 @@ impl Target {
     pub fn has_job(&self, job_type: &JobType) -> bool {
         match job_type {
             JobType::Lint | JobType::Clean | JobType::Build { production: _ } => true,
-            JobType::Install { production: _ } => {
-                matches!(
-                    self,
-                    Target::Binding | Target::Client | Target::Shared | Target::App | Target::Wasm
-                )
-            }
-            JobType::AfterBuild { production: _ } => matches!(self, Target::Binding | Target::App),
-            JobType::Test { production: _ } => matches!(
-                self,
-                Target::Wrapper | Target::Core | Target::Cli | Target::Wasm
-            ),
+
+            JobType::Install { production: _ } => match self {
+                Target::Binding | Target::Client | Target::Shared | Target::App | Target::Wasm => {
+                    true
+                }
+                Target::Core | Target::Wrapper | Target::Updater | Target::Cli => false,
+            },
+
+            JobType::AfterBuild { production: _ } => match self {
+                Target::Binding | Target::App => true,
+                Target::Core
+                | Target::Shared
+                | Target::Wrapper
+                | Target::Wasm
+                | Target::Client
+                | Target::Updater
+                | Target::Cli => false,
+            },
+            JobType::Test { production: _ } => match self {
+                Target::Wrapper | Target::Core | Target::Cli | Target::Wasm => true,
+                Target::Shared
+                | Target::Binding
+                | Target::Client
+                | Target::Updater
+                | Target::App => false,
+            },
             JobType::Run { production: _ } => false,
         }
     }
@@ -312,7 +327,12 @@ impl Target {
             Target::Core => Some(core::get_test_cmds(production)),
             Target::Cli => Some(cli::get_test_cmds(production)),
             Target::Wasm => Some(wasm::get_test_cmds()),
-            _ => None,
+            Target::Shared
+            | Target::Binding
+            | Target::Wrapper
+            | Target::Client
+            | Target::Updater
+            | Target::App => None,
         }
     }
 
@@ -431,7 +451,13 @@ impl Target {
                     fs::remove_file(index_node_path).await?;
                 }
             }
-            _ => {}
+            Target::Core
+            | Target::Shared
+            | Target::Binding
+            | Target::Client
+            | Target::Updater
+            | Target::App
+            | Target::Cli => {}
         }
 
         for path in paths_to_remove.into_iter().filter(|p| p.exists()) {
@@ -509,7 +535,13 @@ impl Target {
         let after_res = match self {
             Target::Binding => binding::copy_index_node(job_def).await,
             Target::App => app::copy_client_to_app(job_def).await,
-            _ => return None,
+            Target::Core
+            | Target::Shared
+            | Target::Wrapper
+            | Target::Wasm
+            | Target::Client
+            | Target::Updater
+            | Target::Cli => return None,
         };
 
         match (after_res, reinstall_res) {
