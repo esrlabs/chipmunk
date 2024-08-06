@@ -4,8 +4,8 @@ use crate::{job_type::JobType, target::Target};
 
 use super::JobDefinition;
 
-/// Resolve tasks dependcies for the given targets and job,
-/// returning dependcies map for the tasks
+/// Resolve tasks dependencies for the given targets and job,
+/// returning dependencies map for the tasks
 pub fn resolve(
     targets: &[Target],
     main_job: JobType,
@@ -109,23 +109,70 @@ fn flatten_targets_for_build(targets: &[Target]) -> BTreeSet<Target> {
 }
 
 /// Check if job involved depending if the target has a job for the current job type + Additional
-/// filter based on the main job type (Currently used because TS linting require all build steps)
+/// filter based on the main job type.
+/// The additional filter is currently used because linting and running tests on TS and WASM targets
+/// require all build steps to be done on them and their dependencies.
 ///
 /// * `target`: Job Target
 /// * `current_job`: Current job type to check if it has job for the given target
 /// * `main_job`: Main job type, which is used for the additional filter
 fn is_job_involved(target: &Target, current_job: &JobType, main_job: &JobType) -> bool {
-    let additional_filter = match (main_job, target) {
-        // For linting TS targets we need to build all their dependencies targets that have impact
-        // on building TS. Therefore we can exclude Core and CLI and Updater only.
-        // Rust Linting doesn't need build and need to be excluded in the additional filter.
-        (JobType::Lint, Target::Core | Target::Cli | Target::Updater) => {
-            matches!(current_job, JobType::Lint)
+    // This filter handle the special cases of adding build steps for TS and WASM lints and tests
+    // and remove those jobs from the not involved targets
+    let additional_filter = || {
+        match main_job {
+            // Linting for TS and WASM targets inquire that those targets are built
+            JobType::Lint => match target {
+                // Linting for Rust targets doesn't need any build and must be excluded in the additional filter.
+                Target::Core | Target::Cli | Target::Updater => {
+                    matches!(current_job, JobType::Lint)
+                }
+                // TS and Bindings targets need to be built with all their dependencies to perform the
+                // needed type checks on TypeScript
+                Target::Shared
+                | Target::Binding
+                | Target::Wrapper
+                | Target::Wasm
+                | Target::Client
+                | Target::App => true,
+            },
+
+            // Tests for TS and WASM targets inquire that those targets are built
+            JobType::Test { production: _ } => match target {
+                // Running tests for rust jobs doesn't inquire running build on them.
+                Target::Core | Target::Cli | Target::Updater => {
+                    matches!(current_job, JobType::Test { production: _ })
+                }
+
+                // Only TS and WASM Bindings have tests that inquire running build on them and their dependencies
+                // before running the actual tests.
+                Target::Wrapper | Target::Wasm => true,
+
+                // Shared and Bindings don't have tests but they should be built for Wrapper and Wasm
+                // tests
+                Target::Shared | Target::Binding => {
+                    assert!(
+                        !matches!(current_job, JobType::Test { production: _ }),
+                        "Shared and Bindings targets don't have test jobs currently"
+                    );
+                    true
+                }
+
+                // Client and App doesn't have tests and they are not dependencies other TS and WASM
+                // targets.
+                Target::Client | Target::App => {
+                    assert!(
+                        !matches!(current_job, JobType::Test { production: _ }),
+                        "Client and App targets don't have test jobs currently"
+                    );
+                    false
+                }
+            },
+            _ => true,
         }
-        _ => true,
     };
 
-    additional_filter && target.has_job(current_job)
+    target.has_job(current_job) && additional_filter()
 }
 
 #[cfg(test)]
@@ -242,19 +289,10 @@ mod tests {
     #[test]
     fn resolve_test_core() {
         let production = false;
-        let expected = BTreeMap::from([
-            (
-                JobDefinition::new(Target::Core, JobType::Build { production }),
-                vec![],
-            ),
-            (
-                JobDefinition::new(Target::Core, JobType::Test { production }),
-                vec![JobDefinition::new(
-                    Target::Core,
-                    JobType::Build { production: false },
-                )],
-            ),
-        ]);
+        let expected = BTreeMap::from([(
+            JobDefinition::new(Target::Core, JobType::Test { production }),
+            vec![],
+        )]);
 
         assert_eq!(
             expected,

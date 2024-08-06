@@ -52,6 +52,7 @@ impl JobType {
                     production: *production,
                 },
             ],
+            // Only TS and WASM Tests need to build before running the tests
             JobType::Run { production } | JobType::Test { production } => vec![JobType::Build {
                 production: *production,
             }],
