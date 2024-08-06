@@ -118,7 +118,7 @@ impl ChecksumRecords {
 
         let items = if file_path.exists() {
             let file_content = fs::read_to_string(file_path)?;
-            let map = Self::parse_hashes(file_content)?;
+            let map = Self::parse_hashes(&file_content)?;
             ChecksumItems {
                 map,
                 involved_targets: BTreeSet::new(),
@@ -157,7 +157,7 @@ impl ChecksumRecords {
         Ok(())
     }
 
-    fn parse_hashes(text: String) -> anyhow::Result<BTreeMap<Target, HashDigest>> {
+    fn parse_hashes(text: &str) -> anyhow::Result<BTreeMap<Target, HashDigest>> {
         let mut hashes = BTreeMap::new();
 
         for (target, hash) in text.lines().filter_map(|line| line.split_once(':')) {

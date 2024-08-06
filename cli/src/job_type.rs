@@ -1,8 +1,11 @@
 use std::fmt::Display;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-//NOTE: The order of job types must match the running-order of them because it's used by
+// * NOTE: The order of job types must match the running-order of them because it's used by
 // solving their dependencies-graph using BTreeMap
+//
+// * NOTE: We provide all job types in match arms without using wild-card matching nor
+// `matches!()` macro to keep the compiler assistance when adding new job types.
 pub enum JobType {
     Clean,
     Install { production: bool },
